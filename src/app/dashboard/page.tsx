@@ -5,6 +5,8 @@ import Link from 'next/link';
 import PomodoroTimer from '@/components/pomodoro-timer';
 import SubjectCard from '@/components/subject-card';
 import CreateSubjectModal from '@/components/create-subject-modal';
+import SimulationPanel from '@/components/simulation-panel';
+import SubjectCardSkeleton from '@/components/subject-card-skeleton';
 import { useSidebar } from '@/lib/sidebar-context';
 import { 
   Menu, BookOpen, Clock, Flame, Award, Plus, ChevronRight, Sparkles, CheckCircle2 
@@ -13,23 +15,53 @@ import {
 interface Subject {
   name: string;
   color: "indigo" | "amber" | "emerald" | "rose" | "violet";
+  progress: number;
+  totalCards: number;
+  timeSpent: string;
+  accuracy: number;
 }
 
 export default function Dashboard() {
   const { openSidebar } = useSidebar();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Tornamos a lista de matérias um estado dinâmico para receber novos modais
+  // Lista de matérias 
   const [subjects, setSubjects] = useState<Subject[]>([
-    { name: "Português", color: "indigo" },
-    { name: "Raciocínio Lógico", color: "rose" },
-    { name: "Informática", color: "amber" },
-    { name: "Atualidades", color: "violet" },
+    { name: "Português", color: "indigo", progress: 35, totalCards: 12, timeSpent: "1h 20m", accuracy: 82 },
+    { name: "Raciocínio Lógico", color: "rose", progress: 10, totalCards: 4, timeSpent: "30min", accuracy: 65 },
+    { name: "Informática", color: "amber", progress: 60, totalCards: 28, timeSpent: "3h 10m", accuracy: 78 },
+    { name: "Atualidades", color: "violet", progress: 0, totalCards: 0, timeSpent: "0min", accuracy: 0 },
   ]);
 
   // Função disparada quando o modal envia uma nova disciplina
   const handleCreateSubject = (title: string, color: "indigo" | "amber" | "emerald" | "rose" | "violet") => {
-    setSubjects((prev) => [...prev, { name: title, color }]);
+    setSubjects((prev) => [...prev, { 
+      name: title, 
+      color,
+      progress: 0,
+      totalCards: 0,
+      timeSpent: "0min",
+      accuracy: 0
+    }]);
+  };
+
+  const simulateStudy = (subjectName: string) => {
+    setSubjects(prev => prev.map(sub => {
+      if (sub.name === subjectName) {
+        const nextProgress = Math.min(sub.progress + 15, 100);
+        const nextCards = sub.totalCards + 5;
+        const nextAccuracy = sub.accuracy === 0 ? 70 : Math.min(sub.accuracy + 2, 98);
+        return {
+          ...sub,
+          progress: nextProgress,
+          totalCards: nextCards,
+          timeSpent: "45min", // Apenas para ilustrar a mudança
+          accuracy: nextAccuracy
+        };
+      }
+      return sub;
+    }));
   };
 
   return (
@@ -177,20 +209,29 @@ export default function Dashboard() {
 
               {/* Renderização dinâmica utilizando o componente isolado */}
               <div className="space-y-2">
-                {subjects.map((sub, idx) => (
-                  <SubjectCard 
-                    key={idx}
-                    title={sub.name}
-                    colorClass={sub.color}
-                    timeSpent="0min"
-                    accuracy={0}
-                    progress={0}
-                    totalCards={0}
-                  />
-                ))}
-              </div>
+                {isLoading ? (
+                    // Renderiza 3 blocos fantasmas piscando na tela enquanto carrega
+                    <>
+                    <SubjectCardSkeleton />
+                    <SubjectCardSkeleton />
+                    <SubjectCardSkeleton />
+                    </>
+                ) : (
+                    // Renderiza seus cards reais quando o carregamento termina
+                    subjects.map((sub, idx) => (
+                    <SubjectCard 
+                        key={idx}
+                        title={sub.name}
+                        colorClass={sub.color}
+                        timeSpent={sub.timeSpent}
+                        accuracy={sub.accuracy}
+                        progress={sub.progress}
+                        totalCards={sub.totalCards}
+                    />
+                    ))
+                )}
+                </div>
             </div>
-
           </div>
 
           {/* ================= SEÇÃO DIREITA (BARRA LATERAL - Colunas 10 a 12) ================= */}
@@ -228,8 +269,11 @@ export default function Dashboard() {
                 })}
               </div>
             </div>
+            
+            {/* CARD 6: Simulador de Evolução (Dev) */}
+            <SimulationPanel subjects={subjects} onSimulate={simulateStudy} />    
 
-            {/* CARD 6: Timer Pomodoro Integrado */}
+            {/* CARD 7: Timer Pomodoro Integrado */}
             <PomodoroTimer />
           </div>
         </div>
@@ -242,6 +286,7 @@ export default function Dashboard() {
         onClose={() => setIsModalOpen(false)} 
         onCreate={handleCreateSubject}
       />
+      
     </div>
   );
 }
