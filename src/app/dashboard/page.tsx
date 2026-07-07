@@ -4,22 +4,33 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import PomodoroTimer from '@/components/pomodoro-timer';
 import SubjectCard from '@/components/subject-card';
+import CreateSubjectModal from '@/components/create-subject-modal';
 import { useSidebar } from '@/lib/sidebar-context';
 import { 
-  Menu, BookOpen, Calendar, CheckCircle2, Clock, 
-  Flame, Award, Play, RotateCcw, Plus, ChevronRight, Sparkles 
+  Menu, BookOpen, Clock, Flame, Award, Plus, ChevronRight, Sparkles, CheckCircle2 
 } from 'lucide-react';
 
-export default function Dashboard() {
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const { openSidebar } = useSidebar(); // Puxa a função de abrir
+interface Subject {
+  name: string;
+  color: "indigo" | "amber" | "emerald" | "rose" | "violet";
+}
 
-  const subjects = [
-    { name: "Português", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-    { name: "Raciocínio Lógico", color: "text-pink-400 bg-pink-500/10 border-pink-500/20" },
-    { name: "Informática", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-    { name: "Atualidades", color: "text-sky-400 bg-sky-500/10 border-sky-500/20" },
-  ];
+export default function Dashboard() {
+  const { openSidebar } = useSidebar();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Tornamos a lista de matérias um estado dinâmico para receber novos modais
+  const [subjects, setSubjects] = useState<Subject[]>([
+    { name: "Português", color: "indigo" },
+    { name: "Raciocínio Lógico", color: "rose" },
+    { name: "Informática", color: "amber" },
+    { name: "Atualidades", color: "violet" },
+  ]);
+
+  // Função disparada quando o modal envia uma nova disciplina
+  const handleCreateSubject = (title: string, color: "indigo" | "amber" | "emerald" | "rose" | "violet") => {
+    setSubjects((prev) => [...prev, { name: title, color }]);
+  };
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased">
@@ -126,7 +137,6 @@ export default function Dashboard() {
                 <h3 className="font-semibold text-sm text-slate-200">Sugestões de estudos por IA</h3>
               </div>
               
-              {/* Itens da lista de sugestão */}
               <div className="space-y-3">
                 {[1, 2].map((item) => (
                   <div key={item} className="flex items-center justify-between bg-slate-950/40 border border-slate-800/40 p-3.5 rounded-xl hover:border-slate-700/60 transition-colors">
@@ -149,30 +159,36 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* CARD 4: Lista de Matérias */}
+            {/* CARD 4: Lista de Matérias com o gatilho do Modal inserido */}
             <div className="bg-[#090d16] border border-slate-800/60 rounded-xl p-5 shadow-lg space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800/60 pb-3">
+              <div className="flex justify-between items-center border-b border-slate-800/60 pb-3">
                 <div className="flex items-center gap-2">
-                <BookOpen size={16} className="text-slate-400" />
-                <h3 className="font-semibold text-sm text-slate-200">Minhas Matérias</h3>
+                  <BookOpen size={16} className="text-slate-400" />
+                  <h3 className="font-semibold text-sm text-slate-200">Minhas Matérias</h3>
                 </div>
-                <button className="p-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors">
-                <Plus size={16} />
+                {/* O clique agora ativa o estado abrindo o pop-up */}
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  className="p-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center active:scale-95"
+                >
+                  <Plus size={16} />
                 </button>
-            </div>
+              </div>
 
-            {/* Renderização dinâmica utilizando o componente isolado */}
-            <div className="space-y-2">
+              {/* Renderização dinâmica utilizando o componente isolado */}
+              <div className="space-y-2">
                 {subjects.map((sub, idx) => (
-                <SubjectCard 
+                  <SubjectCard 
                     key={idx}
-                    name={sub.name}
+                    title={sub.name}
                     colorClass={sub.color}
                     timeSpent="0min"
                     accuracy={0}
-                />
+                    progress={0}
+                    totalCards={0}
+                  />
                 ))}
-            </div>
+              </div>
             </div>
 
           </div>
@@ -190,14 +206,13 @@ export default function Dashboard() {
                 <span className="text-xs text-slate-500 font-medium">Julho</span>
               </div>
               
-              {/* Dias da semana em formato de bolinhas */}
               <div className="grid grid-cols-7 gap-2 text-center">
                 {['D','S','T','Q','Q','S','S'].map((day, i) => (
                   <span key={i} className="text-[10px] text-slate-500 font-bold uppercase">{day}</span>
                 ))}
                 {Array.from({ length: 14 }).map((_, i) => {
                   const dayNum = i + 1;
-                  const isActive = dayNum === 6 || dayNum === 12; // Simula dias marcados
+                  const isActive = dayNum === 6 || dayNum === 12;
                   return (
                     <div 
                       key={i} 
@@ -216,9 +231,17 @@ export default function Dashboard() {
 
             {/* CARD 6: Timer Pomodoro Integrado */}
             <PomodoroTimer />
-            </div>
+          </div>
         </div>
+
       </div>
+
+      {/* Componente do Modal Ouvindo os Estados de Abertura */}
+      <CreateSubjectModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onCreate={handleCreateSubject}
+      />
     </div>
   );
 }

@@ -37,7 +37,6 @@ export default function PomodoroTimer() {
           setSeconds(seconds - 1);
         } else if (seconds === 0) {
           if (minutes === 0) {
-            // Timer chegou ao fim! Som de alerta ou reset
             setIsActive(false);
             alert("Bloco de estudos concluído! Hora de descansar.");
             resetTimer();
@@ -56,56 +55,85 @@ export default function PomodoroTimer() {
     };
   }, [isActive, minutes, seconds]);
 
-
+  // Define dinamicamente a cor do tema com base no modo (Foco vs Descanço)
+  const isFocus = mode === 'foco';
+  const themeColor = isFocus ? 'indigo' : 'emerald';
+  const themeActiveBg = isFocus ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-emerald-600 hover:bg-emerald-500';
+  const themeText = isFocus ? 'text-indigo-400' : 'text-emerald-400';
+  const themeBorder = isFocus ? 'border-indigo-500' : 'border-emerald-500';
+  const themeShadow = isFocus ? 'shadow-indigo-600/10' : 'shadow-emerald-600/10';
 
   return (
-    <div className="bg-[#090d16] border border-slate-800/60 rounded-xl p-5 shadow-lg flex flex-col items-center text-center justify-between min-h-[260px]">
+    <div className={`bg-[#090d16] border rounded-xl p-5 shadow-lg flex flex-col items-center text-center justify-between min-h-[260px] transition-all duration-500 ${
+      isActive 
+        ? isFocus 
+          ? 'border-indigo-500/20 shadow-indigo-500/2' 
+          : 'border-emerald-500/20 shadow-emerald-500/2'
+        : 'border-slate-800/60'
+    }`}>
+      
       {/* Abas de Modo */}
       <div className="w-full flex justify-between text-xs font-semibold text-slate-400 border-b border-slate-800/60 pb-2">
-        <button 
-          onClick={() => changeMode('foco')} 
-          className={`pb-2 -mb-2.5 transition-colors ${mode === 'foco' ? 'text-indigo-400 border-b border-indigo-500' : 'hover:text-slate-300'}`}
-        >
-          Foco
-        </button>
-        <button 
-          onClick={() => changeMode('curta')} 
-          className={`pb-2 -mb-2.5 transition-colors ${mode === 'curta' ? 'text-indigo-400 border-b border-indigo-500' : 'hover:text-slate-300'}`}
-        >
-          Curta
-        </button>
-        <button 
-          onClick={() => changeMode('longa')} 
-          className={`pb-2 -mb-2.5 transition-colors ${mode === 'longa' ? 'text-indigo-400 border-b border-indigo-500' : 'hover:text-slate-300'}`}
-        >
-          Longa
-        </button>
+        {(['foco', 'curta', 'longa'] as const).map((m) => (
+          <button 
+            key={m}
+            onClick={() => changeMode(m)} 
+            className={`pb-2 -mb-2.5 transition-all duration-300 capitalize relative px-2 ${
+              mode === m 
+                ? isFocus ? 'text-indigo-400' : 'text-emerald-400' 
+                : 'hover:text-slate-300'
+            }`}
+          >
+            {m === 'curta' ? 'Pausa Curta' : m === 'longa' ? 'Pausa Longa' : m}
+            {/* Linha indicadora com transição suave de opacidade */}
+            <div className={`absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-300 origin-center ${
+              mode === m ? `${isFocus ? 'bg-indigo-500' : 'bg-emerald-500'} scale-x-100 opacity-100` : 'scale-x-0 opacity-0'
+            }`} />
+          </button>
+        ))}
       </div>
 
       {/* Relógio do Timer */}
-      <div className="my-4 relative flex items-center justify-center w-full">
-        <div className={`w-36 h-36 rounded-full border-2 flex items-center justify-center absolute transition-all ${
-          isActive ? 'border-indigo-500 border-t-transparent animate-spin-slow' : 'border-slate-800'
+      <div className="my-4 relative flex items-center justify-center w-full group">
+        {/* Círculo Animado Externo */}
+        <div className={`w-36 h-36 rounded-full border-2 flex items-center justify-center absolute transition-all duration-700 ${
+          isActive 
+            ? `${themeBorder} border-t-transparent animate-spin-slow` 
+            : 'border-slate-800 group-hover:border-slate-700'
         }`} />
-        <div className="text-3xl font-bold tracking-widest text-slate-100 z-10 font-mono">
+        
+        {/* Efeito Glow Pulsante que só ativa quando o timer está rodando */}
+        <div className={`w-32 h-32 rounded-full absolute bg-radial from-transparent to-transparent opacity-0 transition-all duration-1000 ${
+          isActive ? `blur-xl opacity-10 animate-pulse [animation-duration:2s] ${isFocus ? 'from-indigo-500/30' : 'from-emerald-500/30'}` : ''
+        }`} />
+
+        {/* Display Numérico */}
+        <div className={`text-3xl font-bold tracking-widest z-10 font-mono transition-all duration-500 ${
+          isActive ? `${themeText} scale-102` : 'text-slate-100'
+        }`}>
           {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
         </div>
       </div>
 
       {/* Controles */}
       <div className="flex items-center gap-3 w-full">
+        {/* Botão de Reset */}
         <button 
           onClick={resetTimer}
-          className="flex-1 bg-slate-950 hover:bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center"
+          className="flex-1 bg-slate-950 hover:bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-200 flex items-center justify-center active:scale-95 group"
         >
-          <RotateCcw size={16} />
+          <RotateCcw size={16} className="transition-transform duration-300 group-hover:-rotate-45" />
         </button>
+
+        {/* Botão Start/Pause */}
         <button 
           onClick={toggleTimer}
-          className="flex-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium p-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/10 active:scale-95"
+          className={`flex-2 ${themeActiveBg} text-white font-medium p-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-md ${themeShadow} active:scale-95`}
         >
-          {isActive ? <Pause size={16} /> : <Play size={16} />}
-          <span className="text-xs">{isActive ? "Pausar" : "Iniciar"}</span>
+          <div className="transition-transform duration-200 group-hover:scale-110">
+            {isActive ? <Pause size={16} /> : <Play size={16} />}
+          </div>
+          <span className="text-xs font-semibold tracking-wide">{isActive ? "Pausar" : "Iniciar"}</span>
         </button>
       </div>
     </div>

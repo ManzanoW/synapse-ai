@@ -63,17 +63,21 @@ export default function Sidebar() {
 
               return (
                 <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={closeSidebar} // Fecha automaticamente ao clicar em um link no mobile
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group active:scale-[0.99] ${
-                    isActive
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/15'
-                      : 'text-slate-400 hover:bg-slate-900/50 hover:text-slate-200'
-                  }`}
-                >
-                  <Icon className={`w-5 h-5 transition-transform group-hover:scale-105 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                  <span>{item.label}</span>
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeSidebar} // Fecha o menu ao clicar em um link
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium 
+                        transition-all duration-200 ease-in-out group active:scale-[0.97] ${
+                        isActive
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 scale-[1.01]'
+                        : 'text-slate-400 hover:bg-slate-900/60 hover:text-slate-100'
+                    }`}
+                    >
+                    <Icon className={`w-5 h-5 transition-transform duration-300 ease-out 
+                        group-hover:scale-110 group-hover:rotate-3 ${
+                        isActive ? 'text-white' : 'text-slate-400 group-hover:text-indigo-400'
+                    }`} />
+                    <span>{item.label}</span>
                 </Link>
               );
             })}
