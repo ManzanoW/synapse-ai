@@ -33,6 +33,7 @@ export default function FlashcardsPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const totalCards = MOCK_CARDS.length;
   const currentCard = MOCK_CARDS[currentIndex];
@@ -77,6 +78,30 @@ export default function FlashcardsPage() {
       </div>
     );
   }
+
+  if (isLoading) {
+  return (
+    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 flex flex-col justify-center items-center">
+      <div className="max-w-3xl w-full space-y-6 animate-pulse">
+        {/* Esqueleto da Barra de Progresso */}
+        <div className="h-1.5 w-full bg-slate-900 rounded-full" />
+        
+        {/* Esqueleto do Top Nav */}
+        <div className="flex justify-between items-center w-full">
+          <div className="h-4 w-32 bg-slate-900 rounded-lg" />
+          <div className="h-6 w-20 bg-slate-900 rounded-lg" />
+        </div>
+
+        {/* Esqueleto do Card Principal */}
+        <div className="w-full h-80 bg-[#090d16] border border-slate-900 rounded-2xl flex flex-col items-center justify-center p-6 space-y-4">
+          <div className="w-12 h-12 bg-slate-950 rounded-full" />
+          <div className="h-6 w-2/3 bg-slate-950 rounded-lg" />
+          <div className="h-4 w-1/3 bg-slate-950 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased flex flex-col justify-between">

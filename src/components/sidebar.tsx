@@ -7,14 +7,15 @@ import { useSidebar } from '@/lib/sidebar-context';
 import { 
   LayoutDashboard, CalendarRange, Sparkles, Brain, 
   Layers, ClipboardList, Calendar, User, HelpCircle, 
-  Plus, GraduationCap, History, LogOut, X 
+  Plus, GraduationCap, History, LogOut, X, 
+  BarChart3
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Início', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Planner', href: '/planner', icon: CalendarRange },
   { label: 'Semana', href: '/week', icon: Sparkles },
-  { label: 'Simulador', href: '/simulator', icon: Brain },
+  { label: 'Analytics', href: '/analytics', icon: Brain },
   { label: 'Flashcards', href: '/flashcards', icon: Layers },
   { label: 'Questões', href: '/questions', icon: ClipboardList },
   { label: 'Calendário', href: '/calendar', icon: Calendar },
