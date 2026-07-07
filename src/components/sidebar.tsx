@@ -13,13 +13,13 @@ import {
 const NAV_ITEMS = [
   { label: 'Início', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Planner', href: '/planner', icon: CalendarRange },
-  { label: 'Semana', href: '/semana', icon: Sparkles },
-  { label: 'Simulador', href: '/simulador', icon: Brain },
-  { label: 'Flashcards', href: '/revisao', icon: Layers },
-  { label: 'Questões', href: '/questoes', icon: ClipboardList },
-  { label: 'Calendário', href: '/calendario', icon: Calendar },
-  { label: 'Perfil', href: '/perfil', icon: User },
-  { label: 'Ajuda', href: '/ajuda', icon: HelpCircle },
+  { label: 'Semana', href: '/week', icon: Sparkles },
+  { label: 'Simulador', href: '/simulator', icon: Brain },
+  { label: 'Flashcards', href: '/flashcards', icon: Layers },
+  { label: 'Questões', href: '/questions', icon: ClipboardList },
+  { label: 'Calendário', href: '/calendar', icon: Calendar },
+  { label: 'Perfil', href: '/profile', icon: User },
+  { label: 'Ajuda', href: '/help', icon: HelpCircle },
 ];
 
 export default function Sidebar() {

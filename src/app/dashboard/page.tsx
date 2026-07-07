@@ -182,7 +182,7 @@ export default function Dashboard() {
                         <span className="flex items-center gap-1"><Clock size={12} /> 30m</span>
                       </div>
                     </div>
-                    <Link href="/revisao" className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-1 shadow-md shadow-indigo-600/5">
+                    <Link href="/flashcards" className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-1 shadow-md shadow-indigo-600/5">
                         <span>Iniciar</span>
                         <ChevronRight size={14} />
                     </Link>
