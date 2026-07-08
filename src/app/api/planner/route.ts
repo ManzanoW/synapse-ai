@@ -1,215 +1,93 @@
-// src/app/api/planner/route.ts
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma'; // Importa a instância centralizada
 
-// Função auxiliar para inicializar o Supabase com os cookies da requisição
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-          }
-        },
-      },
-    }
-  );
-}
+export const dynamic = 'force-dynamic';
 
-// GET: Busca os dados do Planner do usuário logado
+// GET: Busca o Edital Verticalizado ou a Lista de Tópicos do usuário
 export async function GET(request: Request) {
   try {
-    const supabase = await getSupabaseClient();
+    const { searchParams } = new URL(request.url);
+    const mode = searchParams.get('mode') || 'topics'; // 'topics' ou 'subjects'
+    const userId = "id-do-usuario-temporario"; // TODO: Substituir pelo ID do Auth quando integrarmos o Next-Auth/Supabase Auth
 
-    // 1. Verifica se o usuário está autenticado
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    if (mode === 'subjects') {
+      // Retorna o Edital Macro agrupado por Matérias
+      const subjects = await prisma.subject.findMany({
+        where: { userId },
+        include: {
+          _count: {
+            select: { topics: true } // Conta quantos tópicos a matéria tem ao todo
+          }
+        },
+        orderBy: { createdAt: 'asc' }
+      });
+      return NextResponse.json({ data: subjects }, { status: 200 });
     }
 
-    // 2. Busca os dados relacionados (Boards -> Colunas -> Tarefas)
-    const { data: plannerData, error: dbError } = await supabase
-      .from('planner_boards')
-      .select(`
-        id,
-        title,
-        created_at,
-        planner_columns (
-          id,
-          title,
-          order,
-          planner_tasks (
-            id,
-            title,
-            description,
-            status,
-            priority,
-            due_date,
-            order
-          )
-        )
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: true });
+    // Por padrão (mode = topics), retorna a listagem detalhada de todos os tópicos
+    const topics = await prisma.topic.findMany({
+      where: {
+        subject: { userId }
+      },
+      include: {
+        subject: {
+          select: { name: true } // Traz o nome da matéria vinculada
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
-    if (dbError) throw dbError;
-
-    return NextResponse.json({ data: plannerData }, { status: 200 });
+    return NextResponse.json({ data: topics }, { status: 200 });
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Erro interno ao buscar dados do Planner', details: message },
+      { error: 'Internal Server Error', details: message },
       { status: 500 }
     );
   }
 }
 
-// POST: Cria uma nova tarefa no Planner
+// POST: Alimenta o histórico e atualiza a curva de esquecimento (Ebbinghaus) de um tópico
 export async function POST(request: Request) {
   try {
-    const supabase = await getSupabaseClient();
-
-    // 1. Verifica autenticação
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-    }
-
-    // 2. Recebe o payload da requisição
     const body = await request.json();
-    const { title, description, column_id, priority, due_date, order } = body;
+    const { topicId, grade, performance } = body; // grade: "Bom", "Difícil", "Errei"
 
-    if (!title || !column_id) {
-      return NextResponse.json(
-        { error: 'Título e ID da coluna são obrigatórios' },
-        { status: 400 }
-      );
+    if (!topicId || !grade) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // 3. Insere no banco
-    const { data: newTask, error: dbError } = await supabase
-      .from('planner_tasks')
-      .insert([
-        {
-          user_id: user.id,
-          column_id,
-          title,
-          description,
-          priority: priority || 'medium',
-          due_date,
-          order: order || 0
-        }
-      ])
-      .select()
-      .single();
+    // 1. Registra a sessão de revisão no histórico para alimentar nossa IA futura
+    await prisma.reviewHistory.create({
+      data: { topicId, grade }
+    });
 
-    if (dbError) throw dbError;
+    // 2. Calcula a próxima revisão baseado na resposta (Simulando o motor de Ebbinghaus)
+    let daysToAdd = 1;
+    if (grade === 'Bom') daysToAdd = 7;
+    if (grade === 'Difícil') daysToAdd = 3;
 
-    return NextResponse.json({ message: 'Tarefa criada com sucesso!', data: newTask }, { status: 201 });
+    const nextRevisionDate = new Date();
+    nextRevisionDate.setDate(nextRevisionDate.getDate() + daysToAdd);
+
+    // 3. Atualiza os dados do Tópico
+    const updatedTopic = await prisma.topic.update({
+      where: { id: topicId },
+      data: {
+        firstStudy: 'Em Revisão',
+        performance: performance !== undefined ? performance : 0,
+        lastRev: new Date(),
+        nextRev: nextRevisionDate
+      }
+    });
+
+    return NextResponse.json({ message: 'Progress updated successfully!', data: updatedTopic }, { status: 200 });
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Erro interno ao criar tarefa', details: message },
-      { status: 500 }
-    );
-  }
-}
-
-// PATCH: Atualiza campos de uma tarefa (ex: mover de coluna, mudar ordem ou editar texto)
-export async function PATCH(request: Request) {
-  try {
-    const supabase = await getSupabaseClient();
-
-    // 1. Verifica autenticação
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-    }
-
-    // 2. Recebe o payload
-    const body = await request.json();
-    const { id, ...updates } = body; // Destrutura pegando o ID e o resto dos campos modificados
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'O ID da tarefa é obrigatório para atualização' },
-        { status: 400 }
-      );
-    }
-
-    // 3. Atualiza a tarefa garantindo que ela pertence ao usuário logado
-    const { data: updatedTask, error: dbError } = await supabase
-      .from('planner_tasks')
-      .update(updates)
-      .eq('id', id)
-      .eq('user_id', user.id) // Segurança extra: impede alterar dados de outros usuários
-      .select()
-      .single();
-
-    if (dbError) throw dbError;
-
-    return NextResponse.json({ message: 'Tarefa atualizada com sucesso!', data: updatedTask }, { status: 200 });
-
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json(
-      { error: 'Erro interno ao atualizar tarefa', details: message },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE: Remove uma tarefa do Planner
-export async function DELETE(request: Request) {
-  try {
-    const supabase = await getSupabaseClient();
-
-    // 1. Verifica autenticação
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-    }
-
-    // 2. Pega o ID da tarefa através dos parâmetros da URL (ex: /api/planner?id=XXXX)
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'O ID da tarefa é obrigatório para exclusão' },
-        { status: 400 }
-      );
-    }
-
-    // 3. Deleta a tarefa associada ao usuário
-    const { error: dbError } = await supabase
-      .from('planner_tasks')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id); // Alinhado com as políticas de segurança (RLS)
-
-    if (dbError) throw dbError;
-
-    return NextResponse.json({ message: 'Tarefa excluída com sucesso!' }, { status: 200 });
-
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json(
-      { error: 'Erro interno ao excluir tarefa', details: message },
+      { error: 'Internal Server Error', details: message },
       { status: 500 }
     );
   }
