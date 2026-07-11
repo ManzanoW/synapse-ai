@@ -8,50 +8,54 @@ generator client {
 
 // 1. Usuário do Sistema
 model User {
-  id            String    @id @default(uuid())
-  name          String
-  email         String    @unique
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  subjects      Subject[]
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  subjects  Subject[]
 }
 
 // 2. Matérias Macro (ex: Enfermagem, Língua Portuguesa)
 model Subject {
-  id           String   @id @default(uuid())
-  name         String
-  importance   String   // Importância (ex: "5/10")
-  priority     Float    @default(6.3) // Cálculo inteligente da IA
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topics       Topic[]
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         String  @id @default(uuid())
+  name       String
+  importance String // Importância (ex: "5/10")
+  priority   Float   @default(6.3) // Cálculo inteligente da IA
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topics     Topic[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // 3. Tópicos Específicos de Estudo (ex: Teoria da Enfermagem)
 model Topic {
-  id           String          @id @default(uuid())
-  title        String
-  relevance    String          // Relevância (ex: "7/10")
-  firstStudy   String          // Status: "Pendente", "Concluído", "Em Revisão"
-  performance  Int             @default(0) // Percentual de acerto (ex: 85)
-  lastRev      DateTime?       // Data da última revisão
-  nextRev      DateTime?       // Data calculada pela curva de esquecimento
-  subjectId    String
-  subject      Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  reviews      ReviewHistory[]
+  id          String          @id @default(uuid())
+  title       String
+  relevance   String // Relevância (ex: "7/10")
+  firstStudy  String // Status: "Pendente", "Concluído", "Em Revisão"
+  performance Int             @default(0) // Percentual de acerto (ex: 85)
+  lastRev     DateTime? // Data da última revisão
+  nextRev     DateTime? // Data calculada pela curva de esquecimento
+  subjectId   String
+  subject     Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  reviews     ReviewHistory[]
+  // 🧠 CAMPOS PARA O MOTOR SM-2:
+  easiness    Float           @default(2.5) // Fator de Facilidade inicial padrão 
+  interval    Int             @default(0) // Intervalo inicial de dias
+  repetitions Int             @default(0) // Sequência de revisões corretas
 
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-// 4. Histórico de Revisões (Alimenta a nossa Inteligência Artificial)
+// 4. Histórico de Revisões
 model ReviewHistory {
-  id          String   @id @default(uuid())
-  topicId     String
-  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  grade       String   // Nota dada pelo aluno: "Bom", "Difícil", "Errei"
-  reviewedAt  DateTime @default(now())
+  id         String   @id @default(uuid())
+  topicId    String
+  topic      Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  grade      String // Nota dada pelo aluno: "Bom", "Difícil", "Errei"
+  reviewedAt DateTime @default(now())
 }
