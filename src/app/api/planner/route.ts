@@ -6,12 +6,39 @@ export const dynamic = "force-dynamic";
 // 🔑 DEFINIR AQUI O ID REAL DO USUÁRIO
 const REAL_USER_ID = "test";
 
-// GET: Busca o Edital Verticalizado ou a Lista de Tópicos do usuário
+// GET: Busca o Edital Verticalizado, Lista de Tópicos ou Fila de Revisões Diárias
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const mode = searchParams.get("mode") || "topics";
+    const mode = searchParams.get("mode") || "topics"; // 'topics', 'subjects' ou 'review'
 
+    // 1. Modo: Filtrar apenas tópicos que precisam ser revisados HOJE (Fila de Ebbinghaus)
+    if (mode === "review") {
+      const now = new Date();
+
+      const reviewQueue = await prisma.topic.findMany({
+        where: {
+          subject: { userId: REAL_USER_ID },
+          OR: [
+            { firstStudy: "Pendente" }, // Itens novos que nunca foram estudados
+            { nextRev: { lte: now } }, // Itens cuja data da próxima revisão já venceu ou é agora
+          ],
+        },
+        include: {
+          subject: {
+            select: { name: true },
+          },
+        },
+        orderBy: [
+          { firstStudy: "asc" }, // Agrupa os pendentes primeiro
+          { nextRev: "asc" }, // Os mais atrasados aparecem primeiro
+        ],
+      });
+
+      return NextResponse.json({ data: reviewQueue }, { status: 200 });
+    }
+
+    // 2. Modo: Retorna o Edital Macro agrupado por Matérias
     if (mode === "subjects") {
       const subjects = await prisma.subject.findMany({
         where: { userId: REAL_USER_ID },
@@ -25,6 +52,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: subjects }, { status: 200 });
     }
 
+    // 3. Modo Padrão (topics): Retorna a listagem detalhada de todos os tópicos
     const topics = await prisma.topic.findMany({
       where: {
         subject: { userId: REAL_USER_ID },

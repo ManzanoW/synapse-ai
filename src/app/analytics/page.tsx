@@ -1,185 +1,302 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Brain, Sparkles, Save, Calendar, ShieldCheck, Zap } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useSidebar } from "@/lib/sidebar-context";
+import {
+  Menu,
+  BarChart3,
+  TrendingUp,
+  Calendar,
+  CheckSquare,
+  Loader2,
+  AlertTriangle,
+  Activity,
+} from "lucide-react";
+
+interface AnalyticsData {
+  metrics: {
+    totalTopics: number;
+    completedReviews: number;
+    estimatedRetention: string;
+    avgEasiness: number;
+  };
+  chartDistribution: Array<{ day: string; quantidade: number }>;
+  performanceSummary: {
+    bom: number;
+    dificil: number;
+    errei: number;
+  };
+}
 
 export default function AnalyticsPage() {
-  const [reviewModel, setReviewModel] = useState('bimestral');
+  const { openSidebar } = useSidebar();
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Cronogramas simulados com base no modelo
-  const schedules: Record<string, { label: string; day: string }[]> = {
-    bimestral: [
-      { label: '1ª Revisão', day: 'Dia 1' },
-      { label: '2ª Revisão', day: 'Dia 3' },
-      { label: '3ª Revisão', day: 'Dia 7' },
-      { label: '4ª Revisão', day: 'Dia 15' },
-      { label: '5ª Revisão', day: 'Dia 40' },
-      { label: '6ª Revisão', day: 'Dia 60' },
-    ],
-    semestral: [
-      { label: '1ª Revisão', day: 'Dia 1' },
-      { label: '2ª Revisão', day: 'Dia 7' },
-      { label: '3ª Revisão', day: 'Dia 30' },
-      { label: '4ª Revisão', day: 'Dia 90' },
-      { label: '5ª Revisão', day: 'Dia 180' },
-    ]
-  };
+  useEffect(() => {
+    async function fetchAnalytics() {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/analytics");
+        if (!response.ok) throw new Error("Falha ao carregar estatísticas");
+        const json = await response.json();
+        setData(json);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erro desconhecido");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchAnalytics();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col items-center justify-center gap-3">
+        <Loader2 size={32} className="animate-spin text-indigo-500" />
+        <span className="text-sm text-slate-400 font-medium">
+          Processando métricas de retenção...
+        </span>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col items-center justify-center gap-3 p-4 text-center">
+        <AlertTriangle size={40} className="text-rose-500 animate-pulse" />
+        <h3 className="text-lg font-bold">Ops! Algo deu errado</h3>
+        <p className="text-sm text-slate-400 max-w-sm">
+          {error || "Não foi possível carregar o painel."}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased">
-      <div className="max-w-5xl mx-auto space-y-6">
-        
-        {/* Top Navigation */}
-        <div className="flex items-center justify-between">
-          <Link 
-            href="/dashboard" 
-            className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors group"
+      <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+        {/* ================= HEADER ================= */}
+        <div className="flex items-center gap-3 border-b border-slate-900 pb-5">
+          <button
+            onClick={openSidebar}
+            className="p-2 bg-[#090d16] border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 md:hidden transition-colors"
           >
-            <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
-            <span>Voltar para a Dashboard</span>
-          </Link>
-        </div>
-
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Brain size={24} className="text-indigo-400" />
-            Analytics & Curva de Retenção
-          </h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            Monitore sua capacidade de retenção no longo prazo e calibre o algoritmo de repetição espaçada.
-          </p>
-        </div>
-
-        {/* Bloco Dobrável de Calibração */}
-        <div className="bg-[#090d16] border border-slate-800/60 rounded-xl p-4 cursor-pointer hover:border-slate-700/60 transition-colors">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-200">Objetivos e Perfil de Memorização</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Calibre as variáveis do cérebro artificial conforme sua rotina.</p>
-            </div>
-            <span className="text-xs text-slate-500 font-mono">Expandido</span>
+            <Menu size={20} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <BarChart3 size={24} className="text-indigo-400" />
+              Desempenho & Analytics
+            </h1>
+            <p className="text-sm text-slate-400 mt-0.5">
+              Acompanhe a sua evolução e a força da sua memória no tempo.
+            </p>
           </div>
         </div>
 
-        {/* Main Grid: Gráfico à esquerda, Configurações à direita */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Box do Gráfico (Ocupa 2 colunas) */}
-          <div className="lg:col-span-2 bg-[#090d16] border border-slate-800/60 rounded-2xl p-5 flex flex-col justify-between min-h-100 relative overflow-hidden">
-            <div className="absolute inset-0 bg-radial from-indigo-500/5 via-transparent to-transparent pointer-events-none" />
-            
-            <div className="flex justify-between items-center z-10">
-              <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <Zap size={16} className="text-indigo-400" />
-                Predição de Retenção da Memória
-              </h3>
-                <span className="text-xs text-slate-500 font-mono">Última atualização: 2h atrás</span> 
-            </div>
-
-            {/* Simulação do Gráfico de Linhas Interativo */}
-            <div className="flex-1 flex items-center justify-center p-6 border-b border-slate-900 relative">
-              {/* No futuro injetaremos o Recharts aqui. Por enquanto, criamos uma estética premium minimalista */}
-              <div className="w-full h-full flex flex-col justify-between text-[10px] font-mono text-slate-600">
-                <div className="flex justify-between w-full border-b border-slate-900/40 pb-1"><span>100%</span><span>Resgate Ideal</span></div>
-                <div className="flex justify-between w-full border-b border-slate-900/40 pb-1"><span>75%</span><span>Atenção Mínima</span></div>
-                <div className="flex justify-between w-full border-b border-slate-900/40 pb-1"><span>50%</span><span>Zona de Esquecimento</span></div>
-                <div className="flex justify-between w-full pt-1"><span>0%</span><span>Tempo (Dias)</span></div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xs text-slate-500 bg-slate-950/80 px-3 py-1.5 border border-slate-900 rounded-lg">
-                  [Gráfico de Curva de Aprendizado Dinâmico]
+        {/* ================= CARDS DE MÉTRICAS INDICES COGNITIVOS ================= */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Retenção Estimada */}
+          <div className="bg-[#090d16] border border-slate-800/60 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Retenção Estimada
+                </span>
+                <span className="text-3xl font-black text-emerald-400 block font-mono">
+                  {data.metrics.estimatedRetention}
                 </span>
               </div>
+              <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl">
+                <TrendingUp size={18} />
+              </div>
             </div>
-
-            <div className="text-[11px] text-slate-500 font-mono mt-2 text-center">
-              * O gráfico demonstra visualmente o impacto dos resgates automáticos na quebra do decaimento natural da memória.
-            </div>
+            <p className="text-[11px] text-slate-500 mt-3">
+              Probabilidade atual de lembrar dos tópicos estudados.
+            </p>
           </div>
 
-          {/* Box de Controle Lateral */}
-          <div className="bg-[#090d16] border border-slate-800/60 rounded-2xl p-5 flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-200">Plano de Estudos</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Ajuste e visualize a eficiência das revisões automáticas.</p>
+          {/* Card 2: Grau de Domínio (Traduzido do Fator SM-2) */}
+          <div className="bg-[#090d16] border border-slate-800/60 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Grau de Domínio
+                </span>
+                <span className="text-3xl font-black text-indigo-400 block font-mono">
+                  {data.metrics.avgEasiness
+                    ? ((data.metrics.avgEasiness / 2.5) * 10).toFixed(1)
+                    : "10"}
+                  <span className="text-xs text-slate-500 font-normal">
+                    {" "}
+                    / 10
+                  </span>
+                </span>
               </div>
-
-              {/* Seletor de Modelo */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Modelo de Revisão</label>
-                <select 
-                  value={reviewModel} 
-                  onChange={(e) => setReviewModel(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors font-medium"
-                >
-                  <option value="bimestral">Ciclo Inteligente (Bimestral)</option>
-                  <option value="semestral">Ciclo Estendido (Semestral)</option>
-                </select>
-              </div>
-
-              {/* Botões de Ação */}
-              <div className="space-y-2 pt-2">
-                <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/5">
-                  <Save size={14} />
-                  <span>Salvar Modelo Padrão</span>
-                </button>
-                <button className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 font-medium py-2.5 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5">
-                  <Sparkles size={14} className="text-indigo-400" />
-                  <span>Modelo Sugerido por IA</span>
-                </button>
+              <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                <Activity size={18} />
               </div>
             </div>
+            <p className="text-[11px] text-slate-500 mt-3">
+              Média de facilidade e familiaridade com os temas estudados.
+            </p>
+          </div>
 
-            {/* Cronograma Gerado Dinâmico */}
-            <div className="space-y-3 pt-4 border-t border-slate-900">
-              <span className="text-[11px] uppercase tracking-wider text-slate-500 font-bold block">Cronograma Gerado</span>
-              <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                {schedules[reviewModel]?.map((sched, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs bg-slate-950/40 border border-slate-900 px-3 py-2 rounded-lg">
-                    <span className="text-slate-400">{sched.label}</span>
-                    <span className="font-mono text-indigo-400 font-semibold">{sched.day}</span>
+          {/* Card 3: Revisões Feitas */}
+          <div className="bg-[#090d16] border border-slate-800/60 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Revisões Realizadas
+                </span>
+                <span className="text-3xl font-black text-slate-100 block font-mono">
+                  {data.metrics.completedReviews}
+                </span>
+              </div>
+              <div className="p-2.5 bg-purple-500/10 text-purple-400 rounded-xl">
+                <CheckSquare size={18} />
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-3">
+              Total de sessões de repetição espaçada concluídas.
+            </p>
+          </div>
+
+          {/* Card 4: Tópicos Mapeados */}
+          <div className="bg-[#090d16] border border-slate-800/60 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Tópicos no Edital
+                </span>
+                <span className="text-3xl font-black text-amber-400 block font-mono">
+                  {data.metrics.totalTopics}
+                </span>
+              </div>
+              <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl">
+                <Calendar size={18} />
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-3">
+              Assuntos cadastrados na sua esteira de planejamento.
+            </p>
+          </div>
+        </div>
+
+        {/* ================= SEÇÃO DOS GRÁFICOS NATIVOS TAILWIND ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Gráfico 1: Distribuição de Carga das Próximas Revisões */}
+          <div className="lg:col-span-7 bg-[#090d16] border border-slate-800/60 rounded-2xl p-5 shadow-lg space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-200">
+                Carga de Revisão da Semana
+              </h3>
+              <p className="text-xs text-slate-400">
+                Quantidade de assuntos que vão expirar na curva de esquecimento
+                a cada dia.
+              </p>
+            </div>
+
+            <div className="flex h-48 items-end gap-3 pt-6 px-2 justify-between">
+              {data.chartDistribution.map((item, idx) => {
+                const maxQty = Math.max(
+                  ...data.chartDistribution.map((d) => d.quantidade),
+                  1,
+                );
+                const heightPercent = `${(item.quantidade / maxQty) * 100}%`;
+
+                return (
+                  <div
+                    key={idx}
+                    className="flex-1 flex flex-col items-center gap-2 h-full justify-end group"
+                  >
+                    <div className="relative w-full flex justify-center">
+                      <span className="absolute -top-6 text-[10px] font-mono font-bold text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 shadow-md">
+                        {item.quantidade}
+                      </span>
+                    </div>
+                    <div
+                      style={{ height: heightPercent }}
+                      className={`w-full max-w-10 rounded-t-lg transition-all duration-500 ${
+                        item.quantidade > 0
+                          ? "bg-linear-to-t from-indigo-600 to-purple-500 shadow-lg shadow-indigo-950/40 group-hover:from-indigo-500 group-hover:to-pink-500"
+                          : "bg-slate-950 border border-slate-900 h-1!"
+                      }`}
+                    />
+                    <span className="text-[10px] text-slate-500 font-medium uppercase mt-1">
+                      {item.day}
+                    </span>
                   </div>
-                ))}
-              </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Gráfico 2: Perfil de Resposta Histórico */}
+          <div className="lg:col-span-5 bg-[#090d16] border border-slate-800/60 rounded-2xl p-5 shadow-lg flex flex-col justify-between space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-200">
+                Qualidade da Memorização
+              </h3>
+              <p className="text-xs text-slate-400">
+                Distribuição dos feedbacks dados nas últimas 10 revisões.
+              </p>
             </div>
 
+            <div className="space-y-4 py-2 flex-1 flex flex-col justify-center">
+              {[
+                {
+                  label: "🚀 Excelente (Bom)",
+                  value: data.performanceSummary.bom,
+                  color: "bg-emerald-500",
+                  text: "text-emerald-400",
+                },
+                {
+                  label: "⚠️ Regular (Difícil)",
+                  value: data.performanceSummary.dificil,
+                  color: "bg-amber-500",
+                  text: "text-amber-400",
+                },
+                {
+                  label: "💥 Crítico (Errei)",
+                  value: data.performanceSummary.errei,
+                  color: "bg-rose-500",
+                  text: "text-rose-400",
+                },
+              ].map((item, idx) => {
+                const total =
+                  data.performanceSummary.bom +
+                    data.performanceSummary.dificil +
+                    data.performanceSummary.errei || 1;
+                const barWidth = `${(item.value / total) * 100}%`;
+
+                return (
+                  <div key={idx} className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs font-medium">
+                      <span className="text-slate-300">{item.label}</span>
+                      <span className={`font-mono font-bold ${item.text}`}>
+                        {item.value}x
+                      </span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-950 border border-slate-900 rounded-full overflow-hidden p-0.5">
+                      <div
+                        style={{ width: barWidth }}
+                        className={`h-full ${item.color} rounded-full transition-all duration-500`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-[10px] text-slate-500 text-center leading-relaxed">
+              Dica do Synapse: Se a barra de itens <b>Críticos</b> crescer,
+              cogite quebrar a matéria em tópicos menores.
+            </p>
           </div>
         </div>
-
-        {/* Indicadores de Eficácia Inferiores */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#090d16] border border-slate-800/60 rounded-2xl p-5">
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-medium">
-              <span className="text-slate-300 flex items-center gap-1.5">
-                <ShieldCheck size={14} className="text-emerald-400" />
-                Eficácia da Memorização
-              </span>
-              <span className="text-emerald-400 font-bold font-mono">8.5/10</span>
-            </div>
-            <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 rounded-full w-[85%]" />
-            </div>
-            <p className="text-[11px] text-slate-500">Capacidade real de retenção e proteção contra o esquecimento a longo prazo.</p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-medium">
-              <span className="text-slate-300 flex items-center gap-1.5">
-                <Calendar size={14} className="text-amber-400" />
-                Nível de Dificuldade / Esforço
-              </span>
-              <span className="text-amber-400 font-bold font-mono">4.8/10</span>
-            </div>
-            <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden">
-              <div className="h-full bg-amber-500 rounded-full w-[48%]" />
-            </div>
-            <p className="text-[11px] text-slate-500">Esforço cognitivo exigido baseado na frequência das revisões configuradas.</p>
-          </div>
-        </div>
-
       </div>
     </div>
   );
