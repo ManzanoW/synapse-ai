@@ -1,12 +1,11 @@
-datasource db {
-  provider = "postgresql"
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// 1. Usuário do Sistema
+datasource db {
+  provider = "postgresql"
+}
+
 model User {
   id        String    @id @default(uuid())
   name      String
@@ -16,46 +15,51 @@ model User {
   subjects  Subject[]
 }
 
-// 2. Matérias Macro (ex: Enfermagem, Língua Portuguesa)
 model Subject {
-  id         String  @id @default(uuid())
+  id         String   @id @default(uuid())
   name       String
-  importance String // Importância (ex: "5/10")
-  priority   Float   @default(6.3) // Cálculo inteligente da IA
+  importance String
+  priority   Float    @default(6.3)
   userId     String
-  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   topics     Topic[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
-// 3. Tópicos Específicos de Estudo (ex: Teoria da Enfermagem)
 model Topic {
   id          String          @id @default(uuid())
   title       String
-  relevance   String // Relevância (ex: "7/10")
-  firstStudy  String // Status: "Pendente", "Concluído", "Em Revisão"
-  performance Int             @default(0) // Percentual de acerto (ex: 85)
-  lastRev     DateTime? // Data da última revisão
-  nextRev     DateTime? // Data calculada pela curva de esquecimento
+  relevance   String
+  firstStudy  String
+  performance Int             @default(0)
+  lastRev     DateTime?
+  nextRev     DateTime?
   subjectId   String
-  subject     Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  easiness    Float           @default(2.5)
+  interval    Int             @default(0)
+  repetitions Int             @default(0)
   reviews     ReviewHistory[]
-  // 🧠 CAMPOS PARA O MOTOR SM-2:
-  easiness    Float           @default(2.5) // Fator de Facilidade inicial padrão 
-  interval    Int             @default(0) // Intervalo inicial de dias
-  repetitions Int             @default(0) // Sequência de revisões corretas
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  subject     Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 }
 
-// 4. Histórico de Revisões
 model ReviewHistory {
   id         String   @id @default(uuid())
   topicId    String
-  topic      Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  grade      String // Nota dada pelo aluno: "Bom", "Difícil", "Errei"
+  grade      String
   reviewedAt DateTime @default(now())
+  topic      Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+}
+
+model Quiz {
+  id         String   @id @default(uuid())
+  banca      String
+  subject    String
+  difficulty String
+  questions  Json // Armazena o array completo de questões gerado pelo Gemini
+  createdAt  DateTime @default(now())
+
+  @@map("quizzes") // Define o nome da tabela no Supabase como minusculo
 }

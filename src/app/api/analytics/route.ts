@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // Ajuste o import conforme a estrutura do seu projeto
+import { prisma } from "@/lib/prisma"; // 🌟 CORREÇÃO: Aponta para a nossa instância global segura
 
 // Mock temporário para o ID do usuário
 const REAL_USER_ID = "user_default_id";
@@ -85,6 +85,7 @@ export async function GET() {
       { status: 200 },
     );
   } catch (error: unknown) {
+    // Tratamento seguro do erro sem usar 'any' para não quebrar o linter do build
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { error: "Internal Server Error", details: message },
