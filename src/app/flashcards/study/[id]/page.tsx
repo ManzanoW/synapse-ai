@@ -16,7 +16,7 @@ export default async function StudyPage({
   if (!deck) return <div className="p-8 text-white">Deck não encontrado.</div>;
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8 max-w-2xl mx-auto ">
       <StudyFlashcard cards={deck.flashcards} />
     </div>
   );

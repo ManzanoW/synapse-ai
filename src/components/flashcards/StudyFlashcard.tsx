@@ -17,10 +17,10 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
   const progress = ((index + 1) / cards.length) * 100;
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-6 flex flex-col items-center justify-center">
-      <div className="max-w-xl w-full space-y-8">
+    <div className="flex items-center justify-center bg-[#030712] min-h-[90vh] ">
+      <div className="w-full max-w-2xl p-8 bg-[#050810] border border-slate-800/50 rounded-3xl shadow-[0_0_30px_-15px_rgba(79,70,229,0.3)]">
         {/* Barra de Progresso Estilizada */}
-        <div className="space-y-2">
+        <div className="space-y-2 mb-8">
           <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             <span>Progresso</span>
             <span>
@@ -36,7 +36,8 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
         </div>
 
         {/* Link de Voltar */}
-        <div className="flex justify-between items-center text-slate-500 text-sm">
+        <div className="flex justify-between items-center text-slate-500 text-sm mb-8">
+          {" "}
           <Link
             href="/flashcards/decks"
             className="flex items-center gap-2 hover:text-white transition-colors"
@@ -46,15 +47,15 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
         </div>
 
         {/* Card com Efeito de Profundidade 3D */}
-        <div className="[perspective:1000px] h-96 w-full">
+        <div className="perspective-[1000px] h-96 w-full mb-8">
           <div
             onClick={() => setIsFlipped(!isFlipped)}
-            className={`w-full h-full relative transition-all duration-700 [transform-style:preserve-3d] cursor-pointer ${
-              isFlipped ? "[transform:rotateY(180deg)]" : ""
+            className={`w-full h-full relative transition-all duration-700 transform-3d cursor-pointer ${
+              isFlipped ? "transform-[rotateY(180deg)]" : ""
             }`}
           >
             {/* FRENTE */}
-            <div className="absolute inset-0 bg-[#090d16] border border-slate-800 rounded-3xl p-10 flex flex-col items-center justify-center text-center [backface-visibility:hidden] shadow-2xl hover:border-slate-700 transition-colors">
+            <div className="absolute inset-0 bg-[#090d16] border border-slate-800 rounded-3xl p-10 flex flex-col items-center justify-center text-center backface-hidden shadow-2xl hover:border-slate-700 transition-colors">
               <span className="absolute top-6 left-6 text-[9px] font-bold tracking-widest text-indigo-400 bg-indigo-950/20 px-2 py-0.5 rounded uppercase">
                 Conceitos Técnicos
               </span>
@@ -68,7 +69,7 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
             </div>
 
             {/* VERSO */}
-            <div className="absolute inset-0 bg-indigo-950/20 border border-indigo-500/30 rounded-3xl p-10 flex flex-col items-center justify-center text-center [transform:rotateY(180deg)] [backface-visibility:hidden] shadow-2xl shadow-indigo-500/10">
+            <div className="absolute inset-0 bg-indigo-950/20 border border-indigo-500/30 rounded-3xl p-10 flex flex-col items-center justify-center text-center transform-[rotateY(180deg)] backface-hidden shadow-2xl shadow-indigo-500/10">
               <h3 className="text-xl font-bold text-white mb-4">
                 {currentCard.answer}
               </h3>
@@ -78,9 +79,7 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
 
         {/* Botões com Feedback Visual (Exibidos apenas ao virar o card) */}
         <div
-          className={`grid grid-cols-3 gap-3 transition-opacity duration-300 ${
-            isFlipped ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
+          className={`grid grid-cols-3 gap-3 transition-opacity duration-300 ${isFlipped ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         >
           {[
             {
