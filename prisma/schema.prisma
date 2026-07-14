@@ -16,15 +16,23 @@ model User {
 }
 
 model Subject {
-  id         String   @id @default(uuid())
+  id         String @id @default(uuid())
   name       String
   importance String
-  priority   Float    @default(6.3)
-  userId     String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topics     Topic[]
+  priority   Float  @default(6.3)
+
+  // --- CAMPOS PARA SRS ---
+  lastReviewed DateTime @default(now()) // Quando foi a última vez que você estudou
+  nextReview   DateTime @default(now()) // Quando o sistema deve te cobrar a revisão
+  interval     Int      @default(1) // Quantos dias esperar para a próxima
+  easiness     Float    @default(2.5) // Fator de facilidade (usado no cálculo do SM-2)
+
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topics    Topic[]
+  decks     Deck[]
 }
 
 model Topic {
@@ -42,7 +50,33 @@ model Topic {
   interval    Int             @default(0)
   repetitions Int             @default(0)
   reviews     ReviewHistory[]
+  flashcards  Flashcard[]
   subject     Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+}
+
+model Deck {
+  id        String   @id @default(cuid())
+  title     String
+  color     String // Para armazenar "bg-blue-500", etc.
+  createdAt DateTime @default(now())
+
+  // Relações
+  subjectId  String?
+  subject    Subject?    @relation(fields: [subjectId], references: [id])
+  flashcards Flashcard[]
+  userId     String // Importante para separar os decks de cada estudante
+}
+
+model Flashcard {
+  id       String  @id @default(cuid())
+  question String
+  answer   String
+  details  String?
+  deckId   String
+  deck     Deck    @relation(fields: [deckId], references: [id])
+
+  topicId String?
+  topic   Topic?  @relation(fields: [topicId], references: [id])
 }
 
 model ReviewHistory {

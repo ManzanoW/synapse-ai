@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSidebar } from "@/lib/sidebar-context";
 import {
   Menu,
@@ -37,6 +37,25 @@ interface QuizHistoryItem {
   createdAt: string;
 }
 
+const renderEnunciado = (texto: string) => {
+  // Regex para encontrar palavras entre aspas ou totalmente em MAIÚSCULAS
+  const regex = /("[^"]+"|[A-Z]{3,})/g;
+
+  return texto.split(regex).map((parte, i) => {
+    if (parte.match(regex)) {
+      return (
+        <span
+          key={i}
+          className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold mx-0.5"
+        >
+          {parte.replace(/"/g, "")}
+        </span>
+      );
+    }
+    return <span key={i}>{parte}</span>;
+  });
+};
+
 export default function QuestoesPage() {
   const { openSidebar } = useSidebar();
 
@@ -71,6 +90,8 @@ export default function QuestoesPage() {
   );
   const [dificuldade, setDificuldade] = useState("Média");
   const [textoBase, setTextoBase] = useState("");
+  // =========================== LISTA DE MATERIAS ===========================
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
 
   // ================= ESTADOS DO MODAL MANUAL =================
   const [tipoFormato, setTipoFormato] = useState<"multipla" | "certo_errado">(
@@ -83,6 +104,16 @@ export default function QuestoesPage() {
     { id: "D", text: "" },
   ]);
   const [alternativaCorreta, setAlternativaCorreta] = useState("A");
+
+  // Carrega matérias do banco ao abrir o modal
+  useEffect(() => {
+    if (isAIModalOpen) {
+      fetch("/api/subjects/list")
+        .then((res) => res.json())
+        .then((json) => setSubjects(json.data || []))
+        .catch(console.error);
+    }
+  }, [isAIModalOpen]);
 
   // ================= FUNÇÕES DE BUSCA DE HISTÓRICO =================
 
@@ -248,10 +279,10 @@ export default function QuestoesPage() {
 
                 <div className="relative border border-slate-800 bg-[#090d16] p-6 rounded-2xl shadow-xl mb-6 w-36 h-44 flex flex-col justify-between animate-bounce duration-3000">
                   <div className="flex gap-2 justify-between">
-                    <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-[10px] text-indigo-400 font-bold font-mono">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-[10px] text-indigo-400 font-bold font-mono select-none">
                       ?
                     </div>
-                    <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-[10px] text-purple-400 font-bold font-mono">
+                    <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-[10px] text-purple-400 font-bold font-mono select-none">
                       ?
                     </div>
                   </div>
@@ -318,8 +349,8 @@ export default function QuestoesPage() {
                       </div>
 
                       {/* Enunciado da Questão */}
-                      <p className="text-slate-200 text-base font-medium mb-6 leading-relaxed whitespace-pre-line">
-                        {questao.enunciado}
+                      <p className="text-slate-200 text-lg font-medium mb-6 leading-relaxed whitespace-pre-line">
+                        {renderEnunciado(questao.enunciado)}
                       </p>
 
                       {/* Alternativas */}
@@ -450,7 +481,7 @@ export default function QuestoesPage() {
           </>
         )}
 
-        {/* ================= ABA 2: COMPONENTE DE HISTÓRICO DE SIMULADOS (NOVO) ================= */}
+        {/* ================= ABA 2: COMPONENTE DE HISTÓRICO DE SIMULADOS ================= */}
         {activeTab === "history" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div>
@@ -749,16 +780,15 @@ export default function QuestoesPage() {
                       disabled={isGenerating}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 cursor-pointer"
                     >
-                      <option value="Português">Português</option>
-                      <option value="Raciocínio Lógico">
-                        Raciocínio Lógico
-                      </option>
-                      <option value="Direito Constitucional">
-                        Direito Constitucional
-                      </option>
-                      <option value="Direito Administrative">
-                        Direito Administrativo
-                      </option>
+                      {subjects.length > 0 ? (
+                        subjects.map((sub) => (
+                          <option key={sub.id} value={sub.name}>
+                            {sub.name}
+                          </option>
+                        ))
+                      ) : (
+                        <option value={materia}>{materia}</option> // Fallback caso ainda carregando
+                      )}
                     </select>
                   </div>
                 </div>

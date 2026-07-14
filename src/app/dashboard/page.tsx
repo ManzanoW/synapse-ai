@@ -21,6 +21,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import Heatmap from "@/components/analytics/Heatmap";
 
 // Tipagem para os tópicos retornados pela fila de revisão do Prisma
 interface ReviewTopic {
@@ -541,7 +542,9 @@ export default function Dashboard() {
                 </span>
               </div>
             </Link>
-
+            <section>
+              <Heatmap />
+            </section>
             <SimulationPanel subjects={subjects} onSimulate={simulateStudy} />
             <PomodoroTimer />
           </div>

@@ -19,6 +19,7 @@ interface AnalyticsData {
     completedReviews: number;
     estimatedRetention: string;
     avgEasiness: number;
+    materiasPendentes: number;
   };
   chartDistribution: Array<{ day: string; quantidade: number }>;
   performanceSummary: {
@@ -95,6 +96,32 @@ export default function AnalyticsPage() {
             </p>
           </div>
         </div>
+
+        {/* Alerta de Matérias Pendentes */}
+        {data.metrics.materiasPendentes > 0 && (
+          <div className="bg-indigo-600/10 border border-indigo-500/30 rounded-2xl p-4 flex items-center justify-between animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-600 rounded-lg">
+                <Calendar size={18} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-indigo-300">
+                  Revisão Pendente
+                </h3>
+                <p className="text-xs text-indigo-400/80">
+                  Você tem {data.metrics.materiasPendentes} matérias que
+                  venceram hoje.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/planner"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all"
+            >
+              Ir para o Planner
+            </a>
+          </div>
+        )}
 
         {/* ================= CARDS DE MÉTRICAS INDICES COGNITIVOS ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

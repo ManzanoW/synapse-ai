@@ -11,6 +11,18 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get("mode") || "topics"; // 'topics', 'subjects' ou 'review'
+    const type = searchParams.get("type");
+
+    if (type === "pending") {
+      const hoje = new Date();
+      const pendencias = await prisma.topic.findMany({
+        where: {
+          nextRev: { lte: hoje }, // Ajuste o campo conforme seu schema real
+        },
+        include: { subject: true },
+      });
+      return NextResponse.json({ data: pendencias });
+    }
 
     // 1. Modo: Filtrar apenas tópicos que precisam ser revisados HOJE (Fila de Ebbinghaus)
     if (mode === "review") {
@@ -19,20 +31,15 @@ export async function GET(request: Request) {
       const reviewQueue = await prisma.topic.findMany({
         where: {
           subject: { userId: REAL_USER_ID },
-          OR: [
-            { firstStudy: "Pendente" }, // Itens novos que nunca foram estudados
-            { nextRev: { lte: now } }, // Itens cuja data da próxima revisão já venceu ou é agora
-          ],
+          OR: [{ firstStudy: "Pendente" }, { nextRev: { lte: now } }],
         },
         include: {
           subject: {
             select: { name: true },
           },
+          flashcards: true,
         },
-        orderBy: [
-          { firstStudy: "asc" }, // Agrupa os pendentes primeiro
-          { nextRev: "asc" }, // Os mais atrasados aparecem primeiro
-        ],
+        orderBy: [{ firstStudy: "asc" }, { nextRev: "asc" }],
       });
 
       return NextResponse.json({ data: reviewQueue }, { status: 200 });
@@ -101,6 +108,17 @@ export async function POST(request: Request) {
         },
       });
 
+      const userExists = await prisma.user.findUnique({
+        where: { id: REAL_USER_ID },
+      });
+      if (!userExists) {
+        console.error(
+          "ERRO: Usuário não encontrado no banco com o ID:",
+          REAL_USER_ID,
+        );
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
       if (!subject) {
         subject = await prisma.subject.create({
           data: {
@@ -128,7 +146,7 @@ export async function POST(request: Request) {
     }
 
     // 🧠 FLUXO B: Atualizar histórico e curva de esquecimento (Algoritmo SM-2 Avançado)
-    const { topicId, grade, performance } = body; // grade: "Bom", "Difícil", "Errei"
+    const { topicId, grade, performance } = body;
 
     if (!topicId || !grade) {
       return NextResponse.json(
@@ -151,49 +169,59 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Topic not found" }, { status: 404 });
     }
 
-    // 3. Mapeia o feedback visual em notas numéricas do SM-2 (de 0 a 5)
-    // "Bom" mapeia para 5 (memorização perfeita)
-    // "Difícil" mapeia para 3 (resposta correta, mas com esforço significativo)
-    // "Errei" mapeia para 1 (resposta incorreta, mas lembra vagamente do assunto)
+    // 3. Mapeia o feedback com maior granularidade
     let q = 5;
     if (grade === "Difícil") q = 3;
     if (grade === "Errei") q = 1;
 
-    // Recarrega os estados atuais salvos no banco
+    // Ajuste Fino: Se o usuário marcou "Bom" mas a performance foi < 70%,
+    // tratamos como um "Difícil" para não inflar a facilidade do tópico.
+    if (grade === "Bom" && performance < 70) q = 3;
+
     let easiness = currentTopic.easiness ?? 2.5;
     let repetitions = currentTopic.repetitions ?? 0;
     let interval = currentTopic.interval ?? 0;
 
-    // 4. Aplica a lógica matemática do SM-2
+    // 4. Lógica SM-2 Refinada
     if (q >= 3) {
-      // Se o usuário acertou ("Bom" ou "Difícil")
       if (repetitions === 0) {
-        interval = 1; // 1º acerto: revisa amanhã
+        interval = 1;
       } else if (repetitions === 1) {
-        interval = 6; // 2º acerto seguido: revisa em 6 dias
+        interval = 6;
       } else {
-        // A partir do 3º acerto: multiplica o intervalo anterior pelo fator de facilidade
-        interval = Math.round(interval * easiness);
+        // Aumentamos a agressividade do multiplicador se a performance for excelente (>90%)
+        const performanceMultiplier = performance > 90 ? 1.2 : 1.0;
+        interval = Math.round(interval * easiness * performanceMultiplier);
       }
-      repetitions++; // Incrementa a sequência de acertos
+      repetitions++;
     } else {
-      // Se o usuário errou
-      repetitions = 0; // Zera a sequência de acertos consecutivo
-      interval = 1; // Volta para a esteira inicial (revisar amanhã)
+      // Se errou, zeramos a progressão, mas se a performance foi quase zero,
+      // reduzimos o easiness de forma mais drástica.
+      repetitions = 0;
+      interval = performance < 30 ? 0 : 1; // 0 = Revisar hoje ainda (urgente)
     }
 
-    // 5. Atualiza o Fator de Facilidade (Easiness Factor) com base na nota
-    // Fórmula clássica do SM-2: EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-    easiness = easiness + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
+    // 5. Ajuste de Easiness com penalidade baseada em Performance
+    // Se a performance estiver ruim, reduzimos o fator de facilidade (easiness)
+    const performancePenalty = (100 - performance) / 200; // Penalidade sutil
+    easiness =
+      easiness + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)) - performancePenalty;
 
-    // Garante que o Fator de Facilidade nunca caia abaixo do limite crítico de 1.3
-    if (easiness < 1.3) {
-      easiness = 1.3;
-    }
+    if (easiness < 1.3) easiness = 1.3;
+    if (easiness > 3.0) easiness = 3.0; // Teto para não deixar o intervalo infinito
 
-    // 6. Calcula a data exata da próxima revisão somando o intervalo de dias
+    // 6. Calcula a data (Garantindo UTC para consistência total)
     const nextRevisionDate = new Date();
-    nextRevisionDate.setDate(nextRevisionDate.getDate() + interval);
+
+    if (interval > 0) {
+      // Adiciona os dias
+      nextRevisionDate.setDate(nextRevisionDate.getDate() + interval);
+      // Força o horário para o início da manhã em UTC (08:00 AM)
+      nextRevisionDate.setUTCHours(8, 0, 0, 0);
+    } else {
+      // Revisão urgente: daqui a 2 horas, mantendo a consistência
+      nextRevisionDate.setHours(nextRevisionDate.getHours() + 2);
+    }
 
     // 7. Salva o novo estado matemático e metadados no banco de dados
     const updatedTopic = await prisma.topic.update({
