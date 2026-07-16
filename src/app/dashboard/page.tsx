@@ -179,37 +179,38 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* ================= HEADER / BARRA DE JORNADA ================= */}
-        <header className="w-full flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 border-b border-slate-950 pb-8 mb-8 animate-in fade-in duration-500">
-          <div className="bg-[#090d16] border border-slate-800/60 px-5 py-4 rounded-2xl flex flex-col justify-center flex-1 max-w-md shadow-lg shadow-indigo-950/5">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-slate-100 tracking-tight">
-                268 dias até o grande objetivo
-              </span>
-              <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-md font-mono font-bold uppercase tracking-wider">
-                Aprox.
-              </span>
+        {/* ================= HEADER / PAINEL DE JORNADA UNIFICADO ================= */}
+        <header className="w-full bg-linear-to-b from-[#0e131d] to-[#090d16] border border-slate-800/80 rounded-2xl p-6 mb-8 shadow-2xl shadow-indigo-950/10 flex flex-col gap-6 transition-all hover:border-indigo-500/30">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            {/* Bloco de Objetivo */}
+            <div>
+              <h2 className="text-xl font-bold text-slate-100">
+                268 dias{" "}
+                <span className="text-slate-500 font-medium text-base">
+                  até o grande objetivo
+                </span>
+              </h2>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Faltam aproximadamente 38 semanas e 2 dias
+              </p>
             </div>
-            <span className="text-xs text-slate-400 mt-1 font-medium">
-              Faltam aproximadamente 38 weeks e 2 dias
+
+            {/* Badge de Status */}
+            <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full font-mono font-bold uppercase tracking-widest">
+              Status: Em progresso
             </span>
           </div>
 
-          <div className="bg-[#090d16] border border-slate-800/60 p-4 rounded-2xl flex-1 max-w-lg flex flex-col justify-center shadow-lg shadow-indigo-950/5">
-            <div className="flex justify-between items-center text-xs font-medium text-slate-400 mb-2">
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                Início
-              </span>
-              <span className="text-indigo-400 font-bold font-mono bg-indigo-500/5 px-2 py-0.5 rounded-md border border-indigo-500/10">
-                15% da jornada concluída
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-500">
-                Concurso / Meta
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-800" />
-              </span>
+          {/* Barra de Progresso Integrada */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              <span>Início da jornada</span>
+              <span className="text-indigo-400 font-mono">15% concluído</span>
             </div>
-            <div className="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-900 p-0.5">
-              <div className="h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full w-[15%] shadow-[0_0_8px_rgba(99,102,241,0.3)]" />
+
+            <div className="relative h-3 w-full bg-slate-950 rounded-full border border-slate-900/50 p-0.5 overflow-visible">
+              <div className="absolute inset-0 bg-indigo-500/20 blur-sm rounded-full" />
+              <div className="h-full bg-linear-to-r from-indigo-500 via-purple-500 to-indigo-600 rounded-full w-[15%] relative z-10 shadow-[0_0_15px_rgba(79,70,229,0.6)]" />
             </div>
           </div>
         </header>
@@ -534,9 +535,15 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-1.5 pt-2">
-                <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-900">
-                  <div className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full w-[78.7%]" />
+                {/* Container da barra com overflow-visible para o glow vazar */}
+                <div className="h-2 w-full bg-slate-950 rounded-full relative">
+                  {/* CAMADA DE GLOW: Este elemento cria o efeito de brilho neon por trás da barra */}
+                  <div className="absolute inset-0 bg-indigo-500 blur-md opacity-30 rounded-full" />
+
+                  {/* BARRA DE PROGRESSO: z-10 garante que ela fique acima do brilho */}
+                  <div className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full w-[78.7%] relative z-10" />
                 </div>
+
                 <span className="text-[10px] text-slate-500 block text-right font-medium">
                   Meta semanal: 85%
                 </span>

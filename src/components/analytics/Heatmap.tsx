@@ -3,14 +3,18 @@
 import { useEffect, useState } from "react";
 
 export default function Heatmap() {
-  // Inicializamos com um objeto vazio explicitamente
   const [data, setData] = useState<Record<string, number>>({});
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    text: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   useEffect(() => {
     fetch("/api/analytics/history")
       .then((res) => res.json())
       .then((json) => {
-        // Garantimos que recebemos um objeto
         setData(json.data || {});
       })
       .catch((err) => console.error("Erro ao carregar heatmap:", err));
@@ -23,7 +27,7 @@ export default function Heatmap() {
   });
 
   const getIntensity = (count: number | undefined) => {
-    const val = count || 0; // Se undefined, trata como 0
+    const val = count || 0;
     if (val === 0) return "bg-slate-900";
     if (val < 3) return "bg-indigo-900";
     if (val < 6) return "bg-indigo-600";
@@ -31,20 +35,39 @@ export default function Heatmap() {
   };
 
   return (
-    <div className="bg-[#090d16] border border-slate-800 p-6 rounded-2xl">
+    <div className="bg-[#090d16] border border-slate-800 p-6 rounded-2xl relative">
       <h3 className="text-sm font-bold text-slate-200 mb-4">
         Intensidade de Estudos
       </h3>
+
+      {/* Container do Grid */}
       <div className="flex gap-1.5 flex-wrap">
         {days.map((day) => (
           <div
             key={day}
-            // Acessamos com segurança usando optional chaining e fallback
-            className={`w-6 h-6 rounded-md ${getIntensity(data?.[day])}`}
-            title={`${day}: ${data?.[day] || 0} revisões`}
+            className={`w-6 h-6 rounded-md transition-all duration-200 hover:scale-110 ${getIntensity(data?.[day])}`}
+            onMouseEnter={(e) => {
+              setTooltip({
+                visible: true,
+                text: `${day}: ${data?.[day] || 0} revisões`,
+                x: e.clientX,
+                y: e.clientY,
+              });
+            }}
+            onMouseLeave={() => setTooltip(null)}
           />
         ))}
       </div>
+
+      {/* Tooltip Customizado */}
+      {tooltip && (
+        <div
+          className="fixed z-50 px-3 py-1.5 bg-slate-800 text-[11px] text-slate-100 rounded border border-slate-700 shadow-xl pointer-events-none animate-in fade-in zoom-in duration-150"
+          style={{ left: tooltip.x + 15, top: tooltip.y - 35 }}
+        >
+          {tooltip.text}
+        </div>
+      )}
     </div>
   );
 }
