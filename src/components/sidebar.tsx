@@ -103,19 +103,7 @@ export default function Sidebar() {
               );
             })}
           </nav>
-
           <div className="border-t border-slate-900/80 my-2" />
-
-          {/* Lembretes */}
-          <div className="space-y-3 px-2">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              <span>Lembretes</span>
-              <button className="hover:text-slate-300 p-0.5">
-                <Plus size={14} />
-              </button>
-            </div>
-            <p className="text-xs text-slate-600 italic">Nenhum lembrete</p>
-          </div>
         </div>
 
         {/* Rodapé da Sidebar */}
