@@ -67,7 +67,7 @@ export default function Sidebar() {
             <Image
               width={80}
               height={80}
-              src="/synapse-icon.png"
+              src="/Synapse-icon.png"
               alt="Synapse AI Logo"
               className="synapse-logo-glow mb-4"
             />
