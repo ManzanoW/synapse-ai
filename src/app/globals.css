@@ -109,3 +109,29 @@ body {
 .delay-400 {
   animation-delay: 400ms;
 }
+
+.animate-pulse-slow {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Efeito de glow na logo */
+.synapse-logo-glow {
+  /* Aumentei o blur de 8px para 20px para acompanhar o tamanho maior */
+  filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.5));
+  transition: filter 0.3s ease;
+}
+
+/* Efeito sutil ao passar o mouse */
+.synapse-logo-glow:hover {
+  filter: drop-shadow(0 0 30px rgba(99, 102, 241, 0.7));
+}

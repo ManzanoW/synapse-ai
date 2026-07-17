@@ -1,19 +1,18 @@
-export default function SubjectCard({ 
-  title, 
-  progress, 
+export default function SubjectCard({
+  title,
+  progress,
   totalCards,
   timeSpent = "0min",
   accuracy = 0,
-  colorClass = 'indigo'
-}: { 
-  title: string; 
-  progress: number; 
+  colorClass = "indigo",
+}: {
+  title: string;
+  progress: number;
   totalCards: number;
   timeSpent?: string;
   accuracy?: number;
-  colorClass?: 'indigo' | 'emerald' | 'amber' | 'rose' | 'violet'; 
+  colorClass?: "indigo" | "emerald" | "amber" | "rose" | "violet";
 }) {
-  
   // Mapeamento estático ajustado com cores visíveis antes e intensificadas no hover
   const themeMap = {
     indigo: {
@@ -22,7 +21,7 @@ export default function SubjectCard({
       borderLeft: "border-l-indigo-500",
       borderHover: "hover:border-indigo-500/30",
       bar: "bg-indigo-500",
-      glow: "group-hover:from-indigo-500/[0.03]"
+      glow: "group-hover:from-indigo-500/[0.03]",
     },
     emerald: {
       textDefault: "text-emerald-400",
@@ -30,7 +29,7 @@ export default function SubjectCard({
       borderLeft: "border-l-emerald-500",
       borderHover: "hover:border-emerald-500/30",
       bar: "bg-emerald-500",
-      glow: "group-hover:from-emerald-500/[0.03]"
+      glow: "group-hover:from-emerald-500/[0.03]",
     },
     amber: {
       textDefault: "text-amber-400",
@@ -38,7 +37,7 @@ export default function SubjectCard({
       borderLeft: "border-l-amber-500",
       borderHover: "hover:border-amber-500/30",
       bar: "bg-amber-500",
-      glow: "group-hover:from-amber-500/[0.03]"
+      glow: "group-hover:from-amber-500/[0.03]",
     },
     rose: {
       textDefault: "text-rose-400",
@@ -46,7 +45,7 @@ export default function SubjectCard({
       borderLeft: "border-l-rose-500",
       borderHover: "hover:border-rose-500/30",
       bar: "bg-rose-500",
-      glow: "group-hover:from-rose-500/[0.03]"
+      glow: "group-hover:from-rose-500/[0.03]",
     },
     violet: {
       textDefault: "text-violet-400",
@@ -54,28 +53,40 @@ export default function SubjectCard({
       borderLeft: "border-l-violet-500",
       borderHover: "hover:border-violet-500/30",
       bar: "bg-violet-500",
-      glow: "group-hover:from-violet-500/[0.03]"
-    }
+      glow: "group-hover:from-violet-500/[0.03]",
+    },
   };
 
   const currentTheme = themeMap[colorClass] || themeMap.indigo;
 
-  const accuracyColor = accuracy >= 80 ? 'text-emerald-400' : accuracy >= 60 ? 'text-amber-400' : 'text-slate-400';
+  const accuracyColor =
+    accuracy >= 80
+      ? "text-emerald-400"
+      : accuracy >= 60
+        ? "text-amber-400"
+        : "text-slate-400";
 
   return (
-    <div className={`bg-[#070b12] border border-slate-900/80 border-l-4 ${currentTheme.borderLeft} rounded-xl p-4.5 
+    <div
+      className={`bg-[#070b12] border border-slate-900/80 border-l-4 ${currentTheme.borderLeft} rounded-xl p-4.5 
                     transition-all duration-300 ease-out hover:-translate-y-0.5
-                    cursor-pointer group relative overflow-hidden ${currentTheme.borderHover}`}>
-      
+                    cursor-pointer group relative overflow-hidden ${currentTheme.borderHover} `}
+    >
       {/* Brilho de fundo que se intensifica no hover */}
-      <div className={`absolute inset-0 bg-linear-to-br from-transparent via-transparent to-transparent transition-all duration-500 ${currentTheme.glow}`} />
+      <div
+        className={`absolute inset-0 bg-linear-to-br from-transparent via-transparent to-transparent transition-all duration-500 ${currentTheme.glow}`}
+      />
 
       {/* Cabeçalho */}
       <div className="flex items-center justify-between relative z-10">
-        <h3 className={`font-semibold transition-colors duration-300 ${currentTheme.textDefault} ${currentTheme.textHover}`}>
+        <h3
+          className={`font-semibold transition-colors duration-300 ${currentTheme.textDefault} ${currentTheme.textHover}`}
+        >
           {title}
         </h3>
-        <span className={`text-slate-700 group-hover:translate-x-0.5 transition-all duration-300 text-base ${currentTheme.textHover}`}>
+        <span
+          className={`text-slate-700 group-hover:translate-x-0.5 transition-all duration-300 text-base ${currentTheme.textHover}`}
+        >
           &rsaquo;
         </span>
       </div>
@@ -85,18 +96,22 @@ export default function SubjectCard({
         <div className="flex justify-between text-[11px] text-slate-400 tracking-wide">
           <div className="flex gap-1">
             <span className="text-slate-500">Progresso:</span>
-            <span className="font-medium text-slate-300 font-mono">{progress}%</span>
+            <span className="font-medium text-slate-300 font-mono">
+              {progress}%
+            </span>
           </div>
           <div className="flex gap-1">
             <span className="text-slate-500">Acertos:</span>
-            <span className={`font-medium font-mono ${accuracyColor}`}>{accuracy}%</span>
+            <span className={`font-medium font-mono ${accuracyColor}`}>
+              {accuracy}%
+            </span>
           </div>
         </div>
-        
+
         {/* Barra de progresso */}
         <div className="h-1 w-full bg-slate-950 rounded-full overflow-hidden">
-          <div 
-            className={`h-full rounded-full transition-all duration-1000 ease-out ${currentTheme.bar}`}
+          <div
+            className={`h-full rounded-full transition-all duration-1000 ease-out ${currentTheme.bar} shadow-[0_0_8px_rgba(var(--color-current),0.5)]`}
             style={{ width: `${progress}%` }}
           />
         </div>

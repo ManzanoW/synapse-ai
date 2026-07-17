@@ -20,6 +20,7 @@ import {
   ClipboardList,
   Loader2,
   AlertCircle,
+  BrainCircuit,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -313,59 +314,76 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* CARD 2: Seu Progresso */}
-              <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-5 flex flex-col justify-between min-h-55 shadow-lg">
-                <div className="flex justify-between items-center border-b border-white/10 pb-3">
-                  <span className="text-sm font-semibold text-slate-300">
-                    Seu Progresso
+              {/* CARD 2: MÉTRICAS DE DESEMPENHO */}
+              <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl">
+                <div className="flex justify-between items-center mb-6">
+                  <span className="text-sm font-medium text-slate-200 tracking-wide">
+                    Métricas de Desempenho
                   </span>
-                  <span className="text-[10px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded-md border border-slate-800">
-                    Sempre
+                  <span className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold">
+                    Live Stats
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 my-3">
-                  <div className="bg-slate-950/50 border border-slate-800/40 p-3 rounded-lg">
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">
-                      Tempo de Estudo
+                {/* Stats Principais em Destaque */}
+                <div className="flex gap-8 mb-6">
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase block mb-1">
+                      Tempo Total
                     </span>
-                    <span className="text-xl font-bold text-indigo-400 mt-1 block">
-                      0min
+                    <span className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-white to-indigo-300">
+                      4h 20m
                     </span>
                   </div>
-                  <div className="bg-slate-950/50 border border-slate-800/40 p-3 rounded-lg flex flex-col justify-between">
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">
-                      Desempenho
-                    </span>
-                    <div className="flex justify-between items-end mt-1">
-                      <span className="text-xs text-emerald-400">A: 0</span>
-                      <span className="text-xs text-rose-400">E: 0</span>
-                      <span className="text-sm font-bold text-slate-400">
-                        0%
-                      </span>
+                  <div className="flex-1">
+                    <div className="flex justify-between text-[10px] text-slate-500 uppercase mb-1">
+                      <span>Precisão</span>
+                      <span>78%</span>
+                    </div>
+                    {/* Barra de Progresso */}
+                    <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden flex">
+                      <div className="bg-emerald-500 w-[78%]" />
+                      <div className="bg-rose-500 w-[22%]" />
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center text-[11px] text-slate-400">
-                  <div className="bg-slate-950/30 py-1.5 rounded border border-slate-900">
-                    <b>0</b> Sessões
+                {/* Rodapé do Card */}
+                <div className="flex justify-between items-center border-t border-white/5 pt-5 mt-4">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-600 uppercase font-semibold">
+                      Sessões
+                    </span>
+                    <span className="text-sm font-semibold text-slate-200">
+                      12
+                    </span>
                   </div>
-                  <div className="bg-slate-950/30 py-1.5 rounded border border-slate-900">
-                    <b>0</b> Questões
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] text-slate-600 uppercase font-semibold">
+                      Questões
+                    </span>
+                    <span className="text-sm font-semibold text-slate-200">
+                      145
+                    </span>
                   </div>
-                  <div className="bg-slate-950/30 py-1.5 rounded border border-slate-900">
-                    <b>0min</b> Méd/Dia
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] text-slate-600 uppercase font-semibold">
+                      Méd/Dia
+                    </span>
+                    <span className="text-sm font-semibold text-slate-200">
+                      35min
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 🌟 MOTOR DE SUGESTÕES POR IA (Versão Premium) */}
+            {/* 🌟 MOTOR DE SUGESTÕES POR IA */}
             <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 p-5 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:border-cyan-500/30">
               {/* Efeito de Fundo Glow para IA */}
               <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-[80px] transition-all duration-700 group-hover:bg-cyan-500/20" />
 
+              {/* Cabeçalho */}
               <div className="relative flex justify-between items-center mb-5">
                 <div className="flex items-center gap-2">
                   <div className="rounded-lg bg-cyan-500/10 p-1.5 ring-1 ring-cyan-500/20">
@@ -383,47 +401,42 @@ export default function Dashboard() {
                 </span>
               </div>
 
+              {/* Lista de Cards */}
               <div className="space-y-3">
                 {/* Card 1: Crítico */}
-                <div className="group/item flex cursor-pointer items-start gap-3 rounded-xl border border-white/5 bg-slate-950/40 p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-rose-500/30 hover:bg-slate-900/50">
-                  <div className="mt-0.5 rounded-lg bg-rose-500/10 p-2 text-rose-400 transition-transform group-hover/item:scale-105">
-                    <Layers size={14} />
+                <div className="group/item relative flex items-start gap-4 rounded-xl border border-white/5 bg-slate-950/40 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-rose-400/30 hover:bg-slate-900/40">
+                  <div className="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20 text-indigo-400">
+                    <BrainCircuit size={20} />
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-200 transition-colors group-hover/item:text-rose-400">
-                        Rever Raciocínio Lógico
-                      </span>
-                      <span className="rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase text-rose-400">
-                        Crítico
-                      </span>
-                    </div>
-                    <p className="text-[11px] leading-relaxed text-slate-400">
-                      Sua retenção em{" "}
-                      <span className="font-medium text-slate-200">
-                        Tabelas Verdade
-                      </span>{" "}
-                      caiu para 68%. O algoritmo sugere revisar 8 flashcards
-                      hoje.
+                  <div className="flex-1">
+                    <h4 className="text-sm font-bold text-slate-200">
+                      Rever Raciocínio Lógico
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Sua retenção caiu para 68%. O algoritmo sugere revisar 8
+                      cards.
                     </p>
                   </div>
+                  <span className="shrink-0 text-[9px] font-bold tracking-widest text-rose-400 bg-rose-500/10 px-2 py-1 rounded-full border border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]">
+                    CRÍTICO
+                  </span>
                 </div>
 
                 {/* Card 2: Sugerido */}
-                <div className="group/item flex cursor-pointer items-start gap-3 rounded-xl border border-white/5 bg-slate-950/40 p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-slate-900/50">
-                  <div className="mt-0.5 rounded-lg bg-emerald-500/10 p-2 text-emerald-400 transition-transform group-hover/item:scale-105">
-                    <ClipboardList size={14} />
+                <div className="group/item relative flex items-start gap-4 rounded-xl border border-white/5 bg-slate-950/40 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-slate-900/40">
+                  <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20 text-emerald-400">
+                    <ClipboardList size={20} />
                   </div>
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-200 transition-colors group-hover/item:text-emerald-400">
+                      <span className="text-sm font-bold text-slate-200">
                         Fixação Teórica: Português
                       </span>
-                      <span className="rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase text-emerald-400">
+                      <span className="rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase text-emerald-400 border border-emerald-500/20 bg-emerald-500/5">
                         Sugerido
                       </span>
                     </div>
-                    <p className="text-[11px] leading-relaxed text-slate-400">
+                    <p className="text-xs text-slate-400">
                       Você atingiu 82% de precisão em Sintaxe! Desbloqueie o{" "}
                       <span className="font-medium text-slate-200">
                         Caderno Avançado
@@ -434,56 +447,63 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/5 bg-white/5 py-2.5 text-xs font-medium text-slate-400 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-400 active:scale-[0.98]">
+              {/* Botão de Ação */}
+              <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border-t border-white/5 bg-white/5 py-2.5 text-xs font-medium text-slate-400 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-400 active:scale-[0.98]">
                 <Sparkles size={13} />
                 <span>Otimizar Cronograma com IA</span>
               </button>
             </div>
 
             {/* CARD 4: Lista de Matérias */}
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
-              <div className="flex justify-between items-center border-b border-white/10 pb-3">
-                <div className="flex items-center gap-2">
-                  <BookOpen size={16} className="text-slate-400" />
-                  <h3 className="font-semibold text-sm text-slate-200">
+            <div className="bg-slate-900/20 backdrop-blur-xl border border-white/3 rounded-2xl p-6 shadow-2xl space-y-6 ">
+              {/* Header Alinhado com o Grid */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-white/2 border border-white/5">
+                    <BookOpen size={16} className="text-slate-400" />
+                  </div>
+                  <h3 className="font-medium text-xs text-slate-300 tracking-[0.2em] uppercase">
                     Minhas Matérias
                   </h3>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="p-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center active:scale-95"
+                  className="group flex items-center justify-center w-8 h-8 rounded-lg bg-white/2 hover:bg-indigo-500/10 border border-white/5 hover:border-indigo-500/30 transition-all active:scale-95"
                 >
-                  <Plus size={16} />
+                  <Plus
+                    size={16}
+                    className="text-slate-400 group-hover:text-indigo-400 transition-colors"
+                  />
                 </button>
               </div>
 
-              <div className="space-y-2">
-                {isLoading ? (
-                  <>
-                    <SubjectCardSkeleton />
-                    <SubjectCardSkeleton />
-                    <SubjectCardSkeleton />
-                  </>
-                ) : (
-                  subjects.map((sub, idx) => (
-                    <SubjectCard
-                      key={idx}
-                      title={sub.name}
-                      colorClass={sub.color}
-                      timeSpent={sub.timeSpent}
-                      accuracy={sub.accuracy}
-                      progress={sub.progress}
-                      totalCards={sub.totalCards}
-                    />
-                  ))
-                )}
+              {/* Grid Responsiva com Espaçamento de 4 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {isLoading
+                  ? [...Array(4)].map((_, i) => <SubjectCardSkeleton key={i} />)
+                  : subjects.map((sub, idx) => (
+                      <div
+                        key={idx}
+                        className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-backwards transition-all hover:-translate-y-1"
+                        style={{ animationDelay: `${idx * 150}ms` }}
+                      >
+                        <SubjectCard
+                          title={sub.name}
+                          colorClass={sub.color}
+                          timeSpent={sub.timeSpent}
+                          accuracy={sub.accuracy}
+                          progress={sub.progress}
+                          totalCards={sub.totalCards}
+                        />
+                      </div>
+                    ))}
               </div>
             </div>
           </div>
 
           {/* ================= SEÇÃO DIREITA (BARRA LATERAL) ================= */}
           <div
-            className="lg:col-span-3 space-y-6 animate-slide-up opacity-0 delay-200vg65yg 432120.
+            className="lg:col-span-3 space-y-6 animate-slide-up opacity-0 delay-200.
            "
           >
             {/* 📊 CARD DE CONSTÂNCIA */}
@@ -522,7 +542,7 @@ export default function Dashboard() {
               </div>
             </Link>
 
-            {/* 📈 CARD DE SEU PROGRESSO */}
+            {/* 📈 CARD DE META SEMANAL */}
             <Link
               href="/analytics"
               className="bg-slate-900/40 border border-white/10 hover:border-indigo-500/30 p-5 rounded-2xl transition-all duration-300 block group cursor-pointer shadow-lg"
@@ -530,7 +550,7 @@ export default function Dashboard() {
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-400 transition-colors">
-                    Seu Progresso
+                    Meta Semanal
                   </h3>
                   <p className="text-2xl font-black text-slate-100 mt-1">
                     78.7%
@@ -542,12 +562,11 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-1.5 pt-2">
-                {/* Container da barra com overflow-visible para o glow vazar */}
                 <div className="h-2 w-full bg-slate-950 rounded-full relative">
-                  {/* CAMADA DE GLOW: Este elemento cria o efeito de brilho neon por trás da barra */}
+                  {/* CAMADA DE GLOW */}
                   <div className="absolute inset-0 bg-indigo-500 blur-md opacity-30 rounded-full" />
 
-                  {/* BARRA DE PROGRESSO: z-10 garante que ela fique acima do brilho */}
+                  {/* BARRA DE PROGRESSO */}
                   <div className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full w-[78.7%] relative z-10" />
                 </div>
 

@@ -55,6 +55,11 @@ export default function PomodoroTimer() {
     };
   }, [isActive, minutes, seconds]);
 
+  // Calcula a porcentagem baseada no tempo atual e no tempo total do modo
+  const totalSeconds = mode === "foco" ? 25 * 60 : 5 * 60; // Exemplo de tempos
+  const currentSeconds = minutes * 60 + seconds;
+  const progressPercentage = (currentSeconds / totalSeconds) * 100;
+
   // Define dinamicamente a cor do tema com base no modo (Foco vs Descanço)
   const isFocus = mode === "foco";
   const themeColor = isFocus ? "indigo" : "emerald";
@@ -78,7 +83,7 @@ export default function PomodoroTimer() {
       }`}
     >
       {/* Abas de Modo */}
-      <div className="w-full flex justify-between text-xs font-semibold text-slate-400 border-b border-slate-800/60 pb-2">
+      <div className="w-full flex justify-between text-[11px] uppercase tracking-widest font-bold text-slate-500 border-b border-slate-800/60 pb-2">
         {(["foco", "curta", "longa"] as const).map((m) => (
           <button
             key={m}
@@ -106,31 +111,41 @@ export default function PomodoroTimer() {
 
       {/* Relógio do Timer */}
       <div className="my-4 relative flex items-center justify-center w-full group">
-        {/* Círculo Animado Externo */}
-        <div
-          className={`w-36 h-36 rounded-full border-2 flex items-center justify-center absolute transition-all duration-700 ${
-            isActive
-              ? `${themeBorder} border-t-transparent animate-spin-slow`
-              : "border-slate-800 group-hover:border-slate-700"
-          }`}
-        />
+        {/* Círculo de Progresso SVG */}
+        <div className="relative w-36 h-36 flex items-center justify-center">
+          <svg className="w-full h-full -rotate-90">
+            {/* Círculo de Fundo (cinza) */}
+            <circle
+              cx="72"
+              cy="72"
+              r="68"
+              className="stroke-slate-800"
+              strokeWidth="4"
+              fill="transparent"
+            />
+            {/* Círculo de Progresso (dinâmico) */}
+            <circle
+              cx="72"
+              cy="72"
+              r="68"
+              className="transition-all duration-1000 ease-linear"
+              // Aqui aplicamos a cor diretamente baseada no estado isFocus
+              stroke={isActive ? (isFocus ? "#6366f1" : "#10b981") : "#334155"}
+              strokeWidth="4"
+              fill="transparent"
+              strokeDasharray={427}
+              strokeDashoffset={
+                isActive ? 427 - (progressPercentage / 100) * 427 : 427
+              }
+              strokeLinecap="round"
+            />
+          </svg>
 
-        {/* Efeito Glow Pulsante que só ativa quando o timer está rodando */}
-        <div
-          className={`w-32 h-32 rounded-full absolute bg-radial from-transparent to-transparent opacity-0 transition-all duration-1000 ${
-            isActive
-              ? `blur-xl opacity-10 animate-pulse [animation-duration:2s] ${isFocus ? "from-indigo-500/30" : "from-emerald-500/30"}`
-              : ""
-          }`}
-        />
-
-        {/* Display Numérico */}
-        <div
-          className={`text-3xl font-bold tracking-widest z-10 font-mono transition-all duration-500 ${
-            isActive ? `${themeText} scale-102` : "text-slate-100"
-          }`}
-        >
-          {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+          {/* Display Numérico (Centralizado sobre o SVG) */}
+          <div className="absolute font-mono text-3xl font-bold tracking-widest text-slate-100">
+            {String(minutes).padStart(2, "0")}:
+            {String(seconds).padStart(2, "0")}
+          </div>
         </div>
       </div>
 

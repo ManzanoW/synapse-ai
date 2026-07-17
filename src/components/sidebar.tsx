@@ -5,29 +5,37 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/lib/sidebar-context";
 import {
-  LayoutDashboard,
   CalendarRange,
   Sparkles,
   Brain,
   Layers,
   ClipboardList,
-  Calendar,
   User,
   HelpCircle,
-  GraduationCap,
   LogOut,
+  AppWindow,
+  Activity,
+  CalendarDays,
+  FileText,
+  LayoutDashboard,
+  CalendarClock,
+  TrendingUp,
+  FileStack,
+  UserCircle2,
+  Info,
 } from "lucide-react";
+import Image from "next/image";
 
 const NAV_ITEMS = [
-  { label: "Início", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Planner", href: "/planner", icon: CalendarRange },
-  { label: "Semana", href: "/week", icon: Sparkles },
-  { label: "Analytics", href: "/analytics", icon: Brain },
-  { label: "Flashcards", href: "/flashcards", icon: Layers },
-  { label: "Questões", href: "/questions", icon: ClipboardList },
-  { label: "Calendário", href: "/calendar", icon: Calendar },
-  { label: "Perfil", href: "/profile", icon: User },
-  { label: "Ajuda", href: "/help", icon: HelpCircle },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Agenda", href: "/planner", icon: CalendarClock },
+  { label: "Visão Geral", href: "/week", icon: Sparkles },
+  { label: "Performance", href: "/analytics", icon: TrendingUp },
+  { label: "Cards", href: "/flashcards", icon: Layers },
+  { label: "Banco de Provas", href: "/questions", icon: FileStack },
+  { label: "Cronograma", href: "/calendar", icon: CalendarDays },
+  { label: "Perfil", href: "/profile", icon: UserCircle2 },
+  { label: "Ajuda", href: "/help", icon: Info },
 ];
 
 export default function Sidebar() {
@@ -54,18 +62,28 @@ export default function Sidebar() {
   `}
       >
         <div className="space-y-6">
-          <div className="flex items-center justify-between px-2 py-1">
-            <div className="flex items-center gap-2 text-indigo-400 font-bold text-xl tracking-tight">
-              <div className="p-1.5 rounded-lg bg-indigo-500/10 ring-1 ring-indigo-500/20">
-                <Brain className="w-5 h-5 text-indigo-400" />
-              </div>
-              <span className="text-white tracking-tighter">
-                Synapse<span className="text-indigo-400">AI</span>
-              </span>
+          <div className="flex flex-col items-center justify-center pt-10 pb-8 px-6">
+            {/* Aumentamos para 64px ou 80px para dar presença */}
+            <Image
+              width={80}
+              height={80}
+              src="/synapse-icon.png"
+              alt="Synapse AI Logo"
+              className="synapse-logo-glow mb-4"
+            />
+
+            {/* Texto centralizado abaixo */}
+            <div className="flex items-baseline justify-center">
+              <h1 className="mt-4 text-2xl font-semibold text-white">
+                Synapse <span className="text-indigo-400 font-light">AI</span>
+              </h1>
+
+              {/* Linha separadora */}
             </div>
+            <div className="w-16 h-[1px] bg-white/10 mt-6 mb-2"></div>
           </div>
 
-          <nav className="space-y-1.5">
+          <nav className="px-3 space-y-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -75,21 +93,30 @@ export default function Sidebar() {
                   key={item.href}
                   href={item.href}
                   onClick={closeSidebar}
-                  className={`relative group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+                  className={`relative group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-300 overflow-hidden ${
                     isActive
-                      ? "text-white shadow-[0_0_15px_rgba(99,102,241,0.15)]"
-                      : "text-slate-400 hover:text-indigo-300"
+                      ? "text-indigo-100 bg-white/[0.03]"
+                      : "text-slate-500 hover:text-slate-200 hover:bg-white/[0.02]"
                   }`}
                 >
-                  {/* Efeito de Luz do item ativo */}
+                  {/* Efeito de luz do item ativo (Mais sutil e elegante) */}
                   {isActive && (
-                    <div className="absolute inset-0 bg-linear-to-r from-indigo-500/10 to-transparent border-l-2 border-indigo-500 rounded-l-none" />
+                    <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.6)]" />
                   )}
 
+                  {/* Ícone com escala suave */}
                   <Icon
-                    className={`relative z-10 w-5 h-5 transition-all duration-300 group-hover:scale-110 group-hover:translate-x-1  ${isActive ? "text-indigo-400" : ""}`}
+                    size={18}
+                    strokeWidth={isActive ? 2 : 1.5}
+                    className={`relative z-10 transition-all duration-300 group-hover:scale-105 group-hover:translate-x-0.5 ${
+                      isActive
+                        ? "text-indigo-400"
+                        : "text-slate-500 group-hover:text-slate-300"
+                    }`}
                   />
-                  <span className="relative z-10 transition-transform duration-300 group-hover:translate-x-1">
+
+                  {/* Label com movimento contido */}
+                  <span className="relative z-10 transition-transform duration-300 group-hover:translate-x-0.5 tracking-wide">
                     {item.label}
                   </span>
                 </Link>
@@ -98,46 +125,26 @@ export default function Sidebar() {
           </nav>
         </div>
 
-        {/* Rodapé Consolidado com painel de fundo */}
-        <div className="mt-auto p-4 bg-slate-950/30 border-t border-white/5 space-y-4">
-          {/* Card do Curso */}
-          <div className="bg-slate-900/40 border border-white/5 p-3 rounded-xl hover:bg-slate-900/60 transition-all cursor-pointer group">
+        {/* Rodapé Consolidado */}
+        <div className="p-4 border-t border-white/[0.05]">
+          <div className="group flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.02] transition-colors cursor-pointer">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/10">
-                <GraduationCap size={18} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-200 truncate">
-                  Curso 1
-                </p>
-                <p className="text-[10px] text-indigo-400/60 uppercase tracking-wider font-semibold">
-                  Ativo
-                </p>
-              </div>
-              <span className="text-slate-600 group-hover:text-slate-400">
-                ›
-              </span>
-            </div>
-          </div>
-
-          {/* Perfil do Usuário */}
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-400 font-bold text-[10px]">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-400 text-[10px] font-bold">
                 AS
               </div>
-              <div className="overflow-hidden">
-                <p className="text-xs font-bold text-slate-200 truncate">
+              <div>
+                <p className="text-[11px] font-bold text-slate-300">
                   Estudante Synapse
                 </p>
-                <p className="text-[10px] text-slate-500 truncate">
-                  usuario@email.com
+                <p className="text-[9px] text-slate-600 uppercase tracking-widest">
+                  Premium
                 </p>
               </div>
             </div>
-            <button className="text-slate-500 hover:text-rose-400 transition-colors">
-              <LogOut size={16} />
-            </button>
+            <LogOut
+              size={14}
+              className="text-slate-600 group-hover:text-rose-400 transition-colors"
+            />
           </div>
         </div>
       </aside>

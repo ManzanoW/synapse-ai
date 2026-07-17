@@ -35,23 +35,29 @@ export default function Heatmap() {
   };
 
   return (
-    <div className="bg-slate-900/40 border border-white/10 p-5 rounded-2xl relative overflow-hidden shadow-xl">
+    <div className="bg-slate-900/40 border border-white/10 p-5 rounded-2xl relative shadow-xl">
       <h3 className="text-sm font-bold text-slate-200 mb-4">
         Intensidade de Estudos
       </h3>
 
       {/* Container do Grid */}
-      <div className="flex gap-1.5 flex-wrap">
+      <div className="flex gap-1.5 flex-wrap relative">
         {days.map((day) => (
           <div
             key={day}
-            className={`w-6 h-6 rounded-md transition-all duration-200 hover:scale-110 ${getIntensity(data?.[day])}`}
+            className={`w-6 h-6 rounded-md transition-all duration-200 hover:scale-110 cursor-pointer ${getIntensity(data?.[day])}`}
             onMouseEnter={(e) => {
+              // Captura a posição relativa ao container pai
+              const parentRect =
+                e.currentTarget.parentElement?.getBoundingClientRect();
+              const targetRect = e.currentTarget.getBoundingClientRect();
+
               setTooltip({
                 visible: true,
                 text: `${day}: ${data?.[day] || 0} revisões`,
-                x: e.clientX,
-                y: e.clientY,
+                // Calcula a posição dentro do card
+                x: targetRect.left - (parentRect?.left || 0),
+                y: targetRect.top - (parentRect?.top || 0),
               });
             }}
             onMouseLeave={() => setTooltip(null)}
@@ -59,11 +65,14 @@ export default function Heatmap() {
         ))}
       </div>
 
-      {/* Tooltip Customizado */}
+      {/* Tooltip agora absoluto e garantido dentro do fluxo */}
       {tooltip && (
         <div
-          className="fixed z-50 px-3 py-1.5 bg-slate-800 text-[11px] text-slate-100 rounded border border-slate-700 shadow-xl pointer-events-none animate-in fade-in zoom-in duration-150"
-          style={{ left: tooltip.x + 15, top: tooltip.y - 35 }}
+          className="absolute z-[100] px-3 py-1.5 bg-slate-800 text-[11px] text-white rounded border border-slate-700 shadow-xl pointer-events-none whitespace-nowrap"
+          style={{
+            left: tooltip.x + 15,
+            top: tooltip.y + 20,
+          }}
         >
           {tooltip.text}
         </div>
