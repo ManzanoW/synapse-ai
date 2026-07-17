@@ -35,7 +35,7 @@ export default function Heatmap() {
   };
 
   return (
-    <div className="bg-[#090d16] border border-slate-800 p-6 rounded-2xl relative">
+    <div className="bg-slate-900/40 border border-white/10 p-5 rounded-2xl relative overflow-hidden shadow-xl">
       <h3 className="text-sm font-bold text-slate-200 mb-4">
         Intensidade de Estudos
       </h3>

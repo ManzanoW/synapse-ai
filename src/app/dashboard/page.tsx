@@ -154,33 +154,32 @@ export default function Dashboard() {
     ]);
   };
 
-  const simulateStudy = (subjectName: string) => {
-    setSubjects((prev) =>
-      prev.map((sub) => {
-        if (sub.name === subjectName) {
-          const nextProgress = Math.min(sub.progress + 15, 100);
-          const nextCards = sub.totalCards + 5;
-          const nextAccuracy =
-            sub.accuracy === 0 ? 70 : Math.min(sub.accuracy + 2, 98);
-          return {
-            ...sub,
-            progress: nextProgress,
-            totalCards: nextCards,
-            timeSpent: "45min",
-            accuracy: nextAccuracy,
-          };
-        }
-        return sub;
-      }),
-    );
-  };
+  // const simulateStudy = (subjectName: string) => {
+  //   setSubjects((prev) =>
+  //     prev.map((sub) => {
+  //       if (sub.name === subjectName) {
+  //         const nextProgress = Math.min(sub.progress + 15, 100);
+  //         const nextCards = sub.totalCards + 5;
+  //         const nextAccuracy =
+  //           sub.accuracy === 0 ? 70 : Math.min(sub.accuracy + 2, 98);
+  //         return {
+  //           ...sub,
+  //           progress: nextProgress,
+  //           totalCards: nextCards,
+  //           timeSpent: "45min",
+  //           accuracy: nextAccuracy,
+  //         };
+  //       }
+  //       return sub;
+  //     }),
+  //   );
+  // };
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased">
+    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans transition-all animate-fade-in">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* ================= HEADER / BARRA DE JORNADA ================= */}
-        {/* ================= HEADER / PAINEL DE JORNADA UNIFICADO ================= */}
-        <header className="w-full bg-linear-to-b from-[#0e131d] to-[#090d16] border border-slate-800/80 rounded-2xl p-6 mb-8 shadow-2xl shadow-indigo-950/10 flex flex-col gap-6 transition-all hover:border-indigo-500/30">
+        {/* ================= HEADER / PAINEL DE JORNADA ================= */}
+        <header className="w-full bg-slate-900/40  from-[#0e131d] to-[#090d16] border border-white/10 rounded-2xl p-5 mb-8 shadow-xl shadow-indigo-950/10 flex flex-col gap-6 transition-all hover:border-indigo-500/30 animate-slide-up opacity-0">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             {/* Bloco de Objetivo */}
             <div>
@@ -234,11 +233,11 @@ export default function Dashboard() {
         {/* ================= GRADE PRINCIPAL (GRID) ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* SEÇÃO ESQUERDA + CENTRAL (Colunas 1 a 9) */}
-          <div className="lg:col-span-9 space-y-6">
+          <div className="lg:col-span-9 space-y-6 animate-slide-up opacity-0 delay-100">
             {/* Bloco Superior: Revisões e Progresso */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 🔄 CARD 1 DINÂMICO: Fila de Revisões do Dia (Consumindo SM-2) */}
-              <div className="bg-[#090d16] border border-slate-800/60 rounded-xl p-5 flex flex-col justify-between min-h-55 shadow-lg relative overflow-hidden">
+              <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-xl relative overflow-hidden">
                 {isLoadingQueue ? (
                   <div className="flex flex-col items-center justify-center flex-1 text-slate-400 gap-2">
                     <Loader2
@@ -315,8 +314,8 @@ export default function Dashboard() {
               </div>
 
               {/* CARD 2: Seu Progresso */}
-              <div className="bg-[#090d16] border border-slate-800/60 rounded-xl p-5 flex flex-col justify-between min-h-55 shadow-lg">
-                <div className="flex justify-between items-center border-b border-slate-800/60 pb-3">
+              <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-5 flex flex-col justify-between min-h-55 shadow-lg">
+                <div className="flex justify-between items-center border-b border-white/10 pb-3">
                   <span className="text-sm font-semibold text-slate-300">
                     Seu Progresso
                   </span>
@@ -362,83 +361,88 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* 🌟 MOTOR DE SUGESTÕES POR IA INTERATIVO */}
-            <div className="bg-[#090d16] border border-slate-800/60 rounded-2xl p-5 space-y-4 shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+            {/* 🌟 MOTOR DE SUGESTÕES POR IA (Versão Premium) */}
+            <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 p-5 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:border-cyan-500/30">
+              {/* Efeito de Fundo Glow para IA */}
+              <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-[80px] transition-all duration-700 group-hover:bg-cyan-500/20" />
 
-              <div className="flex justify-between items-center">
+              <div className="relative flex justify-between items-center mb-5">
                 <div className="flex items-center gap-2">
-                  <Sparkles
-                    size={16}
-                    className="text-indigo-400 animate-pulse"
-                  />
+                  <div className="rounded-lg bg-cyan-500/10 p-1.5 ring-1 ring-cyan-500/20">
+                    <Sparkles
+                      size={16}
+                      className="text-cyan-400 animate-pulse"
+                    />
+                  </div>
                   <h3 className="text-sm font-semibold text-slate-200">
-                    Sugestões de estudos por IA
+                    Sugestões de estudos
                   </h3>
                 </div>
-                <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-2 py-0.5 rounded font-mono font-bold uppercase">
+                <span className="rounded border border-cyan-500/20 bg-cyan-500/5 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-cyan-400">
                   Synapse Core v1
                 </span>
               </div>
 
               <div className="space-y-3">
-                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-3.5 flex items-start gap-3 hover:border-indigo-500/20 transition-colors group cursor-pointer">
-                  <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg mt-0.5 group-hover:scale-105 transition-transform">
+                {/* Card 1: Crítico */}
+                <div className="group/item flex cursor-pointer items-start gap-3 rounded-xl border border-white/5 bg-slate-950/40 p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-rose-500/30 hover:bg-slate-900/50">
+                  <div className="mt-0.5 rounded-lg bg-rose-500/10 p-2 text-rose-400 transition-transform group-hover/item:scale-105">
                     <Layers size={14} />
                   </div>
-                  <div className="space-y-1 flex-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-200 group-hover:text-indigo-400 transition-colors">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-200 transition-colors group-hover/item:text-rose-400">
                         Rever Raciocínio Lógico
                       </span>
-                      <span className="text-[9px] font-mono bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded uppercase font-semibold">
+                      <span className="rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase text-rose-400">
                         Crítico
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                    <p className="text-[11px] leading-relaxed text-slate-400">
                       Sua retenção em{" "}
-                      <span className="text-slate-200 font-medium">
+                      <span className="font-medium text-slate-200">
                         Tabelas Verdade
                       </span>{" "}
                       caiu para 68%. O algoritmo sugere revisar 8 flashcards
-                      hoje para mitigar a curva de esquecimento.
+                      hoje.
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-3.5 flex items-start gap-3 hover:border-indigo-500/20 transition-colors group cursor-pointer">
-                  <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg mt-0.5 group-hover:scale-105 transition-transform">
+                {/* Card 2: Sugerido */}
+                <div className="group/item flex cursor-pointer items-start gap-3 rounded-xl border border-white/5 bg-slate-950/40 p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-slate-900/50">
+                  <div className="mt-0.5 rounded-lg bg-emerald-500/10 p-2 text-emerald-400 transition-transform group-hover/item:scale-105">
                     <ClipboardList size={14} />
                   </div>
-                  <div className="space-y-1 flex-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-200 group-hover:text-indigo-400 transition-colors">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-200 transition-colors group-hover/item:text-emerald-400">
                         Fixação Teórica: Português
                       </span>
-                      <span className="text-[9px] font-mono bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-semibold">
+                      <span className="rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase text-emerald-400">
                         Sugerido
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                    <p className="text-[11px] leading-relaxed text-slate-400">
                       Você atingiu 82% de precisão em Sintaxe! Desbloqueie o{" "}
-                      <span className="text-slate-200 font-medium">
-                        Caderno Avançado de Questões
-                      </span>{" "}
-                      para consolidar sua liderança na matéria.
+                      <span className="font-medium text-slate-200">
+                        Caderno Avançado
+                      </span>
+                      .
                     </p>
                   </div>
                 </div>
               </div>
 
-              <button className="w-full bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs py-2.5 rounded-xl transition-all font-medium flex items-center justify-center gap-1.5 active:scale-98">
-                <Sparkles size={13} className="text-indigo-400" />
+              <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/5 bg-white/5 py-2.5 text-xs font-medium text-slate-400 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-400 active:scale-[0.98]">
+                <Sparkles size={13} />
                 <span>Otimizar Cronograma com IA</span>
               </button>
             </div>
 
             {/* CARD 4: Lista de Matérias */}
-            <div className="bg-[#090d16] border border-slate-800/60 rounded-xl p-5 shadow-lg space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-800/60 pb-3">
+            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
+              <div className="flex justify-between items-center border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
                   <BookOpen size={16} className="text-slate-400" />
                   <h3 className="font-semibold text-sm text-slate-200">
@@ -478,11 +482,14 @@ export default function Dashboard() {
           </div>
 
           {/* ================= SEÇÃO DIREITA (BARRA LATERAL) ================= */}
-          <div className="lg:col-span-3 space-y-6">
+          <div
+            className="lg:col-span-3 space-y-6 animate-slide-up opacity-0 delay-200vg65yg 432120.
+           "
+          >
             {/* 📊 CARD DE CONSTÂNCIA */}
             <Link
               href="/analytics"
-              className="bg-[#090d16] border border-slate-800/60 hover:border-indigo-500/30 p-5 rounded-2xl transition-all duration-300 block group cursor-pointer shadow-lg relative overflow-hidden"
+              className="bg-slate-900/40  border border-white/10 hover:border-indigo-500/30 p-5 rounded-2xl transition-all duration-300 block group cursor-pointer shadow-lg relative overflow-hidden"
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -518,7 +525,7 @@ export default function Dashboard() {
             {/* 📈 CARD DE SEU PROGRESSO */}
             <Link
               href="/analytics"
-              className="bg-[#090d16] border border-slate-800/60 hover:border-indigo-500/30 p-5 rounded-2xl transition-all duration-300 block group cursor-pointer shadow-lg"
+              className="bg-slate-900/40 border border-white/10 hover:border-indigo-500/30 p-5 rounded-2xl transition-all duration-300 block group cursor-pointer shadow-lg"
             >
               <div className="flex justify-between items-start mb-3">
                 <div>
@@ -552,7 +559,7 @@ export default function Dashboard() {
             <section>
               <Heatmap />
             </section>
-            <SimulationPanel subjects={subjects} onSimulate={simulateStudy} />
+            {/* <SimulationPanel subjects={subjects} onSimulate={simulateStudy} /> */}
             <PomodoroTimer />
           </div>
         </div>
