@@ -77,7 +77,9 @@ export async function POST(request: Request) {
       ${promptContexto}
       
       Diretrizes Críticas de Enunciado:
-      - Se o enunciado mencionar um termo, palavra, oração ou trecho "destacado", "sublinhado" ou "em foco", você DEVE OBRIGATORIAMENTE incluir esse termo no enunciado e destacá-lo explicitamente usando ASPAS DUPLAS ou CAIXA ALTA (ex: ...na palavra "EXCEÇÃO", qual o...). Nunca deixe o comando sem a palavra correspondente.
+      - Para destacar conceitos técnicos ou termos-chave que exigem foco, utilize EXCLUSIVAMENTE o formato de asteriscos duplos (ex: ...o processo de **DIAGNÓSTICO** é fundamental...).
+      - NÃO utilize aspas duplas nem caixa alta para destaques; use apenas os asteriscos duplos.
+      - Garanta que o destaque seja usado apenas para termos de alta relevância teórica.
       
       Diretrizes de Formato:
       - Se a banca for "Cebraspe": formato "certo_errado" (gabarito: "Certo" ou "Errado", alternativas vazias).

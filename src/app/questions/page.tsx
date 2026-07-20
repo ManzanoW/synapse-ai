@@ -39,17 +39,18 @@ interface QuizHistoryItem {
 }
 
 const renderEnunciado = (texto: string) => {
-  // Regex para encontrar palavras entre aspas ou totalmente em MAIÚSCULAS
-  const regex = /("[^"]+"|[A-Z]{3,})/g;
+  // O regex agora busca apenas por textos entre **
+  const regex = /\*\*(.*?)\*\*/g;
 
   return texto.split(regex).map((parte, i) => {
-    if (parte.match(regex)) {
+    // Se o índice for ímpar, significa que é o conteúdo que estava entre ** **
+    if (i % 2 !== 0) {
       return (
         <span
           key={i}
           className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold mx-0.5"
         >
-          {parte.replace(/"/g, "")}
+          {parte}
         </span>
       );
     }
@@ -61,7 +62,6 @@ export default function QuestoesPage() {
   const { openSidebar } = useSidebar();
 
   // ================= ESTADOS GERAIS DA PÁGINA =================
-  const [questions, setQuestions] = useState<QuestaoIA[]>([]);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -73,17 +73,7 @@ export default function QuestoesPage() {
   const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  // Armazena as respostas selecionadas pelo usuário. Ex: { "0": "A", "1": "Certo" }
-  const [selectedAnswers, setSelectedAnswers] = useState<
-    Record<number, string>
-  >({});
-  // Armazena quais questões já foram respondidas/checadas. Ex: { "0": true }
-  const [checkedQuestions, setCheckedQuestions] = useState<
-    Record<number, boolean>
-  >({});
-
   // ================= ESTADOS DO MODAL IA PREMIUM =================
-  const [banca, setBanca] = useState("Cebraspe");
   const [materia, setMateria] = useState("");
   const [qtdQuestoes, setQtdQuestoes] = useState("5");
   const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
@@ -105,6 +95,67 @@ export default function QuestoesPage() {
     { id: "D", text: "" },
   ]);
   const [alternativaCorreta, setAlternativaCorreta] = useState("A");
+
+  // ================= ESTADOS GERAIS DA PÁGINA (Com Lazy Initialization) =================
+  const STORAGE_KEY = "deepwork_quiz_session_v1";
+
+  const [questions, setQuestions] = useState<QuestaoIA[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).questions || [] : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<number, string>
+  >(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).selectedAnswers || {} : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [checkedQuestions, setCheckedQuestions] = useState<
+    Record<number, boolean>
+  >(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).checkedQuestions || {} : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [banca, setBanca] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).banca || "" : "";
+    } catch {
+      return "";
+    }
+  });
+
+  // 2. Sincronização automática sempre que o estado mudar
+  useEffect(() => {
+    // Só salva se houver alguma questão gerada/carregada para evitar cache vazio desnecessário
+    if (questions.length > 0) {
+      const sessionData = {
+        questions,
+        selectedAnswers,
+        checkedQuestions,
+        banca,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+    }
+  }, [questions, selectedAnswers, checkedQuestions, banca]);
 
   useEffect(() => {
     if (isAIModalOpen) {
