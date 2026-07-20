@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
 import CreateSubjectModal from "@/components/create-subject-modal";
@@ -188,12 +188,15 @@ export default function Dashboard() {
     },
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 }, // Começa um pouco mais abaixo
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
+      transition: {
+        duration: 0.6,
+        ease: [0.22, 1, 0.36, 1], // Usando array de bezier para easeOut
+      },
     },
   };
 
