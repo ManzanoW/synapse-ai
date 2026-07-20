@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function PomodoroTimer() {
   const [minutes, setMinutes] = useState(25);
@@ -112,9 +113,21 @@ export default function PomodoroTimer() {
       {/* Relógio do Timer */}
       <div className="my-4 relative flex items-center justify-center w-full group">
         {/* Círculo de Progresso SVG */}
-        <div className="relative w-36 h-36 flex items-center justify-center">
+        <motion.div
+          animate={{
+            boxShadow: isActive
+              ? [
+                  `0 0 20px ${isFocus ? "rgba(99, 102, 241, 0.2)" : "rgba(16, 185, 129, 0.2)"}`,
+                  `0 0 40px ${isFocus ? "rgba(99, 102, 241, 0.4)" : "rgba(16, 185, 129, 0.4)"}`,
+                  `0 0 20px ${isFocus ? "rgba(99, 102, 241, 0.2)" : "rgba(16, 185, 129, 0.2)"}`,
+                ]
+              : "0 0 0px rgba(0, 0, 0, 0)",
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          className="relative w-36 h-36 flex items-center justify-center rounded-full"
+        >
           <svg className="w-full h-full -rotate-90">
-            {/* Círculo de Fundo (cinza) */}
+            {/* Seus círculos SVG permanecem inalterados aqui dentro */}
             <circle
               cx="72"
               cy="72"
@@ -123,13 +136,11 @@ export default function PomodoroTimer() {
               strokeWidth="4"
               fill="transparent"
             />
-            {/* Círculo de Progresso (dinâmico) */}
             <circle
               cx="72"
               cy="72"
               r="68"
               className="transition-all duration-1000 ease-linear"
-              // Aqui aplicamos a cor diretamente baseada no estado isFocus
               stroke={isActive ? (isFocus ? "#6366f1" : "#10b981") : "#334155"}
               strokeWidth="4"
               fill="transparent"
@@ -141,12 +152,12 @@ export default function PomodoroTimer() {
             />
           </svg>
 
-          {/* Display Numérico (Centralizado sobre o SVG) */}
+          {/* Display Numérico */}
           <div className="absolute font-mono text-3xl font-bold tracking-widest text-slate-100">
             {String(minutes).padStart(2, "0")}:
             {String(seconds).padStart(2, "0")}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Controles */}

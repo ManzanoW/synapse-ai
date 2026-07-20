@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useSidebar } from "@/lib/sidebar-context";
+import { motion } from "framer-motion";
 import {
   Menu,
   HelpCircle,
@@ -83,7 +84,7 @@ export default function QuestoesPage() {
 
   // ================= ESTADOS DO MODAL IA PREMIUM =================
   const [banca, setBanca] = useState("Cebraspe");
-  const [materia, setMateria] = useState("Português");
+  const [materia, setMateria] = useState("");
   const [qtdQuestoes, setQtdQuestoes] = useState("5");
   const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
     "banca",
@@ -105,19 +106,27 @@ export default function QuestoesPage() {
   ]);
   const [alternativaCorreta, setAlternativaCorreta] = useState("A");
 
-  // Carrega matérias do banco ao abrir o modal
   useEffect(() => {
     if (isAIModalOpen) {
       fetch("/api/subjects/list")
         .then((res) => res.json())
-        .then((json) => setSubjects(json.data || []))
+        .then((json) => {
+          const loadedSubjects = json.data || [];
+          setSubjects(loadedSubjects);
+
+          // Sincronização: se ainda não temos uma matéria definida,
+          // pegamos a primeira da lista que acabou de chegar
+          if (loadedSubjects.length > 0 && !materia) {
+            setMateria(loadedSubjects[0].name);
+          }
+        })
         .catch(console.error);
     }
   }, [isAIModalOpen]);
 
   // ================= FUNÇÕES DE BUSCA DE HISTÓRICO =================
 
-  // Função em inglês para carregar os simulados salvos do banco Supabase
+  // Função para carregar os simulados salvos do banco Supabase
   const fetchQuizHistory = async () => {
     setIsLoadingHistory(true);
     try {
@@ -131,7 +140,7 @@ export default function QuestoesPage() {
     }
   };
 
-  // Função em inglês para injetar um simulado antigo na tela sem gastar tokens
+  // Função para injetar um simulado antigo na tela sem gastar tokens
   const handleLoadSavedQuiz = (
     savedQuestions: QuestaoIA[],
     savedBanca: string,
@@ -158,6 +167,26 @@ export default function QuestoesPage() {
   // ================= Conexão Real HTTP Fetch =================
   const handleGenerateSimulado = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // DEBUG: Vamos ver o que está acontecendo no console
+    console.log("Matéria selecionada (materia):", materia);
+    console.log("Lista de Subjects (subjects):", subjects);
+
+    // Verifica se existe alguma matéria com o nome idêntico
+    const isMateriaValid = subjects.some(
+      (sub) => sub.name.trim() === materia.trim(),
+    );
+
+    console.log("A matéria é válida?", isMateriaValid);
+
+    if (!materia || !isMateriaValid) {
+      alert(
+        `Erro de validação: A matéria "${materia}" não foi encontrada na lista de subjects. Verifique se o nome está idêntico.`,
+      );
+      return;
+    }
+    // --------------------------
+
     setIsGenerating(true);
     setSelectedAnswers({});
     setCheckedQuestions({});
@@ -334,9 +363,19 @@ export default function QuestoesPage() {
                     alternativaSelecionada === questao.gabaritoCorreto;
 
                   return (
-                    <div
+                    <motion.div
                       key={index}
-                      className="bg-[#090d16]/60 rounded-2xl p-6 border border-slate-900 shadow-xl transition-all"
+                      initial={{ opacity: 0, y: 50 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-100px" }} // Começa a animar quando falta 100px para entrar na tela
+                      transition={{ duration: 0.6, ease: "easeOut" }}
+                      className={`rounded-2xl p-6 border shadow-xl transition-all duration-500 ${
+                        respondida
+                          ? acertou
+                            ? "bg-[#090d16]/80 border-emerald-500/30 shadow-[0_0_20px_-5px_rgba(16,185,129,0.2)]"
+                            : "bg-[#090d16]/80 border-rose-500/30 shadow-[0_0_20px_-5px_rgba(244,63,94,0.2)]"
+                          : "bg-[#090d16]/60 border-slate-900 shadow-xl"
+                      }`}
                     >
                       {/* Cabeçalho da Questão */}
                       <div className="flex items-center justify-between mb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-900 pb-3">
@@ -473,7 +512,7 @@ export default function QuestoesPage() {
                           </div>
                         )}
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>

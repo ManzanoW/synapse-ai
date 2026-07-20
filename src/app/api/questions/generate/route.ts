@@ -3,6 +3,48 @@ import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+interface AIResponse {
+  text: string | null;
+}
+
+// Extrai a chamada da IA para uma função com retry
+async function generateContentWithRetry(
+  prompt: string,
+  retries = 2,
+): Promise<AIResponse> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      // Ajuste para evitar timeout excessivo
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 segundos limite
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3.1-flash-lite",
+        contents: prompt,
+        config: { responseMimeType: "application/json" },
+      });
+
+      clearTimeout(timeoutId);
+      // Retorna o resultado se a chamada for bem-sucedida
+      return { text: result.text || "" };
+    } catch (error: unknown) {
+      const err = error as { status?: number };
+
+      // Se for erro 503 e ainda tivermos tentativas, aguarda
+      if (err.status === 503 && i < retries - 1) {
+        await new Promise((res) => setTimeout(res, 1000)); // Espera curta
+        continue;
+      }
+
+      // Se chegamos aqui, ou não é 503 ou acabaram as tentativas: relança o erro
+      throw error;
+    }
+  }
+
+  // Garantia final: o TypeScript precisa saber que algo será retornado
+  throw new Error("Falha ao gerar conteúdo após múltiplas tentativas.");
+}
+
 export async function POST(request: Request) {
   try {
     const {
@@ -41,7 +83,7 @@ export async function POST(request: Request) {
       - Se a banca for "Cebraspe": formato "certo_errado" (gabarito: "Certo" ou "Errado", alternativas vazias).
       - Se outra banca: formato "multipla" com 4 alternativas (A, B, C, D).
 
-      Retorne ESTRITAMENTE um objeto JSON válido no seguinte formato:
+      Retorne ESTRITAMENTE um objeto JSON válido, sem explicações adicionais, no seguinte formato:
       {
         "questoes": [
           {
@@ -55,13 +97,7 @@ export async function POST(request: Request) {
       }
     `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
+    const response = await generateContentWithRetry(prompt);
 
     const responseText = response.text;
     if (!responseText) {

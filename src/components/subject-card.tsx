@@ -1,3 +1,7 @@
+"use client";
+
+import { motion } from "framer-motion";
+
 export default function SubjectCard({
   title,
   progress,
@@ -67,10 +71,13 @@ export default function SubjectCard({
         : "text-slate-400";
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 15 }} // Começa invisível e levemente abaixo
+      animate={{ opacity: 1, y: 0 }} // Desliza para a posição final
+      whileHover={{ y: -4 }} // Elevação suave ao passar o mouse
+      transition={{ duration: 0.4, ease: "easeOut" }}
       className={`bg-[#070b12] border border-slate-900/80 border-l-4 ${currentTheme.borderLeft} rounded-xl p-4.5 
-                    transition-all duration-300 ease-out hover:-translate-y-0.5
-                    cursor-pointer group relative overflow-hidden ${currentTheme.borderHover} `}
+                  cursor-pointer group relative overflow-hidden ${currentTheme.borderHover}`}
     >
       {/* Brilho de fundo que se intensifica no hover */}
       <div
@@ -124,6 +131,6 @@ export default function SubjectCard({
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

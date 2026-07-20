@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
 import CreateSubjectModal from "@/components/create-subject-modal";
@@ -175,6 +176,26 @@ export default function Dashboard() {
   //     }),
   //   );
   // };
+
+  // Motion
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 }, // Começa um pouco mais abaixo
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
+  };
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans transition-all animate-fade-in">
@@ -478,15 +499,17 @@ export default function Dashboard() {
               </div>
 
               {/* Grid Responsiva com Espaçamento de 4 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }} // Anima somente quando 20% do card estiver visível
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
                 {isLoading
                   ? [...Array(4)].map((_, i) => <SubjectCardSkeleton key={i} />)
                   : subjects.map((sub, idx) => (
-                      <div
-                        key={idx}
-                        className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-backwards transition-all hover:-translate-y-1"
-                        style={{ animationDelay: `${idx * 150}ms` }}
-                      >
+                      <motion.div key={idx} variants={itemVariants}>
                         <SubjectCard
                           title={sub.name}
                           colorClass={sub.color}
@@ -495,9 +518,9 @@ export default function Dashboard() {
                           progress={sub.progress}
                           totalCards={sub.totalCards}
                         />
-                      </div>
+                      </motion.div>
                     ))}
-              </div>
+              </motion.div>
             </div>
           </div>
 
