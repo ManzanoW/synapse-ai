@@ -39,22 +39,23 @@ interface QuizHistoryItem {
 }
 
 const renderEnunciado = (texto: string) => {
-  // O regex agora busca apenas por textos entre **
-  const regex = /\*\*(.*?)\*\*/g;
+  if (!texto) return null;
 
-  return texto.split(regex).map((parte, i) => {
-    // Se o índice for ímpar, significa que é o conteúdo que estava entre ** **
-    if (i % 2 !== 0) {
+  const partes = texto.split(/(\*\*.*?\*\*)/g);
+
+  return partes.map((parte, i) => {
+    if (parte.startsWith("**") && parte.endsWith("**")) {
+      const conteudoLimpo = parte.slice(2, -2);
       return (
         <span
           key={i}
           className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold mx-0.5"
         >
-          {parte}
+          {conteudoLimpo}
         </span>
       );
     }
-    return <span key={i}>{parte}</span>;
+    return <React.Fragment key={i}>{parte}</React.Fragment>;
   });
 };
 
@@ -65,6 +66,9 @@ export default function QuestoesPage() {
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
+    null,
+  );
 
   // Controle de abas da interface: 'create' para o caderno/gerador e 'history' para o histórico
   const [activeTab, setActiveTab] = useState<"create" | "history">("create");
@@ -72,6 +76,24 @@ export default function QuestoesPage() {
   // Estados para armazenar o histórico de simulados salvos vindo da API
   const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Função para remover um simulado salvo
+  const handleRemoverSimulado = async (idSimulado: string) => {
+    try {
+      const response = await fetch(`/api/questions/${idSimulado}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Erro ao excluir o simulado.");
+
+      // Remove do estado e limpa a confirmação ativa
+      setQuizHistory((prev) => prev.filter((item) => item.id !== idSimulado));
+      setConfirmingDeleteId(null);
+    } catch (error) {
+      console.error("Erro ao deletar simulado:", error);
+      alert("Não foi possível excluir o simulado.");
+    }
+  };
 
   // ================= ESTADOS DO MODAL IA PREMIUM =================
   const [materia, setMateria] = useState("");
@@ -99,63 +121,60 @@ export default function QuestoesPage() {
   // ================= ESTADOS GERAIS DA PÁGINA (Com Lazy Initialization) =================
   const STORAGE_KEY = "deepwork_quiz_session_v1";
 
-  const [questions, setQuestions] = useState<QuestaoIA[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved).questions || [] : [];
-    } catch {
-      return [];
-    }
-  });
-
+  // 1. Estados sempre consistentes entre servidor e primeiro render do cliente
+  const [banca, setBanca] = useState("");
+  const [questions, setQuestions] = useState<QuestaoIA[]>([]);
+  const [loadingQuizId, setLoadingQuizId] = useState<string | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<number, string>
-  >(() => {
-    if (typeof window === "undefined") return {};
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved).selectedAnswers || {} : {};
-    } catch {
-      return {};
-    }
-  });
-
+  >({});
   const [checkedQuestions, setCheckedQuestions] = useState<
     Record<number, boolean>
-  >(() => {
-    if (typeof window === "undefined") return {};
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved).checkedQuestions || {} : {};
-    } catch {
-      return {};
-    }
-  });
+  >({});
 
-  const [banca, setBanca] = useState(() => {
-    if (typeof window === "undefined") return "";
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved).banca || "" : "";
-    } catch {
-      return "";
-    }
-  });
+  // 2. Trava de montagem para garantir que o cliente só mexa no storage após o SSR
+  const [isMounted, setIsMounted] = useState(false);
 
-  // 2. Sincronização automática sempre que o estado mudar
+  // 3. Carrega os dados salvos após a montagem inicial de forma assíncrona segura para o linter
   useEffect(() => {
-    // Só salva se houver alguma questão gerada/carregada para evitar cache vazio desnecessário
-    if (questions.length > 0) {
-      const sessionData = {
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.banca) setBanca(parsed.banca);
+          if (parsed.questions) setQuestions(parsed.questions);
+          if (parsed.selectedAnswers)
+            setSelectedAnswers(parsed.selectedAnswers);
+          if (parsed.checkedQuestions)
+            setCheckedQuestions(parsed.checkedQuestions);
+        }
+      } catch (e) {
+        console.error("Erro ao carregar do localStorage:", e);
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Salva no localStorage sempre que o estado do simulado mudar
+  useEffect(() => {
+    // Só salva se já estiver montado e houver dados relevantes para salvar
+    if (!isMounted) return;
+
+    try {
+      const currentState = {
+        banca,
         questions,
         selectedAnswers,
         checkedQuestions,
-        banca,
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentState));
+    } catch (e) {
+      console.error("Erro ao salvar no localStorage:", e);
     }
-  }, [questions, selectedAnswers, checkedQuestions, banca]);
+  }, [banca, questions, selectedAnswers, checkedQuestions, isMounted]);
 
   useEffect(() => {
     if (isAIModalOpen) {
@@ -191,16 +210,22 @@ export default function QuestoesPage() {
     }
   };
 
-  // Função para injetar um simulado antigo na tela sem gastar tokens
   const handleLoadSavedQuiz = (
     savedQuestions: QuestaoIA[],
     savedBanca: string,
+    id: string,
   ) => {
-    setSelectedAnswers({});
-    setCheckedQuestions({});
-    setQuestions(savedQuestions);
-    setBanca(savedBanca); // Atualiza a banca para a interface renderizar o padrão correto
-    setActiveTab("create"); // Redireciona de volta para a aba do caderno de questões
+    setLoadingQuizId(id);
+
+    // Pequeno atraso intencional para o usuário perceber a animação de loading (ex: 200ms)
+    setTimeout(() => {
+      setSelectedAnswers({});
+      setCheckedQuestions({});
+      setQuestions(savedQuestions);
+      setBanca(savedBanca); // Atualiza a banca para a interface renderizar o padrão correto
+      setActiveTab("create"); // Redireciona de volta para a aba do caderno de questões
+      setLoadingQuizId(null); // Reseta o loading
+    }, 200);
   };
 
   // ================= FUNÇÕES DO MODAL MANUAL =================
@@ -590,14 +615,47 @@ export default function QuestoesPage() {
                 <span>Buscando registros no Supabase...</span>
               </div>
             ) : quizHistory.length === 0 ? (
-              <div className="text-center py-12 bg-[#090d16]/20 border border-slate-900 rounded-2xl border-dashed">
-                <p className="text-slate-500 text-xs">
-                  Você ainda não gerou nenhum simulado com salvamento
-                  automático.
+              // Componente de Empty State Moderno
+              <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl my-6">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
+                  {/* Ícone de Pasta/Documento Vazio */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-sm font-semibold text-slate-200 mb-1">
+                  Nenhum simulado salvo ainda
+                </h3>
+                <p className="text-xs text-slate-400 max-w-sm mb-5">
+                  Gere novos cadernos de questões para treinar. Seus simulados
+                  concluídos ou salvos aparecerão listados aqui automaticamente.
                 </p>
+                <button
+                  onClick={() => {
+                    setQuestions([]);
+                    setSelectedAnswers({});
+                    setCheckedQuestions({});
+                    setActiveTab("create");
+                  }}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-98"
+                >
+                  Criar meu primeiro simulado
+                </button>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
+              // Seu grid normal de histórico que já criamos
+              <div className="grid gap-4 sm:grid-cols-2 items-start">
                 {quizHistory.map((item) => {
                   const questionsArray = Array.isArray(item.questions)
                     ? item.questions
@@ -635,14 +693,93 @@ export default function QuestoesPage() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() =>
-                          handleLoadSavedQuiz(questionsArray, item.banca)
-                        }
-                        className="w-full text-center py-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold rounded-xl mt-5 transition-all active:scale-98"
-                      >
-                        ⚡ Refazer Caderno (Grátis)
-                      </button>
+                      <div className="mt-5">
+                        {confirmingDeleteId === item.id ? (
+                          // Caixa de confirmação limpa que ocupa o espaço do card temporariamente
+                          <div className="bg-red-950/20 border border-red-500/30 p-3 rounded-xl flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                            <span className="text-xs text-red-300 font-medium">
+                              Excluir este simulado permanentemente?
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                onClick={() => handleRemoverSimulado(item.id)}
+                                className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-slate-100 text-xs font-bold rounded-lg transition-all shadow-sm"
+                              >
+                                Sim
+                              </button>
+                              <button
+                                onClick={() => setConfirmingDeleteId(null)}
+                                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all"
+                              >
+                                Não
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          // Estado normal (Botão de refazer + ícone de lixeira alinhados)
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() =>
+                                handleLoadSavedQuiz(
+                                  questionsArray,
+                                  item.banca,
+                                  item.id,
+                                )
+                              }
+                              disabled={loadingQuizId === item.id}
+                              className="flex-1 flex items-center justify-center gap-2 text-center py-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {loadingQuizId === item.id ? (
+                                <>
+                                  <svg
+                                    className="w-3.5 h-3.5 animate-spin text-indigo-400"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                  >
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                  </svg>
+                                  <span>Carregando...</span>
+                                </>
+                              ) : (
+                                <span>⚡ Refazer Caderno (Grátis)</span>
+                              )}
+                            </button>
+
+                            <button
+                              onClick={() => setConfirmingDeleteId(item.id)}
+                              className="p-2.5 bg-slate-900 hover:bg-red-950/30 border border-slate-800 hover:border-red-900/50 text-slate-400 hover:text-red-400 rounded-xl transition-colors shrink-0"
+                              title="Excluir simulado"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="w-4 h-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
