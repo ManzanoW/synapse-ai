@@ -28,7 +28,7 @@ interface QuestaoIA {
   justificativa: string;
 }
 
-// Interface em inglês para tipar os itens do histórico vindos do Supabase
+// Interface para tipar os itens do histórico vindos do Supabase
 interface QuizHistoryItem {
   id: string;
   banca: string;
@@ -105,6 +105,22 @@ export default function QuestoesPage() {
   // Estados para armazenar o histórico de simulados salvos vindo da API
   const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Estados e função para filtrar os simulados salvos
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredHistory = quizHistory.filter((sim) => {
+    const matchesBanca = sim.banca
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesSubject = sim.subject
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesDifficulty = sim.difficulty
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    return matchesBanca || matchesSubject || matchesDifficulty;
+  });
 
   // Função para remover um simulado salvo
   const handleRemoverSimulado = async (idSimulado: string) => {
@@ -628,14 +644,45 @@ export default function QuestoesPage() {
         {/* ================= ABA 2: COMPONENTE DE HISTÓRICO DE SIMULADOS ================= */}
         {activeTab === "history" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div>
-              <h2 className="text-base font-bold text-slate-200">
-                Histórico de Exercícios
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Refaça seus simulados salvos de forma 100% gratuita sem consumir
-                sua cota diária de IA.
-              </p>
+            <div className="flex flex-col gap-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-200">
+                  Histórico de Exercícios
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Refaça seus simulados salvos de forma 100% gratuita sem
+                  consumir sua cota diária de IA.
+                </p>
+              </div>
+
+              {/* Barra de Pesquisa Integrada */}
+              {!isLoadingHistory && quizHistory.length > 0 && (
+                <div className="relative mt-1">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar por banca, assunto ou dificuldade..."
+                    className="w-full bg-[#090d16]/60 border border-slate-800 focus:border-indigo-500/50 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition-all shadow-inner"
+                  />
+                </div>
+              )}
             </div>
 
             {isLoadingHistory ? (
@@ -647,7 +694,6 @@ export default function QuestoesPage() {
               // Componente de Empty State Moderno
               <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl my-6">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
-                  {/* Ícone de Pasta/Documento Vazio */}
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="w-6 h-6"
@@ -682,10 +728,21 @@ export default function QuestoesPage() {
                   Criar meu primeiro simulado
                 </button>
               </div>
+            ) : filteredHistory.length === 0 ? (
+              // Estado caso a busca não retorne resultados
+              <div className="text-center py-12 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
+                <p className="text-xs text-slate-400">
+                  Nenhum simulado encontrado para &quot;
+                  <span className="text-slate-200 font-medium">
+                    {searchTerm}
+                  </span>
+                  &quot;.
+                </p>
+              </div>
             ) : (
-              // Seu grid normal de histórico que já criamos
+              // Grid normal de histórico filtrado
               <div className="grid gap-4 sm:grid-cols-2 items-start">
-                {quizHistory.map((item) => {
+                {filteredHistory.map((item) => {
                   const questionsArray = Array.isArray(item.questions)
                     ? item.questions
                     : [];
@@ -696,38 +753,44 @@ export default function QuestoesPage() {
                   return (
                     <div
                       key={item.id}
-                      className="bg-[#090d16]/40 border border-slate-900 p-5 rounded-2xl shadow-md flex flex-col justify-between hover:border-slate-800 transition-all group"
+                      className="relative overflow-hidden bg-linear-to-b from-slate-900/80 to-[#090d16]/90 border border-slate-800/80 p-5 rounded-2xl shadow-xl flex flex-col justify-between hover:border-indigo-500/40 hover:shadow-indigo-500/5 transition-all duration-300 group"
                     >
-                      <div className="space-y-2.5">
+                      {/* Detalhe de luz ambiente no canto superior do card ao passar o mouse */}
+                      <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
+
+                      <div className="space-y-3 relative z-10">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                          <span className="text-[10px] font-bold bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">
                             {item.banca}
                           </span>
-                          <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                            <Calendar size={10} /> {formattedDate}
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+                            <Calendar size={12} className="text-slate-500" />{" "}
+                            {formattedDate}
                           </span>
                         </div>
 
                         <div>
-                          <h3 className="font-bold text-slate-200 text-sm line-clamp-1 group-hover:text-indigo-400 transition-colors">
+                          <h3 className="font-bold text-slate-100 text-sm md:text-base line-clamp-1 group-hover:text-indigo-300 transition-colors">
                             {item.subject}
                           </h3>
-                          <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-1">
-                            <span className="flex items-center gap-1">
-                              <Layers size={10} /> {item.difficulty}
+                          <div className="flex items-center gap-2.5 text-xs text-slate-400 mt-1.5">
+                            <span className="flex items-center gap-1 bg-slate-800/60 px-2 py-0.5 rounded-md border border-slate-700/50 text-slate-300">
+                              <Layers size={12} className="text-indigo-400" />{" "}
+                              {item.difficulty}
                             </span>
-                            <span>•</span>
-                            <span>{questionsArray.length} questões</span>
+                            <span className="text-slate-600">•</span>
+                            <span className="text-slate-400 font-medium">
+                              {questionsArray.length} questões
+                            </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-5">
+                      <div className="mt-6 relative z-10 pt-3 border-t border-slate-800/60">
                         {confirmingDeleteId === item.id ? (
-                          // Caixa de confirmação limpa que ocupa o espaço do card temporariamente
-                          <div className="bg-red-950/20 border border-red-500/30 p-3 rounded-xl flex items-center justify-between gap-3 animate-in fade-in duration-200">
-                            <span className="text-xs text-red-300 font-medium">
-                              Excluir este simulado permanentemente?
+                          <div className="bg-red-950/30 border border-red-500/30 p-3 rounded-xl flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                            <span className="text-xs text-red-200 font-medium">
+                              Excluir permanentemente?
                             </span>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <button
@@ -745,8 +808,7 @@ export default function QuestoesPage() {
                             </div>
                           </div>
                         ) : (
-                          // Estado normal (Botão de refazer + ícone de lixeira alinhados)
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2.5">
                             <button
                               onClick={() =>
                                 handleLoadSavedQuiz(
@@ -756,7 +818,7 @@ export default function QuestoesPage() {
                                 )
                               }
                               disabled={loadingQuizId === item.id}
-                              className="flex-1 flex items-center justify-center gap-2 text-center py-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="flex-1 flex items-center justify-center gap-2 text-center py-2.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 text-xs font-bold rounded-xl transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group/btn"
                             >
                               {loadingQuizId === item.id ? (
                                 <>
@@ -782,13 +844,18 @@ export default function QuestoesPage() {
                                   <span>Carregando...</span>
                                 </>
                               ) : (
-                                <span>⚡ Refazer Caderno (Grátis)</span>
+                                <>
+                                  <span className="text-amber-400 group-hover/btn:scale-110 transition-transform">
+                                    ⚡
+                                  </span>
+                                  <span>Refazer Caderno (Grátis)</span>
+                                </>
                               )}
                             </button>
 
                             <button
                               onClick={() => setConfirmingDeleteId(item.id)}
-                              className="p-2.5 bg-slate-900 hover:bg-red-950/30 border border-slate-800 hover:border-red-900/50 text-slate-400 hover:text-red-400 rounded-xl transition-colors shrink-0"
+                              className="p-2.5 bg-slate-900/80 hover:bg-red-950/30 border border-slate-800 hover:border-red-900/50 text-slate-400 hover:text-red-400 rounded-xl transition-all shrink-0"
                               title="Excluir simulado"
                             >
                               <svg
