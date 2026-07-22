@@ -5,30 +5,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/lib/sidebar-context";
 import {
-  CalendarRange,
   Sparkles,
-  Brain,
   Layers,
-  ClipboardList,
-  User,
-  HelpCircle,
   LogOut,
-  AppWindow,
-  Activity,
   CalendarDays,
-  FileText,
   LayoutDashboard,
-  CalendarClock,
   TrendingUp,
   FileStack,
   UserCircle2,
   Info,
+  FileSpreadsheet,
 } from "lucide-react";
-import Image from "next/image";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Agenda", href: "/planner", icon: CalendarClock },
+  { label: "Edital", href: "/planner", icon: FileSpreadsheet },
   { label: "Visão Geral", href: "/week", icon: Sparkles },
   { label: "Performance", href: "/analytics", icon: TrendingUp },
   { label: "Cards", href: "/flashcards", icon: Layers },
@@ -71,7 +62,7 @@ export default function Sidebar() {
               </h1>
 
               <div className="inline-flex items-center gap-1">
-                <span className="font-black text-[1.85rem] tracking-tight bg-gradient-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
+                <span className="font-black text-[1.85rem] tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
                   AI
                 </span>
 
@@ -89,7 +80,7 @@ export default function Sidebar() {
             </div>
 
             {/* Linha laser com largura harmonizada */}
-            <div className="w-32 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/60 to-transparent mt-4 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+            <div className="w-32 h-px bg-linear-to-r from-transparent via-indigo-500/60 to-transparent mt-4 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
           </div>
 
           {/* Navegação Principal */}
@@ -105,8 +96,8 @@ export default function Sidebar() {
                   onClick={closeSidebar}
                   className={`relative group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-300 overflow-hidden ${
                     isActive
-                      ? "text-indigo-100 bg-gradient-to-r from-indigo-500/10 via-indigo-500/[0.03] to-transparent"
-                      : "text-slate-400 hover:text-slate-100 hover:bg-white/[0.03]"
+                      ? "text-indigo-100 bg-linear-to-r from-indigo-500/10 via-indigo-500/3 to-transparent"
+                      : "text-slate-400 hover:text-slate-100 hover:bg-white/3"
                   }`}
                 >
                   {/* Efeito de luz e indicador lateral do item ativo */}
@@ -136,8 +127,8 @@ export default function Sidebar() {
         </div>
 
         {/* Rodapé Consolidado */}
-        <div className="pt-3 border-t border-white/[0.06]">
-          <div className="group flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.03] transition-all duration-200 cursor-pointer">
+        <div className="pt-3 border-t border-white/6">
+          <div className="group flex items-center justify-between p-2 rounded-xl hover:bg-white/3 transition-all duration-200 cursor-pointer">
             <div className="flex items-center gap-3">
               {/* Avatar com aura de glow */}
               <div className="w-8 h-8 rounded-lg bg-indigo-950/80 flex items-center justify-center border border-indigo-500/30 text-indigo-300 text-[10px] font-bold shadow-[0_0_10px_rgba(99,102,241,0.2)]">

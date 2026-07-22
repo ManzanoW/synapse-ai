@@ -255,3 +255,66 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const topicId = searchParams.get("id");
+    const subjectId = searchParams.get("subjectId");
+
+    // 1. Deleção de Tópico Individual
+    if (topicId) {
+      await prisma.topic.delete({
+        where: { id: topicId },
+      });
+      return NextResponse.json({ success: true, deletedTopicId: topicId });
+    }
+
+    // 2. Deleção de Matéria Inteira
+    if (subjectId) {
+      // Tenta buscar a matéria pelo ID ou pelo NOME
+      const subject = await prisma.subject.findFirst({
+        where: {
+          OR: [{ id: subjectId }, { name: subjectId }],
+        },
+      });
+
+      if (!subject) {
+        // Se a matéria não existir na tabela Subject, mas houver tópicos com esse name
+        await prisma.topic.deleteMany({
+          where: {
+            subject: {
+              name: subjectId,
+            },
+          },
+        });
+        return NextResponse.json({
+          success: true,
+          message: "Tópicos da matéria removidos",
+        });
+      }
+
+      // Caso a matéria exista na tabela Subject, remove em cascata (Tópicos + Matéria)
+      await prisma.topic.deleteMany({
+        where: { subjectId: subject.id },
+      });
+
+      await prisma.subject.delete({
+        where: { id: subject.id },
+      });
+
+      return NextResponse.json({ success: true, deletedSubjectId: subject.id });
+    }
+
+    return NextResponse.json(
+      { error: "Nenhum ID de tópico ou matéria foi fornecido." },
+      { status: 400 },
+    );
+  } catch (error) {
+    console.error("Erro no DELETE /api/planner:", error);
+    return NextResponse.json(
+      { error: "Erro interno ao tentar excluir do banco de dados." },
+      { status: 500 },
+    );
+  }
+}

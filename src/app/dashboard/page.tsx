@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, Variants } from "framer-motion";
 import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
-import CreateSubjectModal from "@/components/create-subject-modal";
+import { NewContentModal } from "@/components/create-subject-modal";
 import SimulationPanel from "@/components/simulation-panel";
 import SubjectCardSkeleton from "@/components/subject-card-skeleton";
 import { useSidebar } from "@/lib/sidebar-context";
@@ -154,6 +154,27 @@ export default function Dashboard() {
         accuracy: 0,
       },
     ]);
+  };
+
+  const handleCreateContent = async (data: {
+    title: string;
+    subjectName: string;
+    weight: string;
+  }) => {
+    try {
+      const response = await fetch("/api/planner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error("Erro ao criar conteúdo");
+
+      // Fecha o modal e pode recarregar suas métricas ou matérias
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Erro ao salvar tópico:", error);
+    }
   };
 
   // const simulateStudy = (subjectName: string) => {
@@ -610,10 +631,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <CreateSubjectModal
+      <NewContentModal
         isOpen={isModalOpen}
+        subjects={subjects.map((s) => ({ id: s.name, name: s.name }))}
         onClose={() => setIsModalOpen(false)}
-        onCreate={handleCreateSubject}
+        onSubmit={handleCreateContent}
       />
     </div>
   );

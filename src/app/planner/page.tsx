@@ -7,10 +7,6 @@ import {
   Search,
   UploadCloud,
   Plus,
-  ChevronDown,
-  History,
-  Calendar,
-  Menu,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -18,7 +14,9 @@ import {
 } from "lucide-react";
 import PendingSubjects from "./PendingSubjects";
 import { Topic } from "@/types";
-import FlashcardModal from "@/components/flashcards/FlashcardModal";
+import { ImportEditalModal } from "@/components/planner/import-edital-modal";
+import { PlannerView } from "@/components/planner/planner-table";
+import { NewContentModal } from "@/components/create-subject-modal";
 
 interface Subject {
   id: string;
@@ -45,58 +43,72 @@ export default function PlannerPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form de Criação
-  const [newTitle, setNewTitle] = useState("");
-  const [newSubjectName, setNewSubjectName] = useState("");
-  const [newRelevance, setNewRelevance] = useState("5/10");
   const [performanceValue, setPerformanceValue] = useState<number>(100);
 
-  async function fetchData() {
+  // Modal de Importar Edital
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  // 🔄 Recarregamento manual em segundo plano (para chamadas após ações nos modais/botões)
+  async function refreshData() {
     try {
-      setLoading(true);
-      setError(null);
       const response = await fetch(`/api/planner?mode=${viewMode}`);
-      if (!response.ok) throw new Error("Falha ao carregar os dados do banco.");
+      if (!response.ok) return;
       const json = await response.json();
 
       if (viewMode === "topics") {
         setTopics(json.data || []);
+        const subjectsRes = await fetch(`/api/planner?mode=subjects`);
+        if (subjectsRes.ok) {
+          const subjectsJson = await subjectsRes.json();
+          setSubjects(subjectsJson.data || []);
+        }
       } else {
         setSubjects(json.data || []);
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error("Erro ao atualizar dados:", err);
     }
   }
 
+  // 🎣 Carregamento inicial sincronizado com a troca de aba
   useEffect(() => {
     let isMounted = true;
 
-    const doFetch = async () => {
+    async function loadData() {
       try {
+        setLoading(true);
+        setError(null);
+
         const response = await fetch(`/api/planner?mode=${viewMode}`);
-        if (!response.ok) throw new Error("Falha ao carregar os dados.");
+        if (!response.ok)
+          throw new Error("Falha ao carregar os dados do banco.");
         const json = await response.json();
 
-        if (isMounted) {
-          if (viewMode === "topics") {
-            setTopics(json.data || []);
-          } else {
-            setSubjects(json.data || []);
+        if (!isMounted) return;
+
+        if (viewMode === "topics") {
+          setTopics(json.data || []);
+
+          const subjectsRes = await fetch(`/api/planner?mode=subjects`);
+          if (subjectsRes.ok && isMounted) {
+            const subjectsJson = await subjectsRes.json();
+            setSubjects(subjectsJson.data || []);
           }
-          setLoading(false);
+        } else {
+          setSubjects(json.data || []);
         }
       } catch (err: unknown) {
         if (isMounted) {
           setError(err instanceof Error ? err.message : "Erro desconhecido");
+        }
+      } finally {
+        if (isMounted) {
           setLoading(false);
         }
       }
-    };
+    }
 
-    doFetch();
+    loadData();
 
     return () => {
       isMounted = false;
@@ -104,34 +116,29 @@ export default function PlannerPage() {
   }, [viewMode]);
 
   // 📝 Criação de Novo Tópico/Matéria no Banco
-  async function handleCreateTopic(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newTitle.trim() || !newSubjectName.trim()) return;
-
+  async function handleCreateTopic(data: {
+    title: string;
+    subjectName: string;
+    weight: string;
+  }) {
     try {
-      setSubmitting(true);
       const response = await fetch("/api/planner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "CREATE", // Flag para o back-end saber que é uma criação
-          title: newTitle,
-          subjectName: newSubjectName,
-          relevance: newRelevance,
+          action: "CREATE",
+          title: data.title,
+          subjectName: data.subjectName,
+          relevance: data.weight,
         }),
       });
 
       if (!response.ok) throw new Error("Erro ao criar novo conteúdo.");
 
-      // Limpa formulário e fecha modal
-      setNewTitle("");
-      setNewSubjectName("");
       setIsCreateModalOpen(false);
-      await fetchData();
+      await refreshData();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Falha ao salvar");
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -151,7 +158,9 @@ export default function PlannerPage() {
       });
       if (!response.ok) throw new Error("Erro ao processar sua revisão.");
       setActiveReviewTopic(null);
-      await fetchData();
+
+      // Passa true para atualizar os dados em background sem fechar o acordeão!
+      await refreshData();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Falha na requisição");
     } finally {
@@ -159,17 +168,49 @@ export default function PlannerPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    if (status === "Concluído" || status === "Em Revisão")
-      return "text-emerald-400 bg-emerald-500/5 border-emerald-500/10";
-    return "text-slate-500 bg-slate-950 border-slate-900";
-  };
+  // Função de deleção no PlannerPage
+  async function handleDeleteTopic(topicId: string) {
+    try {
+      const response = await fetch(`/api/planner?id=${topicId}`, {
+        method: "DELETE",
+      });
 
-  const filteredTopics = topics.filter(
-    (t) =>
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.subject?.name?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+      if (!response.ok) throw new Error("Erro ao excluir o tópico.");
+
+      // Atualiza a lista em segundo plano sem piscar os acordeões
+      await refreshData();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Falha ao deletar tópico");
+    }
+  }
+
+  async function handleDeleteSubject(subjectIdOrName: string) {
+    try {
+      const response = await fetch(
+        `/api/planner?subjectId=${subjectIdOrName}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) throw new Error("Erro ao excluir a matéria.");
+
+      await refreshData(); // Recarrega os dados mantendo os acordeões
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Falha ao deletar matéria");
+    }
+  }
+
+  // Mapeamento dos tópicos para o formato exigido pelo PlannerView
+  const mappedTopicsForView = topics.map((t) => ({
+    id: t.id,
+    title: t.title,
+    subjectName: t.subject?.name || "Geral",
+    firstStudy: t.firstStudy,
+    performance: t.performance,
+    lastRev: t.lastRev,
+    nextRev: t.nextRev,
+  }));
 
   const filteredSubjects = subjects.filter((s) =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -203,13 +244,21 @@ export default function PlannerPage() {
             <div className="flex bg-slate-950 border border-slate-900 p-1 rounded-xl">
               <button
                 onClick={() => setViewMode("topics")}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${viewMode === "topics" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                  viewMode === "topics"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
               >
                 Tópicos
               </button>
               <button
                 onClick={() => setViewMode("subjects")}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${viewMode === "subjects" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                  viewMode === "subjects"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
               >
                 Matérias
               </button>
@@ -236,13 +285,17 @@ export default function PlannerPage() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0 justify-end">
-              <button className="flex items-center justify-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 text-slate-400 text-xs font-medium px-4 py-2 rounded-xl transition-colors">
+              <button
+                onClick={() => setIsImportModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 text-slate-400 text-xs font-medium px-4 py-2 rounded-xl transition-colors cursor-pointer"
+              >
                 <UploadCloud size={14} className="text-indigo-400" />
                 <span>Importar Edital</span>
               </button>
+
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/10"
+                className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
               >
                 <Plus size={14} />
                 <span>
@@ -265,94 +318,30 @@ export default function PlannerPage() {
 
         {/* Tabelas de Tópicos / Matérias */}
         {viewMode === "topics" ? (
-          <div className="space-y-3">
-            <div className="hidden lg:grid grid-cols-12 gap-4 px-5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-              <div className="col-span-4 text-left">Conteúdo</div>
-              <div className="col-span-2 text-center">1º Estudo</div>
-              <div className="col-span-1 text-center">Desemp.</div>
-              <div className="col-span-2 text-center">Última Rev.</div>
-              <div className="col-span-1 text-center">Próx. Rev.</div>
-              <div className="col-span-2 text-right">Ações</div>
+          loading ? (
+            <div className="flex items-center justify-center py-10 gap-2">
+              <Loader2 className="animate-spin text-indigo-500" size={16} />
+              <span className="text-xs text-slate-500">
+                Buscando do Supabase...
+              </span>
             </div>
-
-            {loading ? (
-              <div className="flex items-center justify-center py-10 gap-2">
-                <Loader2 className="animate-spin text-indigo-500" size={16} />
-                <span className="text-xs text-slate-500">
-                  Buscando do Supabase...
-                </span>
-              </div>
-            ) : filteredTopics.length === 0 ? (
-              <div className="text-center py-12 border border-dashed border-slate-900 rounded-xl text-xs text-slate-500">
-                Nenhum tópico cadastrado no momento. Clique em &quot;+ Novo
-                conteúdo&quot; para testar!
-              </div>
-            ) : (
-              filteredTopics.map((t) => (
-                <div
-                  key={t.id}
-                  className="bg-[#090d16] border border-slate-800/60 rounded-xl p-5 grid grid-cols-12 gap-4 items-center hover:border-indigo-500/30 transition-all"
-                >
-                  {/* COLUNA 1: Título e Matéria (4) */}
-                  <div className="col-span-4 flex flex-col gap-1">
-                    <h3 className="text-sm font-semibold text-slate-200 truncate">
-                      {t.title}
-                    </h3>
-                    <span className="text-[10px] font-medium text-indigo-400 bg-indigo-500/5 px-2 py-0.5 rounded-full w-fit">
-                      {t.subject?.name}
-                    </span>
-                  </div>
-
-                  {/* COLUNA 2: 1º Estudo (2) */}
-                  <div className="col-span-2 flex justify-center">
-                    <span
-                      className={`text-[11px] px-3 py-1 rounded-md border font-medium ${getStatusColor(t.firstStudy)}`}
-                    >
-                      {t.firstStudy}
-                    </span>
-                  </div>
-
-                  {/* COLUNA 3: Desempenho (1) */}
-                  <div className="col-span-1 flex justify-center">
-                    <span className="text-xs font-mono text-slate-400">
-                      {t.performance}%
-                    </span>
-                  </div>
-
-                  {/* COLUNA 4: Última Revisão (2) - O QUE FALTAVA */}
-                  <div className="col-span-2 flex justify-center text-xs text-slate-500">
-                    {t.lastRev
-                      ? new Date(t.lastRev).toLocaleDateString("pt-BR")
-                      : "--"}
-                  </div>
-
-                  {/* COLUNA 5: Próxima Revisão (1) */}
-                  <div className="col-span-1 flex justify-center text-xs text-slate-500">
-                    {t.nextRev
-                      ? new Date(t.nextRev).toLocaleDateString("pt-BR")
-                      : "--"}
-                  </div>
-
-                  <div className="col-span-2 flex items-center justify-end gap-3">
-                    {t.flashcards && t.flashcards.length > 0 && (
-                      <span className="text-[10px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded-md border border-slate-800">
-                        {t.flashcards.length} cards
-                      </span>
-                    )}
-                    <button
-                      onClick={() => {
-                        setActiveReviewTopic(t);
-                        setPerformanceValue(t.performance || 100);
-                      }}
-                      className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-all shadow-md shadow-indigo-600/10"
-                    >
-                      {t.firstStudy === "Pendente" ? "1º Estudo" : "Revisar"}
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          ) : (
+            /* Renderiza a nova visualização filtrada e paginada */
+            <PlannerView
+              topics={mappedTopicsForView}
+              subjects={subjects}
+              searchQuery={searchQuery}
+              onReviewClick={(topicId) => {
+                const found = topics.find((t) => t.id === topicId);
+                if (found) {
+                  setActiveReviewTopic(found);
+                  setPerformanceValue(found.performance || 100);
+                }
+              }}
+              onDeleteTopic={handleDeleteTopic}
+              onDeleteSubject={handleDeleteSubject}
+            />
+          )
         ) : (
           <div className="space-y-3">
             {/* Renderização de Matérias */}
@@ -363,7 +352,7 @@ export default function PlannerPage() {
 
             {loading ? (
               <div className="flex items-center justify-center py-10 gap-2">
-                <Loader2 className="animate-spin text-indigo-500" size={16} />{" "}
+                <Loader2 className="animate-spin text-indigo-500" size={16} />
                 <span className="text-xs text-slate-500">
                   Buscando matérias...
                 </span>
@@ -395,86 +384,12 @@ export default function PlannerPage() {
       </div>
 
       {/* ➕ MODAL DE CRIAÇÃO DE CONTEÚDO */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <form
-            onSubmit={handleCreateTopic}
-            className="bg-[#090d16] border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150"
-          >
-            <div>
-              <h2 className="text-base font-bold text-slate-100">
-                Adicionar Novo Conteúdo
-              </h2>
-              <p className="text-xs text-slate-400">
-                Insira as informações do edital para indexar no Planner.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400">
-                Nome do Tópico / Conteúdo:
-              </label>
-              <input
-                type="text"
-                required
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Ex: Teoria da Enfermagem, Crase, Equações..."
-                className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400">
-                Matéria Relacionada:
-              </label>
-              <input
-                type="text"
-                required
-                value={newSubjectName}
-                onChange={(e) => setNewSubjectName(e.target.value)}
-                placeholder="Ex: Enfermagem, Português, Matemática..."
-                className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400">
-                Relevância / Peso no Edital:
-              </label>
-              <select
-                value={newRelevance}
-                onChange={(e) => setNewRelevance(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50"
-              >
-                <option value="1/10">1/10 - Muito Baixa</option>
-                <option value="3/10">3/10 - Baixa</option>
-                <option value="5/10">5/10 - Média</option>
-                <option value="7/10">7/10 - Alta</option>
-                <option value="9/10">9/10 - Altíssima</option>
-              </select>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-300"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5"
-              >
-                {submitting && <Loader2 size={12} className="animate-spin" />}
-                <span>Salvar Conteúdo</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <NewContentModal
+        isOpen={isCreateModalOpen}
+        subjects={subjects}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateTopic}
+      />
 
       {/* MODAL EBBINGHAUS */}
       {activeReviewTopic && (
@@ -537,6 +452,18 @@ export default function PlannerPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODAL DE IMPORTAR EDITAL */}
+      {isImportModalOpen && (
+        <ImportEditalModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onImportSuccess={async (data) => {
+            console.log("Edital processado com sucesso:", data);
+            await refreshData(); // Atualiza sem desmontar a interface
+          }}
+        />
       )}
     </div>
   );
