@@ -20,6 +20,7 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  quizzes   Quiz[]
 }
 
 model Account {
@@ -138,10 +139,14 @@ model Quiz {
   banca      String
   subject    String
   difficulty String
-  questions  Json // Armazena o array completo de questões gerado pelo Gemini
+  questions  Json
   createdAt  DateTime @default(now())
-  topic      Topic?   @relation(fields: [topicId], references: [id])
-  topicId    String?
 
-  @@map("quizzes") // Define o nome da tabela no Supabase como minusculo
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  topic   Topic?  @relation(fields: [topicId], references: [id])
+  topicId String?
+
+  @@map("quizzes")
 }

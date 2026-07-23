@@ -1,10 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculatePerformance, Quiz, Question } from "@/lib/analytics-utils";
+import { auth } from "@/auth";
 
 export async function GET() {
   try {
-    const rawQuizzes = await prisma.quiz.findMany();
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    // 🔒 Filtra Quizzes onde o Tópico associado pertence a uma Matéria do Usuário
+    const rawQuizzes = await prisma.quiz.findMany({
+      where: {
+        topic: {
+          subject: {
+            userId: userId,
+          },
+        },
+      },
+    });
 
     const allQuizzes: Quiz[] = rawQuizzes.map((q) => ({
       ...q,
@@ -17,23 +34,24 @@ export async function GET() {
 
     const materiasPendentes = await prisma.subject.count({
       where: {
-        nextReview: { lte: hoje }, // Filtra tudo que venceu até hoje
+        userId,
+        nextReview: { lte: hoje },
       },
     });
+
     const data = {
       metrics: {
         totalTopics: Object.keys(stats.performanceBySubject).length,
-        completedReviews: allQuizzes.length, // Cada quiz salvo conta como uma sessão
+        completedReviews: allQuizzes.length,
         estimatedRetention:
           stats.totalQuestions > 0
             ? `${Math.round((stats.totalCorrect / stats.totalQuestions) * 100)}%`
             : "0%",
-        avgEasiness: 2.5, // Mantido como base ou derivável da dificuldade
+        avgEasiness: 2.5,
         materiasPendentes: materiasPendentes,
       },
-      // Aqui distribuímos o histórico por "dias" fictícios baseados no createdAt
       chartDistribution: [
-        { day: "SEG", quantidade: 2 }, // Exemplo: mapear por data real se desejar
+        { day: "SEG", quantidade: 2 },
         { day: "TER", quantidade: 5 },
         { day: "QUA", quantidade: 3 },
         { day: "QUI", quantidade: 7 },
@@ -42,9 +60,9 @@ export async function GET() {
         { day: "DOM", quantidade: 4 },
       ],
       performanceSummary: {
-        bom: stats.summary.bom, // Questões certas
-        dificil: stats.summary.dificil, // Erros em questões fáceis/médias
-        errei: stats.summary.errei, // Erros em questões difíceis
+        bom: stats.summary.bom,
+        dificil: stats.summary.dificil,
+        errei: stats.summary.errei,
       },
     };
 
@@ -56,7 +74,7 @@ export async function GET() {
     return NextResponse.json(
       {
         error: "Erro ao calcular analytics",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: errorMessage,
       },
       { status: 500 },
     );

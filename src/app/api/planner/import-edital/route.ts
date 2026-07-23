@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth"; // 1. Import do Auth.js v5
 
 interface TopicInput {
   name: string;
@@ -12,16 +13,14 @@ interface SubjectInput {
   topics: TopicInput[];
 }
 
-// 🟢 Mapeador automático inteligente para garantir a cor caso a IA não mande
+// Mapeador automático inteligente de cor
 function inferSubjectColor(name: string, rawColor?: string): string {
-  // Se veio uma cor válida do frontend/IA, usa ela!
   if (rawColor && rawColor.startsWith("#")) {
     return rawColor;
   }
 
   const normalized = name.toLowerCase();
 
-  // Testes & QA (Emerald)
   if (
     normalized.includes("teste") ||
     normalized.includes("qualidade") ||
@@ -30,7 +29,6 @@ function inferSubjectColor(name: string, rawColor?: string): string {
     return "#10B981";
   }
 
-  // Metodologias Ágeis / Processos / Requisitos (Purple)
   if (
     normalized.includes("metodologia") ||
     normalized.includes("ágil") ||
@@ -42,7 +40,6 @@ function inferSubjectColor(name: string, rawColor?: string): string {
     return "#8B5CF6";
   }
 
-  // Frontend & UX / IA (Amber)
   if (
     normalized.includes("frontend") ||
     normalized.includes("ux") ||
@@ -52,7 +49,6 @@ function inferSubjectColor(name: string, rawColor?: string): string {
     return "#F59E0B";
   }
 
-  // Segurança & Protocolos (Pink)
   if (
     normalized.includes("segurança") ||
     normalized.includes("protocolo") ||
@@ -62,21 +58,23 @@ function inferSubjectColor(name: string, rawColor?: string): string {
     return "#EC4899";
   }
 
-  // Dev & Arquitetura (Blue - Padrão)
   return "#3B82F6";
 }
 
 export async function POST(request: Request) {
   try {
-    const { userId, materias }: { userId: string; materias: SubjectInput[] } =
-      await request.json();
+    // 🔒 2. Autenticação e extração segura do userId via Sessão
+    const session = await auth();
+    const userId = session?.user?.id;
 
     if (!userId) {
       return NextResponse.json(
-        { error: "Usuário não identificado." },
-        { status: 400 },
+        { error: "Não autorizado. Faça login para continuar." },
+        { status: 401 },
       );
     }
+
+    const { materias }: { materias: SubjectInput[] } = await request.json();
 
     if (!materias || materias.length === 0) {
       return NextResponse.json(
@@ -88,7 +86,6 @@ export async function POST(request: Request) {
     // Executa a criação em Lote/Transação no Prisma
     const createdSubjects = await prisma.$transaction(
       materias.map((materia) => {
-        // 🟢 Atribuição garantida de cor
         const finalColor = inferSubjectColor(
           materia.name,
           materia.cor || materia.color,
@@ -96,9 +93,9 @@ export async function POST(request: Request) {
 
         return prisma.subject.create({
           data: {
-            userId,
+            userId, // 🔒 Injeta o ID verificado da sessão
             name: materia.name,
-            color: finalColor, // Hex dinâmico calculado
+            color: finalColor,
             importance: "Média",
             priority: 6.3,
             topics: {

@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { motion } from "framer-motion";
 
 interface SubjectCardProps {
@@ -8,10 +9,9 @@ interface SubjectCardProps {
   totalCards: number;
   timeSpent?: string;
   accuracy?: number;
-  colorClass?: string; // Aceita agora Hex (#3B82F6) ou nomes de tema ("indigo", "emerald", etc)
+  colorClass?: string;
 }
 
-// Fallback de Hex para nomes de temas clássicos
 const PRESET_HEX_MAP: Record<string, string> = {
   indigo: "#6366f1",
   emerald: "#10b981",
@@ -28,7 +28,7 @@ export default function SubjectCard({
   accuracy = 0,
   colorClass = "indigo",
 }: SubjectCardProps) {
-  // Extrai o código Hex (se vier o código direto do banco ou se for um tema predefinido)
+  // Trata e valida a cor hexadecimal
   const hexColor = PRESET_HEX_MAP[colorClass] || colorClass || "#6366f1";
 
   const accuracyColor =
@@ -43,34 +43,31 @@ export default function SubjectCard({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      style={
-        {
-          borderLeftColor: hexColor,
-          "--hover-border-color": `${hexColor}40`, // 25% de opacidade no hover
-          "--hover-glow-color": `${hexColor}0d`, // ~5% de brilho no hover
-        } as React.CSSProperties
-      }
-      className="bg-[#070b12] border border-slate-900/80 border-l-4 rounded-xl p-4.5 
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      style={{
+        borderLeftColor: hexColor,
+      }}
+      // 🟢 Ajustado: p-4.5 alterado para p-4 (ou p-5)
+      className="bg-[#070b12] border border-slate-900/80 border-l-4 rounded-xl p-4 
                  cursor-pointer group relative overflow-hidden transition-all duration-300
-                 hover:border-[var(--hover-border-color)]"
+                 hover:border-slate-800"
     >
-      {/* Brilho de fundo com a cor dinamicamente injetada no hover */}
+      {/* Brilho suave no fundo ao passar o mouse */}
       <div
-        className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-transparent transition-all duration-500 opacity-0 group-hover:opacity-100"
-        style={{ backgroundColor: "var(--hover-glow-color)" }}
+        className="absolute inset-0 transition-opacity duration-500 opacity-0 group-hover:opacity-10 pointer-events-none"
+        style={{ backgroundColor: hexColor }}
       />
 
       {/* Cabeçalho */}
       <div className="flex items-center justify-between relative z-10">
         <h3
-          className="font-semibold transition-colors duration-300 text-slate-100 group-hover:text-white"
+          className="font-semibold transition-colors duration-300 text-slate-100"
           style={{ color: hexColor }}
         >
           {title}
         </h3>
         <span
-          className="text-slate-700 group-hover:translate-x-0.5 transition-all duration-300 text-base"
+          className="text-slate-500 group-hover:translate-x-1 transition-transform duration-300 text-base"
           style={{ color: hexColor }}
         >
           &rsaquo;
@@ -94,14 +91,14 @@ export default function SubjectCard({
           </div>
         </div>
 
-        {/* Barra de progresso com brilho proporcional à cor */}
-        <div className="h-1 w-full bg-slate-950 rounded-full overflow-hidden">
+        {/* Barra de progresso */}
+        <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-1000 ease-out"
             style={{
-              width: `${progress}%`,
+              width: `${Math.min(Math.max(progress, 0), 100)}%`,
               backgroundColor: hexColor,
-              boxShadow: `0 0 10px ${hexColor}80`,
+              boxShadow: `0 0 8px ${hexColor}`,
             }}
           />
         </div>

@@ -3,14 +3,11 @@ import { authConfig } from "./auth.config";
 
 const { auth } = NextAuth(authConfig);
 
+// Exporta explicitamente como a função de middleware que o Next.js exige
 export default auth((req) => {
-  // Apenas invocar req.auth/auth injeta a checagem do callback `authorized`
+  // A lógica de autorização já é tratada dentro do authConfig (callback authorized)
 });
 
 export const config = {
-  // Garante que o middleware rode em todas as rotas protegidas
-  matcher: [
-    "/dashboard/:path*",
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

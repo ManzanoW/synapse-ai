@@ -2,13 +2,22 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { FlashcardRaw } from "@/types";
-import { Prisma } from "@prisma/client"; // Importamos o namespace do Prisma
+import { Prisma } from "@prisma/client";
+import { auth } from "@/auth";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function GET() {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
     const decks = await prisma.deck.findMany({
+      where: { userId }, // 🔒 Filtra apenas decks do usuário
       include: {
         subject: true,
         _count: {
@@ -29,6 +38,13 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
     const { name, subjectId, topicId, content, color } = await request.json();
 
     const prompt = `
@@ -55,7 +71,7 @@ export async function POST(request: Request) {
         title: name,
         color: color || "bg-indigo-500",
         subjectId: subjectId,
-        userId: "test",
+        userId: userId, // 🔒 Utiliza o ID real da sessão
         flashcards: {
           create: data.flashcards.map(
             (f): Prisma.FlashcardCreateWithoutDeckInput => ({

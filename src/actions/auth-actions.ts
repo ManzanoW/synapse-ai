@@ -10,6 +10,6 @@ export async function loginWithGithub() {
   await signIn("github", { redirectTo: "/dashboard" });
 }
 
-export async function logout() {
+export async function logoutAction() {
   await signOut({ redirectTo: "/login" });
 }

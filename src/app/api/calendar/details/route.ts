@@ -1,16 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Topic } from "@/types";
+import { auth } from "@/auth";
 
 export async function GET(request: Request) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const date = searchParams.get("date"); // Esperado: 'YYYY-MM-DD'
+    const date = searchParams.get("date");
 
     if (!date)
       return NextResponse.json({ error: "Data necessária" }, { status: 400 });
 
-    // Criamos um range para o dia selecionado (de 00:00 até 23:59)
     const startOfDay = new Date(`${date}T00:00:00Z`);
     const endOfDay = new Date(`${date}T23:59:59Z`);
 
@@ -20,13 +26,10 @@ export async function GET(request: Request) {
           gte: startOfDay,
           lte: endOfDay,
         },
+        subject: { userId: userId }, // 🔒 Isola tópicos do usuário
       },
       include: { subject: { select: { name: true } } },
     });
-
-    console.log("Buscando tópicos para a data:", date);
-    console.log("Range:", startOfDay, endOfDay);
-    console.log("Tópicos encontrados:", topics.length);
 
     return NextResponse.json({ data: topics });
   } catch (error) {

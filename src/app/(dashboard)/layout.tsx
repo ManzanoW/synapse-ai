@@ -10,16 +10,22 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
 
-  // Se tentar renderizar qualquer página do grupo (dashboard) sem sessão, manda pro login
   if (!session) {
     redirect("/login");
   }
 
   return (
-    // Seus providers e componentes do Dashboard aqui
     <SidebarProvider>
-      <Sidebar />
-      <main>{children}</main>
+      {/* h-screen e overflow-hidden no pai travam a janela inteira */}
+      <div className="flex h-screen w-full bg-[#030712] overflow-hidden">
+        {/* Sidebar fixa à esquerda recebendo o usuário autenticado */}
+        <Sidebar user={session.user} />
+
+        {/* O <main> com flex-1, h-full e overflow-y-auto para rolar sozinho */}
+        <main className="flex-1 min-w-0 h-full overflow-y-auto p-4 md:p-6">
+          {children}
+        </main>
+      </div>
     </SidebarProvider>
   );
 }

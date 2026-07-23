@@ -1,9 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useSidebar } from "@/lib/sidebar-context";
+import LogoutModal from "@/components/logout/logout-modal"; // Import do modal
 import {
   Sparkles,
   Layers,
@@ -17,6 +20,14 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 
+interface SidebarProps {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+}
+
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Edital", href: "/planner", icon: FileSpreadsheet },
@@ -29,13 +40,45 @@ const NAV_ITEMS = [
   { label: "Ajuda", href: "/help", icon: Info },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const { isOpen, closeSidebar } = useSidebar();
 
+  // Estados do Modal de Logout
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return "US";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  // Função chamada ao confirmar o logout dentro do modal
+  const handleConfirmLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await signOut({ callbackUrl: "/login" });
+    } catch (error) {
+      console.error("Erro ao encerrar sessão:", error);
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <>
-      {/* Sombra de fundo (Overlay) que escurece a tela quando o menu abre no celular */}
+      {/* Modal de Confirmação de Logout */}
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        isLoading={isLoggingOut}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleConfirmLogout}
+      />
+
+      {/* Overlay mobile */}
       {isOpen && (
         <div
           onClick={closeSidebar}
@@ -53,9 +96,8 @@ export default function Sidebar() {
   `}
       >
         <div className="space-y-6">
-          {/* Cabeçalho da Sidebar */}
+          {/* Cabeçalho */}
           <div className="flex flex-col items-center pt-6 px-4 text-center select-none">
-            {/* Logotype principal */}
             <div className="inline-flex items-center justify-center gap-2">
               <h1 className="font-extrabold text-slate-50 text-[1.85rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
                 Synapse
@@ -66,7 +108,6 @@ export default function Sidebar() {
                   AI
                 </span>
 
-                {/* Partícula Vetorial 6px */}
                 <div className="relative flex items-center justify-center w-2 h-2 mt-1.5">
                   <span className="absolute w-2 h-2 rounded-full bg-indigo-400/40 animate-ping" />
                   <svg
@@ -79,11 +120,10 @@ export default function Sidebar() {
               </div>
             </div>
 
-            {/* Linha laser com largura harmonizada */}
             <div className="w-32 h-px bg-linear-to-r from-transparent via-indigo-500/60 to-transparent mt-4 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
           </div>
 
-          {/* Navegação Principal */}
+          {/* Navegação */}
           <nav className="px-1 space-y-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
@@ -100,12 +140,10 @@ export default function Sidebar() {
                       : "text-slate-400 hover:text-slate-100 hover:bg-white/3"
                   }`}
                 >
-                  {/* Efeito de luz e indicador lateral do item ativo */}
                   {isActive && (
                     <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-indigo-400 rounded-r-full shadow-[0_0_10px_rgba(129,140,248,0.8)]" />
                   )}
 
-                  {/* Ícone */}
                   <Icon
                     size={18}
                     strokeWidth={isActive ? 2 : 1.5}
@@ -116,7 +154,6 @@ export default function Sidebar() {
                     }`}
                   />
 
-                  {/* Label */}
                   <span className="relative z-10 transition-transform duration-300 group-hover:translate-x-0.5 tracking-wide">
                     {item.label}
                   </span>
@@ -128,15 +165,25 @@ export default function Sidebar() {
 
         {/* Rodapé Consolidado */}
         <div className="pt-3 border-t border-white/6">
-          <div className="group flex items-center justify-between p-2 rounded-xl hover:bg-white/3 transition-all duration-200 cursor-pointer">
-            <div className="flex items-center gap-3">
-              {/* Avatar com aura de glow */}
-              <div className="w-8 h-8 rounded-lg bg-indigo-950/80 flex items-center justify-center border border-indigo-500/30 text-indigo-300 text-[10px] font-bold shadow-[0_0_10px_rgba(99,102,241,0.2)]">
-                AS
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold text-slate-200 group-hover:text-white transition-colors">
-                  Estudante Synapse
+          <div className="group flex items-center justify-between p-2 rounded-xl hover:bg-white/3 transition-all duration-200">
+            <div className="flex items-center gap-3 min-w-0">
+              {user?.image ? (
+                <Image
+                  src={user.image}
+                  alt={user.name || "Avatar"}
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 rounded-lg object-cover border border-indigo-500/30 shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-indigo-950/80 flex items-center justify-center border border-indigo-500/30 text-indigo-300 text-[10px] font-bold shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+                  {getInitials(user?.name)}
+                </div>
+              )}
+
+              <div className="truncate">
+                <p className="text-[11px] font-semibold text-slate-200 group-hover:text-white transition-colors truncate">
+                  {user?.name || "Estudante Synapse"}
                 </p>
                 <p className="text-[9px] font-bold text-indigo-400/90 uppercase tracking-widest">
                   Premium
@@ -144,15 +191,15 @@ export default function Sidebar() {
               </div>
             </div>
 
+            {/* Botão que abre o modal */}
             <button
               type="button"
+              onClick={() => setIsLogoutModalOpen(true)}
               aria-label="Sair"
-              className="p-1 rounded-md hover:bg-rose-500/10 transition-colors"
+              title="Sair da conta"
+              className="p-1.5 rounded-md hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors shrink-0"
             >
-              <LogOut
-                size={15}
-                className="text-slate-500 group-hover:text-rose-400 transition-colors"
-              />
+              <LogOut size={15} />
             </button>
           </div>
         </div>

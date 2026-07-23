@@ -6,6 +6,26 @@ export const authConfig = {
   pages: {
     signIn: "/login",
   },
+  session: { strategy: "jwt" },
+  secret: process.env.AUTH_SECRET,
+  trustHost: true,
+  // -------------------------------------------------------------
+  // Força o comportamento correto do Cookie para localhost vs prod
+  // -------------------------------------------------------------
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-authjs.session-token"
+          : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
@@ -13,7 +33,7 @@ export const authConfig = {
 
       if (isOnDashboard) {
         if (isLoggedIn) return true;
-        return false; // Retorna false para redirecionar automaticamente para /login
+        return false;
       }
 
       if (isLoggedIn && nextUrl.pathname === "/login") {
@@ -23,6 +43,5 @@ export const authConfig = {
       return true;
     },
   },
-  trustHost: true, // 👈 ADICIONE ISSO
   providers: [Google, GitHub],
 } satisfies NextAuthConfig;
