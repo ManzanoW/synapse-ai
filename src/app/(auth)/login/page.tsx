@@ -1,4 +1,4 @@
-import { signIn } from "@/auth";
+import { loginWithGoogle, loginWithGithub } from "@/actions/auth-actions";
 
 export default function LoginPage() {
   return (
@@ -15,12 +15,7 @@ export default function LoginPage() {
 
         <div className="space-y-4">
           {/* Botão Google */}
-          <form
-            action={async () => {
-              "use server";
-              await signIn("google", { redirectTo: "/dashboard" });
-            }}
-          >
+          <form action={loginWithGoogle}>
             <button
               type="submit"
               className="w-full flex items-center justify-center gap-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 font-medium py-3 px-4 rounded-xl transition-all duration-200 cursor-pointer"
@@ -48,12 +43,7 @@ export default function LoginPage() {
           </form>
 
           {/* Botão GitHub */}
-          <form
-            action={async () => {
-              "use server";
-              await signIn("github", { redirectTo: "/dashboard" });
-            }}
-          >
+          <form action={loginWithGithub}>
             <button
               type="submit"
               className="w-full flex items-center justify-center gap-3 bg-zinc-100 hover:bg-white text-zinc-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 cursor-pointer"

@@ -1,20 +1,25 @@
 import Sidebar from "@/components/sidebar";
 import { SidebarProvider } from "@/lib/sidebar-context";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <SidebarProvider>
-      <div className="flex h-screen w-screen overflow-hidden relative">
-        <Sidebar />
+  const session = await auth();
 
-        <main className="flex-1 h-full overflow-y-auto bg-[#030712]">
-          {children}
-        </main>
-      </div>
+  // Se tentar renderizar qualquer página do grupo (dashboard) sem sessão, manda pro login
+  if (!session) {
+    redirect("/login");
+  }
+
+  return (
+    // Seus providers e componentes do Dashboard aqui
+    <SidebarProvider>
+      <Sidebar />
+      <main>{children}</main>
     </SidebarProvider>
   );
 }
