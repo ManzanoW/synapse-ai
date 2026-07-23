@@ -1,5 +1,5 @@
-import Dashboard from "./(dashboard)/dashboard/page";
+import { redirect } from "next/navigation";
 
-export default function Home() {
-  return <Dashboard />;
+export default function RootPage() {
+  redirect("/dashboard");
 }
