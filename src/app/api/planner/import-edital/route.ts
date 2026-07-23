@@ -7,7 +7,63 @@ interface TopicInput {
 
 interface SubjectInput {
   name: string;
+  cor?: string;
+  color?: string;
   topics: TopicInput[];
+}
+
+// 🟢 Mapeador automático inteligente para garantir a cor caso a IA não mande
+function inferSubjectColor(name: string, rawColor?: string): string {
+  // Se veio uma cor válida do frontend/IA, usa ela!
+  if (rawColor && rawColor.startsWith("#")) {
+    return rawColor;
+  }
+
+  const normalized = name.toLowerCase();
+
+  // Testes & QA (Emerald)
+  if (
+    normalized.includes("teste") ||
+    normalized.includes("qualidade") ||
+    normalized.includes("automação")
+  ) {
+    return "#10B981";
+  }
+
+  // Metodologias Ágeis / Processos / Requisitos (Purple)
+  if (
+    normalized.includes("metodologia") ||
+    normalized.includes("ágil") ||
+    normalized.includes("agil") ||
+    normalized.includes("requisito") ||
+    normalized.includes("processo") ||
+    normalized.includes("gestão")
+  ) {
+    return "#8B5CF6";
+  }
+
+  // Frontend & UX / IA (Amber)
+  if (
+    normalized.includes("frontend") ||
+    normalized.includes("ux") ||
+    normalized.includes("conteúdo") ||
+    normalized.includes("ia")
+  ) {
+    return "#F59E0B";
+  }
+
+  // Segurança & Protocolos (Pink)
+  if (
+    normalized.includes("segurança") ||
+    normalized.includes("protocolo") ||
+    normalized.includes("redes") ||
+    normalized.includes("criptografia")
+  ) {
+    return "#EC4899";
+  }
+
+  // Dev & Arquitetura (Blue - Padrão)
+  return "#3B82F6";
 }
 
 export async function POST(request: Request) {
@@ -31,27 +87,34 @@ export async function POST(request: Request) {
 
     // Executa a criação em Lote/Transação no Prisma
     const createdSubjects = await prisma.$transaction(
-      materias.map((materia) =>
-        prisma.subject.create({
+      materias.map((materia) => {
+        // 🟢 Atribuição garantida de cor
+        const finalColor = inferSubjectColor(
+          materia.name,
+          materia.cor || materia.color,
+        );
+
+        return prisma.subject.create({
           data: {
             userId,
             name: materia.name,
-            importance: "Média", // Valor padrão padrão para o algoritmo de prioridade
+            color: finalColor, // Hex dinâmico calculado
+            importance: "Média",
             priority: 6.3,
             topics: {
               create: materia.topics.map((topic) => ({
                 title: topic.name,
-                relevance: "Média", // Valor padrão
-                firstStudy: "Pendente", // Estado inicial no Planner
+                relevance: "Média",
+                firstStudy: "Pendente",
                 performance: 0,
               })),
             },
           },
           include: {
-            topics: true, // Retorna os tópicos criados junto
+            topics: true,
           },
-        }),
-      ),
+        });
+      }),
     );
 
     return NextResponse.json(

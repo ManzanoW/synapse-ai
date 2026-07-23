@@ -1,13 +1,20 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, BookOpen, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  BookOpen,
+  Trash2,
+  ChevronsUpDown,
+} from "lucide-react";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 export interface PlannerTopic {
   id: string;
   title: string;
   subjectName: string;
+  subjectColor?: string | null;
   firstStudy?: string;
   performance?: number;
   lastRev?: string | Date | null;
@@ -17,15 +24,17 @@ export interface PlannerTopic {
 export interface PlannerSubject {
   id: string;
   name: string;
+  color?: string | null;
 }
 
 interface PlannerViewProps {
   topics: PlannerTopic[];
   subjects: PlannerSubject[];
   searchQuery?: string;
+  targetSubjectId?: string | null;
   onReviewClick?: (topicId: string) => void;
   onDeleteTopic?: (topicId: string) => Promise<void> | void;
-  onDeleteSubject?: (subjectIdOrName: string) => Promise<void> | void; // 👈 Adicionado
+  onDeleteSubject?: (subjectIdOrName: string) => Promise<void> | void;
 }
 
 const INITIAL_TOPICS_PER_SUBJECT = 5;
@@ -34,20 +43,18 @@ export function PlannerView({
   topics,
   subjects,
   searchQuery = "",
+  targetSubjectId,
   onReviewClick,
   onDeleteTopic,
   onDeleteSubject,
 }: PlannerViewProps) {
-  // Estado para exclusão de Matéria
   const [subjectToDelete, setSubjectToDelete] = useState<{
     id?: string;
     name: string;
     count: number;
   } | null>(null);
 
-  // Estado para exclusão de Tópico
   const [topicToDelete, setTopicToDelete] = useState<PlannerTopic | null>(null);
-
   const [selectedSubjectFilter, setSelectedSubjectFilter] =
     useState<string>("ALL");
   const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
@@ -56,7 +63,6 @@ export function PlannerView({
   );
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Handler de Exclusão de Tópico
   const handleConfirmDeleteTopic = async () => {
     if (!topicToDelete || !onDeleteTopic) return;
     try {
@@ -68,7 +74,6 @@ export function PlannerView({
     }
   };
 
-  // Handler de Exclusão de Matéria
   const handleConfirmDeleteSubject = async () => {
     if (!subjectToDelete || !onDeleteSubject) return;
     try {
@@ -81,23 +86,19 @@ export function PlannerView({
     }
   };
 
-  // Agrupamento e busca em tempo real
   const groupedData = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     const groups: Record<string, PlannerTopic[]> = {};
 
     topics.forEach((topic) => {
       const subName = topic.subjectName || "Geral";
-
       const matchesSearch =
         !query ||
         topic.title.toLowerCase().includes(query) ||
         subName.toLowerCase().includes(query);
 
       if (matchesSearch) {
-        if (!groups[subName]) {
-          groups[subName] = [];
-        }
+        if (!groups[subName]) groups[subName] = [];
         groups[subName].push(topic);
       }
     });
@@ -105,14 +106,37 @@ export function PlannerView({
     return groups;
   }, [topics, searchQuery]);
 
-  const toggleSubject = (subjectName: string) => {
-    setOpenSubjects((prev) => {
-      const isCurrentlyOpen = prev[subjectName] ?? false;
-      return {
-        ...prev,
-        [subjectName]: !isCurrentlyOpen,
-      };
+  const availableSubjectNames = Object.keys(groupedData).filter(
+    (subjectName) => {
+      if (selectedSubjectFilter === "ALL") return true;
+      return subjectName === selectedSubjectFilter;
+    },
+  );
+
+  // Métricas Globais para a Barra Topo
+  const totalTopics = topics.length;
+  const totalCompleted = topics.filter(
+    (t) => t.firstStudy && t.firstStudy !== "Pendente",
+  ).length;
+  const globalProgress =
+    totalTopics > 0 ? Math.round((totalCompleted / totalTopics) * 100) : 0;
+
+  const toggleAllSubjects = () => {
+    const areAllOpen = availableSubjectNames.every(
+      (name) => openSubjects[name],
+    );
+    const newState: Record<string, boolean> = {};
+    availableSubjectNames.forEach((name) => {
+      newState[name] = !areAllOpen;
     });
+    setOpenSubjects(newState);
+  };
+
+  const toggleSubject = (subjectName: string) => {
+    setOpenSubjects((prev) => ({
+      ...prev,
+      [subjectName]: !(prev[subjectName] ?? false),
+    }));
   };
 
   const showMoreTopics = (subjectName: string) => {
@@ -128,27 +152,57 @@ export function PlannerView({
     return "text-slate-500 bg-slate-950 border-slate-900";
   };
 
-  const availableSubjectNames = Object.keys(groupedData).filter(
-    (subjectName) => {
-      if (selectedSubjectFilter === "ALL") return true;
-      return subjectName === selectedSubjectFilter;
-    },
-  );
-
   const isSearching = searchQuery.trim().length > 0;
 
+  React.useEffect(() => {
+    if (!targetSubjectId || subjects.length === 0) return;
+
+    const matchedSubject = subjects.find((s) => s.id === targetSubjectId);
+
+    if (matchedSubject) {
+      const subjectName = matchedSubject.name;
+
+      // 1. Primeiro abre o acordeão
+      const timerState = setTimeout(() => {
+        setOpenSubjects((prev) => ({
+          ...prev,
+          [subjectName]: true,
+        }));
+      }, 50);
+
+      // 2. Espera a animação de abertura do DOM e rola a tela até o elemento
+      const timerScroll = setTimeout(() => {
+        const element = document.getElementById(
+          `subject-card-${matchedSubject.id}`,
+        );
+
+        if (element) {
+          element.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
+      }, 300);
+
+      return () => {
+        clearTimeout(timerState);
+        clearTimeout(timerScroll);
+      };
+    }
+  }, [targetSubjectId, subjects]);
+
   return (
-    <div className="space-y-4">
-      {/* Barra de Filtro por Matéria */}
+    <div className="space-y-4 font-sans">
+      {/* Barra de Filtro e Métricas Globais */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#090d16] p-4 rounded-2xl border border-slate-800/60 shadow-lg">
-        <div className="flex items-center gap-3">
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider shrink-0">
             Filtrar Matéria:
           </label>
           <select
             value={selectedSubjectFilter}
             onChange={(e) => setSelectedSubjectFilter(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 focus:ring-1 focus:ring-indigo-500 outline-none w-full sm:w-auto cursor-pointer"
           >
             <option value="ALL">
               Todas as Matérias ({Object.keys(groupedData).length})
@@ -161,13 +215,32 @@ export function PlannerView({
           </select>
         </div>
 
-        <span className="text-xs text-slate-500">
-          Exibindo{" "}
-          <strong className="text-slate-300">
-            {availableSubjectNames.length}
-          </strong>{" "}
-          disciplinas
-        </span>
+        <div className="flex items-center gap-4 self-end sm:self-auto shrink-0">
+          {/* Progresso Geral */}
+          <div className="hidden md:flex items-center gap-2 border-r border-slate-800/80 pr-4">
+            <span className="text-xs text-slate-400 font-medium">
+              Progresso Geral:
+            </span>
+            <span className="text-xs font-mono font-bold text-indigo-400">
+              {globalProgress}%
+            </span>
+          </div>
+
+          <button
+            onClick={toggleAllSubjects}
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800/80 transition-colors cursor-pointer"
+          >
+            <ChevronsUpDown size={14} />
+            <span>Expandir / Ocultar Tudo</span>
+          </button>
+
+          <span className="text-xs text-slate-500">
+            <strong className="text-slate-300">
+              {availableSubjectNames.length}
+            </strong>{" "}
+            disciplinas
+          </span>
+        </div>
       </div>
 
       {/* Lista de Acordeões por Disciplina */}
@@ -183,6 +256,23 @@ export function PlannerView({
             const subjectTopics = groupedData[subjectName];
             const isOpen = isSearching ? true : !!openSubjects[subjectName];
 
+            const matchedSubject = subjects.find(
+              (s) =>
+                s.name.trim().toLowerCase() ===
+                subjectName.trim().toLowerCase(),
+            );
+            const subColor =
+              matchedSubject?.color ||
+              subjectTopics[0]?.subjectColor ||
+              "#3B82F6";
+
+            const completedTopics = subjectTopics.filter(
+              (t) => t.firstStudy && t.firstStudy !== "Pendente",
+            ).length;
+            const progressPercent = Math.round(
+              (completedTopics / subjectTopics.length) * 100,
+            );
+
             const limit = isSearching
               ? subjectTopics.length
               : visibleCounts[subjectName] || INITIAL_TOPICS_PER_SUBJECT;
@@ -193,44 +283,84 @@ export function PlannerView({
             return (
               <div
                 key={subjectName}
-                className="bg-[#090d16] border border-slate-800/80 rounded-2xl overflow-hidden transition-all"
+                id={
+                  matchedSubject
+                    ? `subject-card-${matchedSubject.id}`
+                    : undefined
+                }
+                className="bg-[#090d16] border border-slate-800/80 rounded-2xl overflow-hidden transition-all duration-300 relative group hover:border-slate-700/80"
               >
+                {/* 🌟 Barra Neon Sem Interferir no Fluxo do Layout */}
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-1 transition-all duration-300 z-10"
+                  style={{
+                    backgroundColor: subColor,
+                    boxShadow: `0 0 10px ${subColor}80`,
+                  }}
+                />
+
                 {/* Header do Acordeão */}
                 <button
                   type="button"
                   onClick={() => toggleSubject(subjectName)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-slate-900/40 transition-colors cursor-pointer text-left"
+                  className="w-full flex items-center justify-between p-4 pl-5 hover:bg-slate-900/30 transition-colors cursor-pointer text-left gap-4"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className="p-2.5 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-105"
+                      style={{
+                        backgroundColor: `${subColor}15`,
+                        border: `1px solid ${subColor}35`,
+                        color: subColor,
+                        boxShadow: `0 0 12px ${subColor}10`,
+                      }}
+                    >
                       <BookOpen size={16} />
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-200">
+
+                    <div className="min-w-0 space-y-1">
+                      <h3 className="text-sm font-bold text-slate-100 truncate tracking-tight group-hover:text-white">
                         {subjectName}
                       </h3>
-                      <p className="text-[11px] text-slate-500">
-                        {subjectTopics.length}{" "}
-                        {subjectTopics.length === 1 ? "tópico" : "tópicos"}
-                      </p>
+
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[11px] text-slate-400 font-medium shrink-0">
+                          {subjectTopics.length}{" "}
+                          {subjectTopics.length === 1 ? "tópico" : "tópicos"}
+                        </span>
+
+                        <span className="text-slate-700 text-[10px]">•</span>
+
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800/80">
+                            <div
+                              className="h-full transition-all duration-500 rounded-full"
+                              style={{
+                                width: `${progressPercent}%`,
+                                backgroundColor: subColor,
+                              }}
+                            />
+                          </div>
+                          <span
+                            className="text-[10px] font-mono font-bold"
+                            style={{
+                              color: progressPercent > 0 ? subColor : "#64748b",
+                            }}
+                          >
+                            {progressPercent}%
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2.5">
-                    {/* Botão para Deletar a Matéria Inteira */}
+                  <div className="flex items-center gap-3 shrink-0">
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Procura se existe uma matéria cadastrada com esse nome para obter o ID real
-                        const foundSub = subjects.find(
-                          (s) =>
-                            s.name.trim().toLowerCase() ===
-                            subjectName.trim().toLowerCase(),
-                        );
-
                         setSubjectToDelete({
-                          id: foundSub?.id, // Envia o ID se existir
-                          name: subjectName, // Mantém o nome para exibição no modal
+                          id: matchedSubject?.id,
+                          name: subjectName,
                           count: subjectTopics.length,
                         });
                       }}
@@ -240,27 +370,40 @@ export function PlannerView({
                       <Trash2 size={15} />
                     </div>
 
-                    <span className="text-[10px] font-semibold text-slate-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-900">
-                      {isOpen ? "Ocultar" : "Expandir"}
-                    </span>
-                    {isOpen ? (
-                      <ChevronDown size={18} className="text-slate-400" />
-                    ) : (
-                      <ChevronRight size={18} className="text-slate-400" />
-                    )}
+                    <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800/80 text-[11px] font-semibold text-slate-400 group-hover:text-slate-200 transition-colors">
+                      <span>{isOpen ? "Ocultar" : "Expandir"}</span>
+                      {isOpen ? (
+                        <ChevronDown size={14} className="text-slate-400" />
+                      ) : (
+                        <ChevronRight size={14} className="text-slate-400" />
+                      )}
+                    </div>
                   </div>
                 </button>
 
-                {/* Conteúdo Expandível */}
-                {isOpen && (
-                  <div className="p-4 pt-0 space-y-2 border-t border-slate-800/40 mt-1">
+                {/* Conteúdo Expandível Isolado */}
+                <div
+                  className="overflow-hidden transition-all duration-300 ease-in-out box-border"
+                  style={{
+                    maxHeight: isOpen ? "2000px" : "0px",
+                    opacity: isOpen ? 1 : 0,
+                    borderTop: isOpen
+                      ? "1px solid rgba(30, 41, 59, 0.4)"
+                      : "1px solid transparent",
+                  }}
+                >
+                  <div className="p-4 space-y-2">
                     {displayedTopics.map((t) => (
                       <div
                         key={t.id}
-                        className="bg-slate-950/60 border border-slate-900 rounded-xl p-3.5 grid grid-cols-1 lg:grid-cols-12 gap-3 items-center hover:border-indigo-500/20 transition-all"
+                        className="bg-slate-950/60 border border-slate-900 rounded-xl p-3.5 grid grid-cols-1 lg:grid-cols-12 gap-3 items-center hover:border-slate-800 transition-all box-border"
                       >
-                        <div className="lg:col-span-5">
-                          <h4 className="text-xs font-medium text-slate-300">
+                        <div className="lg:col-span-5 flex items-center gap-2.5 min-w-0">
+                          <div
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ backgroundColor: subColor }}
+                          />
+                          <h4 className="text-xs font-medium text-slate-300 truncate">
                             {t.title}
                           </h4>
                         </div>
@@ -298,7 +441,6 @@ export function PlannerView({
                               : "Revisar"}
                           </button>
 
-                          {/* Botão de excluir tópico */}
                           <button
                             type="button"
                             onClick={() => setTopicToDelete(t)}
@@ -311,7 +453,6 @@ export function PlannerView({
                       </div>
                     ))}
 
-                    {/* Botão Ver Mais */}
                     {hasMore &&
                       (() => {
                         const remainingCount = subjectTopics.length - limit;
@@ -332,14 +473,14 @@ export function PlannerView({
                         );
                       })()}
                   </div>
-                )}
+                </div>
               </div>
             );
           })
         )}
       </div>
 
-      {/* Modal Dinâmico (Trata deleção de Tópico OU de Matéria) */}
+      {/* Modal Dinâmico */}
       <ConfirmModal
         isOpen={!!topicToDelete || !!subjectToDelete}
         title={

@@ -1,11 +1,24 @@
+import { Quiz } from "@prisma/client";
+
 export interface Subject {
   id: string;
   name: string;
   importance?: string;
   priority?: string;
+  color?: string | null;
   userId: string;
   createdAt?: Date;
   updatedAt?: Date;
+  _count?: {
+    topics: number;
+  };
+  topics?: Topic[];
+}
+
+export interface DashboardSubject extends Subject {
+  progress?: number;
+  accuracy?: number;
+  timeSpent?: string;
   _count?: {
     topics: number;
   };
@@ -29,14 +42,31 @@ export interface Topic {
   lastRev: string | null;
   nextRev: string | null;
   relevance?: string;
+  color?: string | null;
   // Campos do motor SM-2
   easiness?: number;
   interval?: number;
   repetitions?: number;
-  // Relacionamento
-  subject?: { name: string };
+  // 🟢 RELACIONAMENTO ATUALIZADO:
+  subject?: {
+    id?: string;
+    name: string;
+    color?: string | null;
+  };
   subjectId: string;
   flashcards?: Flashcard[];
+  questions?: Quiz[];
+}
+
+export interface ReviewTopic {
+  id: string;
+  title: string;
+  firstStudy: string;
+  performance?: number;
+  subject?: {
+    name: string;
+    color?: string;
+  };
 }
 
 export interface ReviewHistory {
@@ -56,7 +86,12 @@ export interface Deck {
   id: string;
   title: string;
   color: string;
-  subject?: { name: string }; // Adicionando o campo de relação
+  // 🟢 RELACIONAMENTO ATUALIZADO:
+  subject?: {
+    id?: string;
+    name: string;
+    color?: string | null;
+  };
   _count: {
     flashcards: number;
   };

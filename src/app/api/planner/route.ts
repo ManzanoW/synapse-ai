@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { PRESET_HEX_COLORS } from "@/constants/subjects";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
         },
         include: {
           subject: {
-            select: { name: true },
+            select: { name: true, color: true }, // <-- Adicionado color
           },
           flashcards: true,
         },
@@ -45,31 +46,68 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: reviewQueue }, { status: 200 });
     }
 
-    // 2. Modo: Retorna o Edital Macro agrupado por Matérias
+    // 2. Modo: Subjects
     if (mode === "subjects") {
       const subjects = await prisma.subject.findMany({
-        where: { userId: REAL_USER_ID },
         include: {
+          topics: {
+            select: {
+              firstStudy: true,
+              performance: true,
+            },
+          },
           _count: {
             select: { topics: true },
           },
         },
-        orderBy: { createdAt: "asc" },
       });
-      return NextResponse.json({ data: subjects }, { status: 200 });
+
+      // Mapeia cada matéria calculando o progresso dinamicamente
+      const formattedSubjects = subjects.map((sub) => {
+        const totalTopics = sub.topics.length;
+
+        // Considera concluído o tópico cujo status não é mais "Pendente"
+        const completedTopics = sub.topics.filter(
+          (t) => t.firstStudy !== "Pendente",
+        ).length;
+
+        // Cálculo do progresso percentual (0 a 100)
+        const progress =
+          totalTopics > 0
+            ? Math.round((completedTopics / totalTopics) * 100)
+            : 0;
+
+        // Cálculo da média de acertos/desempenho
+        const totalPerformance = sub.topics.reduce(
+          (acc, t) => acc + t.performance,
+          0,
+        );
+        const accuracy =
+          completedTopics > 0
+            ? Math.round(totalPerformance / completedTopics)
+            : 0;
+
+        return {
+          ...sub,
+          progress,
+          accuracy,
+        };
+      });
+
+      return NextResponse.json({ data: formattedSubjects });
     }
 
-    // 3. Modo Padrão (topics): Retorna a listagem detalhada de todos os tópicos
+    // 3. Modo Padrão (topics)
     const topics = await prisma.topic.findMany({
       where: {
         subject: { userId: REAL_USER_ID },
       },
       include: {
         subject: {
-          select: { name: true },
+          select: { name: true, color: true }, // <-- Adicionado color
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { id: "desc" },
     });
 
     return NextResponse.json({ data: topics }, { status: 200 });
@@ -120,11 +158,18 @@ export async function POST(request: Request) {
       }
 
       if (!subject) {
+        // Escolhe uma cor aleatória do preset caso a matéria seja nova
+        const randomColor =
+          PRESET_HEX_COLORS[
+            Math.floor(Math.random() * PRESET_HEX_COLORS.length)
+          ];
+
         subject = await prisma.subject.create({
           data: {
             name: subjectName.trim(),
             userId: REAL_USER_ID,
-            importance: "5", // Ótima sacada colocar o campo obrigatório aqui!
+            importance: "5",
+            color: randomColor,
           },
         });
       }

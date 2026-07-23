@@ -16,10 +16,11 @@ model User {
 }
 
 model Subject {
-  id         String @id @default(uuid())
+  id         String  @id @default(uuid())
   name       String
   importance String
-  priority   Float  @default(6.3)
+  color      String? @default("#3B82F6")
+  priority   Float   @default(6.3)
 
   // --- CAMPOS PARA SRS ---
   lastReviewed DateTime @default(now()) // Quando foi a última vez que você estudou
@@ -36,22 +37,25 @@ model Subject {
 }
 
 model Topic {
-  id          String          @id @default(uuid())
-  title       String
-  relevance   String
-  firstStudy  String
-  performance Int             @default(0)
-  lastRev     DateTime?
-  nextRev     DateTime?
-  subjectId   String
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  easiness    Float           @default(2.5)
-  interval    Int             @default(0)
-  repetitions Int             @default(0)
-  reviews     ReviewHistory[]
-  flashcards  Flashcard[]
-  subject     Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  id        String  @id @default(uuid())
+  title     String
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  // Relações com os módulos de estudo
+  flashcards Flashcard[]
+  questions  Quiz[]
+
+  // SM-2 Metadados
+  firstStudy      String          @default("Pendente")
+  performance     Int             @default(0)
+  easiness        Float           @default(2.5)
+  relevance       String?         @default("5/10")
+  interval        Int             @default(0)
+  repetitions     Int             @default(0)
+  lastRev         DateTime?
+  nextRev         DateTime?       @default(now())
+  reviewHistories ReviewHistory[]
 }
 
 model Deck {
@@ -94,6 +98,8 @@ model Quiz {
   difficulty String
   questions  Json // Armazena o array completo de questões gerado pelo Gemini
   createdAt  DateTime @default(now())
+  topic      Topic?   @relation(fields: [topicId], references: [id])
+  topicId    String?
 
   @@map("quizzes") // Define o nome da tabela no Supabase como minusculo
 }

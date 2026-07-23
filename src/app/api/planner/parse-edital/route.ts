@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
+import { PRESET_HEX_COLORS } from "@/constants/subjects"; // 1. Import da paleta de cores
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -7,11 +8,13 @@ interface AIResponse {
   text: string | null;
 }
 
-// Interface auxiliar para evitar o 'any'
+// 2. Interface atualizada com suporte a cor (HEX)
 interface RawMateria {
   nome?: string;
   materia?: string;
   name?: string;
+  cor?: string;
+  color?: string;
   topicos?: string[];
   topics?: string[];
 }
@@ -28,7 +31,35 @@ async function generateContentWithRetry(
       const result = await ai.models.generateContent({
         model: "gemini-3.5-flash-lite",
         contents: prompt,
-        config: { responseMimeType: "application/json" },
+        config: {
+          responseMimeType: "application/json",
+          // 🟢 SCHEMA RÍGIDO: Força o Gemini a preencher a cor obrigatoriamente
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              materias: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    nome: { type: Type.STRING },
+                    color: {
+                      type: Type.STRING,
+                      description:
+                        "Hex da cor base do domínio: #3B82F6 (Dev/Arch), #10B981 (Test/QA), #8B5CF6 (Methodologies), #F59E0B (Frontend/UX), #EC4899 (Security)",
+                    },
+                    topicos: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING },
+                    },
+                  },
+                  required: ["nome", "color", "topicos"],
+                },
+              },
+            },
+            required: ["materias"],
+          },
+        },
       });
 
       clearTimeout(timeoutId);
@@ -67,8 +98,8 @@ export async function POST(request: Request) {
       .substring(0, 30000);
 
     const prompt = `
-      Você é um especialista em análise de editais para concursos públicos e vestibulares.
-      Sua tarefa é extrair e organizar todas as matérias e seus respectivos tópicos de estudo contidos no texto fornecido.
+      Você é um especialista em organização de edital e técnicas de estudo.
+      Sua tarefa é analisar o texto do edital e extrair as Matérias e Tópicos de forma SINTÉTICA e PRÁTICA para estudo.
 
       TEXTO DO EDITAL:
       """
@@ -78,20 +109,37 @@ export async function POST(request: Request) {
       INSTRUÇÃO IMPORTANTE:
       Extraia todas as disciplinas e tópicos do texto programático acima.
 
-      REGRAS DE EXTRAÇÃO E FORMATAÇÃO DOS TÓPICOS:
-      1. REMOVA NUMERAÇÕES: Remova qualquer índice numérico ou letras do início (ex: "1.1 Docker" vira "Docker", "7.1 Oracle" vira "Oracle").
-      2. MANTENHA TÓPICOS CURTOS E DIRETOS: Não crie frases longas nem junte múltiplas tecnologias/linguagens na mesma linha. Cada tópico deve ter idealmente de 1 a 5 palavras.
-         - Exemplo Ruim: "Linguagens de programação: Java, Python e Shell Script"
-         - Exemplo Bom: Separar em tópicos individuais: "Java", "Python", "Shell Script"
-      3. CONSOLIDE APENAS PRODUTOS/VERSÕES DA MESMA FERRAMENTA: Agrupe somente quando forem variações ou suítes do mesmo software para evitar redundância extrema.
-         - Exemplo Ruim: "VMware NSX", "VMware vCenter", "VMware vCloud"
-         - Exemplo Bom: "VMware Suite (NSX, vCenter, vCloud)"
+      REGRAS RIGOROSAS DE AGRUPAMENTO:
+      1. NÍVEL DE GRANULARIDADE (Evite super-atomição):
+        - NÃO crie um tópico para cada tecnologia isolada ou frameworks.
+        - AGRUPE linguagens e frameworks correlatos em um único tópico macro. 
+        - Exemplo RUIM: Tópicos separados para "Java", "Spring", "Hibernate", "JPA".
+        - Exemplo BOM: Tópico único chamado "Desenvolvimento Java (JavaEE, JPA, SpringBoot, Hibernate)".
+
+      2. CRIAÇÃO DE MATÉRIAS E ATRIBUIÇÃO DE CORES (CAMPO 'cor'):
+        - Se o texto contiver múltiplos blocos grandes de conhecimento (ex: Desenvolvimento, Testes, Engenharia de Requisitos, Frontend, UX), DIVIDA-OS em Matérias diferentes para não poluir uma única matéria.
+        - Exemplo: 
+          - Matéria 1: Desenvolvimento e Arquitetura de Software
+          - Matéria 2: Testes de Software e RPA
+          - Matéria 3: Metodologias Ágeis e Requisitos
+          - Matéria 4: Frontend e UX/UI
+        - Para CADA Matéria, atribua obrigatoriamente um código HEX do campo 'cor' baseando-se estritamente na categoria do conhecimento:
+          * '#3B82F6' -> Exatas, Engenharia, Programação, Arquitetura de Software ou Banco de Dados.
+          * '#10B981' -> Testes de Software, Qualidade, Governança, Legislação Específica ou Auditoria.
+          * '#8B5CF6' -> Metodologias Ágeis, Engenharia de Requisitos, Gestão de Projetos ou Direitos.
+          * '#F59E0B' -> Frontend, UX/UI, Português, Inglês ou Conhecimentos Gerais.
+          * '#EC4899' -> Redes de Computadores, Infraestrutura, Segurança da Informação ou Cyber Security.
+
+      3. TAMANHO IDEAL:
+        - Tente manter entre 5 a 15 tópicos significativos por Matéria. Tópicos de estudo devem levar entre 1 a 3 horas para serem estudados/revisados, e não 5 minutos.
 
       Retorne ESTRITAMENTE um objeto JSON válido no formato:
       {
         "materias": [
           {
             "nome": "Nome da Matéria",
+            "color": "#HEX_COR", // Deve ser uma das cores: #3B82F6 (Dev/Arch), #10B981 (Test/QA), #8B5CF6 (Methodologies), #F59E0B (Frontend/UX), #EC4899 (Security)
+    "topics": [
             "topicos": [
               "Nome do Tópico 1",
               "Nome do Tópico 2"
@@ -115,7 +163,6 @@ export async function POST(request: Request) {
 
     const parsedData = JSON.parse(cleanJson);
 
-    // Tratamento resiliente caso a IA mude as chaves da resposta
     let rawList: RawMateria[] = [];
     if (Array.isArray(parsedData)) {
       rawList = parsedData;
@@ -127,12 +174,9 @@ export async function POST(request: Request) {
       rawList = parsedData.disciplinas;
     }
 
-    // Helper com Regex para garantir 100% que nenhuma numeração passe despercebida
     const cleanTopicTitle = (title: string): string => {
       if (typeof title !== "string") return title;
-      return title
-        .replace(/^(\d+(\.\d+)*\s*[-–—.]?\s*)/, "") // Remove "1 ", "1.1 ", "1.1.2 - ", etc.
-        .trim();
+      return title.replace(/^(\d+(\.\d+)*\s*[-–—.]?\s*)/, "").trim();
     };
 
     const normalizedMaterias = rawList.map((item: RawMateria) => {
@@ -142,8 +186,17 @@ export async function POST(request: Request) {
           ? item.topics
           : [];
 
+      // Pega a cor que a IA enviou ou sorteia uma cor válida da nossa paleta como fallback resguardo
+      const hexColor = item.cor || item.color;
+      const validColor = PRESET_HEX_COLORS.includes(hexColor as string)
+        ? hexColor
+        : PRESET_HEX_COLORS[
+            Math.floor(Math.random() * PRESET_HEX_COLORS.length)
+          ];
+
       return {
         nome: item.nome || item.materia || item.name || "Matéria sem nome",
+        cor: validColor, // 🟢 Retorna a cor tratada diretamente para o front/modal
         topicos: topicosArray.map((topico: string) => cleanTopicTitle(topico)),
       };
     });

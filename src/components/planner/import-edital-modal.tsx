@@ -18,9 +18,11 @@ interface TopicItem {
   selected: boolean;
 }
 
+// 🟢 1. Interface atualizada com a cor da matéria
 interface SubjectItem {
   id: string;
   name: string;
+  color?: string; // Hex da cor retornado pela IA
   selected: boolean;
   topics: TopicItem[];
 }
@@ -35,6 +37,8 @@ interface RawMateria {
   nome?: string;
   materia?: string;
   name?: string;
+  cor?: string; // 🟢 Suporte para o retorno da IA
+  color?: string;
   topicos?: string[];
   topics?: string[];
 }
@@ -51,7 +55,6 @@ export function ImportEditalModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Estado para armazenar o resultado retornado pela IA para revisão
   const [parsedSubjects, setParsedSubjects] = useState<SubjectItem[]>([]);
   const [expandedSubjects, setExpandedSubjects] = useState<
     Record<string, boolean>
@@ -59,7 +62,6 @@ export function ImportEditalModal({
 
   if (!isOpen) return null;
 
-  // Leitor auxiliar para extrair texto de arquivos .txt
   const readFileAsText = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -69,7 +71,6 @@ export function ImportEditalModal({
     });
   };
 
-  // Chamada da API do Gemini
   const handleProcessEdital = async () => {
     setIsProcessing(true);
 
@@ -83,8 +84,6 @@ export function ImportEditalModal({
           selectedFile.type === "application/pdf" ||
           selectedFile.name.endsWith(".pdf")
         ) {
-          // Se for PDF, alertamos ou tentamos ler se houver suporte.
-          // Para evitar o envio de dados binários corrompidos:
           alert(
             "Para arquivos PDF longos, copie e cole a seção de Conteúdo Programático diretamente na aba 'Colar Texto do Edital' para melhores resultados.",
           );
@@ -120,10 +119,11 @@ export function ImportEditalModal({
         ? result.materias
         : [];
 
-      // Mapeia o retorno adicionando IDs e estados de seleção para a UI
+      // 🟢 2. Mapeia o retorno PRESERVANDO a cor enviada pela IA
       const formattedSubjects: SubjectItem[] = rawList.map(
         (m: RawMateria, mIdx: number) => {
           const name = m.nome || m.materia || m.name || "Matéria sem nome";
+          const subjectColor = m.cor || m.color; // Captura a cor!
           const rawTopics = Array.isArray(m.topicos)
             ? m.topicos
             : Array.isArray(m.topics)
@@ -133,6 +133,7 @@ export function ImportEditalModal({
           return {
             id: `materia-${mIdx}`,
             name,
+            color: subjectColor, // 🟢 Armazena a cor no estado do React
             selected: true,
             topics: rawTopics.map((t: string, tIdx: number) => ({
               id: `topico-${mIdx}-${tIdx}`,
@@ -152,12 +153,10 @@ export function ImportEditalModal({
 
       setParsedSubjects(formattedSubjects);
 
-      // Expandir todas as matérias por padrão
       const initialExpanded: Record<string, boolean> = {};
       formattedSubjects.forEach((sub) => (initialExpanded[sub.id] = true));
       setExpandedSubjects(initialExpanded);
 
-      // Avança a etapa para Preview
       setStep("preview");
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";
@@ -168,7 +167,6 @@ export function ImportEditalModal({
     }
   };
 
-  // Funções de manipulação do Preview
   const toggleSubjectSelect = (subjectId: string) => {
     setParsedSubjects((prev) =>
       prev.map((sub) => {
@@ -208,13 +206,13 @@ export function ImportEditalModal({
     setExpandedSubjects((prev) => ({ ...prev, [subjectId]: !prev[subjectId] }));
   };
 
-  // Confirmação e envio final dos dados limpos
+  // 🟢 3. Confirmação e envio FINAL repassando a propriedade `cor`
   const handleConfirmImport = async () => {
-    // Filtra apenas matérias e tópicos selecionados
     const finalData = parsedSubjects
       .filter((sub) => sub.selected)
       .map((sub) => ({
         name: sub.name,
+        cor: sub.color, // 🟢 REPASSA A COR PARA A API DE IMPORTAÇÃO
         topics: sub.topics
           .filter((t) => t.selected)
           .map((t) => ({ name: t.name })),
@@ -240,13 +238,12 @@ export function ImportEditalModal({
 
       const rawText = await response.text();
 
-      // Tenta converter para JSON, se for HTML logamos a mensagem original
       let result;
       try {
         result = JSON.parse(rawText);
       } catch {
         console.error("Servidor respondeu com HTML/Texto em vez de JSON:");
-        console.error(rawText); // Isso vai imprimir a página de erro real no console do navegador!
+        console.error(rawText);
         throw new Error(
           `Resposta do servidor não é um JSON válido. Status: ${response.status}`,
         );
@@ -260,6 +257,8 @@ export function ImportEditalModal({
       handleClose();
     } catch (error) {
       console.error("Erro na importação:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -274,7 +273,7 @@ export function ImportEditalModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
       <div className="relative w-full max-w-2xl bg-slate-950 border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden text-slate-200 flex flex-col max-h-[85vh]">
-        {/* Cabeçalho da Modal */}
+        {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
           <div className="flex items-center gap-2">
             {step === "preview" && (
@@ -309,11 +308,10 @@ export function ImportEditalModal({
           </button>
         </div>
 
-        {/* Corpo da Modal */}
+        {/* Corpo */}
         <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
           {step === "input" ? (
             <div className="space-y-6">
-              {/* Abas */}
               <div className="flex p-1 bg-slate-900/80 border border-white/5 rounded-xl">
                 <button
                   onClick={() => setActiveTab("file")}
@@ -337,7 +335,6 @@ export function ImportEditalModal({
                 </button>
               </div>
 
-              {/* Upload ou Área de Texto */}
               {activeTab === "file" ? (
                 <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-white/10 rounded-xl cursor-pointer bg-white/5 hover:bg-white/10 hover:border-indigo-500/40 transition-all group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
@@ -399,6 +396,16 @@ export function ImportEditalModal({
                         >
                           {sub.selected && <Check size={12} />}
                         </button>
+
+                        {/* Indicador visual da Cor da Matéria */}
+                        {sub.color && (
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: sub.color }}
+                            title={`Cor do domínio: ${sub.color}`}
+                          />
+                        )}
+
                         <span className="text-xs font-semibold text-slate-200">
                           {sub.name}
                         </span>
@@ -457,7 +464,7 @@ export function ImportEditalModal({
           )}
         </div>
 
-        {/* Rodapé da Modal */}
+        {/* Rodapé */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-900/40 border-t border-white/5 shrink-0">
           <button
             onClick={handleClose}
@@ -490,11 +497,21 @@ export function ImportEditalModal({
             </button>
           ) : (
             <button
+              disabled={isSaving}
               onClick={handleConfirmImport}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all cursor-pointer disabled:opacity-50"
             >
-              <Check size={14} />
-              <span>Confirmar e Importar</span>
+              {isSaving ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Salvando no Planner...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={14} />
+                  <span>Confirmar e Importar</span>
+                </>
+              )}
             </button>
           )}
         </div>
