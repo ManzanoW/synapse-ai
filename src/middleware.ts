@@ -3,11 +3,10 @@ import { authConfig } from "./auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-export default auth((req) => {
-  // O Auth.js gerencia a autenticação aqui usando as regras do authConfig
-});
+// Exportação padrão (default) envolvida explicitamente pela função 'auth'
+export default auth((req) => {});
 
 export const config = {
-  // Aplica o middleware a todas as rotas exceto arquivos estáticos, imagens, etc.
+  // Aplica o middleware em todas as rotas, exceto estáticos e imagens
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
