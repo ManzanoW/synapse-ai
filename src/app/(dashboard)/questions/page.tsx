@@ -25,12 +25,14 @@ import {
 } from "lucide-react";
 
 // Tipagem para as questões que chegam da nossa API do Gemini
-interface QuestaoIA {
+export interface QuestaoIA {
   enunciado: string;
-  formato: "multipla" | "certo_errado";
-  alternativas?: Array<{ id: string; texto: string }>;
-  gabaritoCorreto: string;
+  formato: string;
   justificativa: string;
+  alternativas: { id: string; texto: string }[];
+  gabaritoCorreto: string;
+  flashcardFrente: string;
+  flashcardVerso: string;
 }
 
 // Interface para tipar os itens do histórico vindos do Supabase
@@ -189,6 +191,7 @@ export default function QuestoesPage() {
 
   const [isMounted, setIsMounted] = useState(false);
 
+  // 1. CARREGA DO LOCALSTORAGE AO MONTAR
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsMounted(true);
@@ -202,6 +205,10 @@ export default function QuestoesPage() {
             setSelectedAnswers(parsed.selectedAnswers);
           if (parsed.checkedQuestions)
             setCheckedQuestions(parsed.checkedQuestions);
+
+          // RESTAURA OS FLASHCARDS JÁ CRIADOS
+          if (parsed.createdFlashcards)
+            setCreatedFlashcards(parsed.createdFlashcards);
         }
       } catch (e) {
         console.error("Erro ao carregar do localStorage:", e);
@@ -211,6 +218,7 @@ export default function QuestoesPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // 2. SALVA NO LOCALSTORAGE QUANDO O ESTADO MUDA
   useEffect(() => {
     if (!isMounted) return;
 
@@ -220,13 +228,22 @@ export default function QuestoesPage() {
         questions,
         selectedAnswers,
         checkedQuestions,
+        createdFlashcards,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(currentState));
     } catch (e) {
       console.error("Erro ao salvar no localStorage:", e);
     }
-  }, [banca, questions, selectedAnswers, checkedQuestions, isMounted]);
+  }, [
+    banca,
+    questions,
+    selectedAnswers,
+    checkedQuestions,
+    createdFlashcards,
+    isMounted,
+  ]);
 
+  // 3. CARREGA MATÉRIAS NO MODAL
   useEffect(() => {
     if (isAIModalOpen) {
       fetch("/api/subjects/list")
@@ -272,23 +289,44 @@ export default function QuestoesPage() {
 
     setCreatingFlashcardIndex(index);
     try {
-      const res = await fetch("/api/flashcards/create", {
+      // 🎯 Extração ultra segura para evitar o erro de tipo 'never'
+      const rawMateria = materia as unknown;
+      const nomeMateria =
+        typeof rawMateria === "string" && rawMateria.trim() !== ""
+          ? rawMateria
+          : typeof rawMateria === "object" &&
+              rawMateria !== null &&
+              "name" in rawMateria
+            ? String((rawMateria as { name: unknown }).name)
+            : "Banco de Provas";
+
+      const res = await fetch("/api/flashcards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          front: q.enunciado.replace(/\*\*/g, ""),
-          back: `Gabarito: ${q.gabaritoCorreto}\n\n${q.justificativa}`,
-          subject: materia || "Simulado",
+          question: q.flashcardFrente || q.enunciado.replace(/\*\*/g, ""),
+          answer:
+            q.flashcardVerso ||
+            `Gabarito: ${q.gabaritoCorreto}\n\n${q.justificativa}`,
+          details: q.justificativa,
+          subject: nomeMateria,
         }),
       });
 
-      if (!res.ok) throw new Error("Erro ao criar flashcard.");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `Erro (${res.status}) ao criar flashcard.`,
+        );
+      }
 
-      setCreatedFlashcards((prev) => ({ ...prev, [index]: true }));
+      setCreatedFlashcards((prev) => {
+        const updated = { ...prev, [index]: true };
+        localStorage.setItem("created_flashcards", JSON.stringify(updated));
+        return updated;
+      });
     } catch (err) {
       console.error("Erro ao gerar flashcard:", err);
-      // Fallback amigável caso a rota ainda esteja em dev
-      setCreatedFlashcards((prev) => ({ ...prev, [index]: true }));
     } finally {
       setCreatingFlashcardIndex(null);
     }
@@ -736,17 +774,17 @@ export default function QuestoesPage() {
                                 </span>
                               </div>
 
-                              {/* BOTÃO GERAR FLASHCARD (4) */}
+                              {/* BOTÃO GERAR FLASHCARD */}
                               {!acertou && (
                                 <button
                                   onClick={() => handleCreateFlashcard(index)}
                                   disabled={
                                     creatingFlashcardIndex === index ||
-                                    isFlashcardCreated
+                                    Boolean(createdFlashcards[index])
                                   }
                                   className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 ${
-                                    isFlashcardCreated
-                                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                                    createdFlashcards[index]
+                                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed opacity-90"
                                       : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-300"
                                   }`}
                                 >
@@ -758,7 +796,7 @@ export default function QuestoesPage() {
                                       />
                                       <span>Gerando Flashcard...</span>
                                     </>
-                                  ) : isFlashcardCreated ? (
+                                  ) : createdFlashcards[index] ? (
                                     <>
                                       <CheckCircle2 size={12} />
                                       <span>Flashcard Criado!</span>

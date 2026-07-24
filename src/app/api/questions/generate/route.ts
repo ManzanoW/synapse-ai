@@ -17,12 +17,10 @@ async function generateContentWithRetry(
       const timeoutId = setTimeout(() => controller.abort(), 25000);
 
       const result = await ai.models.generateContent({
-        // Modelo oficial e otimizado para raciocínio rápido e estruturado
         model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
-          // Garante baixa criatividade/alucinação para exatas
           temperature: 0.2,
           responseSchema: {
             type: Type.OBJECT,
@@ -34,8 +32,10 @@ async function generateContentWithRetry(
                   properties: {
                     enunciado: { type: Type.STRING },
                     formato: { type: Type.STRING },
+
                     // 1. A IA calcula e escreve a justificativa detalhada PRIMEIRO
                     justificativa: { type: Type.STRING },
+
                     // 2. Com a resposta resolvida, gera as alternativas contendo o resultado exato
                     alternativas: {
                       type: Type.ARRAY,
@@ -48,8 +48,21 @@ async function generateContentWithRetry(
                         required: ["id", "texto"],
                       },
                     },
-                    // 3. Por último, vincula a letra correspondente sem chances de erro
+
+                    // 3. Vincula a letra correspondente sem chances de erro
                     gabaritoCorreto: { type: Type.STRING },
+
+                    // 4. GERAÇÃO ATÔMICA DO FLASHCARD (Active Recall)
+                    flashcardFrente: {
+                      type: Type.STRING,
+                      description:
+                        "Pergunta direta, conceitual e objetiva extraída do tema da questão, ideal para revisão por repetição espaçada.",
+                    },
+                    flashcardVerso: {
+                      type: Type.STRING,
+                      description:
+                        "Resposta direta e sucinta com a explicação teórica essencial.",
+                    },
                   },
                   required: [
                     "enunciado",
@@ -57,6 +70,8 @@ async function generateContentWithRetry(
                     "justificativa",
                     "alternativas",
                     "gabaritoCorreto",
+                    "flashcardFrente",
+                    "flashcardVerso",
                   ],
                 },
               },
@@ -146,7 +161,9 @@ export async function POST(request: Request) {
       - Se banca for "Cebraspe": formato "certo_errado" (gabaritoCorreto: "Certo" ou "Errado", alternativas: []).
       - Outras bancas: formato "multipla" com exatamente 4 alternativas (ids: "A", "B", "C", "D").
       - "gabaritoCorreto": deve conter APENAS a letra correspondente à opção correta ("A", "B", "C" ou "D") ou "Certo"/"Errado".
-    `;
+    
+      Além da questão e das alternativas, gere uma versão em Flashcard (Active Recall) para cada item: no 'flashcardFrente', faça uma pergunta conceitual e direta sobre a matéria testada; no 'flashcardVerso', responda com o conceito direto de forma clara e sintética.    
+      `;
 
     const response = await generateContentWithRetry(prompt);
 
