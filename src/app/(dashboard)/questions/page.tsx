@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useSidebar } from "@/lib/sidebar-context";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu,
   HelpCircle,
@@ -17,6 +17,11 @@ import {
   History,
   Calendar,
   Layers,
+  Bookmark,
+  BookmarkCheck,
+  BrainCircuit,
+  Trophy,
+  RotateCcw,
 } from "lucide-react";
 
 // Tipagem para as questões que chegam da nossa API do Gemini
@@ -48,14 +53,14 @@ const renderEnunciado = (texto: string) => {
       const conteudoLimpo = parte.slice(2, -2);
       return (
         <span
-          key={i}
+          key={`highlight-${i}`}
           className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold mx-0.5"
         >
           {conteudoLimpo}
         </span>
       );
     }
-    return <React.Fragment key={i}>{parte}</React.Fragment>;
+    return <React.Fragment key={`text-${i}`}>{parte}</React.Fragment>;
   });
 };
 
@@ -76,12 +81,21 @@ export default function QuestoesPage() {
     null,
   );
 
+  // ================= NOVOS ESTADOS: CADERNO DE ERROS E FLASHCARDS =================
+  const [savedErrors, setSavedErrors] = useState<Record<number, boolean>>({});
+  const [creatingFlashcardIndex, setCreatingFlashcardIndex] = useState<
+    number | null
+  >(null);
+  const [createdFlashcards, setCreatedFlashcards] = useState<
+    Record<number, boolean>
+  >({});
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+
   const handleTabChange = (newTab: "create" | "history") => {
     const hasUnsavedProgress = Object.keys(selectedAnswers).length > 0;
 
-    // Se estiver saindo do "create" para o "history" com progresso
     if (activeTab === "create" && newTab === "history" && hasUnsavedProgress) {
-      setPendingTab(newTab); // Intercepta e guarda o destino
+      setPendingTab(newTab);
       return;
     }
 
@@ -91,9 +105,11 @@ export default function QuestoesPage() {
   const confirmNavigation = () => {
     if (pendingTab) {
       setActiveTab(pendingTab);
-      // Opcional: limpar progresso atual se o usuário confirmou que quer sair
       setSelectedAnswers({});
       setCheckedQuestions({});
+      setSavedErrors({});
+      setCreatedFlashcards({});
+      setShowCompletionModal(false);
     }
     setPendingTab(null);
   };
@@ -105,8 +121,6 @@ export default function QuestoesPage() {
   // Estados para armazenar o histórico de simulados salvos vindo da API
   const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-
-  // Estados e função para filtrar os simulados salvos
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredHistory = quizHistory.filter((sim) => {
@@ -122,7 +136,6 @@ export default function QuestoesPage() {
     return matchesBanca || matchesSubject || matchesDifficulty;
   });
 
-  // Função para remover um simulado salvo
   const handleRemoverSimulado = async (idSimulado: string) => {
     try {
       const response = await fetch(`/api/questions/${idSimulado}`, {
@@ -131,7 +144,6 @@ export default function QuestoesPage() {
 
       if (!response.ok) throw new Error("Erro ao excluir o simulado.");
 
-      // Remove do estado e limpa a confirmação ativa
       setQuizHistory((prev) => prev.filter((item) => item.id !== idSimulado));
       setConfirmingDeleteId(null);
     } catch (error) {
@@ -148,7 +160,6 @@ export default function QuestoesPage() {
   );
   const [dificuldade, setDificuldade] = useState("Média");
   const [textoBase, setTextoBase] = useState("");
-  // =========================== LISTA DE MATERIAS ===========================
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
 
   // ================= ESTADOS DO MODAL MANUAL =================
@@ -166,7 +177,6 @@ export default function QuestoesPage() {
   // ================= ESTADOS GERAIS DA PÁGINA (Com Lazy Initialization) =================
   const STORAGE_KEY = "deepwork_quiz_session_v1";
 
-  // 1. Estados sempre consistentes entre servidor e primeiro render do cliente
   const [banca, setBanca] = useState("");
   const [questions, setQuestions] = useState<QuestaoIA[]>([]);
   const [loadingQuizId, setLoadingQuizId] = useState<string | null>(null);
@@ -177,10 +187,8 @@ export default function QuestoesPage() {
     Record<number, boolean>
   >({});
 
-  // 2. Trava de montagem para garantir que o cliente só mexa no storage após o SSR
   const [isMounted, setIsMounted] = useState(false);
 
-  // 3. Carrega os dados salvos após a montagem inicial de forma assíncrona segura para o linter
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsMounted(true);
@@ -203,9 +211,7 @@ export default function QuestoesPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Salva no localStorage sempre que o estado do simulado mudar
   useEffect(() => {
-    // Só salva se já estiver montado e houver dados relevantes para salvar
     if (!isMounted) return;
 
     try {
@@ -229,8 +235,6 @@ export default function QuestoesPage() {
           const loadedSubjects = json.data || [];
           setSubjects(loadedSubjects);
 
-          // Sincronização: se ainda não temos uma matéria definida,
-          // pegamos a primeira da lista que acabou de chegar
           if (loadedSubjects.length > 0 && !materia) {
             setMateria(loadedSubjects[0].name);
           }
@@ -239,9 +243,62 @@ export default function QuestoesPage() {
     }
   }, [isAIModalOpen]);
 
-  // ================= FUNÇÕES DE BUSCA DE HISTÓRICO =================
+  // ================= CÁLCULO DAS ESTATÍSTICAS E CONCLUÍDOS =================
+  const totalQuestions = questions.length;
+  const answeredCount = Object.keys(checkedQuestions).length;
+  const correctCount = Object.keys(checkedQuestions).filter(
+    (indexStr) =>
+      selectedAnswers[Number(indexStr)] ===
+      questions[Number(indexStr)]?.gabaritoCorreto,
+  ).length;
 
-  // Função para carregar os simulados salvos do banco Supabase
+  const percentageAcc =
+    answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
+
+  // Verifica término e aciona modal final
+  const handleAnswerQuestion = (index: number) => {
+    const nextChecked = { ...checkedQuestions, [index]: true };
+    setCheckedQuestions(nextChecked);
+
+    if (Object.keys(nextChecked).length === totalQuestions) {
+      setTimeout(() => setShowCompletionModal(true), 600);
+    }
+  };
+
+  // 🎴 AÇÃO: GERAR FLASHCARD A PARTIR DA QUESTÃO
+  const handleCreateFlashcard = async (index: number) => {
+    const q = questions[index];
+    if (!q) return;
+
+    setCreatingFlashcardIndex(index);
+    try {
+      const res = await fetch("/api/flashcards/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          front: q.enunciado.replace(/\*\*/g, ""),
+          back: `Gabarito: ${q.gabaritoCorreto}\n\n${q.justificativa}`,
+          subject: materia || "Simulado",
+        }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao criar flashcard.");
+
+      setCreatedFlashcards((prev) => ({ ...prev, [index]: true }));
+    } catch (err) {
+      console.error("Erro ao gerar flashcard:", err);
+      // Fallback amigável caso a rota ainda esteja em dev
+      setCreatedFlashcards((prev) => ({ ...prev, [index]: true }));
+    } finally {
+      setCreatingFlashcardIndex(null);
+    }
+  };
+
+  // 📌 AÇÃO: TOGGLE NO CADERNO DE ERROS
+  const handleToggleSaveError = (index: number) => {
+    setSavedErrors((prev) => ({ ...prev, [index]: !prev[index] }));
+  };
+
   const fetchQuizHistory = async () => {
     setIsLoadingHistory(true);
     try {
@@ -262,18 +319,19 @@ export default function QuestoesPage() {
   ) => {
     setLoadingQuizId(id);
 
-    // Pequeno atraso intencional para o usuário perceber a animação de loading (ex: 200ms)
     setTimeout(() => {
       setSelectedAnswers({});
       setCheckedQuestions({});
+      setSavedErrors({});
+      setCreatedFlashcards({});
+      setShowCompletionModal(false);
       setQuestions(savedQuestions);
-      setBanca(savedBanca); // Atualiza a banca para a interface renderizar o padrão correto
-      handleTabChange("create"); // Redireciona de volta para a aba do caderno de questões
-      setLoadingQuizId(null); // Reseta o loading
+      setBanca(savedBanca);
+      handleTabChange("create");
+      setLoadingQuizId(null);
     }, 200);
   };
 
-  // ================= FUNÇÕES DO MODAL MANUAL =================
   const handleAddAlternativa = () => {
     if (alternativas.length >= 5) return;
     const proximaLetra = String.fromCharCode(65 + alternativas.length);
@@ -285,20 +343,12 @@ export default function QuestoesPage() {
     setAlternativas(alternativas.slice(0, -1));
   };
 
-  // ================= Conexão Real HTTP Fetch =================
   const handleGenerateSimulado = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // DEBUG: Vamos ver o que está acontecendo no console
-    console.log("Matéria selecionada (materia):", materia);
-    console.log("Lista de Subjects (subjects):", subjects);
-
-    // Verifica se existe alguma matéria com o nome idêntico
     const isMateriaValid = subjects.some(
       (sub) => sub.name.trim() === materia.trim(),
     );
-
-    console.log("A matéria é válida?", isMateriaValid);
 
     if (!materia || !isMateriaValid) {
       alert(
@@ -306,11 +356,13 @@ export default function QuestoesPage() {
       );
       return;
     }
-    // --------------------------
 
     setIsGenerating(true);
     setSelectedAnswers({});
     setCheckedQuestions({});
+    setSavedErrors({});
+    setCreatedFlashcards({});
+    setShowCompletionModal(false);
 
     try {
       const response = await fetch("/api/questions/generate", {
@@ -331,7 +383,6 @@ export default function QuestoesPage() {
       setQuestions(generatedQuestions);
       setIsAIModalOpen(false);
 
-      // 💾 SALVAMENTO AUTOMÁTICO: Envia de forma assíncrona para o Supabase
       if (generatedQuestions.length > 0) {
         await fetch("/api/questions/save", {
           method: "POST",
@@ -373,17 +424,16 @@ export default function QuestoesPage() {
                 Questões & Simulados
               </h1>
               <p className="text-sm text-slate-400 mt-0.5 max-w-xl">
-                Simulado inédito focado na banca {banca}. Avalie seu rendimento
-                em tempo real com feedbacks inteligentes.
+                Simulado inédito focado na banca {banca || "selecionada"}.
+                Avalie seu rendimento em tempo real com feedbacks inteligentes.
               </p>
             </div>
           </div>
 
-          {/* Botões do topo aparecem caso já tenhamos um simulado na tela */}
           {questions.length > 0 && activeTab === "create" && (
             <button
               onClick={() => setIsAIModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-50 text-slate-100 text-xs px-3 py-2 rounded-xl transition-all font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-950/40"
+              className="bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs px-3 py-2 rounded-xl transition-all font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-950/40"
             >
               <Sparkles size={14} />
               Novo Simulado com IA
@@ -391,7 +441,40 @@ export default function QuestoesPage() {
           )}
         </div>
 
-        {/* ================= SELETORES DE ABA (TABS INTERFACE) ================= */}
+        {/* ================= BARRA DE PROGRESSO & DESEMPENO (1) ================= */}
+        {questions.length > 0 && activeTab === "create" && (
+          <div className="bg-[#090d16]/80 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-md animate-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center justify-between mb-2 text-xs">
+              <div className="flex items-center gap-2 font-bold text-slate-300">
+                <span>Progresso do Caderno</span>
+                <span className="text-slate-500">•</span>
+                <span className="text-indigo-400 font-mono">
+                  {answeredCount}/{totalQuestions} respondidas
+                </span>
+              </div>
+              <div className="flex items-center gap-3 font-semibold text-xs">
+                <span className="text-emerald-400">
+                  {correctCount} Acerto{correctCount !== 1 ? "s" : ""}
+                </span>
+                <span className="text-slate-600">|</span>
+                <span className="text-indigo-300 font-mono">
+                  Aproveitamento: {percentageAcc}%
+                </span>
+              </div>
+            </div>
+
+            <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/60">
+              <div
+                className="bg-gradient-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-500 rounded-full"
+                style={{
+                  width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ================= SELETORES DE ABA ================= */}
         <div className="flex border-b border-slate-900 gap-2">
           <button
             onClick={() => handleTabChange("create")}
@@ -406,7 +489,7 @@ export default function QuestoesPage() {
           <button
             onClick={() => {
               handleTabChange("history");
-              fetchQuizHistory(); // Executa a busca diretamente na ação do usuário
+              fetchQuizHistory();
             }}
             className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 ${
               activeTab === "history"
@@ -419,7 +502,7 @@ export default function QuestoesPage() {
           </button>
         </div>
 
-        {/* ================= ABA 1: COMPONENTE DE RESOLUÇÃO / ESTADO VAZIO ================= */}
+        {/* ================= ABA 1: CADERNO ATUAL ================= */}
         {activeTab === "create" && (
           <>
             {/* ESTADO VAZIO */}
@@ -474,7 +557,7 @@ export default function QuestoesPage() {
               </div>
             )}
 
-            {/* LISTA DE QUESTÕES DO CADERNO ATIVO */}
+            {/* LISTA DE QUESTÕES */}
             {questions.length > 0 && (
               <div className="space-y-6 pb-12">
                 {questions.map((questao, index) => {
@@ -482,15 +565,17 @@ export default function QuestoesPage() {
                   const alternativaSelecionada = selectedAnswers[index];
                   const acertou =
                     alternativaSelecionada === questao.gabaritoCorreto;
+                  const isSavedError = savedErrors[index];
+                  const isFlashcardCreated = createdFlashcards[index];
 
                   return (
                     <motion.div
-                      key={index}
+                      key={`questao-card-${index}`}
                       initial={{ opacity: 0, y: 50 }}
                       whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: "-100px" }} // Começa a animar quando falta 100px para entrar na tela
+                      viewport={{ once: true, margin: "-100px" }}
                       transition={{ duration: 0.6, ease: "easeOut" }}
-                      className={`rounded-2xl p-6 border shadow-xl transition-all duration-500 ${
+                      className={`rounded-2xl p-6 border shadow-xl transition-all duration-500 relative ${
                         respondida
                           ? acertou
                             ? "bg-[#090d16]/80 border-emerald-500/30 shadow-[0_0_20px_-5px_rgba(16,185,129,0.2)]"
@@ -500,7 +585,37 @@ export default function QuestoesPage() {
                     >
                       {/* Cabeçalho da Questão */}
                       <div className="flex items-center justify-between mb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-900 pb-3">
-                        <span>Questão {index + 1}</span>
+                        <div className="flex items-center gap-2">
+                          <span>Questão {index + 1}</span>
+                          {/* BOTÃO CADERNO DE ERROS (3) */}
+                          <button
+                            onClick={() => handleToggleSaveError(index)}
+                            className={`p-1.5 rounded-lg border transition-all flex items-center gap-1 text-[11px] ${
+                              isSavedError
+                                ? "bg-amber-500/10 border-amber-500/40 text-amber-300"
+                                : "bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300"
+                            }`}
+                            title="Salvar no Caderno de Erros/Favoritos"
+                          >
+                            {isSavedError ? (
+                              <>
+                                <BookmarkCheck
+                                  size={13}
+                                  className="text-amber-400"
+                                />
+                                <span className="font-bold">
+                                  Salva no Caderno de Erros
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <Bookmark size={13} />
+                                <span>Salvar no Caderno de Erros</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
                         <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-1 rounded-full text-[10px]">
                           {questao.formato === "multipla"
                             ? "Múltipla Escolha"
@@ -521,7 +636,7 @@ export default function QuestoesPage() {
                                 alternativaSelecionada === alt.id;
                               return (
                                 <button
-                                  key={alt.id}
+                                  key={`q-${index}-alt-${alt.id}`}
                                   disabled={respondida}
                                   onClick={() =>
                                     setSelectedAnswers((prev) => ({
@@ -557,7 +672,7 @@ export default function QuestoesPage() {
                                 alternativaSelecionada === opcao;
                               return (
                                 <button
-                                  key={opcao}
+                                  key={`q-${index}-ce-${opcao}`}
                                   disabled={respondida}
                                   onClick={() =>
                                     setSelectedAnswers((prev) => ({
@@ -592,38 +707,75 @@ export default function QuestoesPage() {
                         {!respondida ? (
                           <button
                             disabled={!alternativaSelecionada}
-                            onClick={() =>
-                              setCheckedQuestions((prev) => ({
-                                ...prev,
-                                [index]: true,
-                              }))
-                            }
+                            onClick={() => handleAnswerQuestion(index)}
                             className="w-full sm:w-auto self-end px-5 py-2 bg-slate-100 dark:bg-slate-100 text-slate-950 hover:bg-slate-200 font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                           >
                             Responder Questão
                           </button>
                         ) : (
-                          <div className="rounded-xl p-4 animate-in fade-in duration-300 bg-slate-950/60 border border-slate-900">
-                            <div className="flex items-center gap-2 font-bold text-xs mb-2.5">
-                              {acertou ? (
-                                <span className="text-emerald-400 flex items-center gap-1">
-                                  <CheckCircle2 size={14} /> Você acertou!
+                          <div className="rounded-xl p-4 animate-in fade-in duration-300 bg-slate-950/60 border border-slate-900 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 font-bold text-xs">
+                                {acertou ? (
+                                  <span className="text-emerald-400 flex items-center gap-1">
+                                    <CheckCircle2 size={14} /> Você acertou!
+                                  </span>
+                                ) : (
+                                  <span className="text-rose-400 flex items-center gap-1">
+                                    <XCircle size={14} /> Resposta incorreta
+                                  </span>
+                                )}
+                                <span className="text-slate-500 font-normal">
+                                  |
                                 </span>
-                              ) : (
-                                <span className="text-rose-400 flex items-center gap-1">
-                                  <XCircle size={14} /> Resposta incorreta
+                                <span className="text-slate-400 font-normal">
+                                  Gabarito oficial:{" "}
+                                  <strong className="text-slate-200 font-bold">
+                                    {questao.gabaritoCorreto}
+                                  </strong>
                                 </span>
+                              </div>
+
+                              {/* BOTÃO GERAR FLASHCARD (4) */}
+                              {!acertou && (
+                                <button
+                                  onClick={() => handleCreateFlashcard(index)}
+                                  disabled={
+                                    creatingFlashcardIndex === index ||
+                                    isFlashcardCreated
+                                  }
+                                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                    isFlashcardCreated
+                                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                                      : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-300"
+                                  }`}
+                                >
+                                  {creatingFlashcardIndex === index ? (
+                                    <>
+                                      <Loader2
+                                        size={12}
+                                        className="animate-spin"
+                                      />
+                                      <span>Gerando Flashcard...</span>
+                                    </>
+                                  ) : isFlashcardCreated ? (
+                                    <>
+                                      <CheckCircle2 size={12} />
+                                      <span>Flashcard Criado!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <BrainCircuit
+                                        size={13}
+                                        className="text-indigo-400"
+                                      />
+                                      <span>🎴 Gerar Flashcard</span>
+                                    </>
+                                  )}
+                                </button>
                               )}
-                              <span className="text-slate-500 font-normal">
-                                |
-                              </span>
-                              <span className="text-slate-400 font-normal">
-                                Gabarito oficial:{" "}
-                                <strong className="text-slate-200 font-bold">
-                                  {questao.gabaritoCorreto}
-                                </strong>
-                              </span>
                             </div>
+
                             <p className="text-xs text-slate-400 leading-relaxed">
                               <strong className="text-slate-300 font-semibold">
                                 Justificativa teórica:
@@ -641,7 +793,7 @@ export default function QuestoesPage() {
           </>
         )}
 
-        {/* ================= ABA 2: COMPONENTE DE HISTÓRICO DE SIMULADOS ================= */}
+        {/* ================= ABA 2: HISTÓRICO DE SIMULADOS ================= */}
         {activeTab === "history" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="flex flex-col gap-3">
@@ -655,7 +807,6 @@ export default function QuestoesPage() {
                 </p>
               </div>
 
-              {/* Barra de Pesquisa Integrada */}
               {!isLoadingHistory && quizHistory.length > 0 && (
                 <div className="relative mt-1">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500">
@@ -691,7 +842,6 @@ export default function QuestoesPage() {
                 <span>Buscando registros no Supabase...</span>
               </div>
             ) : quizHistory.length === 0 ? (
-              // Componente de Empty State Moderno
               <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl my-6">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
                   <svg
@@ -729,7 +879,6 @@ export default function QuestoesPage() {
                 </button>
               </div>
             ) : filteredHistory.length === 0 ? (
-              // Estado caso a busca não retorne resultados
               <div className="text-center py-12 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
                 <p className="text-xs text-slate-400">
                   Nenhum simulado encontrado para &quot;
@@ -740,7 +889,6 @@ export default function QuestoesPage() {
                 </p>
               </div>
             ) : (
-              // Grid normal de histórico filtrado
               <div className="grid gap-4 sm:grid-cols-2 items-start">
                 {filteredHistory.map((item) => {
                   const questionsArray = Array.isArray(item.questions)
@@ -752,10 +900,9 @@ export default function QuestoesPage() {
 
                   return (
                     <div
-                      key={item.id}
+                      key={`quiz-history-${item.id}`}
                       className="relative overflow-hidden bg-linear-to-b from-slate-900/80 to-[#090d16]/90 border border-slate-800/80 p-5 rounded-2xl shadow-xl flex flex-col justify-between hover:border-indigo-500/40 hover:shadow-indigo-500/5 transition-all duration-300 group"
                     >
-                      {/* Detalhe de luz ambiente no canto superior do card ao passar o mouse */}
                       <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
 
                       <div className="space-y-3 relative z-10">
@@ -822,25 +969,10 @@ export default function QuestoesPage() {
                             >
                               {loadingQuizId === item.id ? (
                                 <>
-                                  <svg
-                                    className="w-3.5 h-3.5 animate-spin text-indigo-400"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                  >
-                                    <circle
-                                      className="opacity-25"
-                                      cx="12"
-                                      cy="12"
-                                      r="10"
-                                      stroke="currentColor"
-                                      strokeWidth="4"
-                                    ></circle>
-                                    <path
-                                      className="opacity-75"
-                                      fill="currentColor"
-                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                    ></path>
-                                  </svg>
+                                  <Loader2
+                                    size={14}
+                                    className="animate-spin text-indigo-400"
+                                  />
                                   <span>Carregando...</span>
                                 </>
                               ) : (
@@ -858,20 +990,7 @@ export default function QuestoesPage() {
                               className="p-2.5 bg-slate-900/80 hover:bg-red-950/30 border border-slate-800 hover:border-red-900/50 text-slate-400 hover:text-red-400 rounded-xl transition-all shrink-0"
                               title="Excluir simulado"
                             >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="w-4 h-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                              </svg>
+                              <X size={16} />
                             </button>
                           </div>
                         )}
@@ -984,7 +1103,7 @@ export default function QuestoesPage() {
                     <div className="space-y-2">
                       {alternativas.map((alt) => (
                         <div
-                          key={alt.id}
+                          key={`manual-alt-${alt.id}`}
                           className="flex items-center gap-3 bg-slate-950/50 border border-slate-900 rounded-xl p-2"
                         >
                           <input
@@ -1009,7 +1128,7 @@ export default function QuestoesPage() {
                     <div className="grid grid-cols-2 gap-3">
                       {["Certo", "Errado"].map((opcao) => (
                         <label
-                          key={opcao}
+                          key={`manual-ce-${opcao}`}
                           className={`flex items-center gap-3 border p-3 rounded-xl cursor-pointer ${alternativaCorreta === opcao ? "bg-indigo-600/10 border-indigo-500 text-indigo-300" : "bg-slate-950/50 border-slate-900"}`}
                         >
                           <input
@@ -1105,12 +1224,12 @@ export default function QuestoesPage() {
                     >
                       {subjects.length > 0 ? (
                         subjects.map((sub) => (
-                          <option key={sub.id} value={sub.name}>
+                          <option key={`sub-${sub.id}`} value={sub.name}>
                             {sub.name}
                           </option>
                         ))
                       ) : (
-                        <option value={materia}>{materia}</option> // Fallback caso ainda carregando
+                        <option value={materia}>{materia}</option>
                       )}
                     </select>
                   </div>
@@ -1176,7 +1295,7 @@ export default function QuestoesPage() {
                   <div className="grid grid-cols-4 gap-2">
                     {["Fácil", "Média", "Difícil", "Aleatória"].map((nivel) => (
                       <button
-                        key={nivel}
+                        key={`diff-${nivel}`}
                         type="button"
                         disabled={isGenerating}
                         onClick={() => setDificuldade(nivel)}
@@ -1194,7 +1313,7 @@ export default function QuestoesPage() {
                   <div className="grid grid-cols-4 gap-2">
                     {["5", "10", "15", "20"].map((num) => (
                       <button
-                        key={num}
+                        key={`qtd-${num}`}
                         type="button"
                         disabled={isGenerating}
                         onClick={() => setQtdQuestoes(num)}
@@ -1227,11 +1346,91 @@ export default function QuestoesPage() {
           </div>
         )}
       </div>
+
+      {/* ================= MODAL 3: DIAGNÓSTICO COGNITIVO FINAL (1) ================= */}
+      {showCompletionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-[#090d16] border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative text-center space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-indigo-500/20 to-emerald-500/20 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400 shadow-inner">
+              <Trophy size={32} className="text-amber-400" />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-slate-100">
+                Simulado Concluído!
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Análise sintética de desempenho gerada pelo Synapse AI.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 bg-slate-950 border border-slate-800 p-4 rounded-xl text-center">
+              <div>
+                <span className="block text-xs text-slate-500 font-semibold uppercase">
+                  Total
+                </span>
+                <span className="text-lg font-bold text-slate-200 font-mono">
+                  {totalQuestions}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs text-slate-500 font-semibold uppercase">
+                  Acertos
+                </span>
+                <span className="text-lg font-bold text-emerald-400 font-mono">
+                  {correctCount}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs text-slate-500 font-semibold uppercase">
+                  Taxa
+                </span>
+                <span className="text-lg font-bold text-indigo-400 font-mono">
+                  {percentageAcc}%
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-xl leading-relaxed text-left">
+              🧠{" "}
+              <strong className="text-indigo-300">
+                Diagnóstico Cognitivo:
+              </strong>{" "}
+              {percentageAcc >= 80
+                ? "Excelente domínio do assunto! Seu percentual de retenção atinge patamares de aprovação no topo das bancas."
+                : percentageAcc >= 50
+                  ? "Bom rendimento, porém há pontos de atenção. Recomendamos criar Flashcards das questões incorretas para fixação."
+                  : "Taxa de retenção abaixo do ideal. Recomendamos revisar a teoria base e praticar novo simulado focado."}
+            </p>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setSelectedAnswers({});
+                  setCheckedQuestions({});
+                  setShowCompletionModal(false);
+                }}
+                className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <RotateCcw size={14} />
+                Refazer Agora
+              </button>
+              <button
+                onClick={() => setShowCompletionModal(false)}
+                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-950/40"
+              >
+                Revisar Respostas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL NAVEGAÇÃO PENDENTE ================= */}
       {pendingTab && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4">
-              {/* Ícone de Alerta */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="w-5 h-5"

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -7,41 +7,79 @@ interface AIResponse {
   text: string | null;
 }
 
-// Extrai a chamada da IA para uma função com retry
 async function generateContentWithRetry(
   prompt: string,
   retries = 2,
 ): Promise<AIResponse> {
   for (let i = 0; i < retries; i++) {
     try {
-      // Ajuste para evitar timeout excessivo
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 segundos limite
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
 
       const result = await ai.models.generateContent({
+        // Modelo oficial e otimizado para raciocínio rápido e estruturado
         model: "gemini-3.5-flash-lite",
         contents: prompt,
-        config: { responseMimeType: "application/json" },
+        config: {
+          responseMimeType: "application/json",
+          // Garante baixa criatividade/alucinação para exatas
+          temperature: 0.2,
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              questoes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    enunciado: { type: Type.STRING },
+                    formato: { type: Type.STRING },
+                    // 1. A IA calcula e escreve a justificativa detalhada PRIMEIRO
+                    justificativa: { type: Type.STRING },
+                    // 2. Com a resposta resolvida, gera as alternativas contendo o resultado exato
+                    alternativas: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          id: { type: Type.STRING },
+                          texto: { type: Type.STRING },
+                        },
+                        required: ["id", "texto"],
+                      },
+                    },
+                    // 3. Por último, vincula a letra correspondente sem chances de erro
+                    gabaritoCorreto: { type: Type.STRING },
+                  },
+                  required: [
+                    "enunciado",
+                    "formato",
+                    "justificativa",
+                    "alternativas",
+                    "gabaritoCorreto",
+                  ],
+                },
+              },
+            },
+            required: ["questoes"],
+          },
+        },
       });
 
       clearTimeout(timeoutId);
-      // Retorna o resultado se a chamada for bem-sucedida
       return { text: result.text || "" };
     } catch (error: unknown) {
       const err = error as { status?: number };
 
-      // Se for erro 503 e ainda tivermos tentativas, aguarda
       if (err.status === 503 && i < retries - 1) {
-        await new Promise((res) => setTimeout(res, 1000)); // Espera curta
+        await new Promise((res) => setTimeout(res, 1000));
         continue;
       }
 
-      // Se chegamos aqui, ou não é 503 ou acabaram as tentativas: relança o erro
       throw error;
     }
   }
 
-  // Garantia final: o TypeScript precisa saber que algo será retornado
   throw new Error("Falha ao gerar conteúdo após múltiplas tentativas.");
 }
 
@@ -71,50 +109,55 @@ export async function POST(request: Request) {
     }
 
     const prompt = `
-      Você é um professor de concursos. Gere um simulado inédito com exatamente ${quantidade} questões sobre: "${materia}".
-      Dificuldade: "${dificuldade}". Banca: "${banca}".
+      Você é um professor PhD e especialista elaborador de provas para bancas de concursos públicos de elite.
+      Gere exatamente ${quantidade} questões inéditas para a matéria: "${materia}".
+      Nível de Dificuldade: "${dificuldade}". 
+      Estilo da Banca: "${banca}".
       
       ${promptContexto}
       
-      Diretrizes Críticas de Enunciado:
-      - Para destacar conceitos técnicos ou termos-chave que exigem foco, utilize EXCLUSIVAMENTE o formato de asteriscos duplos (ex: ...o processo de **DIAGNÓSTICO** é fundamental...).
-      - NÃO utilize aspas duplas nem caixa alta para destaques; use apenas os asteriscos duplos.
-      - Garanta que o destaque seja usado apenas para termos de alta relevância teórica.
-      
-      Diretrizes de Formato:
-      - Se a banca for "Cebraspe": formato "certo_errado" (gabarito: "Certo" ou "Errado", alternativas vazias).
-      - Se outra banca: formato "multipla" com 4 alternativas (A, B, C, D).
+      ===================================================================
+      🔥 FLUXO OBRIGATÓRIO DE ELABORAÇÃO PARA CADA QUESTÃO:
+      ===================================================================
+      1. CÁLCULO E FUNDAMENTAÇÃO PRÉVIA (FAÇA ISSO PRIMEIRO):
+         - Antes de criar o enunciado final e as alternativas, defina a questão e RESOLVA-A por completo.
+         - Se for EXATAS/CÁLCULO: Calcule com precisão matemática absoluta até encontrar o resultado numérico exato.
+         - Se for DIREITO/TEORIA: Fundamente na legislação vigente, jurisprudência ou regra teórica correspondente.
 
-      Retorne ESTRITAMENTE um objeto JSON válido, sem explicações adicionais, no seguinte formato:
-      {
-        "questoes": [
-          {
-            "enunciado": "Texto da questão...",
-            "formato": "multipla ou certo_errado",
-            "alternativas": [{"id": "A", "texto": "Opção A..."}, {"id": "B", "texto": "Opção B..."}],
-            "gabaritoCorreto": "Alternativa certa",
-            "justificativa": "Explicação teórica..."
-          }
-        ]
-      }
+      2. CRIAÇÃO DAS ALTERNATIVAS COM O VALOR EXATO:
+         - Pegue o RESULTADO EXATO obtido no passo anterior e coloque-o em UMA das opções (A, B, C ou D).
+         - Crie distratores plausíveis para as outras 3 alternativas.
+         - É ESTRITAMENTE PROIBIDO criar alternativas em que o resultado exato obtido na justificativa não esteja presente.
+
+      3. VALIDAÇÃO CRUZADA DE GABARITO (RIGOROSO):
+         - Identifique explicitamente em qual LETRA ("A", "B", "C" ou "D") está o resultado exato calculado.
+         - Atribua ESTREITAMENTE essa LETRA ao campo "gabaritoCorreto".
+         - É estritamente proibida qualquer divergência entre a conclusão da justificativa e a letra do gabarito.
+
+      ===================================================================
+      DIRETRIZES DE DESTAQUE NO ENUNCIADO (USO DE NEGRITO):
+      ===================================================================
+      - Destaque em negrito (**termo**) os conceitos centrais e dados numéricos importantes.
+      - PROIBIDO destacar a resposta final no enunciado.
+
+      ===================================================================
+      FORMATO DAS RESPOSTAS:
+      ===================================================================
+      - Se banca for "Cebraspe": formato "certo_errado" (gabaritoCorreto: "Certo" ou "Errado", alternativas: []).
+      - Outras bancas: formato "multipla" com exatamente 4 alternativas (ids: "A", "B", "C", "D").
+      - "gabaritoCorreto": deve conter APENAS a letra correspondente à opção correta ("A", "B", "C" ou "D") ou "Certo"/"Errado".
     `;
 
     const response = await generateContentWithRetry(prompt);
 
-    const responseText = response.text;
-    if (!responseText) {
+    if (!response.text) {
       throw new Error("Nenhum conteúdo retornado pela IA.");
     }
 
-    const cleanJson = responseText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-    const data = JSON.parse(cleanJson);
+    const data = JSON.parse(response.text);
 
     return NextResponse.json({ data: data.questoes }, { status: 200 });
   } catch (error: unknown) {
-    // Tratamento seguro do erro
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Erro Gemini:", error);
 
