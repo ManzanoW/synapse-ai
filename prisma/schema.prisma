@@ -12,8 +12,16 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  accounts      Account[]
-  sessions      Session[]
+
+  // Meta de estudo semanal do usuário
+  studyMode         String @default("WEEKLY") // "WEEKLY" ou "CYCLE"
+  weeklyGoalHours   Int    @default(10)
+  activeDaysPerWeek Int    @default(5)
+  cycleCurrentIndex Int    @default(0) // Ponteiro do bloco atual no Ciclo (#1 a #12)
+  cycleLap          Int    @default(1) // Quantas voltas já concluiu
+
+  accounts Session[]
+  sessions Account[]
 
   // Relação com as matérias
   subjects Subject[]
@@ -63,7 +71,7 @@ model Subject {
   name       String
   importance String
   color      String? @default("#3B82F6")
-  priority   Float   @default(6.3)
+  priority   Float   @default(6.3) // Usado como o peso da matéria no cálculo proporcional
 
   // --- CAMPOS PARA SRS ---
   lastReviewed DateTime @default(now()) // Quando foi a última vez que você estudou

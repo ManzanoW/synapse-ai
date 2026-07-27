@@ -31,7 +31,7 @@ interface SidebarProps {
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Edital", href: "/planner", icon: FileSpreadsheet },
-  { label: "Visão Geral", href: "/week", icon: Sparkles },
+  { label: "Cronograma", href: "/week", icon: Sparkles },
   { label: "Performance", href: "/analytics", icon: TrendingUp },
   { label: "Cards", href: "/flashcards", icon: Layers },
   { label: "Banco de Provas", href: "/questions", icon: FileStack },

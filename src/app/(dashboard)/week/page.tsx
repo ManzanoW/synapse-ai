@@ -1,179 +1,916 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { ArrowLeft, CalendarDays, RefreshCw, Sparkles, Plus, Info } from 'lucide-react';
+import React, { useState, useEffect, useTransition } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  CalendarDays,
+  RefreshCw,
+  Sparkles,
+  Info,
+  Settings2,
+  Clock,
+  Loader2,
+  CheckCircle2,
+  Calendar,
+  BookOpen,
+  Target,
+  Flame,
+  Zap,
+  ChevronRight,
+  TrendingUp,
+} from "lucide-react";
+import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
+import { CycleView } from "@/components/week/cycle-view";
+
+// Paleta Neon de fallback para matérias sem cor personalizada
+const HIGH_CONTRAST_PALETTE = [
+  "#f43f5e", // Rose
+  "#06b6d4", // Cyan
+  "#a855f7", // Purple Neon
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#3b82f6", // Vivid Blue
+  "#ec4899", // Pink Hot
+  "#14b8a6", // Teal
+  "#84cc16", // Lime
+  "#6366f1", // Indigo
+  "#f97316", // Orange
+  "#00f5d4", // Mint
+];
+
+interface Topic {
+  id: string;
+  title: string;
+  firstStudy?: string;
+  relevance?: string;
+  performance?: number;
+}
+
+interface SubjectOverview {
+  id: string;
+  name: string;
+  priority: number;
+  color?: string | null;
+  weeklyMinutesAllocated: number;
+  percentageOfTotal: number;
+}
+
+interface ScheduledSubject extends SubjectOverview {
+  dailyMinutesAllocated: number;
+  assignedTopics: Topic[];
+}
+
+interface DaySchedule {
+  dayIndex: number;
+  dayName: string;
+  totalMinutes: number;
+  subjects: ScheduledSubject[];
+}
+
+interface CycleData {
+  blocks: CycleBlock[];
+  totalBlocks: number;
+  totalMinutes: number;
+  completedBlocks: number;
+  currentProgress: number;
+  subjectBreakdown: {
+    id: string;
+    name: string;
+    color: string;
+    allocatedMinutes: number;
+    percentage: number;
+  }[];
+}
+
+interface WeekData {
+  studyMode: "WEEKLY" | "CYCLE";
+  weeklyGoalHours: number;
+  activeDaysPerWeek: number;
+  cycleCurrentIndex: number;
+  cycleLap: number;
+  scheduleByDay: DaySchedule[];
+  subjectOverview: SubjectOverview[];
+  cycle: CycleData;
+}
 
 export default function WeekPage() {
-  // Simulação das matérias distribuídas por dias (baseado na imagem_af08c6.png)
-  const scheduleDays = [
-    {
-      day: 'Segunda',
-      blocks: [
-        { subject: 'Língua Portuguesa', time: '1h 30m', color: 'border-indigo-500/40 text-indigo-400 bg-indigo-500/5' },
-        { subject: 'Noções de Informática', time: '30m', color: 'border-amber-500/40 text-amber-400 bg-amber-500/5' },
-      ]
-    },
-    {
-      day: 'Terça',
-      blocks: [
-        { subject: 'Enfermagem', time: '1h 30m', color: 'border-sky-500/40 text-sky-400 bg-sky-500/5' },
-        { subject: 'Política de Saúde', time: '30m', color: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/5' },
-      ]
-    },
-    {
-      day: 'Quarta',
-      blocks: [
-        { subject: 'Política de Saúde', time: '1h 30m', color: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/5' },
-        { subject: 'Noções de Informática', time: '30m', color: 'border-amber-500/40 text-amber-400 bg-amber-500/5' },
-      ]
-    },
-    {
-      day: 'Quinta',
-      blocks: [
-        { subject: 'Língua Portuguesa', time: '1h 30m', color: 'border-indigo-500/40 text-indigo-400 bg-indigo-500/5' },
-        { subject: 'Língua Portuguesa', time: '30m', color: 'border-indigo-500/40 text-indigo-400 bg-indigo-500/5' },
-      ]
-    },
-    {
-      day: 'Sexta',
-      blocks: [
-        { subject: 'Enfermagem', time: '1h 30m', color: 'border-sky-500/40 text-sky-400 bg-sky-500/5' },
-        { subject: 'Política de Saúde', time: '30m', color: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/5' },
-      ]
-    }
-  ];
+  const [data, setData] = useState<WeekData | null>(null);
+  const [studyMode, setStudyMode] = useState<"WEEKLY" | "CYCLE">("WEEKLY");
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
+  const [isPending, startTransition] = useTransition();
 
-  // Distribuição lateral
-  const distribution = [
-    { name: 'Língua Portuguesa', time: '4h 45m', dot: 'bg-indigo-500' },
-    { name: 'Enfermagem', time: '4h 30m', dot: 'bg-sky-500' },
-    { name: 'Política de Saúde', time: '3h 30m', dot: 'bg-emerald-500' },
-    { name: 'Noções de Informática', time: '2h 15m', dot: 'bg-amber-500' },
-  ];
+  const [goalHours, setGoalHours] = useState(10);
+  const [activeDays, setActiveDays] = useState(5);
+
+  const getSubjectColor = (
+    subject: { color?: string | null },
+    index: number,
+  ) => {
+    if (
+      subject.color &&
+      subject.color.startsWith("#") &&
+      subject.color.length >= 4
+    ) {
+      return subject.color;
+    }
+    return HIGH_CONTRAST_PALETTE[index % HIGH_CONTRAST_PALETTE.length];
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadWeekData() {
+      try {
+        const res = await fetch("/api/week");
+        if (!res.ok) throw new Error("Falha ao carregar dados");
+        const json = await res.json();
+
+        if (json.data && isMounted) {
+          setData(json.data);
+          setStudyMode(json.data.studyMode ?? "WEEKLY");
+          setGoalHours(json.data.weeklyGoalHours ?? 10);
+          setActiveDays(json.data.activeDaysPerWeek ?? 5);
+
+          // Define o dia inicial de seleção (primeiro dia do cronograma por padrão)
+          if (json.data.scheduleByDay && json.data.scheduleByDay.length > 0) {
+            setSelectedDayIndex(json.data.scheduleByDay[0].dayIndex);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao buscar cronograma semanal:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadWeekData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Alternar entre modo Semanal e Ciclo
+  const handleToggleMode = (mode: "WEEKLY" | "CYCLE") => {
+    setStudyMode(mode);
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/week", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ studyMode: mode }),
+        });
+        if (!res.ok) throw new Error("Erro ao trocar modo de estudo");
+        const json = await res.json();
+        if (json.data) setData(json.data);
+      } catch (err) {
+        console.error("Erro ao alternar modo:", err);
+      }
+    });
+  };
+
+  // Concluir bloco no Ciclo
+  const handleCompleteBlock = () => {
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/week", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cycleAction: "NEXT_BLOCK" }),
+        });
+        if (!res.ok) throw new Error("Erro ao avançar ciclo");
+        const json = await res.json();
+        if (json.data) setData(json.data);
+      } catch (err) {
+        console.error("Erro ao avançar bloco:", err);
+      }
+    });
+  };
+
+  // Desfazer bloco no Ciclo
+  const handleUndoBlock = () => {
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/week", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cycleAction: "PREV_BLOCK" }),
+        });
+        if (!res.ok) throw new Error("Erro ao retroceder ciclo");
+        const json = await res.json();
+        if (json.data) setData(json.data);
+      } catch (err) {
+        console.error("Erro ao desfazer bloco:", err);
+      }
+    });
+  };
+
+  const handleSaveSettings = () => {
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/week", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            weeklyGoalHours: goalHours,
+            activeDaysPerWeek: activeDays,
+          }),
+        });
+
+        if (!res.ok) throw new Error("Erro ao salvar configurações");
+        const json = await res.json();
+
+        if (json.data) {
+          setData(json.data);
+          setIsModalOpen(false);
+          if (json.data.scheduleByDay && json.data.scheduleByDay.length > 0) {
+            setSelectedDayIndex(json.data.scheduleByDay[0].dayIndex);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao salvar meta:", err);
+      }
+    });
+  };
+
+  const handleToggleTopic = async (topicId: string, currentStatus?: string) => {
+    const isCompleted = currentStatus === "Em Revisão";
+    const newFirstStudy = isCompleted ? "Pendente" : "Em Revisão";
+    const newPerformance = isCompleted ? 0 : 100;
+
+    setData((prev) => {
+      if (!prev) return null;
+
+      const updatedScheduleByDay = prev.scheduleByDay.map((day) => ({
+        ...day,
+        subjects: day.subjects.map((sub) => ({
+          ...sub,
+          assignedTopics: sub.assignedTopics.map((top) =>
+            top.id === topicId
+              ? {
+                  ...top,
+                  firstStudy: newFirstStudy,
+                  performance: newPerformance,
+                }
+              : top,
+          ),
+        })),
+      }));
+
+      return { ...prev, scheduleByDay: updatedScheduleByDay };
+    });
+
+    try {
+      const res = await fetch(`/api/topics/${topicId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstStudy: newFirstStudy,
+          performance: newPerformance,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao atualizar status do tópico");
+    } catch (err) {
+      console.error("Erro ao salvar progresso do tópico:", err);
+      const res = await fetch("/api/week");
+      const json = await res.json();
+      if (json.data) setData(json.data);
+    }
+  };
+
+  // Cálculo de progresso de tópicos concluídos para a visão semanal
+  const activeDaySchedule =
+    data?.scheduleByDay?.find((d) => d.dayIndex === selectedDayIndex) ||
+    data?.scheduleByDay?.[0];
+
+  const activeDayCompletedTopicsCount =
+    activeDaySchedule?.subjects.reduce((acc, sub) => {
+      return (
+        acc +
+        sub.assignedTopics.filter((t) => t.firstStudy === "Em Revisão").length
+      );
+    }, 0) || 0;
+
+  const activeDayTotalTopicsCount =
+    activeDaySchedule?.subjects.reduce((acc, sub) => {
+      return acc + sub.assignedTopics.length;
+    }, 0) || 0;
+
+  const activeDayProgressPercent =
+    activeDayTotalTopicsCount > 0
+      ? Math.round(
+          (activeDayCompletedTopicsCount / activeDayTotalTopicsCount) * 100,
+        )
+      : 0;
+
+  const donutSegments = (() => {
+    if (!data?.subjectOverview) return [];
+    let accumulated = 0;
+    return data.subjectOverview.map((subject, index) => {
+      const color = getSubjectColor(subject, index);
+      const strokeDasharray = `${subject.percentageOfTotal} ${
+        100 - subject.percentageOfTotal
+      }`;
+      const strokeDashoffset = -accumulated;
+      accumulated += subject.percentageOfTotal;
+
+      return {
+        ...subject,
+        color,
+        strokeDasharray,
+        strokeDashoffset,
+      };
+    });
+  })();
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased">
-      <div className="max-w-6xl mx-auto space-y-6">
-        
+    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-8 font-sans antialiased selection:bg-indigo-500/30">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Top Navigation */}
         <div className="flex items-center justify-between">
-          <Link 
-            href="/dashboard" 
-            className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors group"
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors group px-3.5 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 shadow-sm"
           >
-            <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
-            <span>Voltar para a Dashboard</span>
+            <ArrowLeft
+              size={14}
+              className="transition-transform group-hover:-translate-x-1"
+            />
+            <span>Voltar para Dashboard</span>
           </Link>
-        </div>
 
-        {/* Sub-Header Tabs */}
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[#090d16] border border-slate-800/50 p-2 rounded-xl">
-          <button className="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-xs font-semibold px-4 py-2 rounded-lg text-indigo-400 shadow-sm">
-            <CalendarDays size={14} />
-            <span>Cronograma Semanal</span>
-            <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/10 px-1.5 py-0.5 rounded uppercase font-bold">Ativo</span>
-          </button>
-          
-          <button className="flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 px-4 py-2 rounded-lg transition-colors">
-            <RefreshCw size={13} />
-            <span>Ciclo de Estudos</span>
-            <Plus size={12} className="text-slate-500" />
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm"
+          >
+            <Settings2 size={14} />
+            <span>Editar Configurações</span>
           </button>
         </div>
 
-        {/* Page Title Row */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold tracking-tight text-slate-200">Seu Planejamento</h1>
-          <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
-            <Sparkles size={11} /> Sugestões Ativas
-          </span>
-        </div>
+        {/* Sub-Header Tabs (Navegação Dual-Mode) */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-slate-900/40 border border-slate-800/80 p-2 rounded-2xl backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleToggleMode("WEEKLY")}
+              className={`flex items-center justify-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl transition-all ${
+                studyMode === "WEEKLY"
+                  ? "bg-gradient-to-r from-indigo-950/80 to-slate-900 border border-indigo-500/40 text-indigo-300 shadow-lg shadow-indigo-950/50"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+              }`}
+            >
+              <CalendarDays
+                size={15}
+                className={studyMode === "WEEKLY" ? "text-indigo-400" : ""}
+              />
+              <span>Cronograma Semanal</span>
+              {studyMode === "WEEKLY" ? (
+                <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
+                  Ativo
+                </span>
+              ) : (
+                <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
+                  Em Pausa
+                </span>
+              )}
+            </button>
 
-        {/* Main Workspace Layout Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          
-          {/* LADO ESQUERDO: Lista de Dias e Blocos (Ocupa 2 colunas) */}
-          <div className="lg:col-span-2 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
-                {scheduleDays.map((sched, idx) => (
-                <div 
-                    key={idx} 
-                    className="bg-[#090d16] border border-slate-800/60 rounded-xl p-4 space-y-3 transition-all hover:border-slate-700/50"
-                >
-                <h3 className="text-xs font-bold text-slate-400 tracking-wide">{sched.day}</h3>
-                
-                <div className="flex flex-wrap items-center gap-3">
-                  {sched.blocks.map((block, bIdx) => (
-                    <div 
-                      key={bIdx} 
-                      className={`border px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-medium min-w-45 transition-all hover:border-slate-700 cursor-pointer ${block.color}`}
-                    >
-                      <div className="w-3 h-3 rounded-full border border-current flex items-center justify-center">
-                        <div className="w-1 h-1 rounded-full bg-current" />
-                      </div>
-                      <span className="truncate flex-1">{block.subject}</span>
-                      <span className="text-slate-400 text-[10px] font-mono">{block.time}</span>
-                    </div>
-                  ))}
-
-                  {/* Botão de Adicionar Bloco no Dia */}
-                  <button className="w-8 h-8 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-slate-800 text-slate-500 hover:text-slate-300 flex items-center justify-center transition-all active:scale-95">
-                    <Plus size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            <button className="bg-slate-950 hover:bg-slate-900 border border-slate-900 text-slate-400 text-xs font-medium px-4 py-2.5 rounded-xl transition-colors">
-              Editar configurações
+            <button
+              onClick={() => handleToggleMode("CYCLE")}
+              className={`flex items-center justify-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl transition-all ${
+                studyMode === "CYCLE"
+                  ? "bg-gradient-to-r from-indigo-950/80 to-slate-900 border border-indigo-500/40 text-indigo-300 shadow-lg shadow-indigo-950/50"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+              }`}
+            >
+              <RefreshCw
+                size={13}
+                className={studyMode === "CYCLE" ? "text-indigo-400" : ""}
+              />
+              <span>Ciclo de Estudos</span>
+              {studyMode === "CYCLE" ? (
+                <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
+                  Ativo
+                </span>
+              ) : (
+                <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
+                  Em Pausa
+                </span>
+              )}
             </button>
           </div>
 
-          {/* LADO DIREITO: Distribuição e Carga Horária (Sidebar) */}
-          <div className="bg-[#090d16] border border-slate-800/60 rounded-2xl p-5 space-y-6 lg:sticky lg:top-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150 ease-out fill-mode-both">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-200">Distribuição</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Veja a eficácia da repetição espaçada.</p>
+          <div className="flex items-center gap-2 px-3 py-1 self-end sm:self-auto">
+            <span className="text-xs text-slate-400 font-medium">
+              Meta Ativa:
+            </span>
+            <span className="text-xs font-bold text-indigo-400 font-mono">
+              {data?.weeklyGoalHours ?? 10}h / semana
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="text-xs text-slate-400 font-medium">
+              {data?.activeDaysPerWeek ?? 5} dias úteis
+            </span>
+          </div>
+        </div>
+
+        {/* Title Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/60 pb-5">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-3">
+              {studyMode === "CYCLE"
+                ? "Seu Ciclo de Estudos"
+                : "Seu Planejamento Semanal"}
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              {studyMode === "CYCLE"
+                ? `${data?.cycle?.totalBlocks || 0} blocos • Total: ${formatMinutes(
+                    data?.cycle?.totalMinutes || 0,
+                  )}`
+                : "Selecione o dia do planejamento e execute seus alvos com prioridade dinâmica."}
+            </p>
+          </div>
+          <span className="self-start sm:self-auto text-xs bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5 shadow-sm">
+            <Sparkles size={13} className="text-indigo-400 animate-pulse" />
+            Sugestões Ativas da IA
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
+            <Loader2 size={32} className="animate-spin text-indigo-500" />
+            <p className="text-xs font-medium">
+              Carregando planejamento de estudos...
+            </p>
+          </div>
+        ) : studyMode === "CYCLE" ? (
+          /* ABA 2: CICLO DE ESTUDOS */
+          <CycleView
+            blocks={data?.cycle?.blocks || []}
+            totalBlocks={data?.cycle?.totalBlocks || 0}
+            completedBlocks={data?.cycle?.completedBlocks || 0}
+            currentProgress={data?.cycle?.currentProgress || 0}
+            totalMinutes={data?.cycle?.totalMinutes || 0}
+            cycleLap={data?.cycleLap || 1}
+            subjectBreakdown={data?.cycle?.subjectBreakdown || []}
+            onCompleteBlock={handleCompleteBlock}
+            onUndoBlock={handleUndoBlock}
+          />
+        ) : (
+          /* ABA 1: CRONOGRAMA SEMANAL (COMMAND CENTER) */
+          <div className="space-y-8 animate-in fade-in duration-300">
+            {/* 1. SELETOR DE DIAS DA SEMANA (DAY PIPELINE TABS) */}
+            <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
+              {data?.scheduleByDay?.map((day) => {
+                const isSelected = day.dayIndex === selectedDayIndex;
+                const completedCount = day.subjects.reduce(
+                  (acc, sub) =>
+                    acc +
+                    sub.assignedTopics.filter(
+                      (t) => t.firstStudy === "Em Revisão",
+                    ).length,
+                  0,
+                );
+                const totalCount = day.subjects.reduce(
+                  (acc, sub) => acc + sub.assignedTopics.length,
+                  0,
+                );
+                const isDayDone =
+                  totalCount > 0 && completedCount === totalCount;
+
+                return (
+                  <button
+                    key={day.dayIndex}
+                    onClick={() => setSelectedDayIndex(day.dayIndex)}
+                    className={`flex flex-col items-start min-w-[140px] p-3.5 rounded-2xl border transition-all duration-300 relative text-left shrink-0 ${
+                      isSelected
+                        ? "bg-gradient-to-b from-indigo-950/80 to-slate-900 border-indigo-500/80 shadow-[0_0_20px_rgba(99,102,241,0.25)] scale-[1.02]"
+                        : "bg-slate-900/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/70"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-1">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-300">
+                        {day.dayName}
+                      </span>
+                      {isDayDone && (
+                        <CheckCircle2 size={13} className="text-emerald-400" />
+                      )}
+                    </div>
+
+                    <span className="text-[10px] font-mono font-semibold text-slate-400">
+                      {formatMinutes(day.totalMinutes)}
+                    </span>
+
+                    <div className="w-full h-1 bg-slate-950 rounded-full mt-3 overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 transition-all duration-300"
+                        style={{
+                          width: `${
+                            totalCount > 0
+                              ? (completedCount / totalCount) * 100
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Simulação do Gráfico de Rosquinha Centralizado */}
-            <div className="flex justify-center py-4 relative">
-              <div className="w-36 h-36 rounded-full border-12 border-indigo-500 flex flex-col items-center justify-center relative shadow-indigo-500/2">
-                {/* Bordas falsas coloridas para simular os pedaços da rosquinha */}
-                <div className="absolute inset-0 rounded-full border-12 border-sky-500 clip-path-falsa-1 pointer-events-none opacity-90" />
-                <div className="absolute inset-0 rounded-full border-12 border-emerald-500 clip-path-falsa-2 pointer-events-none opacity-90" />
-                
-                <span className="text-lg font-black text-slate-100">10h 0m</span>
-                <span className="text-[10px] text-slate-500 font-medium">na semana</span>
+            {/* 2. GRID PRINCIPAL DO DIA SELECIONADO + SIDEBAR DE TELEMETRIA */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+              {/* PAINEL ESQUERDO: DIA SELECIONADO EM DESTAQUE */}
+              <div className="lg:col-span-2 space-y-6">
+                {activeDaySchedule && (
+                  <div className="bg-gradient-to-br from-slate-900/90 via-slate-950 to-indigo-950/30 border border-slate-800/80 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                    {/* Header do Dia em Destaque */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/60 pb-5 relative z-10">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[10px] uppercase tracking-widest px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                            <Flame
+                              size={11}
+                              className="text-indigo-400 animate-pulse"
+                            />
+                            Foco do Dia
+                          </span>
+                          <span className="text-xs text-slate-400 font-mono">
+                            Meta:{" "}
+                            {formatMinutes(activeDaySchedule.totalMinutes)}
+                          </span>
+                        </div>
+                        <h2 className="text-2xl font-black text-white tracking-tight uppercase flex items-center gap-2">
+                          <Target size={22} className="text-indigo-400" />
+                          {activeDaySchedule.dayName}
+                        </h2>
+                      </div>
+
+                      <div className="bg-slate-950/80 border border-slate-800 px-4 py-2 rounded-2xl flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <span className="text-xs font-mono font-bold text-indigo-400 block">
+                            {activeDayCompletedTopicsCount}/
+                            {activeDayTotalTopicsCount} tópicos
+                          </span>
+                          <span className="text-[9px] text-slate-500 font-bold uppercase">
+                            Concluídos ({activeDayProgressPercent}%)
+                          </span>
+                        </div>
+                        <div className="w-8 h-8 rounded-full border-2 border-indigo-500/40 flex items-center justify-center font-mono text-[10px] font-bold text-indigo-300">
+                          {activeDayProgressPercent}%
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Alocação de Blocos/Matérias do Dia */}
+                    <div className="space-y-4 relative z-10">
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <BookOpen size={14} className="text-indigo-400" />
+                        Matérias Alocadas para {activeDaySchedule.dayName}
+                      </h3>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        {activeDaySchedule.subjects.map((subject, sIdx) => {
+                          const subjectColor = getSubjectColor(subject, sIdx);
+                          const hasTopics =
+                            subject.assignedTopics &&
+                            subject.assignedTopics.length > 0;
+
+                          return (
+                            <div
+                              key={subject.id}
+                              className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-5 space-y-3 relative overflow-hidden group/card hover:border-slate-700 transition-all shadow-md"
+                            >
+                              {/* Barra de Indicador Lateral Glow */}
+                              <div
+                                className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl"
+                                style={{
+                                  backgroundColor: subjectColor,
+                                  boxShadow: `0 0 10px ${subjectColor}`,
+                                }}
+                              />
+
+                              <div className="flex items-center justify-between pl-2">
+                                <div className="flex items-center gap-2.5">
+                                  <span
+                                    className="w-2.5 h-2.5 rounded-full"
+                                    style={{
+                                      backgroundColor: subjectColor,
+                                      boxShadow: `0 0 8px ${subjectColor}`,
+                                    }}
+                                  />
+                                  <h4 className="text-base font-bold text-white tracking-tight">
+                                    {subject.name}
+                                  </h4>
+                                </div>
+
+                                <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-3 py-1 rounded-xl">
+                                  {formatMinutes(subject.dailyMinutesAllocated)}
+                                </span>
+                              </div>
+
+                              {/* Tópicos Alocados */}
+                              <div className="space-y-2 pl-2 pt-1">
+                                {hasTopics ? (
+                                  subject.assignedTopics.map((topic) => {
+                                    const isDone =
+                                      topic.firstStudy === "Em Revisão";
+
+                                    return (
+                                      <div
+                                        key={topic.id}
+                                        onClick={() =>
+                                          handleToggleTopic(
+                                            topic.id,
+                                            topic.firstStudy,
+                                          )
+                                        }
+                                        className={`flex items-center justify-between text-xs px-3.5 py-2.5 rounded-xl border transition-all cursor-pointer group/topic ${
+                                          isDone
+                                            ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-300"
+                                            : "bg-slate-900/60 border-slate-800/60 hover:bg-slate-800/50 text-slate-200"
+                                        }`}
+                                      >
+                                        <span
+                                          className={`truncate pr-2 font-medium transition-all ${
+                                            isDone
+                                              ? "line-through text-slate-500"
+                                              : "group-hover/topic:text-white"
+                                          }`}
+                                        >
+                                          • {topic.title}
+                                        </span>
+
+                                        <button
+                                          type="button"
+                                          title={
+                                            isDone
+                                              ? "Marcar como pendente"
+                                              : "Marcar como concluído"
+                                          }
+                                          className={`transition-colors shrink-0 ${
+                                            isDone
+                                              ? "text-emerald-400 hover:text-emerald-300"
+                                              : "text-slate-600 hover:text-emerald-400"
+                                          }`}
+                                        >
+                                          <CheckCircle2
+                                            size={16}
+                                            className={
+                                              isDone
+                                                ? "fill-emerald-500/20"
+                                                : ""
+                                            }
+                                          />
+                                        </button>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="flex items-center justify-between text-xs text-slate-500 italic py-2 bg-slate-900/20 px-3 rounded-xl border border-slate-900">
+                                    <span>Nenhum tópico mapeado</span>
+                                    <Link
+                                      href="/edital"
+                                      className="text-indigo-400 hover:underline not-italic font-sans text-xs font-semibold"
+                                    >
+                                      + Gerenciar Edital
+                                    </Link>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* PAINEL DIREITO: TELEMETRIA E BALANÇO DE CARGA HORÁRIA */}
+              <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 space-y-6 lg:sticky lg:top-8 backdrop-blur-md shadow-2xl">
+                <div>
+                  <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                    <TrendingUp size={16} className="text-indigo-400" />
+                    Distribuição Semanal de Carga
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Proporção calculada automaticamente com base nas prioridades
+                    das matérias.
+                  </p>
+                </div>
+
+                {/* Donut SVG Telemetry */}
+                <div className="flex justify-center py-2 relative">
+                  <div className="relative w-44 h-44 flex items-center justify-center">
+                    <svg
+                      className="w-full h-full transform -rotate-90"
+                      viewBox="0 0 36 36"
+                    >
+                      <path
+                        className="text-slate-950"
+                        strokeWidth="3.8"
+                        stroke="currentColor"
+                        fill="none"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+
+                      {donutSegments.map((seg) => (
+                        <circle
+                          key={seg.id}
+                          className="transition-all duration-700 ease-out"
+                          stroke={seg.color}
+                          strokeWidth="3.8"
+                          strokeDasharray={seg.strokeDasharray}
+                          strokeDashoffset={seg.strokeDashoffset}
+                          strokeLinecap="round"
+                          fill="none"
+                          cx="18"
+                          cy="18"
+                          r="15.9155"
+                        />
+                      ))}
+                    </svg>
+
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span className="text-2xl font-black text-white font-mono tracking-tight">
+                        {data?.weeklyGoalHours}h
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase">
+                        na semana
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lista de Carga Horária das Matérias */}
+                <div className="space-y-3 pt-4 border-t border-slate-800/80 max-h-64 overflow-y-auto pr-1">
+                  {data?.subjectOverview?.map((subject, sIdx) => {
+                    const subjectColor = getSubjectColor(subject, sIdx);
+
+                    return (
+                      <div key={subject.id} className="space-y-1">
+                        <div className="flex justify-between items-center text-xs font-medium">
+                          <div className="flex items-center gap-2 truncate pr-2">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                              style={{
+                                backgroundColor: subjectColor,
+                                boxShadow: `0 0 8px ${subjectColor}`,
+                              }}
+                            />
+                            <span className="text-slate-300 font-semibold truncate">
+                              {subject.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 font-mono">
+                            <span className="text-slate-400 text-[11px]">
+                              {subject.percentageOfTotal}%
+                            </span>
+                            <span className="text-slate-100 font-semibold">
+                              {formatMinutes(subject.weeklyMinutesAllocated)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${subject.percentageOfTotal}%`,
+                              backgroundColor: subjectColor,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3.5 flex gap-2.5 items-start">
+                  <Info size={15} className="text-indigo-400 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Para reajustar o peso ou tempo alocado de cada matéria,
+                    edite a{" "}
+                    <strong className="text-slate-200">prioridade</strong> no
+                    módulo do Edital.
+                  </p>
+                </div>
               </div>
             </div>
+          </div>
+        )}
+      </div>
 
-            {/* Legenda das Matérias */}
-            <div className="space-y-2.5 pt-2 border-t border-slate-900">
-              {distribution.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center text-xs font-medium">
-                  <div className="flex items-center gap-2 text-slate-400 truncate">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
-                    <span className="truncate">{item.name}:</span>
-                  </div>
-                  <span className="font-mono text-slate-200 pl-2 shrink-0">{item.time}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Hint Informativo Inferior */}
-            <div className="bg-slate-950/60 border border-slate-900 rounded-xl p-3 flex gap-2 items-start">
-              <Info size={14} className="text-indigo-400 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-slate-500 leading-normal">
-                você pode reorganizar como quiser arrastando as matérias ou clicando no tempo de estudo
+      {/* MODAL DE CONFIGURAÇÃO DE META */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Settings2 size={18} className="text-indigo-400" />
+                Configurar Meta de Estudo
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Ajuste sua disponibilidade semanal para recalcular o cronograma
+                dinâmico.
               </p>
             </div>
 
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <label className="text-slate-300 font-medium flex items-center gap-1.5">
+                    <Clock size={13} className="text-slate-400" /> Meta Semanal
+                    (Horas)
+                  </label>
+                  <span className="text-indigo-400 font-bold font-mono text-sm">
+                    {goalHours}h / semana
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={2}
+                  max={60}
+                  step={1}
+                  value={goalHours}
+                  onChange={(e) => setGoalHours(Number(e.target.value))}
+                  className="w-full accent-indigo-500 bg-slate-800 rounded-lg h-2 cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                  <span>2h</span>
+                  <span>30h</span>
+                  <span>60h</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <label className="text-slate-300 font-medium flex items-center gap-1.5">
+                    <Calendar size={13} className="text-slate-400" /> Dias
+                    Ativos na Semana
+                  </label>
+                  <span className="text-indigo-400 font-bold font-mono text-sm">
+                    {activeDays} dias
+                  </span>
+                </div>
+                <div className="grid grid-cols-7 gap-1.5 pt-1">
+                  {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setActiveDays(num)}
+                      className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                        activeDays === num
+                          ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
+                          : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      {num}d
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800/80">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveSettings}
+                disabled={isPending}
+                className="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 disabled:opacity-50"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Calculando...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={14} />
+                    <span>Aplicar Novo Cronograma</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-
         </div>
-
-      </div>
+      )}
     </div>
   );
 }
