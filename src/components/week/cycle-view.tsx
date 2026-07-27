@@ -20,6 +20,7 @@ import {
   Compass,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface CycleViewProps {
   blocks: CycleBlock[];
@@ -223,7 +224,7 @@ export function CycleView({
           </div>
         </div>
 
-        {/* DONUT TELEMETRY - DISTRIBUIÇÃO DAS MATÉRIAS */}
+        {/* DISTRIBUIÇÃO DAS MATÉRIAS */}
         <div className="bg-slate-900/50 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase flex items-center gap-2">
@@ -410,15 +411,17 @@ export function CycleView({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Grid com items-start para não deformar os vizinhos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
           {upcomingBlocks.map((block) => {
             const isDone = block.status === "COMPLETED";
             const isExpanded = expandedBlockNumber === block.blockNumber;
 
             return (
-              <div
+              <motion.div
+                layout
                 key={block.blockNumber}
-                className={`border rounded-2xl p-4 space-y-3 transition-all duration-300 relative overflow-hidden ${
+                className={`border rounded-2xl p-4 space-y-3 transition-colors duration-300 relative overflow-hidden ${
                   isDone
                     ? "bg-slate-950/30 border-slate-800/40 opacity-50"
                     : "bg-slate-900/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60"
@@ -433,6 +436,7 @@ export function CycleView({
                   }}
                 />
 
+                {/* Cabeçalho do Card */}
                 <div className="flex items-center justify-between pl-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-slate-500">
@@ -454,6 +458,7 @@ export function CycleView({
                   )}
                 </div>
 
+                {/* Informações e Botão de Expandir */}
                 <div className="flex justify-between items-center text-xs font-mono text-slate-400 pl-1 pt-1 border-t border-slate-800/40">
                   <span className="flex items-center gap-1 text-[11px]">
                     <Clock size={11} className="text-slate-500" />
@@ -463,32 +468,43 @@ export function CycleView({
                   {block.assignedTopics.length > 0 && (
                     <button
                       onClick={() => toggleExpand(block.blockNumber)}
-                      className="text-[10px] text-indigo-400 hover:underline flex items-center gap-1 font-sans"
+                      className="text-[10px] text-indigo-400 hover:underline flex items-center gap-1 font-sans cursor-pointer select-none"
                     >
                       <span>{block.assignedTopics.length} tópicos</span>
-                      {isExpanded ? (
-                        <ChevronUp size={12} />
-                      ) : (
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
                         <ChevronDown size={12} />
-                      )}
+                      </motion.div>
                     </button>
                   )}
                 </div>
 
-                {/* Accordion de Tópicos */}
-                {isExpanded && (
-                  <div className="pt-2 border-t border-slate-800/60 space-y-1 animate-in fade-in duration-150">
-                    {block.assignedTopics.map((top) => (
-                      <div
-                        key={top.id}
-                        className="text-[11px] text-slate-400 bg-slate-950/80 p-1.5 rounded-lg border border-slate-900 truncate"
-                      >
-                        • {top.title}
+                {/* Accordion de Tópicos AnimatePresence */}
+                <AnimatePresence initial={false}>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-2 border-t border-slate-800/60 space-y-1.5">
+                        {block.assignedTopics.map((top) => (
+                          <div
+                            key={top.id}
+                            className="text-[11px] text-slate-400 bg-slate-950/80 p-2 rounded-lg border border-slate-900 truncate"
+                          >
+                            • {top.title}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             );
           })}
         </div>

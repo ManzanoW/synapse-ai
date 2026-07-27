@@ -355,68 +355,84 @@ export default function WeekPage() {
         </div>
 
         {/* Sub-Header Tabs (Navegação Dual-Mode) */}
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-slate-900/40 border border-slate-800/80 p-2 rounded-2xl backdrop-blur-md">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-2 bg-slate-950/80 border border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-2xl">
+          {/* 1. Control Switcher Minimalista */}
+          <div className="inline-flex items-center bg-slate-900/60 p-1 rounded-xl border border-slate-800/80 w-full md:w-auto">
+            {/* Opção: Cronograma Semanal */}
             <button
               onClick={() => handleToggleMode("WEEKLY")}
-              className={`flex items-center justify-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl transition-all ${
+              className={`relative flex items-center justify-center gap-2.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none ${
                 studyMode === "WEEKLY"
-                  ? "bg-gradient-to-r from-indigo-950/80 to-slate-900 border border-indigo-500/40 text-indigo-300 shadow-lg shadow-indigo-950/50"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                  ? "bg-slate-800/90 text-white font-semibold shadow-lg shadow-indigo-950/20 border border-indigo-500/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
               }`}
             >
+              {/* Indicador Luminoso de Seleção */}
+              {studyMode === "WEEKLY" && (
+                <span className="relative flex h-2 w-2 mr-0.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+                </span>
+              )}
+
               <CalendarDays
-                size={15}
-                className={studyMode === "WEEKLY" ? "text-indigo-400" : ""}
+                size={14}
+                className={
+                  studyMode === "WEEKLY" ? "text-cyan-400" : "text-slate-500"
+                }
               />
               <span>Cronograma Semanal</span>
-              {studyMode === "WEEKLY" ? (
-                <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
-                  Ativo
-                </span>
-              ) : (
-                <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
-                  Em Pausa
-                </span>
-              )}
             </button>
 
+            {/* Opção: Ciclo de Estudos */}
             <button
               onClick={() => handleToggleMode("CYCLE")}
-              className={`flex items-center justify-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl transition-all ${
+              className={`relative flex items-center justify-center gap-2.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none ${
                 studyMode === "CYCLE"
-                  ? "bg-gradient-to-r from-indigo-950/80 to-slate-900 border border-indigo-500/40 text-indigo-300 shadow-lg shadow-indigo-950/50"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                  ? "bg-slate-800/90 text-white font-semibold shadow-lg shadow-indigo-950/20 border border-indigo-500/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
               }`}
             >
-              <RefreshCw
-                size={13}
-                className={studyMode === "CYCLE" ? "text-indigo-400" : ""}
-              />
-              <span>Ciclo de Estudos</span>
-              {studyMode === "CYCLE" ? (
-                <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
-                  Ativo
-                </span>
-              ) : (
-                <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
-                  Em Pausa
+              {/* Indicador Luminoso de Seleção */}
+              {studyMode === "CYCLE" && (
+                <span className="relative flex h-2 w-2 mr-0.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
                 </span>
               )}
+
+              <RefreshCw
+                size={13}
+                className={
+                  studyMode === "CYCLE" ? "text-indigo-400" : "text-slate-500"
+                }
+              />
+              <span>Ciclo de Estudos</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1 self-end sm:self-auto">
-            <span className="text-xs text-slate-400 font-medium">
-              Meta Ativa:
-            </span>
-            <span className="text-xs font-bold text-indigo-400 font-mono">
-              {data?.weeklyGoalHours ?? 10}h / semana
-            </span>
-            <span className="text-slate-600">•</span>
-            <span className="text-xs text-slate-400 font-medium">
-              {data?.activeDaysPerWeek ?? 5} dias úteis
-            </span>
+          {/* 2. Telemetria Unificada e Discreta */}
+          <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-900/40 rounded-xl border border-slate-800/50 text-xs font-mono text-slate-400 self-end md:self-auto">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-500 font-sans tracking-wider uppercase">
+                Meta
+              </span>
+              <span className="text-slate-200 font-bold">
+                {data?.weeklyGoalHours ?? 10}h
+              </span>
+              <span className="text-slate-600 text-[10px]">/sem</span>
+            </div>
+
+            <span className="text-slate-800">|</span>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-200 font-bold">
+                {data?.activeDaysPerWeek ?? 5}
+              </span>
+              <span className="text-[10px] text-slate-500 font-sans tracking-wider uppercase">
+                dias úteis
+              </span>
+            </div>
           </div>
         </div>
 
