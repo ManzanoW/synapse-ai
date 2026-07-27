@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { User } from "next-auth";
-import { motion, Variants } from "framer-motion";
+import { motion, Variants, AnimatePresence } from "framer-motion";
 import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
 import { NewContentModal } from "@/components/create-subject-modal";
@@ -22,6 +22,8 @@ import {
   AlertCircle,
   BrainCircuit,
   Target,
+  RefreshCw,
+  X,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -44,6 +46,30 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [isLoadingQueue, setIsLoadingQueue] = useState(true);
   const [updatingTopicId, setUpdatingTopicId] = useState<string | null>(null);
 
+  // ⚡ ESTADOS DA IA ADAPTATIVA (FASE 3)
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isOptimized, setIsOptimized] = useState(false);
+
+  // Sugestões como ESTADO DINÂMICO
+  const [suggestions, setSuggestions] = useState([
+    {
+      id: "1",
+      title: "Rever Raciocínio Lógico",
+      description:
+        "Sua retenção caiu para 68%. O algoritmo sugere revisar 8 cards.",
+      type: "CRITICAL" as const,
+      icon: "brain" as const,
+    },
+    {
+      id: "2",
+      title: "Fixação Teórica: Português",
+      description:
+        "Você atingiu 82% de precisão em Sintaxe! Desbloqueie o Caderno Avançado.",
+      type: "SUGGESTED" as const,
+      icon: "clipboard" as const,
+    },
+  ]);
+
   // Lista de matérias
   const [subjects, setSubjects] = useState<DashboardSubject[]>([]);
 
@@ -60,6 +86,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           fetch("/api/planner?mode=subjects", { cache: "no-store" }),
           fetch("/api/planner?mode=review", { cache: "no-store" }),
         ]);
+
+        const resSuggestions = await fetch("/api/planner/rebalance", {
+          method: "POST",
+        });
+        if (resSuggestions.ok) {
+          const jsonSuggestions = await resSuggestions.json();
+          if (jsonSuggestions.suggestions?.length) {
+            setSuggestions(jsonSuggestions.suggestions);
+          }
+        }
 
         if (!isMounted) return;
 
@@ -96,6 +132,24 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     };
   }, []);
 
+  // Função helper para recarregar as sugestões da IA
+  const fetchSuggestions = async () => {
+    try {
+      const response = await fetch("/api/planner/rebalance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.suggestions) {
+          setSuggestions(data.suggestions);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar sugestões:", err);
+    }
+  };
+
   const handleReview = async (
     topicId: string,
     grade: "Bom" | "Difícil" | "Errei",
@@ -116,13 +170,94 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       });
 
       if (response.ok) {
+        // 1. Remove da fila de hoje
         setReviewQueue((prev) => prev.filter((topic) => topic.id !== topicId));
+
+        // 2. ⚡ REAVALIA O CRONOGRAMA COM IA AUTOMATICAMENTE
+        await fetchSuggestions();
       }
     } catch (err) {
       console.error("Erro ao enviar revisão:", err);
     } finally {
       setUpdatingTopicId(null);
     }
+  };
+
+  // Handler do Motor da IA Adaptativa com API Real
+  const handleOptimizeSchedule = async () => {
+    try {
+      setIsOptimizing(true);
+
+      const response = await fetch("/api/planner/rebalance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) throw new Error("Erro ao otimizar cronograma");
+
+      const data = await response.json();
+
+      if (data.suggestions) {
+        // Atualiza o estado da UI com os dados reais do banco
+        setSuggestions(data.suggestions);
+      }
+
+      setIsOptimized(true);
+      setTimeout(() => setIsOptimized(false), 4000);
+    } catch (error) {
+      console.error("Erro na otimização:", error);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const getSuggestionUrl = (item: {
+    actionType?: string;
+    title?: string;
+    topicId?: string;
+    subjectId?: string;
+  }) => {
+    // 1. Se a API já enviar o campo actionType explícito:
+    if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
+      return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+    }
+
+    if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
+      return item.subjectId
+        ? `/planner?subjectId=${item.subjectId}`
+        : "/planner";
+    }
+
+    if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
+      return "/cards";
+    }
+
+    // 2. Fallback baseado no Título (caso a API do rebalance não retorne actionType ainda)
+    const titleLower = item.title?.toLowerCase() || "";
+
+    if (
+      titleLower.includes("simulado") ||
+      titleLower.includes("quiz") ||
+      titleLower.includes("questõ")
+    ) {
+      return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+    }
+
+    if (
+      titleLower.includes("edital") ||
+      titleLower.includes("avançar") ||
+      titleLower.includes("estudo")
+    ) {
+      return item.subjectId
+        ? `/planner?subjectId=${item.subjectId}`
+        : "/planner";
+    }
+
+    if (titleLower.includes("card") || titleLower.includes("flashcard")) {
+      return "/cards";
+    }
+
+    return "/planner"; // Rota default segura
   };
 
   const handleCreateContent = async (data: {
@@ -250,6 +385,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
         </section>
+
         {/* ================= GRADE PRINCIPAL (GRID) ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* SEÇÃO ESQUERDA + CENTRAL (Colunas 1 a 9) */}
@@ -418,10 +554,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             </div>
 
-            {/* 🌟 MOTOR DE SUGESTÕES POR IA */}
+            {/* 🌟 MOTOR DE SUGESTÕES POR IA (INTERATIVO COM REDIRECIONAMENTO E DESCARTE) */}
             <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 p-5 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:border-cyan-500/30">
               <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-[80px] transition-all duration-700 group-hover:bg-cyan-500/20" />
 
+              {/* Header */}
               <div className="relative flex justify-between items-center mb-5">
                 <div className="flex items-center gap-2">
                   <div className="rounded-lg bg-cyan-500/10 p-1.5 ring-1 ring-cyan-500/20">
@@ -439,52 +576,143 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </span>
               </div>
 
+              {/* Lista Dinâmica de Sugestões */}
               <div className="space-y-3">
-                <div className="group/item relative flex items-start gap-4 rounded-xl border border-white/5 bg-slate-950/40 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-rose-400/30 hover:bg-slate-900/40">
-                  <div className="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20 text-indigo-400">
-                    <BrainCircuit size={20} />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-slate-200">
-                      Rever Raciocínio Lógico
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Sua retenção caiu para 68%. O algoritmo sugere revisar 8
-                      cards.
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-[9px] font-bold tracking-widest text-rose-400 bg-rose-500/10 px-2 py-1 rounded-full border border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]">
-                    CRÍTICO
-                  </span>
-                </div>
-
-                <div className="group/item relative flex items-start gap-4 rounded-xl border border-white/5 bg-slate-950/40 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-slate-900/40">
-                  <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20 text-emerald-400">
-                    <ClipboardList size={20} />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-200">
-                        Fixação Teórica: Português
-                      </span>
-                      <span className="rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase text-emerald-400 border border-emerald-500/20 bg-emerald-500/5">
-                        Sugerido
-                      </span>
+                <AnimatePresence mode="wait">
+                  {suggestions.length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-slate-800 rounded-xl">
+                      <p className="text-xs text-slate-400">
+                        Nenhuma sugestão pendente no momento. Seu cronograma
+                        está em dia!
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-400">
-                      Você atingiu 82% de precisão em Sintaxe! Desbloqueie o{" "}
-                      <span className="font-medium text-slate-200">
-                        Caderno Avançado
-                      </span>
-                      .
-                    </p>
-                  </div>
-                </div>
+                  ) : (
+                    suggestions.map((item: any) => {
+                      // 🎯 Define a URL correta com base no tipo da sugestão
+                      const targetUrl = getSuggestionUrl(item);
+
+                      return (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          transition={{ duration: 0.3 }}
+                          className={`group/item relative flex items-center justify-between gap-4 rounded-xl border bg-slate-950/40 p-4 transition-all duration-300 hover:-translate-y-0.5 ${
+                            item.type === "CRITICAL"
+                              ? "border-white/5 hover:border-rose-400/30 hover:bg-slate-900/40"
+                              : "border-white/5 hover:border-emerald-500/30 hover:bg-slate-900/40"
+                          }`}
+                        >
+                          {/* Link para a rota mapeada dinamicamente */}
+                          <Link
+                            href={targetUrl}
+                            className="flex items-start gap-4 flex-1"
+                          >
+                            <div
+                              className={`p-2 rounded-lg border shrink-0 ${
+                                item.icon === "brain"
+                                  ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
+                                  : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                              }`}
+                            >
+                              {item.icon === "brain" ? (
+                                <BrainCircuit size={20} />
+                              ) : (
+                                <ClipboardList size={20} />
+                              )}
+                            </div>
+
+                            <div className="flex-1">
+                              <h4 className="text-sm font-bold text-slate-200 group-hover/item:text-indigo-300 transition-colors">
+                                {item.title}
+                              </h4>
+                              <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                                {item.description}
+                              </p>
+                            </div>
+                          </Link>
+
+                          {/* Badge e Ação de Descarte */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span
+                              className={`text-[9px] font-bold tracking-widest px-2 py-1 rounded-full border ${
+                                item.type === "CRITICAL"
+                                  ? "text-rose-400 bg-rose-500/10 border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]"
+                                  : "text-emerald-400 bg-emerald-500/5 border-emerald-500/20"
+                              }`}
+                            >
+                              {item.type === "CRITICAL"
+                                ? "CRÍTICO"
+                                : "SUGERIDO"}
+                            </span>
+
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                // Remove visualmente
+                                setSuggestions((prev) =>
+                                  prev.filter((s) => s.id !== item.id),
+                                );
+
+                                if (item.topicId) {
+                                  await fetch(
+                                    "/api/planner/complete-suggestion",
+                                    {
+                                      method: "POST",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify({
+                                        topicId: item.topicId,
+                                        type: "DISMISSED",
+                                      }),
+                                    },
+                                  ).catch(console.error);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                              title="Dispensar sugestão"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  )}
+                </AnimatePresence>
               </div>
 
-              <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border-t border-white/5 bg-white/5 py-2.5 text-xs font-medium text-slate-400 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-400 active:scale-[0.98]">
-                <Sparkles size={13} />
-                <span>Otimizar Cronograma com IA</span>
+              {/* Botão de Rebalanceamento */}
+              <button
+                onClick={handleOptimizeSchedule}
+                disabled={isOptimizing}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border-t border-white/5 bg-white/5 py-2.5 text-xs font-medium text-slate-400 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-400 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              >
+                {isOptimizing ? (
+                  <>
+                    <RefreshCw
+                      size={13}
+                      className="animate-spin text-cyan-400"
+                    />
+                    <span className="text-cyan-400 font-medium">
+                      Processando métricas e rebalanceando ciclo...
+                    </span>
+                  </>
+                ) : isOptimized ? (
+                  <>
+                    <CheckCircle2 size={13} className="text-emerald-400" />
+                    <span className="text-emerald-400 font-semibold">
+                      Cronograma Otimizado com Sucesso!
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={13} />
+                    <span>Otimizar Cronograma com IA</span>
+                  </>
+                )}
               </button>
             </div>
 
@@ -546,7 +774,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
-          {/* ================= SEÇÃO DIREIRA (BARRA LATERAL) ================= */}
+          {/* ================= SEÇÃO DIREITA (BARRA LATERAL) ================= */}
           <div className="lg:col-span-3 space-y-6">
             {/* CARD DE CONSTÂNCIA */}
             <Link

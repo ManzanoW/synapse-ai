@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PRESET_HEX_COLORS } from "@/constants/subjects";
-import { auth } from "@/auth"; // Importação do Auth.js v5
+import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -63,11 +63,13 @@ export async function GET(request: Request) {
     if (mode === "subjects") {
       const subjects = await prisma.subject.findMany({
         where: {
-          userId: userId, // 🔒 Filtrado por usuário
+          userId: userId,
         },
         include: {
           topics: {
             select: {
+              id: true, // 👈 ADICIONE ISSO
+              title: true, // 👈 ADICIONE ISSO
               firstStudy: true,
               performance: true,
             },
@@ -78,22 +80,17 @@ export async function GET(request: Request) {
         },
       });
 
-      // Mapeia cada matéria calculando o progresso dinamicamente
+      // Mantém a formatação com progress e accuracy
       const formattedSubjects = subjects.map((sub) => {
         const totalTopics = sub.topics.length;
-
-        // Considera concluído o tópico cujo status não é mais "Pendente"
         const completedTopics = sub.topics.filter(
           (t) => t.firstStudy !== "Pendente",
         ).length;
-
-        // Cálculo do progresso percentual (0 a 100)
         const progress =
           totalTopics > 0
             ? Math.round((completedTopics / totalTopics) * 100)
             : 0;
 
-        // Cálculo da média de acertos/desempenho
         const totalPerformance = sub.topics.reduce(
           (acc, t) => acc + t.performance,
           0,

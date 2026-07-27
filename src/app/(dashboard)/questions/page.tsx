@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSidebar } from "@/lib/sidebar-context";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Menu,
   HelpCircle,
@@ -22,6 +23,7 @@ import {
   BrainCircuit,
   Trophy,
   RotateCcw,
+  FileText,
 } from "lucide-react";
 
 // Tipagem para as questões que chegam da nossa API do Gemini
@@ -35,7 +37,7 @@ export interface QuestaoIA {
   flashcardVerso: string;
 }
 
-// Interface para tipar os itens do histórico vindos do Supabase
+// Interface para tipar os itens do histórico vindos do banco
 interface QuizHistoryItem {
   id: string;
   banca: string;
@@ -43,6 +45,17 @@ interface QuizHistoryItem {
   difficulty: string;
   questions: QuestaoIA[];
   createdAt: string;
+}
+
+interface TopicItem {
+  id: string;
+  title: string;
+}
+
+interface SubjectItem {
+  id: string;
+  name: string;
+  topics?: TopicItem[];
 }
 
 const renderEnunciado = (texto: string) => {
@@ -68,6 +81,7 @@ const renderEnunciado = (texto: string) => {
 
 export default function QuestoesPage() {
   const { openSidebar } = useSidebar();
+  const searchParams = useSearchParams();
 
   // ================= ESTADOS GERAIS DA PÁGINA =================
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -77,13 +91,13 @@ export default function QuestoesPage() {
     null,
   );
 
-  // Controle de abas da interface: 'create' para o caderno/gerador e 'history' para o histórico
+  // Controle de abas da interface
   const [activeTab, setActiveTab] = useState<"create" | "history">("create");
   const [pendingTab, setPendingTab] = useState<"create" | "history" | null>(
     null,
   );
 
-  // ================= NOVOS ESTADOS: CADERNO DE ERROS E FLASHCARDS =================
+  // ================= CADERNO DE ERROS E FLASHCARDS =================
   const [savedErrors, setSavedErrors] = useState<Record<number, boolean>>({});
   const [creatingFlashcardIndex, setCreatingFlashcardIndex] = useState<
     number | null
@@ -92,6 +106,44 @@ export default function QuestoesPage() {
     Record<number, boolean>
   >({});
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+
+  // ================= ESTADOS DO MODAL IA PREMIUM =================
+  const [materia, setMateria] = useState("");
+  const [selectedTopicId, setSelectedTopicId] = useState("");
+  const [qtdQuestoes, setQtdQuestoes] = useState("5");
+  const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
+    "banca",
+  );
+  const [dificuldade, setDificuldade] = useState("Média");
+  const [textoBase, setTextoBase] = useState("");
+  const [subjects, setSubjects] = useState<SubjectItem[]>([]);
+
+  // ================= ESTADOS DO MODAL MANUAL =================
+  const [tipoFormato, setTipoFormato] = useState<"multipla" | "certo_errado">(
+    "multipla",
+  );
+  const [alternativas, setAlternativas] = useState([
+    { id: "A", text: "" },
+    { id: "B", text: "" },
+    { id: "C", text: "" },
+    { id: "D", text: "" },
+  ]);
+  const [alternativaCorreta, setAlternativaCorreta] = useState("A");
+
+  // ================= ESTADOS GERAIS DA PÁGINA =================
+  const STORAGE_KEY = "deepwork_quiz_session_v1";
+
+  const [banca, setBanca] = useState("FGV");
+  const [questions, setQuestions] = useState<QuestaoIA[]>([]);
+  const [loadingQuizId, setLoadingQuizId] = useState<string | null>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<number, string>
+  >({});
+  const [checkedQuestions, setCheckedQuestions] = useState<
+    Record<number, boolean>
+  >({});
+
+  const [isMounted, setIsMounted] = useState(false);
 
   const handleTabChange = (newTab: "create" | "history") => {
     const hasUnsavedProgress = Object.keys(selectedAnswers).length > 0;
@@ -120,7 +172,7 @@ export default function QuestoesPage() {
     setPendingTab(null);
   };
 
-  // Estados para armazenar o histórico de simulados salvos vindo da API
+  // Histórico de simulados
   const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -138,59 +190,6 @@ export default function QuestoesPage() {
     return matchesBanca || matchesSubject || matchesDifficulty;
   });
 
-  const handleRemoverSimulado = async (idSimulado: string) => {
-    try {
-      const response = await fetch(`/api/questions/${idSimulado}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Erro ao excluir o simulado.");
-
-      setQuizHistory((prev) => prev.filter((item) => item.id !== idSimulado));
-      setConfirmingDeleteId(null);
-    } catch (error) {
-      console.error("Erro ao deletar simulado:", error);
-      alert("Não foi possível excluir o simulado.");
-    }
-  };
-
-  // ================= ESTADOS DO MODAL IA PREMIUM =================
-  const [materia, setMateria] = useState("");
-  const [qtdQuestoes, setQtdQuestoes] = useState("5");
-  const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
-    "banca",
-  );
-  const [dificuldade, setDificuldade] = useState("Média");
-  const [textoBase, setTextoBase] = useState("");
-  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
-
-  // ================= ESTADOS DO MODAL MANUAL =================
-  const [tipoFormato, setTipoFormato] = useState<"multipla" | "certo_errado">(
-    "multipla",
-  );
-  const [alternativas, setAlternativas] = useState([
-    { id: "A", text: "" },
-    { id: "B", text: "" },
-    { id: "C", text: "" },
-    { id: "D", text: "" },
-  ]);
-  const [alternativaCorreta, setAlternativaCorreta] = useState("A");
-
-  // ================= ESTADOS GERAIS DA PÁGINA (Com Lazy Initialization) =================
-  const STORAGE_KEY = "deepwork_quiz_session_v1";
-
-  const [banca, setBanca] = useState("");
-  const [questions, setQuestions] = useState<QuestaoIA[]>([]);
-  const [loadingQuizId, setLoadingQuizId] = useState<string | null>(null);
-  const [selectedAnswers, setSelectedAnswers] = useState<
-    Record<number, string>
-  >({});
-  const [checkedQuestions, setCheckedQuestions] = useState<
-    Record<number, boolean>
-  >({});
-
-  const [isMounted, setIsMounted] = useState(false);
-
   // 1. CARREGA DO LOCALSTORAGE AO MONTAR
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -205,8 +204,6 @@ export default function QuestoesPage() {
             setSelectedAnswers(parsed.selectedAnswers);
           if (parsed.checkedQuestions)
             setCheckedQuestions(parsed.checkedQuestions);
-
-          // RESTAURA OS FLASHCARDS JÁ CRIADOS
           if (parsed.createdFlashcards)
             setCreatedFlashcards(parsed.createdFlashcards);
         }
@@ -217,6 +214,18 @@ export default function QuestoesPage() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // CARREGA PARÂMETROS DA URL (EX: DASHBOARD SUGESTÃO DE REBALANCEAMENTO)
+  useEffect(() => {
+    const paramTopicId = searchParams.get("topicId");
+    if (paramTopicId) {
+      const timer = setTimeout(() => {
+        setSelectedTopicId(paramTopicId);
+        setIsAIModalOpen(true);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   // 2. SALVA NO LOCALSTORAGE QUANDO O ESTADO MUDA
   useEffect(() => {
@@ -243,22 +252,66 @@ export default function QuestoesPage() {
     isMounted,
   ]);
 
-  // 3. CARREGA MATÉRIAS NO MODAL
+  // 3. CARREGA MATÉRIAS COM TÓPICOS INCLUSOS
   useEffect(() => {
     if (isAIModalOpen) {
-      fetch("/api/subjects/list")
+      fetch("/api/planner?mode=subjects")
         .then((res) => res.json())
         .then((json) => {
-          const loadedSubjects = json.data || [];
+          const loadedSubjects: SubjectItem[] = json.data || [];
           setSubjects(loadedSubjects);
 
-          if (loadedSubjects.length > 0 && !materia) {
-            setMateria(loadedSubjects[0].name);
+          if (loadedSubjects.length > 0) {
+            // Se veio um tópico selecionado da URL, encontra a matéria correspondente
+            if (selectedTopicId) {
+              const matchedSubject = loadedSubjects.find((sub) =>
+                sub.topics?.some((t) => t.id === selectedTopicId),
+              );
+              if (matchedSubject) {
+                setMateria(matchedSubject.name);
+                return;
+              }
+            }
+
+            // Se não tiver matéria definida ou a atual não existir na lista, seleciona a primeira
+            const exists = loadedSubjects.some(
+              (s) =>
+                s.name.trim().toLowerCase() === materia.trim().toLowerCase() ||
+                s.id === materia,
+            );
+            if (!materia || !exists) {
+              setMateria(loadedSubjects[0].name);
+            }
           }
         })
         .catch(console.error);
     }
-  }, [isAIModalOpen]);
+  }, [isAIModalOpen, selectedTopicId, materia]);
+
+  // Filtra os tópicos da matéria atualmente selecionada no modal
+  const currentSubjectObj = subjects.find(
+    (s) =>
+      s.id === materia ||
+      s.name.trim().toLowerCase() === materia.trim().toLowerCase(),
+  );
+
+  const availableTopics = currentSubjectObj?.topics || [];
+
+  const handleRemoverSimulado = async (idSimulado: string) => {
+    try {
+      const response = await fetch(`/api/questions/${idSimulado}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Erro ao excluir o simulado.");
+
+      setQuizHistory((prev) => prev.filter((item) => item.id !== idSimulado));
+      setConfirmingDeleteId(null);
+    } catch (error) {
+      console.error("Erro ao deletar simulado:", error);
+      alert("Não foi possível excluir o simulado.");
+    }
+  };
 
   // ================= CÁLCULO DAS ESTATÍSTICAS E CONCLUÍDOS =================
   const totalQuestions = questions.length;
@@ -272,7 +325,6 @@ export default function QuestoesPage() {
   const percentageAcc =
     answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
-  // Verifica término e aciona modal final
   const handleAnswerQuestion = (index: number) => {
     const nextChecked = { ...checkedQuestions, [index]: true };
     setCheckedQuestions(nextChecked);
@@ -282,14 +334,12 @@ export default function QuestoesPage() {
     }
   };
 
-  // 🎴 AÇÃO: GERAR FLASHCARD A PARTIR DA QUESTÃO
   const handleCreateFlashcard = async (index: number) => {
     const q = questions[index];
     if (!q) return;
 
     setCreatingFlashcardIndex(index);
     try {
-      // 🎯 Extração ultra segura para evitar o erro de tipo 'never'
       const rawMateria = materia as unknown;
       const nomeMateria =
         typeof rawMateria === "string" && rawMateria.trim() !== ""
@@ -310,6 +360,7 @@ export default function QuestoesPage() {
             `Gabarito: ${q.gabaritoCorreto}\n\n${q.justificativa}`,
           details: q.justificativa,
           subject: nomeMateria,
+          topicId: selectedTopicId || undefined,
         }),
       });
 
@@ -332,7 +383,6 @@ export default function QuestoesPage() {
     }
   };
 
-  // 📌 AÇÃO: TOGGLE NO CADERNO DE ERROS
   const handleToggleSaveError = (index: number) => {
     setSavedErrors((prev) => ({ ...prev, [index]: !prev[index] }));
   };
@@ -385,12 +435,12 @@ export default function QuestoesPage() {
     e.preventDefault();
 
     const isMateriaValid = subjects.some(
-      (sub) => sub.name.trim() === materia.trim(),
+      (sub) => sub.name.trim().toLowerCase() === materia.trim().toLowerCase(),
     );
 
     if (!materia || !isMateriaValid) {
       alert(
-        `Erro de validação: A matéria "${materia}" não foi encontrada na lista de subjects. Verifique se o nome está idêntico.`,
+        `Erro de validação: A matéria "${materia}" não foi encontrada. Verifique se as seleções foram feitas corretamente.`,
       );
       return;
     }
@@ -409,6 +459,7 @@ export default function QuestoesPage() {
         body: JSON.stringify({
           banca,
           materia,
+          topicId: selectedTopicId || null,
           qtdQuestoes,
           fonteConteudo,
           dificuldade,
@@ -422,16 +473,32 @@ export default function QuestoesPage() {
       setIsAIModalOpen(false);
 
       if (generatedQuestions.length > 0) {
+        // 1. Salva o simulado no histórico
         await fetch("/api/questions/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             banca,
             subject: materia,
+            topicId: selectedTopicId || null,
             difficulty: dificuldade,
             questions: generatedQuestions,
           }),
         }).catch((err) => console.error("Database sync error:", err));
+
+        // 2. 🎯 NOTIFICA A ENGINE DO PLANNER QUE O SIMULADO DESTE TÓPICO FOI GERADO
+        if (selectedTopicId) {
+          await fetch("/api/planner/complete-suggestion", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topicId: selectedTopicId,
+              type: "SIMULADO_GERADO",
+            }),
+          }).catch((err) =>
+            console.error("Erro ao consumir sugestão do dashboard:", err),
+          );
+        }
       }
     } catch (error: unknown) {
       const errorMessage =
@@ -479,7 +546,7 @@ export default function QuestoesPage() {
           )}
         </div>
 
-        {/* ================= BARRA DE PROGRESSO & DESEMPENO (1) ================= */}
+        {/* ================= BARRA DE PROGRESSO & DESEMPENHO ================= */}
         {questions.length > 0 && activeTab === "create" && (
           <div className="bg-[#090d16]/80 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-md animate-in slide-in-from-top-2 duration-300">
             <div className="flex items-center justify-between mb-2 text-xs">
@@ -604,7 +671,6 @@ export default function QuestoesPage() {
                   const acertou =
                     alternativaSelecionada === questao.gabaritoCorreto;
                   const isSavedError = savedErrors[index];
-                  const isFlashcardCreated = createdFlashcards[index];
 
                   return (
                     <motion.div
@@ -625,7 +691,6 @@ export default function QuestoesPage() {
                       <div className="flex items-center justify-between mb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-900 pb-3">
                         <div className="flex items-center gap-2">
                           <span>Questão {index + 1}</span>
-                          {/* BOTÃO CADERNO DE ERROS (3) */}
                           <button
                             onClick={() => handleToggleSaveError(index)}
                             className={`p-1.5 rounded-lg border transition-all flex items-center gap-1 text-[11px] ${
@@ -774,7 +839,6 @@ export default function QuestoesPage() {
                                 </span>
                               </div>
 
-                              {/* BOTÃO GERAR FLASHCARD */}
                               {!acertou && (
                                 <button
                                   onClick={() => handleCreateFlashcard(index)}
@@ -877,7 +941,7 @@ export default function QuestoesPage() {
             {isLoadingHistory ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3 text-xs">
                 <Loader2 size={24} className="animate-spin text-indigo-400" />
-                <span>Buscando registros no Supabase...</span>
+                <span>Buscando registros no banco de dados...</span>
               </div>
             ) : quizHistory.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl my-6">
@@ -1070,7 +1134,11 @@ export default function QuestoesPage() {
                       Vincular à Matéria
                     </label>
                     <select className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200">
-                      <option value="Português">Português</option>
+                      {subjects.map((sub) => (
+                        <option key={`man-sub-${sub.id}`} value={sub.name}>
+                          {sub.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="space-y-1.5">
@@ -1249,6 +1317,7 @@ export default function QuestoesPage() {
                       <option value="Vunesp">Vunesp</option>
                     </select>
                   </div>
+
                   <div className="space-y-1.5">
                     <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                       <BookOpen size={12} className="text-indigo-400" /> Matéria
@@ -1256,7 +1325,10 @@ export default function QuestoesPage() {
                     </label>
                     <select
                       value={materia}
-                      onChange={(e) => setMateria(e.target.value)}
+                      onChange={(e) => {
+                        setMateria(e.target.value);
+                        setSelectedTopicId(""); // Reseta o tópico ao trocar de matéria
+                      }}
                       disabled={isGenerating}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 cursor-pointer"
                     >
@@ -1267,11 +1339,46 @@ export default function QuestoesPage() {
                           </option>
                         ))
                       ) : (
-                        <option value={materia}>{materia}</option>
+                        <option value={materia}>
+                          {materia || "Carregando..."}
+                        </option>
                       )}
                     </select>
                   </div>
                 </div>
+
+                {/* SELEÇÃO DE TÓPICO ESPECÍFICO */}
+                <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
+                  <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                    <FileText size={12} className="text-indigo-400" /> Tópico
+                    Específico (Opcional)
+                  </label>
+                  <select
+                    value={selectedTopicId}
+                    onChange={(e) => setSelectedTopicId(e.target.value)}
+                    disabled={isGenerating || availableTopics.length === 0}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 cursor-pointer disabled:opacity-50"
+                  >
+                    <option value="">
+                      {availableTopics.length === 0
+                        ? "Nenhum tópico encontrado nesta matéria"
+                        : "Todos os Tópicos da Matéria"}
+                    </option>
+                    {availableTopics.map((top, index) => {
+                      const topicKey = top.id
+                        ? `top-${top.id}`
+                        : `top-idx-${index}-${top.title}`;
+                      const topicValue = top.id || top.title;
+
+                      return (
+                        <option key={topicKey} value={topicValue}>
+                          {top.title}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
                 <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
                   <label className="text-slate-400 font-semibold uppercase tracking-wider block">
                     Origem do Conteúdo da IA
@@ -1303,6 +1410,7 @@ export default function QuestoesPage() {
                     </button>
                   </div>
                 </div>
+
                 <div className="animate-in fade-in slide-in-from-top-1 duration-200">
                   {fonteConteudo === "banca" && (
                     <p className="text-[11px] text-slate-500 bg-slate-950/40 border border-slate-900 rounded-xl p-3">
@@ -1326,6 +1434,7 @@ export default function QuestoesPage() {
                     </div>
                   )}
                 </div>
+
                 <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
                   <label className="text-slate-400 font-semibold uppercase tracking-wider block">
                     Nível de Dificuldade
@@ -1344,6 +1453,7 @@ export default function QuestoesPage() {
                     ))}
                   </div>
                 </div>
+
                 <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
                   <label className="text-slate-400 font-semibold uppercase tracking-wider block">
                     Volume do Simulado
@@ -1362,6 +1472,7 @@ export default function QuestoesPage() {
                     ))}
                   </div>
                 </div>
+
                 <button
                   type="submit"
                   disabled={isGenerating}
@@ -1385,7 +1496,7 @@ export default function QuestoesPage() {
         )}
       </div>
 
-      {/* ================= MODAL 3: DIAGNÓSTICO COGNITIVO FINAL (1) ================= */}
+      {/* ================= MODAL 3: DIAGNÓSTICO COGNITIVO FINAL ================= */}
       {showCompletionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-[#090d16] border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative text-center space-y-5 animate-in zoom-in-95 duration-200">
