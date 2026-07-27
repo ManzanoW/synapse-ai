@@ -1314,6 +1314,7 @@ export default function QuestoesPage() {
                       <option value="Cebraspe">Cebraspe</option>
                       <option value="FGV">FGV</option>
                       <option value="FCC">FCC</option>
+                      <option value="IBAM">IBAM</option>
                       <option value="Vunesp">Vunesp</option>
                     </select>
                   </div>
