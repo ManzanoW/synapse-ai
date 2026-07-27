@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useSidebar } from "@/lib/sidebar-context";
-import LogoutModal from "@/components/logout/logout-modal"; // Import do modal
+import LogoutModal from "@/components/logout/logout-modal";
 import {
   Sparkles,
   Layers,
@@ -127,7 +127,13 @@ export default function Sidebar({ user }: SidebarProps) {
           <nav className="px-1 space-y-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+
+              // Lógica de rota ativa compatível com sub-rotas (ex: /flashcards/decks)
+              const isActive =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
 
               return (
                 <Link

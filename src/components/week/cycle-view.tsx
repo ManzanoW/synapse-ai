@@ -5,7 +5,6 @@ import {
   Play,
   CheckCircle2,
   ChevronDown,
-  ChevronUp,
   RotateCcw,
   Clock,
   Sparkles,
@@ -135,7 +134,7 @@ export function CycleView({
       {/* 1. PAINEL DE TELEMETRIA SUPERIOR (DASHBOARD COCKPIT) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* CARD DE PROGRESSO DA VOLTA */}
-        <div className="lg:col-span-2 bg-gradient-to-br from-slate-900/90 via-slate-950 to-indigo-950/40 border border-slate-800/80 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-linear-to-br from-slate-900/90 via-slate-950 to-indigo-950/40 border border-slate-800/80 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between">
           <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
@@ -190,7 +189,7 @@ export function CycleView({
 
             <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800/80">
               <div
-                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-700 ease-out shadow-[0_0_15px_rgba(99,102,241,0.6)]"
+                className="h-full bg-linear-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-700 ease-out shadow-[0_0_15px_rgba(99,102,241,0.6)]"
                 style={{ width: `${currentProgress}%` }}
               />
             </div>
@@ -310,7 +309,7 @@ export function CycleView({
           </div>
 
           <div
-            className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-2 border-indigo-500/80 rounded-3xl p-6 sm:p-8 shadow-[0_0_40px_rgba(99,102,241,0.25)] relative overflow-hidden transition-all group"
+            className="bg-linear-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-2 border-indigo-500/80 rounded-3xl p-6 sm:p-8 shadow-[0_0_40px_rgba(99,102,241,0.25)] relative overflow-hidden transition-all group"
             style={{
               borderColor: currentBlock.color,
               boxShadow: `0 0 30px ${currentBlock.color}25`,
@@ -378,7 +377,7 @@ export function CycleView({
               <div className="shrink-0 flex flex-col items-stretch lg:items-end justify-center pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-800/80">
                 <button
                   onClick={() => handleStartSession(currentBlock)}
-                  className="group/btn relative inline-flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-sm px-8 py-4 rounded-2xl transition-all shadow-xl shadow-indigo-600/30 hover:scale-[1.03] active:scale-95"
+                  className="group/btn relative inline-flex items-center justify-center gap-3 bg-linear-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-sm px-8 py-4 rounded-2xl transition-all shadow-xl shadow-indigo-600/30 hover:scale-[1.03] active:scale-95"
                 >
                   <Play
                     size={18}
@@ -442,7 +441,7 @@ export function CycleView({
                     <span className="text-xs font-mono font-bold text-slate-500">
                       #{block.blockNumber}
                     </span>
-                    <span className="text-xs font-bold text-white truncate max-w-[160px]">
+                    <span className="text-xs font-bold text-white truncate max-w-40">
                       {block.subjectName}
                     </span>
                   </div>

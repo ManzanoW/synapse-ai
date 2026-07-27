@@ -570,7 +570,7 @@ export default function QuestoesPage() {
 
             <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/60">
               <div
-                className="bg-gradient-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-500 rounded-full"
+                className="bg-linear-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-500 rounded-full"
                 style={{
                   width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%`,
                 }}
@@ -1500,7 +1500,7 @@ export default function QuestoesPage() {
       {showCompletionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-[#090d16] border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative text-center space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-indigo-500/20 to-emerald-500/20 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400 shadow-inner">
+            <div className="w-16 h-16 rounded-full bg-linear-to-tr from-indigo-500/20 to-emerald-500/20 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400 shadow-inner">
               <Trophy size={32} className="text-amber-400" />
             </div>
 

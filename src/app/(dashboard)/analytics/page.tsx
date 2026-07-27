@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useSidebar } from "@/lib/sidebar-context";
 import {
   Menu,
@@ -11,6 +12,11 @@ import {
   Loader2,
   AlertTriangle,
   Activity,
+  Flame,
+  ArrowRight,
+  Zap,
+  Sparkles,
+  Brain,
 } from "lucide-react";
 
 interface AnalyticsData {
@@ -35,6 +41,11 @@ export default function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const currentDayName = new Date()
+    .toLocaleDateString("pt-BR", { weekday: "short" })
+    .substring(0, 3)
+    .toUpperCase();
+
   useEffect(() => {
     async function fetchAnalytics() {
       try {
@@ -56,8 +67,8 @@ export default function AnalyticsPage() {
     return (
       <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col items-center justify-center gap-3">
         <Loader2 size={32} className="animate-spin text-indigo-500" />
-        <span className="text-sm text-slate-400 font-medium">
-          Processando métricas de retenção...
+        <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
+          Carregando métricas de retenção...
         </span>
       </div>
     );
@@ -66,7 +77,9 @@ export default function AnalyticsPage() {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col items-center justify-center gap-3 p-4 text-center">
-        <AlertTriangle size={40} className="text-rose-500 animate-pulse" />
+        <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-500">
+          <AlertTriangle size={36} className="animate-bounce" />
+        </div>
         <h3 className="text-lg font-bold">Ops! Algo deu errado</h3>
         <p className="text-sm text-slate-400 max-w-sm">
           {error || "Não foi possível carregar o painel."}
@@ -75,184 +88,256 @@ export default function AnalyticsPage() {
     );
   }
 
+  const totalSummary =
+    data.performanceSummary.bom +
+    data.performanceSummary.dificil +
+    data.performanceSummary.errei;
+
+  const maxChartQty = Math.max(
+    ...data.chartDistribution.map((d) => d.quantidade),
+    1,
+  );
+
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased">
-      <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="relative min-h-screen bg-[#030712] text-slate-100 p-4 md:p-8 font-sans antialiased select-none overflow-hidden">
+      {/* ================= EFETUANDO NEON AMBIENCE GLOW DE FUNDO ================= */}
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/3 right-10 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[130px] pointer-events-none" />
+
+      <div className="relative z-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
         {/* ================= HEADER ================= */}
-        <div className="flex items-center gap-3 border-b border-slate-900 pb-5">
+        <div className="flex items-center gap-3">
           <button
             onClick={openSidebar}
-            className="p-2 bg-[#090d16] border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 md:hidden transition-colors"
+            className="p-2.5 bg-slate-900/80 border border-white/10 rounded-2xl text-slate-400 hover:text-white md:hidden transition-all active:scale-95"
           >
             <Menu size={20} />
           </button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <BarChart3 size={24} className="text-indigo-400" />
-              Desempenho & Analytics
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-linear-to-r from-indigo-500/15 to-purple-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-semibold shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+              <Activity size={13} className="text-indigo-400" />
+              <span>Analytics & Métricas</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
+              <BarChart3
+                size={32}
+                className="text-indigo-400 drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]"
+              />
+              Desempenho
             </h1>
-            <p className="text-sm text-slate-400 mt-0.5">
-              Acompanhe a sua evolução e a força da sua memória no tempo.
+            <p className="text-slate-400 text-xs md:text-sm">
+              Acompanhe a sua evolução contínua e a força da sua memória no
+              tempo.
             </p>
           </div>
         </div>
 
-        {/* Alerta de Matérias Pendentes */}
-        {data.metrics.materiasPendentes > 0 && (
-          <div className="bg-indigo-600/10 border border-indigo-500/30 rounded-2xl p-4 flex items-center justify-between animate-pulse">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-600 rounded-lg">
-                <Calendar size={18} className="text-white" />
+        {/* ================= BANNER DE AÇÃO (REVISÃO PENDENTE) ================= */}
+        {data.metrics.materiasPendentes > 0 ? (
+          <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-950/70 via-indigo-900/40 to-slate-950/80 border border-indigo-500/40 p-6 shadow-[0_0_50px_-12px_rgba(99,102,241,0.35)] backdrop-blur-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group hover:border-indigo-500/60 transition-all">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-indigo-400/60 to-transparent" />
+            <div className="absolute -right-10 -bottom-10 w-56 h-56 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="w-13 h-13 rounded-2xl bg-indigo-500/20 border border-indigo-500/50 text-indigo-300 flex items-center justify-center shrink-0 shadow-[0_0_25px_rgba(99,102,241,0.4)]">
+                <Flame size={24} className="text-indigo-400 animate-pulse" />
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-indigo-300">
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
                   Revisão Pendente
+                  <span className="px-2.5 py-0.5 rounded-full bg-indigo-500 text-white text-[10px] font-black shadow-[0_0_12px_rgba(99,102,241,0.6)]">
+                    {data.metrics.materiasPendentes}
+                  </span>
                 </h3>
-                <p className="text-xs text-indigo-400/80">
+                <p className="text-slate-300 text-xs">
                   Você tem {data.metrics.materiasPendentes} matérias que
-                  venceram hoje.
+                  venceram hoje na sua curva de repetição.
                 </p>
               </div>
             </div>
-            <a
+
+            <Link
               href="/planner"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all"
+              className="relative z-10 inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-[0_0_25px_rgba(99,102,241,0.5)] hover:shadow-[0_0_35px_rgba(99,102,241,0.7)] active:scale-95 shrink-0"
             >
-              Ir para o Planner
-            </a>
+              <span>Ir para o Planner</span>
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+        ) : (
+          <div className="relative overflow-hidden rounded-3xl bg-slate-900/40 border border-white/10 p-6 backdrop-blur-2xl flex items-center justify-between shadow-2xl">
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(16,185,129,0.25)]">
+                <Sparkles size={22} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">
+                  Tudo em dia por aqui!
+                </h3>
+                <p className="text-slate-400 text-xs">
+                  Você não possui nenhuma revisão acumulada para hoje.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* ================= CARDS DE MÉTRICAS INDICES COGNITIVOS ================= */}
+        {/* ================= CARDS DE MÉTRICAS (KPIS) ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Retenção Estimada */}
-          <div className="bg-[#090d16] border border-slate-800/60 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Retenção Estimada
-                </span>
-                <span className="text-3xl font-black text-emerald-400 block font-mono">
-                  {data.metrics.estimatedRetention}
-                </span>
-              </div>
-              <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl">
+          <div className="relative group overflow-hidden bg-slate-900/40 border border-white/10 hover:border-emerald-500/50 rounded-3xl p-6 backdrop-blur-2xl transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.25)] hover:-translate-y-0.5">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-emerald-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                Retenção Estimada
+              </span>
+              <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                 <TrendingUp size={18} />
               </div>
             </div>
-            <p className="text-[11px] text-slate-500 mt-3">
-              Probabilidade atual de lembrar dos tópicos estudados.
-            </p>
+            <div className="space-y-1">
+              <div className="text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-emerald-300 to-emerald-500 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">
+                {data.metrics.estimatedRetention}
+              </div>
+              <p className="text-slate-400 text-[11px]">
+                Probabilidade atual de lembrar dos tópicos.
+              </p>
+            </div>
           </div>
 
-          {/* Card 2: Grau de Domínio (Traduzido do Fator SM-2) */}
-          <div className="bg-[#090d16] border border-slate-800/60 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Grau de Domínio
-                </span>
-                <span className="text-3xl font-black text-indigo-400 block font-mono">
-                  {data.metrics.avgEasiness
-                    ? ((data.metrics.avgEasiness / 2.5) * 10).toFixed(1)
-                    : "10"}
-                  <span className="text-xs text-slate-500 font-normal">
-                    {" "}
-                    / 10
-                  </span>
-                </span>
-              </div>
-              <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
+          {/* Card 2: Grau de Domínio */}
+          <div className="relative group overflow-hidden bg-slate-900/40 border border-white/10 hover:border-indigo-500/50 rounded-3xl p-6 backdrop-blur-2xl transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(99,102,241,0.25)] hover:-translate-y-0.5">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-indigo-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                Grau de Domínio
+              </span>
+              <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
                 <Activity size={18} />
               </div>
             </div>
-            <p className="text-[11px] text-slate-500 mt-3">
-              Média de facilidade e familiaridade com os temas estudados.
-            </p>
-          </div>
-
-          {/* Card 3: Revisões Feitas */}
-          <div className="bg-[#090d16] border border-slate-800/60 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Revisões Realizadas
-                </span>
-                <span className="text-3xl font-black text-slate-100 block font-mono">
-                  {data.metrics.completedReviews}
+            <div className="space-y-1">
+              <div className="text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-indigo-300 to-indigo-500 font-mono tracking-tight flex items-baseline gap-1 drop-shadow-[0_0_15px_rgba(129,140,248,0.3)]">
+                {data.metrics.avgEasiness
+                  ? ((data.metrics.avgEasiness / 2.5) * 10).toFixed(1)
+                  : "10.0"}
+                <span className="text-xs font-semibold text-slate-500 font-sans">
+                  / 10
                 </span>
               </div>
-              <div className="p-2.5 bg-purple-500/10 text-purple-400 rounded-xl">
+              <p className="text-slate-400 text-[11px]">
+                Média de facilidade e familiaridade.
+              </p>
+            </div>
+          </div>
+
+          {/* Card 3: Revisões Realizadas */}
+          <div className="relative group overflow-hidden bg-slate-900/40 border border-white/10 hover:border-purple-500/50 rounded-3xl p-6 backdrop-blur-2xl transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(168,85,247,0.25)] hover:-translate-y-0.5">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-purple-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                Revisões Realizadas
+              </span>
+              <div className="p-2.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
                 <CheckSquare size={18} />
               </div>
             </div>
-            <p className="text-[11px] text-slate-500 mt-3">
-              Total de sessões de repetição espaçada concluídas.
-            </p>
+            <div className="space-y-1">
+              <div className="text-4xl font-black text-white font-mono tracking-tight">
+                {data.metrics.completedReviews}
+              </div>
+              <p className="text-slate-400 text-[11px]">
+                Sessões de repetição concluídas.
+              </p>
+            </div>
           </div>
 
-          {/* Card 4: Tópicos Mapeados */}
-          <div className="bg-[#090d16] border border-slate-800/60 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Tópicos no Edital
-                </span>
-                <span className="text-3xl font-black text-amber-400 block font-mono">
-                  {data.metrics.totalTopics}
-                </span>
-              </div>
-              <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl">
+          {/* Card 4: Tópicos no Edital */}
+          <div className="relative group overflow-hidden bg-slate-900/40 border border-white/10 hover:border-amber-500/50 rounded-3xl p-6 backdrop-blur-2xl transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(245,158,11,0.25)] hover:-translate-y-0.5">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-amber-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                Tópicos no Edital
+              </span>
+              <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                 <Calendar size={18} />
               </div>
             </div>
-            <p className="text-[11px] text-slate-500 mt-3">
-              Assuntos cadastrados na sua esteira de planejamento.
-            </p>
+            <div className="space-y-1">
+              <div className="text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-amber-300 to-amber-500 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
+                {data.metrics.totalTopics}
+              </div>
+              <p className="text-slate-400 text-[11px]">
+                Assuntos na esteira de planejamento.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* ================= SEÇÃO DOS GRÁFICOS NATIVOS TAILWIND ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Gráfico 1: Distribuição de Carga das Próximas Revisões */}
-          <div className="lg:col-span-7 bg-[#090d16] border border-slate-800/60 rounded-2xl p-5 shadow-lg space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-200">
-                Carga de Revisão da Semana
-              </h3>
-              <p className="text-xs text-slate-400">
-                Quantidade de assuntos que vão expirar na curva de esquecimento
-                a cada dia.
-              </p>
+        {/* ================= GRÁFICOS PRINCIPAIS ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          {/* Gráfico 1: Carga de Revisão */}
+          <div className="lg:col-span-7 bg-slate-900/40 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-white tracking-tight">
+                  Carga de Revisão da Semana
+                </h3>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Assuntos previstos para expirar na curva de esquecimento.
+                </p>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold shadow-[0_0_10px_rgba(99,102,241,0.15)]">
+                <Zap size={13} className="text-indigo-400" />
+                <span>Semana Atual</span>
+              </div>
             </div>
 
-            <div className="flex h-48 items-end gap-3 pt-6 px-2 justify-between">
+            <div className="h-60 w-full flex items-end justify-between gap-2 md:gap-4 pt-8 px-2">
               {data.chartDistribution.map((item, idx) => {
-                const maxQty = Math.max(
-                  ...data.chartDistribution.map((d) => d.quantidade),
-                  1,
-                );
-                const heightPercent = `${(item.quantidade / maxQty) * 100}%`;
+                const heightPercent = `${(item.quantidade / maxChartQty) * 100}%`;
+                const isToday = item.day.toUpperCase() === currentDayName;
 
                 return (
                   <div
                     key={idx}
-                    className="flex-1 flex flex-col items-center gap-2 h-full justify-end group"
+                    className="flex-1 flex flex-col items-center gap-2.5 h-full justify-end group cursor-pointer"
                   >
-                    <div className="relative w-full flex justify-center">
-                      <span className="absolute -top-6 text-[10px] font-mono font-bold text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 shadow-md">
-                        {item.quantidade}
-                      </span>
-                    </div>
+                    {/* Tooltip Hover */}
+                    <span className="opacity-0 group-hover:opacity-100 transition-all duration-200 text-[10px] font-bold text-indigo-200 bg-indigo-950/90 border border-indigo-500/40 px-2 py-0.5 rounded-md shadow-xl pointer-events-none">
+                      {item.quantidade}
+                    </span>
+
+                    {/* Container da Barra estilo Cápsula Cyber */}
                     <div
-                      style={{ height: heightPercent }}
-                      className={`w-full max-w-10 rounded-t-lg transition-all duration-500 ${
-                        item.quantidade > 0
-                          ? "bg-linear-to-t from-indigo-600 to-purple-500 shadow-lg shadow-indigo-950/40 group-hover:from-indigo-500 group-hover:to-pink-500"
-                          : "bg-slate-950 border border-slate-900 h-1!"
+                      className={`w-full max-w-11 bg-slate-950/80 rounded-2xl h-full flex items-end overflow-hidden p-1 border transition-all ${
+                        isToday
+                          ? "border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.35)] bg-indigo-950/30"
+                          : "border-white/5 group-hover:border-white/20"
                       }`}
-                    />
-                    <span className="text-[10px] text-slate-500 font-medium uppercase mt-1">
+                    >
+                      <div
+                        style={{
+                          height: item.quantidade > 0 ? heightPercent : "8%",
+                        }}
+                        className={`w-full rounded-xl transition-all duration-700 ${
+                          item.quantidade > 0
+                            ? "bg-linear-to-t from-indigo-600 via-purple-500 to-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.5)] group-hover:brightness-125"
+                            : "bg-slate-800/40"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Rótulo do Dia */}
+                    <span
+                      className={`text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                        isToday
+                          ? "text-indigo-400 font-black drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]"
+                          : "text-slate-500 group-hover:text-slate-300"
+                      }`}
+                    >
                       {item.day}
                     </span>
                   </div>
@@ -261,56 +346,63 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Gráfico 2: Perfil de Resposta Histórico */}
-          <div className="lg:col-span-5 bg-[#090d16] border border-slate-800/60 rounded-2xl p-5 shadow-lg flex flex-col justify-between space-y-4">
+          {/* Gráfico 2: Qualidade da Memorização */}
+          <div className="lg:col-span-5 bg-slate-900/40 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-purple-500/30 to-transparent" />
+
             <div>
-              <h3 className="text-sm font-semibold text-slate-200">
+              <h3 className="text-lg font-bold text-white tracking-tight">
                 Qualidade da Memorização
               </h3>
-              <p className="text-xs text-slate-400">
-                Distribuição dos feedbacks dados nas últimas 10 revisões.
+              <p className="text-slate-400 text-xs mt-0.5">
+                Distribuição dos feedbacks acumulados.
               </p>
             </div>
 
-            <div className="space-y-4 py-2 flex-1 flex flex-col justify-center">
+            {/* Lista de Barras de Progresso */}
+            <div className="space-y-6 my-auto">
               {[
                 {
                   label: "🚀 Excelente (Bom)",
                   value: data.performanceSummary.bom,
-                  color: "bg-emerald-500",
-                  text: "text-emerald-400",
+                  barColor: "bg-emerald-500 shadow-[0_0_12px_#10b981]",
+                  textColor: "text-emerald-400",
                 },
                 {
                   label: "⚠️ Regular (Difícil)",
                   value: data.performanceSummary.dificil,
-                  color: "bg-amber-500",
-                  text: "text-amber-400",
+                  barColor: "bg-amber-500 shadow-[0_0_12px_#f59e0b]",
+                  textColor: "text-amber-400",
                 },
                 {
                   label: "💥 Crítico (Errei)",
                   value: data.performanceSummary.errei,
-                  color: "bg-rose-500",
-                  text: "text-rose-400",
+                  barColor: "bg-rose-500 shadow-[0_0_12px_#f43f5e]",
+                  textColor: "text-rose-400",
                 },
               ].map((item, idx) => {
-                const total =
-                  data.performanceSummary.bom +
-                    data.performanceSummary.dificil +
-                    data.performanceSummary.errei || 1;
-                const barWidth = `${(item.value / total) * 100}%`;
+                const percentage =
+                  totalSummary > 0
+                    ? Math.round((item.value / totalSummary) * 100)
+                    : 0;
 
                 return (
-                  <div key={idx} className="space-y-1.5">
-                    <div className="flex justify-between items-center text-xs font-medium">
-                      <span className="text-slate-300">{item.label}</span>
-                      <span className={`font-mono font-bold ${item.text}`}>
-                        {item.value}x
+                  <div key={idx} className="space-y-2">
+                    <div className="flex justify-between items-center text-xs font-semibold">
+                      <span className="text-slate-200">{item.label}</span>
+                      <span className={`font-mono font-bold ${item.textColor}`}>
+                        {item.value}x{" "}
+                        <span className="text-[10px] text-slate-500 font-sans font-normal">
+                          ({percentage}%)
+                        </span>
                       </span>
                     </div>
-                    <div className="h-2 w-full bg-slate-950 border border-slate-900 rounded-full overflow-hidden p-0.5">
+                    <div className="h-2.5 w-full bg-slate-950/90 rounded-full overflow-hidden border border-white/5 p-0.5">
                       <div
-                        style={{ width: barWidth }}
-                        className={`h-full ${item.color} rounded-full transition-all duration-500`}
+                        style={{ width: `${percentage > 0 ? percentage : 2}%` }}
+                        className={`h-full ${
+                          percentage > 0 ? item.barColor : "bg-slate-800/50"
+                        } rounded-full transition-all duration-700`}
                       />
                     </div>
                   </div>
@@ -318,10 +410,25 @@ export default function AnalyticsPage() {
               })}
             </div>
 
-            <p className="text-[10px] text-slate-500 text-center leading-relaxed">
-              Dica do Synapse: Se a barra de itens <b>Críticos</b> crescer,
-              cogite quebrar a matéria em tópicos menores.
-            </p>
+            {/* Dica da IA - Card Neon Destacado */}
+            <div className="mt-6 relative overflow-hidden p-3 rounded-2xl bg-linear-to-r from-indigo-950/60 via-indigo-900/30 to-slate-950/80 border border-indigo-500/40 shadow-[0_0_30px_-5px_rgba(99,102,241,0.25)] backdrop-blur-2xl flex items-center gap-4 transition-all hover:border-indigo-500/60">
+              <div className="w-11 h-11 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center shrink-0 shadow-[0_0_18px_rgba(99,102,241,0.35)]">
+                <Brain size={22} className="text-indigo-400" />
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase text-indigo-300 tracking-widest block drop-shadow-[0_0_10px_rgba(129,140,248,0.6)]">
+                  Insight Synapse AI
+                </span>
+                <p className="text-xs text-slate-200 leading-snug">
+                  Se os itens{" "}
+                  <strong className="text-rose-400 font-bold drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]">
+                    Críticos
+                  </strong>{" "}
+                  crescerem, cogite fragmentar a matéria em tópicos menores.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

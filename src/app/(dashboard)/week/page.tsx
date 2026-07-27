@@ -16,8 +16,6 @@ import {
   BookOpen,
   Target,
   Flame,
-  Zap,
-  ChevronRight,
   TrendingUp,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
@@ -504,9 +502,9 @@ export default function WeekPage() {
                   <button
                     key={day.dayIndex}
                     onClick={() => setSelectedDayIndex(day.dayIndex)}
-                    className={`flex flex-col items-start min-w-[140px] p-3.5 rounded-2xl border transition-all duration-300 relative text-left shrink-0 ${
+                    className={`flex flex-col items-start min-w-35 p-3.5 rounded-2xl border transition-all duration-300 relative text-left shrink-0 ${
                       isSelected
-                        ? "bg-gradient-to-b from-indigo-950/80 to-slate-900 border-indigo-500/80 shadow-[0_0_20px_rgba(99,102,241,0.25)] scale-[1.02]"
+                        ? "bg-linear-to-b from-indigo-950/80 to-slate-900 border-indigo-500/80 shadow-[0_0_20px_rgba(99,102,241,0.25)] scale-[1.02]"
                         : "bg-slate-900/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/70"
                     }`}
                   >
@@ -545,7 +543,7 @@ export default function WeekPage() {
               {/* PAINEL ESQUERDO: DIA SELECIONADO EM DESTAQUE */}
               <div className="lg:col-span-2 space-y-6">
                 {activeDaySchedule && (
-                  <div className="bg-gradient-to-br from-slate-900/90 via-slate-950 to-indigo-950/30 border border-slate-800/80 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                  <div className="bg-linear-to-br from-slate-900/90 via-slate-950 to-indigo-950/30 border border-slate-800/80 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
                     {/* Header do Dia em Destaque */}
