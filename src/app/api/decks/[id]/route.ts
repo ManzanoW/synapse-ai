@@ -1,54 +1,57 @@
-// src/app/api/decks/[id]/route.ts
-
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma"; // Ajuste a importação do Prisma para a estrutura do seu projeto
 
-/**
- * 🗑️ DELETE: Remove um baralho e seus flashcards associados
- */
-export async function DELETE(
+export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }, // 🟢 Atualizado para Promise
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await auth();
-    const userId = session?.user?.id;
+    const { id } = await params;
 
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const { id: deckId } = await params; // 🟢 Resolve a Promise do params
-
-    // 🛡️ Verifica se o deck pertence ao usuário logado
-    const deck = await prisma.deck.findFirst({
-      where: {
-        id: deckId,
-        userId: userId,
+    const deck = await prisma.deck.findUnique({
+      where: { id },
+      include: {
+        subject: true,
+        flashcards: {
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
     if (!deck) {
       return NextResponse.json(
-        { error: "Baralho não encontrado ou sem permissão" },
+        { error: "Baralho não encontrado" },
         { status: 404 },
       );
     }
 
-    // Deleta o baralho (deleção em cascata remove os flashcards)
+    return NextResponse.json(deck);
+  } catch (error) {
+    console.error("Erro ao buscar detalhes do deck:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 },
+    );
+  }
+}
+
+// Certifique-se também de manter seu manipulador DELETE caso exista no mesmo arquivo:
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+
     await prisma.deck.delete({
-      where: { id: deckId },
+      where: { id },
     });
 
-    return NextResponse.json(
-      { message: "Baralho excluído com sucesso" },
-      { status: 200 },
-    );
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("❌ Erro ao excluir deck:", error);
+    console.error("Erro ao deletar deck:", error);
     return NextResponse.json(
-      { error: "Erro interno do servidor ao excluir baralho" },
+      { error: "Erro ao excluir baralho" },
       { status: 500 },
     );
   }

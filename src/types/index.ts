@@ -26,12 +26,26 @@ export interface DashboardSubject extends Subject {
 
 export interface Flashcard {
   id: string;
-  question: string;
-  answer: string;
-  details: string | null;
-  topicId: string;
-  topicTitle: string;
-  subjectName: string;
+
+  // Suporte à nova estrutura por Decks / SM-2
+  front?: string;
+  back?: string;
+  deckId?: string;
+  interval?: number;
+  repetitions?: number;
+  easeFactor?: number;
+  dueDate?: string | Date;
+
+  // Suporte ao formato legado / baseado em Tópicos
+  question?: string;
+  answer?: string;
+  details?: string | null;
+  topicId?: string;
+  topicTitle?: string;
+  subjectName?: string;
+
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export interface Topic {
@@ -85,14 +99,19 @@ export interface FlashcardRaw {
 export interface Deck {
   id: string;
   title: string;
-  color: string;
-  // 🟢 RELACIONAMENTO ATUALIZADO:
+  color?: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  subjectId?: string | null;
+
   subject?: {
     id?: string;
     name: string;
     color?: string | null;
-  };
-  _count: {
+  } | null;
+
+  flashcards?: Flashcard[];
+  _count?: {
     flashcards: number;
   };
 }

@@ -16,10 +16,13 @@ import confetti from "canvas-confetti";
 
 interface Flashcard {
   id: string;
-  question: string;
-  answer: string;
+  question?: string;
+  answer?: string;
+  front?: string;
+  back?: string;
   details?: string | null;
   topicId?: string | null;
+  deckId?: string | null;
 }
 
 export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
@@ -37,6 +40,19 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
   const currentCard = cards[index];
   const progress = cards.length > 0 ? ((index + 1) / cards.length) * 100 : 0;
 
+  // Lógica defensiva para extrair frente e verso independentemente da nomenclatura do banco
+  const frontText = currentCard
+    ? currentCard.question ||
+      (currentCard as unknown as Record<string, string>).front ||
+      "Sem pergunta"
+    : "";
+
+  const backText = currentCard
+    ? currentCard.answer ||
+      (currentCard as unknown as Record<string, string>).back ||
+      "Sem resposta"
+    : "";
+
   // Processa a nota do SM-2 (Grade 0 a 5) e envia para a API
   const handleAnswer = useCallback(
     async (grade: number) => {
@@ -51,14 +67,16 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
         setPerformanceStats((prev) => ({ ...prev, acertos: prev.acertos + 1 }));
       }
 
-      // Envia a revisão para a rota /api/review
+      // Envia a revisão para a rota /api/review de forma resiliente
       try {
-        const topicIdToSend = currentCard.topicId || currentCard.id;
         await fetch("/api/review", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            topicId: topicIdToSend,
+            cardId: currentCard.id,
+            flashcardId: currentCard.id,
+            topicId:
+              currentCard.topicId || currentCard.deckId || currentCard.id,
             grade,
             source: "FLASHCARD",
           }),
@@ -263,7 +281,7 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
                       className="text-indigo-400/50 mx-auto group-hover:scale-110 transition-transform"
                     />
                     <h2 className="text-xl md:text-2xl font-semibold text-slate-100 leading-relaxed tracking-tight">
-                      {currentCard.question}
+                      {frontText}
                     </h2>
                   </div>
 
@@ -289,7 +307,7 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
 
                   <div className="my-auto space-y-3 max-w-lg overflow-y-auto max-h-50 px-2">
                     <h3 className="text-lg md:text-xl font-semibold text-slate-50 leading-relaxed">
-                      {currentCard.answer}
+                      {backText}
                     </h3>
 
                     {currentCard.details && (
