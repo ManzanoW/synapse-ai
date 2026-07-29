@@ -7,6 +7,9 @@ import { auth } from "@/auth";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+/**
+ * 📥 GET: Lista todos os baralhos do usuário autenticado
+ */
 export async function GET() {
   try {
     const session = await auth();
@@ -29,6 +32,7 @@ export async function GET() {
 
     return NextResponse.json({ data: decks }, { status: 200 });
   } catch (error) {
+    console.error("❌ Erro no GET /api/decks:", error);
     return NextResponse.json(
       { error: "Falha ao buscar decks." },
       { status: 500 },
@@ -36,6 +40,9 @@ export async function GET() {
   }
 }
 
+/**
+ * 📤 POST: Gera um novo baralho com flashcards via IA vinculados ao usuário
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -46,6 +53,13 @@ export async function POST(request: Request) {
     }
 
     const { name, subjectId, topicId, content, color } = await request.json();
+
+    if (!name || !content) {
+      return NextResponse.json(
+        { error: "Nome e conteúdo são obrigatórios." },
+        { status: 400 },
+      );
+    }
 
     const prompt = `
       Você é um especialista em memorização ativa. Gere flashcards baseados neste conteúdo: "${content}".
@@ -58,36 +72,46 @@ export async function POST(request: Request) {
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash-lite",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
 
     const resultText = response.text || '{"flashcards": []}';
-    const data = JSON.parse(resultText) as { flashcards: FlashcardRaw[] };
 
+    let data: { flashcards: FlashcardRaw[] };
+    try {
+      data = JSON.parse(resultText) as { flashcards: FlashcardRaw[] };
+    } catch {
+      data = { flashcards: [] };
+    }
+
+    // Cria o Deck e insere os flashcards atomicamente vinculando ao usuário
     const newDeck = await prisma.deck.create({
       data: {
         title: name,
         color: color || "bg-indigo-500",
-        subjectId: subjectId,
-        userId: userId, // 🔒 Utiliza o ID real da sessão
+        subjectId: subjectId || null,
+        userId: userId, // 🔒 Utiliza o ID da sessão do usuário
         flashcards: {
-          create: data.flashcards.map(
+          create: (data.flashcards || []).map(
             (f): Prisma.FlashcardCreateWithoutDeckInput => ({
               question: f.question,
               answer: f.answer,
-              details: f.details,
+              details: f.details || "",
               topic: topicId ? { connect: { id: topicId } } : undefined,
             }),
           ),
         },
       },
+      include: {
+        _count: { select: { flashcards: true } },
+      },
     });
 
     return NextResponse.json({ data: newDeck }, { status: 201 });
   } catch (error) {
-    console.error("Erro ao criar deck:", error);
+    console.error("❌ Erro ao criar deck:", error);
     return NextResponse.json(
       { error: "Falha ao processar deck." },
       { status: 500 },

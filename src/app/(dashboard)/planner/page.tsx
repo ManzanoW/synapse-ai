@@ -30,7 +30,6 @@ interface Subject {
   };
 }
 
-// 🟢 1. Renomeado para PlannerContent (Onde fica toda a sua lógica)
 function PlannerContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [topics, setTopics] = useState<Topic[]>([]);

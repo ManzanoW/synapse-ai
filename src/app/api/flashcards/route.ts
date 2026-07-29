@@ -2,6 +2,52 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 
+/**
+ * 📥 GET: Lista todos os flashcards do usuário logado (ou filtrados por deckId)
+ */
+export async function GET(request: Request) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const deckId = searchParams.get("deckId");
+
+    // 🛡️ Filtra estritamente apenas os cards pertencentes aos baralhos do usuário logado
+    const cards = await prisma.flashcard.findMany({
+      where: {
+        deck: {
+          userId: userId, // Garante Multi-Tenancy isolado por usuário
+          ...(deckId ? { id: deckId } : {}),
+        },
+      },
+      include: {
+        deck: {
+          select: { id: true, title: true, subjectId: true },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({ data: cards });
+  } catch (error) {
+    console.error("❌ Erro no GET /api/flashcards:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor ao buscar flashcards" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * 📤 POST: Cria um novo flashcard e vincula ao Subject/Deck do usuário logado
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth();

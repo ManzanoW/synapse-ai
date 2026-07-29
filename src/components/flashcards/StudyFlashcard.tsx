@@ -8,6 +8,8 @@ import {
   ArrowLeft,
   RotateCw,
   Sparkles,
+  Zap,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -17,46 +19,91 @@ interface Flashcard {
   question: string;
   answer: string;
   details?: string | null;
+  topicId?: string | null;
 }
 
 export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
   const [index, setIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Métrica visual de acertos para a tela final
+  const [performanceStats, setPerformanceStats] = useState({
+    erros: 0,
+    acertos: 0,
+  });
 
   const currentCard = cards[index];
   const progress = cards.length > 0 ? ((index + 1) / cards.length) * 100 : 0;
 
-  const handleAnswer = useCallback(() => {
-    if (index < cards.length - 1) {
-      setIndex((prev) => prev + 1);
-      setIsFlipped(false);
-    } else {
-      setIsFinished(true);
-      confetti({
-        particleCount: 180,
-        spread: 80,
-        origin: { x: 0.56, y: 0.6 },
-        colors: ["#818cf8", "#c084fc", "#38bdf8", "#ffffff"],
-      });
-    }
-  }, [index, cards.length]);
+  // Processa a nota do SM-2 (Grade 0 a 5) e envia para a API
+  const handleAnswer = useCallback(
+    async (grade: number) => {
+      if (!currentCard || isSubmitting) return;
+
+      setIsSubmitting(true);
+
+      // Atualiza métricas locais para o feedback visual no modal final
+      if (grade < 3) {
+        setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
+      } else {
+        setPerformanceStats((prev) => ({ ...prev, acertos: prev.acertos + 1 }));
+      }
+
+      // Envia a revisão para a rota /api/review
+      try {
+        const topicIdToSend = currentCard.topicId || currentCard.id;
+        await fetch("/api/review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topicId: topicIdToSend,
+            grade,
+            source: "FLASHCARD",
+          }),
+        });
+      } catch (error) {
+        console.error("Erro ao sincronizar revisão SM-2 do flashcard:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
+
+      // Avança para o próximo card ou finaliza o baralho
+      if (index < cards.length - 1) {
+        setIndex((prev) => prev + 1);
+        setIsFlipped(false);
+      } else {
+        setIsFinished(true);
+        confetti({
+          particleCount: 180,
+          spread: 80,
+          origin: { x: 0.56, y: 0.6 },
+          colors: ["#818cf8", "#c084fc", "#38bdf8", "#ffffff"],
+        });
+      }
+    },
+    [index, cards, currentCard, isSubmitting],
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isFinished || !currentCard) return;
+      if (isFinished || !currentCard || isSubmitting) return;
 
       if (e.code === "Space") {
         e.preventDefault();
         setIsFlipped((prev) => !prev);
-      } else if (isFlipped && ["1", "2", "3"].includes(e.key)) {
-        handleAnswer();
+      } else if (isFlipped) {
+        if (e.key === "1") handleAnswer(0); // Errei
+        if (e.key === "2") handleAnswer(3); // Difícil
+        if (e.key === "3") handleAnswer(4); // Bom
+        if (e.key === "4") handleAnswer(5); // Fácil
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFlipped, isFinished, currentCard, handleAnswer]);
+  }, [isFlipped, isFinished, currentCard, isSubmitting, handleAnswer]);
 
   if (!cards || cards.length === 0) {
     return (
@@ -89,9 +136,9 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
     <div className="flex items-center justify-center min-h-[88vh] bg-[#030712] p-4">
       <div className="w-full max-w-2xl p-6 md:p-8 bg-slate-950/70 border border-white/10 rounded-[2.5rem] backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(99,102,241,0.2)] select-none transition-all">
         {isFinished ? (
-          /* --- TELA DE CONCLUSÃO PREMIUM --- */
-          <div className="text-center py-16 space-y-6 animate-fade-in">
-            <div className="relative w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+          /* --- TELA DE CONCLUSÃO PREMIUM COM MÉTRICAS SM-2 --- */
+          <div className="text-center py-12 space-y-6 animate-fade-in">
+            <div className="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-indigo-500/20 blur-xl animate-pulse" />
               <div className="relative w-20 h-20 bg-linear-to-b from-indigo-500/20 to-purple-500/10 border border-indigo-500/30 rounded-full flex items-center justify-center text-indigo-400 shadow-[0_0_25px_rgba(99,102,241,0.3)]">
                 <Check size={38} strokeWidth={2.5} />
@@ -111,12 +158,38 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
               </p>
             </div>
 
-            <div className="pt-4 flex justify-center gap-3">
+            {/* Painel Sintético do Algoritmo SM-2 */}
+            <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto bg-slate-900/60 border border-white/10 p-3.5 rounded-2xl text-center">
+              <div className="border-r border-white/10 pr-2">
+                <span className="block text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                  Retenção Alta
+                </span>
+                <span className="text-base font-bold text-emerald-400 font-mono">
+                  {performanceStats.acertos} cards
+                </span>
+              </div>
+              <div className="pl-2">
+                <span className="block text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                  Para Reorganizar
+                </span>
+                <span className="text-base font-bold text-rose-400 font-mono">
+                  {performanceStats.erros} cards
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-indigo-300/80 bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-2xl max-w-md mx-auto">
+              🧠 <strong>Sinapses Atualizadas:</strong> O algoritmo recalculou o
+              espaçamento das próximas revisões na sua grade semanal!
+            </p>
+
+            <div className="pt-2 flex justify-center gap-3">
               <button
                 onClick={() => {
                   setIndex(0);
                   setIsFlipped(false);
                   setIsFinished(false);
+                  setPerformanceStats({ erros: 0, acertos: 0 });
                 }}
                 className="inline-flex items-center gap-2 px-5 py-3 bg-slate-900/80 hover:bg-slate-800 border border-white/10 text-slate-300 rounded-2xl font-semibold text-xs transition-all active:scale-95"
               >
@@ -233,9 +306,9 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
               </div>
             </div>
 
-            {/* Botões de Ação com Indicadores de Tecla */}
+            {/* Botões de Ação com Indicadores de Tecla e Notas SM-2 */}
             <div
-              className={`grid grid-cols-3 gap-3 transition-all duration-300 ${
+              className={`grid grid-cols-4 gap-2.5 transition-all duration-300 ${
                 isFlipped
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-2 pointer-events-none"
@@ -244,6 +317,7 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
               {[
                 {
                   label: "ERREI",
+                  grade: 0,
                   key: "1",
                   icon: X,
                   style:
@@ -251,6 +325,7 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
                 },
                 {
                   label: "DIFÍCIL",
+                  grade: 3,
                   key: "2",
                   icon: HelpCircle,
                   style:
@@ -258,27 +333,41 @@ export default function StudyFlashcard({ cards }: { cards: Flashcard[] }) {
                 },
                 {
                   label: "BOM",
+                  grade: 4,
                   key: "3",
                   icon: Check,
                   style:
                     "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 text-emerald-400 hover:border-emerald-500/40 shadow-emerald-500/5",
                 },
+                {
+                  label: "FÁCIL",
+                  grade: 5,
+                  key: "4",
+                  icon: Zap,
+                  style:
+                    "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20 text-indigo-400 hover:border-indigo-500/40 shadow-indigo-500/5",
+                },
               ].map((btn) => (
                 <button
                   key={btn.label}
+                  disabled={isSubmitting}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleAnswer();
+                    handleAnswer(btn.grade);
                   }}
-                  className={`group relative flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl border font-bold text-[10px] tracking-widest transition-all active:scale-95 shadow-lg ${btn.style}`}
+                  className={`group relative flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl border font-bold text-[10px] tracking-widest transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${btn.style}`}
                 >
-                  <span className="absolute top-2 right-2.5 px-1.5 py-0.2 rounded bg-black/40 text-[9px] font-mono opacity-60 group-hover:opacity-100 transition-opacity">
+                  <span className="absolute top-2 right-2 px-1.5 py-0.2 rounded bg-black/40 text-[9px] font-mono opacity-60 group-hover:opacity-100 transition-opacity">
                     {btn.key}
                   </span>
-                  <btn.icon
-                    size={16}
-                    className="group-hover:scale-110 transition-transform"
-                  />
+                  {isSubmitting ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <btn.icon
+                      size={16}
+                      className="group-hover:scale-110 transition-transform"
+                    />
+                  )}
                   <span>{btn.label}</span>
                 </button>
               ))}

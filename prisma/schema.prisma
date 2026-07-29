@@ -67,17 +67,18 @@ model VerificationToken {
 }
 
 model Subject {
-  id         String  @id @default(uuid())
-  name       String
-  importance String
-  color      String? @default("#3B82F6")
-  priority   Float   @default(6.3) // Usado como o peso da matéria no cálculo proporcional
+  id          String  @id @default(uuid())
+  name        String
+  importance  String
+  color       String? @default("#3B82F6")
+  priority    Float   @default(6.3) // Peso da matéria no edital (ex: 1.0 a 10.0)
+  assignedDay Int? // Overrided day index (0 = Segunda, 1 = Terça, ..., null = cálculo dinâmico)
 
-  // --- CAMPOS PARA SRS ---
-  lastReviewed DateTime @default(now()) // Quando foi a última vez que você estudou
-  nextReview   DateTime @default(now()) // Quando o sistema deve te cobrar a revisão
-  interval     Int      @default(1) // Quantos dias esperar para a próxima
-  easiness     Float    @default(2.5) // Fator de facilidade (usado no cálculo do SM-2)
+  // --- CAMPOS PARA SRS / SM-2 PONDERADO ---
+  lastReviewed DateTime @default(now())
+  nextReview   DateTime @default(now())
+  interval     Int      @default(1)
+  easiness     Float    @default(2.5)
 
   userId    String
   createdAt DateTime @default(now())
@@ -97,7 +98,7 @@ model Topic {
   flashcards Flashcard[]
   questions  Quiz[]
 
-  // SM-2 Metadados
+  // SM-2 Metadados por Tópico
   firstStudy      String          @default("Pendente")
   performance     Int             @default(0)
   easiness        Float           @default(2.5)
@@ -113,23 +114,25 @@ model Topic {
 model Deck {
   id        String   @id @default(cuid())
   title     String
-  color     String // Para armazenar "bg-blue-500", etc.
+  color     String
   createdAt DateTime @default(now())
 
-  // Relações
   subjectId  String?
   subject    Subject?    @relation(fields: [subjectId], references: [id])
   flashcards Flashcard[]
-  userId     String // Importante para separar os decks de cada estudante
+  userId     String
 }
 
 model Flashcard {
-  id       String  @id @default(cuid())
-  question String
-  answer   String
-  details  String?
-  deckId   String
-  deck     Deck    @relation(fields: [deckId], references: [id])
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  details   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  deckId String
+  deck   Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
 
   topicId String?
   topic   Topic?  @relation(fields: [topicId], references: [id])

@@ -8,6 +8,8 @@ import {
   Search,
   ArrowRight,
   ArrowLeft,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { Deck } from "@/types";
@@ -18,6 +20,7 @@ export default function DecksPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Função defensiva que extrai a lista de baralhos independentemente do formato
   const fetchDecksData = async () => {
@@ -25,9 +28,6 @@ export default function DecksPage() {
       const res = await fetch("/api/decks", { cache: "no-store" });
       const json = await res.json();
 
-      console.log("Resposta da API /api/decks:", json); // Abra o F12 / Console para inspecionar caso necessário
-
-      // Tenta resolver diferentes formatos de resposta de APIs
       if (Array.isArray(json)) return json;
       if (Array.isArray(json.data)) return json.data;
       if (Array.isArray(json.decks)) return json.decks;
@@ -43,6 +43,35 @@ export default function DecksPage() {
   const handleDeckCreated = async () => {
     const data = await fetchDecksData();
     setDecks(data);
+  };
+
+  const handleDeleteDeck = async (deckId: string, deckTitle: string) => {
+    if (
+      !confirm(
+        `Tem certeza que deseja excluir o baralho "${deckTitle}"? Todos os flashcards dele serão apagados.`,
+      )
+    ) {
+      return;
+    }
+
+    setDeletingId(deckId);
+    try {
+      const res = await fetch(`/api/decks/${deckId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Falha ao excluir o baralho.");
+      }
+
+      // Remove da lista local instantaneamente
+      setDecks((prev) => prev.filter((d) => d.id !== deckId));
+    } catch (error) {
+      console.error("Erro ao excluir baralho:", error);
+      alert("Não foi possível excluir o baralho. Tente novamente.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   useEffect(() => {
@@ -75,7 +104,7 @@ export default function DecksPage() {
   }, [decks, searchQuery]);
 
   return (
-    <div className="min-h-screen text-slate-100 p-8 max-w-[1400px] mx-auto space-y-8">
+    <div className="min-h-screen text-slate-100 p-8 max-w-350 mx-auto space-y-8">
       {/* Header com Navegação */}
       <div>
         <Link
@@ -91,7 +120,7 @@ export default function DecksPage() {
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-extrabold tracking-tight bg-linear-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
               Meus Baralhos
             </h1>
             <p className="text-slate-400 text-sm mt-1">
@@ -102,7 +131,7 @@ export default function DecksPage() {
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="group flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 border border-indigo-400/20"
+            className="group flex items-center gap-2 bg-linear-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 border border-indigo-400/20"
           >
             <Plus
               size={18}
@@ -186,6 +215,7 @@ export default function DecksPage() {
           {filteredDecks.map((deck) => {
             const cardCount = deck._count?.flashcards || 0;
             const customColor = deck.color || "bg-indigo-600";
+            const isDeletingThis = deletingId === deck.id;
 
             return (
               <div
@@ -200,9 +230,28 @@ export default function DecksPage() {
                       <Layers size={22} />
                     </div>
 
-                    <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">
-                      {deck.subject?.name || "Geral"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">
+                        {deck.subject?.name || "Geral"}
+                      </span>
+
+                      {/* 🗑️ Botão de Excluir Deck */}
+                      <button
+                        onClick={() => handleDeleteDeck(deck.id, deck.title)}
+                        disabled={isDeletingThis}
+                        title="Excluir baralho"
+                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {isDeletingThis ? (
+                          <Loader2
+                            size={16}
+                            className="animate-spin text-red-400"
+                          />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   <h3 className="text-lg font-bold text-slate-100 line-clamp-1 mb-1 group-hover:text-indigo-300 transition-colors">

@@ -106,6 +106,7 @@ export default function QuestoesPage() {
     Record<number, boolean>
   >({});
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [isSyncingSM2, setIsSyncingSM2] = useState(false);
 
   // ================= ESTADOS DO MODAL IA PREMIUM =================
   const [materia, setMateria] = useState("");
@@ -325,11 +326,52 @@ export default function QuestoesPage() {
   const percentageAcc =
     answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
+  // Sincronização do Quiz finalizado com o Algoritmo SM-2
+  const syncQuizWithSM2 = async (finalAccuracy: number) => {
+    if (!selectedTopicId) return;
+
+    setIsSyncingSM2(true);
+
+    // Mapeia % de acertos do Quiz em Nota SM-2 (Grade 0 a 5)
+    let grade = 1;
+    if (finalAccuracy >= 95) grade = 5;
+    else if (finalAccuracy >= 85) grade = 4;
+    else if (finalAccuracy >= 70) grade = 3;
+    else if (finalAccuracy >= 50) grade = 2;
+
+    try {
+      await fetch("/api/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topicId: selectedTopicId,
+          grade,
+          source: "QUIZ",
+        }),
+      });
+    } catch (err) {
+      console.error("Erro ao sincronizar SM-2 pós-quiz:", err);
+    } finally {
+      setIsSyncingSM2(false);
+    }
+  };
+
   const handleAnswerQuestion = (index: number) => {
     const nextChecked = { ...checkedQuestions, [index]: true };
     setCheckedQuestions(nextChecked);
 
+    // Verifica se respondeu todas as questões
     if (Object.keys(nextChecked).length === totalQuestions) {
+      const finalCorrect = Object.keys(nextChecked).filter(
+        (idxStr) =>
+          selectedAnswers[Number(idxStr)] ===
+          questions[Number(idxStr)]?.gabaritoCorreto,
+      ).length;
+      const finalAcc = Math.round((finalCorrect / totalQuestions) * 100);
+
+      // Dispara a atualização no algoritmo SM-2
+      syncQuizWithSM2(finalAcc);
+
       setTimeout(() => setShowCompletionModal(true), 600);
     }
   };
@@ -486,7 +528,7 @@ export default function QuestoesPage() {
           }),
         }).catch((err) => console.error("Database sync error:", err));
 
-        // 2. 🎯 NOTIFICA A ENGINE DO PLANNER QUE O SIMULADO DESTE TÓPICO FOI GERADO
+        // 2. NOTIFICA A ENGINE DO PLANNER QUE O SIMULADO DESTE TÓPICO FOI GERADO
         if (selectedTopicId) {
           await fetch("/api/planner/complete-suggestion", {
             method: "POST",
@@ -1552,6 +1594,28 @@ export default function QuestoesPage() {
                   ? "Bom rendimento, porém há pontos de atenção. Recomendamos criar Flashcards das questões incorretas para fixação."
                   : "Taxa de retenção abaixo do ideal. Recomendamos revisar a teoria base e praticar novo simulado focado."}
             </p>
+
+            {/* PÍLULA INFORMATIVA DE SINCRONIZAÇÃO DO ALGORITMO SM-2 */}
+            <div className="flex items-center justify-between text-[11px] font-mono bg-slate-950 border border-slate-800/80 px-3.5 py-2.5 rounded-xl text-slate-400 shadow-inner">
+              <span className="flex items-center gap-2">
+                {isSyncingSM2 ? (
+                  <Loader2 size={12} className="animate-spin text-indigo-400" />
+                ) : (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+                  </span>
+                )}
+                Sincronização SM-2:
+              </span>
+              <span className="text-indigo-300 font-bold">
+                {isSyncingSM2
+                  ? "Calculando novo espaçamento..."
+                  : percentageAcc >= 70
+                    ? "Próxima revisão estendida pelo algoritmo 🚀"
+                    : "Revisão priorizada na grade de amanhã ⚠️"}
+              </span>
+            </div>
 
             <div className="flex items-center gap-3 pt-2">
               <button

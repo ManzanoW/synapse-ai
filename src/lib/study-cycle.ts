@@ -11,6 +11,11 @@ export interface SubjectInput {
   name: string;
   priority: number;
   color?: string | null;
+  assignedDay?: number | null;
+  lastReviewed?: Date | string;
+  nextReview?: Date | string;
+  interval?: number;
+  easiness?: number;
   topics?: Topic[];
 }
 
@@ -18,7 +23,7 @@ export interface ScheduledSubject extends SubjectInput {
   weeklyMinutesAllocated: number;
   dailyMinutesAllocated: number;
   percentageOfTotal: number;
-  assignedTopics: Topic[]; // Tópicos alocados para aquele dia
+  assignedTopics: Topic[];
 }
 
 export interface DaySchedule {
@@ -38,6 +43,13 @@ export interface CycleBlock {
   status: "COMPLETED" | "CURRENT" | "PENDING";
 }
 
+export interface SM2UpdateResult {
+  newInterval: number;
+  newEasiness: number;
+  newRepetitions: number;
+  nextReviewDate: Date;
+}
+
 export function formatMinutes(minutes: number): string {
   if (minutes <= 0) return "0m";
   const h = Math.floor(minutes / 60);
@@ -48,7 +60,85 @@ export function formatMinutes(minutes: number): string {
 }
 
 /**
- * MÓDULO 1: Cronograma Semanal (Baseado em dias úteis Seg-Dom)
+ * Função utilitária para calcular o próximo intervalo SM-2 ponderado pelo Peso do Edital
+ */
+export function calculateSM2Interval(
+  currentInterval: number,
+  easinessFactor: number,
+  grade: number, // Nota de 0 a 5
+  subjectPriority: number, // Peso do edital (ex: 1.0 a 10.0)
+): { newInterval: number; newEasiness: Float32Array | number } {
+  let newEasiness =
+    easinessFactor + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
+  if (newEasiness < 1.3) newEasiness = 1.3;
+
+  let baseInterval: number;
+  if (grade < 3) {
+    baseInterval = 1;
+  } else if (currentInterval === 0) {
+    baseInterval = 1;
+  } else if (currentInterval === 1) {
+    baseInterval = 6;
+  } else {
+    baseInterval = Math.round(currentInterval * newEasiness);
+  }
+
+  // Ajuste por prioridade: Matérias de peso maior reduzem o intervalo para aparecer mais vezes
+  const priorityFactor = Math.max(0.4, 2.0 / Math.max(subjectPriority, 0.5));
+  const newInterval = Math.max(1, Math.round(baseInterval * priorityFactor));
+
+  return { newInterval, newEasiness };
+}
+
+export function processSM2Review(
+  currentInterval: number,
+  currentEasiness: number,
+  currentRepetitions: number,
+  grade: number, // 0 a 5
+  subjectPriority: number = 6.3,
+): SM2UpdateResult {
+  // 1. Atualiza Fator de Facilidade (Easiness)
+  let newEasiness =
+    currentEasiness + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
+  if (newEasiness < 1.3) newEasiness = 1.3;
+
+  let newInterval: number;
+  let newRepetitions: number;
+
+  // 2. Se a nota for baixa (< 3), reseta a contagem de repetições (Errou)
+  if (grade < 3) {
+    newRepetitions = 0;
+    newInterval = 1; // Revisa no dia seguinte
+  } else {
+    newRepetitions = currentRepetitions + 1;
+    if (newRepetitions === 1) {
+      newInterval = 1;
+    } else if (newRepetitions === 2) {
+      newInterval = 6;
+    } else {
+      newInterval = Math.round(currentInterval * newEasiness);
+    }
+  }
+
+  // 3. Ajuste Ponderado pelo Peso do Edital (Priority)
+  // Quanto maior o peso, menor o intervalo entre revisões para manter o conteúdo fresco
+  const priorityFactor = Math.max(0.4, 2.0 / Math.max(subjectPriority, 0.5));
+  const finalInterval = Math.max(1, Math.round(newInterval * priorityFactor));
+
+  // 4. Calcula a Próxima Data de Revisão
+  const nextReviewDate = new Date();
+  nextReviewDate.setDate(nextReviewDate.getDate() + finalInterval);
+
+  return {
+    newInterval: finalInterval,
+    newEasiness: Number(newEasiness.toFixed(2)),
+    newRepetitions,
+    nextReviewDate,
+  };
+}
+
+/**
+ * MÓDULO 1: Cronograma Semanal (Respeita AssignedDay e calcula urgência pelo peso/SM-2)
  */
 export function buildWeeklySchedule(
   subjects: SubjectInput[],
@@ -68,10 +158,11 @@ export function buildWeeklySchedule(
     "Sábado",
     "Domingo",
   ];
+
   const totalWeeklyMinutes = weeklyGoalHours * 60;
   const totalPriority = subjects.reduce((acc, s) => acc + (s.priority || 1), 0);
 
-  // 1. Visão Geral da Carga Horária por Matéria (para o Donut/Legenda)
+  // 1. Visão Geral da Carga Horária por Matéria
   const subjectOverview = subjects.map((subject) => {
     const priority = subject.priority || 1;
     const percentage = Math.round((priority / totalPriority) * 100);
@@ -86,7 +177,23 @@ export function buildWeeklySchedule(
     };
   });
 
-  // 2. Rotação de Matérias (Interleaving: 2 a 3 por dia)
+  // 2. Ordenação de urgência SM-2 Ponderada para as matérias dinâmicas
+  const now = new Date().getTime();
+  const sortedDynamicSubjects = [...subjects]
+    .filter((s) => s.assignedDay === null || s.assignedDay === undefined)
+    .sort((a, b) => {
+      const lastA = a.lastReviewed ? new Date(a.lastReviewed).getTime() : 0;
+      const lastB = b.lastReviewed ? new Date(b.lastReviewed).getTime() : 0;
+      const daysSinceA = Math.max(1, (now - lastA) / (1000 * 60 * 60 * 24));
+      const daysSinceB = Math.max(1, (now - lastB) / (1000 * 60 * 60 * 24));
+
+      // Urgência = Peso * (Dias sem estudar / Intervalo)
+      const urgencyA = (a.priority || 1) * (daysSinceA / (a.interval || 1));
+      const urgencyB = (b.priority || 1) * (daysSinceB / (b.interval || 1));
+
+      return urgencyB - urgencyA; // Maior urgência primeiro
+    });
+
   const maxSubjectsPerDay = Math.min(
     3,
     Math.max(2, Math.ceil(subjects.length / 2)),
@@ -95,18 +202,30 @@ export function buildWeeklySchedule(
   const topicPointers: Record<string, number> = {};
   subjects.forEach((s) => (topicPointers[s.id] = 0));
 
-  let globalSubjectIndex = 0;
+  let dynamicSubjectIndex = 0;
   const scheduleByDay: DaySchedule[] = [];
 
   for (let dayIdx = 0; dayIdx < activeDaysPerWeek; dayIdx++) {
     const dayName = daysOfWeek[dayIdx % daysOfWeek.length];
     const daySubjects: ScheduledSubject[] = [];
 
-    const subjectsForToday: SubjectInput[] = [];
-    for (let i = 0; i < maxSubjectsPerDay; i++) {
-      const selectedSubject = subjects[globalSubjectIndex % subjects.length];
-      subjectsForToday.push(selectedSubject);
-      globalSubjectIndex++;
+    // Busca matérias explicitamente fixadas no dia pelo Swap
+    const pinnedSubjects = subjects.filter((s) => s.assignedDay === dayIdx);
+    const subjectsForToday: SubjectInput[] = [...pinnedSubjects];
+
+    // Preenche as vagas restantes do dia com matérias dinâmicas por urgência/peso
+    while (
+      subjectsForToday.length < maxSubjectsPerDay &&
+      sortedDynamicSubjects.length > 0
+    ) {
+      const nextSubject =
+        sortedDynamicSubjects[
+          dynamicSubjectIndex % sortedDynamicSubjects.length
+        ];
+      if (!subjectsForToday.some((s) => s.id === nextSubject.id)) {
+        subjectsForToday.push(nextSubject);
+      }
+      dynamicSubjectIndex++;
     }
 
     const dayTotalMinutes = Math.round(totalWeeklyMinutes / activeDaysPerWeek);
@@ -123,8 +242,6 @@ export function buildWeeklySchedule(
       const overview = subjectOverview.find((s) => s.id === subject.id);
 
       const allTopics = subject.topics || [];
-
-      // FILTRO INTELIGENTE: Dá preferência estrita aos tópicos "Pendente"
       const pendingTopics = allTopics.filter(
         (t) => !t.firstStudy || t.firstStudy === "Pendente",
       );
@@ -132,10 +249,8 @@ export function buildWeeklySchedule(
         (t) => t.firstStudy === "Em Revisão",
       );
 
-      // Se não tem pendentes, usa a fila de revisão como fallback
       const availableTopics =
         pendingTopics.length > 0 ? pendingTopics : reviewTopics;
-
       const assignedTopics: Topic[] = [];
 
       if (availableTopics.length > 0) {
@@ -174,7 +289,7 @@ export function buildWeeklySchedule(
 }
 
 /**
- * MÓDULO 2: Ciclo de Estudos (Fila sequencial contínua de blocos #1, #2, #3...)
+ * MÓDULO 2: Ciclo de Estudos
  */
 export function buildStudyCycleBlocks(
   subjects: SubjectInput[],
@@ -195,7 +310,7 @@ export function buildStudyCycleBlocks(
 
   const totalPriority = subjects.reduce((acc, s) => acc + (s.priority || 1), 0);
   const totalWeeklyMinutes = weeklyGoalHours * 60;
-  const BLOCK_SIZE_MINUTES = 90; // Cada bloco padrão tem 1h30m
+  const BLOCK_SIZE_MINUTES = 90;
 
   const blocks: CycleBlock[] = [];
   let blockCounter = 1;

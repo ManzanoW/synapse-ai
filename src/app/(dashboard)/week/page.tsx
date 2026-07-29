@@ -17,6 +17,8 @@ import {
   Target,
   Flame,
   TrendingUp,
+  ArrowRightLeft,
+  X,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
@@ -102,6 +104,11 @@ export default function WeekPage() {
 
   const [goalHours, setGoalHours] = useState(10);
   const [activeDays, setActiveDays] = useState(5);
+
+  const [swapModalOpen, setSwapModalOpen] = useState(false);
+  const [subjectToSwap, setSubjectToSwap] = useState<ScheduledSubject | null>(
+    null,
+  );
 
   const getSubjectColor = (
     subject: { color?: string | null },
@@ -280,6 +287,35 @@ export default function WeekPage() {
       const json = await res.json();
       if (json.data) setData(json.data);
     }
+  };
+
+  // Função de trocar uma matéria por outra
+  const handleSwapSubjects = (targetSubjectId: string) => {
+    if (!subjectToSwap) return;
+
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/week/swap", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            currentSubjectId: subjectToSwap.id,
+            targetSubjectId,
+          }),
+        });
+
+        if (!res.ok) throw new Error("Erro ao trocar matérias");
+        const json = await res.json();
+
+        if (json.data) {
+          setData(json.data);
+          setSwapModalOpen(false);
+          setSubjectToSwap(null);
+        }
+      } catch (err) {
+        console.error("Erro ao realizar o swap de matérias:", err);
+      }
+    });
   };
 
   // Cálculo de progresso de tópicos concluídos para a visão semanal
@@ -626,9 +662,29 @@ export default function WeekPage() {
                                   </h4>
                                 </div>
 
-                                <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-3 py-1 rounded-xl">
-                                  {formatMinutes(subject.dailyMinutesAllocated)}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  {/* BOTÃO ADIAR / REORGANIZAR */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSubjectToSwap(subject);
+                                      setSwapModalOpen(true);
+                                    }}
+                                    title="Adiar / Trocar por matéria de outro dia"
+                                    className="p-1.5 rounded-lg bg-slate-900/80 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 border border-slate-800/80 transition-all active:scale-95 flex items-center gap-1.5 text-[11px] font-medium"
+                                  >
+                                    <ArrowRightLeft size={13} />
+                                    <span className="hidden sm:inline">
+                                      Adiar
+                                    </span>
+                                  </button>
+
+                                  <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-3 py-1 rounded-xl">
+                                    {formatMinutes(
+                                      subject.dailyMinutesAllocated,
+                                    )}
+                                  </span>
+                                </div>
                               </div>
 
                               {/* Tópicos Alocados */}
@@ -920,6 +976,85 @@ export default function WeekPage() {
                     <span>Aplicar Novo Cronograma</span>
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE ADIAR / REORGANIZAR MATÉRIA */}
+      {swapModalOpen && subjectToSwap && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <ArrowRightLeft size={16} className="text-indigo-400" />
+                  Reorganizar Matéria
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Escolha por qual matéria de outro dia você quer trocar{" "}
+                  <strong className="text-indigo-300">
+                    {subjectToSwap.name}
+                  </strong>{" "}
+                  hoje.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setSwapModalOpen(false);
+                  setSubjectToSwap(null);
+                }}
+                className="text-slate-500 hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
+                Selecione a matéria para puxar para hoje:
+              </span>
+
+              {data?.subjectOverview
+                ?.filter((s) => s.id !== subjectToSwap.id)
+                .map((s, idx) => {
+                  const color = getSubjectColor(s, idx);
+                  return (
+                    <button
+                      key={s.id}
+                      disabled={isPending}
+                      onClick={() => handleSwapSubjects(s.id)}
+                      className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-indigo-500/50 transition-all text-left group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="text-xs font-semibold text-slate-200 group-hover:text-white">
+                          {s.name}
+                        </span>
+                      </div>
+
+                      <span className="text-[10px] font-mono text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
+                        Trocar Hoje →
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+
+            <div className="pt-2 border-t border-slate-800/80 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setSwapModalOpen(false);
+                  setSubjectToSwap(null);
+                }}
+                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+              >
+                Cancelar
               </button>
             </div>
           </div>
