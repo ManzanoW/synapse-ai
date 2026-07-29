@@ -9,7 +9,7 @@ import { auth } from "@/auth";
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -19,7 +19,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const flashcardId = params.id;
+    const { id: flashcardId } = await params;
 
     // 🛡️ Verifica se o flashcard existe e pertence a um deck do usuário logado
     const existingCard = await prisma.flashcard.findFirst({

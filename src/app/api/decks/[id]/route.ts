@@ -1,3 +1,5 @@
+// src/app/api/decks/[id]/route.ts
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
@@ -7,7 +9,7 @@ import { auth } from "@/auth";
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> }, // 🟢 Atualizado para Promise
 ) {
   try {
     const session = await auth();
@@ -17,7 +19,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const deckId = params.id;
+    const { id: deckId } = await params; // 🟢 Resolve a Promise do params
 
     // 🛡️ Verifica se o deck pertence ao usuário logado
     const deck = await prisma.deck.findFirst({
@@ -34,7 +36,7 @@ export async function DELETE(
       );
     }
 
-    // Deleta o baralho (as relações onDelete: Cascade no Prisma cuidam dos flashcards)
+    // Deleta o baralho (deleção em cascata remove os flashcards)
     await prisma.deck.delete({
       where: { id: deckId },
     });
