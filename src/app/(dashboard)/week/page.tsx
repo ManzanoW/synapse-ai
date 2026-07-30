@@ -516,7 +516,8 @@ export default function WeekPage() {
           /* ABA 1: CRONOGRAMA SEMANAL (COMMAND CENTER) */
           <div className="space-y-8 animate-in fade-in duration-300">
             {/* 1. SELETOR DE DIAS DA SEMANA (DAY PIPELINE TABS) */}
-            <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
+            {/* Adicionado 'p-1.5' e 'pt-2' para criar a margem de segurança do scale e das bordas */}
+            <div className="flex items-center gap-3 overflow-x-auto p-1.5 pt-2 pb-3 scrollbar-none">
               {data?.scheduleByDay?.map((day) => {
                 const isSelected = day.dayIndex === selectedDayIndex;
                 const completedCount = day.subjects.reduce(
@@ -538,14 +539,16 @@ export default function WeekPage() {
                   <button
                     key={day.dayIndex}
                     onClick={() => setSelectedDayIndex(day.dayIndex)}
-                    className={`flex flex-col items-start min-w-35 p-3.5 rounded-2xl border transition-all duration-300 relative text-left shrink-0 ${
+                    className={`flex flex-col items-start min-w-35 p-3.5 rounded-2xl border transition-all duration-200 relative text-left shrink-0 ${
                       isSelected
-                        ? "bg-linear-to-b from-indigo-950/80 to-slate-900 border-indigo-500/80 shadow-[0_0_20px_rgba(99,102,241,0.25)] scale-[1.02]"
-                        : "bg-slate-900/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/70"
+                        ? "bg-indigo-950/40 border-indigo-500/80 text-white ring-1 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.15)]"
+                        : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/70 hover:text-slate-200"
                     }`}
                   >
                     <div className="flex items-center justify-between w-full mb-1">
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-300">
+                      <span
+                        className={`text-xs font-black uppercase tracking-wider ${isSelected ? "text-white" : "text-slate-300"}`}
+                      >
                         {day.dayName}
                       </span>
                       {isDayDone && (
@@ -559,7 +562,7 @@ export default function WeekPage() {
 
                     <div className="w-full h-1 bg-slate-950 rounded-full mt-3 overflow-hidden">
                       <div
-                        className="h-full bg-indigo-500 transition-all duration-300"
+                        className={`h-full transition-all duration-300 ${isSelected ? "bg-indigo-400" : "bg-indigo-500/60"}`}
                         style={{
                           width: `${
                             totalCount > 0
