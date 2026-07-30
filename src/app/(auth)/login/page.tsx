@@ -5,9 +5,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#05070a] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white relative overflow-hidden">
       {/* Luzes de Fundo Globais (Cobre a tela inteira, sem divisão seca) */}
-      <div className="absolute inset-0 bg-[radial-gradient(#1e2640_1px,transparent_1px)] [background-size:24px_24px] opacity-25 pointer-events-none" />
-      <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#1e2640_1px,transparent_1px)] bg-size-[24px_24px] opacity-25 pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-5%] w-150 h-150 bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[10%] w-125 h-125 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Coluna Esquerda: Showcase & Visual Power */}
       <div className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden">
@@ -19,7 +19,7 @@ export default function LoginPage() {
             </h1>
 
             <div className="inline-flex items-center gap-1">
-              <span className="font-black text-[1.85rem] tracking-tight bg-gradient-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
+              <span className="font-black text-[1.85rem] tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
                 AI
               </span>
 
@@ -39,11 +39,11 @@ export default function LoginPage() {
         {/* Conteúdo Central: Mini Dashboard & Value Proposition */}
         <div className="relative z-10 my-auto w-full max-w-lg space-y-8">
           {/* Card Principal - Glassmorphic Preview */}
-          <div className="bg-slate-900/40 backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-2xl space-y-5 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+          <div className="bg-slate-900/40 backdrop-blur-xl border border-white/8 p-6 rounded-2xl shadow-2xl space-y-5 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent" />
 
             {/* Header do Card */}
-            <div className="flex items-center justify-between pb-2 border-b border-white/[0.04]">
+            <div className="flex items-center justify-between pb-2 border-b border-white/4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
                   <svg
@@ -76,7 +76,7 @@ export default function LoginPage() {
 
             {/* Métricas ilustrativas */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-black/40 border border-white/[0.04] p-3 rounded-xl">
+              <div className="bg-black/40 border border-white/4 p-3 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block mb-1">
                   Ritmo de Estudo
                 </span>
@@ -84,7 +84,7 @@ export default function LoginPage() {
                   Consistente
                 </span>
               </div>
-              <div className="bg-black/40 border border-white/[0.04] p-3 rounded-xl">
+              <div className="bg-black/40 border border-white/4 p-3 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block mb-1">
                   Organização IA
                 </span>
@@ -107,7 +107,7 @@ export default function LoginPage() {
           <div className="space-y-4 px-1">
             <h2 className="text-2xl font-semibold tracking-tight text-slate-100 leading-snug">
               Sua rotina de estudos estruturada com o poder da{" "}
-              <span className="bg-gradient-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent">
                 Inteligência Artificial
               </span>
               .
@@ -115,10 +115,10 @@ export default function LoginPage() {
 
             {/* Tags da Stack / Filosofia do Produto */}
             <div className="flex items-center gap-3 pt-1">
-              <span className="text-[11px] font-mono bg-white/[0.02] border border-white/[0.06] text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+              <span className="text-[11px] font-mono bg-white/2 border border-white/6 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                 ⚡ Algoritmos Preditivos
               </span>
-              <span className="text-[11px] font-mono bg-white/[0.02] border border-white/[0.06] text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+              <span className="text-[11px] font-mono bg-white/2 border border-white/6 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                 🔒 Foco em Privacidade
               </span>
             </div>
@@ -141,7 +141,7 @@ export default function LoginPage() {
               <h1 className="font-extrabold text-slate-50 text-2xl tracking-tight">
                 Synapse
               </h1>
-              <span className="font-black text-2xl tracking-tight bg-gradient-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent">
+              <span className="font-black text-2xl tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent">
                 AI
               </span>
             </div>
@@ -162,7 +162,7 @@ export default function LoginPage() {
             <form action={loginWithGoogle}>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-3 bg-white/[0.03] hover:bg-white/[0.07] text-slate-200 border border-white/[0.08] hover:border-white/20 font-medium py-3 px-4 rounded-xl transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.99] text-sm"
+                className="w-full flex items-center justify-center gap-3 bg-white/3 hover:bg-white/[0.07] text-slate-200 border border-white/8 hover:border-white/20 font-medium py-3 px-4 rounded-xl transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.99] text-sm"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -189,7 +189,7 @@ export default function LoginPage() {
             <form action={loginWithGithub}>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-3 bg-white/[0.03] hover:bg-white/[0.07] text-slate-200 border border-white/[0.08] hover:border-white/20 font-medium py-3 px-4 rounded-xl transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.99] text-sm"
+                className="w-full flex items-center justify-center gap-3 bg-white/3 hover:bg-white/[0.07] text-slate-200 border border-white/8 hover:border-white/20 font-medium py-3 px-4 rounded-xl transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.99] text-sm"
               >
                 <svg
                   className="w-4 h-4 fill-current text-white"
@@ -203,7 +203,7 @@ export default function LoginPage() {
           </div>
 
           {/* Mensagem de Garantia/Segurança */}
-          <div className="pt-6 border-t border-white/[0.06] text-center lg:text-left space-y-3">
+          <div className="pt-6 border-t border-white/6 text-center lg:text-left space-y-3">
             <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-slate-400">
               <svg
                 className="w-4 h-4 text-emerald-400 shrink-0"
