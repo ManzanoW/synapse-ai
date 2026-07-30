@@ -50,7 +50,10 @@ export default function AnalyticsPage() {
     async function fetchAnalytics() {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/analytics");
+
+        // 🟢 ALTERE AQUI: Aponta para a rota que possui o cálculo atualizado
+        const response = await fetch("/api/analytics/performance");
+
         if (!response.ok) throw new Error("Falha ao carregar estatísticas");
         const json = await response.json();
         setData(json);
@@ -101,8 +104,8 @@ export default function AnalyticsPage() {
   return (
     <div className="relative min-h-screen bg-[#030712] text-slate-100 p-4 md:p-8 font-sans antialiased select-none overflow-hidden">
       {/* ================= EFETUANDO NEON AMBIENCE GLOW DE FUNDO ================= */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-1/3 right-10 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-125 h-125 bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/3 right-10 w-100 h-100 bg-purple-600/10 rounded-full blur-[130px] pointer-events-none" />
 
       <div className="relative z-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
         {/* ================= HEADER ================= */}
@@ -135,7 +138,7 @@ export default function AnalyticsPage() {
         {/* ================= BANNER DE AÇÃO (REVISÃO PENDENTE) ================= */}
         {data.metrics.materiasPendentes > 0 ? (
           <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-950/70 via-indigo-900/40 to-slate-950/80 border border-indigo-500/40 p-6 shadow-[0_0_50px_-12px_rgba(99,102,241,0.35)] backdrop-blur-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group hover:border-indigo-500/60 transition-all">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-indigo-400/60 to-transparent" />
+            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent" />
             <div className="absolute -right-10 -bottom-10 w-56 h-56 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
 
             <div className="flex items-center gap-4 relative z-10">
@@ -186,7 +189,7 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Retenção Estimada */}
           <div className="relative group overflow-hidden bg-slate-900/40 border border-white/10 hover:border-emerald-500/50 rounded-3xl p-6 backdrop-blur-2xl transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.25)] hover:-translate-y-0.5">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-emerald-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-emerald-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex items-center justify-between mb-4">
               <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Retenção Estimada
@@ -207,7 +210,7 @@ export default function AnalyticsPage() {
 
           {/* Card 2: Grau de Domínio */}
           <div className="relative group overflow-hidden bg-slate-900/40 border border-white/10 hover:border-indigo-500/50 rounded-3xl p-6 backdrop-blur-2xl transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(99,102,241,0.25)] hover:-translate-y-0.5">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-indigo-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex items-center justify-between mb-4">
               <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Grau de Domínio
@@ -233,7 +236,7 @@ export default function AnalyticsPage() {
 
           {/* Card 3: Revisões Realizadas */}
           <div className="relative group overflow-hidden bg-slate-900/40 border border-white/10 hover:border-purple-500/50 rounded-3xl p-6 backdrop-blur-2xl transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(168,85,247,0.25)] hover:-translate-y-0.5">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-purple-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-purple-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex items-center justify-between mb-4">
               <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Revisões Realizadas
@@ -254,7 +257,7 @@ export default function AnalyticsPage() {
 
           {/* Card 4: Tópicos no Edital */}
           <div className="relative group overflow-hidden bg-slate-900/40 border border-white/10 hover:border-amber-500/50 rounded-3xl p-6 backdrop-blur-2xl transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(245,158,11,0.25)] hover:-translate-y-0.5">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-amber-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-amber-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex items-center justify-between mb-4">
               <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Tópicos no Edital
@@ -278,7 +281,7 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* Gráfico 1: Carga de Revisão */}
           <div className="lg:col-span-7 bg-slate-900/40 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
+            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
 
             <div className="flex items-center justify-between">
               <div>
@@ -348,7 +351,7 @@ export default function AnalyticsPage() {
 
           {/* Gráfico 2: Qualidade da Memorização */}
           <div className="lg:col-span-5 bg-slate-900/40 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-purple-500/30 to-transparent" />
+            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-purple-500/30 to-transparent" />
 
             <div>
               <h3 className="text-lg font-bold text-white tracking-tight">

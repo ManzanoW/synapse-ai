@@ -27,6 +27,25 @@ import {
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
+// 🟢 INTERFACE PARA RECOMENDAÇÕES DA IA
+interface Suggestion {
+  id: string;
+  title: string;
+  description: string;
+  type: "CRITICAL" | "SUGGESTED" | string;
+  icon?: "brain" | "clipboard" | string;
+  actionType?:
+    | "QUIZ"
+    | "SIMULADO"
+    | "EDITAL"
+    | "PLANNER"
+    | "CARDS"
+    | "FLASHCARDS"
+    | string;
+  topicId?: string;
+  subjectId?: string;
+}
+
 interface DashboardClientProps {
   user: {
     id?: string;
@@ -46,29 +65,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [isLoadingQueue, setIsLoadingQueue] = useState(true);
   const [updatingTopicId, setUpdatingTopicId] = useState<string | null>(null);
 
-  // ⚡ ESTADOS DA IA ADAPTATIVA (FASE 3)
+  // ⚡ ESTADOS DA IA ADAPTATIVA
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
 
-  // Sugestões como ESTADO DINÂMICO
-  const [suggestions, setSuggestions] = useState([
-    {
-      id: "1",
-      title: "Rever Raciocínio Lógico",
-      description:
-        "Sua retenção caiu para 68%. O algoritmo sugere revisar 8 cards.",
-      type: "CRITICAL" as const,
-      icon: "brain" as const,
-    },
-    {
-      id: "2",
-      title: "Fixação Teórica: Português",
-      description:
-        "Você atingiu 82% de precisão em Sintaxe! Desbloqueie o Caderno Avançado.",
-      type: "SUGGESTED" as const,
-      icon: "clipboard" as const,
-    },
-  ]);
+  // 🟢 ESTADO DE SUGESTÕES COM TIPAGEM EXPLÍCITA
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
   // Lista de matérias
   const [subjects, setSubjects] = useState<DashboardSubject[]>([]);
@@ -90,6 +92,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         const resSuggestions = await fetch("/api/planner/rebalance", {
           method: "POST",
         });
+
         if (resSuggestions.ok) {
           const jsonSuggestions = await resSuggestions.json();
           if (jsonSuggestions.suggestions?.length) {
@@ -132,7 +135,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     };
   }, []);
 
-  // Função helper para recarregar as sugestões da IA
+  // Helper para recarregar sugestões da IA
   const fetchSuggestions = async () => {
     try {
       const response = await fetch("/api/planner/rebalance", {
@@ -170,10 +173,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       });
 
       if (response.ok) {
-        // 1. Remove da fila de hoje
         setReviewQueue((prev) => prev.filter((topic) => topic.id !== topicId));
-
-        // 2. ⚡ REAVALIA O CRONOGRAMA COM IA AUTOMATICAMENTE
         await fetchSuggestions();
       }
     } catch (err) {
@@ -183,7 +183,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
-  // Handler do Motor da IA Adaptativa com API Real
   const handleOptimizeSchedule = async () => {
     try {
       setIsOptimizing(true);
@@ -198,7 +197,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       const data = await response.json();
 
       if (data.suggestions) {
-        // Atualiza o estado da UI com os dados reais do banco
         setSuggestions(data.suggestions);
       }
 
@@ -211,13 +209,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
-  const getSuggestionUrl = (item: {
-    actionType?: string;
-    title?: string;
-    topicId?: string;
-    subjectId?: string;
-  }) => {
-    // 1. Se a API já enviar o campo actionType explícito:
+  const getSuggestionUrl = (item: Suggestion) => {
     if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
       return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
     }
@@ -232,7 +224,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       return "/cards";
     }
 
-    // 2. Fallback baseado no Título (caso a API do rebalance não retorne actionType ainda)
     const titleLower = item.title?.toLowerCase() || "";
 
     if (
@@ -257,7 +248,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       return "/cards";
     }
 
-    return "/planner"; // Rota default segura
+    return "/planner";
   };
 
   const handleCreateContent = async (data: {
@@ -327,11 +318,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
         {/* ================= 2. PAINEL DE JORNADA OTIMIZADO ================= */}
         <section className="relative overflow-hidden rounded-2xl border border-white/8 bg-linear-to-r from-indigo-950/20 via-[#090d16]/90 to-[#090d16]/90 p-5 backdrop-blur-md shadow-xl">
-          {/* Efeito Glow Neon no fundo do card */}
           <div className="absolute -top-12 -left-12 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            {/* Lado Esquerdo: Ícone + Dias + Meta */}
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0 shadow-inner">
                 <Target size={22} className="text-indigo-400" />
@@ -353,9 +342,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             </div>
 
-            {/* Lado Direito: Status + Barra de Progresso Compacta */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-8 min-w-75 lg:min-w-90">
-              {/* Progresso e Barra */}
               <div className="flex-1 space-y-1.5">
                 <div className="flex justify-between text-[11px] font-semibold tracking-wider text-slate-400">
                   <span className="uppercase text-[10px] text-slate-500">
@@ -366,7 +353,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </span>
                 </div>
 
-                {/* Track da Barra de Progresso */}
                 <div className="h-2 w-full bg-slate-950 rounded-full border border-white/5 p-0.5 overflow-hidden">
                   <div
                     className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-500"
@@ -375,7 +361,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              {/* Badge de Status */}
               <div className="shrink-0">
                 <span className="inline-flex items-center gap-1.5 text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-full font-mono font-bold uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
@@ -388,9 +373,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
         {/* ================= GRADE PRINCIPAL (GRID) ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* SEÇÃO ESQUERDA + CENTRAL (Colunas 1 a 9) */}
           <div className="lg:col-span-9 space-y-6">
-            {/* Bloco Superior: Revisões e Progresso */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* CARD 1: Fila de Revisões */}
               <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-xl relative overflow-hidden min-h-55 flex flex-col justify-between">
@@ -554,11 +537,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             </div>
 
-            {/* 🌟 MOTOR DE SUGESTÕES POR IA (INTERATIVO COM REDIRECIONAMENTO E DESCARTE) */}
+            {/* 🌟 MOTOR DE SUGESTÕES POR IA */}
             <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 p-5 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:border-cyan-500/30">
               <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-[80px] transition-all duration-700 group-hover:bg-cyan-500/20" />
 
-              {/* Header */}
               <div className="relative flex justify-between items-center mb-5">
                 <div className="flex items-center gap-2">
                   <div className="rounded-lg bg-cyan-500/10 p-1.5 ring-1 ring-cyan-500/20">
@@ -576,7 +558,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </span>
               </div>
 
-              {/* Lista Dinâmica de Sugestões */}
               <div className="space-y-3">
                 <AnimatePresence mode="wait">
                   {suggestions.length === 0 ? (
@@ -587,8 +568,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       </p>
                     </div>
                   ) : (
-                    suggestions.map((item: any) => {
-                      // 🎯 Define a URL correta com base no tipo da sugestão
+                    suggestions.map((item: Suggestion) => {
                       const targetUrl = getSuggestionUrl(item);
 
                       return (
@@ -604,7 +584,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                               : "border-white/5 hover:border-emerald-500/30 hover:bg-slate-900/40"
                           }`}
                         >
-                          {/* Link para a rota mapeada dinamicamente */}
                           <Link
                             href={targetUrl}
                             className="flex items-start gap-4 flex-1"
@@ -633,7 +612,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             </div>
                           </Link>
 
-                          {/* Badge e Ação de Descarte */}
                           <div className="flex items-center gap-2 shrink-0">
                             <span
                               className={`text-[9px] font-bold tracking-widest px-2 py-1 rounded-full border ${
@@ -650,7 +628,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             <button
                               onClick={async (e) => {
                                 e.stopPropagation();
-                                // Remove visualmente
                                 setSuggestions((prev) =>
                                   prev.filter((s) => s.id !== item.id),
                                 );
@@ -684,7 +661,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </AnimatePresence>
               </div>
 
-              {/* Botão de Rebalanceamento */}
               <button
                 onClick={handleOptimizeSchedule}
                 disabled={isOptimizing}
@@ -729,7 +705,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              {/* Grid Responsiva com Animação do Framer Motion */}
               {isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[...Array(4)].map((_, i) => (

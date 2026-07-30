@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { calculatePerformance, Quiz, Question } from "@/lib/analytics-utils";
+import { calculatePerformance, Question } from "@/lib/analytics-utils";
 import { auth } from "@/auth";
 
 export async function GET() {
@@ -12,32 +12,90 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // 🔒 Filtra Quizzes onde o Tópico associado pertence a uma Matéria do Usuário
+    // 🔒 Filtra os Quizzes do usuário logado
     const rawQuizzes = await prisma.quiz.findMany({
       where: {
-        topic: {
-          subject: {
-            userId: userId,
+        OR: [
+          { userId: userId },
+          {
+            topic: {
+              subject: {
+                userId: userId,
+              },
+            },
           },
-        },
+        ],
       },
+      orderBy: { createdAt: "asc" },
     });
 
-    const allQuizzes: Quiz[] = rawQuizzes.map((q) => ({
-      ...q,
+    // Mapeamento fortemente tipado (sem nenhum `any`)
+    const allQuizzes = rawQuizzes.map((q) => ({
+      id: q.id,
+      banca: q.banca,
+      subject: q.subject,
+      difficulty: q.difficulty,
+      createdAt: q.createdAt,
+      userId: q.userId,
+      topicId: q.topicId,
       questions: q.questions as unknown as Question[],
     }));
 
+    // Agora é passado sem necessidade do cast `as any`
     const stats = calculatePerformance(allQuizzes);
 
     const hoje = new Date();
 
+    // 1. Matérias pendentes de revisão
     const materiasPendentes = await prisma.subject.count({
       where: {
         userId,
         nextReview: { lte: hoje },
       },
     });
+
+    // 2. Média Real do Easiness Factor (EF)
+    const subjects = await prisma.subject.findMany({
+      where: { userId },
+      select: { easiness: true },
+    });
+
+    const avgEasiness =
+      subjects.length > 0
+        ? Number(
+            (
+              subjects.reduce((acc, s) => acc + (s.easiness ?? 2.5), 0) /
+              subjects.length
+            ).toFixed(2),
+          )
+        : 2.5;
+
+    // 3. Distribuição REAL dos últimos 7 dias
+    const weekDaysNames = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
+    const daysMap: Record<string, number> = {};
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayLabel = weekDaysNames[d.getDay()];
+      daysMap[dayLabel] = 0;
+    }
+
+    allQuizzes.forEach((quiz) => {
+      if (quiz.createdAt) {
+        const dayName = weekDaysNames[new Date(quiz.createdAt).getDay()];
+        if (daysMap[dayName] !== undefined) {
+          daysMap[dayName] += 1;
+        }
+      }
+    });
+
+    const chartDistribution = Object.entries(daysMap).map(
+      ([day, quantidade]) => ({
+        day,
+        quantidade,
+      }),
+    );
 
     const data = {
       metrics: {
@@ -47,18 +105,10 @@ export async function GET() {
           stats.totalQuestions > 0
             ? `${Math.round((stats.totalCorrect / stats.totalQuestions) * 100)}%`
             : "0%",
-        avgEasiness: 2.5,
-        materiasPendentes: materiasPendentes,
+        avgEasiness,
+        materiasPendentes,
       },
-      chartDistribution: [
-        { day: "SEG", quantidade: 2 },
-        { day: "TER", quantidade: 5 },
-        { day: "QUA", quantidade: 3 },
-        { day: "QUI", quantidade: 7 },
-        { day: "SEX", quantidade: 1 },
-        { day: "SAB", quantidade: 0 },
-        { day: "DOM", quantidade: 4 },
-      ],
+      chartDistribution,
       performanceSummary: {
         bom: stats.summary.bom,
         dificil: stats.summary.dificil,
