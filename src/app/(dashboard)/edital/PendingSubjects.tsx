@@ -21,7 +21,7 @@ export default function PendingSubjects({
     async function fetchPendings() {
       try {
         setLoading(true);
-        const res = await fetch("/api/planner?type=pending");
+        const res = await fetch("/api/edital?type=pending");
         const json = (await res.json()) as { data: Topic[] };
 
         setPendings(json.data || []);

@@ -291,7 +291,7 @@ export async function POST(request: Request) {
       { status: 200 },
     );
   } catch (error: unknown) {
-    console.error("❌ ERRO NO POST /api/planner:", error);
+    console.error("❌ ERRO NO POST /api/edital:", error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { error: "Internal Server Error", details: message },
@@ -366,7 +366,7 @@ export async function DELETE(request: Request) {
       { status: 400 },
     );
   } catch (error) {
-    console.error("Erro no DELETE /api/planner:", error);
+    console.error("Erro no DELETE /api/edital:", error);
     return NextResponse.json(
       { error: "Erro interno ao tentar excluir do banco de dados." },
       { status: 500 },

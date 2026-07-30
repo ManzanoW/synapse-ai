@@ -139,11 +139,12 @@ model Flashcard {
 }
 
 model ReviewHistory {
-  id         String   @id @default(uuid())
-  topicId    String
-  grade      String
-  reviewedAt DateTime @default(now())
-  topic      Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid())
+  topicId         String
+  grade           String
+  durationSeconds Int?     @default(60)
+  reviewedAt      DateTime @default(now())
+  topic           Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
 }
 
 model Quiz {

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { User } from "next-auth";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
@@ -24,10 +23,39 @@ import {
   Target,
   RefreshCw,
   X,
+  Zap,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
-// 🟢 INTERFACE PARA RECOMENDAÇÕES DA IA
+// 🟢 INTERFACE DAS ESTATÍSTICAS EM TEMPO REAL
+interface DashboardStats {
+  metrics: {
+    totalTimeFormatted: string;
+    precision: string;
+    sessionsCount: number;
+    questionsCount: number;
+    totalFlashcards: number;
+    averageTimePerSession: string;
+  };
+  streak: {
+    currentDays: number;
+    weekDays: Array<{
+      dayLabel: string;
+      active: boolean;
+    }>;
+  };
+  weeklyGoal: {
+    percentage: number;
+    target: number;
+    current: number;
+  };
+  heatmap: Array<{
+    date: string;
+    count: number;
+    level: number;
+  }>;
+}
+
 interface Suggestion {
   id: string;
   title: string;
@@ -69,8 +97,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
 
-  // 🟢 ESTADO DE SUGESTÕES COM TIPAGEM EXPLÍCITA
+  // 🟢 ESTADO DE SUGESTÕES E ESTATÍSTICAS DO BANCO DE DADOS
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
 
   // Lista de matérias
   const [subjects, setSubjects] = useState<DashboardSubject[]>([]);
@@ -84,12 +113,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         setIsLoading(true);
         setIsLoadingQueue(true);
 
-        const [resSubjects, resQueue] = await Promise.all([
-          fetch("/api/planner?mode=subjects", { cache: "no-store" }),
-          fetch("/api/planner?mode=review", { cache: "no-store" }),
+        const [resSubjects, resQueue, resStats] = await Promise.all([
+          fetch("/api/edital?mode=subjects", { cache: "no-store" }),
+          fetch("/api/edital?mode=review", { cache: "no-store" }),
+          fetch("/api/dashboard/stats", { cache: "no-store" }),
         ]);
 
-        const resSuggestions = await fetch("/api/planner/rebalance", {
+        const resSuggestions = await fetch("/api/edital/rebalance", {
           method: "POST",
         });
 
@@ -102,7 +132,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
         if (!isMounted) return;
 
-        if (resSubjects.status === 401 || resQueue.status === 401) {
+        if (
+          resSubjects.status === 401 ||
+          resQueue.status === 401 ||
+          resStats.status === 401
+        ) {
           window.location.href = "/login";
           return;
         }
@@ -117,6 +151,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         if (resQueue.ok) {
           const jsonQueue = await resQueue.json();
           setReviewQueue(Array.isArray(jsonQueue.data) ? jsonQueue.data : []);
+        }
+
+        if (resStats.ok) {
+          const jsonStats = await resStats.json();
+          setStats(jsonStats);
         }
       } catch (err) {
         console.error("Erro ao carregar os dados do Dashboard:", err);
@@ -135,10 +174,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     };
   }, []);
 
-  // Helper para recarregar sugestões da IA
   const fetchSuggestions = async () => {
     try {
-      const response = await fetch("/api/planner/rebalance", {
+      const response = await fetch("/api/edital/rebalance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -162,7 +200,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
       const performance = grade === "Bom" ? 100 : grade === "Difícil" ? 60 : 20;
 
-      const response = await fetch("/api/planner", {
+      const response = await fetch("/api/edital", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -175,6 +213,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       if (response.ok) {
         setReviewQueue((prev) => prev.filter((topic) => topic.id !== topicId));
         await fetchSuggestions();
+        const resStats = await fetch("/api/dashboard/stats", {
+          cache: "no-store",
+        });
+        if (resStats.ok) setStats(await resStats.json());
       }
     } catch (err) {
       console.error("Erro ao enviar revisão:", err);
@@ -187,7 +229,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     try {
       setIsOptimizing(true);
 
-      const response = await fetch("/api/planner/rebalance", {
+      const response = await fetch("/api/edital/rebalance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -215,9 +257,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
 
     if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
-      return item.subjectId
-        ? `/planner?subjectId=${item.subjectId}`
-        : "/planner";
+      return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
     }
 
     if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
@@ -239,16 +279,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       titleLower.includes("avançar") ||
       titleLower.includes("estudo")
     ) {
-      return item.subjectId
-        ? `/planner?subjectId=${item.subjectId}`
-        : "/planner";
+      return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
     }
 
     if (titleLower.includes("card") || titleLower.includes("flashcard")) {
       return "/cards";
     }
 
-    return "/planner";
+    return "/edital";
   };
 
   const handleCreateContent = async (data: {
@@ -257,7 +295,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     weight: string;
   }) => {
     try {
-      const response = await fetch("/api/planner", {
+      const response = await fetch("/api/edital", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -277,169 +315,181 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
+        staggerChildren: 0.08,
       },
     },
   };
 
   const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 15 },
+    hidden: { opacity: 0, y: 12 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.4,
+        duration: 0.35,
         ease: [0.22, 1, 0.36, 1],
       },
     },
   };
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* ================= 1. CABEÇALHO COM BOAS-VINDAS ================= */}
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            onClick={openSidebar}
-            className="p-2 bg-[#090d16] border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 md:hidden transition-colors"
-          >
-            <Menu size={20} />
-          </button>
+    <div className="min-h-screen bg-[#02050e] text-slate-100 p-4 md:p-8 font-sans selection:bg-indigo-500/30">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={openSidebar}
+              className="p-2.5 bg-slate-900/80 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors"
+            >
+              <Menu size={18} />
+            </button>
 
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
-              Dashboard
-            </h1>
-            <p className="text-sm text-slate-400 mt-0.5">
-              Bem-vindo de volta, {user.name || "parceiro"}!
-            </p>
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                Dashboard
+              </h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Bem-vindo de volta,{" "}
+                <span className="text-indigo-400 font-semibold">
+                  {user.name || "parceiro"}
+                </span>
+                !
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* ================= 2. PAINEL DE JORNADA OTIMIZADO ================= */}
-        <section className="relative overflow-hidden rounded-2xl border border-white/8 bg-linear-to-r from-indigo-950/20 via-[#090d16]/90 to-[#090d16]/90 p-5 backdrop-blur-md shadow-xl">
-          <div className="absolute -top-12 -left-12 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        {/* ================= 2. BANNER HERO DE JORNADA ================= */}
+        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-slate-900/40 p-6 md:p-7 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(99,102,241,0.15)] group hover:border-indigo-500/30 transition-all duration-500 border-t-white/20">
+          <div className="absolute -top-32 -left-32 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0 shadow-inner">
-                <Target size={22} className="text-indigo-400" />
+              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 border border-indigo-500/30 text-indigo-400 shrink-0 shadow-[0_0_20px_rgba(99,102,241,0.25)]">
+                <Target size={26} />
               </div>
 
               <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-r from-indigo-300 via-white to-purple-300">
+                <div className="flex items-baseline gap-2.5">
+                  <span className="text-3xl md:text-4xl font-black tracking-tight text-white font-mono bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-200">
                     268 dias
                   </span>
-                  <span className="text-xs font-medium text-slate-400">
-                    até o grande objetivo
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    até o objetivo
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <p className="text-xs text-slate-400 mt-1">
                   Faltam aproximadamente{" "}
-                  <span className="text-slate-300">38 semanas e 2 dias</span>
+                  <span className="text-indigo-300 font-semibold font-mono">
+                    38 semanas e 2 dias
+                  </span>
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-8 min-w-75 lg:min-w-90">
-              <div className="flex-1 space-y-1.5">
-                <div className="flex justify-between text-[11px] font-semibold tracking-wider text-slate-400">
-                  <span className="uppercase text-[10px] text-slate-500">
-                    Início da Jornada
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-8 min-w-[320px]">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold tracking-wider">
+                  <span className="uppercase text-[10px] text-slate-400 tracking-widest">
+                    Progresso da Jornada
                   </span>
-                  <span className="text-indigo-400 font-mono font-bold">
+                  <span className="text-indigo-400 font-mono text-xs font-bold pl-2">
                     15%
                   </span>
                 </div>
 
-                <div className="h-2 w-full bg-slate-950 rounded-full border border-white/5 p-0.5 overflow-hidden">
+                <div className="h-2.5 w-full bg-slate-950/80 rounded-full border border-white/10 p-0.5 overflow-hidden shadow-inner">
                   <div
-                    className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-400 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.8)] transition-all duration-700"
                     style={{ width: "15%" }}
                   />
                 </div>
               </div>
 
               <div className="shrink-0">
-                <span className="inline-flex items-center gap-1.5 text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-full font-mono font-bold uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  Em progresso
+                <span className="inline-flex items-center gap-2 text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 px-3.5 py-1.5 rounded-full font-mono font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse shadow-[0_0_8px_rgba(99,102,241,1)]" />
+                  Em Progresso
                 </span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ================= GRADE PRINCIPAL (GRID) ================= */}
+        {/* ================= 3. GRADE PRINCIPAL DE CONTEÚDO ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-9 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* CARD 1: Fila de Revisões */}
-              <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-xl relative overflow-hidden min-h-55 flex flex-col justify-between">
+              {/* CARD 1: Fila de Revisões (SM-2) */}
+              <div className="bg-slate-900/30 backdrop-blur-2xl border border-white/10 hover:border-indigo-500/40 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between transition-all duration-300 border-t-white/15 group">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+
                 {isLoadingQueue ? (
-                  <div className="flex flex-col items-center justify-center flex-1 text-slate-400 gap-2">
+                  <div className="flex flex-col items-center justify-center flex-1 py-10 text-slate-400 gap-3">
                     <Loader2
-                      size={24}
+                      size={26}
                       className="animate-spin text-indigo-400"
                     />
-                    <span className="text-xs">
-                      Sincronizando curva de esquecimento...
+                    <span className="text-xs font-medium tracking-wide">
+                      Sincronizando curva de retenção...
                     </span>
                   </div>
                 ) : reviewQueue.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center flex-1 text-center py-6 group">
-                    <div className="bg-emerald-500/10 text-emerald-400 p-3 rounded-full border border-emerald-500/20 mb-3 group-hover:scale-110 transition-transform">
+                  <div className="flex flex-col items-center justify-center flex-1 text-center py-8">
+                    <div className="bg-emerald-500/10 text-emerald-400 p-3.5 rounded-2xl border border-emerald-500/20 mb-3 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
                       <CheckCircle2 size={28} />
                     </div>
-                    <h3 className="font-semibold text-slate-200">
-                      Tudo em dia!
+                    <h3 className="font-bold text-slate-200 text-sm tracking-wide">
+                      Revisões em dia!
                     </h3>
-                    <p className="text-xs text-slate-400 max-w-60 mt-1.5 leading-relaxed">
-                      Nenhuma revisão programada para hoje. Continue assim!
+                    <p className="text-xs text-slate-400 max-w-[240px] mt-1.5 leading-relaxed">
+                      Sua curva de esquecimento está devidamente estabilizada
+                      para hoje.
                     </p>
                   </div>
                 ) : (
-                  <div className="flex flex-col h-full justify-between flex-1 space-y-3">
-                    <div className="flex justify-between items-center border-b border-slate-800/60 pb-2">
-                      <span className="text-xs font-bold text-indigo-400 flex items-center gap-1.5 uppercase tracking-wider">
-                        <AlertCircle size={14} /> Revisões de Hoje
+                  <div className="flex flex-col h-full justify-between space-y-5">
+                    <div className="flex justify-between items-center border-b border-white/5 pb-3.5">
+                      <span className="text-[11px] font-black text-indigo-400 flex items-center gap-2 uppercase tracking-widest">
+                        <AlertCircle size={15} /> Revisões de Hoje
                       </span>
-                      <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-md font-bold">
+                      <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full font-mono font-bold shadow-xs">
                         {reviewQueue.length}{" "}
                         {reviewQueue.length === 1 ? "tópico" : "tópicos"}
                       </span>
                     </div>
 
-                    <div className="py-2">
-                      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold block">
-                        {reviewQueue[0].subject?.name || "Matéria"}
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block">
+                        {reviewQueue[0].subject?.name || "Matéria Principal"}
                       </span>
-                      <h4 className="text-base font-bold text-slate-100 mt-0.5 line-clamp-1">
+                      <h4 className="text-base font-bold text-white mt-1 line-clamp-1 tracking-tight">
                         {reviewQueue[0].title}
                       </h4>
-                      <p className="text-[11px] text-slate-400 mt-1">
+                      <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
                         {reviewQueue[0].firstStudy === "Pendente"
-                          ? "🌱 Assunto novo! Faça seu primeiro estudo e avalie seu domínio."
-                          : "⏱️ Tempo limite atingido! Revise o assunto para consolidar a memória."}
+                          ? "🌱 Assunto novo! Faça o estudo base e marque o nível de facilidade."
+                          : "⏱️ Intervalo atingido! Faça a revisão ativa para fixação de memória."}
                       </p>
                     </div>
 
                     <div className="pt-2">
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">
-                        Como foi seu desempenho?
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2.5">
+                        Qual foi o nível de facilidade?
                       </p>
 
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-3 gap-2.5">
                         <button
                           disabled={updatingTopicId !== null}
                           onClick={() =>
                             handleReview(reviewQueue[0].id, "Errei")
                           }
-                          className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold text-xs py-2 rounded-xl transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 shadow-sm"
+                          className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-xs py-2.5 rounded-2xl transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 shadow-sm"
                         >
                           {updatingTopicId === reviewQueue[0].id ? (
-                            <Loader2 size={12} className="animate-spin" />
+                            <Loader2 size={14} className="animate-spin" />
                           ) : (
                             "Errei 👎"
                           )}
@@ -450,10 +500,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           onClick={() =>
                             handleReview(reviewQueue[0].id, "Difícil")
                           }
-                          className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 font-bold text-xs py-2 rounded-xl transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 shadow-sm"
+                          className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs py-2.5 rounded-2xl transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 shadow-sm"
                         >
                           {updatingTopicId === reviewQueue[0].id ? (
-                            <Loader2 size={12} className="animate-spin" />
+                            <Loader2 size={14} className="animate-spin" />
                           ) : (
                             "Difícil ✊"
                           )}
@@ -462,10 +512,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         <button
                           disabled={updatingTopicId !== null}
                           onClick={() => handleReview(reviewQueue[0].id, "Bom")}
-                          className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold text-xs py-2 rounded-xl transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 shadow-sm"
+                          className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs py-2.5 rounded-2xl transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 shadow-sm"
                         >
                           {updatingTopicId === reviewQueue[0].id ? (
-                            <Loader2 size={12} className="animate-spin" />
+                            <Loader2 size={14} className="animate-spin" />
                           ) : (
                             "Fácil 👍"
                           )}
@@ -476,84 +526,90 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 )}
               </div>
 
-              {/* CARD 2: Métricas de Desempenho */}
-              <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl">
+              {/* CARD 2: Métricas de Desempenho (Contraste Aumentado) */}
+              <div className="bg-slate-900/30 backdrop-blur-2xl border border-white/10 hover:border-indigo-500/40 rounded-3xl p-6 shadow-2xl flex flex-col justify-between transition-all duration-300 border-t-white/15 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
+
                 <div className="flex justify-between items-center mb-6">
-                  <span className="text-sm font-medium text-slate-200 tracking-wide">
+                  <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">
                     Métricas de Desempenho
                   </span>
-                  <span className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold">
-                    Live Stats
+                  <span className="text-[10px] text-indigo-400 uppercase tracking-widest font-mono font-bold flex items-center gap-1 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-0.5 rounded-full shadow-xs">
+                    <Zap size={11} /> Live Stats
                   </span>
                 </div>
 
-                <div className="flex gap-8 mb-6">
+                <div className="flex gap-6 mb-6">
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase block mb-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1 tracking-wider">
                       Tempo Total
                     </span>
-                    <span className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-white to-indigo-300">
-                      4h 20m
+                    <span className="text-2xl md:text-3xl font-black text-white font-mono">
+                      {stats?.metrics.totalTimeFormatted || "0h 30m"}
                     </span>
                   </div>
+
                   <div className="flex-1">
-                    <div className="flex justify-between text-[10px] text-slate-500 uppercase mb-1">
+                    <div className="flex justify-between text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-wider">
                       <span>Precisão</span>
-                      <span>78%</span>
+                      <span className="text-emerald-400 font-mono">
+                        {stats?.metrics.precision || "67%"}
+                      </span>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden flex">
-                      <div className="bg-emerald-500 w-[78%]" />
-                      <div className="bg-rose-500 w-[22%]" />
+                    <div className="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden flex border border-white/10 shadow-inner p-0.5">
+                      <div
+                        className="bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-700 shadow-[0_0_10px_rgba(16,185,129,0.6)]"
+                        style={{ width: stats?.metrics.precision || "67%" }}
+                      />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center border-t border-white/5 pt-5 mt-4">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-slate-600 uppercase font-semibold">
+                {/* Submétricas com Contraste Corrigido */}
+                <div className="grid grid-cols-3 gap-2.5 border-t border-white/10 pt-4 text-center">
+                  <div className="bg-slate-950/60 border border-white/10 rounded-2xl p-2.5 hover:border-white/20 transition-colors">
+                    <span className="text-[10px] text-slate-300 uppercase font-bold block tracking-wider">
                       Sessões
                     </span>
-                    <span className="text-sm font-semibold text-slate-200">
-                      12
+                    <span className="text-base font-extrabold text-white font-mono mt-0.5 block">
+                      {stats?.metrics.sessionsCount ?? 5}
                     </span>
                   </div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-slate-600 uppercase font-semibold">
+                  <div className="bg-slate-950/60 border border-white/10 rounded-2xl p-2.5 hover:border-white/20 transition-colors">
+                    <span className="text-[10px] text-slate-300 uppercase font-bold block tracking-wider">
                       Questões
                     </span>
-                    <span className="text-sm font-semibold text-slate-200">
-                      145
+                    <span className="text-base font-extrabold text-white font-mono mt-0.5 block">
+                      {stats?.metrics.questionsCount ?? 15}
                     </span>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[10px] text-slate-600 uppercase font-semibold">
+                  <div className="bg-slate-950/60 border border-white/10 rounded-2xl p-2.5 hover:border-white/20 transition-colors">
+                    <span className="text-[10px] text-slate-300 uppercase font-bold block tracking-wider">
                       Méd/Dia
                     </span>
-                    <span className="text-sm font-semibold text-slate-200">
-                      35min
+                    <span className="text-base font-extrabold text-white font-mono mt-0.5 block">
+                      {stats?.metrics.averageTimePerSession || "6min"}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 🌟 MOTOR DE SUGESTÕES POR IA */}
-            <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 p-5 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:border-cyan-500/30">
-              <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-[80px] transition-all duration-700 group-hover:bg-cyan-500/20" />
+            {/* CARD 3: Sugestões de Estudos com IA */}
+            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/30 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-cyan-500/40 border-t-white/15">
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
+              <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-cyan-500/10 blur-[90px] pointer-events-none" />
 
               <div className="relative flex justify-between items-center mb-5">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-cyan-500/10 p-1.5 ring-1 ring-cyan-500/20">
-                    <Sparkles
-                      size={16}
-                      className="text-cyan-400 animate-pulse"
-                    />
+                <div className="flex items-center gap-2.5">
+                  <div className="rounded-xl bg-cyan-500/10 p-2 border border-cyan-500/30 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                    <Sparkles size={18} className="animate-pulse" />
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-200">
-                    Sugestões de estudos
+                  <h3 className="text-xs font-bold text-slate-200 uppercase tracking-widest">
+                    Sugestões de Estudos
                   </h3>
                 </div>
-                <span className="rounded border border-cyan-500/20 bg-cyan-500/5 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-cyan-400">
+                <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cyan-300">
                   Synapse Core v1
                 </span>
               </div>
@@ -561,10 +617,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div className="space-y-3">
                 <AnimatePresence mode="wait">
                   {suggestions.length === 0 ? (
-                    <div className="text-center py-6 border border-dashed border-slate-800 rounded-xl">
+                    <div className="text-center py-7 border border-dashed border-white/10 rounded-2xl bg-slate-950/30">
                       <p className="text-xs text-slate-400">
-                        Nenhuma sugestão pendente no momento. Seu cronograma
-                        está em dia!
+                        Nenhuma sugestão pendente no momento. Seu ciclo de
+                        revisão está 100% otimizado!
                       </p>
                     </div>
                   ) : (
@@ -578,32 +634,32 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: -10 }}
                           transition={{ duration: 0.3 }}
-                          className={`group/item relative flex items-center justify-between gap-4 rounded-xl border bg-slate-950/40 p-4 transition-all duration-300 hover:-translate-y-0.5 ${
+                          className={`group/item relative flex items-center justify-between gap-4 rounded-2xl border bg-slate-950/50 p-4 transition-all duration-300 hover:-translate-y-0.5 ${
                             item.type === "CRITICAL"
-                              ? "border-white/5 hover:border-rose-400/30 hover:bg-slate-900/40"
-                              : "border-white/5 hover:border-emerald-500/30 hover:bg-slate-900/40"
+                              ? "border-rose-500/20 hover:border-rose-500/40 hover:bg-slate-900/60"
+                              : "border-white/5 hover:border-emerald-500/30 hover:bg-slate-900/60"
                           }`}
                         >
                           <Link
                             href={targetUrl}
-                            className="flex items-start gap-4 flex-1"
+                            className="flex items-start gap-3.5 flex-1"
                           >
                             <div
-                              className={`p-2 rounded-lg border shrink-0 ${
+                              className={`p-2.5 rounded-xl border shrink-0 ${
                                 item.icon === "brain"
-                                  ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
-                                  : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                  ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400"
+                                  : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                               }`}
                             >
                               {item.icon === "brain" ? (
-                                <BrainCircuit size={20} />
+                                <BrainCircuit size={18} />
                               ) : (
-                                <ClipboardList size={20} />
+                                <ClipboardList size={18} />
                               )}
                             </div>
 
                             <div className="flex-1">
-                              <h4 className="text-sm font-bold text-slate-200 group-hover/item:text-indigo-300 transition-colors">
+                              <h4 className="text-sm font-bold text-slate-200 group-hover/item:text-indigo-300 transition-colors tracking-tight">
                                 {item.title}
                               </h4>
                               <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
@@ -614,10 +670,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
                           <div className="flex items-center gap-2 shrink-0">
                             <span
-                              className={`text-[9px] font-bold tracking-widest px-2 py-1 rounded-full border ${
+                              className={`text-[9px] font-mono font-bold tracking-widest px-2.5 py-1 rounded-full border ${
                                 item.type === "CRITICAL"
-                                  ? "text-rose-400 bg-rose-500/10 border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]"
-                                  : "text-emerald-400 bg-emerald-500/5 border-emerald-500/20"
+                                  ? "text-rose-400 bg-rose-500/10 border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.15)]"
+                                  : "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
                               }`}
                             >
                               {item.type === "CRITICAL"
@@ -634,7 +690,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
                                 if (item.topicId) {
                                   await fetch(
-                                    "/api/planner/complete-suggestion",
+                                    "/api/edital/complete-suggestion",
                                     {
                                       method: "POST",
                                       headers: {
@@ -648,7 +704,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                   ).catch(console.error);
                                 }
                               }}
-                              className="p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-xl text-slate-500 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
                               title="Dispensar sugestão"
                             >
                               <X size={14} />
@@ -664,42 +720,41 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <button
                 onClick={handleOptimizeSchedule}
                 disabled={isOptimizing}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border-t border-white/5 bg-white/5 py-2.5 text-xs font-medium text-slate-400 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-400 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/15 via-indigo-500/10 to-cyan-500/15 py-3 text-xs font-bold text-cyan-300 transition-all hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] active:scale-[0.99] disabled:opacity-50 cursor-pointer shadow-sm"
               >
                 {isOptimizing ? (
                   <>
                     <RefreshCw
-                      size={13}
+                      size={14}
                       className="animate-spin text-cyan-400"
                     />
-                    <span className="text-cyan-400 font-medium">
-                      Processando métricas e rebalanceando ciclo...
-                    </span>
+                    <span>Otimizando seu ciclo de estudos...</span>
                   </>
                 ) : isOptimized ? (
                   <>
-                    <CheckCircle2 size={13} className="text-emerald-400" />
-                    <span className="text-emerald-400 font-semibold">
-                      Cronograma Otimizado com Sucesso!
+                    <CheckCircle2 size={14} className="text-emerald-400" />
+                    <span className="text-emerald-400">
+                      Cronograma Rebalanceado!
                     </span>
                   </>
                 ) : (
                   <>
-                    <Sparkles size={13} />
+                    <Sparkles
+                      size={14}
+                      className="text-cyan-400 animate-pulse"
+                    />
                     <span>Otimizar Cronograma com IA</span>
                   </>
                 )}
               </button>
             </div>
 
-            {/* CARD 4: Lista de Matérias */}
-            <div className="bg-slate-900/20 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl space-y-6">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-white/5 border border-white/5">
-                    <BookOpen size={16} className="text-slate-400" />
-                  </div>
-                  <h3 className="font-medium text-xs text-slate-300 tracking-[0.2em] uppercase">
+            {/* CARD 4: Minhas Matérias */}
+            <div className="bg-slate-900/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-2xl space-y-6 border-t-white/15">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <BookOpen size={18} className="text-indigo-400" />
+                  <h3 className="font-bold text-xs text-slate-300 tracking-widest uppercase">
                     Minhas Matérias
                   </h3>
                 </div>
@@ -712,7 +767,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   ))}
                 </div>
               ) : subjects.length === 0 ? (
-                <div className="text-center py-8 bg-white/5 border border-white/5 rounded-xl">
+                <div className="text-center py-8 bg-slate-950/40 border border-white/5 rounded-2xl">
                   <p className="text-xs text-slate-400">
                     Nenhuma matéria cadastrada ainda.
                   </p>
@@ -720,7 +775,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     onClick={() => setIsModalOpen(true)}
                     className="mt-2 text-xs text-indigo-400 font-bold hover:underline"
                   >
-                    + Criar minha primeira matéria
+                    + Criar primeira matéria
                   </button>
                 </div>
               ) : (
@@ -732,7 +787,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 >
                   {subjects.map((sub) => (
                     <motion.div key={sub.id} variants={itemVariants}>
-                      <Link href={`/planner?subjectId=${sub.id}`}>
+                      <Link href={`/edital?subjectId=${sub.id}`}>
                         <SubjectCard
                           title={sub.name}
                           colorClass={sub.color || "#3B82F6"}
@@ -749,38 +804,48 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
-          {/* ================= SEÇÃO DIREITA (BARRA LATERAL) ================= */}
+          {/* ================= 4. BARRA LATERAL DIREITA ================= */}
           <div className="lg:col-span-3 space-y-6">
             {/* CARD DE CONSTÂNCIA */}
             <Link
               href="/analytics"
-              className="bg-slate-900/40 border border-white/10 hover:border-indigo-500/30 p-5 rounded-2xl transition-all duration-300 block group cursor-pointer shadow-lg relative overflow-hidden"
+              className="bg-slate-900/30 backdrop-blur-2xl border border-white/10 hover:border-amber-500/40 p-6 rounded-3xl transition-all duration-300 block group shadow-2xl relative overflow-hidden border-t-white/15"
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-400 transition-colors">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-amber-400 transition-colors">
                     Constância
                   </h3>
-                  <p className="text-2xl font-black text-slate-100 mt-1">
-                    5 Dias
+                  <p className="text-3xl font-black text-white font-mono mt-1">
+                    {stats?.streak.currentDays ?? 0} Dias
                   </p>
                 </div>
-                <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl group-hover:scale-105 transition-transform">
-                  <Flame size={18} />
+                <div className="p-3 bg-amber-500/10 text-amber-500 border border-amber-500/30 rounded-2xl group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                  <Flame size={20} />
                 </div>
               </div>
 
-              <div className="flex gap-1.5 justify-between pt-2">
-                {["S", "T", "Q", "Q", "S", "S", "D"].map((day, idx) => (
+              <div className="flex gap-1.5 justify-between pt-1">
+                {(
+                  stats?.streak.weekDays || [
+                    { dayLabel: "S", active: false },
+                    { dayLabel: "T", active: false },
+                    { dayLabel: "Q", active: false },
+                    { dayLabel: "Q", active: false },
+                    { dayLabel: "S", active: false },
+                    { dayLabel: "S", active: false },
+                    { dayLabel: "D", active: false },
+                  ]
+                ).map((day, idx) => (
                   <div key={idx} className="flex flex-col items-center gap-1">
                     <div
-                      className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${
-                        idx < 5
-                          ? "bg-linear-to-br from-amber-500 to-orange-500 text-slate-950 shadow-md shadow-orange-500/10"
-                          : "bg-slate-950 border border-slate-900 text-slate-600"
+                      className={`w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-mono font-bold transition-all ${
+                        day.active
+                          ? "bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                          : "bg-slate-950/80 border border-white/5 text-slate-600"
                       }`}
                     >
-                      {day}
+                      {day.dayLabel}
                     </div>
                   </div>
                 ))}
@@ -790,38 +855,45 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* CARD DE META SEMANAL */}
             <Link
               href="/analytics"
-              className="bg-slate-900/40 border border-white/10 hover:border-indigo-500/30 p-5 rounded-2xl transition-all duration-300 block group cursor-pointer shadow-lg"
+              className="bg-slate-900/30 backdrop-blur-2xl border border-white/10 hover:border-indigo-500/40 p-6 rounded-3xl transition-all duration-300 block group shadow-2xl border-t-white/15"
             >
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-400 transition-colors">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
                     Meta Semanal
                   </h3>
-                  <p className="text-2xl font-black text-slate-100 mt-1">
-                    78.7%
+                  <p className="text-3xl font-black text-white font-mono mt-1">
+                    {stats?.weeklyGoal.percentage ?? 0}%
                   </p>
                 </div>
-                <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl group-hover:scale-105 transition-transform">
-                  <BarChart3 size={18} />
+                <div className="p-3 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded-2xl group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                  <BarChart3 size={20} />
                 </div>
               </div>
 
-              <div className="space-y-1.5 pt-2">
-                <div className="h-2 w-full bg-slate-950 rounded-full relative">
-                  <div className="absolute inset-0 bg-indigo-500 blur-md opacity-30 rounded-full" />
-                  <div className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full w-[78.7%] relative z-10" />
+              <div className="space-y-2 pt-1">
+                <div className="h-2.5 w-full bg-slate-950/80 rounded-full border border-white/10 p-0.5 overflow-hidden shadow-inner">
+                  <div
+                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-700"
+                    style={{
+                      width: `${stats?.weeklyGoal.percentage ?? 0}%`,
+                    }}
+                  />
                 </div>
 
-                <span className="text-[10px] text-slate-500 block text-right font-medium">
-                  Meta semanal: 85%
+                <span className="text-[10px] text-slate-400 font-mono block text-right font-semibold">
+                  {stats?.weeklyGoal.current ?? 0} /{" "}
+                  {stats?.weeklyGoal.target ?? 50} revisões
                 </span>
               </div>
             </Link>
 
-            <section>
+            {/* HEATMAP DE INTENSIFICAÇÃO */}
+            <section className="bg-slate-900/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 shadow-2xl border-t-white/15">
               <Heatmap />
             </section>
 
+            {/* CRONÔMETRO POMODORO */}
             <PomodoroTimer />
           </div>
         </div>

@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import PendingSubjects from "./PendingSubjects";
 import { Topic } from "@/types";
-import { ImportEditalModal } from "@/components/planner/import-edital-modal";
-import { PlannerView } from "@/components/planner/planner-table";
+import { ImportEditalModal } from "@/components/edital/import-edital-modal";
+import { PlannerView } from "@/components/edital/planner-table";
 import { NewContentModal } from "@/components/create-subject-modal";
 import { useSearchParams } from "next/navigation";
 
@@ -54,12 +54,12 @@ function PlannerContent() {
   // 🔄 Recarregamento manual em segundo plano
   async function refreshData() {
     try {
-      const response = await fetch(`/api/planner?mode=topics`);
+      const response = await fetch(`/api/edital?mode=topics`);
       if (!response.ok) return;
       const json = await response.json();
 
       setTopics(json.data || []);
-      const subjectsRes = await fetch(`/api/planner?mode=subjects`);
+      const subjectsRes = await fetch(`/api/edital?mode=subjects`);
       if (subjectsRes.ok) {
         const subjectsJson = await subjectsRes.json();
         setSubjects(subjectsJson.data || []);
@@ -78,7 +78,7 @@ function PlannerContent() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/planner?mode=topics`);
+        const response = await fetch(`/api/edital?mode=topics`);
         if (!response.ok)
           throw new Error("Falha ao carregar os dados do banco.");
         const json = await response.json();
@@ -87,7 +87,7 @@ function PlannerContent() {
 
         setTopics(json.data || []);
 
-        const subjectsRes = await fetch(`/api/planner?mode=subjects`);
+        const subjectsRes = await fetch(`/api/edital?mode=subjects`);
         if (subjectsRes.ok && isMounted) {
           const subjectsJson = await subjectsRes.json();
           setSubjects(subjectsJson.data || []);
@@ -117,7 +117,7 @@ function PlannerContent() {
     weight: string;
   }) {
     try {
-      const response = await fetch("/api/planner", {
+      const response = await fetch("/api/edital", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -142,7 +142,7 @@ function PlannerContent() {
     if (!activeReviewTopic) return;
     try {
       setSubmitting(true);
-      const response = await fetch("/api/planner", {
+      const response = await fetch("/api/edital", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -165,7 +165,7 @@ function PlannerContent() {
   // Funções de deleção
   async function handleDeleteTopic(topicId: string) {
     try {
-      const response = await fetch(`/api/planner?id=${topicId}`, {
+      const response = await fetch(`/api/edital?id=${topicId}`, {
         method: "DELETE",
       });
 
@@ -179,12 +179,9 @@ function PlannerContent() {
 
   async function handleDeleteSubject(subjectIdOrName: string) {
     try {
-      const response = await fetch(
-        `/api/planner?subjectId=${subjectIdOrName}`,
-        {
-          method: "DELETE",
-        },
-      );
+      const response = await fetch(`/api/edital?subjectId=${subjectIdOrName}`, {
+        method: "DELETE",
+      });
 
       if (!response.ok) throw new Error("Erro ao excluir a matéria.");
 
