@@ -3,17 +3,17 @@ import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white relative">
-      {/* Coluna Esquerda: Showcase & Visual Power */}
-      <div className="hidden lg:flex flex-col justify-between p-12 bg-zinc-950 border-r border-zinc-800/60 relative overflow-hidden">
-        {/* Padrão de Grade + Luzes de Fundo */}
-        <div className="absolute inset-0 bg-[radial-gradient(#38383a_1px,transparent_1px)] [background-size:24px_24px] opacity-20 pointer-events-none" />
-        <div className="absolute top-[-5%] left-[-5%] w-[600px] h-[600px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#05070a] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white relative overflow-hidden">
+      {/* Luzes de Fundo Globais (Cobre a tela inteira, sem divisão seca) */}
+      <div className="absolute inset-0 bg-[radial-gradient(#1e2640_1px,transparent_1px)] [background-size:24px_24px] opacity-25 pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* Header - Logo */}
+      {/* Coluna Esquerda: Showcase & Visual Power */}
+      <div className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden">
+        {/* Header - Logo Consolidada */}
         <div className="relative z-10">
-          <div className="flex items-center gap-2 text-xl font-bold tracking-tight text-white select-none">
+          <div className="inline-flex items-center gap-1.5 select-none">
             <h1 className="font-extrabold text-slate-50 text-[1.85rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
               Synapse
             </h1>
@@ -23,7 +23,7 @@ export default function LoginPage() {
                 AI
               </span>
 
-              <div className="relative flex items-center justify-center w-2 h-2 mt-1.5">
+              <div className="relative flex items-center justify-center w-2 h-2 mt-1.5 ml-0.5">
                 <span className="absolute w-2 h-2 rounded-full bg-indigo-400/40 animate-ping" />
                 <svg
                   viewBox="0 0 8 8"
@@ -37,16 +37,15 @@ export default function LoginPage() {
         </div>
 
         {/* Conteúdo Central: Mini Dashboard & Value Proposition */}
-        <div className="relative z-10 my-auto w-full max-w-lg space-y-6">
-          {/* Card Princpal - Preview do Copilot (Exemplo Ilustrativo de UI) */}
-          <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 p-6 rounded-2xl shadow-2xl space-y-6 relative overflow-hidden group">
-            {/* Linha brilhante no topo do card */}
+        <div className="relative z-10 my-auto w-full max-w-lg space-y-8">
+          {/* Card Principal - Glassmorphic Preview */}
+          <div className="bg-slate-900/40 backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-2xl space-y-5 relative overflow-hidden group">
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
 
             {/* Header do Card */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.04]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
                   <svg
                     className="w-4 h-4"
                     fill="none"
@@ -62,84 +61,87 @@ export default function LoginPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">
+                  <h3 className="text-xs font-semibold text-slate-100 tracking-wide">
                     Plano de Estudos Inteligente
                   </h3>
-                  <p className="text-[11px] text-zinc-400">
+                  <p className="text-[10px] font-mono text-slate-400">
                     Exemplo de Dashboard • Synapse Engine
                   </p>
                 </div>
               </div>
-              <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-medium">
+              <span className="text-[9px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-md font-semibold tracking-wider uppercase">
                 Preview
               </span>
             </div>
 
-            {/* Métricas ilustrativas da interface */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="bg-zinc-950/60 border border-zinc-800/60 p-3 rounded-xl">
-                <span className="text-[11px] text-zinc-400 block mb-1">
+            {/* Métricas ilustrativas */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-black/40 border border-white/[0.04] p-3 rounded-xl">
+                <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block mb-1">
                   Ritmo de Estudo
                 </span>
-                <span className="text-lg font-bold text-white">
+                <span className="text-sm font-bold text-slate-100">
                   Consistente
                 </span>
               </div>
-              <div className="bg-zinc-950/60 border border-zinc-800/60 p-3 rounded-xl">
-                <span className="text-[11px] text-zinc-400 block mb-1">
-                  Organização com IA
+              <div className="bg-black/40 border border-white/[0.04] p-3 rounded-xl">
+                <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block mb-1">
+                  Organização IA
                 </span>
-                <span className="text-lg font-bold text-emerald-400">
+                <span className="text-sm font-bold text-emerald-400">
                   Automatizada
                 </span>
               </div>
             </div>
 
             {/* Status da IA */}
-            <div className="bg-indigo-950/30 border border-indigo-500/20 p-3 rounded-xl flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-indigo-400 animate-ping shrink-0" />
-              <p className="text-xs text-indigo-200/90 font-mono truncate">
+            <div className="bg-indigo-950/20 border border-indigo-500/20 p-2.5 rounded-xl flex items-center gap-2.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse shrink-0 ml-1" />
+              <p className="text-[11px] text-indigo-200/90 font-mono truncate">
                 Gerencie cronogramas e conteúdos em um só lugar.
               </p>
             </div>
           </div>
 
-          {/* Proposta de Valor Verdadeira */}
-          <div className="space-y-4 px-2">
-            <h2 className="text-xl font-medium tracking-tight text-zinc-200 leading-relaxed">
-              Sua rotina de estudos estruturada com o poder da Inteligência
-              Artificial.
+          {/* Proposta de Valor */}
+          <div className="space-y-4 px-1">
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-100 leading-snug">
+              Sua rotina de estudos estruturada com o poder da{" "}
+              <span className="bg-gradient-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent">
+                Inteligência Artificial
+              </span>
+              .
             </h2>
 
             {/* Tags da Stack / Filosofia do Produto */}
             <div className="flex items-center gap-3 pt-1">
-              <span className="text-xs font-mono bg-zinc-900 border border-zinc-800 text-zinc-400 px-2.5 py-1 rounded-md">
+              <span className="text-[11px] font-mono bg-white/[0.02] border border-white/[0.06] text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                 ⚡ Algoritmos Preditivos
               </span>
-              <span className="text-xs font-mono bg-zinc-900 border border-zinc-800 text-zinc-400 px-2.5 py-1 rounded-md">
+              <span className="text-[11px] font-mono bg-white/[0.02] border border-white/[0.06] text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                 🔒 Foco em Privacidade
               </span>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="relative z-10 text-xs text-zinc-500">
+        {/* Footer da Coluna Esquerda */}
+        <div className="relative z-10 text-[11px] font-mono text-slate-500">
           &copy; {new Date().getFullYear()} Synapse AI. Todos os direitos
           reservados.
         </div>
       </div>
 
       {/* Coluna Direita: Formulário de Login */}
-      <div className="flex items-center justify-center p-6 sm:p-12 relative bg-zinc-950">
-        <div className="w-full max-w-sm space-y-8 relative z-10">
+      <div className="flex items-center justify-center p-6 sm:p-12 relative z-10">
+        <div className="w-full max-w-sm space-y-8">
           {/* Logo Mobile */}
-          <div className="lg:hidden flex justify-center mb-6">
-            <div className="flex items-center gap-2 text-xl font-bold tracking-tight text-white select-none">
-              <h1 className="font-extrabold text-slate-50 text-[1.85rem] tracking-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+          <div className="lg:hidden flex justify-center mb-4">
+            <div className="inline-flex items-center gap-1.5 select-none">
+              <h1 className="font-extrabold text-slate-50 text-2xl tracking-tight">
                 Synapse
               </h1>
-              <span className="font-black text-[1.85rem] tracking-tight bg-gradient-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(129,140,248,0.4)]">
+              <span className="font-black text-2xl tracking-tight bg-gradient-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent">
                 AI
               </span>
             </div>
@@ -147,22 +149,22 @@ export default function LoginPage() {
 
           {/* Cabeçalho */}
           <div className="text-center lg:text-left space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
               Acesse sua conta
             </h1>
-            <p className="text-sm text-zinc-400">
+            <p className="text-xs sm:text-sm text-slate-400">
               Entre com sua conta para acessar seus planos de estudo.
             </p>
           </div>
 
-          {/* Botões OAuth */}
+          {/* Botões OAuth Harmozidados (Server Actions) */}
           <div className="space-y-3">
             <form action={loginWithGoogle}>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-100 border border-zinc-800/90 font-medium py-3 px-4 rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:border-zinc-700 active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-3 bg-white/[0.03] hover:bg-white/[0.07] text-slate-200 border border-white/[0.08] hover:border-white/20 font-medium py-3 px-4 rounded-xl transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.99] text-sm"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
                     fill="#EA4335"
                     d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
@@ -173,35 +175,38 @@ export default function LoginPage() {
                   />
                   <path
                     fill="#FBBC05"
-                    d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12s.7 2.3 1.9 4.7l3.7-2.9z"
+                    d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9z"
                   />
                   <path
                     fill="#34A853"
-                    d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"
+                    d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.2-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"
                   />
                 </svg>
-                Continuar com Google
+                <span>Continuar com Google</span>
               </button>
             </form>
 
             <form action={loginWithGithub}>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-3 bg-zinc-100 hover:bg-white text-zinc-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-3 bg-white/[0.03] hover:bg-white/[0.07] text-slate-200 border border-white/[0.08] hover:border-white/20 font-medium py-3 px-4 rounded-xl transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.99] text-sm"
               >
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <svg
+                  className="w-4 h-4 fill-current text-white"
+                  viewBox="0 0 24 24"
+                >
                   <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                 </svg>
-                Continuar com GitHub
+                <span>Continuar com GitHub</span>
               </button>
             </form>
           </div>
 
           {/* Mensagem de Garantia/Segurança */}
-          <div className="pt-4 border-t border-zinc-800/60 text-center lg:text-left space-y-3">
-            <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-zinc-400">
+          <div className="pt-6 border-t border-white/[0.06] text-center lg:text-left space-y-3">
+            <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-slate-400">
               <svg
-                className="w-4 h-4 text-emerald-500 shrink-0"
+                className="w-4 h-4 text-emerald-400 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -216,18 +221,18 @@ export default function LoginPage() {
               <span>Não acessamos senhas ou dados privados.</span>
             </div>
 
-            <p className="text-xs text-zinc-500">
+            <p className="text-[11px] text-slate-500 leading-relaxed">
               Ao continuar, você concorda com nossos{" "}
               <Link
                 href="#"
-                className="underline hover:text-zinc-300 transition-colors"
+                className="underline hover:text-slate-300 transition-colors"
               >
                 Termos
               </Link>{" "}
               e{" "}
               <Link
                 href="#"
-                className="underline hover:text-zinc-300 transition-colors"
+                className="underline hover:text-slate-300 transition-colors"
               >
                 Privacidade
               </Link>
@@ -235,9 +240,6 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
-
-        {/* Efeito de Glow discreto no fundo da coluna direita (atrás do card) */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none z-0" />
       </div>
     </div>
   );

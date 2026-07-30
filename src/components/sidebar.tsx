@@ -99,7 +99,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
       <aside
         className={`
-          w-64 h-screen bg-[#07090e] border-r border-white/[0.06] 
+          w-64 h-screen bg-[#07090e] border-r border-white/6 
           text-slate-200 flex flex-col justify-between p-4 font-sans antialiased shrink-0 select-none
           fixed md:sticky top-0 left-0 z-50 transition-transform duration-300 ease-in-out 
           ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
@@ -114,7 +114,7 @@ export default function Sidebar({ user }: SidebarProps) {
               </h1>
 
               <div className="inline-flex items-center gap-1">
-                <span className="font-black text-[1.85rem] tracking-tight bg-gradient-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
+                <span className="font-black text-[1.85rem] tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
                   AI
                 </span>
 
@@ -131,7 +131,7 @@ export default function Sidebar({ user }: SidebarProps) {
             </div>
 
             {/* Linha Divisória de Gradiente */}
-            <div className="w-28 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent mt-3 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+            <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-3 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
           </div>
 
           {/* Navegação Agrupada sem a barra de busca */}
@@ -159,7 +159,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         className={`relative group flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] font-medium transition-all duration-200 ${
                           isActive
                             ? "text-indigo-200 bg-indigo-500/10 font-semibold"
-                            : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]"
+                            : "text-slate-400 hover:text-slate-200 hover:bg-white/3"
                         }`}
                       >
                         {isActive && (
@@ -187,8 +187,8 @@ export default function Sidebar({ user }: SidebarProps) {
         </div>
 
         {/* Rodapé Consolidado */}
-        <div className="pt-2 border-t border-white/[0.06]">
-          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/30 border border-white/[0.04] hover:border-white/10 transition-all duration-200">
+        <div className="pt-2 border-t border-white/6">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/30 border border-white/4 hover:border-white/10 transition-all duration-200">
             <div className="flex items-center gap-2.5 min-w-0">
               {user?.image ? (
                 <Image
