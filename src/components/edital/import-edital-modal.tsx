@@ -101,7 +101,7 @@ export function ImportEditalModal({
         return;
       }
 
-      const response = await fetch("/api/planner/parse-edital", {
+      const response = await fetch("/api/edital/parse-edital", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: contentToProcess }),
@@ -227,7 +227,7 @@ export function ImportEditalModal({
     setIsSaving(true);
 
     try {
-      const response = await fetch("/api/planner/import-edital", {
+      const response = await fetch("/api/edital/import-edital", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
