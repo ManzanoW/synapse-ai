@@ -256,7 +256,7 @@ export default function QuestoesPage() {
   // 3. CARREGA MATÉRIAS COM TÓPICOS INCLUSOS
   useEffect(() => {
     if (isAIModalOpen) {
-      fetch("/api/planner?mode=subjects")
+      fetch("/api/edital?mode=subjects")
         .then((res) => res.json())
         .then((json) => {
           const loadedSubjects: SubjectItem[] = json.data || [];
@@ -528,9 +528,9 @@ export default function QuestoesPage() {
           }),
         }).catch((err) => console.error("Database sync error:", err));
 
-        // 2. NOTIFICA A ENGINE DO PLANNER QUE O SIMULADO DESTE TÓPICO FOI GERADO
+        // 2. NOTIFICA A ENGINE DO EDITAL QUE O SIMULADO DESTE TÓPICO FOI GERADO
         if (selectedTopicId) {
-          await fetch("/api/planner/complete-suggestion", {
+          await fetch("/api/edital/complete-suggestion", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
