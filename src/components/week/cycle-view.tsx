@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Compass,
+  ArrowRightLeft,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,13 +35,19 @@ interface CycleViewProps {
     color: string;
     allocatedMinutes: number;
     percentage: number;
+    subjectId?: string;
   }[];
   onCompleteBlock: () => void;
   onUndoBlock: () => void;
+  onSwapBlockSubject?: (
+    currentSubjectId: string,
+    targetSubjectId: string,
+    blockNumber: number,
+  ) => void;
 }
 
 export function CycleView({
-  blocks,
+  blocks: initialBlocks,
   totalBlocks,
   completedBlocks,
   currentProgress,
@@ -49,12 +56,24 @@ export function CycleView({
   subjectBreakdown,
   onCompleteBlock,
   onUndoBlock,
+  onSwapBlockSubject,
 }: CycleViewProps) {
+  // Estado local para reatividade imediata na UI
+  const [cycleBlocks, setCycleBlocks] = useState<CycleBlock[]>(initialBlocks);
   const [expandedBlockNumber, setExpandedBlockNumber] = useState<number | null>(
     null,
   );
   const [activeSessionBlock, setActiveSessionBlock] =
     useState<CycleBlock | null>(null);
+
+  // Sincroniza o estado local quando os dados da prop mudarem
+  useEffect(() => {
+    setCycleBlocks(initialBlocks);
+  }, [initialBlocks]);
+
+  // Estados para Modal de Troca/Swap de Matéria no Ciclo
+  const [swapModalOpen, setSwapModalOpen] = useState(false);
+  const [blockToSwap, setBlockToSwap] = useState<CycleBlock | null>(null);
 
   // Estados do Player Imersivo
   const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
@@ -67,12 +86,23 @@ export function CycleView({
   );
 
   // Identifica o bloco atual ("CURRENT")
-  const currentBlock = blocks.find((b) => b.status === "CURRENT") || blocks[0];
+  const currentBlock =
+    cycleBlocks.find((b) => b.status === "CURRENT") || cycleBlocks[0];
 
-  // Filtra blocos futuros (excluindo o atual para não duplicar no Hero)
-  const upcomingBlocks = blocks.filter(
-    (b) => b.blockNumber !== currentBlock?.blockNumber,
+  // Mapeamento auxiliar de porcentagem/importância para priorização
+  const subjectImportanceMap = new Map(
+    subjectBreakdown.map((s) => [s.name, s.percentage]),
   );
+
+  // Filtra blocos futuros mantendo a ordem sequencial determinística
+  const upcomingBlocks = cycleBlocks
+    .filter((b) => b.blockNumber !== currentBlock?.blockNumber)
+    .sort((a, b) => {
+      // Blocos concluídos vão para o final
+      if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1;
+      if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1;
+      return a.blockNumber - b.blockNumber;
+    });
 
   const handleStartSession = (block: CycleBlock) => {
     setActiveSessionBlock(block);
@@ -114,15 +144,76 @@ export function CycleView({
     onCompleteBlock();
   };
 
+  // HANDLER AJUSTADO: Extrai o ID da matéria atual do bloco e o ID da matéria selecionada
+  const handleExecuteSwap = (targetSubjectName: string) => {
+    if (!blockToSwap || !targetSubjectName) return;
+
+    // 1. Extrai o ID da matéria atualmente vinculada ao bloco
+    const currentSubjectId = blockToSwap.subjectId;
+
+    // 2. Localiza o ID real da matéria de destino (busca no breakdown e nos blocos)
+    const targetSubjectBreakdown = subjectBreakdown.find(
+      (s) => s.name === targetSubjectName,
+    );
+    const targetMatchingBlock = cycleBlocks.find(
+      (b) => b.subjectName === targetSubjectName,
+    );
+
+    const targetSubjectId =
+      targetMatchingBlock?.subjectId ||
+      targetSubjectBreakdown?.id ||
+      targetSubjectBreakdown?.subjectId ||
+      "";
+
+    if (!currentSubjectId || !targetSubjectId) {
+      console.error("❌ IDs inválidos para a troca de matérias:", {
+        currentSubjectId,
+        targetSubjectId,
+      });
+      return;
+    }
+
+    console.log(
+      `🚀 Trocando Bloco #${blockToSwap.blockNumber}: ${blockToSwap.subjectName} (${currentSubjectId}) ➔ ${targetSubjectName} (${targetSubjectId})`,
+    );
+
+    // 3. Atualização otimista imediata na interface
+    setCycleBlocks((prev) =>
+      prev.map((b) =>
+        b.blockNumber === blockToSwap.blockNumber
+          ? {
+              ...b,
+              subjectId: targetSubjectId,
+              subjectName: targetSubjectName,
+              color: targetSubjectBreakdown?.color || b.color,
+            }
+          : b,
+      ),
+    );
+
+    // 4. Dispara a requisição passando os dois IDs necessários para o swap no banco
+    if (onSwapBlockSubject) {
+      onSwapBlockSubject(
+        currentSubjectId,
+        targetSubjectId,
+        blockToSwap.blockNumber,
+      );
+    }
+
+    setSwapModalOpen(false);
+    setBlockToSwap(null);
+  };
+
   // SVG Donut Multi-Colorido para o Painel Cyberpunk de Distribuição
   const donutSegments = (() => {
     let accumulated = 0;
-    return subjectBreakdown.map((sub) => {
+    return subjectBreakdown.map((sub, idx) => {
       const strokeDasharray = `${sub.percentage} ${100 - sub.percentage}`;
       const strokeDashoffset = -accumulated;
       accumulated += sub.percentage;
       return {
         ...sub,
+        idKey: sub.id || sub.subjectId || `donut-seg-${sub.name}-${idx}`,
         strokeDasharray,
         strokeDashoffset,
       };
@@ -131,10 +222,10 @@ export function CycleView({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      {/* 1. PAINEL DE TELEMETRIA SUPERIOR (DASHBOARD COCKPIT) */}
+      {/* 1. PAINEL DE TELEMETRIA SUPERIOR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* CARD DE PROGRESSO DA VOLTA */}
-        <div className="lg:col-span-2 bg-linear-to-br from-slate-900/90 via-slate-950 to-indigo-950/40 border border-slate-800/80 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-gradient-to-br from-slate-900/90 via-slate-950 to-indigo-950/40 border border-slate-800/80 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between">
           <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
@@ -158,7 +249,7 @@ export function CycleView({
               {completedBlocks > 0 && (
                 <button
                   onClick={onUndoBlock}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white bg-slate-900/80 border border-slate-800 hover:border-slate-700 px-3 py-2 rounded-xl transition-all active:scale-95"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white bg-slate-900/80 border border-slate-800 hover:border-slate-700 px-3 py-2 rounded-xl transition-all active:scale-95 cursor-pointer"
                   title="Desfazer bloco anterior"
                 >
                   <RotateCcw size={13} />
@@ -189,7 +280,7 @@ export function CycleView({
 
             <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800/80">
               <div
-                className="h-full bg-linear-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-700 ease-out shadow-[0_0_15px_rgba(99,102,241,0.6)]"
+                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-700 ease-out shadow-[0_0_15px_rgba(99,102,241,0.6)]"
                 style={{ width: `${currentProgress}%` }}
               />
             </div>
@@ -250,7 +341,7 @@ export function CycleView({
                 />
                 {donutSegments.map((seg) => (
                   <circle
-                    key={seg.id}
+                    key={seg.idKey}
                     className="transition-all duration-700 ease-out"
                     stroke={seg.color}
                     strokeWidth="4"
@@ -270,9 +361,13 @@ export function CycleView({
             </div>
 
             <div className="space-y-1.5 flex-1 max-h-36 overflow-y-auto pr-1">
-              {subjectBreakdown.map((sub) => (
+              {subjectBreakdown.map((sub, idx) => (
                 <div
-                  key={sub.id}
+                  key={
+                    sub.id ||
+                    sub.subjectId ||
+                    `sub-breakdown-${sub.name}-${idx}`
+                  }
                   className="flex justify-between items-center text-[11px]"
                 >
                   <span className="flex items-center gap-1.5 truncate pr-2 text-slate-300">
@@ -295,7 +390,7 @@ export function CycleView({
         </div>
       </div>
 
-      {/* 2. HERO CARD: CENTRAL DE EXECUÇÃO DO BLOCO ATUAL ("VOCÊ ESTÁ AQUI") */}
+      {/* 2. HERO CARD: CENTRAL DE EXECUÇÃO DO BLOCO ATUAL */}
       {currentBlock && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
@@ -309,13 +404,12 @@ export function CycleView({
           </div>
 
           <div
-            className="bg-linear-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-2 border-indigo-500/80 rounded-3xl p-6 sm:p-8 shadow-[0_0_40px_rgba(99,102,241,0.25)] relative overflow-hidden transition-all group"
+            className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-2 border-indigo-500/80 rounded-3xl p-6 sm:p-8 shadow-[0_0_40px_rgba(99,102,241,0.25)] relative overflow-hidden transition-all group"
             style={{
               borderColor: currentBlock.color,
               boxShadow: `0 0 30px ${currentBlock.color}25`,
             }}
           >
-            {/* Glow Dinâmico de Fundo */}
             <div
               className="absolute -right-10 -bottom-10 w-72 h-72 rounded-full blur-3xl opacity-20 pointer-events-none"
               style={{ backgroundColor: currentBlock.color }}
@@ -339,6 +433,18 @@ export function CycleView({
                     <Clock size={12} className="text-slate-500" />
                     {formatMinutes(currentBlock.durationMinutes)}
                   </span>
+
+                  {/* Botão de Swap no Alvo Primário */}
+                  <button
+                    onClick={() => {
+                      setBlockToSwap(currentBlock);
+                      setSwapModalOpen(true);
+                    }}
+                    className="p-1.5 rounded-full bg-slate-950/80 hover:bg-slate-800 text-slate-400 hover:text-indigo-300 border border-slate-800 transition-all flex items-center gap-1 text-xs px-3 font-semibold cursor-pointer"
+                  >
+                    <ArrowRightLeft size={13} />
+                    <span>Trocar Matéria</span>
+                  </button>
                 </div>
 
                 <div>
@@ -351,7 +457,6 @@ export function CycleView({
                   </p>
                 </div>
 
-                {/* Tópicos Previstos em Chips */}
                 {currentBlock.assignedTopics.length > 0 && (
                   <div className="space-y-2 pt-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
@@ -359,9 +464,9 @@ export function CycleView({
                       Conteúdos Mapeados:
                     </span>
                     <div className="flex flex-wrap gap-2">
-                      {currentBlock.assignedTopics.map((top) => (
+                      {currentBlock.assignedTopics.map((top, topIdx) => (
                         <span
-                          key={top.id}
+                          key={top.id || `current-topic-${top.title}-${topIdx}`}
                           className="text-xs bg-slate-950/80 border border-slate-800 text-slate-200 px-3 py-1.5 rounded-xl font-medium flex items-center gap-2"
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
@@ -373,11 +478,10 @@ export function CycleView({
                 )}
               </div>
 
-              {/* Botão de Ação Primário (Play para o Player de Estudo) */}
               <div className="shrink-0 flex flex-col items-stretch lg:items-end justify-center pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-800/80">
                 <button
                   onClick={() => handleStartSession(currentBlock)}
-                  className="group/btn relative inline-flex items-center justify-center gap-3 bg-linear-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-sm px-8 py-4 rounded-2xl transition-all shadow-xl shadow-indigo-600/30 hover:scale-[1.03] active:scale-95"
+                  className="group/btn relative inline-flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-sm px-8 py-4 rounded-2xl transition-all shadow-xl shadow-indigo-600/30 hover:scale-[1.03] active:scale-95 cursor-pointer"
                 >
                   <Play
                     size={18}
@@ -398,35 +502,34 @@ export function CycleView({
         </div>
       )}
 
-      {/* 3. FILA DE EXECUÇÃO MODULAR (GRID DE BLOCOS SECUNDÁRIOS) */}
+      {/* 3. FILA DE EXECUÇÃO MODULAR */}
       <div className="space-y-4 pt-4">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase flex items-center gap-2">
             <ShieldCheck size={15} className="text-slate-500" />
-            Fila de Sequência do Ciclo
+            Fila de Sequência do Ciclo (Prioridade por Relevância)
           </h3>
           <span className="text-[11px] text-slate-500 italic">
-            Reinicia automaticamente na conclusão de todos os nós
+            Priorizado automaticamente por peso da matéria
           </span>
         </div>
 
-        {/* Grid com items-start para não deformar os vizinhos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-          {upcomingBlocks.map((block) => {
+          {upcomingBlocks.map((block, idx) => {
             const isDone = block.status === "COMPLETED";
             const isExpanded = expandedBlockNumber === block.blockNumber;
+            const weight = subjectImportanceMap.get(block.subjectName) || 0;
 
             return (
               <motion.div
                 layout
-                key={block.blockNumber}
+                key={`upcoming-${block.subjectId || block.subjectName}-${block.blockNumber}-${idx}`}
                 className={`border rounded-2xl p-4 space-y-3 transition-colors duration-300 relative overflow-hidden ${
                   isDone
                     ? "bg-slate-950/30 border-slate-800/40 opacity-50"
                     : "bg-slate-900/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60"
                 }`}
               >
-                {/* Tag Lateral Neon */}
                 <div
                   className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
                   style={{
@@ -435,29 +538,43 @@ export function CycleView({
                   }}
                 />
 
-                {/* Cabeçalho do Card */}
                 <div className="flex items-center justify-between pl-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-slate-500">
                       #{block.blockNumber}
                     </span>
-                    <span className="text-xs font-bold text-white truncate max-w-40">
+                    <span className="text-xs font-bold text-white truncate max-w-36">
                       {block.subjectName}
                     </span>
                   </div>
 
-                  {isDone ? (
-                    <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-full uppercase">
-                      ✓ Feito
-                    </span>
-                  ) : (
-                    <span className="text-[9px] font-mono text-slate-500 bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-full">
-                      Fila
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {!isDone && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBlockToSwap(block);
+                          setSwapModalOpen(true);
+                        }}
+                        title="Trocar matéria deste bloco"
+                        className="p-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-indigo-400 transition-colors cursor-pointer"
+                      >
+                        <ArrowRightLeft size={12} />
+                      </button>
+                    )}
+
+                    {isDone ? (
+                      <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-full uppercase">
+                        ✓ Feito
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-mono text-indigo-400 bg-indigo-950/60 border border-indigo-800/50 px-2 py-0.5 rounded-full font-bold">
+                        {weight}% relevância
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {/* Informações e Botão de Expandir */}
                 <div className="flex justify-between items-center text-xs font-mono text-slate-400 pl-1 pt-1 border-t border-slate-800/40">
                   <span className="flex items-center gap-1 text-[11px]">
                     <Clock size={11} className="text-slate-500" />
@@ -480,7 +597,6 @@ export function CycleView({
                   )}
                 </div>
 
-                {/* Accordion de Tópicos AnimatePresence */}
                 <AnimatePresence initial={false}>
                   {isExpanded && (
                     <motion.div
@@ -491,9 +607,9 @@ export function CycleView({
                       className="overflow-hidden"
                     >
                       <div className="pt-2 border-t border-slate-800/60 space-y-1.5">
-                        {block.assignedTopics.map((top) => (
+                        {block.assignedTopics.map((top, topIdx) => (
                           <div
-                            key={top.id}
+                            key={`upcoming-top-${top.id || top.title}-${topIdx}`}
                             className="text-[11px] text-slate-400 bg-slate-950/80 p-2 rounded-lg border border-slate-900 truncate"
                           >
                             • {top.title}
@@ -509,7 +625,87 @@ export function CycleView({
         </div>
       </div>
 
-      {/* 4. PLAYER DE ESTUDO IMERSIVO (MODAL ARENA) */}
+      {/* MODAL DE SWAP DE MATÉRIA NO CICLO */}
+      {swapModalOpen && blockToSwap && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <ArrowRightLeft size={16} className="text-indigo-400" />
+                  Trocar Matéria do Bloco #{blockToSwap.blockNumber}
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Selecione a matéria substituta para o bloco de{" "}
+                  <strong className="text-indigo-300">
+                    {blockToSwap.subjectName}
+                  </strong>
+                  .
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setSwapModalOpen(false);
+                  setBlockToSwap(null);
+                }}
+                className="text-slate-500 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
+                Opções disponíveis:
+              </span>
+
+              {subjectBreakdown
+                .filter((s) => s.name !== blockToSwap.subjectName)
+                .map((subjectItem, idx) => (
+                  <button
+                    key={
+                      subjectItem.id ||
+                      subjectItem.subjectId ||
+                      `${subjectItem.name}-${idx}`
+                    }
+                    type="button"
+                    onClick={() => handleExecuteSwap(subjectItem.name)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-indigo-500/50 transition-all text-left group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: subjectItem.color }}
+                      />
+                      <span className="text-xs font-semibold text-slate-200 group-hover:text-white">
+                        {subjectItem.name}
+                      </span>
+                    </div>
+
+                    <span className="text-[10px] font-mono text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
+                      Substituir →
+                    </span>
+                  </button>
+                ))}
+            </div>
+
+            <div className="pt-2 border-t border-slate-800/80 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setSwapModalOpen(false);
+                  setBlockToSwap(null);
+                }}
+                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. PLAYER DE ESTUDO IMERSIVO */}
       {activeSessionBlock && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-indigo-500/30 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
@@ -533,13 +729,12 @@ export function CycleView({
 
               <button
                 onClick={() => setActiveSessionBlock(null)}
-                className="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-900 border border-slate-800 transition-colors"
+                className="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-900 border border-slate-800 transition-colors cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
 
-            {/* Display do Cronômetro */}
             <div className="flex flex-col items-center justify-center py-6 bg-slate-950/80 border border-slate-800/80 rounded-2xl space-y-2">
               <span className="text-5xl sm:text-6xl font-black text-white font-mono tracking-wider drop-shadow-[0_0_15px_rgba(99,102,241,0.4)]">
                 {formatTimer(secondsRemaining)}
@@ -549,7 +744,6 @@ export function CycleView({
               </span>
             </div>
 
-            {/* Tópicos a Cobrir */}
             {activeSessionBlock.assignedTopics.length > 0 && (
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -557,9 +751,9 @@ export function CycleView({
                   Cobrir:
                 </label>
                 <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                  {activeSessionBlock.assignedTopics.map((top) => (
+                  {activeSessionBlock.assignedTopics.map((top, topIdx) => (
                     <div
-                      key={top.id}
+                      key={top.id || `session-topic-${top.title}-${topIdx}`}
                       className="text-xs bg-slate-900/80 border border-slate-800/80 p-2.5 rounded-xl text-slate-200 flex items-center gap-2"
                     >
                       <CheckCircle2 size={14} className="text-emerald-400" />
@@ -570,7 +764,6 @@ export function CycleView({
               </div>
             )}
 
-            {/* Bloco de Anotações Rápidas */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                 <FileText size={13} className="text-indigo-400" /> Anotações
@@ -584,19 +777,18 @@ export function CycleView({
               />
             </div>
 
-            {/* Rodapé e Conclusão */}
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800/80">
               <button
                 type="button"
                 onClick={() => setActiveSessionBlock(null)}
-                className="px-4 py-2.5 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+                className="px-4 py-2.5 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 Pausar e Sair
               </button>
               <button
                 type="button"
                 onClick={handleFinishSession}
-                className="px-5 py-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2"
+                className="px-5 py-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer"
               >
                 <CheckCircle2 size={15} />
                 <span>Concluir Bloco de Estudo</span>

@@ -129,8 +129,29 @@ export default function WeekPage() {
 
     async function loadWeekData() {
       try {
-        const res = await fetch("/api/week");
-        if (!res.ok) throw new Error("Falha ao carregar dados");
+        // Adiciona um AbortController para cancelar a requisição se o servidor demorar demais
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos
+
+        const res = await fetch("/api/week", {
+          signal: controller.signal,
+          headers: {
+            "Cache-Control": "no-store", // Evita respostas cacheadas corrompidas
+          },
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const errorText = await res.text().catch(() => "");
+          console.error(
+            "❌ ERRO NA RESPOSTA DA API /api/week:",
+            res.status,
+            errorText,
+          );
+          throw new Error(`Falha ao carregar dados: ${res.status}`);
+        }
+
         const json = await res.json();
 
         if (json.data && isMounted) {
@@ -139,13 +160,18 @@ export default function WeekPage() {
           setGoalHours(json.data.weeklyGoalHours ?? 10);
           setActiveDays(json.data.activeDaysPerWeek ?? 5);
 
-          // Define o dia inicial de seleção (primeiro dia do cronograma por padrão)
           if (json.data.scheduleByDay && json.data.scheduleByDay.length > 0) {
             setSelectedDayIndex(json.data.scheduleByDay[0].dayIndex);
           }
         }
-      } catch (err) {
-        console.error("Erro ao buscar cronograma semanal:", err);
+      } catch (err: any) {
+        if (err.name === "AbortError") {
+          console.error(
+            "⏱️ A requisição para /api/week excedeu o tempo limite.",
+          );
+        } else {
+          console.error("❌ Erro de conexão/rede ao buscar /api/week:", err);
+        }
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -163,18 +189,29 @@ export default function WeekPage() {
   // Alternar entre modo Semanal e Ciclo
   const handleToggleMode = (mode: "WEEKLY" | "CYCLE") => {
     setStudyMode(mode);
+
     startTransition(async () => {
       try {
         const res = await fetch("/api/week", {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ studyMode: mode }),
         });
-        if (!res.ok) throw new Error("Erro ao trocar modo de estudo");
+
+        if (!res.ok) {
+          const errorBody = await res.json().catch(() => ({}));
+          console.error("❌ Falha na resposta da API:", res.status, errorBody);
+          throw new Error("Erro ao trocar modo de estudo");
+        }
+
         const json = await res.json();
-        if (json.data) setData(json.data);
+        if (json.data) {
+          setData(json.data);
+        }
       } catch (err) {
-        console.error("Erro ao alternar modo:", err);
+        console.error("❌ Erro ao alternar modo:", err);
       }
     });
   };
@@ -211,6 +248,33 @@ export default function WeekPage() {
         if (json.data) setData(json.data);
       } catch (err) {
         console.error("Erro ao desfazer bloco:", err);
+      }
+    });
+  };
+
+  // Handler de Troca do Ciclo apontando diretamente para /api/week/swap
+  const handleSwapCycleBlock = (
+    currentSubjectId: string,
+    targetSubjectId: string,
+    blockNumber: number,
+  ) => {
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/week/swap", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            currentSubjectId,
+            targetSubjectId,
+          }),
+        });
+
+        if (!res.ok) throw new Error("Erro ao trocar matéria do ciclo");
+        const json = await res.json();
+
+        if (json.data) setData(json.data);
+      } catch (err) {
+        console.error("Erro ao realizar o swap no ciclo:", err);
       }
     });
   };
@@ -289,7 +353,7 @@ export default function WeekPage() {
     }
   };
 
-  // Função de trocar uma matéria por outra
+  // Função de trocar uma matéria por outra no modo semanal
   const handleSwapSubjects = (targetSubjectId: string) => {
     if (!subjectToSwap) return;
 
@@ -388,11 +452,9 @@ export default function WeekPage() {
           </button>
         </div>
 
-        {/* Sub-Header Tabs (Navegação Dual-Mode) */}
+        {/* Sub-Header Tabs */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-2 bg-slate-950/80 border border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-2xl">
-          {/* 1. Control Switcher Minimalista */}
           <div className="inline-flex items-center bg-slate-900/60 p-1 rounded-xl border border-slate-800/80 w-full md:w-auto">
-            {/* Opção: Cronograma Semanal */}
             <button
               onClick={() => handleToggleMode("WEEKLY")}
               className={`relative flex items-center justify-center gap-2.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none ${
@@ -401,14 +463,12 @@ export default function WeekPage() {
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
               }`}
             >
-              {/* Indicador Luminoso de Seleção */}
               {studyMode === "WEEKLY" && (
                 <span className="relative flex h-2 w-2 mr-0.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
                 </span>
               )}
-
               <CalendarDays
                 size={14}
                 className={
@@ -418,7 +478,6 @@ export default function WeekPage() {
               <span>Cronograma Semanal</span>
             </button>
 
-            {/* Opção: Ciclo de Estudos */}
             <button
               onClick={() => handleToggleMode("CYCLE")}
               className={`relative flex items-center justify-center gap-2.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none ${
@@ -427,14 +486,12 @@ export default function WeekPage() {
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
               }`}
             >
-              {/* Indicador Luminoso de Seleção */}
               {studyMode === "CYCLE" && (
                 <span className="relative flex h-2 w-2 mr-0.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
                 </span>
               )}
-
               <RefreshCw
                 size={13}
                 className={
@@ -445,7 +502,6 @@ export default function WeekPage() {
             </button>
           </div>
 
-          {/* 2. Telemetria Unificada e Discreta */}
           <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-900/40 rounded-xl border border-slate-800/50 text-xs font-mono text-slate-400 self-end md:self-auto">
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-slate-500 font-sans tracking-wider uppercase">
@@ -500,7 +556,6 @@ export default function WeekPage() {
             </p>
           </div>
         ) : studyMode === "CYCLE" ? (
-          /* ABA 2: CICLO DE ESTUDOS */
           <CycleView
             blocks={data?.cycle?.blocks || []}
             totalBlocks={data?.cycle?.totalBlocks || 0}
@@ -511,12 +566,10 @@ export default function WeekPage() {
             subjectBreakdown={data?.cycle?.subjectBreakdown || []}
             onCompleteBlock={handleCompleteBlock}
             onUndoBlock={handleUndoBlock}
+            onSwapBlockSubject={handleSwapCycleBlock}
           />
         ) : (
-          /* ABA 1: CRONOGRAMA SEMANAL (COMMAND CENTER) */
           <div className="space-y-8 animate-in fade-in duration-300">
-            {/* 1. SELETOR DE DIAS DA SEMANA (DAY PIPELINE TABS) */}
-            {/* Adicionado 'p-1.5' e 'pt-2' para criar a margem de segurança do scale e das bordas */}
             <div className="flex items-center gap-3 overflow-x-auto p-1.5 pt-2 pb-3 scrollbar-none">
               {data?.scheduleByDay?.map((day) => {
                 const isSelected = day.dayIndex === selectedDayIndex;
@@ -577,15 +630,12 @@ export default function WeekPage() {
               })}
             </div>
 
-            {/* 2. GRID PRINCIPAL DO DIA SELECIONADO + SIDEBAR DE TELEMETRIA */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-              {/* PAINEL ESQUERDO: DIA SELECIONADO EM DESTAQUE */}
               <div className="lg:col-span-2 space-y-6">
                 {activeDaySchedule && (
                   <div className="bg-linear-to-br from-slate-900/90 via-slate-950 to-indigo-950/30 border border-slate-800/80 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
-                    {/* Header do Dia em Destaque */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/60 pb-5 relative z-10">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -623,7 +673,6 @@ export default function WeekPage() {
                       </div>
                     </div>
 
-                    {/* Alocação de Blocos/Matérias do Dia */}
                     <div className="space-y-4 relative z-10">
                       <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                         <BookOpen size={14} className="text-indigo-400" />
@@ -642,7 +691,6 @@ export default function WeekPage() {
                               key={subject.id}
                               className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-5 space-y-3 relative overflow-hidden group/card hover:border-slate-700 transition-all shadow-md"
                             >
-                              {/* Barra de Indicador Lateral Glow */}
                               <div
                                 className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl"
                                 style={{
@@ -666,7 +714,6 @@ export default function WeekPage() {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                  {/* BOTÃO ADIAR / REORGANIZAR */}
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -690,7 +737,6 @@ export default function WeekPage() {
                                 </div>
                               </div>
 
-                              {/* Tópicos Alocados */}
                               <div className="space-y-2 pl-2 pt-1">
                                 {hasTopics ? (
                                   subject.assignedTopics.map((topic) => {
@@ -768,7 +814,6 @@ export default function WeekPage() {
                 )}
               </div>
 
-              {/* PAINEL DIREITO: TELEMETRIA E BALANÇO DE CARGA HORÁRIA */}
               <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 space-y-6 lg:sticky lg:top-8 backdrop-blur-md shadow-2xl">
                 <div>
                   <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
@@ -781,7 +826,6 @@ export default function WeekPage() {
                   </p>
                 </div>
 
-                {/* Donut SVG Telemetry */}
                 <div className="flex justify-center py-2 relative">
                   <div className="relative w-44 h-44 flex items-center justify-center">
                     <svg
@@ -824,7 +868,6 @@ export default function WeekPage() {
                   </div>
                 </div>
 
-                {/* Lista de Carga Horária das Matérias */}
                 <div className="space-y-3 pt-4 border-t border-slate-800/80 max-h-64 overflow-y-auto pr-1">
                   {data?.subjectOverview?.map((subject, sIdx) => {
                     const subjectColor = getSubjectColor(subject, sIdx);
@@ -883,7 +926,7 @@ export default function WeekPage() {
         )}
       </div>
 
-      {/* MODAL DE CONFIGURAÇÃO DE META */}
+      {/* MODAIS (MANTIDOS E PRESERVADOS) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
@@ -985,7 +1028,6 @@ export default function WeekPage() {
         </div>
       )}
 
-      {/* MODAL DE ADIAR / REORGANIZAR MATÉRIA */}
       {swapModalOpen && subjectToSwap && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">

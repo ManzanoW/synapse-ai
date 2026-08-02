@@ -38,11 +38,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Busca as duas matérias no banco
-    const [subA, subB] = await Promise.all([
-      prisma.subject.findUnique({ where: { id: currentSubjectId, userId } }),
-      prisma.subject.findUnique({ where: { id: targetSubjectId, userId } }),
-    ]);
+    // 1. Busca todas as matérias ordenadas para garantir o reordenamento global
+    const allSubjects = await prisma.subject.findMany({
+      where: { userId },
+      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+    });
+
+    const subA = allSubjects.find((s) => s.id === currentSubjectId);
+    const subB = allSubjects.find((s) => s.id === targetSubjectId);
 
     if (!subA || !subB) {
       return NextResponse.json(
@@ -51,30 +54,62 @@ export async function POST(request: Request) {
       );
     }
 
-    // Determina os índices de dias para a troca atômica
+    // Determina os dias no semanal (preserva o dia atual caso não seja passado um novo índice)
     const newDayForA =
-      targetDayIndex !== undefined ? targetDayIndex : (subB.assignedDay ?? 1);
+      targetDayIndex !== undefined
+        ? targetDayIndex
+        : (subB.assignedDay ?? subA.assignedDay);
     const newDayForB =
-      currentDayIndex !== undefined ? currentDayIndex : (subA.assignedDay ?? 0);
+      currentDayIndex !== undefined
+        ? currentDayIndex
+        : (subA.assignedDay ?? subB.assignedDay);
 
-    // 2. Transação Atômica: Troca os assignedDays e ajusta datas para atualização do SM-2
-    await prisma.$transaction([
-      prisma.subject.update({
-        where: { id: currentSubjectId },
-        data: {
-          assignedDay: newDayForA,
-        },
-      }),
-      prisma.subject.update({
-        where: { id: targetSubjectId },
-        data: {
-          assignedDay: newDayForB,
-          lastReviewed: new Date(), // Sinaliza que a matéria puxada entrou na grade ativa de hoje
-        },
-      }),
-    ]);
+    // 2. Inverte as posições no array de prioridades
+    const updatedList = [...allSubjects];
+    const indexA = updatedList.findIndex((s) => s.id === currentSubjectId);
+    const indexB = updatedList.findIndex((s) => s.id === targetSubjectId);
 
-    // 3. Busca usuário e recalcula o cronograma atualizado
+    if (indexA !== -1 && indexB !== -1) {
+      const temp = updatedList[indexA];
+      updatedList[indexA] = updatedList[indexB];
+      updatedList[indexB] = temp;
+    }
+
+    // 3. Monta as queries de atualização com prioridades calculadas em ordem estritamente decrescente
+    const transactionQueries = updatedList.map((subject, idx) => {
+      const calculatedPriority = Number((10 - idx * 0.1).toFixed(2));
+
+      if (subject.id === currentSubjectId) {
+        return prisma.subject.update({
+          where: { id: currentSubjectId },
+          data: {
+            assignedDay: newDayForA,
+            priority: calculatedPriority,
+          },
+        });
+      }
+
+      if (subject.id === targetSubjectId) {
+        return prisma.subject.update({
+          where: { id: targetSubjectId },
+          data: {
+            assignedDay: newDayForB,
+            priority: calculatedPriority,
+            lastReviewed: new Date(),
+          },
+        });
+      }
+
+      return prisma.subject.update({
+        where: { id: subject.id },
+        data: { priority: calculatedPriority },
+      });
+    });
+
+    // Executa a transação no Prisma
+    await prisma.$transaction(transactionQueries);
+
+    // 4. Busca os dados atualizados do usuário e recarrega os blocos
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
