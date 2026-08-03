@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { auth } from "@/auth"; 
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import {
   Layers,
@@ -26,29 +26,38 @@ export default async function FlashcardsPage() {
 
   const userId = session.user.id;
 
-  // 1. Total de baralhos e cards pertencentes unicamente ao usuário
+  // 1. Total de baralhos criados pelo usuário
   const totalDecks = await prisma.deck.count({
     where: { userId },
   });
 
+  // 2. Total de flashcards pertencentes aos baralhos do usuário
   const totalCards = await prisma.flashcard.count({
     where: {
       deck: { userId },
     },
   });
 
-  // 2. Cálculo do SM-2: cards pendentes de revisão para o usuário atual
+  // 3. Busca de cards com revisão pendente do SM-2
+  // Mapeado através do Topic do flashcard onde nextRev <= hoje ou é nulo
   const dueCardsCount = await prisma.flashcard.count({
     where: {
       deck: { userId },
       OR: [
-        { nextReview: { lte: new Date() } },
-        { nextReview: null },
+        {
+          topic: {
+            OR: [
+              { nextRev: { lte: new Date() } },
+              { nextRev: null },
+            ],
+          },
+        },
+        { topicId: null }, // Inclui cards que ainda não têm um tópico atrelado
       ],
     },
   });
 
-  // 3. Busca os baralhos mais recentes do usuário
+  // 4. Busca os baralhos mais recentes do usuário
   const recentDecks = await prisma.deck.findMany({
     where: { userId },
     take: 5,
@@ -61,7 +70,7 @@ export default async function FlashcardsPage() {
 
   return (
     <div className="p-8 max-w-350 mx-auto text-slate-100 space-y-8">
-      {/* HERO BANNER */}
+      {/* 🚀 HERO BANNER - COMMAND CENTER */}
       <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-950/90 via-slate-900/90 to-slate-950 border border-indigo-500/30 p-8 shadow-2xl backdrop-blur-2xl">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -148,8 +157,9 @@ export default async function FlashcardsPage() {
         </div>
       </div>
 
-      {/* PAINEL DE PERFORMANCE */}
+      {/* 📊 PAINEL DE PERFORMANCE */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Ofensiva de Estudos Widget */}
         <div className="p-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between space-y-4">
           <div className="flex justify-between items-center">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
@@ -183,6 +193,7 @@ export default async function FlashcardsPage() {
           </div>
         </div>
 
+        {/* Retenção SM-2 Widget */}
         <div className="p-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between space-y-4">
           <div className="flex justify-between items-center">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
@@ -208,6 +219,7 @@ export default async function FlashcardsPage() {
           </p>
         </div>
 
+        {/* AI Generator CTA */}
         <div className="p-6 bg-linear-to-br from-indigo-950/40 via-slate-900/60 to-slate-900/40 border border-indigo-500/30 rounded-2xl backdrop-blur-xl flex flex-col justify-between relative overflow-hidden group">
           <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-15 transition-opacity">
             <Sparkles size={120} className="text-indigo-400" />
@@ -239,7 +251,7 @@ export default async function FlashcardsPage() {
         </div>
       </div>
 
-      {/* REVISÕES PRIORITÁRIAS */}
+      {/* 📚 SESSÃO: BARALHOS PRIORITÁRIOS PARA HOJE */}
       <div className="space-y-4 pt-2">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2.5">
