@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { auth } from "@/lib/auth"; // ou sua lib de autenticação (ex: getServerSession)
+import { redirect } from "next/navigation";
 import {
   Layers,
   Plus,
@@ -16,10 +18,27 @@ import {
 } from "lucide-react";
 
 export default async function FlashcardsPage() {
-  const totalDecks = await prisma.deck.count();
-  const totalCards = await prisma.flashcard.count();
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const userId = session.user.id;
+
+  // 🟢 FILTRADO POR USERID: Baralhos e Cards pertencentes unicamente ao usuário atual
+  const totalDecks = await prisma.deck.count({
+    where: { userId },
+  });
+
+  const totalCards = await prisma.flashcard.count({
+    where: {
+      deck: { userId },
+    },
+  });
 
   const recentDecks = await prisma.deck.findMany({
+    where: { userId },
     take: 5,
     orderBy: { createdAt: "desc" },
     include: {
@@ -116,7 +135,7 @@ export default async function FlashcardsPage() {
 
       {/* 📊 PAINEL DE PERFORMANCE */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Heatmap/Streak Widget Corrigido */}
+        {/* Heatmap/Streak Widget */}
         <div className="p-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between space-y-4">
           <div className="flex justify-between items-center">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
