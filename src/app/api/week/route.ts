@@ -1,47 +1,125 @@
 import { NextResponse } from "next/server";
-
 import { prisma } from "@/lib/prisma";
-
 import { auth } from "@/auth";
-
 import { buildWeeklySchedule, buildStudyCycleBlocks } from "@/lib/study-cycle";
 
 export const dynamic = "force-dynamic";
 
 // Paleta Neon de fallback para o Ciclo de Estudos
-
 const HIGH_CONTRAST_PALETTE = [
   "#f43f5e", // Rose
-
   "#06b6d4", // Cyan
-
   "#a855f7", // Purple Neon
-
   "#10b981", // Emerald
-
   "#f59e0b", // Amber
-
   "#3b82f6", // Vivid Blue
-
   "#ec4899", // Pink Hot
-
   "#14b8a6", // Teal
-
   "#84cc16", // Lime
-
   "#6366f1", // Indigo
-
   "#f97316", // Orange
-
   "#00f5d4", // Mint
 ];
 
 async function getAuthenticatedUserId() {
   const session = await auth();
-
   if (!session?.user?.id) return null;
-
   return session.user.id;
+}
+
+/**
+ * Função utilitária para verificar se o usuário perdeu a meta/estudo de algum dia anterior
+ */
+async function checkMissedDay(userId: string): Promise<string | null> {
+  const DAYS_MAP = [
+    "Domingo",
+    "Segunda-feira",
+    "Terça-feira",
+    "Quarta-feira",
+    "Quinta-feira",
+    "Sexta-feira",
+    "Sábado",
+  ];
+
+  try {
+    const prismaClient = prisma as unknown as Record<
+      string,
+      {
+        findFirst: (
+          args: unknown,
+        ) => Promise<{ createdAt: Date; date?: Date } | null>;
+      }
+    >;
+
+    let lastDate: Date | null = null;
+
+    // 1. Tenta buscar em StudySession se houver registros
+    if (prismaClient.studySession) {
+      const lastLog = await prismaClient.studySession.findFirst({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true, date: true },
+      });
+      if (lastLog) {
+        lastDate = new Date(lastLog.date || lastLog.createdAt);
+      }
+    }
+
+    // 2. Fallback: Busca a última atualização em Subject
+    if (!lastDate) {
+      const lastSubject = await prisma.subject.findFirst({
+        where: { userId },
+        orderBy: { updatedAt: "desc" },
+        select: { updatedAt: true },
+      });
+      if (lastSubject?.updatedAt) {
+        lastDate = new Date(lastSubject.updatedAt);
+      }
+    }
+
+    const now = new Date();
+
+    // Se não houver nenhum registro cadastrado ainda
+    if (!lastDate) {
+      const currentDayIndex = now.getDay();
+      if (currentDayIndex >= 1) {
+        return DAYS_MAP[(currentDayIndex + 6) % 7];
+      }
+      return null;
+    }
+
+    // Normaliza as datas zerando horas/minutos/segundos (Datas puras YYYY-MM-DD)
+    const todayUTCDate = Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const lastUTCDate = Date.UTC(
+      lastDate.getFullYear(),
+      lastDate.getMonth(),
+      lastDate.getDate(),
+    );
+
+    // Diferença em dias do calendário
+    const diffDays = Math.floor(
+      (todayUTCDate - lastUTCDate) / (1000 * 60 * 60 * 24),
+    );
+
+    console.log(
+      `🔍 DEBUG checkMissedDay: Data Atual=${now.toISOString()}, Último Registro=${lastDate.toISOString()}, Dias Atraso=${diffDays}`,
+    );
+
+    // Se a última atividade foi de ontem ou antes (1 dia ou mais de diferença)
+    if (diffDays >= 1) {
+      const yesterdayIndex = (now.getDay() + 6) % 7;
+      return DAYS_MAP[yesterdayIndex];
+    }
+
+    return null;
+  } catch (err: unknown) {
+    console.warn("⚠️ Aviso ao verificar dia perdido:", err);
+    return null;
+  }
 }
 
 export async function GET() {
@@ -53,19 +131,13 @@ export async function GET() {
     }
 
     // 1. Busca configurações do usuário
-
     const user = await prisma.user.findUnique({
       where: { id: userId },
-
       select: {
         weeklyGoalHours: true,
-
         activeDaysPerWeek: true,
-
         studyMode: true,
-
         cycleCurrentIndex: true,
-
         cycleLap: true,
       },
     });
@@ -73,88 +145,64 @@ export async function GET() {
     if (!user) {
       return NextResponse.json(
         { error: "Usuário não encontrado." },
-
         { status: 404 },
       );
     }
 
     // 2. Busca matérias e tópicos
-
     const rawSubjects = await prisma.subject.findMany({
       where: { userId },
-
       include: {
         topics: {
           select: {
             id: true,
-
             title: true,
-
             firstStudy: true,
-
             relevance: true,
-
             performance: true,
           },
         },
       },
-
-      orderBy: { priority: "desc" },
+      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
     });
 
     // 3. Calcula Cronograma Semanal
-
     const { scheduleByDay, subjectOverview } = buildWeeklySchedule(
       rawSubjects,
-
       user.weeklyGoalHours ?? 10,
-
       user.activeDaysPerWeek ?? 5,
     );
 
     // 4. Calcula Blocos do Ciclo de Estudos
-
     const cycleData = buildStudyCycleBlocks(
       rawSubjects,
-
       user.weeklyGoalHours ?? 10,
-
       user.cycleCurrentIndex ?? 0,
-
       HIGH_CONTRAST_PALETTE,
     );
 
+    // 5. Verifica se há algum dia ignorado/perdido
+    const missedDayName = await checkMissedDay(userId);
+
     return NextResponse.json({
       data: {
-        studyMode: user.studyMode ?? "WEEKLY", // "WEEKLY" ou "CYCLE"
-
+        userId,
+        studyMode: user.studyMode ?? "WEEKLY",
         weeklyGoalHours: user.weeklyGoalHours ?? 10,
-
         activeDaysPerWeek: user.activeDaysPerWeek ?? 5,
-
         cycleCurrentIndex: user.cycleCurrentIndex ?? 0,
-
         cycleLap: user.cycleLap ?? 1,
-
-        // Dados do Cronograma Semanal
-
+        missedDayName,
         scheduleByDay,
-
         subjectOverview,
-
-        // Dados do Ciclo de Estudos
-
         cycle: cycleData,
       },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-
     console.error("❌ ERRO NO GET /api/week:", error);
-
     return NextResponse.json(
       { error: "Internal Server Error", details: message },
-
       { status: 500 },
     );
   }
@@ -180,6 +228,7 @@ export async function PATCH(request: Request) {
       studyMode,
       cycleAction, // "NEXT_BLOCK" | "PREV_BLOCK" | "RESET_LAP" | "SWAP_BLOCK"
       blockNumber,
+      currentSubjectId,
       targetSubjectId,
     } = body;
 
@@ -215,58 +264,63 @@ export async function PATCH(request: Request) {
       newLap += 1;
     }
 
-    // TRATAMENTO DE SWAP DE MATÉRIA NO CICLO
-    if (
-      cycleAction === "SWAP_BLOCK" &&
-      targetSubjectId &&
-      blockNumber !== undefined
-    ) {
+    // TRATAMENTO DE SWAP UNIFICADO (Atende tanto CycleView quanto WeekView)
+    if (cycleAction === "SWAP_BLOCK" && targetSubjectId) {
       const rawSubjects = await prisma.subject.findMany({
         where: { userId },
         orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
       });
 
-      const currentCycleData = buildStudyCycleBlocks(
-        rawSubjects,
-        currentUser.weeklyGoalHours ?? 10,
-        currentUser.cycleCurrentIndex ?? 0,
-        HIGH_CONTRAST_PALETTE,
-      );
+      let currentSubject = null;
+      const targetSubject = rawSubjects.find((s) => s.id === targetSubjectId);
 
-      const targetBlock = currentCycleData.blocks.find(
-        (b) => b.blockNumber === blockNumber,
-      );
-
-      if (targetBlock) {
-        const currentSubject = rawSubjects.find(
-          (s) => s.name === targetBlock.subjectName,
+      // CASO A: Swap vindo do CycleView (passa blockNumber)
+      if (blockNumber !== undefined) {
+        const currentCycleData = buildStudyCycleBlocks(
+          rawSubjects,
+          currentUser.weeklyGoalHours ?? 10,
+          currentUser.cycleCurrentIndex ?? 0,
+          HIGH_CONTRAST_PALETTE,
         );
-        const targetSubject = rawSubjects.find((s) => s.id === targetSubjectId);
 
-        if (
-          currentSubject &&
-          targetSubject &&
-          currentSubject.id !== targetSubject.id
-        ) {
-          // Garante valores de prioridade distintos se forem iguais no banco
-          let p1 = targetSubject.priority;
-          let p2 = currentSubject.priority;
+        const targetBlock = currentCycleData.blocks.find(
+          (b) => b.blockNumber === blockNumber,
+        );
 
-          if (p1 === p2) {
-            p1 += 0.01;
-          }
-
-          await prisma.$transaction([
-            prisma.subject.update({
-              where: { id: currentSubject.id },
-              data: { priority: p1 },
-            }),
-            prisma.subject.update({
-              where: { id: targetSubject.id },
-              data: { priority: p2 },
-            }),
-          ]);
+        if (targetBlock) {
+          currentSubject = rawSubjects.find(
+            (s) => s.name === targetBlock.subjectName,
+          );
         }
+      }
+      // CASO B: Swap vindo do WeekView ou ID direto
+      else if (currentSubjectId) {
+        currentSubject = rawSubjects.find((s) => s.id === currentSubjectId);
+      }
+
+      // Executa a troca de prioridades entre as duas matérias
+      if (
+        currentSubject &&
+        targetSubject &&
+        currentSubject.id !== targetSubject.id
+      ) {
+        let p1 = targetSubject.priority;
+        const p2 = currentSubject.priority;
+
+        if (p1 === p2) {
+          p1 += 0.01;
+        }
+
+        await prisma.$transaction([
+          prisma.subject.update({
+            where: { id: currentSubject.id },
+            data: { priority: p1 },
+          }),
+          prisma.subject.update({
+            where: { id: targetSubject.id },
+            data: { priority: p2 },
+          }),
+        ]);
       }
     }
 
@@ -306,7 +360,7 @@ export async function PATCH(request: Request) {
       orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
     });
 
-    // 3. Recalcula ambos os módulos
+    // 3. Recalcula ambos os módulos de forma sincronizada
     const { scheduleByDay, subjectOverview } = buildWeeklySchedule(
       rawSubjects,
       updatedUser.weeklyGoalHours ?? 10,
@@ -320,14 +374,18 @@ export async function PATCH(request: Request) {
       HIGH_CONTRAST_PALETTE,
     );
 
+    const missedDayName = await checkMissedDay(userId);
+
     return NextResponse.json({
       message: "Configurações e ciclo atualizados com sucesso!",
       data: {
+        userId,
         studyMode: updatedUser.studyMode ?? "WEEKLY",
         weeklyGoalHours: updatedUser.weeklyGoalHours ?? 10,
         activeDaysPerWeek: updatedUser.activeDaysPerWeek ?? 5,
         cycleCurrentIndex: updatedUser.cycleCurrentIndex ?? 0,
         cycleLap: updatedUser.cycleLap ?? 1,
+        missedDayName,
         scheduleByDay,
         subjectOverview,
         cycle: cycleData,

@@ -22,21 +22,21 @@ import {
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
+import { RescheduleBanner } from "@/components/week/reschedule-banner";
 
-// Paleta Neon de fallback para matérias sem cor personalizada
 const HIGH_CONTRAST_PALETTE = [
-  "#f43f5e", // Rose
-  "#06b6d4", // Cyan
-  "#a855f7", // Purple Neon
-  "#10b981", // Emerald
-  "#f59e0b", // Amber
-  "#3b82f6", // Vivid Blue
-  "#ec4899", // Pink Hot
-  "#14b8a6", // Teal
-  "#84cc16", // Lime
-  "#6366f1", // Indigo
-  "#f97316", // Orange
-  "#00f5d4", // Mint
+  "#f43f5e",
+  "#06b6d4",
+  "#a855f7",
+  "#10b981",
+  "#f59e0b",
+  "#3b82f6",
+  "#ec4899",
+  "#14b8a6",
+  "#84cc16",
+  "#6366f1",
+  "#f97316",
+  "#00f5d4",
 ];
 
 interface Topic {
@@ -84,11 +84,13 @@ interface CycleData {
 }
 
 interface WeekData {
+  userId?: string;
   studyMode: "WEEKLY" | "CYCLE";
   weeklyGoalHours: number;
   activeDaysPerWeek: number;
   cycleCurrentIndex: number;
   cycleLap: number;
+  missedDayName?: string | null;
   scheduleByDay: DaySchedule[];
   subjectOverview: SubjectOverview[];
   cycle: CycleData;
@@ -124,69 +126,67 @@ export default function WeekPage() {
     return HIGH_CONTRAST_PALETTE[index % HIGH_CONTRAST_PALETTE.length];
   };
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadWeekData = async (controllerSignal?: AbortSignal) => {
+    try {
+      const res = await fetch("/api/week", {
+        signal: controllerSignal,
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      });
 
-    async function loadWeekData() {
-      try {
-        // Adiciona um AbortController para cancelar a requisição se o servidor demorar demais
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "");
+        console.error("❌ Resposta de erro da API:", res.status, errorText);
+        throw new Error(`Erro na requisição: ${res.status}`);
+      }
 
-        const res = await fetch("/api/week", {
-          signal: controller.signal,
-          headers: {
-            "Cache-Control": "no-store", // Evita respostas cacheadas corrompidas
-          },
-        });
+      const json = await res.json();
 
-        clearTimeout(timeoutId);
+      if (json.data) {
+        setData(json.data);
+        setStudyMode(json.data.studyMode ?? "WEEKLY");
+        setGoalHours(json.data.weeklyGoalHours ?? 10);
+        setActiveDays(json.data.activeDaysPerWeek ?? 5);
 
-        if (!res.ok) {
-          const errorText = await res.text().catch(() => "");
-          console.error(
-            "❌ ERRO NA RESPOSTA DA API /api/week:",
-            res.status,
-            errorText,
-          );
-          throw new Error(`Falha ao carregar dados: ${res.status}`);
-        }
-
-        const json = await res.json();
-
-        if (json.data && isMounted) {
-          setData(json.data);
-          setStudyMode(json.data.studyMode ?? "WEEKLY");
-          setGoalHours(json.data.weeklyGoalHours ?? 10);
-          setActiveDays(json.data.activeDaysPerWeek ?? 5);
-
-          if (json.data.scheduleByDay && json.data.scheduleByDay.length > 0) {
-            setSelectedDayIndex(json.data.scheduleByDay[0].dayIndex);
-          }
-        }
-      } catch (err: any) {
-        if (err.name === "AbortError") {
-          console.error(
-            "⏱️ A requisição para /api/week excedeu o tempo limite.",
-          );
-        } else {
-          console.error("❌ Erro de conexão/rede ao buscar /api/week:", err);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
+        if (json.data.scheduleByDay && json.data.scheduleByDay.length > 0) {
+          setSelectedDayIndex((prev) => {
+            const exists = json.data.scheduleByDay.some(
+              (d: DaySchedule) => d.dayIndex === prev,
+            );
+            return exists ? prev : json.data.scheduleByDay[0].dayIndex;
+          });
         }
       }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        console.warn("⏱️ A requisição excedeu o tempo limite e foi cancelada.");
+      } else {
+        console.error("❌ Erro de conexão ao buscar /api/week:", err);
+      }
+    } finally {
+      setLoading(false);
     }
+  };
 
-    loadWeekData();
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    // Função interna autoexecutável para evitar chamadas de setState síncronas no corpo do Effect
+    const fetchData = async () => {
+      await loadWeekData(controller.signal);
+      clearTimeout(timeoutId);
+    };
+
+    fetchData();
 
     return () => {
-      isMounted = false;
+      controller.abort();
     };
   }, []);
 
-  // Alternar entre modo Semanal e Ciclo
   const handleToggleMode = (mode: "WEEKLY" | "CYCLE") => {
     setStudyMode(mode);
 
@@ -194,29 +194,19 @@ export default function WeekPage() {
       try {
         const res = await fetch("/api/week", {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ studyMode: mode }),
         });
 
-        if (!res.ok) {
-          const errorBody = await res.json().catch(() => ({}));
-          console.error("❌ Falha na resposta da API:", res.status, errorBody);
-          throw new Error("Erro ao trocar modo de estudo");
-        }
-
+        if (!res.ok) throw new Error("Erro ao trocar modo");
         const json = await res.json();
-        if (json.data) {
-          setData(json.data);
-        }
+        if (json.data) setData(json.data);
       } catch (err) {
         console.error("❌ Erro ao alternar modo:", err);
       }
     });
   };
 
-  // Concluir bloco no Ciclo
   const handleCompleteBlock = () => {
     startTransition(async () => {
       try {
@@ -234,7 +224,6 @@ export default function WeekPage() {
     });
   };
 
-  // Desfazer bloco no Ciclo
   const handleUndoBlock = () => {
     startTransition(async () => {
       try {
@@ -252,29 +241,39 @@ export default function WeekPage() {
     });
   };
 
-  // Handler de Troca do Ciclo apontando diretamente para /api/week/swap
-  const handleSwapCycleBlock = (
-    currentSubjectId: string,
-    targetSubjectId: string,
-    blockNumber: number,
-  ) => {
+  // ⚡ FUNÇÃO DE SWAP UNIFICADA PARA AMBAS AS VISÕES
+  const handleSwapSubject = ({
+    currentSubjectId,
+    targetSubjectId,
+    blockNumber,
+  }: {
+    currentSubjectId?: string;
+    targetSubjectId: string;
+    blockNumber?: number;
+  }) => {
     startTransition(async () => {
       try {
-        const res = await fetch("/api/week/swap", {
-          method: "POST",
+        const res = await fetch("/api/week", {
+          method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            cycleAction: "SWAP_BLOCK",
             currentSubjectId,
             targetSubjectId,
+            blockNumber,
           }),
         });
 
-        if (!res.ok) throw new Error("Erro ao trocar matéria do ciclo");
+        if (!res.ok) throw new Error("Erro ao trocar matérias");
         const json = await res.json();
 
-        if (json.data) setData(json.data);
+        if (json.data) {
+          setData(json.data);
+          setSwapModalOpen(false);
+          setSubjectToSwap(null);
+        }
       } catch (err) {
-        console.error("Erro ao realizar o swap no ciclo:", err);
+        console.error("❌ Erro ao realizar swap de matérias:", err);
       }
     });
   };
@@ -353,36 +352,6 @@ export default function WeekPage() {
     }
   };
 
-  // Função de trocar uma matéria por outra no modo semanal
-  const handleSwapSubjects = (targetSubjectId: string) => {
-    if (!subjectToSwap) return;
-
-    startTransition(async () => {
-      try {
-        const res = await fetch("/api/week/swap", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            currentSubjectId: subjectToSwap.id,
-            targetSubjectId,
-          }),
-        });
-
-        if (!res.ok) throw new Error("Erro ao trocar matérias");
-        const json = await res.json();
-
-        if (json.data) {
-          setData(json.data);
-          setSwapModalOpen(false);
-          setSubjectToSwap(null);
-        }
-      } catch (err) {
-        console.error("Erro ao realizar o swap de matérias:", err);
-      }
-    });
-  };
-
-  // Cálculo de progresso de tópicos concluídos para a visão semanal
   const activeDaySchedule =
     data?.scheduleByDay?.find((d) => d.dayIndex === selectedDayIndex) ||
     data?.scheduleByDay?.[0];
@@ -445,7 +414,7 @@ export default function WeekPage() {
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm"
+            className="flex items-center gap-2 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
           >
             <Settings2 size={14} />
             <span>Editar Configurações</span>
@@ -457,7 +426,7 @@ export default function WeekPage() {
           <div className="inline-flex items-center bg-slate-900/60 p-1 rounded-xl border border-slate-800/80 w-full md:w-auto">
             <button
               onClick={() => handleToggleMode("WEEKLY")}
-              className={`relative flex items-center justify-center gap-2.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none ${
+              className={`relative flex items-center justify-center gap-2.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none cursor-pointer ${
                 studyMode === "WEEKLY"
                   ? "bg-slate-800/90 text-white font-semibold shadow-lg shadow-indigo-950/20 border border-indigo-500/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
@@ -480,7 +449,7 @@ export default function WeekPage() {
 
             <button
               onClick={() => handleToggleMode("CYCLE")}
-              className={`relative flex items-center justify-center gap-2.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none ${
+              className={`relative flex items-center justify-center gap-2.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none cursor-pointer ${
                 studyMode === "CYCLE"
                   ? "bg-slate-800/90 text-white font-semibold shadow-lg shadow-indigo-950/20 border border-indigo-500/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
@@ -566,10 +535,33 @@ export default function WeekPage() {
             subjectBreakdown={data?.cycle?.subjectBreakdown || []}
             onCompleteBlock={handleCompleteBlock}
             onUndoBlock={handleUndoBlock}
-            onSwapBlockSubject={handleSwapCycleBlock}
+            onSwapBlockSubject={(
+              currentSubjectId,
+              targetSubjectId,
+              blockNumber,
+            ) =>
+              handleSwapSubject({
+                currentSubjectId,
+                targetSubjectId,
+                blockNumber,
+              })
+            }
           />
         ) : (
           <div className="space-y-8 animate-in fade-in duration-300">
+            {/* 🟢 BANNER DE REMANEJAMENTO NA VISÃO SEMANAL */}
+            {data?.missedDayName && (
+              <RescheduleBanner
+                missedDayName={data.missedDayName}
+                userId={data?.userId}
+                onActionCompleted={() => {
+                  setLoading(true);
+                  loadWeekData();
+                }}
+              />
+            )}
+
+            {/* Seleção de Dias da Semana */}
             <div className="flex items-center gap-3 overflow-x-auto p-1.5 pt-2 pb-3 scrollbar-none">
               {data?.scheduleByDay?.map((day) => {
                 const isSelected = day.dayIndex === selectedDayIndex;
@@ -592,7 +584,7 @@ export default function WeekPage() {
                   <button
                     key={day.dayIndex}
                     onClick={() => setSelectedDayIndex(day.dayIndex)}
-                    className={`flex flex-col items-start min-w-35 p-3.5 rounded-2xl border transition-all duration-200 relative text-left shrink-0 ${
+                    className={`flex flex-col items-start min-w-35 p-3.5 rounded-2xl border transition-all duration-200 relative text-left shrink-0 cursor-pointer ${
                       isSelected
                         ? "bg-indigo-950/40 border-indigo-500/80 text-white ring-1 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.15)]"
                         : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/70 hover:text-slate-200"
@@ -600,7 +592,9 @@ export default function WeekPage() {
                   >
                     <div className="flex items-center justify-between w-full mb-1">
                       <span
-                        className={`text-xs font-black uppercase tracking-wider ${isSelected ? "text-white" : "text-slate-300"}`}
+                        className={`text-xs font-black uppercase tracking-wider ${
+                          isSelected ? "text-white" : "text-slate-300"
+                        }`}
                       >
                         {day.dayName}
                       </span>
@@ -615,7 +609,9 @@ export default function WeekPage() {
 
                     <div className="w-full h-1 bg-slate-950 rounded-full mt-3 overflow-hidden">
                       <div
-                        className={`h-full transition-all duration-300 ${isSelected ? "bg-indigo-400" : "bg-indigo-500/60"}`}
+                        className={`h-full transition-all duration-300 ${
+                          isSelected ? "bg-indigo-400" : "bg-indigo-500/60"
+                        }`}
                         style={{
                           width: `${
                             totalCount > 0
@@ -721,7 +717,7 @@ export default function WeekPage() {
                                       setSwapModalOpen(true);
                                     }}
                                     title="Adiar / Trocar por matéria de outro dia"
-                                    className="p-1.5 rounded-lg bg-slate-900/80 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 border border-slate-800/80 transition-all active:scale-95 flex items-center gap-1.5 text-[11px] font-medium"
+                                    className="p-1.5 rounded-lg bg-slate-900/80 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 border border-slate-800/80 transition-all active:scale-95 flex items-center gap-1.5 text-[11px] font-medium cursor-pointer"
                                   >
                                     <ArrowRightLeft size={13} />
                                     <span className="hidden sm:inline">
@@ -926,7 +922,7 @@ export default function WeekPage() {
         )}
       </div>
 
-      {/* MODAIS (MANTIDOS E PRESERVADOS) */}
+      {/* MODAL DE CONFIGURAÇÕES DE META */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
@@ -984,7 +980,7 @@ export default function WeekPage() {
                       key={num}
                       type="button"
                       onClick={() => setActiveDays(num)}
-                      className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                      className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                         activeDays === num
                           ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
                           : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
@@ -1001,7 +997,7 @@ export default function WeekPage() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -1009,7 +1005,7 @@ export default function WeekPage() {
                 type="button"
                 onClick={handleSaveSettings}
                 disabled={isPending}
-                className="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {isPending ? (
                   <>
@@ -1028,6 +1024,7 @@ export default function WeekPage() {
         </div>
       )}
 
+      {/* MODAL DE SWAP NO CRONOGRAMA SEMANAL */}
       {swapModalOpen && subjectToSwap && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
@@ -1038,11 +1035,11 @@ export default function WeekPage() {
                   Reorganizar Matéria
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  Escolha por qual matéria de outro dia você quer trocar{" "}
+                  Escolha por qual matéria você quer trocar{" "}
                   <strong className="text-indigo-300">
                     {subjectToSwap.name}
-                  </strong>{" "}
-                  hoje.
+                  </strong>
+                  .
                 </p>
               </div>
               <button
@@ -1050,7 +1047,7 @@ export default function WeekPage() {
                   setSwapModalOpen(false);
                   setSubjectToSwap(null);
                 }}
-                className="text-slate-500 hover:text-white transition-colors"
+                className="text-slate-500 hover:text-white transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -1058,7 +1055,7 @@ export default function WeekPage() {
 
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
-                Selecione a matéria para puxar para hoje:
+                Selecione a matéria para trocar de posição:
               </span>
 
               {data?.subjectOverview
@@ -1069,8 +1066,13 @@ export default function WeekPage() {
                     <button
                       key={s.id}
                       disabled={isPending}
-                      onClick={() => handleSwapSubjects(s.id)}
-                      className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-indigo-500/50 transition-all text-left group"
+                      onClick={() =>
+                        handleSwapSubject({
+                          currentSubjectId: subjectToSwap.id,
+                          targetSubjectId: s.id,
+                        })
+                      }
+                      className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-indigo-500/50 transition-all text-left group cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
                         <span
@@ -1083,7 +1085,7 @@ export default function WeekPage() {
                       </div>
 
                       <span className="text-[10px] font-mono text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
-                        Trocar Hoje →
+                        Trocar →
                       </span>
                     </button>
                   );
@@ -1097,7 +1099,7 @@ export default function WeekPage() {
                   setSwapModalOpen(false);
                   setSubjectToSwap(null);
                 }}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 Cancelar
               </button>

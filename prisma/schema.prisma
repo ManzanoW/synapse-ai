@@ -20,15 +20,17 @@ model User {
   cycleCurrentIndex Int    @default(0) // Ponteiro do bloco atual no Ciclo (#1 a #12)
   cycleLap          Int    @default(1) // Quantas voltas já concluiu
 
-  accounts Session[]
-  sessions Account[]
+  // Relações do NextAuth
+  accounts Account[]
+  sessions Session[]
 
-  // Relação com as matérias
-  subjects Subject[]
+  // Relações de Estudo
+  subjects      Subject[]
+  studySessions StudySession[]
+  quizzes       Quiz[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  quizzes   Quiz[]
 }
 
 model Account {
@@ -162,4 +164,20 @@ model Quiz {
   topicId String?
 
   @@map("quizzes")
+}
+
+// ==========================================
+// REGISTRO DE SESSÕES E DIAS DE FOLGA/PAUSA
+// ==========================================
+model StudySession {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime @default(now())
+  status          String   @default("COMPLETED") // Ex: "COMPLETED", "OFF_DAY", "SKIPPED"
+  durationMinutes Int?     @default(0)
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
 }

@@ -7,6 +7,7 @@ import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
 import { NewContentModal } from "@/components/create-subject-modal";
 import SubjectCardSkeleton from "@/components/subject-card-skeleton";
+import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { ReviewTopic, DashboardSubject } from "@/types";
 import {
@@ -27,7 +28,6 @@ import {
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
-// 🟢 INTERFACE DAS ESTATÍSTICAS EM TEMPO REAL
 interface DashboardStats {
   metrics: {
     totalTimeFormatted: string;
@@ -104,74 +104,79 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   // Lista de matérias
   const [subjects, setSubjects] = useState<DashboardSubject[]>([]);
 
+  // Estado para o nome do dia perdido (ex: "Domingo" ou "Ontem")
+  const [missedDayName, setMissedDayName] = useState<string | null>(null);
+
   // 1. Carrega os dados do banco
-  useEffect(() => {
-    let isMounted = true;
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setIsLoadingQueue(true);
 
-    async function loadDashboardData() {
-      try {
-        setIsLoading(true);
-        setIsLoadingQueue(true);
+      const [resSubjects, resQueue, resStats, resWeek] = await Promise.all([
+        fetch("/api/edital?mode=subjects", { cache: "no-store" }),
+        fetch("/api/edital?mode=review", { cache: "no-store" }),
+        fetch("/api/dashboard/stats", { cache: "no-store" }),
+        fetch("/api/week", { cache: "no-store" }),
+      ]);
 
-        const [resSubjects, resQueue, resStats] = await Promise.all([
-          fetch("/api/edital?mode=subjects", { cache: "no-store" }),
-          fetch("/api/edital?mode=review", { cache: "no-store" }),
-          fetch("/api/dashboard/stats", { cache: "no-store" }),
-        ]);
+      const resSuggestions = await fetch("/api/edital/rebalance", {
+        method: "POST",
+      });
 
-        const resSuggestions = await fetch("/api/edital/rebalance", {
-          method: "POST",
-        });
-
-        if (resSuggestions.ok) {
-          const jsonSuggestions = await resSuggestions.json();
-          if (jsonSuggestions.suggestions?.length) {
-            setSuggestions(jsonSuggestions.suggestions);
-          }
-        }
-
-        if (!isMounted) return;
-
-        if (
-          resSubjects.status === 401 ||
-          resQueue.status === 401 ||
-          resStats.status === 401
-        ) {
-          window.location.href = "/login";
-          return;
-        }
-
-        if (resSubjects.ok) {
-          const jsonSubjects = await resSubjects.json();
-          setSubjects(
-            Array.isArray(jsonSubjects.data) ? jsonSubjects.data : [],
-          );
-        }
-
-        if (resQueue.ok) {
-          const jsonQueue = await resQueue.json();
-          setReviewQueue(Array.isArray(jsonQueue.data) ? jsonQueue.data : []);
-        }
-
-        if (resStats.ok) {
-          const jsonStats = await resStats.json();
-          setStats(jsonStats);
-        }
-      } catch (err) {
-        console.error("Erro ao carregar os dados do Dashboard:", err);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-          setIsLoadingQueue(false);
+      if (resSuggestions.ok) {
+        const jsonSuggestions = await resSuggestions.json();
+        if (jsonSuggestions.suggestions?.length) {
+          setSuggestions(jsonSuggestions.suggestions);
         }
       }
+
+      if (
+        resSubjects.status === 401 ||
+        resQueue.status === 401 ||
+        resStats.status === 401
+      ) {
+        window.location.href = "/login";
+        return;
+      }
+
+      if (resSubjects.ok) {
+        const jsonSubjects = await resSubjects.json();
+        setSubjects(Array.isArray(jsonSubjects.data) ? jsonSubjects.data : []);
+      }
+
+      if (resQueue.ok) {
+        const jsonQueue = await resQueue.json();
+        setReviewQueue(Array.isArray(jsonQueue.data) ? jsonQueue.data : []);
+      }
+
+      if (resStats.ok) {
+        const jsonStats = await resStats.json();
+        setStats(jsonStats);
+      }
+
+      if (resWeek.ok) {
+        const jsonWeek = await resWeek.json();
+        if (jsonWeek.data?.missedDayName) {
+          setMissedDayName(jsonWeek.data.missedDayName);
+        } else {
+          setMissedDayName(null);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao carregar os dados do Dashboard:", err);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingQueue(false);
     }
+  };
 
-    loadDashboardData();
-
-    return () => {
-      isMounted = false;
+  useEffect(() => {
+    const fetchData = async () => {
+      await loadDashboardData();
     };
+
+    fetchData();
   }, []);
 
   const fetchSuggestions = async () => {
@@ -304,6 +309,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       if (!response.ok) throw new Error("Erro ao criar conteúdo");
 
       setIsModalOpen(false);
+      loadDashboardData();
     } catch (error) {
       console.error("Erro ao salvar tópico:", error);
     }
@@ -340,7 +346,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           <div className="flex items-center gap-3">
             <button
               onClick={openSidebar}
-              className="p-2.5 bg-slate-900/80 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors"
+              className="p-2.5 bg-slate-900/80 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors cursor-pointer"
             >
               <Menu size={18} />
             </button>
@@ -360,20 +366,32 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </div>
 
+        {/* ================= 🟢 BANNER DE REMANEJAMENTO ================= */}
+        {missedDayName && (
+          <RescheduleBanner
+            missedDayName={missedDayName}
+            userId={user.id}
+            onActionCompleted={() => {
+              setMissedDayName(null);
+              loadDashboardData();
+            }}
+          />
+        )}
+
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-slate-900/40 p-6 md:p-7 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(99,102,241,0.15)] group hover:border-indigo-500/30 transition-all duration-500 border-t-white/20">
+        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-r from-indigo-950/40 via-slate-900/60 to-slate-900/40 p-6 md:p-7 backdrop-blur-s2xl shadow-[0_0_50px_-12px_rgba(99,102,241,0.15)] group hover:border-indigo-500/30 transition-all duration-500 border-t-white/20">
           <div className="absolute -top-32 -left-32 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 border border-indigo-500/30 text-indigo-400 shrink-0 shadow-[0_0_20px_rgba(99,102,241,0.25)]">
+              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-indigo-500/20 to-purple-500/10 border border-indigo-500/30 text-indigo-400 shrink-0 shadow-[0_0_20px_rgba(99,102,241,0.25)]">
                 <Target size={26} />
               </div>
 
               <div>
                 <div className="flex items-baseline gap-2.5">
-                  <span className="text-3xl md:text-4xl font-black tracking-tight text-white font-mono bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-200">
+                  <span className="text-3xl md:text-4xl font-black tracking-tight font-mono bg-clip-text text-transparent bg-linear-to-r from-white via-slate-100 to-indigo-200">
                     268 dias
                   </span>
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
@@ -402,7 +420,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
                 <div className="h-2.5 w-full bg-slate-950/80 rounded-full border border-white/10 p-0.5 overflow-hidden shadow-inner">
                   <div
-                    className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-400 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.8)] transition-all duration-700"
+                    className="h-full bg-linear-to-r from-indigo-500 via-purple-500 to-indigo-400 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.8)] transition-all duration-700"
                     style={{ width: "15%" }}
                   />
                 </div>
@@ -424,7 +442,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* CARD 1: Fila de Revisões (SM-2) */}
               <div className="bg-slate-900/30 backdrop-blur-2xl border border-white/10 hover:border-indigo-500/40 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between transition-all duration-300 border-t-white/15 group">
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
 
                 {isLoadingQueue ? (
                   <div className="flex flex-col items-center justify-center flex-1 py-10 text-slate-400 gap-3">
@@ -444,7 +462,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <h3 className="font-bold text-slate-200 text-sm tracking-wide">
                       Revisões em dia!
                     </h3>
-                    <p className="text-xs text-slate-400 max-w-[240px] mt-1.5 leading-relaxed">
+                    <p className="text-xs text-slate-400 max-w-60 mt-1.5 leading-relaxed">
                       Sua curva de esquecimento está devidamente estabilizada
                       para hoje.
                     </p>
@@ -526,9 +544,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 )}
               </div>
 
-              {/* CARD 2: Métricas de Desempenho (Contraste Aumentado) */}
+              {/* CARD 2: Métricas de Desempenho */}
               <div className="bg-slate-900/30 backdrop-blur-2xl border border-white/10 hover:border-indigo-500/40 rounded-3xl p-6 shadow-2xl flex flex-col justify-between transition-all duration-300 border-t-white/15 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-emerald-500/30 to-transparent" />
 
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">
@@ -558,14 +576,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     </div>
                     <div className="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden flex border border-white/10 shadow-inner p-0.5">
                       <div
-                        className="bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-700 shadow-[0_0_10px_rgba(16,185,129,0.6)]"
+                        className="bg-linear-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-700 shadow-[0_0_10px_rgba(16,185,129,0.6)]"
                         style={{ width: stats?.metrics.precision || "67%" }}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Submétricas com Contraste Corrigido */}
+                {/* Submétricas */}
                 <div className="grid grid-cols-3 gap-2.5 border-t border-white/10 pt-4 text-center">
                   <div className="bg-slate-950/60 border border-white/10 rounded-2xl p-2.5 hover:border-white/20 transition-colors">
                     <span className="text-[10px] text-slate-300 uppercase font-bold block tracking-wider">
@@ -597,7 +615,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             {/* CARD 3: Sugestões de Estudos com IA */}
             <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/30 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-cyan-500/40 border-t-white/15">
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
               <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-cyan-500/10 blur-[90px] pointer-events-none" />
 
               <div className="relative flex justify-between items-center mb-5">
@@ -720,7 +738,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <button
                 onClick={handleOptimizeSchedule}
                 disabled={isOptimizing}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/15 via-indigo-500/10 to-cyan-500/15 py-3 text-xs font-bold text-cyan-300 transition-all hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] active:scale-[0.99] disabled:opacity-50 cursor-pointer shadow-sm"
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-linear-to-r from-cyan-500/15 via-indigo-500/10 to-cyan-500/15 py-3 text-xs font-bold text-cyan-300 transition-all hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] active:scale-[0.99] disabled:opacity-50 cursor-pointer shadow-sm"
               >
                 {isOptimizing ? (
                   <>
@@ -773,7 +791,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </p>
                   <button
                     onClick={() => setIsModalOpen(true)}
-                    className="mt-2 text-xs text-indigo-400 font-bold hover:underline"
+                    className="mt-2 text-xs text-indigo-400 font-bold hover:underline cursor-pointer"
                   >
                     + Criar primeira matéria
                   </button>
@@ -841,7 +859,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <div
                       className={`w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-mono font-bold transition-all ${
                         day.active
-                          ? "bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                          ? "bg-linear-to-br from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
                           : "bg-slate-950/80 border border-white/5 text-slate-600"
                       }`}
                     >
@@ -874,7 +892,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div className="space-y-2 pt-1">
                 <div className="h-2.5 w-full bg-slate-950/80 rounded-full border border-white/10 p-0.5 overflow-hidden shadow-inner">
                   <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-700"
+                    className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-700"
                     style={{
                       width: `${stats?.weeklyGoal.percentage ?? 0}%`,
                     }}

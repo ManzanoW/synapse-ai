@@ -64,7 +64,7 @@ export function calculateSM2Interval(
   easinessFactor: number,
   grade: number,
   subjectPriority: number,
-): { newInterval: number; newEasiness: Float32Array | number } {
+): { newInterval: number; newEasiness: number } {
   let newEasiness =
     easinessFactor + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
   if (newEasiness < 1.3) newEasiness = 1.3;
@@ -83,7 +83,7 @@ export function calculateSM2Interval(
   const priorityFactor = Math.max(0.4, 2.0 / Math.max(subjectPriority, 0.5));
   const newInterval = Math.max(1, Math.round(baseInterval * priorityFactor));
 
-  return { newInterval, newEasiness };
+  return { newInterval, newEasiness: Number(newEasiness.toFixed(2)) };
 }
 
 export function processSM2Review(
@@ -129,7 +129,32 @@ export function processSM2Review(
 }
 
 /**
- * MÓDULO 1: Cronograma Semanal
+ * Função Auxiliar de Calculo do Score de Urgência SM-2
+ */
+function getSM2UrgencyScore(
+  subject: SubjectInput,
+  nowTimestamp: number,
+): number {
+  const nextTime = subject.nextReview
+    ? new Date(subject.nextReview).getTime()
+    : 0;
+
+  // Fator de atraso (Overdue)
+  const overdueDays =
+    nextTime > 0
+      ? Math.max(0, (nowTimestamp - nextTime) / (1000 * 60 * 60 * 24))
+      : 0;
+
+  // Dificuldade calculada pelo Easiness Factor do SM-2
+  const easiness = subject.easiness || 2.5;
+  const difficultyMultiplier = 2.5 / Math.max(1.3, easiness);
+
+  // Score = (Prioridade base + Peso de atraso em dias) * Multiplicador de retenção
+  return ((subject.priority || 1) + overdueDays * 1.5) * difficultyMultiplier;
+}
+
+/**
+ * MÓDULO 1: Cronograma Semanal (Dinamizado pelo SM-2)
  */
 export function buildWeeklySchedule(
   subjects: SubjectInput[],
@@ -167,63 +192,87 @@ export function buildWeeklySchedule(
     };
   });
 
-  const now = new Date().getTime();
-  const sortedDynamicSubjects = [...subjects]
-    .filter((s) => s.assignedDay === null || s.assignedDay === undefined)
-    .sort((a, b) => {
-      const lastA = a.lastReviewed ? new Date(a.lastReviewed).getTime() : 0;
-      const lastB = b.lastReviewed ? new Date(b.lastReviewed).getTime() : 0;
-      const daysSinceA = Math.max(1, (now - lastA) / (1000 * 60 * 60 * 24));
-      const daysSinceB = Math.max(1, (now - lastB) / (1000 * 60 * 60 * 24));
+  // SANITIZAÇÃO: Se mais de 50% das matérias têm o mesmo assignedDay, consideramos erro no banco e resetamos localmente
+  const assignedDaysCount: Record<number, number> = {};
+  subjects.forEach((s) => {
+    if (s.assignedDay !== null && s.assignedDay !== undefined) {
+      assignedDaysCount[s.assignedDay] =
+        (assignedDaysCount[s.assignedDay] || 0) + 1;
+    }
+  });
 
-      const urgencyA = (a.priority || 1) * (daysSinceA / (a.interval || 1));
-      const urgencyB = (b.priority || 1) * (daysSinceB / (b.interval || 1));
-
-      return urgencyB - urgencyA;
-    });
-
-  const maxSubjectsPerDay = Math.min(
-    3,
-    Math.max(2, Math.ceil(subjects.length / 2)),
+  const hasCorruptedAssignedDays = Object.values(assignedDaysCount).some(
+    (count) => count >= Math.ceil(subjects.length / 2) && subjects.length > 2,
   );
 
-  const topicPointers: Record<string, number> = {};
-  subjects.forEach((s) => (topicPointers[s.id] = 0));
+  const sanitizedSubjects = subjects.map((s) => ({
+    ...s,
+    assignedDay: hasCorruptedAssignedDays ? null : s.assignedDay,
+  }));
 
-  let dynamicSubjectIndex = 0;
+  const now = new Date().getTime();
+
+  // Ordenação Dinâmica Unificada baseada no SM-2
+  const sortedSubjects = [...sanitizedSubjects].sort((a, b) => {
+    const scoreA = getSM2UrgencyScore(a, now);
+    const scoreB = getSM2UrgencyScore(b, now);
+    return scoreB - scoreA;
+  });
+
+  const daysSubjectsMap: SubjectInput[][] = Array.from(
+    { length: activeDaysPerWeek },
+    () => [],
+  );
+
+  // Define limite rígido por dia (ex: 8 matérias / 6 dias = 2 matérias por dia)
+  const maxSubjectsPerDay = Math.min(
+    3,
+    Math.max(2, Math.ceil(sanitizedSubjects.length / activeDaysPerWeek)),
+  );
+
+  // Distribuição Round-Robin entre os dias
+  let subjectPointer = 0;
+
+  for (let pass = 0; pass < maxSubjectsPerDay; pass++) {
+    for (let dayIdx = 0; dayIdx < activeDaysPerWeek; dayIdx++) {
+      if (daysSubjectsMap[dayIdx].length >= maxSubjectsPerDay) continue;
+
+      let attempts = 0;
+      while (attempts < sortedSubjects.length) {
+        const candidate =
+          sortedSubjects[subjectPointer % sortedSubjects.length];
+        subjectPointer++;
+        attempts++;
+
+        if (!daysSubjectsMap[dayIdx].some((s) => s.id === candidate.id)) {
+          daysSubjectsMap[dayIdx].push(candidate);
+          break;
+        }
+      }
+    }
+  }
+
+  // Montagem final do Cronograma
+  const topicPointers: Record<string, number> = {};
+  sanitizedSubjects.forEach((s) => (topicPointers[s.id] = 0));
+
   const scheduleByDay: DaySchedule[] = [];
+  const dayTotalMinutes = Math.round(totalWeeklyMinutes / activeDaysPerWeek);
 
   for (let dayIdx = 0; dayIdx < activeDaysPerWeek; dayIdx++) {
     const dayName = daysOfWeek[dayIdx % daysOfWeek.length];
-    const daySubjects: ScheduledSubject[] = [];
 
-    const pinnedSubjects = subjects.filter((s) => s.assignedDay === dayIdx);
-    const subjectsForToday: SubjectInput[] = [...pinnedSubjects];
+    const subjectsForToday = daysSubjectsMap[dayIdx].slice(
+      0,
+      maxSubjectsPerDay,
+    );
 
-    // FIX DO LOOP INFINITO: Trava de iteração caso todas as matérias dinâmicas já estejam no dia
-    let attempts = 0;
-    while (
-      subjectsForToday.length < maxSubjectsPerDay &&
-      sortedDynamicSubjects.length > 0 &&
-      attempts < sortedDynamicSubjects.length * 2
-    ) {
-      const nextSubject =
-        sortedDynamicSubjects[
-          dynamicSubjectIndex % sortedDynamicSubjects.length
-        ];
-
-      if (!subjectsForToday.some((s) => s.id === nextSubject.id)) {
-        subjectsForToday.push(nextSubject);
-      }
-      dynamicSubjectIndex++;
-      attempts++;
-    }
-
-    const dayTotalMinutes = Math.round(totalWeeklyMinutes / activeDaysPerWeek);
     const dayPrioritySum = subjectsForToday.reduce(
       (acc, s) => acc + (s.priority || 1),
       0,
     );
+
+    const daySubjects: ScheduledSubject[] = [];
 
     subjectsForToday.forEach((subject) => {
       const priority = subject.priority || 1;
@@ -232,6 +281,7 @@ export function buildWeeklySchedule(
       );
       const overview = subjectOverview.find((s) => s.id === subject.id);
 
+      // --- SELEÇÃO DE TÓPICOS MELHORADA ---
       const allTopics = subject.topics || [];
       const pendingTopics = allTopics.filter(
         (t) => !t.firstStudy || t.firstStudy === "Pendente",
@@ -240,23 +290,39 @@ export function buildWeeklySchedule(
         (t) => t.firstStudy === "Em Revisão",
       );
 
-      const availableTopics =
+      const targetTopicCount =
+        dailyMinutes >= 90 ? 3 : dailyMinutes >= 45 ? 2 : 1;
+
+      let poolOfTopics =
         pendingTopics.length > 0 ? pendingTopics : reviewTopics;
+      if (poolOfTopics.length === 0) {
+        poolOfTopics = allTopics;
+      }
+
       const assignedTopics: Topic[] = [];
 
-      if (availableTopics.length > 0) {
-        const startIdx = topicPointers[subject.id] % availableTopics.length;
-        const countToTake = Math.min(
-          dailyMinutes >= 45 ? 2 : 1,
-          availableTopics.length,
-        );
+      if (poolOfTopics.length > 0) {
+        const startIdx = topicPointers[subject.id] % poolOfTopics.length;
+        const countToTake = Math.min(targetTopicCount, poolOfTopics.length);
 
         for (let t = 0; t < countToTake; t++) {
-          const topicIndex = (startIdx + t) % availableTopics.length;
-          assignedTopics.push(availableTopics[topicIndex]);
+          const topicIndex = (startIdx + t) % poolOfTopics.length;
+          assignedTopics.push(poolOfTopics[topicIndex]);
         }
 
-        topicPointers[subject.id] += countToTake;
+        if (
+          assignedTopics.length < targetTopicCount &&
+          allTopics.length > assignedTopics.length
+        ) {
+          for (const extraTopic of allTopics) {
+            if (!assignedTopics.some((at) => at.id === extraTopic.id)) {
+              assignedTopics.push(extraTopic);
+              if (assignedTopics.length >= targetTopicCount) break;
+            }
+          }
+        }
+
+        topicPointers[subject.id] += assignedTopics.length;
       }
 
       daySubjects.push({
@@ -280,7 +346,7 @@ export function buildWeeklySchedule(
 }
 
 /**
- * MÓDULO 2: Ciclo de Estudos
+ * MÓDULO 2: Ciclo de Estudos (Sincronizado com Priorização do SM-2)
  */
 export function buildStudyCycleBlocks(
   subjects: SubjectInput[],
@@ -299,7 +365,19 @@ export function buildStudyCycleBlocks(
     };
   }
 
-  const totalPriority = subjects.reduce((acc, s) => acc + (s.priority || 1), 0);
+  const now = new Date().getTime();
+
+  // Sincroniza a ordem dos blocos do ciclo com o mesmo algoritmo SM-2 da Visão Semanal
+  const sortedSubjects = [...subjects].sort((a, b) => {
+    const scoreA = getSM2UrgencyScore(a, now);
+    const scoreB = getSM2UrgencyScore(b, now);
+    return scoreB - scoreA;
+  });
+
+  const totalPriority = sortedSubjects.reduce(
+    (acc, s) => acc + (s.priority || 1),
+    0,
+  );
   const totalWeeklyMinutes = Math.max(1, weeklyGoalHours * 60);
   const BLOCK_SIZE_MINUTES = 90;
 
@@ -307,7 +385,7 @@ export function buildStudyCycleBlocks(
   let blockCounter = 1;
 
   const topicPointers: Record<string, number> = {};
-  subjects.forEach((s) => (topicPointers[s.id] = 0));
+  sortedSubjects.forEach((s) => (topicPointers[s.id] = 0));
 
   const subjectBreakdown: {
     id: string;
@@ -317,7 +395,7 @@ export function buildStudyCycleBlocks(
     percentage: number;
   }[] = [];
 
-  subjects.forEach((subject, idx) => {
+  sortedSubjects.forEach((subject, idx) => {
     const priority = subject.priority || 1;
     const allocatedMinutes = Math.round(
       (totalWeeklyMinutes * priority) / Math.max(1, totalPriority),
@@ -348,9 +426,13 @@ export function buildStudyCycleBlocks(
     const allTopics = subject.topics || [];
 
     for (let b = 0; b < numberOfBlocks; b++) {
-      const startIdx = topicPointers[subject.id] % (allTopics.length || 1);
-      const assignedTopics = allTopics.slice(startIdx, startIdx + 2);
-      topicPointers[subject.id] += assignedTopics.length;
+      let assignedTopics: Topic[] = [];
+
+      if (allTopics.length > 0) {
+        const startIdx = topicPointers[subject.id] % allTopics.length;
+        assignedTopics = allTopics.slice(startIdx, startIdx + 2);
+        topicPointers[subject.id] += assignedTopics.length;
+      }
 
       let status: "COMPLETED" | "CURRENT" | "PENDING" = "PENDING";
       if (blockCounter - 1 < currentIndex) status = "COMPLETED";
