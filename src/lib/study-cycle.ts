@@ -224,7 +224,7 @@ export function buildWeeklySchedule(
     () => [],
   );
 
-  // Define limite rígido por dia (ex: 8 matérias / 6 dias = 2 matérias por dia)
+  // Define limite rígido por dia
   const maxSubjectsPerDay = Math.min(
     3,
     Math.max(2, Math.ceil(sanitizedSubjects.length / activeDaysPerWeek)),
@@ -252,7 +252,7 @@ export function buildWeeklySchedule(
     }
   }
 
-  // Montagem final do Cronograma
+  // 🟢 MONTAGEM FINAL DO CRONOGRAMA COM PONTEIROS DE TÓPICOS GLOBAIS
   const topicPointers: Record<string, number> = {};
   sanitizedSubjects.forEach((s) => (topicPointers[s.id] = 0));
 
@@ -281,48 +281,24 @@ export function buildWeeklySchedule(
       );
       const overview = subjectOverview.find((s) => s.id === subject.id);
 
-      // --- SELEÇÃO DE TÓPICOS MELHORADA ---
+      // --- DISTRIBUIÇÃO SEQUENCIAL SEM DUPLICAR NA SEMANA ---
       const allTopics = subject.topics || [];
-      const pendingTopics = allTopics.filter(
-        (t) => !t.firstStudy || t.firstStudy === "Pendente",
-      );
-      const reviewTopics = allTopics.filter(
-        (t) => t.firstStudy === "Em Revisão",
-      );
-
-      const targetTopicCount =
-        dailyMinutes >= 90 ? 3 : dailyMinutes >= 45 ? 2 : 1;
-
-      let poolOfTopics =
-        pendingTopics.length > 0 ? pendingTopics : reviewTopics;
-      if (poolOfTopics.length === 0) {
-        poolOfTopics = allTopics;
-      }
-
       const assignedTopics: Topic[] = [];
 
-      if (poolOfTopics.length > 0) {
-        const startIdx = topicPointers[subject.id] % poolOfTopics.length;
-        const countToTake = Math.min(targetTopicCount, poolOfTopics.length);
+      if (allTopics.length > 0) {
+        const targetTopicCount =
+          dailyMinutes >= 90 ? 3 : dailyMinutes >= 45 ? 2 : 1;
 
-        for (let t = 0; t < countToTake; t++) {
-          const topicIndex = (startIdx + t) % poolOfTopics.length;
-          assignedTopics.push(poolOfTopics[topicIndex]);
+        // Pega os tópicos em ordem sequencial usando o ponteiro global da matéria
+        const currentPointer = topicPointers[subject.id] || 0;
+
+        for (let t = 0; t < targetTopicCount; t++) {
+          const topicIndex = (currentPointer + t) % allTopics.length;
+          assignedTopics.push(allTopics[topicIndex]);
         }
 
-        if (
-          assignedTopics.length < targetTopicCount &&
-          allTopics.length > assignedTopics.length
-        ) {
-          for (const extraTopic of allTopics) {
-            if (!assignedTopics.some((at) => at.id === extraTopic.id)) {
-              assignedTopics.push(extraTopic);
-              if (assignedTopics.length >= targetTopicCount) break;
-            }
-          }
-        }
-
-        topicPointers[subject.id] += assignedTopics.length;
+        // Avança o ponteiro global da matéria para o próximo dia em que ela for estudada
+        topicPointers[subject.id] = currentPointer + assignedTopics.length;
       }
 
       daySubjects.push({
