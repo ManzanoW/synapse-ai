@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { auth } from "@/lib/auth"; // ou sua lib de autenticação (ex: getServerSession)
+import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import {
   Layers,
@@ -26,7 +26,7 @@ export default async function FlashcardsPage() {
 
   const userId = session.user.id;
 
-  // 🟢 FILTRADO POR USERID: Baralhos e Cards pertencentes unicamente ao usuário atual
+  // 1. Total de baralhos e cards pertencentes unicamente ao usuário
   const totalDecks = await prisma.deck.count({
     where: { userId },
   });
@@ -37,6 +37,18 @@ export default async function FlashcardsPage() {
     },
   });
 
+  // 2. Cálculo real do SM-2: cards pendentes de revisão (nextReview <= hoje ou sem data)
+  const dueCardsCount = await prisma.flashcard.count({
+    where: {
+      deck: { userId },
+      OR: [
+        { nextReview: { lte: new Date() } },
+        { nextReview: null },
+      ],
+    },
+  });
+
+  // 3. Busca os baralhos mais recentes do usuário
   const recentDecks = await prisma.deck.findMany({
     where: { userId },
     take: 5,
@@ -46,8 +58,6 @@ export default async function FlashcardsPage() {
       _count: { select: { flashcards: true } },
     },
   });
-
-  const dueCardsCount = Math.min(totalCards, 14);
 
   return (
     <div className="p-8 max-w-350 mx-auto text-slate-100 space-y-8">
@@ -76,7 +86,7 @@ export default async function FlashcardsPage() {
             <p className="text-slate-300 text-sm leading-relaxed">
               Você possui{" "}
               <strong className="text-indigo-300 font-bold">
-                {dueCardsCount} flashcards
+                {dueCardsCount} {dueCardsCount === 1 ? "flashcard" : "flashcards"}
               </strong>{" "}
               prontos para revisão hoje pelo algoritmo de repetição espaçada.
             </p>
@@ -86,20 +96,25 @@ export default async function FlashcardsPage() {
                 <div className="flex justify-between text-xs text-slate-400 mb-1.5 font-medium">
                   <span>Meta diária</span>
                   <span className="text-indigo-400 font-bold">
-                    12 / 20 cards
+                    {Math.min(dueCardsCount, 20)} / 20 cards
                   </span>
                 </div>
                 <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-                  <div className="h-full bg-linear-to-r from-indigo-500 to-violet-500 w-[60%] rounded-full shadow-sm shadow-indigo-500/50" />
+                  <div
+                    className="h-full bg-linear-to-r from-indigo-500 to-violet-500 rounded-full shadow-sm shadow-indigo-500/50 transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, (dueCardsCount / 20) * 100)}%`,
+                    }}
+                  />
                 </div>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full sm:w-auto">
-            {recentDecks.length > 0 ? (
+            {totalCards > 0 ? (
               <Link
-                href={`/flashcards/study/${recentDecks[0].id}`}
+                href="/flashcards/study/all"
                 className="group relative inline-flex items-center justify-center gap-3 bg-linear-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-bold px-7 py-4 rounded-2xl transition-all duration-300 shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/50 active:scale-95 border border-indigo-400/30"
               >
                 <Zap
@@ -135,7 +150,7 @@ export default async function FlashcardsPage() {
 
       {/* 📊 PAINEL DE PERFORMANCE */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Heatmap/Streak Widget */}
+        {/* Ofensiva de Estudos Widget */}
         <div className="p-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between space-y-4">
           <div className="flex justify-between items-center">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
@@ -189,7 +204,7 @@ export default async function FlashcardsPage() {
           </div>
 
           <p className="text-xs text-slate-500 leading-normal">
-            Você lembrou com facilidade de{" "}
+            Você possui{" "}
             <strong className="text-slate-300">{totalCards} cards</strong>{" "}
             cadastrados na sua base.
           </p>
