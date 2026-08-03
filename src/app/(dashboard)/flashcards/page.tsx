@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth"; 
+import { auth } from "@/lib/auth"; 
 import { redirect } from "next/navigation";
 import {
   Layers,
@@ -19,7 +18,7 @@ import {
 } from "lucide-react";
 
 export default async function FlashcardsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth(); // 🟢 Chamada assíncrona simples da sessão
 
   if (!session?.user?.id) {
     redirect("/login");
