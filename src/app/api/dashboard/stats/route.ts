@@ -29,11 +29,12 @@ export async function GET() {
         id: true,
         grade: true,
         reviewedAt: true,
+        durationSeconds: true,
       },
       orderBy: { reviewedAt: "desc" },
     });
 
-    // 2. Busca o número total de Decks e Flashcards criados para métricas dinâmicas
+    // 2. Busca total de Decks e Flashcards criados para métricas dinâmicas
     const totalDecks = await prisma.deck.count({ where: { userId } });
     const totalFlashcards = await prisma.flashcard.count({
       where: { deck: { userId } },
@@ -41,7 +42,8 @@ export async function GET() {
 
     // 3. Cálculos de Desempenho
     const totalQuestions = reviews.length;
-    // Considera "BOM" ou "FACIL" (ou notas numéricas >= 3) como resposta correta
+    
+    // Considera notas positivas ("FACIL", "BOM", "4", "5") como acertos
     const correctQuestions = reviews.filter((r) => {
       const g = r.grade.toUpperCase();
       return (
@@ -54,28 +56,34 @@ export async function GET() {
         ? Math.round((correctQuestions / totalQuestions) * 100)
         : 0;
 
-    // Estimativa de tempo total de estudo (2 min por cartão revisado)
-    const totalMinutes = totalQuestions * 2;
+    // Tempo total real em minutos baseado nos segundos do log
+    const totalSeconds = reviews.reduce((acc, r) => acc + (r.durationSeconds || 60), 0);
+    const totalMinutes = Math.floor(totalSeconds / 60);
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
 
-    // 4. Meta Semanal (Baseada nos logs da semana atual)
+    // 4. Meta Semanal
     const weeklyLogs = reviews.filter(
       (r) => r.reviewedAt >= weekStart && r.reviewedAt <= weekEnd,
     );
-    const weeklyGoalTarget = 50; // Alvo dinâmico de revisões por semana
+    const weeklyGoalTarget = 50; 
     const weeklyProgress = Math.min(
       100,
       Math.round((weeklyLogs.length / weeklyGoalTarget) * 100),
     );
 
-    // 5. Cálculo de Constância (Streak)
-    let currentStreak = 0;
-    let checkDate = new Date();
-
+    // 5. Cálculo do Streak Inteligente
     const studyDays = new Set<string>(
       reviews.map((r) => format(r.reviewedAt, "yyyy-MM-dd")),
     );
+
+    let currentStreak = 0;
+    let checkDate = new Date();
+    const todayStr = format(checkDate, "yyyy-MM-dd");
+
+    if (!studyDays.has(todayStr)) {
+      checkDate = subDays(checkDate, 1);
+    }
 
     while (studyDays.has(format(checkDate, "yyyy-MM-dd"))) {
       currentStreak++;
