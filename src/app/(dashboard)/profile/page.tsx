@@ -1,14 +1,18 @@
-'use client';
-
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react';
-import { ArrowLeft, User, Mail, Shield, Award, Loader2 } from 'lucide-react';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import { ArrowLeft, User, Mail, Shield, Award } from 'lucide-react';
 
-export default function ProfilePage() {
-  const { data: session, status } = useSession();
-  const user = session?.user;
+export default async function ProfilePage() {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect('/login');
+  }
+
+  const user = session.user;
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'US';
@@ -18,17 +22,6 @@ export default function ProfilePage() {
     }
     return name.slice(0, 2).toUpperCase();
   };
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-[#030712] text-slate-100 flex items-center justify-center p-4">
-        <div className="flex items-center gap-3 text-slate-400 text-sm">
-          <Loader2 size={18} className="animate-spin text-indigo-400" />
-          <span>Carregando dados do perfil...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased">
