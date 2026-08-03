@@ -117,7 +117,7 @@ export default function HelpPage() {
       {/* 🧭 ATALHOS RÁPIDOS */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link
-          href="/cards"
+          href="/flashcards"
           className="p-5 bg-slate-900/40 border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl backdrop-blur-xl flex items-center gap-4 group transition-all"
         >
           <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 group-hover:scale-110 transition-transform">
