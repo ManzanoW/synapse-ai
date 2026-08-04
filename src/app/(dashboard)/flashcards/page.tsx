@@ -38,21 +38,22 @@ export default async function FlashcardsPage() {
     },
   });
 
-  // 3. Busca de cards com revisão pendente do SM-2
-  // Mapeado através do Topic do flashcard onde nextRev <= hoje ou é nulo
+  // 3. Busca de cards com revisão pendente (Query segura para RSC e Prisma)
   const dueCardsCount = await prisma.flashcard.count({
     where: {
       deck: { userId },
       OR: [
+        { topicId: null },
         {
           topic: {
-            OR: [
-              { nextRev: { lte: new Date() } },
-              { nextRev: null },
-            ],
+            nextRev: { lte: new Date() },
           },
         },
-        { topicId: null }, // Inclui cards que ainda não têm um tópico atrelado
+        {
+          topic: {
+            nextRev: null,
+          },
+        },
       ],
     },
   });
