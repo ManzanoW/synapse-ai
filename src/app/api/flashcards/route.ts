@@ -21,13 +21,16 @@ export async function GET(request: Request) {
     const cards = await prisma.flashcard.findMany({
       where: {
         deck: {
-          userId: userId, // Garante Multi-Tenancy isolado por usuário
+          userId: userId, // Multi-Tenancy isolado por usuário
           ...(deckId ? { id: deckId } : {}),
         },
       },
       include: {
         deck: {
-          select: { id: true, title: true, subjectId: true },
+          select: { id: true, title: true, subjectId: true, topicId: true },
+        },
+        topic: {
+          select: { id: true, title: true },
         },
       },
       orderBy: {
@@ -40,13 +43,13 @@ export async function GET(request: Request) {
     console.error("❌ Erro no GET /api/flashcards:", error);
     return NextResponse.json(
       { error: "Erro interno do servidor ao buscar flashcards" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
 /**
- * 📤 POST: Cria um novo flashcard e vincula ao Subject/Deck do usuário logado
+ * 📤 POST: Cria um novo flashcard e vincula ao Subject/Deck/Topic do usuário logado
  */
 export async function POST(request: Request) {
   try {
@@ -57,12 +60,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { question, answer, details, subject } = await request.json();
+    const { question, answer, details, subject, topicId } = await request.json();
 
     if (!question || !answer) {
       return NextResponse.json(
         { error: "Campos obrigatórios ausentes (question, answer)" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -79,7 +82,7 @@ export async function POST(request: Request) {
         ? rawSubject.trim()
         : "Questões de Prova";
 
-    // 🛡️ 1. Verifica se o flashcard já existe no deck do usuário antes de abrir a transação
+    // 🛡️ 1. Verifica se o flashcard já existe no deck do usuário
     const existingCard = await prisma.flashcard.findFirst({
       where: {
         question: question,
@@ -90,14 +93,13 @@ export async function POST(request: Request) {
     });
 
     if (existingCard) {
-      // Retorna 200/201 amigável com os dados do card existente, sem duplicar no banco
       return NextResponse.json(
         { data: existingCard, message: "Flashcard já existente." },
-        { status: 200 },
+        { status: 200 }
       );
     }
 
-    // 🚀 2. Executa as verificações e a criação em uma única transação limpa
+    // 🚀 2. Executa as verificações e a criação em uma transação limpa
     const newFlashcard = await prisma.$transaction(async (tx) => {
       // Busca ou cria o Subject
       let userSubject = await tx.subject.findFirst({
@@ -114,7 +116,21 @@ export async function POST(request: Request) {
         });
       }
 
-      // Busca ou cria o Deck
+      // Busca o tópico especificado pelo ID ou tenta encontrar pelo título do subject
+      let topic = topicId
+        ? await tx.topic.findFirst({ where: { id: topicId, subjectId: userSubject.id } })
+        : await tx.topic.findFirst({ where: { title: subjectName, subjectId: userSubject.id } });
+
+      if (!topic) {
+        topic = await tx.topic.create({
+          data: {
+            title: subjectName,
+            subjectId: userSubject.id,
+          },
+        });
+      }
+
+      // Busca ou cria o Deck vinculado também ao topic
       let userDeck = await tx.deck.findFirst({
         where: { title: subjectName, userId },
       });
@@ -126,21 +142,14 @@ export async function POST(request: Request) {
             color: "bg-blue-500",
             userId,
             subjectId: userSubject.id,
+            topicId: topic.id,
           },
         });
-      }
-
-      // Busca ou cria o Topic
-      let topic = await tx.topic.findFirst({
-        where: { title: subjectName, subjectId: userSubject.id },
-      });
-
-      if (!topic) {
-        topic = await tx.topic.create({
-          data: {
-            title: subjectName,
-            subjectId: userSubject.id,
-          },
+      } else if (!userDeck.topicId) {
+        // Vincula o topicId ao deck caso o deck já existia sem tópico associado
+        await tx.deck.update({
+          where: { id: userDeck.id },
+          data: { topicId: topic.id },
         });
       }
 
@@ -161,7 +170,7 @@ export async function POST(request: Request) {
     console.error("Erro no servidor ao criar flashcard:", error);
     return NextResponse.json(
       { error: "Erro interno do servidor ao salvar flashcard" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
