@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: reviewQueue }, { status: 200 });
     }
 
-    // 2. Modo: Subjects
+    // 2. Modo: Subjects (Com Fórmula de Domínio Real & Progresso Geral)
     if (mode === "subjects") {
       const subjects = await prisma.subject.findMany({
         where: {
@@ -67,11 +67,9 @@ export async function GET(request: Request) {
         },
         include: {
           topics: {
-            select: {
-              id: true, // 👈 ADICIONE ISSO
-              title: true, // 👈 ADICIONE ISSO
-              firstStudy: true,
-              performance: true,
+            include: {
+              reviewHistories: true,
+              quizAttempts: true,
             },
           },
           _count: {
@@ -80,34 +78,87 @@ export async function GET(request: Request) {
         },
       });
 
-      // Mantém a formatação com progress e accuracy
+      let totalTopicsGlobal = 0;
+      let accumulatedGlobalProgress = 0;
+
       const formattedSubjects = subjects.map((sub) => {
-        const totalTopics = sub.topics.length;
-        const completedTopics = sub.topics.filter(
-          (t) => t.firstStudy !== "Pendente",
-        ).length;
-        const progress =
-          totalTopics > 0
-            ? Math.round((completedTopics / totalTopics) * 100)
+        let subjectProgressSum = 0;
+
+        const formattedTopics = sub.topics.map((topic) => {
+          totalTopicsGlobal++;
+
+          // 1. Teoria Base (Máx 20%)
+          const theoryScore =
+            topic.firstStudy === "Concluido"
+              ? 20
+              : topic.firstStudy === "Em Estudo" || topic.firstStudy === "Em Revisão"
+              ? 10
+              : 0;
+
+          // 2. Retenção SM-2 (Máx 40%)
+          const validReviews = topic.reviewHistories.filter((r) =>
+            ["BOM", "FACIL", "3", "4", "5"].includes(r.grade.toUpperCase())
+          ).length;
+
+          const reviewVolumeScore = Math.min(1, validReviews / 4) * 20; // Requer 4 revisões eficientes
+          const intervalScore = Math.min(1, (topic.interval || 0) / 30) * 20; // Requer 30 dias de intervalo
+          const flashcardScore = reviewVolumeScore + intervalScore;
+
+          // 3. Banco de Questões (Máx 40%)
+          const totalAsked = (topic.quizAttempts || []).reduce(
+            (acc, q) => acc + q.totalCount,
+            0
+          );
+          const totalCorrect = (topic.quizAttempts || []).reduce(
+            (acc, q) => acc + q.correctCount,
+            0
+          );
+
+          const MIN_QUESTIONS_TARGET = 20; // Requer 20 questões resolvidas
+          let quizScore = 0;
+
+          if (totalAsked > 0) {
+            const accuracyRatio = totalCorrect / totalAsked;
+            const volumeRatio = Math.min(1, totalAsked / MIN_QUESTIONS_TARGET);
+            quizScore = accuracyRatio * volumeRatio * 40;
+          }
+
+          // Progresso Real do Tópico (0 a 100%)
+          const topicProgress = Math.min(
+            100,
+            Math.round(theoryScore + flashcardScore + quizScore)
+          );
+          subjectProgressSum += topicProgress;
+
+          return {
+            ...topic,
+            progress: topicProgress,
+          };
+        });
+
+        const subjectProgress =
+          formattedTopics.length > 0
+            ? Math.round(subjectProgressSum / formattedTopics.length)
             : 0;
 
-        const totalPerformance = sub.topics.reduce(
-          (acc, t) => acc + t.performance,
-          0,
-        );
-        const accuracy =
-          completedTopics > 0
-            ? Math.round(totalPerformance / completedTopics)
-            : 0;
+        accumulatedGlobalProgress += subjectProgressSum;
 
         return {
           ...sub,
-          progress,
-          accuracy,
+          progress: subjectProgress,
+          topics: formattedTopics,
         };
       });
 
-      return NextResponse.json({ data: formattedSubjects });
+      const globalProgress =
+        totalTopicsGlobal > 0
+          ? Math.round(accumulatedGlobalProgress / totalTopicsGlobal)
+          : 0;
+
+      return NextResponse.json({
+        globalProgress,
+        data: formattedSubjects,
+      });
     }
 
     // 3. Modo Padrão (topics)
@@ -128,7 +179,7 @@ export async function GET(request: Request) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { error: "Internal Server Error", details: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -150,7 +201,7 @@ export async function POST(request: Request) {
       if (!title || !subjectName) {
         return NextResponse.json(
           { error: "Título e Matéria são obrigatórios" },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
@@ -193,7 +244,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json(
         { message: "Conteúdo criado com sucesso!", data: newTopic },
-        { status: 201 },
+        { status: 201 }
       );
     }
 
@@ -203,7 +254,7 @@ export async function POST(request: Request) {
     if (!topicId || !grade) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -218,7 +269,7 @@ export async function POST(request: Request) {
     if (!currentTopic) {
       return NextResponse.json(
         { error: "Topic not found or unauthorized" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -288,14 +339,14 @@ export async function POST(request: Request) {
         message: "Curva de Ebbinghaus atualizada via SM-2!",
         data: updatedTopic,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error: unknown) {
     console.error("❌ ERRO NO POST /api/edital:", error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { error: "Internal Server Error", details: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -311,19 +362,19 @@ export async function DELETE(request: Request) {
     const topicId = searchParams.get("id");
     const subjectId = searchParams.get("subjectId");
 
-    // 1. Deleção de Tópico Individual (Valida se pertence ao usuário)
+    // 1. Deleção de Tópico Individual
     if (topicId) {
       const topic = await prisma.topic.findFirst({
         where: {
           id: topicId,
-          subject: { userId: userId }, // 🔒 Verificação de posse
+          subject: { userId: userId },
         },
       });
 
       if (!topic) {
         return NextResponse.json(
           { error: "Tópico não encontrado ou sem permissão." },
-          { status: 404 },
+          { status: 404 }
         );
       }
 
@@ -333,11 +384,11 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: true, deletedTopicId: topicId });
     }
 
-    // 2. Deleção de Matéria Inteira (Valida se pertence ao usuário)
+    // 2. Deleção de Matéria Inteira
     if (subjectId) {
       const subject = await prisma.subject.findFirst({
         where: {
-          userId: userId, // 🔒 Verificação de posse
+          userId: userId,
           OR: [{ id: subjectId }, { name: subjectId }],
         },
       });
@@ -345,11 +396,10 @@ export async function DELETE(request: Request) {
       if (!subject) {
         return NextResponse.json(
           { error: "Matéria não encontrada ou sem permissão." },
-          { status: 404 },
+          { status: 404 }
         );
       }
 
-      // Remove os tópicos associados e depois a matéria
       await prisma.topic.deleteMany({
         where: { subjectId: subject.id },
       });
@@ -363,13 +413,13 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json(
       { error: "Nenhum ID de tópico ou matéria foi fornecido." },
-      { status: 400 },
+      { status: 400 }
     );
   } catch (error) {
     console.error("Erro no DELETE /api/edital:", error);
     return NextResponse.json(
       { error: "Erro interno ao tentar excluir do banco de dados." },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
