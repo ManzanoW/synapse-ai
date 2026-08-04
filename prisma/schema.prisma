@@ -96,21 +96,23 @@ model Topic {
   subjectId String
   subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
-  // Relações com os módulos de estudo
-  flashcards Flashcard[]
-  questions  Quiz[]
-
-  // SM-2 Metadados por Tópico
-  firstStudy      String          @default("Pendente")
-  performance     Int             @default(0)
-  easiness        Float           @default(2.5)
-  relevance       String?         @default("5/10")
-  interval        Int             @default(0)
-  repetitions     Int             @default(0)
-  lastRev         DateTime?
-  nextRev         DateTime?       @default(now())
-  lastQuizAt      DateTime?
+  // 🔗 Relações diretas com baralhos e revisões
+  decks           Deck[]
+  flashcards      Flashcard[]
+  questions       Quiz[]
   reviewHistories ReviewHistory[]
+  quizAttempts    QuizAttempt[]   // <-- Nova relação para histórico de questões
+
+  // Estado do Estudo
+  firstStudy  String    @default("Pendente") // "Pendente", "Em Estudo", "Concluido"
+  performance Int       @default(0)         // Porcentagem calculada (0 a 100%)
+  easiness    Float     @default(2.5)
+  relevance   String?   @default("5/10")
+  interval    Int       @default(0)
+  repetitions Int       @default(0)
+  lastRev     DateTime?
+  nextRev     DateTime? @default(now())
+  lastQuizAt  DateTime?
 }
 
 model Deck {
@@ -119,10 +121,27 @@ model Deck {
   color     String
   createdAt DateTime @default(now())
 
-  subjectId  String?
-  subject    Subject?    @relation(fields: [subjectId], references: [id])
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id])
+
+  // 🔗 Vínculo direto do Deck com o Tópico do Edital
+  topicId   String?
+  topic     Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
   flashcards Flashcard[]
   userId     String
+}
+
+// 🆕 Histórico de Resolução de Questões/Simulados para calcular precisão no Edital
+model QuizAttempt {
+  id          String   @id @default(uuid())
+  userId      String
+  topicId     String
+  totalCount  Int      // Total de questões no quiz
+  correctCount Int     // Questões acertadas
+  completedAt DateTime @default(now())
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 }
 
 model Flashcard {
