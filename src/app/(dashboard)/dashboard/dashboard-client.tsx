@@ -382,7 +382,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         </div>
 
         {/* ================= 🟢 BANNER DE REMANEJAMENTO ================= */}
-        {missedDayName && (
+        {missedDayName && (stats?.journey?.completedTopics ?? 0) > 0 && (
           <RescheduleBanner
             missedDayName={missedDayName}
             userId={user.id}
