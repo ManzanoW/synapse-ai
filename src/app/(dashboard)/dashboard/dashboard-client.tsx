@@ -398,8 +398,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-600/5 rounded-full blur-[100px] pointer-events-none" />
   <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-600/5 rounded-full blur-[100px] pointer-events-none" />
 
-  {/* ESTADO DE ONBOARDING: Usuário novo sem data-alvo definida */}
-  {(!stats?.journey?.targetDate || stats?.journey?.daysRemaining === 0) ? (
+  
+  {/* ESTADO DE ONBOARDING: Usuário novo sem meta/dias definidos */}
+  {(!stats?.journey || stats?.journey?.daysRemaining === 0) ? (
     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 py-2 px-2">
       <div className="space-y-2 text-center md:text-left">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold">
