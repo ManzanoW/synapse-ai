@@ -26,6 +26,7 @@ import {
   X,
   Zap,
   TrendingUp,
+  Calendar,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
