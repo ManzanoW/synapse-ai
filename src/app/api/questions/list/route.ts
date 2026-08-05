@@ -3,8 +3,16 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    // Busca os dados usando a nossa instância global limpa
+    // Busca os dados incluindo o relacionamento com o tópico específico
     const quizzes = await prisma.quiz.findMany({
+      include: {
+        topic: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: "desc",
       },

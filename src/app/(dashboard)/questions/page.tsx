@@ -24,6 +24,11 @@ import {
   Trophy,
   RotateCcw,
   FileText,
+  Search,
+  ChevronDown,
+  ArrowRight,
+  Play,
+  Home,
 } from "lucide-react";
 
 // Tipagem para as questões que chegam da nossa API do Gemini
@@ -45,6 +50,7 @@ interface QuizHistoryItem {
   difficulty: string;
   questions: QuestaoIA[];
   createdAt: string;
+  topic?: { title: string } | null;
 }
 
 interface TopicItem {
@@ -78,6 +84,60 @@ const renderEnunciado = (texto: string) => {
     return <React.Fragment key={`text-${i}`}>{parte}</React.Fragment>;
   });
 };
+
+// Helper para embaralhar um array (Fisher-Yates)
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// Embaralha tanto a ordem das questões quanto a ordem das alternativas de cada uma
+function randomizeQuizSession(questionsList: QuestaoIA[]): QuestaoIA[] {
+  // 1. Embaralha a ordem das questões
+  const shuffledQuestions = shuffleArray(questionsList);
+
+  // 2. Embaralha as alternativas de cada questão e reatribui as letras (A, B, C, D)
+  return shuffledQuestions.map((q) => {
+    if (
+      q.formato !== "multipla" ||
+      !Array.isArray(q.alternativas) ||
+      q.alternativas.length === 0
+    ) {
+      return q;
+    }
+
+    const alternativaCorretaObj = q.alternativas.find(
+      (alt) => alt.id === q.gabaritoCorreto,
+    );
+    const textoCorreto = alternativaCorretaObj
+      ? alternativaCorretaObj.texto
+      : null;
+
+    if (!textoCorreto) return q;
+
+    const alternativasEmbaralhadas = shuffleArray(q.alternativas);
+    const letras = ["A", "B", "C", "D", "E"];
+    let novoGabarito = q.gabaritoCorreto;
+
+    const novasAlternativas = alternativasEmbaralhadas.map((alt, index) => {
+      const novaLetra = letras[index] || `ALT_${index}`;
+      if (alt.texto === textoCorreto) {
+        novoGabarito = novaLetra;
+      }
+      return { id: novaLetra, texto: alt.texto };
+    });
+
+    return {
+      ...q,
+      alternativas: novasAlternativas,
+      gabaritoCorreto: novoGabarito,
+    };
+  });
+}
 
 export default function QuestoesPage() {
   const { openSidebar } = useSidebar();
@@ -144,6 +204,15 @@ export default function QuestoesPage() {
     Record<number, boolean>
   >({});
 
+  // Guarda os dados recuperados do localStorage para o Card de Retomada no Hub
+  const [pausedSession, setPausedSession] = useState<{
+    banca: string;
+    questions: QuestaoIA[];
+    selectedAnswers: Record<number, string>;
+    checkedQuestions: Record<number, boolean>;
+    createdFlashcards: Record<number, boolean>;
+  } | null>(null);
+
   const [isMounted, setIsMounted] = useState(false);
 
   const handleTabChange = (newTab: "create" | "history") => {
@@ -177,19 +246,28 @@ export default function QuestoesPage() {
   const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<string>("newest");
 
-  const filteredHistory = quizHistory.filter((sim) => {
-    const matchesBanca = sim.banca
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesSubject = sim.subject
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesDifficulty = sim.difficulty
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    return matchesBanca || matchesSubject || matchesDifficulty;
-  });
+  const filteredHistory = quizHistory
+    .filter((sim) => {
+      const term = searchTerm.toLowerCase();
+      const matchesBanca = sim.banca?.toLowerCase().includes(term);
+      const matchesSubject = sim.subject?.toLowerCase().includes(term);
+      const matchesDifficulty = sim.difficulty?.toLowerCase().includes(term);
+      const topicMatch = sim.topic?.title?.toLowerCase().includes(term);
+      return matchesBanca || matchesSubject || matchesDifficulty || topicMatch;
+    })
+    .sort((a, b) => {
+      if (sortBy === "oldest") {
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      }
+      if (sortBy === "subject") {
+        return (a.subject || "").localeCompare(b.subject || "");
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   // 1. CARREGA DO LOCALSTORAGE AO MONTAR
   useEffect(() => {
@@ -199,14 +277,9 @@ export default function QuestoesPage() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed.banca) setBanca(parsed.banca);
-          if (parsed.questions) setQuestions(parsed.questions);
-          if (parsed.selectedAnswers)
-            setSelectedAnswers(parsed.selectedAnswers);
-          if (parsed.checkedQuestions)
-            setCheckedQuestions(parsed.checkedQuestions);
-          if (parsed.createdFlashcards)
-            setCreatedFlashcards(parsed.createdFlashcards);
+          if (parsed.questions && parsed.questions.length > 0) {
+            setPausedSession(parsed);
+          }
         }
       } catch (e) {
         console.error("Erro ao carregar do localStorage:", e);
@@ -233,14 +306,16 @@ export default function QuestoesPage() {
     if (!isMounted) return;
 
     try {
-      const currentState = {
-        banca,
-        questions,
-        selectedAnswers,
-        checkedQuestions,
-        createdFlashcards,
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentState));
+      if (questions.length > 0) {
+        const currentState = {
+          banca,
+          questions,
+          selectedAnswers,
+          checkedQuestions,
+          createdFlashcards,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentState));
+      }
     } catch (e) {
       console.error("Erro ao salvar no localStorage:", e);
     }
@@ -263,10 +338,12 @@ export default function QuestoesPage() {
           setSubjects(loadedSubjects);
 
           if (loadedSubjects.length > 0) {
-            // Se veio um tópico selecionado da URL, encontra a matéria correspondente
             if (selectedTopicId) {
               const matchedSubject = loadedSubjects.find((sub) =>
-                sub.topics?.some((t) => t.id === selectedTopicId),
+                sub.topics?.some(
+                  (t) =>
+                    t.id === selectedTopicId || t.title === selectedTopicId,
+                ),
               );
               if (matchedSubject) {
                 setMateria(matchedSubject.name);
@@ -274,7 +351,6 @@ export default function QuestoesPage() {
               }
             }
 
-            // Se não tiver matéria definida ou a atual não existir na lista, seleciona a primeira
             const exists = loadedSubjects.some(
               (s) =>
                 s.name.trim().toLowerCase() === materia.trim().toLowerCase() ||
@@ -289,7 +365,6 @@ export default function QuestoesPage() {
     }
   }, [isAIModalOpen, selectedTopicId, materia]);
 
-  // Filtra os tópicos da matéria atualmente selecionada no modal
   const currentSubjectObj = subjects.find(
     (s) =>
       s.id === materia ||
@@ -314,6 +389,22 @@ export default function QuestoesPage() {
     }
   };
 
+  // Funções de Retomada do Caderno Pausado
+  const handleResumePausedSession = () => {
+    if (!pausedSession) return;
+    setBanca(pausedSession.banca || "FGV");
+    setQuestions(pausedSession.questions || []);
+    setSelectedAnswers(pausedSession.selectedAnswers || {});
+    setCheckedQuestions(pausedSession.checkedQuestions || {});
+    setCreatedFlashcards(pausedSession.createdFlashcards || {});
+  };
+
+  const handleDiscardPausedSession = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    localStorage.removeItem(STORAGE_KEY);
+    setPausedSession(null);
+  };
+
   // ================= CÁLCULO DAS ESTATÍSTICAS E CONCLUÍDOS =================
   const totalQuestions = questions.length;
   const answeredCount = Object.keys(checkedQuestions).length;
@@ -326,13 +417,11 @@ export default function QuestoesPage() {
   const percentageAcc =
     answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
-  // Sincronização do Quiz finalizado com o Algoritmo SM-2
   const syncQuizWithSM2 = async (finalAccuracy: number) => {
     if (!selectedTopicId) return;
 
     setIsSyncingSM2(true);
 
-    // Mapeia % de acertos do Quiz em Nota SM-2 (Grade 0 a 5)
     let grade = 1;
     if (finalAccuracy >= 95) grade = 5;
     else if (finalAccuracy >= 85) grade = 4;
@@ -360,7 +449,6 @@ export default function QuestoesPage() {
     const nextChecked = { ...checkedQuestions, [index]: true };
     setCheckedQuestions(nextChecked);
 
-    // Verifica se respondeu todas as questões
     if (Object.keys(nextChecked).length === totalQuestions) {
       const finalCorrect = Object.keys(nextChecked).filter(
         (idxStr) =>
@@ -369,7 +457,6 @@ export default function QuestoesPage() {
       ).length;
       const finalAcc = Math.round((finalCorrect / totalQuestions) * 100);
 
-      // Dispara a atualização no algoritmo SM-2
       syncQuizWithSM2(finalAcc);
 
       setTimeout(() => setShowCompletionModal(true), 600);
@@ -450,12 +537,15 @@ export default function QuestoesPage() {
     setLoadingQuizId(id);
 
     setTimeout(() => {
+      // Embaralha a ordem das questões e das alternativas antes de carregar no caderno
+      const randomizedQuestions = randomizeQuizSession(savedQuestions);
+
       setSelectedAnswers({});
       setCheckedQuestions({});
       setSavedErrors({});
       setCreatedFlashcards({});
       setShowCompletionModal(false);
-      setQuestions(savedQuestions);
+      setQuestions(randomizedQuestions);
       setBanca(savedBanca);
       handleTabChange("create");
       setLoadingQuizId(null);
@@ -487,6 +577,11 @@ export default function QuestoesPage() {
       return;
     }
 
+    const matchedTopic = availableTopics.find(
+      (t) => t.id === selectedTopicId || t.title === selectedTopicId,
+    );
+    const topicoNome = matchedTopic ? matchedTopic.title : selectedTopicId;
+
     setIsGenerating(true);
     setSelectedAnswers({});
     setCheckedQuestions({});
@@ -501,7 +596,8 @@ export default function QuestoesPage() {
         body: JSON.stringify({
           banca,
           materia,
-          topicId: selectedTopicId || null,
+          topicoId: selectedTopicId || null,
+          topicoNome: topicoNome || null,
           qtdQuestoes,
           fonteConteudo,
           dificuldade,
@@ -515,7 +611,6 @@ export default function QuestoesPage() {
       setIsAIModalOpen(false);
 
       if (generatedQuestions.length > 0) {
-        // 1. Salva o simulado no histórico
         await fetch("/api/questions/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -528,7 +623,6 @@ export default function QuestoesPage() {
           }),
         }).catch((err) => console.error("Database sync error:", err));
 
-        // 2. NOTIFICA A ENGINE DO EDITAL QUE O SIMULADO DESTE TÓPICO FOI GERADO
         if (selectedTopicId) {
           await fetch("/api/edital/complete-suggestion", {
             method: "POST",
@@ -580,7 +674,7 @@ export default function QuestoesPage() {
           {questions.length > 0 && activeTab === "create" && (
             <button
               onClick={() => setIsAIModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs px-3 py-2 rounded-xl transition-all font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-950/40"
+              className="bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 text-xs px-3 py-2 rounded-xl transition-all font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-950/40"
             >
               <Sparkles size={14} />
               Novo Simulado com IA
@@ -621,17 +715,27 @@ export default function QuestoesPage() {
           </div>
         )}
 
-        {/* ================= SELETORES DE ABA ================= */}
+        {/* ================= SELETORES DE ABA COM NOMENCLATURA DINÂMICA ================= */}
         <div className="flex border-b border-slate-900 gap-2">
           <button
             onClick={() => handleTabChange("create")}
-            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 rounded-t-xl ${
+            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 ${
               activeTab === "create"
                 ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
                 : "border-transparent text-slate-500 hover:text-slate-300"
             }`}
           >
-            📝 Caderno Atual
+            {questions.length > 0 ? (
+              <>
+                <span>📝</span>
+                <span>Caderno Atual</span>
+              </>
+            ) : (
+              <>
+                <Home size={14} />
+                <span>Início</span>
+              </>
+            )}
           </button>
           <button
             onClick={() => {
@@ -649,56 +753,231 @@ export default function QuestoesPage() {
           </button>
         </div>
 
-        {/* ================= ABA 1: CADERNO ATUAL ================= */}
+        {/* ================= ABA 1: HUB INICIAL OU CADERNO EM RESOLUÇÃO ================= */}
         {activeTab === "create" && (
           <>
-            {/* ESTADO VAZIO */}
-            {questions.length === 0 && (
-              <div className="flex flex-col items-center justify-center min-h-[55vh] text-center p-6 bg-[#090d16]/30 border border-slate-900 rounded-2xl relative overflow-hidden">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+            {/* ================= HUB CENTRAL DE ENTRADA (SE NENHUM SIMULADO ESTÁ EM EXECUÇÃO) ================= */}
+            {questions.length === 0 ? (
+              <div className="space-y-6 animate-in fade-in duration-500">
+                {/* 🟢 MELHORIA 1: CARD DE RETOMADA RÁPIDA (SESSÃO PAUSADA NO LOCALSTORAGE) */}
+                {pausedSession &&
+                  pausedSession.questions &&
+                  pausedSession.questions.length > 0 && (
+                    <div className="relative overflow-hidden bg-linear-to-r from-emerald-950/40 via-[#090d16] to-[#090d16] border border-emerald-500/30 rounded-3xl p-6 shadow-[0_0_30px_-10px_rgba(16,185,129,0.15)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 animate-in slide-in-from-top-3 duration-300">
+                      <div className="space-y-2 relative z-10 max-w-lg">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                          </span>
+                          <span className="text-[11px] font-bold tracking-wider text-emerald-400 uppercase">
+                            Simulado em Andamento
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold text-white">
+                          {pausedSession.banca} —{" "}
+                          {pausedSession.questions.length} Questões
+                        </h3>
+                        <div className="flex items-center gap-3 text-xs text-slate-400">
+                          <span>
+                            <strong className="text-emerald-300">
+                              {
+                                Object.keys(
+                                  pausedSession.checkedQuestions || {},
+                                ).length
+                              }
+                            </strong>{" "}
+                            de {pausedSession.questions.length} respondidas
+                          </span>
+                          <span>•</span>
+                          <div className="w-24 bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800">
+                            <div
+                              className="bg-emerald-500 h-full rounded-full transition-all"
+                              style={{
+                                width: `${(Object.keys(pausedSession.checkedQuestions || {}).length / pausedSession.questions.length) * 100}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
 
-                <div className="relative border border-slate-800 bg-[#090d16] p-6 rounded-2xl shadow-xl mb-6 w-36 h-44 flex flex-col justify-between animate-bounce duration-3000">
-                  <div className="flex gap-2 justify-between">
-                    <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-[10px] text-indigo-400 font-bold font-mono select-none">
-                      ?
+                      <div className="flex items-center gap-2 w-full sm:w-auto relative z-10">
+                        <button
+                          onClick={handleResumePausedSession}
+                          className="flex-1 sm:flex-none px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-slate-950 font-bold text-xs rounded-xl transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2"
+                        >
+                          <Play size={14} className="fill-slate-950" />
+                          Continuar de onde parou
+                        </button>
+                        <button
+                          onClick={handleDiscardPausedSession}
+                          className="p-2.5 bg-slate-900/80 hover:bg-rose-950/30 border border-slate-800 hover:border-rose-900/40 text-slate-500 hover:text-rose-400 rounded-xl transition-all"
+                          title="Descartar simulado pausado"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-[10px] text-purple-400 font-bold font-mono select-none">
-                      ?
+                  )}
+
+                {/* BANNER HERO PRINCIPAL COM GLOW E MÉTRICAS */}
+                <div className="relative overflow-hidden bg-linear-to-br from-[#0c0f1d] via-[#090d16] to-[#05070c] border border-indigo-500/20 rounded-3xl p-8 shadow-[0_0_50px_-12px_rgba(79,70,229,0.15)]">
+                  {/* Luzes de Fundo (Glow Background) */}
+                  <div className="absolute -top-24 -left-20 w-80 h-80 bg-indigo-600/15 rounded-full blur-[100px] pointer-events-none" />
+                  <div className="absolute top-1/2 -right-20 w-72 h-72 bg-purple-600/10 rounded-full blur-[90px] pointer-events-none" />
+
+                  <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                    {/* Lado Esquerdo: Mensagem de Boas-vindas */}
+                    <div className="space-y-4 max-w-xl">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-md">
+                        <Sparkles
+                          size={12}
+                          className="text-indigo-400 animate-pulse"
+                        />
+                        <span className="text-[11px] font-bold tracking-wider text-indigo-300 uppercase">
+                          Central de Treinamento
+                        </span>
+                      </div>
+
+                      <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                        Pratique com questões inéditas e simulados direcionados
+                      </h2>
+
+                      <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-normal">
+                        Gere cadernos adaptativos configurados por IA ou retome
+                        seus testes anteriores para reforçar a retenção de
+                        conteúdo sem consumir cota.
+                      </p>
                     </div>
-                  </div>
-                  <div className="space-y-2 flex-1 mt-4">
-                    <div className="h-1.5 bg-slate-800 rounded-full w-full flex items-center pl-1">
-                      <div className="w-1 h-1 rounded-full bg-indigo-500" />
+
+                    {/* Lado Direito: Widget de Métricas Rápidas */}
+                    <div className="grid grid-cols-2 gap-3 shrink-0 lg:w-72">
+                      <div className="bg-[#0f1424]/60 border border-slate-800/80 backdrop-blur-sm p-4 rounded-2xl flex flex-col justify-center">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          Simulados
+                        </span>
+                        <span className="text-xl font-black text-white mt-1">
+                          12
+                        </span>
+                        <span className="text-[10px] text-emerald-400 mt-0.5 font-medium">
+                          +3 esta semana
+                        </span>
+                      </div>
+
+                      <div className="bg-[#0f1424]/60 border border-slate-800/80 backdrop-blur-sm p-4 rounded-2xl flex flex-col justify-center">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          Aproveitamento
+                        </span>
+                        <span className="text-xl font-black text-indigo-400 mt-1">
+                          78%
+                        </span>
+                        <span className="text-[10px] text-indigo-300/70 mt-0.5 font-medium">
+                          Média global
+                        </span>
+                      </div>
                     </div>
-                    <div className="h-1.5 bg-slate-950 rounded-full w-5/6" />
-                    <div className="h-1.5 bg-slate-950 rounded-full w-4/6" />
-                  </div>
-                  <div className="h-1.5 w-full bg-slate-900 rounded-full mt-2 overflow-hidden">
-                    <div className="h-full bg-indigo-500 w-[40%]" />
                   </div>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-200">
-                  Nenhuma questão ativa no caderno
-                </h3>
-                <p className="text-xs text-slate-400 max-w-sm mt-1.5 leading-relaxed">
-                  Crie questões manualmente, deixe nossa IA gerar simulados, ou
-                  escolha um teste pronto na aba de salvos!
-                </p>
-
-                <div className="flex items-center gap-3 mt-6">
-                  <button
-                    onClick={() => setIsManualModalOpen(true)}
-                    className="bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs px-4 py-2.5 rounded-xl transition-all font-medium flex items-center gap-1.5 active:scale-98"
-                  >
-                    Criar Manual
-                  </button>
-                  <button
+                {/* CARDS DE AÇÃO COM ESTILO GLOW & MICRO-INTERAÇÃO ACTIVE SCALE */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Card 1: Gerar por IA */}
+                  <div
                     onClick={() => setIsAIModalOpen(true)}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs px-4 py-2.5 rounded-xl transition-all font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-950/50 active:scale-98"
+                    className="group relative bg-linear-to-b from-[#0e1222]/90 to-[#090d16]/90 hover:from-[#12182e] hover:to-[#0c101d] border border-indigo-500/20 hover:border-indigo-500/50 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.98] shadow-xl hover:shadow-[0_10px_30px_-10px_rgba(79,70,229,0.25)] flex flex-col justify-between overflow-hidden"
                   >
-                    <Sparkles size={14} />
-                    Gerar com IA
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
+
+                    <div className="space-y-4 relative z-10">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300 shadow-lg shadow-indigo-500/10">
+                        <Sparkles size={22} />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors flex items-center gap-2">
+                          Novo Simulado por IA
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                          Filtre por banca, disciplina, sub-tópico do edital e
+                          grau de complexidade para gerar testes exclusivos sob
+                          demanda.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-8 flex items-center gap-2 text-xs font-bold text-indigo-400 group-hover:text-indigo-300 transition-all relative z-10">
+                      <span>Configurar Simulado</span>
+                      <ArrowRight
+                        size={14}
+                        className="group-hover:translate-x-1.5 transition-transform"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Card 2: Meus Simulados Salvos */}
+                  <div
+                    onClick={() => {
+                      handleTabChange("history");
+                      fetchQuizHistory();
+                    }}
+                    className="group relative bg-linear-to-b from-[#0e1222]/60 to-[#090d16]/90 hover:from-[#12182e] hover:to-[#0c101d] border border-slate-800 hover:border-slate-700 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.98] shadow-xl flex flex-col justify-between overflow-hidden"
+                  >
+                    <div className="space-y-4 relative z-10">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-300 group-hover:scale-110 group-hover:border-slate-600 group-hover:text-white transition-all duration-300">
+                        <History size={22} />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white group-hover:text-slate-200 transition-colors">
+                          Meus Simulados Salvos
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                          Acessee cadernos criados anteriormente e treine
+                          novamente com algoritmo de embaralhamento total de
+                          alternativas.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-8 flex items-center gap-2 text-xs font-bold text-slate-400 group-hover:text-white transition-all relative z-10">
+                      <span>Ver Cadernos Salvos</span>
+                      <ArrowRight
+                        size={14}
+                        className="group-hover:translate-x-1.5 transition-transform"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ================= BANNER HERO DO SIMULADO ATIVO ================= */
+              <div className="space-y-6">
+                <div className="bg-[#090d16]/90 border border-indigo-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+
+                  <div className="space-y-1 relative z-10">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2 py-0.5 rounded uppercase tracking-wider">
+                        {banca}
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">
+                        Caderno em Resolução
+                      </span>
+                    </div>
+                    <h2 className="text-lg font-bold text-slate-100">
+                      {materia || "Simulado Customizado"}
+                    </h2>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setQuestions([]);
+                      setSelectedAnswers({});
+                      setCheckedQuestions({});
+                      localStorage.removeItem(STORAGE_KEY);
+                      setPausedSession(null);
+                    }}
+                    className="text-xs text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/40 bg-slate-950 px-3 py-1.5 rounded-xl transition-all self-end sm:self-auto shrink-0 active:scale-[0.98]"
+                  >
+                    Encerrar Caderno
                   </button>
                 </div>
               </div>
@@ -853,7 +1132,7 @@ export default function QuestoesPage() {
                           <button
                             disabled={!alternativaSelecionada}
                             onClick={() => handleAnswerQuestion(index)}
-                            className="w-full sm:w-auto self-end px-5 py-2 bg-slate-100 dark:bg-slate-100 text-slate-950 hover:bg-slate-200 font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            className="w-full sm:w-auto self-end px-5 py-2 bg-slate-100 dark:bg-slate-100 text-slate-950 hover:bg-slate-200 font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
                           >
                             Responder Questão
                           </button>
@@ -888,7 +1167,7 @@ export default function QuestoesPage() {
                                     creatingFlashcardIndex === index ||
                                     Boolean(createdFlashcards[index])
                                   }
-                                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 active:scale-[0.98] ${
                                     createdFlashcards[index]
                                       ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed opacity-90"
                                       : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-300"
@@ -940,42 +1219,60 @@ export default function QuestoesPage() {
         {/* ================= ABA 2: HISTÓRICO DE SIMULADOS ================= */}
         {activeTab === "history" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="flex flex-col gap-3">
-              <div>
-                <h2 className="text-base font-bold text-slate-200">
-                  Histórico de Exercícios
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Refaça seus simulados salvos de forma 100% gratuita sem
-                  consumir sua cota diária de IA.
-                </p>
+            <div className="flex flex-col gap-4">
+              {/* Header da Seção com Badge de Contagem */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-base font-bold text-slate-100 tracking-tight">
+                      Histórico de Exercícios
+                    </h2>
+                    {!isLoadingHistory && (
+                      <span className="text-[11px] font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full">
+                        {quizHistory.length}{" "}
+                        {quizHistory.length === 1 ? "caderno" : "cadernos"}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Refaça seus simulados salvos de forma 100% gratuita sem
+                    consumir sua cota diária de IA.
+                  </p>
+                </div>
               </div>
 
+              {/* Barra de Busca + Select de Ordenação */}
               {!isLoadingHistory && quizHistory.length > 0 && (
-                <div className="relative mt-1">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                  <div className="relative flex-1 w-full">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500">
+                      <Search size={15} />
+                    </span>
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Buscar por banca, matéria, tópico ou dificuldade..."
+                      className="w-full bg-[#090d16]/80 border border-slate-800/80 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition-all shadow-inner"
+                    />
+                  </div>
+
+                  {/* Dropdown de Ordenação */}
+                  <div className="relative w-full sm:w-auto shrink-0">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full sm:w-auto bg-[#090d16]/80 border border-slate-800/80 focus:border-indigo-500/50 rounded-xl px-3 py-2.5 text-xs text-slate-300 outline-none cursor-pointer transition-all appearance-none pr-8 font-medium"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Buscar por banca, assunto ou dificuldade..."
-                    className="w-full bg-[#090d16]/60 border border-slate-800 focus:border-indigo-500/50 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition-all shadow-inner"
-                  />
+                      <option value="newest">Mais recentes</option>
+                      <option value="oldest">Mais antigos</option>
+                      <option value="subject">Por Matéria (A-Z)</option>
+                    </select>
+                    <ChevronDown
+                      size={14}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -1045,61 +1342,86 @@ export default function QuestoesPage() {
                   return (
                     <div
                       key={`quiz-history-${item.id}`}
-                      className="relative overflow-hidden bg-linear-to-b from-slate-900/80 to-[#090d16]/90 border border-slate-800/80 p-5 rounded-2xl shadow-xl flex flex-col justify-between hover:border-indigo-500/40 hover:shadow-indigo-500/5 transition-all duration-300 group"
+                      className="relative overflow-hidden bg-[#090d16]/90 border border-slate-800/80 hover:border-indigo-500/40 p-5 rounded-2xl shadow-xl flex flex-col justify-between hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] transition-all duration-300 group"
                     >
-                      <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
+                      {/* Glow Neon sutil no Hover */}
+                      <div className="absolute top-0 right-0 -mt-6 -mr-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
 
                       <div className="space-y-3 relative z-10">
+                        {/* Cabeçalho: Banca + Data */}
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">
+                          <span className="text-[10px] font-black bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-inner">
                             {item.banca}
                           </span>
-                          <span className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
-                            <Calendar size={12} className="text-slate-500" />{" "}
+                          <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
+                            <Calendar size={12} className="text-slate-600" />
                             {formattedDate}
                           </span>
                         </div>
 
-                        <div>
-                          <h3 className="font-bold text-slate-100 text-sm md:text-base line-clamp-1 group-hover:text-indigo-300 transition-colors">
+                        {/* Título da Matéria */}
+                        <div className="space-y-2">
+                          <h3 className="font-bold text-slate-100 text-base line-clamp-1 group-hover:text-indigo-300 transition-colors tracking-tight">
                             {item.subject}
                           </h3>
-                          <div className="flex items-center gap-2.5 text-xs text-slate-400 mt-1.5">
-                            <span className="flex items-center gap-1 bg-slate-800/60 px-2 py-0.5 rounded-md border border-slate-700/50 text-slate-300">
-                              <Layers size={12} className="text-indigo-400" />{" "}
+
+                          {/* Badge do Tópico */}
+                          {item.topic?.title && (
+                            <div className="flex items-center">
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 max-w-full">
+                                <FileText
+                                  size={11}
+                                  className="shrink-0 text-indigo-400"
+                                />
+                                <span className="truncate">
+                                  {item.topic.title}
+                                </span>
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Metadados: Dificuldade + Quantidade */}
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <span className="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-md border border-slate-800/80 text-[11px] text-slate-300 font-medium">
+                              <Layers size={11} className="text-indigo-400" />
                               {item.difficulty}
                             </span>
-                            <span className="text-slate-600">•</span>
-                            <span className="text-slate-400 font-medium">
+
+                            <span className="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-md border border-slate-800/80 text-[11px] text-slate-300 font-medium">
+                              <HelpCircle
+                                size={11}
+                                className="text-indigo-400"
+                              />
                               {questionsArray.length} questões
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-6 relative z-10 pt-3 border-t border-slate-800/60">
+                      {/* Rodapé e Botões de Ação */}
+                      <div className="mt-5 relative z-10 pt-3 border-t border-slate-800/60">
                         {confirmingDeleteId === item.id ? (
-                          <div className="bg-red-950/30 border border-red-500/30 p-3 rounded-xl flex items-center justify-between gap-3 animate-in fade-in duration-200">
-                            <span className="text-xs text-red-200 font-medium">
-                              Excluir permanentemente?
+                          <div className="bg-rose-950/20 border border-rose-500/30 p-2 rounded-xl flex items-center justify-between gap-2 animate-in fade-in duration-200">
+                            <span className="text-[11px] text-rose-300 font-medium pl-1">
+                              Excluir simulado?
                             </span>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <button
                                 onClick={() => handleRemoverSimulado(item.id)}
-                                className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-slate-100 text-xs font-bold rounded-lg transition-all shadow-sm"
+                                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-slate-100 text-[11px] font-bold rounded-lg transition-all"
                               >
                                 Sim
                               </button>
                               <button
                                 onClick={() => setConfirmingDeleteId(null)}
-                                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all"
+                                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded-lg transition-all"
                               >
                                 Não
                               </button>
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2.5">
+                          <div className="flex items-center gap-2">
                             <button
                               onClick={() =>
                                 handleLoadSavedQuiz(
@@ -1109,7 +1431,7 @@ export default function QuestoesPage() {
                                 )
                               }
                               disabled={loadingQuizId === item.id}
-                              className="flex-1 flex items-center justify-center gap-2 text-center py-2.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 text-xs font-bold rounded-xl transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group/btn"
+                              className="flex-1 flex items-center justify-center gap-1.5 text-center py-2.5 bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/35 hover:border-indigo-500/60 text-indigo-200 text-xs font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group/btn"
                             >
                               {loadingQuizId === item.id ? (
                                 <>
@@ -1131,10 +1453,10 @@ export default function QuestoesPage() {
 
                             <button
                               onClick={() => setConfirmingDeleteId(item.id)}
-                              className="p-2.5 bg-slate-900/80 hover:bg-red-950/30 border border-slate-800 hover:border-red-900/50 text-slate-400 hover:text-red-400 rounded-xl transition-all shrink-0"
+                              className="p-2.5 bg-slate-900/80 hover:bg-rose-950/30 border border-slate-800 hover:border-rose-900/50 text-slate-500 hover:text-rose-400 rounded-xl transition-all shrink-0"
                               title="Excluir simulado"
                             >
-                              <X size={16} />
+                              <X size={15} />
                             </button>
                           </div>
                         )}
@@ -1304,7 +1626,7 @@ export default function QuestoesPage() {
                 </div>
                 <button
                   type="button"
-                  className="w-full bg-indigo-600 text-slate-100 py-3 rounded-xl font-bold"
+                  className="w-full bg-indigo-600 text-slate-100 py-3 rounded-xl font-bold active:scale-[0.98]"
                 >
                   Salvar Questão no Banco
                 </button>
@@ -1370,7 +1692,7 @@ export default function QuestoesPage() {
                       value={materia}
                       onChange={(e) => {
                         setMateria(e.target.value);
-                        setSelectedTopicId(""); // Reseta o tópico ao trocar de matéria
+                        setSelectedTopicId("");
                       }}
                       disabled={isGenerating}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 cursor-pointer"
@@ -1489,7 +1811,7 @@ export default function QuestoesPage() {
                         type="button"
                         disabled={isGenerating}
                         onClick={() => setDificuldade(nivel)}
-                        className={`py-2 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all ${dificuldade === nivel ? "bg-indigo-600/10 border-indigo-500 text-indigo-400" : "bg-slate-950 border-slate-800 text-slate-400"}`}
+                        className={`py-2 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all active:scale-[0.98] ${dificuldade === nivel ? "bg-indigo-600/10 border-indigo-500 text-indigo-400" : "bg-slate-950 border-slate-800 text-slate-400"}`}
                       >
                         {nivel}
                       </button>
@@ -1508,7 +1830,7 @@ export default function QuestoesPage() {
                         type="button"
                         disabled={isGenerating}
                         onClick={() => setQtdQuestoes(num)}
-                        className={`py-2 rounded-xl border font-bold transition-all ${qtdQuestoes === num ? "bg-indigo-600/20 border-indigo-500 text-indigo-400" : "bg-slate-950 border-slate-800 text-slate-400"}`}
+                        className={`py-2 rounded-xl border font-bold transition-all active:scale-[0.98] ${qtdQuestoes === num ? "bg-indigo-600/20 border-indigo-500 text-indigo-400" : "bg-slate-950 border-slate-800 text-slate-400"}`}
                       >
                         {num} Q
                       </button>
@@ -1519,7 +1841,7 @@ export default function QuestoesPage() {
                 <button
                   type="submit"
                   disabled={isGenerating}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-xs"
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-lg shadow-indigo-950/40"
                 >
                   {isGenerating ? (
                     <>
@@ -1624,14 +1946,14 @@ export default function QuestoesPage() {
                   setCheckedQuestions({});
                   setShowCompletionModal(false);
                 }}
-                className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
               >
                 <RotateCcw size={14} />
                 Refazer Agora
               </button>
               <button
                 onClick={() => setShowCompletionModal(false)}
-                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-950/40"
+                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-950/40 active:scale-[0.98]"
               >
                 Revisar Respostas
               </button>
@@ -1672,13 +1994,13 @@ export default function QuestoesPage() {
             <div className="flex items-center gap-3 justify-end">
               <button
                 onClick={cancelNavigation}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold rounded-xl transition-all"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold rounded-xl transition-all active:scale-[0.98]"
               >
                 Continuar respondendo
               </button>
               <button
                 onClick={confirmNavigation}
-                className="px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-300 text-xs font-semibold rounded-xl transition-all"
+                className="px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-300 text-xs font-semibold rounded-xl transition-all active:scale-[0.98]"
               >
                 Sim, sair e descartar
               </button>

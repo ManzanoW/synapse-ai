@@ -1,10 +1,81 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import { auth } from "@/auth";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 interface AIResponse {
   text: string | null;
+}
+
+interface Alternativa {
+  id: string;
+  texto: string;
+}
+
+interface QuestaoGerada {
+  enunciado: string;
+  formato: string;
+  justificativa: string;
+  alternativas: Alternativa[];
+  gabaritoCorreto: string;
+  flashcardFrente: string;
+  flashcardVerso: string;
+}
+
+/**
+ * Embaralha as alternativas de questões de múltipla escolha para eliminar
+ * vícios de posição do modelo de IA (ex: excesso de respostas na letra B)
+ * e reatribui corretamente o gabarito.
+ */
+function shuffleAlternatives(questoes: QuestaoGerada[]): QuestaoGerada[] {
+  return questoes.map((q) => {
+    if (
+      q.formato !== "multipla" ||
+      !Array.isArray(q.alternativas) ||
+      q.alternativas.length === 0
+    ) {
+      return q;
+    }
+
+    // Identifica o texto da opção que é o gabarito correto original
+    const alternativaCorretaObj = q.alternativas.find(
+      (alt) => alt.id === q.gabaritoCorreto,
+    );
+    const textoCorreto = alternativaCorretaObj
+      ? alternativaCorretaObj.texto
+      : null;
+
+    // Se não encontrou o gabarito entre as opções, retorna sem alterar
+    if (!textoCorreto) return q;
+
+    // Algoritmo Fisher-Yates para embaralhar os textos das alternativas
+    const textos = q.alternativas.map((a) => a.texto);
+    for (let i = textos.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [textos[i], textos[j]] = [textos[j], textos[i]];
+    }
+
+    // Mapeia novamente para as letras A, B, C, D...
+    const letras = ["A", "B", "C", "D", "E"];
+    let novoGabarito = q.gabaritoCorreto;
+
+    const novasAlternativas = textos.map((texto, index) => {
+      const letra = letras[index] || `ALT_${index}`;
+      if (texto === textoCorreto) {
+        novoGabarito = letra;
+      }
+      return { id: letra, texto };
+    });
+
+    return {
+      ...q,
+      alternativas: novasAlternativas,
+      gabaritoCorreto: novoGabarito,
+    };
+  });
 }
 
 async function generateContentWithRetry(
@@ -21,7 +92,7 @@ async function generateContentWithRetry(
         contents: prompt,
         config: {
           responseMimeType: "application/json",
-          temperature: 0.2,
+          temperature: 0.3, // Leve aumento para maior variabilidade de distribuições
           responseSchema: {
             type: Type.OBJECT,
             properties: {
@@ -32,11 +103,7 @@ async function generateContentWithRetry(
                   properties: {
                     enunciado: { type: Type.STRING },
                     formato: { type: Type.STRING },
-
-                    // 1. A IA calcula e escreve a justificativa detalhada PRIMEIRO
                     justificativa: { type: Type.STRING },
-
-                    // 2. Com a resposta resolvida, gera as alternativas contendo o resultado exato
                     alternativas: {
                       type: Type.ARRAY,
                       items: {
@@ -48,11 +115,7 @@ async function generateContentWithRetry(
                         required: ["id", "texto"],
                       },
                     },
-
-                    // 3. Vincula a letra correspondente sem chances de erro
                     gabaritoCorreto: { type: Type.STRING },
-
-                    // 4. GERAÇÃO ATÔMICA DO FLASHCARD (Active Recall)
                     flashcardFrente: {
                       type: Type.STRING,
                       description:
@@ -100,9 +163,14 @@ async function generateContentWithRetry(
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
     const {
       banca,
       materia,
+      topicoId,
+      topicoNome,
       qtdQuestoes,
       dificuldade,
       textoBase,
@@ -119,8 +187,32 @@ export async function POST(request: Request) {
     const quantidade = parseInt(qtdQuestoes, 10) || 5;
 
     let promptContexto = "";
+
+    const isAllTopics =
+      !topicoId ||
+      topicoId === "ALL" ||
+      topicoNome === "Todos os Tópicos da Matéria";
+
+    if (isAllTopics) {
+      const subjectRecord = await prisma.subject.findFirst({
+        where: { name: materia },
+        include: { topics: true },
+      });
+
+      if (subjectRecord && subjectRecord.topics.length > 0) {
+        const listaTopicos = subjectRecord.topics
+          .map((t) => t.title)
+          .join("; ");
+        promptContexto += `Distribua as questões de forma equilibrada entre os seguintes tópicos da matéria "${materia}": [${listaTopicos}].\n`;
+      } else {
+        promptContexto += `Abranga de forma geral e ampla todo o conteúdo programático padrão da matéria "${materia}".\n`;
+      }
+    } else {
+      promptContexto += `Atenção: Foque as questões estritamente no Tópico Específico: "${topicoNome}" pertencente à matéria "${materia}".\n`;
+    }
+
     if (fonteConteudo === "texto" && textoBase) {
-      promptContexto = `Obrigatório basear as questões estritamente neste texto/lei:\n"${textoBase}"\n`;
+      promptContexto += `Obrigatório basear as questões estritamente neste texto/lei:\n"${textoBase}"\n`;
     }
 
     const prompt = `
@@ -144,7 +236,11 @@ export async function POST(request: Request) {
          - Crie distratores plausíveis para as outras 3 alternativas.
          - É ESTRITAMENTE PROIBIDO criar alternativas em que o resultado exato obtido na justificativa não esteja presente.
 
-      3. VALIDAÇÃO CRUZADA DE GABARITO (RIGOROSO):
+      3. DISTRIBUIÇÃO RANDÔMICA E IMPARCIONAL DOS GABARITOS (CRÍTICO):
+         - NUNCA fixe ou repita o mesmo gabarito (ex: opção "B") em várias questões seguidas.
+         - Distribua as respostas corretas de forma aleatória e uniforme entre A, B, C e D ao longo do simulado.
+
+      4. VALIDAÇÃO CRUZADA DE GABARITO (RIGOROSO):
          - Identifique explicitamente em qual LETRA ("A", "B", "C" ou "D") está o resultado exato calculado.
          - Atribua ESTREITAMENTE essa LETRA ao campo "gabaritoCorreto".
          - É estritamente proibida qualquer divergência entre a conclusão da justificativa e a letra do gabarito.
@@ -173,7 +269,31 @@ export async function POST(request: Request) {
 
     const data = JSON.parse(response.text);
 
-    return NextResponse.json({ data: data.questoes }, { status: 200 });
+    // Aplica o embaralhado de segurança das alternativas no backend
+    const questoesProcessadas = shuffleAlternatives(data.questoes || []);
+
+    // Persistência do Quiz no Banco vinculado ao Topic ID
+    let savedQuiz = null;
+    if (userId) {
+      savedQuiz = await prisma.quiz.create({
+        data: {
+          userId,
+          banca,
+          subject: materia,
+          difficulty: dificuldade,
+          topicId: !isAllTopics ? topicoId : null,
+          questions: questoesProcessadas as unknown as Prisma.InputJsonValue,
+        },
+      });
+    }
+
+    return NextResponse.json(
+      {
+        data: questoesProcessadas,
+        quizId: savedQuiz?.id || null,
+      },
+      { status: 200 },
+    );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Erro Gemini:", error);
