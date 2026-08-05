@@ -13,6 +13,9 @@ model User {
   emailVerified DateTime?
   image         String?
 
+  // Data Alvo do Concurso/Objetivo
+  targetExamDate DateTime?
+
   // Meta de estudo semanal do usuário
   studyMode         String @default("WEEKLY") // "WEEKLY" ou "CYCLE"
   weeklyGoalHours   Int    @default(10)
@@ -101,11 +104,11 @@ model Topic {
   flashcards      Flashcard[]
   questions       Quiz[]
   reviewHistories ReviewHistory[]
-  quizAttempts    QuizAttempt[]   // <-- Nova relação para histórico de questões
+  quizAttempts    QuizAttempt[] // <-- Nova relação para histórico de questões
 
   // Estado do Estudo
   firstStudy  String    @default("Pendente") // "Pendente", "Em Estudo", "Concluido"
-  performance Int       @default(0)         // Porcentagem calculada (0 a 100%)
+  performance Int       @default(0) // Porcentagem calculada (0 a 100%)
   easiness    Float     @default(2.5)
   relevance   String?   @default("5/10")
   interval    Int       @default(0)
@@ -125,8 +128,8 @@ model Deck {
   subject   Subject? @relation(fields: [subjectId], references: [id])
 
   // 🔗 Vínculo direto do Deck com o Tópico do Edital
-  topicId   String?
-  topic     Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  topicId String?
+  topic   Topic?  @relation(fields: [topicId], references: [id], onDelete: SetNull)
 
   flashcards Flashcard[]
   userId     String
@@ -134,12 +137,12 @@ model Deck {
 
 // 🆕 Histórico de Resolução de Questões/Simulados para calcular precisão no Edital
 model QuizAttempt {
-  id          String   @id @default(uuid())
-  userId      String
-  topicId     String
-  totalCount  Int      // Total de questões no quiz
-  correctCount Int     // Questões acertadas
-  completedAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  userId       String
+  topicId      String
+  totalCount   Int // Total de questões no quiz
+  correctCount Int // Questões acertadas
+  completedAt  DateTime @default(now())
 
   topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 }

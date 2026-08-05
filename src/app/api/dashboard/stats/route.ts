@@ -16,7 +16,7 @@ export async function GET() {
     const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Segunda-feira
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    // 1. Busca todo o histórico de revisões do usuário através dos seus tópicos
+    // 1. Busca histórico de revisões do usuário
     const reviews = await prisma.reviewHistory.findMany({
       where: {
         topic: {
@@ -34,16 +34,68 @@ export async function GET() {
       orderBy: { reviewedAt: "desc" },
     });
 
-    // 2. Busca total de Decks e Flashcards criados para métricas dinâmicas
+    // 2. Busca total de Decks e Flashcards
     const totalDecks = await prisma.deck.count({ where: { userId } });
     const totalFlashcards = await prisma.flashcard.count({
       where: { deck: { userId } },
     });
 
-    // 3. Cálculos de Desempenho
+    // 3. Métrica da Jornada: Tópicos Totais vs Concluídos do Usuário
+    const totalTopics = await prisma.topic.count({
+      where: {
+        subject: {
+          userId: userId,
+        },
+      },
+    });
+
+    const completedTopics = await prisma.topic.count({
+      where: {
+        subject: {
+          userId: userId,
+        },
+        firstStudy: "Concluido",
+      },
+    });
+
+    const journeyPercentage =
+      totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+
+    // 4. Data da Prova Alvo (Busca no User)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { targetExamDate: true },
+    });
+
+    const hasObjective = !!user?.targetExamDate;
+
+    let daysRemaining = 0;
+    let weeksRemaining = 0;
+    let daysLeftInWeek = 0;
+    let topicsPerWeek = 0;
+
+    if (user?.targetExamDate) {
+      const targetDate = new Date(user.targetExamDate);
+      const diffTime = targetDate.getTime() - now.getTime();
+      daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+      // Cálculo preciso de semanas (com casas decimais para divisão justa)
+      const exactWeeksRemaining = daysRemaining / 7;
+      weeksRemaining = Math.floor(daysRemaining / 7);
+      daysLeftInWeek = daysRemaining % 7;
+
+      // Cálculo do Ritmo Ideal (Opção 1)
+      const remainingTopics = Math.max(0, totalTopics - completedTopics);
+      if (exactWeeksRemaining > 0 && remainingTopics > 0) {
+        topicsPerWeek = Number(
+          (remainingTopics / exactWeeksRemaining).toFixed(1),
+        );
+      }
+    }
+
+    // 5. Cálculos de Desempenho
     const totalQuestions = reviews.length;
-    
-    // Considera notas positivas ("FACIL", "BOM", "4", "5") como acertos
+
     const correctQuestions = reviews.filter((r) => {
       const g = r.grade.toUpperCase();
       return (
@@ -56,23 +108,25 @@ export async function GET() {
         ? Math.round((correctQuestions / totalQuestions) * 100)
         : 0;
 
-    // Tempo total real em minutos baseado nos segundos do log
-    const totalSeconds = reviews.reduce((acc, r) => acc + (r.durationSeconds || 60), 0);
+    const totalSeconds = reviews.reduce(
+      (acc, r) => acc + (r.durationSeconds || 60),
+      0,
+    );
     const totalMinutes = Math.floor(totalSeconds / 60);
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
 
-    // 4. Meta Semanal
+    // 6. Meta Semanal
     const weeklyLogs = reviews.filter(
       (r) => r.reviewedAt >= weekStart && r.reviewedAt <= weekEnd,
     );
-    const weeklyGoalTarget = 50; 
+    const weeklyGoalTarget = 50;
     const weeklyProgress = Math.min(
       100,
       Math.round((weeklyLogs.length / weeklyGoalTarget) * 100),
     );
 
-    // 5. Cálculo do Streak Inteligente
+    // 7. Streak Inteligente
     const studyDays = new Set<string>(
       reviews.map((r) => format(r.reviewedAt, "yyyy-MM-dd")),
     );
@@ -90,7 +144,7 @@ export async function GET() {
       checkDate = subDays(checkDate, 1);
     }
 
-    // 6. Heatmap de Intensidade (Matriz de 28 dias)
+    // 8. Heatmap de Intensidade (28 dias)
     const heatmap = [];
     for (let i = 27; i >= 0; i--) {
       const day = subDays(now, i);
@@ -109,6 +163,17 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      journey: {
+        hasObjective,
+        daysRemaining: hasObjective ? daysRemaining : 0,
+        weeksRemaining,
+        daysLeftInWeek,
+        percentage: journeyPercentage,
+        totalTopics,
+        completedTopics,
+        remainingTopics: Math.max(0, totalTopics - completedTopics),
+        topicsPerWeek, // Retorna o valor exato ex: 2.7
+      },
       metrics: {
         totalTimeFormatted: `${hours}h ${mins}m`,
         precision: `${precision}%`,

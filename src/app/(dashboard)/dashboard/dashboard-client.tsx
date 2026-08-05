@@ -25,10 +25,24 @@ import {
   RefreshCw,
   X,
   Zap,
+  TrendingUp,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
+interface JourneyData {
+  hasObjective: boolean;
+  daysRemaining: number;
+  weeksRemaining: number;
+  daysLeftInWeek: number;
+  percentage: number;
+  totalTopics: number;
+  completedTopics: number;
+  topicsPerWeek?: number;
+  currentPace?: number;
+}
+
 interface DashboardStats {
+  journey?: JourneyData;
   metrics: {
     totalTimeFormatted: string;
     precision: string;
@@ -379,57 +393,121 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         )}
 
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-r from-indigo-950/40 via-slate-900/60 to-slate-900/40 p-6 md:p-7 backdrop-blur-s2xl shadow-[0_0_50px_-12px_rgba(99,102,241,0.15)] group hover:border-indigo-500/30 transition-all duration-500 border-t-white/20">
-          <div className="absolute -top-32 -left-32 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+        <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#111625]/90 to-[#0B0F17]/90 p-6 shadow-2xl backdrop-blur-xl">
+          {/* Ambient Lighting com Radial Gradient sutil */}
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-600/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-600/5 rounded-full blur-[100px] pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-indigo-500/20 to-purple-500/10 border border-indigo-500/30 text-indigo-400 shrink-0 shadow-[0_0_20px_rgba(99,102,241,0.25)]">
-                <Target size={26} />
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-0 items-stretch">
+            {/* COLUNA 1: TEMPO RESTANTE */}
+            <div className="flex flex-col justify-between md:pr-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em]">
+                  Tempo Restante
+                </span>
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 text-indigo-400 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                  <Target size={18} />
+                </div>
               </div>
 
               <div>
                 <div className="flex items-baseline gap-2.5">
-                  <span className="text-3xl md:text-4xl font-black tracking-tight font-mono bg-clip-text text-transparent bg-linear-to-r from-white via-slate-100 to-indigo-200">
-                    268 dias
+                  <span className="text-4xl font-black font-mono text-white tracking-tight">
+                    {stats?.journey?.daysRemaining ?? 0}
                   </span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    até o objetivo
+                  <span className="text-xs font-semibold text-slate-400">
+                    dias restantes
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Faltam aproximadamente{" "}
-                  <span className="text-indigo-300 font-semibold font-mono">
-                    38 semanas e 2 dias
-                  </span>
-                </p>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-slate-400 border-t border-white/[0.06] pt-3">
+                <span className="font-medium">Restante em semanas:</span>
+                <strong className="text-slate-200 font-mono font-bold bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]">
+                  {stats?.journey?.weeksRemaining ?? 0} sem
+                </strong>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-8 min-w-[320px]">
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold tracking-wider">
-                  <span className="uppercase text-[10px] text-slate-400 tracking-widest">
-                    Progresso da Jornada
+            {/* DIVISOR 1 (Gradiente suave de luz) */}
+            <div className="hidden md:block absolute left-1/3 top-4 bottom-4 w-[1px] bg-gradient-to-b from-transparent via-white/[0.08] to-transparent pointer-events-none" />
+
+            {/* COLUNA 2: RITMO SUGERIDO */}
+            <div className="flex flex-col justify-between md:px-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-[0.2em]">
+                  Ritmo Sugerido
+                </span>
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+                  <Zap size={18} className="fill-amber-400/20" />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black font-mono text-amber-300 tracking-tight">
+                    {stats?.journey?.topicsPerWeek ?? 0}
                   </span>
-                  <span className="text-indigo-400 font-mono text-xs font-bold pl-2">
-                    15%
+                  <span className="text-xs font-medium text-slate-400">
+                    tópicos / sem
+                  </span>
+                </div>
+              </div>
+
+              {/* Rodapé Comparativo: Mostra a velocidade real executada pelo usuário */}
+              <div className="flex items-center justify-between text-xs text-slate-400 border-t border-white/[0.06] pt-3">
+                <span className="font-medium">Ritmo atual:</span>
+                <strong className="text-amber-300 font-mono font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  {stats?.journey?.currentPace ?? 0.0} / sem
+                </strong>
+              </div>
+            </div>
+
+            {/* DIVISOR 2 */}
+            <div className="hidden md:block absolute left-2/3 top-4 bottom-4 w-[1px] bg-gradient-to-b from-transparent via-white/[0.08] to-transparent pointer-events-none" />
+
+            {/* COLUNA 3: PROGRESSO GERAL */}
+            <div className="flex flex-col justify-between md:pl-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em]">
+                  Progresso Geral
+                </span>
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                  <TrendingUp size={18} />
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-4xl font-black font-mono text-white tracking-tight">
+                    {stats?.journey?.percentage ?? 0}%
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    <strong className="text-slate-100 font-bold">
+                      {stats?.journey?.completedTopics ?? 0}
+                    </strong>
+                    /40 tópicos
                   </span>
                 </div>
 
-                <div className="h-2.5 w-full bg-slate-950/80 rounded-full border border-white/10 p-0.5 overflow-hidden shadow-inner">
+                {/* Barra Cyan Neon Profunda */}
+                <div className="h-2 w-full bg-slate-950/80 rounded-full border border-white/10 p-0.5 overflow-hidden shadow-inner">
                   <div
-                    className="h-full bg-linear-to-r from-indigo-500 via-purple-500 to-indigo-400 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.8)] transition-all duration-700"
-                    style={{ width: "15%" }}
+                    className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_12px_rgba(34,211,238,0.6)]"
+                    style={{
+                      width: `${Math.max(3, stats?.journey?.percentage ?? 0)}%`,
+                    }}
                   />
                 </div>
               </div>
 
-              <div className="shrink-0">
-                <span className="inline-flex items-center gap-2 text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 px-3.5 py-1.5 rounded-full font-mono font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.15)]">
-                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse shadow-[0_0_8px_rgba(99,102,241,1)]" />
-                  Em Progresso
+              <div className="flex items-center justify-between text-xs text-slate-400 border-t border-white/[0.06] pt-3">
+                <span className="font-medium">Status atual:</span>
+                <span className="inline-flex items-center gap-1.5 text-indigo-300 font-bold text-[11px] bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                  {stats?.journey?.percentage === 100
+                    ? "Concluído"
+                    : "Em Progresso"}
                 </span>
               </div>
             </div>
@@ -872,7 +950,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             {/* CARD DE META SEMANAL */}
             <Link
-              href="/analytics"
+              href="/performance"
               className="bg-slate-900/30 backdrop-blur-2xl border border-white/10 hover:border-indigo-500/40 p-6 rounded-3xl transition-all duration-300 block group shadow-2xl border-t-white/15"
             >
               <div className="flex justify-between items-start mb-3">

@@ -1,9 +1,10 @@
-import React from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
-import { redirect } from 'next/navigation';
+import React from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import ProfileTargetForm from "@/components/profile/target-form";
 import {
   ArrowLeft,
   User,
@@ -16,18 +17,18 @@ import {
   Flame,
   Clock,
   CheckCircle2,
-} from 'lucide-react';
+} from "lucide-react";
 
 export default async function ProfilePage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect('/login');
+    redirect("/login");
   }
 
   const userSession = session.user;
 
-  // 🔄 Busca os dados dinâmicos atualizados do usuário no banco
+  // 🔄 Busca os dados dinâmicos atualizados do usuário no banco (Adicionado targetExamDate)
   const dbUser = await prisma.user.findUnique({
     where: { id: userSession.id },
     select: {
@@ -36,12 +37,13 @@ export default async function ProfilePage() {
       image: true,
       weeklyGoalHours: true,
       studyMode: true,
+      targetExamDate: true, // <-- ADICIONADO AQUI
     },
   });
 
   const getInitials = (name?: string | null) => {
-    if (!name) return 'US';
-    const parts = name.trim().split(' ');
+    if (!name) return "US";
+    const parts = name.trim().split(" ");
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
@@ -50,20 +52,22 @@ export default async function ProfilePage() {
 
   const weeklyGoalHours = dbUser?.weeklyGoalHours ?? 10;
   const studyModeLabel =
-    dbUser?.studyMode === 'CYCLE'
-      ? 'Ciclo de Estudos Dinâmico'
-      : 'Cronograma Semanal';
+    dbUser?.studyMode === "CYCLE"
+      ? "Ciclo de Estudos Dinâmico"
+      : "Cronograma Semanal";
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-6 md:p-10 font-sans antialiased space-y-8 max-w-5xl mx-auto">
-      
       {/* NAVEGAÇÃO SUPERIOR */}
       <div className="flex items-center justify-between">
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-indigo-300 transition-colors bg-slate-900/60 px-3.5 py-2 rounded-xl border border-slate-800/80 hover:border-indigo-500/30 group backdrop-blur-md"
         >
-          <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1 text-indigo-400" />
+          <ArrowLeft
+            size={14}
+            className="transition-transform group-hover:-translate-x-1 text-indigo-400"
+          />
           <span>Voltar para a Dashboard</span>
         </Link>
 
@@ -85,7 +89,7 @@ export default async function ProfilePage() {
             {dbUser?.image ? (
               <Image
                 src={dbUser.image}
-                alt={dbUser.name || 'Avatar'}
+                alt={dbUser.name || "Avatar"}
                 width={96}
                 height={96}
                 className="relative w-24 h-24 rounded-full object-cover border-2 border-indigo-400/50 shadow-xl"
@@ -104,16 +108,20 @@ export default async function ProfilePage() {
           <div className="space-y-3 flex-1">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                {dbUser?.name || 'Estudante Synapse'}
+                {dbUser?.name || "Estudante Synapse"}
               </h1>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold tracking-wide shadow-xs">
-                <Award size={13} className="text-indigo-400 fill-indigo-400/20" />
+                <Award
+                  size={13}
+                  className="text-indigo-400 fill-indigo-400/20"
+                />
                 <span>PREMIUM</span>
               </span>
             </div>
 
             <p className="text-slate-300 text-sm max-w-lg leading-relaxed">
-              Membro ativo da plataforma. Acompanhe abaixo o resumo das suas preferências de estudo e credenciais salvas.
+              Membro ativo da plataforma. Acompanhe abaixo o resumo das suas
+              preferências de estudo e credenciais salvas.
             </p>
 
             <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs font-medium text-slate-400">
@@ -137,8 +145,12 @@ export default async function ProfilePage() {
             <Flame size={22} className="fill-amber-400/20" />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-400 block">Ofensiva de Estudos</span>
-            <span className="text-lg font-bold text-white">5 Dias Seguidos</span>
+            <span className="text-xs font-semibold text-slate-400 block">
+              Ofensiva de Estudos
+            </span>
+            <span className="text-lg font-bold text-white">
+              5 Dias Seguidos
+            </span>
           </div>
         </div>
 
@@ -149,8 +161,12 @@ export default async function ProfilePage() {
               <Clock size={22} />
             </div>
             <div>
-              <span className="text-xs font-semibold text-slate-400 block">Meta Semanal</span>
-              <span className="text-lg font-bold text-white">{weeklyGoalHours} Horas</span>
+              <span className="text-xs font-semibold text-slate-400 block">
+                Meta Semanal
+              </span>
+              <span className="text-lg font-bold text-white">
+                {weeklyGoalHours} Horas
+              </span>
             </div>
           </div>
           <Link
@@ -166,20 +182,25 @@ export default async function ProfilePage() {
             <Zap size={22} className="fill-emerald-400/20" />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-400 block">Status da Conta</span>
-            <span className="text-lg font-bold text-emerald-400">Ativa & Protegida</span>
+            <span className="text-xs font-semibold text-slate-400 block">
+              Status da Conta
+            </span>
+            <span className="text-lg font-bold text-emerald-400">
+              Ativa & Protegida
+            </span>
           </div>
         </div>
       </div>
 
       {/* ⚙️ SEÇÕES DETALHADAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
         {/* Bloco 1: Informações da Conta */}
         <div className="bg-[#090d16] border border-slate-800/60 rounded-2xl p-6 space-y-4 backdrop-blur-xl">
           <div className="flex items-center gap-2.5 border-b border-slate-800/60 pb-3">
             <User size={18} className="text-indigo-400" />
-            <h2 className="text-base font-bold text-slate-100">Informações Pessoais</h2>
+            <h2 className="text-base font-bold text-slate-100">
+              Informações Pessoais
+            </h2>
           </div>
 
           <div className="space-y-3">
@@ -188,7 +209,7 @@ export default async function ProfilePage() {
                 Nome Exibido
               </label>
               <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl px-4 py-3 text-sm text-slate-200 font-medium">
-                {dbUser?.name || 'Não informado'}
+                {dbUser?.name || "Não informado"}
               </div>
             </div>
 
@@ -197,21 +218,28 @@ export default async function ProfilePage() {
                 E-mail de Acesso
               </label>
               <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl px-4 py-3 text-sm text-slate-200 font-medium flex items-center justify-between">
-                <span className="truncate">{dbUser?.email || 'Não informado'}</span>
+                <span className="truncate">
+                  {dbUser?.email || "Não informado"}
+                </span>
                 <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bloco 2: Foco e Preferências de Estudo */}
-        <div className="bg-[#090d16] border border-slate-800/60 rounded-2xl p-6 space-y-4 backdrop-blur-xl">
+        {/* Bloco 2: Novo Card de Objetivo da Prova */}
+        <ProfileTargetForm initialTargetDate={dbUser?.targetExamDate} />
+
+        {/* Bloco 3: Configurações de Estudo */}
+        <div className="bg-[#090d16] border border-slate-800/60 rounded-2xl p-6 space-y-4 backdrop-blur-xl md:col-span-2">
           <div className="flex items-center gap-2.5 border-b border-slate-800/60 pb-3">
             <Shield size={18} className="text-indigo-400" />
-            <h2 className="text-base font-bold text-slate-100">Configurações de Estudo</h2>
+            <h2 className="text-base font-bold text-slate-100">
+              Configurações de Estudo
+            </h2>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
                 Foco Acadêmico
@@ -235,9 +263,7 @@ export default async function ProfilePage() {
             </div>
           </div>
         </div>
-
       </div>
-
     </div>
   );
 }
