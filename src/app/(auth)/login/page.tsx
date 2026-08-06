@@ -125,8 +125,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer da Coluna Esquerda com Link para o Portfólio */}
-        <div className="relative z-10 flex items-center justify-between text-[11px] font-mono text-slate-500">
+        {/* Footer da Coluna Esquerda */}
+        <div className="relative z-10 w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-[11px] font-mono text-slate-500 pt-6">
           <span>
             &copy; {new Date().getFullYear()} Synapse AI. Todos os direitos reservados.
           </span>
@@ -135,7 +135,7 @@ export default function LoginPage() {
             href="https://my-portfolio-beta-flax-uo1wwytg9x.vercel.app/" 
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-indigo-300 transition-colors py-1 px-2.5 rounded-md bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.05] hover:border-indigo-500/30 group"
+            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-indigo-300 transition-all duration-200 py-1 px-2.5 rounded-md bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.05] hover:border-indigo-500/30 group"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>Desenvolvido por João Vytor</span>
