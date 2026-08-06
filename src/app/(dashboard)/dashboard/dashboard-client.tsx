@@ -499,7 +499,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       </div>
                       <div>
                         <h3 className="text-xs font-bold tracking-widest text-slate-200 uppercase">
-                          Plano de Ataque do Dia
+                          Missões do Dia
                         </h3>
                         <p className="text-[10px] text-slate-400">
                           Complete as 3 missões para garantir bônus de XP
