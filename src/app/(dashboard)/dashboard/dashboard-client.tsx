@@ -26,6 +26,7 @@ import {
   X,
   Zap,
   TrendingUp,
+  Calendar,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -381,7 +382,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         </div>
 
         {/* ================= 🟢 BANNER DE REMANEJAMENTO ================= */}
-        {missedDayName && (
+        {missedDayName && (stats?.journey?.completedTopics ?? 0) > 0 && (
           <RescheduleBanner
             missedDayName={missedDayName}
             userId={user.id}
@@ -393,7 +394,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         )}
 
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
-        <section className="relative overflow-hidden rounded-2xl border border-white/8 bg-linear-to-b from-[#111625]/90 to-[#0B0F17]/90 p-6 shadow-2xl backdrop-blur-xl">
+        <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#111625]/90 to-[#0B0F17]/90 p-6 shadow-2xl backdrop-blur-xl">
           {/* Ambient Lighting com Radial Gradient sutil */}
           <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-600/5 rounded-full blur-[100px] pointer-events-none" />
           <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-600/5 rounded-full blur-[100px] pointer-events-none" />
@@ -405,7 +406,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em]">
                   Tempo Restante
                 </span>
-                <div className="p-2.5 rounded-xl bg-linear-to-br from-indigo-500/20 to-indigo-500/5 text-indigo-400 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 text-indigo-400 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
                   <Target size={18} />
                 </div>
               </div>
@@ -413,7 +414,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div>
                 <div className="flex items-baseline gap-2.5">
                   <span className="text-4xl font-black font-mono text-white tracking-tight">
-                    {stats?.journey?.daysRemaining ?? 0}
+                    {stats?.journey?.daysRemaining}
                   </span>
                   <span className="text-xs font-semibold text-slate-400">
                     dias restantes
@@ -421,16 +422,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-400 border-t border-white/6 pt-3">
+              <div className="flex items-center justify-between text-xs text-slate-400 border-t border-white/[0.06] pt-3">
                 <span className="font-medium">Restante em semanas:</span>
-                <strong className="text-slate-200 font-mono font-bold bg-white/4 px-2 py-0.5 rounded border border-white/6">
+                <strong className="text-slate-200 font-mono font-bold bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]">
                   {stats?.journey?.weeksRemaining ?? 0} sem
                 </strong>
               </div>
             </div>
 
             {/* DIVISOR 1 (Gradiente suave de luz) */}
-            <div className="hidden md:block absolute left-1/3 top-4 bottom-4 w-px bg-linear-to-b from-transparent via-white/8 to-transparent pointer-events-none" />
+            <div className="hidden md:block absolute left-1/3 top-4 bottom-4 w-[1px] bg-gradient-to-b from-transparent via-white/[0.08] to-transparent pointer-events-none" />
 
             {/* COLUNA 2: RITMO SUGERIDO */}
             <div className="flex flex-col justify-between md:px-8 space-y-4">
@@ -438,7 +439,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-[0.2em]">
                   Ritmo Sugerido
                 </span>
-                <div className="p-2.5 rounded-xl bg-linear-to-br from-amber-500/20 to-amber-500/5 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
                   <Zap size={18} className="fill-amber-400/20" />
                 </div>
               </div>
@@ -455,7 +456,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
 
               {/* Rodapé Comparativo: Mostra a velocidade real executada pelo usuário */}
-              <div className="flex items-center justify-between text-xs text-slate-400 border-t border-white/6 pt-3">
+              <div className="flex items-center justify-between text-xs text-slate-400 border-t border-white/[0.06] pt-3">
                 <span className="font-medium">Ritmo atual:</span>
                 <strong className="text-amber-300 font-mono font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                   {stats?.journey?.currentPace ?? 0.0} / sem
@@ -464,7 +465,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
 
             {/* DIVISOR 2 */}
-            <div className="hidden md:block absolute left-2/3 top-4 bottom-4 w-px bg-linear-to-b from-transparent via-white/8 to-transparent pointer-events-none" />
+            <div className="hidden md:block absolute left-2/3 top-4 bottom-4 w-[1px] bg-gradient-to-b from-transparent via-white/[0.08] to-transparent pointer-events-none" />
 
             {/* COLUNA 3: PROGRESSO GERAL */}
             <div className="flex flex-col justify-between md:pl-8 space-y-4">
@@ -472,7 +473,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em]">
                   Progresso Geral
                 </span>
-                <div className="p-2.5 rounded-xl bg-linear-to-br from-cyan-500/20 to-cyan-500/5 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
                   <TrendingUp size={18} />
                 </div>
               </div>
@@ -493,7 +494,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 {/* Barra Cyan Neon Profunda */}
                 <div className="h-2 w-full bg-slate-950/80 rounded-full border border-white/10 p-0.5 overflow-hidden shadow-inner">
                   <div
-                    className="h-full bg-linear-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_12px_rgba(34,211,238,0.6)]"
+                    className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_12px_rgba(34,211,238,0.6)]"
                     style={{
                       width: `${Math.max(3, stats?.journey?.percentage ?? 0)}%`,
                     }}
@@ -501,7 +502,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-400 border-t border-white/6 pt-3">
+              <div className="flex items-center justify-between text-xs text-slate-400 border-t border-white/[0.06] pt-3">
                 <span className="font-medium">Status atual:</span>
                 <span className="inline-flex items-center gap-1.5 text-indigo-300 font-bold text-[11px] bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
