@@ -113,11 +113,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 🧠 ESTADOS PARA A FILA DE REVISÃO DO SM-2
-  const [reviewQueue, setReviewQueue] = useState<ReviewTopic[]>([]);
-  const [isLoadingQueue, setIsLoadingQueue] = useState(true);
-  const [updatingTopicId, setUpdatingTopicId] = useState<string | null>(null);
-
   // ⚡ ESTADOS DA IA ADAPTATIVA
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
@@ -144,11 +139,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      setIsLoadingQueue(true);
 
-      const [resSubjects, resQueue, resStats, resWeek] = await Promise.all([
+      const [resSubjects, resStats, resWeek] = await Promise.all([
         fetch("/api/edital?mode=subjects", { cache: "no-store" }),
-        fetch("/api/edital?mode=review", { cache: "no-store" }),
         fetch("/api/dashboard/stats", { cache: "no-store" }),
         fetch("/api/week", { cache: "no-store" }),
       ]);
@@ -164,11 +157,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         }
       }
 
-      if (
-        resSubjects.status === 401 ||
-        resQueue.status === 401 ||
-        resStats.status === 401
-      ) {
+      if (resSubjects.status === 401 || resStats.status === 401) {
         window.location.href = "/login";
         return;
       }
@@ -176,11 +165,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       if (resSubjects.ok) {
         const jsonSubjects = await resSubjects.json();
         setSubjects(Array.isArray(jsonSubjects.data) ? jsonSubjects.data : []);
-      }
-
-      if (resQueue.ok) {
-        const jsonQueue = await resQueue.json();
-        setReviewQueue(Array.isArray(jsonQueue.data) ? jsonQueue.data : []);
       }
 
       if (resStats.ok) {
@@ -200,7 +184,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       console.error("Erro ao carregar os dados do Dashboard:", err);
     } finally {
       setIsLoading(false);
-      setIsLoadingQueue(false);
     }
   };
 
@@ -233,74 +216,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       }
     }
   }, []);
-
-  const fetchSuggestions = async () => {
-    try {
-      const response = await fetch("/api/edital/rebalance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.suggestions) {
-          setSuggestions(data.suggestions);
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao atualizar sugestões:", err);
-    }
-  };
-
-  const handleReview = async (
-    topicId: string,
-    grade: "Bom" | "Difícil" | "Errei",
-  ) => {
-    try {
-      setUpdatingTopicId(topicId);
-      const performance = grade === "Bom" ? 100 : grade === "Difícil" ? 60 : 20;
-      // ⚡ Busca o streak atual do Contexto Global
-      const currentStreak = gamificationStats?.streak?.currentDays ?? 0;
-
-      const response = await fetch("/api/edital", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topicId,
-          grade,
-          performance,
-          streakDays: currentStreak,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Remove o tópico revisado da fila
-        setReviewQueue((prev) => prev.filter((topic) => topic.id !== topicId));
-
-        // ⚡ Nível antigo baseado no Contexto Global
-        const oldLevel = gamificationStats?.gamification?.level ?? 1;
-
-        // ⚡ Atualiza a Sidebar (e todo o app) em tempo real!
-        await refreshStats();
-
-        // ⚡ Se o novo nível retornado for maior, aciona o modal de Level Up!
-        if (data.levelInfo && data.levelInfo.level > oldLevel) {
-          setLevelUpData({
-            isOpen: true,
-            level: data.levelInfo.level,
-            title: data.levelInfo.title,
-          });
-        }
-
-        await fetchSuggestions();
-      }
-    } catch (err) {
-      console.error("Erro ao enviar revisão:", err);
-    } finally {
-      setUpdatingTopicId(null);
-    }
-  };
 
   const handleOptimizeSchedule = async () => {
     try {
@@ -409,16 +324,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       },
     },
   };
-
-  // Dados calculados de Gamificação
-  const currentLevel = stats?.gamification?.level ?? 1;
-  const currentXp = stats?.gamification?.currentXp ?? 420;
-  const nextLevelXp = stats?.gamification?.nextLevelXp ?? 1000;
-  const xpPercentage = Math.min(
-    100,
-    Math.round((currentXp / nextLevelXp) * 100),
-  );
-  const userTitle = stats?.gamification?.title ?? "Mestre da Retenção";
 
   return (
     <div className="min-h-screen bg-[#02050e] p-4 font-sans text-slate-100 selection:bg-indigo-500/30 md:p-8">
@@ -581,108 +486,135 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-9">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {/* CARD 1: Fila de Revisões (SM-2) */}
+              {/* CARD 1: Daily Quest Log (Plano de Ataque do Dia) */}
               <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 border-t-white/15 bg-slate-900/30 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/40">
                 <div className="absolute top-0 right-0 left-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
 
-                {isLoadingQueue ? (
-                  <div className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-slate-400">
-                    <Loader2
-                      size={26}
-                      className="animate-spin text-indigo-400"
-                    />
-                    <span className="text-xs font-medium tracking-wide">
-                      Sincronizando curva de retenção...
-                    </span>
-                  </div>
-                ) : reviewQueue.length === 0 ? (
-                  <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
-                    <div className="mb-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3.5 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                      <CheckCircle2 size={28} />
-                    </div>
-                    <h3 className="text-sm font-bold tracking-wide text-slate-200">
-                      Revisões em dia!
-                    </h3>
-                    <p className="mt-1.5 max-w-60 text-xs leading-relaxed text-slate-400">
-                      Sua curva de esquecimento está devidamente estabilizada
-                      para hoje.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex h-full flex-col justify-between space-y-5">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-3.5">
-                      <span className="flex items-center gap-2 text-[11px] font-black tracking-widest text-indigo-400 uppercase">
-                        <AlertCircle size={15} /> Revisões de Hoje
-                      </span>
-                      <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 font-mono text-[10px] font-bold text-indigo-300 shadow-xs">
-                        {reviewQueue.length}{" "}
-                        {reviewQueue.length === 1 ? "tópico" : "tópicos"}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="block text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-                        {reviewQueue[0].subject?.name || "Matéria Principal"}
-                      </span>
-                      <h4 className="mt-1 line-clamp-1 text-base font-bold tracking-tight text-white">
-                        {reviewQueue[0].title}
-                      </h4>
-                      <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
-                        {reviewQueue[0].firstStudy === "Pendente"
-                          ? "🌱 Assunto novo! Faça o estudo base e marque o nível de facilidade."
-                          : "⏱️ Intervalo atingido! Faça a revisão ativa para fixação de memória."}
-                      </p>
-                    </div>
-
-                    <div className="pt-2">
-                      <p className="mb-2.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-                        Qual foi o nível de facilidade?
-                      </p>
-
-                      <div className="grid grid-cols-3 gap-2.5">
-                        <button
-                          disabled={updatingTopicId !== null}
-                          onClick={() =>
-                            handleReview(reviewQueue[0].id, "Errei")
-                          }
-                          className="flex cursor-pointer items-center justify-center gap-1 rounded-2xl border border-rose-500/40 bg-rose-500/20 py-2.5 text-xs font-bold text-rose-300 shadow-sm transition-all hover:bg-rose-500/30 active:scale-95 disabled:opacity-50"
-                        >
-                          {updatingTopicId === reviewQueue[0].id ? (
-                            <Loader2 size={14} className="animate-spin" />
-                          ) : (
-                            "Errei 👎"
-                          )}
-                        </button>
-
-                        <button
-                          disabled={updatingTopicId !== null}
-                          onClick={() =>
-                            handleReview(reviewQueue[0].id, "Difícil")
-                          }
-                          className="flex cursor-pointer items-center justify-center gap-1 rounded-2xl border border-amber-500/40 bg-amber-500/20 py-2.5 text-xs font-bold text-amber-300 shadow-sm transition-all hover:bg-amber-500/30 active:scale-95 disabled:opacity-50"
-                        >
-                          {updatingTopicId === reviewQueue[0].id ? (
-                            <Loader2 size={14} className="animate-spin" />
-                          ) : (
-                            "Difícil ✊"
-                          )}
-                        </button>
-
-                        <button
-                          disabled={updatingTopicId !== null}
-                          onClick={() => handleReview(reviewQueue[0].id, "Bom")}
-                          className="flex cursor-pointer items-center justify-center gap-1 rounded-2xl border border-emerald-500/40 bg-emerald-500/20 py-2.5 text-xs font-bold text-emerald-300 shadow-sm transition-all hover:bg-emerald-500/30 active:scale-95 disabled:opacity-50"
-                        >
-                          {updatingTopicId === reviewQueue[0].id ? (
-                            <Loader2 size={14} className="animate-spin" />
-                          ) : (
-                            "Fácil 👍"
-                          )}
-                        </button>
+                <div className="flex h-full flex-col justify-between space-y-4">
+                  {/* Cabeçalho */}
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
+                        <Target size={16} />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold tracking-widest text-slate-200 uppercase">
+                          Plano de Ataque do Dia
+                        </h3>
+                        <p className="text-[10px] text-slate-400">
+                          Complete as 3 missões para garantir bônus de XP
+                        </p>
                       </div>
                     </div>
+
+                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300 shadow-xs">
+                      +50 XP BÔNUS
+                    </span>
                   </div>
-                )}
+
+                  {/* Lista de Missões */}
+                  <div className="space-y-2.5">
+                    {[
+                      {
+                        id: "q1",
+                        title: "Responder Questões Práticas",
+                        target: 10,
+                        current: stats?.metrics.questionsCount ?? 0,
+                        unit: "questões",
+                        actionUrl: "/questions",
+                        completed: (stats?.metrics.questionsCount ?? 0) >= 10,
+                      },
+                      {
+                        id: "q2",
+                        title: "Revisar Cards da Fila",
+                        target: 15,
+                        current: stats?.metrics.totalFlashcards ?? 0,
+                        unit: "cards",
+                        actionUrl: "/cards",
+                        completed: (stats?.metrics.totalFlashcards ?? 0) >= 15,
+                      },
+                      {
+                        id: "q3",
+                        title: "Sessão de Foco Ativo",
+                        target: 1,
+                        current: (stats?.metrics.sessionsCount ?? 0) > 0 ? 1 : 0,
+                        unit: "sessão",
+                        actionUrl: "#pomodoro",
+                        completed: (stats?.metrics.sessionsCount ?? 0) > 0,
+                      },
+                    ].map((quest) => {
+                      const progress = Math.min(
+                        100,
+                        Math.round((quest.current / quest.target) * 100)
+                      );
+
+                      return (
+                        <div
+                          key={quest.id}
+                          className={`group/quest flex items-center justify-between gap-3 rounded-2xl border p-3 transition-all ${
+                            quest.completed
+                              ? "border-emerald-500/20 bg-emerald-500/5"
+                              : "border-white/5 bg-slate-950/40 hover:border-white/10"
+                          }`}
+                        >
+                          <div className="flex flex-1 items-center gap-3">
+                            <div
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
+                                quest.completed
+                                  ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
+                                  : "border-white/10 bg-slate-900 text-slate-500"
+                              }`}
+                            >
+                              {quest.completed ? (
+                                <CheckCircle2 size={16} />
+                              ) : (
+                                <Zap size={15} className="text-amber-400" />
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <h4
+                                  className={`text-xs font-bold truncate ${
+                                    quest.completed
+                                      ? "text-slate-400 line-through"
+                                      : "text-slate-200"
+                                  }`}
+                                >
+                                  {quest.title}
+                                </h4>
+                                <span className="font-mono text-[10px] text-slate-400 shrink-0">
+                                  {quest.current}/{quest.target} {quest.unit}
+                                </span>
+                              </div>
+
+                              {/* Progress bar fina */}
+                              <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    quest.completed
+                                      ? "bg-emerald-400"
+                                      : "bg-linear-to-r from-indigo-500 to-purple-500"
+                                  }`}
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {!quest.completed && (
+                            <Link
+                              href={quest.actionUrl}
+                              className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300 transition-all hover:bg-indigo-500/20 active:scale-95"
+                            >
+                              Ir
+                            </Link>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               {/* CARD 2: Métricas de Desempenho */}
