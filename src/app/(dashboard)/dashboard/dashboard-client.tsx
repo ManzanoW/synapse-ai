@@ -967,7 +967,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           <div className="space-y-6 lg:col-span-3">
             {/* 1. CARD DE CONSTÂNCIA (STREAK GLOBAL) */}
             <Link
-              href="/analytics"
+              href="/performance"
               className="group relative block overflow-hidden rounded-3xl border border-white/10 border-t-white/15 bg-slate-900/30 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-amber-500/40"
             >
               <div className="mb-4 flex items-start justify-between">
