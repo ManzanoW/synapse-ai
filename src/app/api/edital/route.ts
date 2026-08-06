@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PRESET_HEX_COLORS } from "@/constants/subjects";
 import { auth } from "@/auth";
+import { calculateEarnedXp, calculateLevel } from "@/lib/gamification";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,6 @@ export async function GET(request: Request) {
                   select: { grade: true },
                 },
                 quizAttempts: {
-                  // 👈 Relação recém-gerada
                   select: {
                     totalCount: true,
                     correctCount: true,
@@ -283,7 +283,7 @@ export async function POST(request: Request) {
     }
 
     // 🧠 FLUXO B: Atualizar histórico e curva de esquecimento (SM-2)
-    const { topicId, grade, performance } = body;
+    const { topicId, grade, performance, streakDays = 0 } = body;
 
     if (!topicId || !grade) {
       return NextResponse.json(
@@ -310,10 +310,28 @@ export async function POST(request: Request) {
       data: { topicId, grade },
     });
 
+    // ⚡ CÁLCULO DINÂMICO DE XP COM STREAK MULTIPLIER
+    const earnedXp = calculateEarnedXp(grade, Number(streakDays));
+
+    // Persiste o XP no banco de dados
+    const updatedStats = await prisma.userStats.upsert({
+      where: { userId: userId },
+      update: {
+        totalXp: { increment: earnedXp },
+      },
+      create: {
+        userId: userId,
+        totalXp: earnedXp,
+      },
+    });
+
+    // Calcula o novo nível e progresso atualizado
+    const levelInfo = calculateLevel(updatedStats.totalXp);
+
+    // --- LÓGICA DO ALGORITMO SM-2 ---
     let q = 5;
     if (grade === "Difícil") q = 3;
     if (grade === "Errei") q = 1;
-
     if (grade === "Bom" && performance < 70) q = 3;
 
     let easiness = currentTopic.easiness ?? 2.5;
@@ -366,7 +384,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        message: "Curva de Ebbinghaus atualizada via SM-2!",
+        message: "Curva de Ebbinghaus e Gamificação atualizadas!",
+        earnedXp,
+        totalXp: updatedStats.totalXp,
+        levelInfo,
         data: updatedTopic,
       },
       { status: 200 },

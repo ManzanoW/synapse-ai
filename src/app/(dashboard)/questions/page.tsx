@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSidebar } from "@/lib/sidebar-context";
+import { useGamification } from "@/context/GamificationContext";
 import { motion } from "framer-motion";
 import {
   Menu,
@@ -97,10 +98,8 @@ function shuffleArray<T>(array: T[]): T[] {
 
 // Embaralha tanto a ordem das questões quanto a ordem das alternativas de cada uma
 function randomizeQuizSession(questionsList: QuestaoIA[]): QuestaoIA[] {
-  // 1. Embaralha a ordem das questões
   const shuffledQuestions = shuffleArray(questionsList);
 
-  // 2. Embaralha as alternativas de cada questão e reatribui as letras (A, B, C, D)
   return shuffledQuestions.map((q) => {
     if (
       q.formato !== "multipla" ||
@@ -167,6 +166,7 @@ export default function QuestoesPage() {
   >({});
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [isSyncingSM2, setIsSyncingSM2] = useState(false);
+  const [lastEarnedXp, setLastEarnedXp] = useState<number>(0);
 
   // ================= ESTADOS DO MODAL IA PREMIUM =================
   const [materia, setMateria] = useState("");
@@ -191,6 +191,12 @@ export default function QuestoesPage() {
   ]);
   const [alternativaCorreta, setAlternativaCorreta] = useState("A");
 
+  // Estado para capturar se subiu de nível no último quiz
+  const [levelUpData, setLevelUpData] = useState<{
+    leveledUp: boolean;
+    newLevel: number;
+  } | null>(null);
+
   // ================= ESTADOS GERAIS DA PÁGINA =================
   const STORAGE_KEY = "deepwork_quiz_session_v1";
 
@@ -203,9 +209,11 @@ export default function QuestoesPage() {
   const [checkedQuestions, setCheckedQuestions] = useState<
     Record<number, boolean>
   >({});
+  const [currentQuizId, setCurrentQuizId] = useState<string | null>(null);
 
   // Guarda os dados recuperados do localStorage para o Card de Retomada no Hub
   const [pausedSession, setPausedSession] = useState<{
+    quizId?: string | null;
     banca: string;
     questions: QuestaoIA[];
     selectedAnswers: Record<number, string>;
@@ -229,11 +237,13 @@ export default function QuestoesPage() {
   const confirmNavigation = () => {
     if (pendingTab) {
       setActiveTab(pendingTab);
+      setQuestions([]);
       setSelectedAnswers({});
       setCheckedQuestions({});
       setSavedErrors({});
       setCreatedFlashcards({});
       setShowCompletionModal(false);
+      setCurrentQuizId(null);
     }
     setPendingTab(null);
   };
@@ -308,6 +318,7 @@ export default function QuestoesPage() {
     try {
       if (questions.length > 0) {
         const currentState = {
+          quizId: currentQuizId,
           banca,
           questions,
           selectedAnswers,
@@ -320,6 +331,7 @@ export default function QuestoesPage() {
       console.error("Erro ao salvar no localStorage:", e);
     }
   }, [
+    currentQuizId,
     banca,
     questions,
     selectedAnswers,
@@ -383,6 +395,9 @@ export default function QuestoesPage() {
 
       setQuizHistory((prev) => prev.filter((item) => item.id !== idSimulado));
       setConfirmingDeleteId(null);
+      if (currentQuizId === idSimulado) {
+        setCurrentQuizId(null);
+      }
     } catch (error) {
       console.error("Erro ao deletar simulado:", error);
       alert("Não foi possível excluir o simulado.");
@@ -392,6 +407,7 @@ export default function QuestoesPage() {
   // Funções de Retomada do Caderno Pausado
   const handleResumePausedSession = () => {
     if (!pausedSession) return;
+    setCurrentQuizId(pausedSession.quizId || null);
     setBanca(pausedSession.banca || "FGV");
     setQuestions(pausedSession.questions || []);
     setSelectedAnswers(pausedSession.selectedAnswers || {});
@@ -445,10 +461,13 @@ export default function QuestoesPage() {
     }
   };
 
-  const handleAnswerQuestion = (index: number) => {
+  const { stats: gamificationStats, refreshStats } = useGamification();
+
+  const handleAnswerQuestion = async (index: number) => {
     const nextChecked = { ...checkedQuestions, [index]: true };
     setCheckedQuestions(nextChecked);
 
+    // Quando TODAS as questões do caderno forem respondidas:
     if (Object.keys(nextChecked).length === totalQuestions) {
       const finalCorrect = Object.keys(nextChecked).filter(
         (idxStr) =>
@@ -457,7 +476,74 @@ export default function QuestoesPage() {
       ).length;
       const finalAcc = Math.round((finalCorrect / totalQuestions) * 100);
 
+      // 1. Atualiza SM-2
       syncQuizWithSM2(finalAcc);
+
+      // 2. ⚡ Re-notifica a API do quiz/save enviando os resultados para creditar o XP
+      try {
+        const subjectName = materia?.trim() || "Geral";
+
+        const response = await fetch("/api/questions/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            quizId: currentQuizId,
+            banca: banca || "Geral",
+            subject: subjectName,
+            topicId: selectedTopicId || null,
+            difficulty: dificuldade || "Média",
+            questions: questions.map((q, idx) => ({
+              ...q,
+              userAnswer: selectedAnswers[idx],
+              isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
+            })),
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.earnedXp !== undefined) {
+          setLastEarnedXp(data.earnedXp);
+        }
+
+        // 🟢 VERIFICA LEVEL UP COMPARANDO O NÍVEL ANTERIOR COM O NÍVEL NOVO DA API
+        if (data.levelInfo?.level) {
+          const newLevel = data.levelInfo.level;
+          // 🟢 Captura o nível anterior acessando a propriedade interna gamification
+          const previousLevel = gamificationStats?.gamification?.level ?? 1;
+
+          if (data.levelInfo?.level) {
+            const newLevel = data.levelInfo.level;
+
+            // Se o novo nível for maior que o nível salvo anteriormente:
+            if (newLevel > previousLevel) {
+              setLevelUpData({
+                leveledUp: true,
+                newLevel: newLevel,
+              });
+
+              // 💾 Salva no localStorage para notificar a Dashboard
+              localStorage.setItem(
+                "pending_levelup_notification",
+                JSON.stringify({
+                  level: newLevel,
+                  title: data.levelInfo.title || "Iniciante Consciente",
+                  timestamp: Date.now(),
+                }),
+              );
+            }
+          }
+        }
+
+        if (refreshStats) {
+          await refreshStats();
+        }
+      } catch (error) {
+        console.error("Erro ao creditar XP das questões:", error);
+      } finally {
+        // Apenas abre o modal APÓS processar a resposta da API
+        setShowCompletionModal(true);
+      }
 
       setTimeout(() => setShowCompletionModal(true), 600);
     }
@@ -537,9 +623,9 @@ export default function QuestoesPage() {
     setLoadingQuizId(id);
 
     setTimeout(() => {
-      // Embaralha a ordem das questões e das alternativas antes de carregar no caderno
       const randomizedQuestions = randomizeQuizSession(savedQuestions);
 
+      setCurrentQuizId(id);
       setSelectedAnswers({});
       setCheckedQuestions({});
       setSavedErrors({});
@@ -588,6 +674,7 @@ export default function QuestoesPage() {
     setSavedErrors({});
     setCreatedFlashcards({});
     setShowCompletionModal(false);
+    setCurrentQuizId(null);
 
     try {
       const response = await fetch("/api/questions/generate", {
@@ -611,7 +698,7 @@ export default function QuestoesPage() {
       setIsAIModalOpen(false);
 
       if (generatedQuestions.length > 0) {
-        await fetch("/api/questions/save", {
+        const saveRes = await fetch("/api/questions/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -621,7 +708,12 @@ export default function QuestoesPage() {
             difficulty: dificuldade,
             questions: generatedQuestions,
           }),
-        }).catch((err) => console.error("Database sync error:", err));
+        });
+
+        const saveData = await saveRes.json();
+        if (saveData.id) {
+          setCurrentQuizId(saveData.id);
+        }
 
         if (selectedTopicId) {
           await fetch("/api/edital/complete-suggestion", {
@@ -759,7 +851,7 @@ export default function QuestoesPage() {
             {/* ================= HUB CENTRAL DE ENTRADA (SE NENHUM SIMULADO ESTÁ EM EXECUÇÃO) ================= */}
             {questions.length === 0 ? (
               <div className="space-y-6 animate-in fade-in duration-500">
-                {/* 🟢 MELHORIA 1: CARD DE RETOMADA RÁPIDA (SESSÃO PAUSADA NO LOCALSTORAGE) */}
+                {/* CARD DE RETOMADA RÁPIDA (SESSÃO PAUSADA NO LOCALSTORAGE) */}
                 {pausedSession &&
                   pausedSession.questions &&
                   pausedSession.questions.length > 0 && (
@@ -822,12 +914,10 @@ export default function QuestoesPage() {
 
                 {/* BANNER HERO PRINCIPAL COM GLOW E MÉTRICAS */}
                 <div className="relative overflow-hidden bg-linear-to-br from-[#0c0f1d] via-[#090d16] to-[#05070c] border border-indigo-500/20 rounded-3xl p-8 shadow-[0_0_50px_-12px_rgba(79,70,229,0.15)]">
-                  {/* Luzes de Fundo (Glow Background) */}
                   <div className="absolute -top-24 -left-20 w-80 h-80 bg-indigo-600/15 rounded-full blur-[100px] pointer-events-none" />
                   <div className="absolute top-1/2 -right-20 w-72 h-72 bg-purple-600/10 rounded-full blur-[90px] pointer-events-none" />
 
                   <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                    {/* Lado Esquerdo: Mensagem de Boas-vindas */}
                     <div className="space-y-4 max-w-xl">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-md">
                         <Sparkles
@@ -850,7 +940,6 @@ export default function QuestoesPage() {
                       </p>
                     </div>
 
-                    {/* Lado Direito: Widget de Métricas Rápidas */}
                     <div className="grid grid-cols-2 gap-3 shrink-0 lg:w-72">
                       <div className="bg-[#0f1424]/60 border border-slate-800/80 backdrop-blur-sm p-4 rounded-2xl flex flex-col justify-center">
                         <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
@@ -879,9 +968,7 @@ export default function QuestoesPage() {
                   </div>
                 </div>
 
-                {/* CARDS DE AÇÃO COM ESTILO GLOW & MICRO-INTERAÇÃO ACTIVE SCALE */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Card 1: Gerar por IA */}
                   <div
                     onClick={() => setIsAIModalOpen(true)}
                     className="group relative bg-linear-to-b from-[#0e1222]/90 to-[#090d16]/90 hover:from-[#12182e] hover:to-[#0c101d] border border-indigo-500/20 hover:border-indigo-500/50 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.98] shadow-xl hover:shadow-[0_10px_30px_-10px_rgba(79,70,229,0.25)] flex flex-col justify-between overflow-hidden"
@@ -913,7 +1000,6 @@ export default function QuestoesPage() {
                     </div>
                   </div>
 
-                  {/* Card 2: Meus Simulados Salvos */}
                   <div
                     onClick={() => {
                       handleTabChange("history");
@@ -930,7 +1016,7 @@ export default function QuestoesPage() {
                           Meus Simulados Salvos
                         </h3>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          Acessee cadernos criados anteriormente e treine
+                          Acesse cadernos criados anteriormente e treine
                           novamente com algoritmo de embaralhamento total de
                           alternativas.
                         </p>
@@ -974,6 +1060,7 @@ export default function QuestoesPage() {
                       setCheckedQuestions({});
                       localStorage.removeItem(STORAGE_KEY);
                       setPausedSession(null);
+                      setCurrentQuizId(null);
                     }}
                     className="text-xs text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/40 bg-slate-950 px-3 py-1.5 rounded-xl transition-all self-end sm:self-auto shrink-0 active:scale-[0.98]"
                   >
@@ -1008,7 +1095,6 @@ export default function QuestoesPage() {
                           : "bg-[#090d16]/60 border-slate-900 shadow-xl"
                       }`}
                     >
-                      {/* Cabeçalho da Questão */}
                       <div className="flex items-center justify-between mb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-900 pb-3">
                         <div className="flex items-center gap-2">
                           <span>Questão {index + 1}</span>
@@ -1047,12 +1133,10 @@ export default function QuestoesPage() {
                         </span>
                       </div>
 
-                      {/* Enunciado da Questão */}
                       <p className="text-slate-200 text-lg font-medium mb-6 leading-relaxed whitespace-pre-line">
                         {renderEnunciado(questao.enunciado)}
                       </p>
 
-                      {/* Alternativas */}
                       <div className="space-y-3 mb-6">
                         {questao.formato === "multipla"
                           ? questao.alternativas?.map((alt) => {
@@ -1126,7 +1210,6 @@ export default function QuestoesPage() {
                             })}
                       </div>
 
-                      {/* Ações de Envio e Gabarito */}
                       <div className="flex flex-col gap-4">
                         {!respondida ? (
                           <button
@@ -1220,7 +1303,6 @@ export default function QuestoesPage() {
         {activeTab === "history" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="flex flex-col gap-4">
-              {/* Header da Seção com Badge de Contagem */}
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2.5">
@@ -1241,7 +1323,6 @@ export default function QuestoesPage() {
                 </div>
               </div>
 
-              {/* Barra de Busca + Select de Ordenação */}
               {!isLoadingHistory && quizHistory.length > 0 && (
                 <div className="flex flex-col sm:flex-row items-center gap-2.5">
                   <div className="relative flex-1 w-full">
@@ -1257,7 +1338,6 @@ export default function QuestoesPage() {
                     />
                   </div>
 
-                  {/* Dropdown de Ordenação */}
                   <div className="relative w-full sm:w-auto shrink-0">
                     <select
                       value={sortBy}
@@ -1312,6 +1392,7 @@ export default function QuestoesPage() {
                     setQuestions([]);
                     setSelectedAnswers({});
                     setCheckedQuestions({});
+                    setCurrentQuizId(null);
                     handleTabChange("create");
                   }}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-98"
@@ -1344,11 +1425,9 @@ export default function QuestoesPage() {
                       key={`quiz-history-${item.id}`}
                       className="relative overflow-hidden bg-[#090d16]/90 border border-slate-800/80 hover:border-indigo-500/40 p-5 rounded-2xl shadow-xl flex flex-col justify-between hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] transition-all duration-300 group"
                     >
-                      {/* Glow Neon sutil no Hover */}
                       <div className="absolute top-0 right-0 -mt-6 -mr-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
 
                       <div className="space-y-3 relative z-10">
-                        {/* Cabeçalho: Banca + Data */}
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-black bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-inner">
                             {item.banca}
@@ -1359,13 +1438,11 @@ export default function QuestoesPage() {
                           </span>
                         </div>
 
-                        {/* Título da Matéria */}
                         <div className="space-y-2">
                           <h3 className="font-bold text-slate-100 text-base line-clamp-1 group-hover:text-indigo-300 transition-colors tracking-tight">
                             {item.subject}
                           </h3>
 
-                          {/* Badge do Tópico */}
                           {item.topic?.title && (
                             <div className="flex items-center">
                               <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 max-w-full">
@@ -1380,7 +1457,6 @@ export default function QuestoesPage() {
                             </div>
                           )}
 
-                          {/* Metadados: Dificuldade + Quantidade */}
                           <div className="flex items-center gap-2 pt-0.5">
                             <span className="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-md border border-slate-800/80 text-[11px] text-slate-300 font-medium">
                               <Layers size={11} className="text-indigo-400" />
@@ -1398,7 +1474,6 @@ export default function QuestoesPage() {
                         </div>
                       </div>
 
-                      {/* Rodapé e Botões de Ação */}
                       <div className="mt-5 relative z-10 pt-3 border-t border-slate-800/60">
                         {confirmingDeleteId === item.id ? (
                           <div className="bg-rose-950/20 border border-rose-500/30 p-2 rounded-xl flex items-center justify-between gap-2 animate-in fade-in duration-200">
@@ -1712,7 +1787,6 @@ export default function QuestoesPage() {
                   </div>
                 </div>
 
-                {/* SELEÇÃO DE TÓPICO ESPECÍFICO */}
                 <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
                   <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                     <FileText size={12} className="text-indigo-400" /> Tópico
@@ -1861,106 +1935,233 @@ export default function QuestoesPage() {
         )}
       </div>
 
-      {/* ================= MODAL 3: DIAGNÓSTICO COGNITIVO FINAL ================= */}
-      {showCompletionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-[#090d16] border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative text-center space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 rounded-full bg-linear-to-tr from-indigo-500/20 to-emerald-500/20 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400 shadow-inner">
-              <Trophy size={32} className="text-amber-400" />
-            </div>
+      {/* ================= MODAL 3: DIAGNÓSTICO COGNITIVO FINAL (COM GAMIFICAÇÃO PERFEITA) ================= */}
+      {showCompletionModal &&
+        (() => {
+          const isPerfect =
+            totalQuestions > 0 && correctCount === totalQuestions;
 
-            <div>
-              <h3 className="text-xl font-bold text-slate-100">
-                Simulado Concluído!
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Análise sintética de desempenho gerada pelo Synapse AI.
-              </p>
-            </div>
+          // Dispara confetes se gabaritou
+          if (isPerfect && typeof window !== "undefined") {
+            import("canvas-confetti").then((confetti) => {
+              confetti.default({
+                particleCount: 80,
+                spread: 70,
+                origin: { y: 0.6 },
+              });
+            });
+          }
 
-            <div className="grid grid-cols-3 gap-3 bg-slate-950 border border-slate-800 p-4 rounded-xl text-center">
-              <div>
-                <span className="block text-xs text-slate-500 font-semibold uppercase">
-                  Total
-                </span>
-                <span className="text-lg font-bold text-slate-200 font-mono">
-                  {totalQuestions}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-slate-500 font-semibold uppercase">
-                  Acertos
-                </span>
-                <span className="text-lg font-bold text-emerald-400 font-mono">
-                  {correctCount}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-slate-500 font-semibold uppercase">
-                  Taxa
-                </span>
-                <span className="text-lg font-bold text-indigo-400 font-mono">
-                  {percentageAcc}%
-                </span>
-              </div>
-            </div>
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-300">
+              <div
+                className={`bg-[#090d16] border rounded-3xl p-7 max-w-lg w-full shadow-2xl relative text-center space-y-6 animate-in zoom-in-95 duration-200 ${
+                  isPerfect
+                    ? "border-amber-500/40 shadow-[0_0_50px_-10px_rgba(245,158,11,0.25)]"
+                    : "border-slate-800"
+                }`}
+              >
+                {/* ÍCONE / TROFÉU COM GLOW DINÂMICO */}
+                <div className="relative inline-block mx-auto">
+                  {isPerfect && (
+                    <div className="absolute inset-0 bg-amber-500/30 rounded-full blur-xl animate-pulse" />
+                  )}
+                  <div
+                    className={`w-20 h-20 rounded-full border flex items-center justify-center relative z-10 transition-transform hover:scale-105 ${
+                      isPerfect
+                        ? "bg-linear-to-tr from-amber-500/20 via-amber-400/10 to-yellow-500/20 border-amber-500/50 text-amber-400 shadow-lg shadow-amber-500/20"
+                        : "bg-linear-to-tr from-indigo-500/20 to-emerald-500/20 border-indigo-500/30 text-indigo-400"
+                    }`}
+                  >
+                    <Trophy
+                      size={38}
+                      className={
+                        isPerfect
+                          ? "text-amber-400 animate-bounce"
+                          : "text-indigo-400"
+                      }
+                    />
+                  </div>
+                </div>
 
-            <p className="text-xs text-slate-300 bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-xl leading-relaxed text-left">
-              🧠{" "}
-              <strong className="text-indigo-300">
-                Diagnóstico Cognitivo:
-              </strong>{" "}
-              {percentageAcc >= 80
-                ? "Excelente domínio do assunto! Seu percentual de retenção atinge patamares de aprovação no topo das bancas."
-                : percentageAcc >= 50
-                  ? "Bom rendimento, porém há pontos de atenção. Recomendamos criar Flashcards das questões incorretas para fixação."
-                  : "Taxa de retenção abaixo do ideal. Recomendamos revisar a teoria base e praticar novo simulado focado."}
-            </p>
+                {/* HEADER DINÂMICO */}
+                <div className="space-y-1">
+                  {isPerfect ? (
+                    <>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full inline-block">
+                        🏆 Desempenho Impecável
+                      </span>
+                      <h3 className="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-r from-amber-200 via-amber-400 to-yellow-500 pt-2">
+                        GABARITO PERFEITO!
+                      </h3>
+                    </>
+                  ) : (
+                    <h3 className="text-xl font-bold text-slate-100">
+                      Simulado Concluído!
+                    </h3>
+                  )}
+                  <p className="text-xs text-slate-400">
+                    Análise sintética de desempenho gerada pelo Synapse AI.
+                  </p>
+                </div>
 
-            {/* PÍLULA INFORMATIVA DE SINCRONIZAÇÃO DO ALGORITMO SM-2 */}
-            <div className="flex items-center justify-between text-[11px] font-mono bg-slate-950 border border-slate-800/80 px-3.5 py-2.5 rounded-xl text-slate-400 shadow-inner">
-              <span className="flex items-center gap-2">
-                {isSyncingSM2 ? (
-                  <Loader2 size={12} className="animate-spin text-indigo-400" />
-                ) : (
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
-                  </span>
+                {/* GRID DE MÉTRICAS */}
+                <div className="grid grid-cols-4 gap-2.5 bg-slate-950/80 border border-slate-800/80 p-3.5 rounded-2xl text-center shadow-inner items-stretch">
+                  <div className="flex flex-col justify-center">
+                    <span className="block text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                      Total
+                    </span>
+                    <span className="text-base font-bold text-slate-200 font-mono mt-0.5">
+                      {totalQuestions}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col justify-center">
+                    <span className="block text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                      Acertos
+                    </span>
+                    <span className="text-base font-bold text-emerald-400 font-mono mt-0.5">
+                      {correctCount}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col justify-center">
+                    <span className="block text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                      Taxa
+                    </span>
+                    <span
+                      className={`text-base font-bold font-mono mt-0.5 ${
+                        isPerfect ? "text-amber-400" : "text-indigo-400"
+                      }`}
+                    >
+                      {percentageAcc}%
+                    </span>
+                  </div>
+
+                  {/* CARD DE XP DESTACADO */}
+                  <div
+                    className={`flex flex-col items-center justify-center py-2 px-2 rounded-xl transition-all ${
+                      isPerfect
+                        ? "bg-amber-500/10 border border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)]"
+                        : ""
+                    }`}
+                  >
+                    <span className="block text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+                      XP Ganho
+                    </span>
+                    <span className="text-base font-black text-amber-400 font-mono flex items-center justify-center gap-1 mt-0.5">
+                      <span className="text-orange-400">⚡</span> +
+                      {lastEarnedXp}
+                    </span>
+
+                    {/* BADGE DE BÔNUS MAIOR E MAIS LEGÍVEL */}
+                    {isPerfect && (
+                      <span className="mt-1.5 bg-linear-to-r from-amber-500 via-amber-400 to-yellow-400 text-slate-950 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-[0_0_12px_rgba(251,191,36,0.7)] border border-amber-200 animate-bounce tracking-wider whitespace-nowrap">
+                        🔥 BÔNUS 25%
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* 🟣 BANNER DE LEVEL UP (COLOCAR AQUI) */}
+                {levelUpData?.leveledUp && (
+                  <div className="relative overflow-hidden bg-linear-to-r from-purple-900/50 via-indigo-900/50 to-purple-900/50 border border-purple-500/50 p-4 rounded-2xl shadow-[0_0_25px_rgba(168,85,247,0.3)] animate-in zoom-in-95 duration-300">
+                    <div className="flex items-center justify-center gap-3">
+                      <span className="text-2xl animate-bounce">🎉</span>
+                      <div className="text-left">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-purple-300 block">
+                          LEVEL UP ALCANÇADO!
+                        </span>
+                        <h4 className="text-base font-black text-white tracking-tight">
+                          Você subiu para o{" "}
+                          <span className="text-purple-400">
+                            Nível {levelUpData.newLevel}
+                          </span>
+                          ! 🚀
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
                 )}
-                Sincronização SM-2:
-              </span>
-              <span className="text-indigo-300 font-bold">
-                {isSyncingSM2
-                  ? "Calculando novo espaçamento..."
-                  : percentageAcc >= 70
-                    ? "Próxima revisão estendida pelo algoritmo 🚀"
-                    : "Revisão priorizada na grade de amanhã ⚠️"}
-              </span>
-            </div>
 
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setSelectedAnswers({});
-                  setCheckedQuestions({});
-                  setShowCompletionModal(false);
-                }}
-                className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
-              >
-                <RotateCcw size={14} />
-                Refazer Agora
-              </button>
-              <button
-                onClick={() => setShowCompletionModal(false)}
-                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-950/40 active:scale-[0.98]"
-              >
-                Revisar Respostas
-              </button>
+                {/* DIAGNÓSTICO COGNITIVO */}
+                <p
+                  className={`text-xs p-3.5 rounded-2xl leading-relaxed text-left border ${
+                    isPerfect
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-200/90"
+                      : "bg-indigo-500/10 border-indigo-500/20 text-slate-300"
+                  }`}
+                >
+                  🧠{" "}
+                  <strong
+                    className={isPerfect ? "text-amber-300" : "text-indigo-300"}
+                  >
+                    Diagnóstico Cognitivo:
+                  </strong>{" "}
+                  {isPerfect
+                    ? "Domínio absoluto do conteúdo! Você gabaritou todas as questões com precisão cirúrgica."
+                    : percentageAcc >= 80
+                      ? "Excelente domínio do assunto! Seu percentual de retenção atinge patamares de aprovação no topo das bancas."
+                      : percentageAcc >= 50
+                        ? "Bom rendimento, porém há pontos de atenção. Recomendamos criar Flashcards das questões incorretas para fixação."
+                        : "Taxa de retenção abaixo do ideal. Recomendamos revisar a teoria base e praticar novo simulado focado."}
+                </p>
+
+                {/* SINCRONIZAÇÃO SM-2 */}
+                <div className="flex items-center justify-between text-[11px] font-mono bg-slate-950 border border-slate-800/80 px-4 py-2.5 rounded-xl text-slate-400 shadow-inner">
+                  <span className="flex items-center gap-2">
+                    {isSyncingSM2 ? (
+                      <Loader2
+                        size={12}
+                        className="animate-spin text-indigo-400"
+                      />
+                    ) : (
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                      </span>
+                    )}
+                    Sincronização SM-2:
+                  </span>
+                  <span className="text-emerald-400 font-bold">
+                    {isSyncingSM2
+                      ? "Calculando novo espaçamento..."
+                      : isPerfect
+                        ? "Revisão estendida ao máximo! 🚀"
+                        : percentageAcc >= 70
+                          ? "Próxima revisão estendida pelo algoritmo 🚀"
+                          : "Revisão priorizada na grade de amanhã ⚠️"}
+                  </span>
+                </div>
+
+                {/* BOTOES DE AÇÃO */}
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setSelectedAnswers({});
+                      setCheckedQuestions({});
+                      setShowCompletionModal(false);
+                    }}
+                    className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                  >
+                    <RotateCcw size={14} />
+                    Refazer Agora
+                  </button>
+                  <button
+                    onClick={() => setShowCompletionModal(false)}
+                    className={`flex-1 py-3 text-slate-100 text-xs font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] ${
+                      isPerfect
+                        ? "bg-linear-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 shadow-amber-950/40 text-slate-950 font-black"
+                        : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-950/40"
+                    }`}
+                  >
+                    Revisar Respostas
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          );
+        })()}
 
       {/* ================= MODAL NAVEGAÇÃO PENDENTE ================= */}
       {pendingTab && (

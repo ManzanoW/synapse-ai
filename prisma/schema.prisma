@@ -32,8 +32,24 @@ model User {
   studySessions StudySession[]
   quizzes       Quiz[]
 
+  // 🏆 Gamificação
+  userStats UserStats?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// 🏆 Modelo para Gamificação e XP
+model UserStats {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  totalXp       Int       @default(0)
+  streakDays    Int       @default(0)
+  lastStudyDate DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
@@ -104,7 +120,7 @@ model Topic {
   flashcards      Flashcard[]
   questions       Quiz[]
   reviewHistories ReviewHistory[]
-  quizAttempts    QuizAttempt[] // <-- Nova relação para histórico de questões
+  quizAttempts    QuizAttempt[]
 
   // Estado do Estudo
   firstStudy  String    @default("Pendente") // "Pendente", "Em Estudo", "Concluido"
@@ -135,7 +151,6 @@ model Deck {
   userId     String
 }
 
-// 🆕 Histórico de Resolução de Questões/Simulados para calcular precisão no Edital
 model QuizAttempt {
   id           String   @id @default(uuid())
   userId       String
@@ -188,15 +203,12 @@ model Quiz {
   @@map("quizzes")
 }
 
-// ==========================================
-// REGISTRO DE SESSÕES E DIAS DE FOLGA/PAUSA
-// ==========================================
 model StudySession {
   id              String   @id @default(uuid())
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date            DateTime @default(now())
-  status          String   @default("COMPLETED") // Ex: "COMPLETED", "OFF_DAY", "SKIPPED"
+  status          String   @default("COMPLETED")
   durationMinutes Int?     @default(0)
   notes           String?
   createdAt       DateTime @default(now())

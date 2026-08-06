@@ -77,7 +77,28 @@ export default function StudyFlashcard({
         setPerformanceStats((prev) => ({ ...prev, acertos: prev.acertos + 1 }));
       }
 
+      // ⚡ Converte nota numérica em string para o motor de gamificação
+      const gradeLabel =
+        grade >= 5
+          ? "Fácil"
+          : grade >= 4
+            ? "Bom"
+            : grade >= 3
+              ? "Difícil"
+              : "Errei";
+
       try {
+        // 1. Registra o ganho de XP na rota dedicada de gamificação de flashcards
+        await fetch("/api/flashcards/review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardId: currentCard.id,
+            grade: gradeLabel,
+          }),
+        });
+
+        // 2. Atualiza os algoritmos de repetibilidade (SM-2)
         await fetch("/api/review", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -91,7 +112,7 @@ export default function StudyFlashcard({
           }),
         });
       } catch (error) {
-        console.error("Erro ao sincronizar revisão SM-2 do flashcard:", error);
+        console.error("Erro ao sincronizar revisão do flashcard:", error);
       } finally {
         setIsSubmitting(false);
         setSelectedGrade(null);
@@ -156,21 +177,15 @@ export default function StudyFlashcard({
 
   return (
     <div className="flex items-center justify-center min-h-[88vh] p-4 relative overflow-hidden">
-      {/* Ambient Spotlight Background - Glow 100% centralizado no card */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-        {/* Glow principal roxo/índigo concentrado exatamente no centro */}
         <div className="w-162.5 h-112.5 bg-linear-to-r from-indigo-600/15 via-violet-600/20 to-indigo-500/15 rounded-full blur-[120px] opacity-80" />
-
-        {/* Sutil toque ciano bem sutil no centro superior */}
         <div className="absolute top-1/3 w-75 h-50 bg-cyan-500/10 rounded-full blur-[90px]" />
       </div>
 
       <div className="w-full max-w-2xl p-6 md:p-9 bg-slate-950/80 border border-slate-800/80 rounded-[2.5rem] backdrop-blur-3xl shadow-[0_0_80px_-15px_rgba(99,102,241,0.25)] select-none transition-all relative overflow-hidden z-10">
-        {/* Linha de brilho superior no container */}
         <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent" />
 
         {isFinished ? (
-          /* --- TELA DE CONCLUSÃO --- */
           <div className="text-center py-8 space-y-6 relative z-10 animate-in fade-in zoom-in-95 duration-300">
             <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-2xl animate-pulse" />
@@ -195,7 +210,6 @@ export default function StudyFlashcard({
               </p>
             </div>
 
-            {/* Metric Cards com Glassmorphic Glow */}
             <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto bg-slate-900/40 border border-white/5 p-4 rounded-3xl backdrop-blur-md shadow-inner">
               <div className="border-r border-slate-800/80 pr-2">
                 <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">
@@ -248,9 +262,7 @@ export default function StudyFlashcard({
             </div>
           </div>
         ) : (
-          /* --- FLUXO DE ESTUDO --- */
           <>
-            {/* Header da Sessão */}
             <div className="flex items-center justify-between mb-5 relative z-10">
               <Link
                 href="/flashcards/decks"
@@ -271,7 +283,6 @@ export default function StudyFlashcard({
               </div>
             </div>
 
-            {/* Barra de Progresso com Glow Neon */}
             <div className="mb-6 relative z-10">
               <div className="h-2 w-full bg-slate-900/90 rounded-full overflow-hidden border border-slate-800/80 p-0.5 shadow-inner">
                 <div
@@ -281,7 +292,6 @@ export default function StudyFlashcard({
               </div>
             </div>
 
-            {/* Flashcard 3D Container com Reflexos Glassmorphism */}
             <div
               className="relative w-full h-87.5 md:h-97.5 mb-6 cursor-pointer group"
               style={{ perspective: "1200px" }}
@@ -298,7 +308,6 @@ export default function StudyFlashcard({
                   className="absolute inset-0 w-full h-full bg-linear-to-b from-slate-900/95 via-slate-950/95 to-slate-950/98 border border-slate-800 group-hover:border-indigo-500/50 rounded-3xl p-7 md:p-9 flex flex-col justify-between text-center backdrop-blur-2xl shadow-2xl transition-all duration-300"
                   style={{ backfaceVisibility: "hidden" }}
                 >
-                  {/* Luz interna superior */}
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
 
                   <div className="w-full flex justify-between items-center relative z-10">
@@ -364,7 +373,6 @@ export default function StudyFlashcard({
               </div>
             </div>
 
-            {/* Botões SM-2 Neon de Alta Resposta */}
             <div
               className={`grid grid-cols-4 gap-2.5 transition-all duration-300 ${
                 isFlipped
