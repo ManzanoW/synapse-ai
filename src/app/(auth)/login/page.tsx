@@ -125,10 +125,34 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer da Coluna Esquerda */}
-        <div className="relative z-10 text-[11px] font-mono text-slate-500">
-          &copy; {new Date().getFullYear()} Synapse AI. Todos os direitos
-          reservados.
+        {/* Footer da Coluna Esquerda com Link para o Portfólio */}
+        <div className="relative z-10 flex items-center justify-between text-[11px] font-mono text-slate-500">
+          <span>
+            &copy; {new Date().getFullYear()} Synapse AI. Todos os direitos reservados.
+          </span>
+        
+          <a
+            href="https://my-portfolio-beta-flax-uo1wwytg9x.vercel.app/" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-indigo-300 transition-colors py-1 px-2.5 rounded-md bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.05] hover:border-indigo-500/30 group"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Desenvolvido por João Vytor</span>
+            <svg
+              className="w-3 h-3 text-slate-500 group-hover:text-indigo-300 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
+          </a>
         </div>
       </div>
 
