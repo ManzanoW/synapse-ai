@@ -17,6 +17,8 @@ import {
 import Link from "next/link";
 import confetti from "canvas-confetti";
 import { useGamification } from "@/context/GamificationContext";
+import { useAchievement } from "@/context/AchievementContext";
+import { checkNewAchievements } from "@/lib/check-achievements";
 
 interface Flashcard {
   id: string;
@@ -45,8 +47,10 @@ export default function StudyFlashcard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
 
-  // 🟢 HOOK DE GAMIFICAÇÃO & ESTADO DE LEVEL UP
+  // 🟢 HOOKS DE GAMIFICAÇÃO & CONQUISTAS
   const { stats: gamificationStats, refreshStats } = useGamification();
+  const { notifyAchievement } = useAchievement();
+
   const [levelUpData, setLevelUpData] = useState<{
     leveledUp: boolean;
     newLevel: number;
@@ -170,9 +174,20 @@ export default function StudyFlashcard({
           origin: { x: 0.5, y: 0.55 },
           colors: ["#818cf8", "#c084fc", "#38bdf8", "#34d399", "#ffffff"],
         });
+
+        // 🏆 Dispara a verificação e notificação de novas conquistas em tempo real
+        checkNewAchievements(notifyAchievement);
       }
     },
-    [index, cards, currentCard, isSubmitting, gamificationStats, refreshStats],
+    [
+      index,
+      cards,
+      currentCard,
+      isSubmitting,
+      gamificationStats,
+      refreshStats,
+      notifyAchievement,
+    ],
   );
 
   useEffect(() => {
@@ -291,7 +306,7 @@ export default function StudyFlashcard({
               </div>
               <span className="text-[11px] leading-relaxed">
                 <strong>Algoritmo SM-2 Ativo:</strong> O intervalo ideal para a
-                próxima repetição foi ajustado para maximizar a retenção a longo
+                próxima repetição foi adjusted para maximizar a retenção a longo
                 prazo.
               </span>
             </div>
