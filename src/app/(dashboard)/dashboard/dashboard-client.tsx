@@ -530,14 +530,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         target: 15,
                         current: stats?.metrics.totalFlashcards ?? 0,
                         unit: "cards",
-                        actionUrl: "/cards",
+                        actionUrl: "/flashcards",
                         completed: (stats?.metrics.totalFlashcards ?? 0) >= 15,
                       },
                       {
                         id: "q3",
                         title: "Sessão de Foco Ativo",
                         target: 1,
-                        current: (stats?.metrics.sessionsCount ?? 0) > 0 ? 1 : 0,
+                        current:
+                          (stats?.metrics.sessionsCount ?? 0) > 0 ? 1 : 0,
                         unit: "sessão",
                         actionUrl: "#pomodoro",
                         completed: (stats?.metrics.sessionsCount ?? 0) > 0,
@@ -545,7 +546,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     ].map((quest) => {
                       const progress = Math.min(
                         100,
-                        Math.round((quest.current / quest.target) * 100)
+                        Math.round((quest.current / quest.target) * 100),
                       );
 
                       return (

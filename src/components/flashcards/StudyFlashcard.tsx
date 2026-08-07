@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
+import { useGamification } from "@/context/GamificationContext";
 
 interface Flashcard {
   id: string;
@@ -43,6 +44,14 @@ export default function StudyFlashcard({
   const [isFinished, setIsFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
+
+  // 🟢 HOOK DE GAMIFICAÇÃO & ESTADO DE LEVEL UP
+  const { stats: gamificationStats, refreshStats } = useGamification();
+  const [levelUpData, setLevelUpData] = useState<{
+    leveledUp: boolean;
+    newLevel: number;
+    title?: string;
+  } | null>(null);
 
   const [performanceStats, setPerformanceStats] = useState({
     erros: 0,
@@ -88,8 +97,11 @@ export default function StudyFlashcard({
               : "Errei";
 
       try {
+        // Nível anterior do contexto
+        const previousLevel = gamificationStats?.gamification?.level ?? 1;
+
         // 1. Registra o ganho de XP na rota dedicada de gamificação de flashcards
-        await fetch("/api/flashcards/review", {
+        const resReview = await fetch("/api/flashcards/review", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -97,6 +109,32 @@ export default function StudyFlashcard({
             grade: gradeLabel,
           }),
         });
+
+        if (resReview.ok) {
+          const data = await resReview.json();
+
+          // Checa evolução de nível
+          if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
+            const newLevel = data.levelInfo.level;
+            const newTitle = data.levelInfo.title || "Mestre da Retenção";
+
+            setLevelUpData({
+              leveledUp: true,
+              newLevel,
+              title: newTitle,
+            });
+
+            // 💾 Grava notificação para a Dashboard
+            localStorage.setItem(
+              "pending_levelup_notification",
+              JSON.stringify({
+                level: newLevel,
+                title: newTitle,
+                timestamp: Date.now(),
+              }),
+            );
+          }
+        }
 
         // 2. Atualiza os algoritmos de repetibilidade (SM-2)
         await fetch("/api/review", {
@@ -111,6 +149,9 @@ export default function StudyFlashcard({
             source: "FLASHCARD",
           }),
         });
+
+        // Atualiza os dados de XP globais no app
+        await refreshStats();
       } catch (error) {
         console.error("Erro ao sincronizar revisão do flashcard:", error);
       } finally {
@@ -131,7 +172,7 @@ export default function StudyFlashcard({
         });
       }
     },
-    [index, cards, currentCard, isSubmitting],
+    [index, cards, currentCard, isSubmitting, gamificationStats, refreshStats],
   );
 
   useEffect(() => {
@@ -210,6 +251,21 @@ export default function StudyFlashcard({
               </p>
             </div>
 
+            {/* 🟢 BANNER DE LEVEL UP SE HOUVER SUBIDA DE NÍVEL */}
+            {levelUpData?.leveledUp && (
+              <div className="mx-auto max-w-md rounded-2xl border border-purple-500/40 bg-linear-to-r from-purple-900/50 via-indigo-900/50 to-purple-900/50 p-4 shadow-[0_0_25px_rgba(168,85,247,0.3)] animate-bounce">
+                <p className="text-xs font-black tracking-wider text-purple-300 uppercase">
+                  🎉 LEVEL UP ALCANÇADO!
+                </p>
+                <p className="mt-1 text-sm font-bold text-white">
+                  Você subiu para o{" "}
+                  <span className="text-amber-300">
+                    Nível {levelUpData.newLevel}! 🚀
+                  </span>
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto bg-slate-900/40 border border-white/5 p-4 rounded-3xl backdrop-blur-md shadow-inner">
               <div className="border-r border-slate-800/80 pr-2">
                 <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">
@@ -247,6 +303,7 @@ export default function StudyFlashcard({
                   setIsFlipped(false);
                   setIsFinished(false);
                   setPerformanceStats({ erros: 0, acertos: 0 });
+                  setLevelUpData(null);
                 }}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-2xl font-semibold text-xs transition-all active:scale-95 shadow-md"
               >
