@@ -1,8 +1,8 @@
-// src/lib/achievements-engine.ts
 import { prisma } from "@/lib/prisma";
+import { ACHIEVEMENTS, UserAchievementProgress } from "@/lib/achievements";
 
-export async function checkAndAwardAchievements(userId: string) {
-  // 1. Busca estatísticas e histórico do usuário
+export async function getUserAchievementsProgress(userId: string) {
+  // 1. Busca dados do usuário no banco
   const userStats = await prisma.userStats.findUnique({
     where: { userId },
   });
@@ -11,19 +11,39 @@ export async function checkAndAwardAchievements(userId: string) {
     where: { topic: { subject: { userId } } },
   });
 
-  const unlockedBadges: string[] = [];
+  const currentStreak = userStats?.streakDays ?? 0;
+  const totalXp = userStats?.totalXp ?? 0;
 
-  // 2. Regras de verificação
-  if (reviewCount >= 1) {
-    unlockedBadges.push("first_step");
-  }
-  if (reviewCount >= 100) {
-    unlockedBadges.push("card_master");
-  }
-  if ((userStats?.totalXp ?? 0) >= 1000) {
-    unlockedBadges.push("xp_rookie");
-  }
+  // 2. Mapeia cada conquista com o progresso real do usuário
+  const progressList: UserAchievementProgress[] = ACHIEVEMENTS.map((badge) => {
+    let currentValue = 0;
 
-  // Retorna os IDs das conquistas desbloqueadas
-  return unlockedBadges;
+    switch (badge.category) {
+      case "REVIEWS":
+        currentValue = reviewCount;
+        break;
+      case "STREAK":
+        currentValue = currentStreak;
+        break;
+      case "XP":
+        currentValue = totalXp;
+        break;
+      case "MASTERY":
+        if (badge.id.startsWith("level_")) {
+          currentValue = Math.floor(totalXp / 1000) + 1;
+        }
+        break;
+    }
+
+    const isUnlocked = currentValue >= badge.targetValue;
+
+    return {
+      achievementId: badge.id,
+      currentValue: Math.min(currentValue, badge.targetValue),
+      isUnlocked,
+      unlockedAt: isUnlocked ? userStats?.updatedAt?.toISOString() : undefined,
+    };
+  });
+
+  return progressList;
 }

@@ -21,6 +21,7 @@ import {
   FileSpreadsheet,
   Award,
   Flame,
+  Trophy,
   Zap,
   Loader2,
 } from "lucide-react";
@@ -48,6 +49,12 @@ const NAV_GROUPS = [
       { label: "Banco de Provas", href: "/questions", icon: FileStack },
       { label: "Cards", href: "/flashcards", icon: Layers },
       { label: "Performance", href: "/performance", icon: TrendingUp },
+      {
+        label: "Conquistas",
+        href: "/achievements",
+        icon: Trophy,
+        isSpecial: true,
+      },
       { label: "Calendário", href: "/calendar", icon: CalendarDays },
     ],
   },
@@ -159,6 +166,8 @@ export default function Sidebar({ user }: SidebarProps) {
                         : pathname === item.href ||
                           pathname.startsWith(`${item.href}/`);
 
+                    const isSpecial = item.isSpecial;
+
                     return (
                       <Link
                         key={item.href}
@@ -166,20 +175,30 @@ export default function Sidebar({ user }: SidebarProps) {
                         onClick={closeSidebar}
                         className={`relative group flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] font-medium transition-all duration-200 ${
                           isActive
-                            ? "text-indigo-200 bg-indigo-500/10 font-semibold"
+                            ? isSpecial
+                              ? "text-amber-200 bg-amber-500/10 font-semibold border border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                              : "text-indigo-200 bg-indigo-500/10 font-semibold"
                             : "text-slate-400 hover:text-slate-200 hover:bg-white/3"
                         }`}
                       >
                         {isActive && (
-                          <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-indigo-400 rounded-r-full shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
+                          <div
+                            className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full ${
+                              isSpecial
+                                ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
+                                : "bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
+                            }`}
+                          />
                         )}
 
                         <Icon
                           size={16}
                           strokeWidth={isActive ? 2 : 1.5}
-                          className={`transition-colors duration-200 ${
+                          className={`transition-all duration-200 ${
                             isActive
-                              ? "text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]"
+                              ? isSpecial
+                                ? "text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                                : "text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]"
                               : "text-slate-500 group-hover:text-slate-300"
                           }`}
                         />
@@ -197,10 +216,7 @@ export default function Sidebar({ user }: SidebarProps) {
         {/* Rodapé Premium Ultra-Refinado */}
         <div className="pt-2">
           <div className="group relative overflow-hidden rounded-2xl bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl transition-all duration-300 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.2)]">
-            {/* Spotlight de Luz Sutil no Canto do Card */}
             <div className="absolute -top-12 -left-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
-
-            {/* Highlight de Borda Superior */}
             <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent shadow-[0_0_8px_#818cf8]" />
 
             <div className="p-3.5 space-y-3 relative z-10">
@@ -210,7 +226,6 @@ export default function Sidebar({ user }: SidebarProps) {
                 </div>
               ) : (
                 <>
-                  {/* Topo: Patente & Streak */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-transform duration-300">
@@ -226,7 +241,6 @@ export default function Sidebar({ user }: SidebarProps) {
                       </div>
                     </div>
 
-                    {/* Streak Pill */}
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold font-mono shadow-[0_0_12px_rgba(244,63,94,0.18)]">
                       <Flame
                         size={13}
@@ -236,7 +250,6 @@ export default function Sidebar({ user }: SidebarProps) {
                     </div>
                   </div>
 
-                  {/* XP & Barra de Progresso */}
                   <div className="space-y-1.5 pt-0.5">
                     <div className="flex items-center justify-between text-[10px] font-mono">
                       <span className="flex items-center gap-1.5 font-bold text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]">
@@ -258,7 +271,6 @@ export default function Sidebar({ user }: SidebarProps) {
                       </span>
                     </div>
 
-                    {/* Track Tridimensional da Barra */}
                     <div className="h-2 w-full bg-slate-950/90 rounded-full border border-white/10 p-px shadow-inner overflow-hidden">
                       <div
                         className="h-full bg-linear-to-r from-amber-400 via-indigo-500 to-indigo-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(129,140,248,0.8)] relative"
@@ -279,10 +291,8 @@ export default function Sidebar({ user }: SidebarProps) {
                 </>
               )}
 
-              {/* Divisor Neon Suave */}
               <div className="h-px w-full bg-linear-to-r from-transparent via-slate-800 to-transparent my-1" />
 
-              {/* Perfil Integrado */}
               <div className="flex items-center justify-between pt-0.5">
                 <div className="flex items-center gap-2.5 min-w-0">
                   {user?.image ? (
