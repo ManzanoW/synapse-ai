@@ -464,90 +464,82 @@ export default function QuestoesPage() {
   const { stats: gamificationStats, refreshStats } = useGamification();
 
   const handleAnswerQuestion = async (index: number) => {
-    const nextChecked = { ...checkedQuestions, [index]: true };
-    setCheckedQuestions(nextChecked);
+  const nextChecked = { ...checkedQuestions, [index]: true };
+  setCheckedQuestions(nextChecked);
 
-    // Quando TODAS as questões do caderno forem respondidas:
-    if (Object.keys(nextChecked).length === totalQuestions) {
-      const finalCorrect = Object.keys(nextChecked).filter(
-        (idxStr) =>
-          selectedAnswers[Number(idxStr)] ===
-          questions[Number(idxStr)]?.gabaritoCorreto,
-      ).length;
-      const finalAcc = Math.round((finalCorrect / totalQuestions) * 100);
+  // Quando TODAS as questões do caderno forem respondidas:
+  if (Object.keys(nextChecked).length === totalQuestions) {
+    const finalCorrect = Object.keys(nextChecked).filter(
+      (idxStr) =>
+        selectedAnswers[Number(idxStr)] ===
+        questions[Number(idxStr)]?.gabaritoCorreto,
+    ).length;
+    const finalAcc = Math.round((finalCorrect / totalQuestions) * 100);
 
-      // 1. Atualiza SM-2
-      syncQuizWithSM2(finalAcc);
+    // 1. Atualiza SM-2
+    syncQuizWithSM2(finalAcc);
 
-      // 2. ⚡ Re-notifica a API do quiz/save enviando os resultados para creditar o XP
-      try {
-        const subjectName = materia?.trim() || "Geral";
+    // 2. Re-notifica a API do quiz/save enviando os resultados para creditar o XP
+    try {
+      const subjectName = materia?.trim() || "Geral";
 
-        const response = await fetch("/api/questions/save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            quizId: currentQuizId,
-            banca: banca || "Geral",
-            subject: subjectName,
-            topicId: selectedTopicId || null,
-            difficulty: dificuldade || "Média",
-            questions: questions.map((q, idx) => ({
-              ...q,
-              userAnswer: selectedAnswers[idx],
-              isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
-            })),
-          }),
-        });
+      const response = await fetch("/api/questions/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quizId: currentQuizId,
+          banca: banca || "Geral",
+          subject: subjectName,
+          topicId: selectedTopicId || null,
+          difficulty: dificuldade || "Média",
+          questions: questions.map((q, idx) => ({
+            ...q,
+            userAnswer: selectedAnswers[idx],
+            isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
+          })),
+        }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (data.earnedXp !== undefined) {
-          setLastEarnedXp(data.earnedXp);
-        }
-
-        // 🟢 VERIFICA LEVEL UP COMPARANDO O NÍVEL ANTERIOR COM O NÍVEL NOVO DA API
-        if (data.levelInfo?.level) {
-          const newLevel = data.levelInfo.level;
-          // 🟢 Captura o nível anterior acessando a propriedade interna gamification
-          const previousLevel = gamificationStats?.gamification?.level ?? 1;
-
-          if (data.levelInfo?.level) {
-            const newLevel = data.levelInfo.level;
-
-            // Se o novo nível for maior que o nível salvo anteriormente:
-            if (newLevel > previousLevel) {
-              setLevelUpData({
-                leveledUp: true,
-                newLevel: newLevel,
-              });
-
-              // 💾 Salva no localStorage para notificar a Dashboard
-              localStorage.setItem(
-                "pending_levelup_notification",
-                JSON.stringify({
-                  level: newLevel,
-                  title: data.levelInfo.title || "Iniciante Consciente",
-                  timestamp: Date.now(),
-                }),
-              );
-            }
-          }
-        }
-
-        if (refreshStats) {
-          await refreshStats();
-        }
-      } catch (error) {
-        console.error("Erro ao creditar XP das questões:", error);
-      } finally {
-        // Apenas abre o modal APÓS processar a resposta da API
-        setShowCompletionModal(true);
+      if (data.earnedXp !== undefined) {
+        setLastEarnedXp(data.earnedXp);
       }
 
-      setTimeout(() => setShowCompletionModal(true), 600);
+      // 🟢 VERIFICA LEVEL UP (DUPLICAÇÃO REMOVIDA)
+      const newLevel = data.levelInfo?.level;
+      const previousLevel = gamificationStats?.gamification?.level ?? 1;
+
+      if (newLevel && newLevel > previousLevel) {
+        setLevelUpData({
+          leveledUp: true,
+          newLevel: newLevel,
+        });
+
+        // 💾 Salva no localStorage para notificar a Dashboard
+        localStorage.setItem(
+          "pending_levelup_notification",
+          JSON.stringify({
+            level: newLevel,
+            title: data.levelInfo.title || "Iniciante Consciente",
+            timestamp: Date.now(),
+          }),
+        );
+      }
+
+      if (refreshStats) {
+        await refreshStats();
+      }
+    } catch (error) {
+      console.error("Erro ao creditar XP das questões:", error);
+    } finally {
+      // Apenas abre o modal APÓS processar a resposta da API
+      setShowCompletionModal(true);
     }
-  };
+
+    setTimeout(() => setShowCompletionModal(true), 600);
+  }
+};
 
   const handleCreateFlashcard = async (index: number) => {
     const q = questions[index];
