@@ -1,0 +1,272 @@
+"use client";
+
+import React from "react";
+import { Sparkles, Target, BookOpen, FileText, Loader2, X } from "lucide-react";
+
+interface SubjectItem {
+  id: string;
+  name: string;
+  topics?: { id: string; title: string }[];
+}
+
+interface GenerateAIModalProps {
+  isOpen: boolean;
+  isGenerating: boolean;
+  banca: string;
+  materia: string;
+  selectedTopicId: string;
+  qtdQuestoes: string;
+  fonteConteudo: "banca" | "texto" | "pdf";
+  dificuldade: string;
+  textoBase: string;
+  subjects: SubjectItem[];
+  availableTopics: { id: string; title: string }[];
+  onClose: () => void;
+  onBancaChange: (value: string) => void;
+  onMateriaChange: (value: string) => void;
+  onTopicChange: (value: string) => void;
+  onFonteChange: (value: "banca" | "texto" | "pdf") => void;
+  onTextoBaseChange: (value: string) => void;
+  onDificuldadeChange: (value: string) => void;
+  onQtdQuestoesChange: (value: string) => void;
+  onSubmit: (e: React.FormEvent) => void;
+}
+
+export function GenerateAIModal({
+  isOpen,
+  isGenerating,
+  banca,
+  materia,
+  selectedTopicId,
+  qtdQuestoes,
+  fonteConteudo,
+  dificuldade,
+  textoBase,
+  subjects,
+  availableTopics,
+  onClose,
+  onBancaChange,
+  onMateriaChange,
+  onTopicChange,
+  onFonteChange,
+  onTextoBaseChange,
+  onDificuldadeChange,
+  onQtdQuestoesChange,
+  onSubmit,
+}: GenerateAIModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-[#090d16] border border-slate-800 rounded-2xl w-full max-w-xl p-6 space-y-5 shadow-2xl relative max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 scrollbar-none">
+        <button
+          onClick={() => !isGenerating && onClose()}
+          className="absolute top-4 right-4 p-1 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-900 transition-colors"
+          disabled={isGenerating}
+        >
+          <X size={18} />
+        </button>
+
+        <div className="flex items-center gap-3.5 border-b border-slate-900 pb-3.5">
+          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl animate-pulse">
+            <Sparkles size={20} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-200">
+              Gerador Cognitivo por IA
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Configure o escopo e o motor neural para simular sua prova.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                <Target size={12} className="text-indigo-400" /> Banca Alvo
+              </label>
+              <select
+                value={banca}
+                onChange={(e) => onBancaChange(e.target.value)}
+                disabled={isGenerating}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 cursor-pointer"
+              >
+                <option value="Cebraspe">Cebraspe</option>
+                <option value="FGV">FGV</option>
+                <option value="FCC">FCC</option>
+                <option value="IBAM">IBAM</option>
+                <option value="Vunesp">Vunesp</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                <BookOpen size={12} className="text-indigo-400" /> Matéria
+                Principal
+              </label>
+              <select
+                value={materia}
+                onChange={(e) => onMateriaChange(e.target.value)}
+                disabled={isGenerating}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 cursor-pointer"
+              >
+                {subjects.length > 0 ? (
+                  subjects.map((sub) => (
+                    <option key={`sub-${sub.id}`} value={sub.name}>
+                      {sub.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value={materia}>{materia || "Carregando..."}</option>
+                )}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
+            <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+              <FileText size={12} className="text-indigo-400" /> Tópico
+              Específico (Opcional)
+            </label>
+            <select
+              value={selectedTopicId}
+              onChange={(e) => onTopicChange(e.target.value)}
+              disabled={isGenerating || availableTopics.length === 0}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 cursor-pointer disabled:opacity-50"
+            >
+              <option value="">
+                {availableTopics.length === 0
+                  ? "Nenhum tópico encontrado nesta matéria"
+                  : "Todos os Tópicos da Matéria"}
+              </option>
+              {availableTopics.map((top, index) => {
+                const topicKey = top.id
+                  ? `top-${top.id}`
+                  : `top-idx-${index}-${top.title}`;
+                return (
+                  <option key={topicKey} value={top.id || top.title}>
+                    {top.title}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
+            <label className="text-slate-400 font-semibold uppercase tracking-wider block">
+              Origem do Conteúdo da IA
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 bg-slate-950 border border-slate-800 p-1 rounded-xl h-9.5 items-center">
+              <button
+                type="button"
+                disabled={isGenerating}
+                onClick={() => onFonteChange("banca")}
+                className={`py-1 rounded-lg font-bold text-[10px] transition-all text-center ${fonteConteudo === "banca" ? "bg-indigo-600 text-slate-100" : "text-slate-400"}`}
+              >
+                Histórico da Banca
+              </button>
+              <button
+                type="button"
+                disabled={isGenerating}
+                onClick={() => onFonteChange("texto")}
+                className={`py-1 rounded-lg font-bold text-[10px] transition-all text-center ${fonteConteudo === "texto" ? "bg-indigo-600 text-slate-100" : "text-slate-400"}`}
+              >
+                Colar Texto/Lei
+              </button>
+              <button
+                type="button"
+                disabled={isGenerating}
+                onClick={() => onFonteChange("pdf")}
+                className={`py-1 rounded-lg font-bold text-[10px] transition-all text-center ${fonteConteudo === "pdf" ? "bg-indigo-600 text-slate-100" : "text-slate-400"}`}
+              >
+                Upload de PDF
+              </button>
+            </div>
+          </div>
+
+          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+            {fonteConteudo === "banca" && (
+              <p className="text-[11px] text-slate-500 bg-slate-950/40 border border-slate-900 rounded-xl p-3">
+                💡 A IA irá mapear o banco de dados público de concursos para
+                prever e projetar tendências.
+              </p>
+            )}
+            {fonteConteudo === "texto" && (
+              <textarea
+                rows={3}
+                value={textoBase}
+                onChange={(e) => onTextoBaseChange(e.target.value)}
+                disabled={isGenerating}
+                placeholder="Cole aqui o artigo da lei..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 resize-none"
+              />
+            )}
+            {fonteConteudo === "pdf" && (
+              <div className="border border-dashed border-slate-800 bg-slate-950/30 rounded-xl p-5 text-center cursor-pointer text-slate-300 font-semibold text-[11px]">
+                Arraste seu PDF ou clique para buscar
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
+            <label className="text-slate-400 font-semibold uppercase tracking-wider block">
+              Nível de Dificuldade
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {["Fácil", "Média", "Difícil", "Aleatória"].map((nivel) => (
+                <button
+                  key={`diff-${nivel}`}
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={() => onDificuldadeChange(nivel)}
+                  className={`py-2 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all active:scale-[0.98] ${dificuldade === nivel ? "bg-indigo-600/10 border-indigo-500 text-indigo-400" : "bg-slate-950 border-slate-800 text-slate-400"}`}
+                >
+                  {nivel}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
+            <label className="text-slate-400 font-semibold uppercase tracking-wider block">
+              Volume do Simulado
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {["5", "10", "15", "20"].map((num) => (
+                <button
+                  key={`qtd-${num}`}
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={() => onQtdQuestoesChange(num)}
+                  className={`py-2 rounded-xl border font-bold transition-all active:scale-[0.98] ${qtdQuestoes === num ? "bg-indigo-600/20 border-indigo-500 text-indigo-400" : "bg-slate-950 border-slate-800 text-slate-400"}`}
+                >
+                  {num} Q
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isGenerating}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-lg shadow-indigo-950/40"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Sincronizando sinapses...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={14} />
+                <span>Gerar Simulado Inédito</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
