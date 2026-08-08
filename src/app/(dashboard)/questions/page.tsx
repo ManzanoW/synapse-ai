@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
@@ -126,6 +126,7 @@ export default function QuestoesPage() {
   const [createdFlashcards, setCreatedFlashcards] = useState<
     Record<number, boolean>
   >({});
+  const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
 
   // Cronômetro e conclusão
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -304,86 +305,105 @@ export default function QuestoesPage() {
     setPendingTab(null);
   };
 
-  const syncQuizWithSM2 = async (finalAccuracy: number) => {
-    if (!selectedTopicId) return;
-    setIsSyncingSM2(true);
-    let grade = 1;
-    if (finalAccuracy >= 95) grade = 5;
-    else if (finalAccuracy >= 85) grade = 4;
-    else if (finalAccuracy >= 70) grade = 3;
-    else if (finalAccuracy >= 50) grade = 2;
-
-    try {
-      await fetch("/api/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topicId: selectedTopicId,
-          grade,
-          source: "QUIZ",
-        }),
-      });
-    } catch (err) {
-      console.error("Erro ao sincronizar SM-2:", err);
-    } finally {
-      setIsSyncingSM2(false);
-    }
-  };
-
-  const handleAnswerQuestion = async (index: number) => {
-    const nextChecked = { ...checkedQuestions, [index]: true };
-    setCheckedQuestions(nextChecked);
-
-    if (Object.keys(nextChecked).length === totalQuestions) {
-      setIsTimerRunning(false);
-      const finalCorrect = Object.keys(nextChecked).filter(
-        (idxStr) =>
-          selectedAnswers[Number(idxStr)] ===
-          questions[Number(idxStr)]?.gabaritoCorreto,
-      ).length;
-      const finalAcc = Math.round((finalCorrect / totalQuestions) * 100);
-
-      await syncQuizWithSM2(finalAcc);
+  const syncQuizWithSM2 = useCallback(
+    async (finalAccuracy: number) => {
+      if (!selectedTopicId) return;
+      setIsSyncingSM2(true);
+      let grade = 1;
+      if (finalAccuracy >= 95) grade = 5;
+      else if (finalAccuracy >= 85) grade = 4;
+      else if (finalAccuracy >= 70) grade = 3;
+      else if (finalAccuracy >= 50) grade = 2;
 
       try {
-        const response = await fetch("/api/questions/save", {
+        await fetch("/api/review", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            quizId: currentQuizId,
-            banca: banca || "Geral",
-            subject: materia?.trim() || "Geral",
-            topicId: selectedTopicId || null,
-            difficulty: dificuldade || "Média",
-            questions: questions.map((q, idx) => ({
-              ...q,
-              userAnswer: selectedAnswers[idx],
-              isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
-            })),
+            topicId: selectedTopicId,
+            grade,
+            source: "QUIZ",
           }),
         });
-
-        const data = await response.json();
-        if (data.earnedXp !== undefined) setLastEarnedXp(data.earnedXp);
-
-        const newLevel = data.levelInfo?.level;
-        const previousLevel = gamificationStats?.gamification?.level ?? 1;
-
-        if (newLevel && newLevel > previousLevel) {
-          setLevelUpData({
-            leveledUp: true,
-            newLevel,
-            title: data.levelInfo?.title || "Iniciante Consciente",
-          });
-        }
-        if (refreshStats) await refreshStats();
-      } catch (error) {
-        console.error("Erro ao creditar XP:", error);
+      } catch (err) {
+        console.error("Erro ao sincronizar SM-2:", err);
       } finally {
-        setShowCompletionModal(true);
+        setIsSyncingSM2(false);
       }
-    }
-  };
+    },
+    [selectedTopicId],
+  );
+
+  const handleAnswerQuestion = useCallback(
+    async (index: number) => {
+      const nextChecked = { ...checkedQuestions, [index]: true };
+      setCheckedQuestions(nextChecked);
+
+      if (Object.keys(nextChecked).length === totalQuestions) {
+        setIsTimerRunning(false);
+        const finalCorrect = Object.keys(nextChecked).filter(
+          (idxStr) =>
+            selectedAnswers[Number(idxStr)] ===
+            questions[Number(idxStr)]?.gabaritoCorreto,
+        ).length;
+        const finalAcc = Math.round((finalCorrect / totalQuestions) * 100);
+
+        await syncQuizWithSM2(finalAcc);
+
+        try {
+          const response = await fetch("/api/questions/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              quizId: currentQuizId,
+              banca: banca || "Geral",
+              subject: materia?.trim() || "Geral",
+              topicId: selectedTopicId || null,
+              difficulty: dificuldade || "Média",
+              questions: questions.map((q, idx) => ({
+                ...q,
+                userAnswer: selectedAnswers[idx],
+                isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
+              })),
+            }),
+          });
+
+          const data = await response.json();
+          if (data.earnedXp !== undefined) setLastEarnedXp(data.earnedXp);
+
+          const newLevel = data.levelInfo?.level;
+          const previousLevel = gamificationStats?.gamification?.level ?? 1;
+
+          if (newLevel && newLevel > previousLevel) {
+            setLevelUpData({
+              leveledUp: true,
+              newLevel,
+              title: data.levelInfo?.title || "Iniciante Consciente",
+            });
+          }
+          if (refreshStats) await refreshStats();
+        } catch (error) {
+          console.error("Erro ao creditar XP:", error);
+        } finally {
+          setShowCompletionModal(true);
+        }
+      }
+    },
+    [
+      checkedQuestions,
+      totalQuestions,
+      selectedAnswers,
+      questions,
+      syncQuizWithSM2,
+      currentQuizId,
+      banca,
+      materia,
+      selectedTopicId,
+      dificuldade,
+      gamificationStats,
+      refreshStats,
+    ],
+  );
 
   const handleCreateFlashcard = async (index: number) => {
     const q = questions[index];
@@ -437,6 +457,7 @@ export default function QuestoesPage() {
     setCreatedFlashcards({});
     setShowCompletionModal(false);
     setTimerSeconds(0);
+    setFocusedQuestionIndex(0);
     setIsTimerRunning(true);
 
     try {
@@ -481,10 +502,117 @@ export default function QuestoesPage() {
     }
   };
 
+  // Atalhos de teclado
+  // Atalhos de teclado
+  useEffect(() => {
+    if (
+      activeTab !== "create" ||
+      questions.length === 0 ||
+      isAIModalOpen ||
+      showCompletionModal
+    ) {
+      return;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      const currentQuestion = questions[focusedQuestionIndex];
+      if (!currentQuestion) return;
+
+      // TRAVA: Se a questão focada já foi respondida, bloqueia a mudança de opção
+      const isAlreadyAnswered = Boolean(checkedQuestions[focusedQuestionIndex]);
+
+      if (["1", "2", "3", "4", "5"].includes(e.key)) {
+        if (isAlreadyAnswered) return; // Bloqueia alteração pós-resposta
+
+        const num = parseInt(e.key, 10);
+        if (currentQuestion.formato === "multipla") {
+          const altIndex = num - 1;
+          if (currentQuestion.alternativas?.[altIndex]) {
+            const selectedAltId = currentQuestion.alternativas[altIndex].id;
+            setSelectedAnswers((prev) => ({
+              ...prev,
+              [focusedQuestionIndex]: selectedAltId,
+            }));
+          }
+        } else {
+          if (num === 1) {
+            setSelectedAnswers((prev) => ({
+              ...prev,
+              [focusedQuestionIndex]: "Certo",
+            }));
+          } else if (num === 2) {
+            setSelectedAnswers((prev) => ({
+              ...prev,
+              [focusedQuestionIndex]: "Errado",
+            }));
+          }
+        }
+      }
+
+      if (e.key === "Enter") {
+        const hasSelectedAnswer = Boolean(
+          selectedAnswers[focusedQuestionIndex],
+        );
+
+        if (!isAlreadyAnswered && hasSelectedAnswer) {
+          e.preventDefault();
+          handleAnswerQuestion(focusedQuestionIndex);
+        }
+      }
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedQuestionIndex((prev) => {
+          const next = Math.min(prev + 1, questions.length - 1);
+          document
+            .getElementById(`question-card-${next}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+          return next;
+        });
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedQuestionIndex((prev) => {
+          const next = Math.max(prev - 1, 0);
+          document
+            .getElementById(`question-card-${next}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    activeTab,
+    questions,
+    focusedQuestionIndex,
+    selectedAnswers,
+    checkedQuestions,
+    isAIModalOpen,
+    showCompletionModal,
+    handleAnswerQuestion,
+  ]);
+
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased relative">
       {questions.length > 0 && activeTab === "create" && (
-        <FloatingTimer seconds={timerSeconds} isRunning={isTimerRunning} />
+        <FloatingTimer
+          seconds={timerSeconds}
+          isRunning={isTimerRunning}
+          onToggleTimer={() => setIsTimerRunning((prev) => !prev)}
+        />
       )}
 
       <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -493,7 +621,8 @@ export default function QuestoesPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={openSidebar}
-              className="p-2 bg-[#090d16] border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 md:hidden transition-colors"
+              type="button"
+              className="p-2 bg-[#090d16] border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 md:hidden transition-colors cursor-pointer"
             >
               <Menu size={20} />
             </button>
@@ -512,7 +641,8 @@ export default function QuestoesPage() {
           {questions.length > 0 && activeTab === "create" && (
             <button
               onClick={() => setIsAIModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 text-xs px-3 py-2 rounded-xl transition-all font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-950/40"
+              type="button"
+              className="bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 text-xs px-3 py-2 rounded-xl transition-all font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-950/40 cursor-pointer"
             >
               <Sparkles size={14} />
               Novo Simulado com IA
@@ -556,7 +686,8 @@ export default function QuestoesPage() {
         <div className="flex border-b border-slate-900 gap-2">
           <button
             onClick={() => handleTabChange("create")}
-            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 ${
+            type="button"
+            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
               activeTab === "create"
                 ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
                 : "border-transparent text-slate-500 hover:text-slate-300"
@@ -579,7 +710,8 @@ export default function QuestoesPage() {
               handleTabChange("history");
               fetchQuizHistory();
             }}
-            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 ${
+            type="button"
+            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
               activeTab === "history"
                 ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
                 : "border-transparent text-slate-500 hover:text-slate-300"
@@ -726,7 +858,8 @@ export default function QuestoesPage() {
                       setCurrentQuizId(null);
                       setIsTimerRunning(false);
                     }}
-                    className="text-xs text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/40 bg-slate-950 px-3 py-1.5 rounded-xl transition-all"
+                    type="button"
+                    className="text-xs text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/40 bg-slate-950 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
                   >
                     Encerrar Caderno
                   </button>
@@ -738,6 +871,7 @@ export default function QuestoesPage() {
                       key={`questao-${index}`}
                       questao={questao}
                       index={index}
+                      isFocused={index === focusedQuestionIndex}
                       respondida={Boolean(checkedQuestions[index])}
                       alternativaSelecionada={selectedAnswers[index]}
                       isSavedError={Boolean(savedErrors[index])}
@@ -791,6 +925,7 @@ export default function QuestoesPage() {
                 handleTabChange("create");
                 setLoadingQuizId(null);
                 setTimerSeconds(0);
+                setFocusedQuestionIndex(0);
                 setIsTimerRunning(true);
               }, 200);
             }}
@@ -860,6 +995,7 @@ export default function QuestoesPage() {
             setSelectedAnswers({});
             setCheckedQuestions({});
             setTimerSeconds(0);
+            setFocusedQuestionIndex(0);
             setIsTimerRunning(true);
             setShowCompletionModal(false);
           }}
@@ -881,13 +1017,15 @@ export default function QuestoesPage() {
             <div className="flex items-center gap-3 justify-end">
               <button
                 onClick={() => setPendingTab(null)}
-                className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl"
+                type="button"
+                className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl cursor-pointer"
               >
                 Continuar respondendo
               </button>
               <button
                 onClick={confirmNavigation}
-                className="px-4 py-2 bg-rose-600/20 text-rose-300 text-xs font-semibold rounded-xl"
+                type="button"
+                className="px-4 py-2 bg-rose-600/20 text-rose-300 text-xs font-semibold rounded-xl cursor-pointer"
               >
                 Sim, sair e descartar
               </button>
