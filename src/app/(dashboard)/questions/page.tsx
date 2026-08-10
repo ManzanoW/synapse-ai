@@ -69,7 +69,7 @@ function randomizeQuizSession(questionsList: QuestaoIA[]): QuestaoIA[] {
       return q;
     }
     const alternativaCorretaObj = q.alternativas.find(
-      (alt) => alt.id === q.gabaritoCorreto,
+      (alt) => alt.id === q.gabaritoCorreto
     );
     const textoCorreto = alternativaCorretaObj
       ? alternativaCorretaObj.texto
@@ -102,11 +102,11 @@ export default function QuestoesPage() {
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
-    null,
+    null
   );
   const [activeTab, setActiveTab] = useState<"create" | "history">("create");
   const [pendingTab, setPendingTab] = useState<"create" | "history" | null>(
-    null,
+    null
   );
 
   // Estados do caderno / questões
@@ -140,7 +140,7 @@ export default function QuestoesPage() {
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [qtdQuestoes, setQtdQuestoes] = useState("5");
   const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
-    "banca",
+    "banca"
   );
   const [dificuldade, setDificuldade] = useState("Média");
   const [textoBase, setTextoBase] = useState("");
@@ -156,7 +156,7 @@ export default function QuestoesPage() {
   // Sessão pausada
   const STORAGE_KEY = "deepwork_quiz_session_v1";
   const [pausedSession, setPausedSession] = useState<PausedSession | null>(
-    null,
+    null
   );
   const [isMounted, setIsMounted] = useState(false);
 
@@ -178,7 +178,7 @@ export default function QuestoesPage() {
           level: levelUpData.newLevel,
           title: levelUpData.title || "Iniciante Consciente",
           timestamp: Date.now(),
-        }),
+        })
       );
     }
   }, [levelUpData]);
@@ -210,6 +210,7 @@ export default function QuestoesPage() {
     }
   }, [searchParams]);
 
+  // Salva estado da sessão + tempo atual no localStorage
   useEffect(() => {
     if (!isMounted) return;
     try {
@@ -221,6 +222,7 @@ export default function QuestoesPage() {
           selectedAnswers,
           checkedQuestions,
           createdFlashcards,
+          timerSeconds,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(currentState));
       }
@@ -234,9 +236,11 @@ export default function QuestoesPage() {
     selectedAnswers,
     checkedQuestions,
     createdFlashcards,
+    timerSeconds,
     isMounted,
   ]);
 
+  // Timer do Cronômetro
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTimerRunning && questions.length > 0) {
@@ -264,7 +268,7 @@ export default function QuestoesPage() {
   const currentSubjectObj = subjects.find(
     (s) =>
       s.id === materia ||
-      s.name.trim().toLowerCase() === materia.trim().toLowerCase(),
+      s.name.trim().toLowerCase() === materia.trim().toLowerCase()
   );
   const availableTopics = currentSubjectObj?.topics || [];
 
@@ -273,7 +277,7 @@ export default function QuestoesPage() {
   const correctCount = Object.keys(checkedQuestions).filter(
     (idxStr) =>
       selectedAnswers[Number(idxStr)] ===
-      questions[Number(idxStr)]?.gabaritoCorreto,
+      questions[Number(idxStr)]?.gabaritoCorreto
   ).length;
   const percentageAcc =
     answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
@@ -331,7 +335,7 @@ export default function QuestoesPage() {
         setIsSyncingSM2(false);
       }
     },
-    [selectedTopicId],
+    [selectedTopicId]
   );
 
   const handleAnswerQuestion = useCallback(
@@ -344,7 +348,7 @@ export default function QuestoesPage() {
         const finalCorrect = Object.keys(nextChecked).filter(
           (idxStr) =>
             selectedAnswers[Number(idxStr)] ===
-            questions[Number(idxStr)]?.gabaritoCorreto,
+            questions[Number(idxStr)]?.gabaritoCorreto
         ).length;
         const finalAcc = Math.round((finalCorrect / totalQuestions) * 100);
 
@@ -402,7 +406,7 @@ export default function QuestoesPage() {
       dificuldade,
       gamificationStats,
       refreshStats,
-    ],
+    ]
   );
 
   const handleCreateFlashcard = async (index: number) => {
@@ -503,7 +507,6 @@ export default function QuestoesPage() {
   };
 
   // Atalhos de teclado
-  // Atalhos de teclado
   useEffect(() => {
     if (
       activeTab !== "create" ||
@@ -527,11 +530,10 @@ export default function QuestoesPage() {
       const currentQuestion = questions[focusedQuestionIndex];
       if (!currentQuestion) return;
 
-      // TRAVA: Se a questão focada já foi respondida, bloqueia a mudança de opção
       const isAlreadyAnswered = Boolean(checkedQuestions[focusedQuestionIndex]);
 
       if (["1", "2", "3", "4", "5"].includes(e.key)) {
-        if (isAlreadyAnswered) return; // Bloqueia alteração pós-resposta
+        if (isAlreadyAnswered) return;
 
         const num = parseInt(e.key, 10);
         if (currentQuestion.formato === "multipla") {
@@ -560,7 +562,7 @@ export default function QuestoesPage() {
 
       if (e.key === "Enter") {
         const hasSelectedAnswer = Boolean(
-          selectedAnswers[focusedQuestionIndex],
+          selectedAnswers[focusedQuestionIndex]
         );
 
         if (!isAlreadyAnswered && hasSelectedAnswer) {
@@ -738,11 +740,12 @@ export default function QuestoesPage() {
                         setQuestions(pausedSession.questions || []);
                         setSelectedAnswers(pausedSession.selectedAnswers || {});
                         setCheckedQuestions(
-                          pausedSession.checkedQuestions || {},
+                          pausedSession.checkedQuestions || {}
                         );
                         setCreatedFlashcards(
-                          pausedSession.createdFlashcards || {},
+                          pausedSession.createdFlashcards || {}
                         );
+                        setTimerSeconds(pausedSession.timerSeconds || 0);
                         setIsTimerRunning(true);
                       }}
                       onDiscard={(e) => {
@@ -819,7 +822,7 @@ export default function QuestoesPage() {
                           Meus Simulados Salvos
                         </h3>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          Acesse cadernos criados anteriormente e treine
+                          Acessee cadernos criados anteriormente e treine
                           novamente de forma gratuita.
                         </p>
                       </div>
