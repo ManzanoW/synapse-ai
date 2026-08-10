@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Search,
   ChevronDown,
@@ -10,6 +10,9 @@ import {
   FileText,
   Loader2,
   X,
+  AlertTriangle,
+  RotateCcw,
+  Bookmark,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
 
@@ -52,6 +55,28 @@ export function QuizHistoryTab({
   onDeleteSimulado,
   onCreateNewQuiz,
 }: QuizHistoryTabProps) {
+  const [viewMode, setViewMode] = useState<"all" | "errors">("all");
+
+  // Filtra todas as questões erradas salvas no histórico
+  const getErrorQuestions = (): (QuestaoIA & { banca: string; subject: string })[] => {
+    const errorQuestions: (QuestaoIA & { banca: string; subject: string })[] = [];
+    history.forEach((item) => {
+      const qArray = Array.isArray(item.questions) ? item.questions : [];
+      qArray.forEach((q: any) => {
+        if (q.userAnswer && !q.isCorrect) {
+          errorQuestions.push({
+            ...q,
+            banca: item.banca || "Geral",
+            subject: item.subject || "Conhecimentos Gerais",
+          });
+        }
+      });
+    });
+    return errorQuestions;
+  };
+
+  const errorList = getErrorQuestions();
+
   const filteredHistory = history
     .filter((sim) => {
       const term = searchTerm.toLowerCase();
@@ -63,9 +88,7 @@ export function QuizHistoryTab({
     })
     .sort((a, b) => {
       if (sortBy === "oldest") {
-        return (
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
       if (sortBy === "subject") {
         return (a.subject || "").localeCompare(b.subject || "");
@@ -75,28 +98,50 @@ export function QuizHistoryTab({
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {/* SELETOR DE ABA & PESQUISA */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2.5">
               <h2 className="text-base font-bold text-slate-100 tracking-tight">
-                Histórico de Exercícios
+                Histórico & Caderno de Erros
               </h2>
-              {!isLoading && (
-                <span className="text-[11px] font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full">
-                  {history.length}{" "}
-                  {history.length === 1 ? "caderno" : "cadernos"}
-                </span>
-              )}
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Refaça seus simulados salvos de forma 100% gratuita sem consumir
-              sua cota diária de IA.
+              Refaça simulados completos ou crie cadernos de recuperação focados nos seus pontos fracos.
             </p>
+          </div>
+
+          {/* TOGGLE: TODOS OS SIMULADOS X APENAS ERROS */}
+          <div className="flex items-center gap-1 bg-[#090d16] p-1 rounded-xl border border-slate-800/80">
+            <button
+              onClick={() => setViewMode("all")}
+              type="button"
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                viewMode === "all"
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Layers size={13} />
+              <span>Simulados ({history.length})</span>
+            </button>
+            <button
+              onClick={() => setViewMode("errors")}
+              type="button"
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                viewMode === "errors"
+                  ? "bg-rose-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <AlertTriangle size={13} />
+              <span>Erros ({errorList.length})</span>
+            </button>
           </div>
         </div>
 
-        {!isLoading && history.length > 0 && (
+        {!isLoading && history.length > 0 && viewMode === "all" && (
           <div className="flex flex-col sm:flex-row items-center gap-2.5">
             <div className="relative flex-1 w-full">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500">
@@ -130,44 +175,90 @@ export function QuizHistoryTab({
         )}
       </div>
 
+      {/* TELA DE CARREGAMENTO */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3 text-xs">
           <Loader2 size={24} className="animate-spin text-indigo-400" />
           <span>Buscando registros no banco de dados...</span>
         </div>
+      ) : viewMode === "errors" ? (
+        /* VISÃO: CADERNO DE ERROS DEDICADO */
+        <div className="space-y-4">
+          {errorList.length === 0 ? (
+            <div className="bg-[#090d16]/60 border border-slate-800/80 rounded-2xl p-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                <Bookmark size={22} />
+              </div>
+              <h3 className="text-sm font-bold text-slate-200">
+                Nenhum erro registrado!
+              </h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                À medida que você responder simulados e errar questões, elas serão salvas automaticamente neste caderno de treino.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-[#090d16] border border-rose-500/30 rounded-2xl p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                    <AlertTriangle size={16} className="text-rose-400" />
+                    Simulado de Recuperação Intensiva
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Você possui {errorList.length} questão(ões) pendente(s) de revisão.
+                  </p>
+                </div>
+                <button
+                  onClick={() => onLoadSavedQuiz(errorList, "Recuperação", "errors_session")}
+                  type="button"
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-950/50 transition-all flex items-center gap-2 active:scale-[0.98] cursor-pointer"
+                >
+                  <RotateCcw size={14} />
+                  Refazer Apenas os Erros
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
+                {errorList.map((errQ, idx) => (
+                  <div
+                    key={`err-${idx}`}
+                    className="bg-slate-950/80 border border-slate-800/80 p-3.5 rounded-xl flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 mr-2">
+                        {errQ.banca}
+                      </span>
+                      <span className="text-slate-300 font-medium truncate block sm:inline">
+                        {errQ.enunciado.replace(/\*\*/g, "").slice(0, 90)}...
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       ) : history.length === 0 ? (
+        /* SEM SIMULADOS */
         <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl my-6">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              />
-            </svg>
+            <Layers size={24} />
           </div>
           <h3 className="text-sm font-semibold text-slate-200 mb-1">
             Nenhum simulado salvo ainda
           </h3>
           <p className="text-xs text-slate-400 max-w-sm mb-5">
-            Gere novos cadernos de questões para treinar. Seus simulados
-            concluídos ou salvos aparecerão listados aqui automaticamente.
+            Gere novos cadernos de questões para treinar. Seus simulados concluídos aparecerão listados aqui automaticamente.
           </p>
           <button
             onClick={onCreateNewQuiz}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-98"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-98 cursor-pointer"
           >
             Criar meu primeiro simulado
           </button>
         </div>
       ) : filteredHistory.length === 0 ? (
+        /* SEM RESULTADOS NA BUSCA */
         <div className="text-center py-12 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
           <p className="text-xs text-slate-400">
             Nenhum simulado encontrado para &quot;
@@ -176,13 +267,14 @@ export function QuizHistoryTab({
           </p>
         </div>
       ) : (
+        /* LISTA DE SIMULADOS SALVOS */
         <div className="grid gap-4 sm:grid-cols-2 items-start">
           {filteredHistory.map((item) => {
             const questionsArray = Array.isArray(item.questions)
               ? item.questions
               : [];
             const formattedDate = new Date(item.createdAt).toLocaleDateString(
-              "pt-BR",
+              "pt-BR"
             );
 
             return (
@@ -243,13 +335,13 @@ export function QuizHistoryTab({
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={() => onDeleteSimulado(item.id)}
-                          className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-slate-100 text-[11px] font-bold rounded-lg transition-all"
+                          className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-slate-100 text-[11px] font-bold rounded-lg transition-all cursor-pointer"
                         >
                           Sim
                         </button>
                         <button
                           onClick={() => onConfirmDelete(null)}
-                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded-lg transition-all"
+                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded-lg transition-all cursor-pointer"
                         >
                           Não
                         </button>
@@ -262,7 +354,7 @@ export function QuizHistoryTab({
                           onLoadSavedQuiz(questionsArray, item.banca, item.id)
                         }
                         disabled={loadingQuizId === item.id}
-                        className="flex-1 flex items-center justify-center gap-1.5 text-center py-2.5 bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/35 hover:border-indigo-500/60 text-indigo-200 text-xs font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group/btn"
+                        className="flex-1 flex items-center justify-center gap-1.5 text-center py-2.5 bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/35 hover:border-indigo-500/60 text-indigo-200 text-xs font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group/btn cursor-pointer"
                       >
                         {loadingQuizId === item.id ? (
                           <>
@@ -284,7 +376,7 @@ export function QuizHistoryTab({
 
                       <button
                         onClick={() => onConfirmDelete(item.id)}
-                        className="p-2.5 bg-slate-900/80 hover:bg-rose-950/30 border border-slate-800 hover:border-rose-900/50 text-slate-500 hover:text-rose-400 rounded-xl transition-all shrink-0"
+                        className="p-2.5 bg-slate-900/80 hover:bg-rose-950/30 border border-slate-800 hover:border-rose-900/50 text-slate-500 hover:text-rose-400 rounded-xl transition-all shrink-0 cursor-pointer"
                         title="Excluir simulado"
                       >
                         <X size={15} />
