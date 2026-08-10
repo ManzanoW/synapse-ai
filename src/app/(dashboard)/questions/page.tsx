@@ -264,7 +264,6 @@ export default function QuestoesPage() {
     }
   }, [isAIModalOpen, materia]);
 
-  // Auxiliares derivados
   const currentSubjectObj = subjects.find(
     (s) =>
       s.id === materia ||
