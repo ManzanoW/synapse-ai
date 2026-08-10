@@ -11,6 +11,7 @@ export interface PausedSession {
   selectedAnswers: Record<number, string>;
   checkedQuestions: Record<number, boolean>;
   createdFlashcards: Record<number, boolean>;
+  timerSeconds?: number;
 }
 
 interface ResumeSessionCardProps {
