@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Trophy, Loader2, RotateCcw } from "lucide-react";
+import { Trophy, Loader2, RotateCcw, Clock, Zap, CheckCircle2 } from "lucide-react";
 
 interface CompletionModalProps {
   totalQuestions: number;
@@ -47,12 +47,13 @@ export function CompletionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-300">
       <div
-        className={`bg-[#090d16] border rounded-3xl p-7 max-w-xl w-full shadow-2xl relative text-center space-y-6 animate-in zoom-in-95 duration-200 ${
+        className={`bg-[#090d16] border rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl relative text-center space-y-5 animate-in zoom-in-95 duration-200 ${
           isPerfect
             ? "border-amber-500/40 shadow-[0_0_50px_-10px_rgba(245,158,11,0.25)]"
             : "border-slate-800"
         }`}
       >
+        {/* TROFÉU OU DONUT CHART DE DESEMPENHO */}
         <div className="relative inline-block mx-auto">
           {isPerfect && (
             <div className="absolute inset-0 bg-amber-500/30 rounded-full blur-xl animate-pulse" />
@@ -65,7 +66,7 @@ export function CompletionModal({
             }`}
           >
             <Trophy
-              size={38}
+              size={36}
               className={
                 isPerfect ? "text-amber-400 animate-bounce" : "text-indigo-400"
               }
@@ -73,13 +74,14 @@ export function CompletionModal({
           </div>
         </div>
 
+        {/* HEADER */}
         <div className="space-y-1">
           {isPerfect ? (
             <>
               <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full inline-block">
                 🏆 Desempenho Impecável
               </span>
-              <h3 className="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-r from-amber-200 via-amber-400 to-yellow-500 pt-2">
+              <h3 className="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-r from-amber-200 via-amber-400 to-yellow-500 pt-1">
                 GABARITO PERFEITO!
               </h3>
             </>
@@ -93,6 +95,7 @@ export function CompletionModal({
           </p>
         </div>
 
+        {/* CARDS DE MÉTRICAS */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-950/80 border border-slate-800/80 p-3 rounded-2xl text-center shadow-inner items-stretch">
           <div className="flex flex-col justify-center p-1.5">
             <span className="block text-[9px] text-slate-500 font-semibold uppercase tracking-wider">
@@ -126,8 +129,8 @@ export function CompletionModal({
           </div>
 
           <div className="flex flex-col justify-center p-1.5 bg-slate-900/60 border border-slate-800/80 rounded-xl">
-            <span className="block text-[9px] text-indigo-300 font-semibold uppercase tracking-wider">
-              Tempo Total
+            <span className="block text-[9px] text-indigo-300 font-semibold uppercase tracking-wider flex items-center justify-center gap-1">
+              <Clock size={10} /> Tempo
             </span>
             <span className="text-sm font-bold text-indigo-300 font-mono mt-0.5">
               {formatTimer(timerSeconds)}
@@ -141,33 +144,34 @@ export function CompletionModal({
             className={`col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
               isPerfect
                 ? "bg-amber-500/10 border border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)]"
-                : ""
+                : "bg-slate-900/40 border border-slate-800/60"
             }`}
           >
-            <span className="block text-[9px] text-amber-400 font-bold uppercase tracking-wider">
-              XP Ganho
+            <span className="block text-[9px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-0.5">
+              <Zap size={10} /> XP Ganho
             </span>
             <span className="text-sm font-black text-amber-400 font-mono flex items-center justify-center gap-1 mt-0.5">
-              <span className="text-orange-400">⚡</span> +{lastEarnedXp}
+              +{lastEarnedXp}
             </span>
 
             {isPerfect && (
-              <span className="mt-1 bg-linear-to-r from-amber-500 via-amber-400 to-yellow-400 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-amber-200 tracking-wider whitespace-nowrap">
+              <span className="mt-1 bg-linear-to-r from-amber-500 via-amber-400 to-yellow-400 text-slate-950 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border border-amber-200 tracking-wider whitespace-nowrap">
                 🔥 +25%
               </span>
             )}
           </div>
         </div>
 
+        {/* BANNER DE LEVEL UP */}
         {levelUpData?.leveledUp && (
-          <div className="relative overflow-hidden bg-linear-to-r from-purple-900/50 via-indigo-900/50 to-purple-900/50 border border-purple-500/50 p-4 rounded-2xl shadow-[0_0_25px_rgba(168,85,247,0.3)] animate-in zoom-in-95 duration-300">
+          <div className="relative overflow-hidden bg-linear-to-r from-purple-900/50 via-indigo-900/50 to-purple-900/50 border border-purple-500/50 p-3.5 rounded-2xl shadow-[0_0_25px_rgba(168,85,247,0.3)] animate-in zoom-in-95 duration-300">
             <div className="flex items-center justify-center gap-3">
               <span className="text-2xl animate-bounce">🎉</span>
               <div className="text-left">
                 <span className="text-[10px] font-black uppercase tracking-widest text-purple-300 block">
                   LEVEL UP ALCANÇADO!
                 </span>
-                <h4 className="text-base font-black text-white tracking-tight">
+                <h4 className="text-sm font-black text-white tracking-tight">
                   Você subiu para o{" "}
                   <span className="text-purple-400">
                     Nível {levelUpData.newLevel}
@@ -179,6 +183,7 @@ export function CompletionModal({
           </div>
         )}
 
+        {/* DIAGNÓSTICO COGNITIVO */}
         <p
           className={`text-xs p-3.5 rounded-2xl leading-relaxed text-left border ${
             isPerfect
@@ -199,6 +204,7 @@ export function CompletionModal({
                 : "Taxa de retenção abaixo do ideal. Recomendamos revisar a teoria base e praticar novo simulado focado."}
         </p>
 
+        {/* SINCRONIZAÇÃO SM-2 */}
         <div className="flex items-center justify-between text-[11px] font-mono bg-slate-950 border border-slate-800/80 px-4 py-2.5 rounded-xl text-slate-400 shadow-inner">
           <span className="flex items-center gap-2">
             {isSyncingSM2 ? (
@@ -222,22 +228,26 @@ export function CompletionModal({
           </span>
         </div>
 
-        <div className="flex items-center gap-3 pt-2">
+        {/* BOTOES DE AÇÃO */}
+        <div className="flex items-center gap-3 pt-1">
           <button
             onClick={onRestart}
-            className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+            type="button"
+            className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
           >
             <RotateCcw size={14} />
             Refazer Agora
           </button>
           <button
             onClick={onReview}
-            className={`flex-1 py-3 text-slate-100 text-xs font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] ${
+            type="button"
+            className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer ${
               isPerfect
                 ? "bg-linear-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 shadow-amber-950/40 text-slate-950 font-black"
-                : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-950/40"
+                : "bg-indigo-600 hover:bg-indigo-500 text-slate-100 shadow-indigo-950/40"
             }`}
           >
+            <CheckCircle2 size={14} />
             Revisar Respostas
           </button>
         </div>
