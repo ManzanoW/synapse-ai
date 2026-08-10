@@ -53,7 +53,7 @@ export function CompletionModal({
             : "border-slate-800"
         }`}
       >
-        {/* TROFÉU OU DONUT CHART DE DESEMPENHO */}
+        {/* TROFÉU */}
         <div className="relative inline-block mx-auto">
           {isPerfect && (
             <div className="absolute inset-0 bg-amber-500/30 rounded-full blur-xl animate-pulse" />
@@ -95,70 +95,78 @@ export function CompletionModal({
           </p>
         </div>
 
-        {/* CARDS DE MÉTRICAS */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-950/80 border border-slate-800/80 p-3 rounded-2xl text-center shadow-inner items-stretch">
-          <div className="flex flex-col justify-center p-1.5">
-            <span className="block text-[9px] text-slate-500 font-semibold uppercase tracking-wider">
-              Total
-            </span>
-            <span className="text-sm font-bold text-slate-200 font-mono mt-0.5">
-              {totalQuestions} Q
-            </span>
+        {/* CARDS DE MÉTRICAS - REDIMENSIONADOS */}
+        <div className="bg-slate-950/80 border border-slate-800/80 p-3.5 rounded-2xl shadow-inner space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 items-stretch">
+            {/* TOTAL */}
+            <div className="flex flex-col justify-center p-2 bg-slate-900/40 border border-slate-800/60 rounded-xl">
+              <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                Total
+              </span>
+              <span className="text-base font-black text-slate-200 font-mono mt-0.5">
+                {totalQuestions} Q
+              </span>
+            </div>
+
+            {/* ACERTOS */}
+            <div className="flex flex-col justify-center p-2 bg-slate-900/40 border border-slate-800/60 rounded-xl">
+              <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                Acertos
+              </span>
+              <span className="text-base font-black text-emerald-400 font-mono mt-0.5">
+                {correctCount}
+              </span>
+            </div>
+
+            {/* TAXA */}
+            <div className="flex flex-col justify-center p-2 bg-slate-900/40 border border-slate-800/60 rounded-xl">
+              <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                Taxa
+              </span>
+              <span
+                className={`text-base font-black font-mono mt-0.5 ${
+                  isPerfect ? "text-amber-400" : "text-indigo-400"
+                }`}
+              >
+                {percentageAcc}%
+              </span>
+            </div>
+
+            {/* TEMPO - FORMATADO E AMPLIADO */}
+            <div className="flex flex-col justify-center p-2 bg-indigo-500/10 border border-indigo-500/25 rounded-xl">
+              <span className="block text-[10px] text-indigo-300 font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                <Clock size={11} /> Tempo Total
+              </span>
+              <span className="text-base font-black text-indigo-200 font-mono mt-0.5">
+                {formatTimer(timerSeconds)}
+              </span>
+              <span className="text-[10px] text-indigo-300/70 font-mono mt-0.5 font-semibold">
+                ~{averageTimePerQuestion}s / questão
+              </span>
+            </div>
           </div>
 
-          <div className="flex flex-col justify-center p-1.5">
-            <span className="block text-[9px] text-slate-500 font-semibold uppercase tracking-wider">
-              Acertos
-            </span>
-            <span className="text-sm font-bold text-emerald-400 font-mono mt-0.5">
-              {correctCount}
-            </span>
-          </div>
-
-          <div className="flex flex-col justify-center p-1.5">
-            <span className="block text-[9px] text-slate-500 font-semibold uppercase tracking-wider">
-              Taxa
-            </span>
-            <span
-              className={`text-sm font-bold font-mono mt-0.5 ${
-                isPerfect ? "text-amber-400" : "text-indigo-400"
-              }`}
-            >
-              {percentageAcc}%
-            </span>
-          </div>
-
-          <div className="flex flex-col justify-center p-1.5 bg-slate-900/60 border border-slate-800/80 rounded-xl">
-            <span className="block text-[9px] text-indigo-300 font-semibold uppercase tracking-wider flex items-center justify-center gap-1">
-              <Clock size={10} /> Tempo
-            </span>
-            <span className="text-sm font-bold text-indigo-300 font-mono mt-0.5">
-              {formatTimer(timerSeconds)}
-            </span>
-            <span className="text-[8px] text-slate-500 font-mono">
-              ~{averageTimePerQuestion}s/Q
-            </span>
-          </div>
-
+          {/* Destaque do XP Ganho */}
           <div
-            className={`col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+            className={`flex items-center justify-between px-4 py-2 rounded-xl transition-all border ${
               isPerfect
-                ? "bg-amber-500/10 border border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)]"
-                : "bg-slate-900/40 border border-slate-800/60"
+                ? "bg-amber-500/10 border-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)]"
+                : "bg-slate-900/60 border-slate-800/80"
             }`}
           >
-            <span className="block text-[9px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-0.5">
-              <Zap size={10} /> XP Ganho
+            <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
+              <Zap size={13} /> Recompensa de Treino
             </span>
-            <span className="text-sm font-black text-amber-400 font-mono flex items-center justify-center gap-1 mt-0.5">
-              +{lastEarnedXp}
-            </span>
-
-            {isPerfect && (
-              <span className="mt-1 bg-linear-to-r from-amber-500 via-amber-400 to-yellow-400 text-slate-950 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border border-amber-200 tracking-wider whitespace-nowrap">
-                🔥 +25%
+            <div className="flex items-center gap-2">
+              {isPerfect && (
+                <span className="bg-linear-to-r from-amber-500 via-amber-400 to-yellow-400 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-amber-200 tracking-wider">
+                  🔥 +25% Bônus
+                </span>
+              )}
+              <span className="text-sm font-black text-amber-400 font-mono">
+                +{lastEarnedXp} XP
               </span>
-            )}
+            </div>
           </div>
         </div>
 
