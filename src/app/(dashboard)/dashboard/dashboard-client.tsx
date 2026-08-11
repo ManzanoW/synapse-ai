@@ -9,8 +9,7 @@ import { NewContentModal } from "@/components/create-subject-modal";
 import SubjectCardSkeleton from "@/components/subject-card-skeleton";
 import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { useSidebar } from "@/lib/sidebar-context";
-import { ReviewTopic, DashboardSubject } from "@/types";
-import { calculateLevel, XP_REWARDS } from "@/lib/gamification";
+import { DashboardSubject } from "@/types";
 import { LevelUpModal } from "@/components/gamification/level-up-modal";
 import { useGamification } from "@/context/GamificationContext";
 import {
@@ -21,16 +20,14 @@ import {
   CheckCircle2,
   BarChart3,
   ClipboardList,
-  Loader2,
-  AlertCircle,
   BrainCircuit,
   Target,
   RefreshCw,
   X,
   Zap,
   TrendingUp,
-  Trophy,
-  Layers,
+  Clock,
+  ArrowRight,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -113,29 +110,25 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ⚡ ESTADOS DA IA ADAPTATIVA
+  // Estados da IA
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
 
-  // 🟢 ESTADO DE SUGESTÕES E ESTATÍSTICAS DO BANCO DE DADOS
+  // Dados do BD
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const { stats: gamificationStats, refreshStats } = useGamification();
+  const { stats: gamificationStats } = useGamification();
 
-  // Lista de matérias
   const [subjects, setSubjects] = useState<DashboardSubject[]>([]);
 
-  // Estado para o modal de Level Up
   const [levelUpData, setLevelUpData] = useState<{
     isOpen: boolean;
     level: number;
     title: string;
   }>({ isOpen: false, level: 1, title: "" });
 
-  // Estado para o nome do dia perdido
   const [missedDayName, setMissedDayName] = useState<string | null>(null);
 
-  // 1. Carrega os dados do banco
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
@@ -181,18 +174,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         }
       }
     } catch (err) {
-      console.error("Erro ao carregar os dados do Dashboard:", err);
+      console.error("Erro ao carregar dados do Dashboard:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      await loadDashboardData();
-    };
-
-    fetchData();
+    loadDashboardData();
   }, []);
 
   useEffect(() => {
@@ -200,7 +189,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     if (pending) {
       try {
         const { level, title } = JSON.parse(pending);
-
         const t = setTimeout(() => {
           setLevelUpData({
             isOpen: true,
@@ -209,10 +197,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           });
           localStorage.removeItem("pending_levelup_notification");
         }, 0);
-
         return () => clearTimeout(t);
       } catch (e) {
-        console.error("Erro ao processar notificação de Level Up:", e);
+        console.error("Erro no Level Up notification:", e);
       }
     }
   }, []);
@@ -220,14 +207,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const handleOptimizeSchedule = async () => {
     try {
       setIsOptimizing(true);
-
       const response = await fetch("/api/edital/rebalance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) throw new Error("Erro ao otimizar cronograma");
-
       const data = await response.json();
 
       if (data.suggestions) {
@@ -302,34 +287,28 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
-  // Motion Variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
-      },
+      transition: { staggerChildren: 0.06 },
     },
   };
 
   const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 12 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: {
-        duration: 0.35,
-        ease: [0.22, 1, 0.36, 1],
-      },
+      transition: { duration: 0.3, ease: "easeOut" },
     },
   };
 
   return (
     <div className="min-h-screen bg-[#02050e] p-4 font-sans text-slate-100 selection:bg-indigo-500/30 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
+      <div className="mx-auto max-w-7xl space-y-6">
         {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={openSidebar}
@@ -344,16 +323,22 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </h1>
               <p className="mt-0.5 text-xs text-slate-400">
                 Bem-vindo de volta,{" "}
-                <span className="font-semibold text-indigo-400">
-                  {user.name || "parceiro"}
+                <span className="font-bold text-indigo-400">
+                  {user.name || "Estudante"}
                 </span>
-                !
               </p>
             </div>
           </div>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-500 active:scale-95 cursor-pointer"
+          >
+            <span>+ Novo Conteúdo</span>
+          </button>
         </div>
 
-        {/* ================= 🟢 BANNER DE REMANEJAMENTO ================= */}
+        {/* ================= BANNER DE REMANEJAMENTO ================= */}
         {missedDayName && (stats?.journey?.completedTopics ?? 0) > 0 && (
           <RescheduleBanner
             missedDayName={missedDayName}
@@ -365,25 +350,26 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           />
         )}
 
-        {/* ================= 2. BANNER HERO DE JORNADA ================= */}
-        <section className="relative overflow-hidden rounded-2xl border border-white/8 bg-linear-to-b from-[#111625]/90 to-[#0B0F17]/90 p-6 shadow-2xl backdrop-blur-xl">
-          <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-indigo-600/5 blur-[100px]" />
-          <div className="pointer-events-none absolute -right-32 -bottom-32 h-96 w-96 rounded-full bg-purple-600/5 blur-[100px]" />
+        {/* ================= 2. BANNER HERO DE JORNADA ULTRA-PREMIUM ================= */}
+        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl">
+          {/* Luz de Spot Neon de Fundo */}
+          <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-indigo-500/10 blur-[120px]" />
+          <div className="pointer-events-none absolute -right-32 -bottom-32 h-96 w-96 rounded-full bg-cyan-500/10 blur-[120px]" />
 
           <div className="relative z-10 grid grid-cols-1 items-stretch gap-6 md:grid-cols-3 md:gap-0">
             {/* COLUNA 1: TEMPO RESTANTE */}
             <div className="flex flex-col justify-between space-y-4 md:pr-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold tracking-[0.2em] text-slate-400 uppercase">
+                <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
                   Tempo Restante
                 </span>
-                <div className="rounded-xl border border-indigo-500/30 bg-linear-to-br from-indigo-500/20 to-indigo-500/5 p-2.5 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
                   <Target size={18} />
                 </div>
               </div>
 
               <div>
-                <div className="flex items-baseline gap-2.5">
+                <div className="flex items-baseline gap-2">
                   <span className="font-mono text-4xl font-black tracking-tight text-white">
                     {stats?.journey?.daysRemaining ?? 0}
                   </span>
@@ -393,23 +379,23 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/6 pt-3 text-xs text-slate-400">
-                <span className="font-medium">Restante em semanas:</span>
-                <strong className="rounded border border-white/6 bg-white/4 px-2 py-0.5 font-mono font-bold text-slate-200">
+              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
+                <span className="font-medium">Semanas até a prova:</span>
+                <strong className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono font-bold text-slate-200">
                   {stats?.journey?.weeksRemaining ?? 0} sem
                 </strong>
               </div>
             </div>
 
-            <div className="pointer-events-none absolute top-4 bottom-4 left-1/3 hidden w-px bg-linear-to-b from-transparent via-white/8 to-transparent md:block" />
+            <div className="pointer-events-none absolute top-4 bottom-4 left-1/3 hidden w-px bg-gradient-to-b from-transparent via-white/10 to-transparent md:block" />
 
             {/* COLUNA 2: RITMO SUGERIDO */}
             <div className="flex flex-col justify-between space-y-4 md:px-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold tracking-[0.2em] text-amber-400 uppercase">
+                <span className="text-[10px] font-extrabold tracking-widest text-amber-400 uppercase">
                   Ritmo Sugerido
                 </span>
-                <div className="rounded-xl border border-amber-500/30 bg-linear-to-br from-amber-500/20 to-amber-500/5 p-2.5 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                   <Zap size={18} className="fill-amber-400/20" />
                 </div>
               </div>
@@ -425,28 +411,28 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/6 pt-3 text-xs text-slate-400">
+              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
                 <span className="font-medium">Ritmo atual:</span>
-                <strong className="rounded border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 font-mono font-bold text-amber-300">
+                <strong className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 font-mono font-bold text-amber-300">
                   {stats?.journey?.currentPace ?? 0.0} / sem
                 </strong>
               </div>
             </div>
 
-            <div className="pointer-events-none absolute top-4 bottom-4 left-2/3 hidden w-px bg-linear-to-b from-transparent via-white/8 to-transparent md:block" />
+            <div className="pointer-events-none absolute top-4 bottom-4 left-2/3 hidden w-px bg-gradient-to-b from-transparent via-white/10 to-transparent md:block" />
 
             {/* COLUNA 3: PROGRESSO GERAL */}
             <div className="flex flex-col justify-between space-y-4 md:pl-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold tracking-[0.2em] text-slate-400 uppercase">
-                  Progresso Geral
+                <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
+                  Progresso do Edital
                 </span>
-                <div className="rounded-xl border border-cyan-500/30 bg-linear-to-br from-cyan-500/20 to-cyan-500/5 p-2.5 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                   <TrendingUp size={18} />
                 </div>
               </div>
 
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 <div className="flex items-baseline justify-between">
                   <span className="font-mono text-4xl font-black tracking-tight text-white">
                     {stats?.journey?.percentage ?? 0}%
@@ -455,13 +441,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <strong className="font-bold text-slate-100">
                       {stats?.journey?.completedTopics ?? 0}
                     </strong>
-                    /{stats?.journey?.totalTopics ?? 40} tópicos
+                    /{stats?.journey?.totalTopics ?? 0} tópicos
                   </span>
                 </div>
 
-                <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/80 p-0.5 shadow-inner">
+                <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/80 p-0.5">
                   <div
-                    className="h-full rounded-full bg-linear-to-r from-cyan-500 to-emerald-400 shadow-[0_0_12px_rgba(34,211,238,0.6)] transition-all duration-1000 ease-out"
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_12px_rgba(34,211,238,0.6)] transition-all duration-1000 ease-out"
                     style={{
                       width: `${Math.max(3, stats?.journey?.percentage ?? 0)}%`,
                     }}
@@ -469,13 +455,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/6 pt-3 text-xs text-slate-400">
-                <span className="font-medium">Status atual:</span>
-                <span className="inline-flex items-center gap-1.5 rounded border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[11px] font-bold text-indigo-300">
+              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
+                <span className="font-medium">Status:</span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 text-[11px] font-bold text-indigo-300">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
                   {stats?.journey?.percentage === 100
-                    ? "Concluído"
-                    : "Em Progresso"}
+                    ? "Edital Completo"
+                    : "Em Andamento"}
                 </span>
               </div>
             </div>
@@ -486,29 +472,26 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-9">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {/* CARD 1: Daily Quest Log (Plano de Ataque do Dia) */}
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 border-t-white/15 bg-slate-900/30 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/40">
-                <div className="absolute top-0 right-0 left-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
-
+              {/* CARD 1: Missões do Dia (Daily Quest Log) */}
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30">
                 <div className="flex h-full flex-col justify-between space-y-4">
-                  {/* Cabeçalho */}
                   <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
                         <Target size={16} />
                       </div>
                       <div>
-                        <h3 className="text-xs font-bold tracking-widest text-slate-200 uppercase">
-                          Missões do Dia
+                        <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
+                          Missões de Hoje
                         </h3>
                         <p className="text-[10px] text-slate-400">
-                          Complete as 3 missões para garantir bônus de XP
+                          Garanta seu bônus de XP diário
                         </p>
                       </div>
                     </div>
 
-                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300 shadow-xs">
-                      +50 XP BÔNUS
+                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300">
+                      +50 XP
                     </span>
                   </div>
 
@@ -517,7 +500,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     {[
                       {
                         id: "q1",
-                        title: "Responder Questões Práticas",
+                        title: "Responder Questões",
                         target: 10,
                         current: stats?.metrics.questionsCount ?? 0,
                         unit: "questões",
@@ -526,16 +509,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       },
                       {
                         id: "q2",
-                        title: "Revisar Cards da Fila",
+                        title: "Revisar Flashcards",
                         target: 15,
                         current: stats?.metrics.totalFlashcards ?? 0,
                         unit: "cards",
-                        actionUrl: "/flashcards",
+                        actionUrl: "/cards",
                         completed: (stats?.metrics.totalFlashcards ?? 0) >= 15,
                       },
                       {
                         id: "q3",
-                        title: "Sessão de Foco Ativo",
+                        title: "Sessão de Foco",
                         target: 1,
                         current:
                           (stats?.metrics.sessionsCount ?? 0) > 0 ? 1 : 0,
@@ -552,7 +535,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       return (
                         <div
                           key={quest.id}
-                          className={`group/quest flex items-center justify-between gap-3 rounded-2xl border p-3 transition-all ${
+                          className={`flex items-center justify-between gap-3 rounded-2xl border p-3 transition-all ${
                             quest.completed
                               ? "border-emerald-500/20 bg-emerald-500/5"
                               : "border-white/5 bg-slate-950/40 hover:border-white/10"
@@ -569,7 +552,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                               {quest.completed ? (
                                 <CheckCircle2 size={16} />
                               ) : (
-                                <Zap size={15} className="text-amber-400" />
+                                <Zap size={14} className="text-amber-400" />
                               )}
                             </div>
 
@@ -585,17 +568,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                   {quest.title}
                                 </h4>
                                 <span className="font-mono text-[10px] text-slate-400 shrink-0">
-                                  {quest.current}/{quest.target} {quest.unit}
+                                  {quest.current}/{quest.target}
                                 </span>
                               </div>
 
-                              {/* Progress bar fina */}
                               <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950">
                                 <div
                                   className={`h-full rounded-full transition-all duration-500 ${
                                     quest.completed
                                       ? "bg-emerald-400"
-                                      : "bg-linear-to-r from-indigo-500 to-purple-500"
+                                      : "bg-indigo-500"
                                   }`}
                                   style={{ width: `${progress}%` }}
                                 />
@@ -606,7 +588,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           {!quest.completed && (
                             <Link
                               href={quest.actionUrl}
-                              className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300 transition-all hover:bg-indigo-500/20 active:scale-95"
+                              className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300 hover:bg-indigo-500/20 transition-all active:scale-95"
                             >
                               Ir
                             </Link>
@@ -619,15 +601,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
 
               {/* CARD 2: Métricas de Desempenho */}
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 border-t-white/15 bg-slate-900/30 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/40">
-                <div className="absolute top-0 right-0 left-0 h-px bg-linear-to-r from-transparent via-emerald-500/30 to-transparent" />
-
-                <div className="mb-6 flex items-center justify-between">
-                  <span className="text-xs font-bold tracking-widest text-slate-300 uppercase">
-                    Métricas de Desempenho
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30">
+                <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
+                  <span className="text-xs font-bold tracking-wider text-slate-200 uppercase">
+                    Estatísticas Chave
                   </span>
-                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-widest text-indigo-400 uppercase shadow-xs">
-                    <Zap size={11} /> Live Stats
+                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-indigo-400 uppercase">
+                    <Zap size={11} /> Tempo Real
                   </span>
                 </div>
 
@@ -637,82 +617,77 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       Tempo Total
                     </span>
                     <span className="font-mono text-2xl font-black text-white md:text-3xl">
-                      {stats?.metrics.totalTimeFormatted || "0h 30m"}
+                      {stats?.metrics.totalTimeFormatted || "0h 0m"}
                     </span>
                   </div>
 
                   <div className="flex-1">
                     <div className="mb-1 flex justify-between text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                       <span>Precisão</span>
-                      <span className="font-mono text-emerald-400">
-                        {stats?.metrics.precision || "67%"}
+                      <span className="font-mono text-emerald-400 font-bold">
+                        {stats?.metrics.precision || "0%"}
                       </span>
                     </div>
-                    <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5 shadow-inner">
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
                       <div
-                        className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.6)] transition-all duration-700"
-                        style={{ width: stats?.metrics.precision || "67%" }}
+                        className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.6)] transition-all duration-700"
+                        style={{ width: stats?.metrics.precision || "0%" }}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Submétricas */}
                 <div className="grid grid-cols-3 gap-2.5 border-t border-white/10 pt-4 text-center">
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-2.5 transition-colors hover:border-white/20">
-                    <span className="block text-[10px] font-bold tracking-wider text-slate-300 uppercase">
+                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase">
                       Sessões
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics.sessionsCount ?? 5}
+                      {stats?.metrics.sessionsCount ?? 0}
                     </span>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-2.5 transition-colors hover:border-white/20">
-                    <span className="block text-[10px] font-bold tracking-wider text-slate-300 uppercase">
+                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase">
                       Questões
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics.questionsCount ?? 15}
+                      {stats?.metrics.questionsCount ?? 0}
                     </span>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-2.5 transition-colors hover:border-white/20">
-                    <span className="block text-[10px] font-bold tracking-wider text-slate-300 uppercase">
+                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase">
                       Méd/Dia
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics.averageTimePerSession || "6min"}
+                      {stats?.metrics.averageTimePerSession || "0min"}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* CARD 3: Sugestões de Estudos com IA */}
-            <div className="group relative overflow-hidden rounded-3xl border border-white/10 border-t-white/15 bg-slate-900/30 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-cyan-500/40">
-              <div className="absolute top-0 right-0 left-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
-              <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-cyan-500/10 blur-[90px]" />
-
-              <div className="relative mb-5 flex items-center justify-between">
+            {/* CARD 3: Sugestões com IA Synapse Core */}
+            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-cyan-500/30">
+              <div className="mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                     <Sparkles size={18} className="animate-pulse" />
                   </div>
-                  <h3 className="text-xs font-bold tracking-widest text-slate-200 uppercase">
-                    Sugestões de Estudos
+                  <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
+                    Sugestões Inteligentes da IA
                   </h3>
                 </div>
-                <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[10px] font-bold tracking-widest text-cyan-300 uppercase">
-                  Synapse Core v1
+                <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[10px] font-bold text-cyan-300 uppercase">
+                  Synapse Neural
                 </span>
               </div>
 
               <div className="space-y-3">
                 <AnimatePresence mode="wait">
                   {suggestions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 py-7 text-center">
+                    <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 py-6 text-center">
                       <p className="text-xs text-slate-400">
-                        Nenhuma sugestão pendente no momento. Seu ciclo de
-                        revisão está 100% otimizado!
+                        Nenhuma pendência crítica. Seu cronograma está 100% otimizado!
                       </p>
                     </div>
                   ) : (
@@ -726,10 +701,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: -10 }}
                           transition={{ duration: 0.3 }}
-                          className={`group/item relative flex items-center justify-between gap-4 rounded-2xl border bg-slate-950/50 p-4 transition-all duration-300 hover:-translate-y-0.5 ${
+                          className={`group/item relative flex items-center justify-between gap-4 rounded-2xl border bg-slate-950/60 p-4 transition-all duration-200 hover:-translate-y-0.5 ${
                             item.type === "CRITICAL"
-                              ? "border-rose-500/20 hover:border-rose-500/40 hover:bg-slate-900/60"
-                              : "border-white/5 hover:border-emerald-500/30 hover:bg-slate-900/60"
+                              ? "border-rose-500/20 hover:border-rose-500/40"
+                              : "border-white/5 hover:border-emerald-500/30"
                           }`}
                         >
                           <Link
@@ -751,10 +726,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             </div>
 
                             <div className="flex-1">
-                              <h4 className="text-sm font-bold tracking-tight text-slate-200 transition-colors group-hover/item:text-indigo-300">
+                              <h4 className="text-sm font-bold text-slate-200 group-hover/item:text-indigo-300 transition-colors">
                                 {item.title}
                               </h4>
-                              <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+                              <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
                                 {item.description}
                               </p>
                             </div>
@@ -762,9 +737,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
                           <div className="flex shrink-0 items-center gap-2">
                             <span
-                              className={`rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold tracking-widest ${
+                              className={`rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold ${
                                 item.type === "CRITICAL"
-                                  ? "border-rose-500/30 bg-rose-500/10 text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.15)]"
+                                  ? "border-rose-500/30 bg-rose-500/10 text-rose-400"
                                   : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
                               }`}
                             >
@@ -796,7 +771,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                   ).catch(console.error);
                                 }
                               }}
-                              className="cursor-pointer rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-slate-800/60 hover:text-white"
+                              className="cursor-pointer rounded-xl p-1.5 text-slate-500 hover:bg-slate-800/60 hover:text-white transition-colors"
                               title="Dispensar sugestão"
                             >
                               <X size={14} />
@@ -812,7 +787,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <button
                 onClick={handleOptimizeSchedule}
                 disabled={isOptimizing}
-                className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-linear-to-r from-cyan-500/15 via-indigo-500/10 to-cyan-500/15 py-3 text-xs font-bold text-cyan-300 shadow-sm transition-all hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] active:scale-[0.99] disabled:opacity-50"
+                className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/15 via-indigo-500/10 to-cyan-500/15 py-3 text-xs font-bold text-cyan-300 transition-all hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] active:scale-[0.99] disabled:opacity-50"
               >
                 {isOptimizing ? (
                   <>
@@ -842,14 +817,21 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
 
             {/* CARD 4: Minhas Matérias */}
-            <div className="space-y-6 rounded-3xl border border-white/10 border-t-white/15 bg-slate-900/30 p-6 shadow-2xl backdrop-blur-2xl">
+            <div className="space-y-4 rounded-3xl border border-white/10 bg-gradient-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <BookOpen size={18} className="text-indigo-400" />
-                  <h3 className="text-xs font-bold tracking-widest text-slate-300 uppercase">
+                  <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
                     Minhas Matérias
                   </h3>
                 </div>
+                <Link
+                  href="/edital"
+                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                >
+                  <span>Ver todas</span>
+                  <ArrowRight size={13} />
+                </Link>
               </div>
 
               {isLoading ? (
@@ -898,14 +880,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           {/* ================= 4. BARRA LATERAL DIREITA ================= */}
           <div className="space-y-6 lg:col-span-3">
-            {/* 1. CARD DE CONSTÂNCIA (STREAK GLOBAL) */}
+            {/* 1. CARD DE CONSTÂNCIA (STREAK) */}
             <Link
               href="/performance"
-              className="group relative block overflow-hidden rounded-3xl border border-white/10 border-t-white/15 bg-slate-900/30 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-amber-500/40"
+              className="group relative block overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-amber-500/30"
             >
               <div className="mb-4 flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-bold tracking-widest text-slate-400 uppercase transition-colors group-hover:text-amber-400">
+                  <h3 className="text-xs font-bold tracking-wider text-slate-400 uppercase group-hover:text-amber-400 transition-colors">
                     Constância
                   </h3>
                   <p className="mt-1 font-mono text-3xl font-black text-white">
@@ -940,7 +922,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <div
                       className={`flex h-7 w-7 items-center justify-center rounded-xl font-mono text-[10px] font-bold transition-all ${
                         day.active
-                          ? "bg-linear-to-br from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                          ? "bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
                           : "border border-white/5 bg-slate-950/80 text-slate-600"
                       }`}
                     >
@@ -954,11 +936,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* 2. CARD DE META SEMANAL */}
             <Link
               href="/performance"
-              className="group block rounded-3xl border border-white/10 border-t-white/15 bg-slate-900/30 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/40"
+              className="group block rounded-3xl border border-white/10 bg-gradient-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30"
             >
               <div className="mb-3 flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-bold tracking-widest text-slate-400 uppercase transition-colors group-hover:text-indigo-400">
+                  <h3 className="text-xs font-bold tracking-wider text-slate-400 uppercase group-hover:text-indigo-400 transition-colors">
                     Meta Semanal
                   </h3>
                   <p className="mt-1 font-mono text-3xl font-black text-white">
@@ -971,9 +953,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
 
               <div className="space-y-2 pt-1">
-                <div className="h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/80 p-0.5 shadow-inner">
+                <div className="h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/80 p-0.5">
                   <div
-                    className="h-full rounded-full bg-linear-to-r from-indigo-500 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-700"
+                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-700"
                     style={{
                       width: `${stats?.weeklyGoal.percentage ?? 0}%`,
                     }}
@@ -988,7 +970,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </Link>
 
             {/* 3. HEATMAP */}
-            <section className="rounded-3xl border border-white/10 border-t-white/15 bg-slate-900/30 p-5 shadow-2xl backdrop-blur-2xl">
+            <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl backdrop-blur-2xl">
               <Heatmap />
             </section>
 
