@@ -11,6 +11,9 @@ import {
   History,
   Home,
   ArrowRight,
+  Zap,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -96,38 +99,25 @@ function randomizeQuizSession(questionsList: QuestaoIA[]): QuestaoIA[] {
 
 export default function QuestoesPage() {
   const router = useRouter();
-
   const { openSidebar } = useSidebar();
   const searchParams = useSearchParams();
 
   // Estados gerais
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
-    null,
-  );
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"create" | "history">("create");
-  const [pendingTab, setPendingTab] = useState<"create" | "history" | null>(
-    null,
-  );
+  const [pendingTab, setPendingTab] = useState<"create" | "history" | null>(null);
 
   // Estados do caderno / questões
   const [banca, setBanca] = useState("FGV");
   const [questions, setQuestions] = useState<QuestaoIA[]>([]);
-  const [selectedAnswers, setSelectedAnswers] = useState<
-    Record<number, string>
-  >({});
-  const [checkedQuestions, setCheckedQuestions] = useState<
-    Record<number, boolean>
-  >({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
+  const [checkedQuestions, setCheckedQuestions] = useState<Record<number, boolean>>({});
   const [currentQuizId, setCurrentQuizId] = useState<string | null>(null);
   const [savedErrors, setSavedErrors] = useState<Record<number, boolean>>({});
-  const [creatingFlashcardIndex, setCreatingFlashcardIndex] = useState<
-    number | null
-  >(null);
-  const [createdFlashcards, setCreatedFlashcards] = useState<
-    Record<number, boolean>
-  >({});
+  const [creatingFlashcardIndex, setCreatingFlashcardIndex] = useState<number | null>(null);
+  const [createdFlashcards, setCreatedFlashcards] = useState<Record<number, boolean>>({});
   const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
 
   // Cronômetro e conclusão
@@ -141,9 +131,7 @@ export default function QuestoesPage() {
   const [materia, setMateria] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [qtdQuestoes, setQtdQuestoes] = useState("5");
-  const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
-    "banca",
-  );
+  const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">("banca");
   const [dificuldade, setDificuldade] = useState("Média");
   const [textoBase, setTextoBase] = useState("");
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
@@ -157,9 +145,7 @@ export default function QuestoesPage() {
 
   // Sessão pausada
   const STORAGE_KEY = "deepwork_quiz_session_v1";
-  const [pausedSession, setPausedSession] = useState<PausedSession | null>(
-    null,
-  );
+  const [pausedSession, setPausedSession] = useState<PausedSession | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   // Level up
@@ -171,7 +157,6 @@ export default function QuestoesPage() {
 
   const { stats: gamificationStats, refreshStats } = useGamification();
 
-  // Efeitos de Persistência e Notificações
   useEffect(() => {
     if (levelUpData?.leveledUp) {
       localStorage.setItem(
@@ -195,19 +180,17 @@ export default function QuestoesPage() {
           if (parsed.questions?.length > 0) setPausedSession(parsed);
         }
       } catch (e) {
-        console.error("Erro ao carregar do localStorage:", e);
+        console.error("Erro ao carregar localStorage:", e);
       }
     }, 0);
     return () => clearTimeout(timer);
   }, []);
 
-  // 🟢 1. Tratar parâmetros da URL e abrir Modal (com suporte a quizId, subjectId e topicId)
   useEffect(() => {
     const paramTopicId = searchParams.get("topicId");
     const paramSubjectId = searchParams.get("subjectId");
     const paramQuizId = searchParams.get("quizId");
 
-    // Se veio um quizId, carrega o simulado pré-existente
     if (paramQuizId) {
       fetch("/api/questions/list")
         .then((res) => res.json())
@@ -231,7 +214,6 @@ export default function QuestoesPage() {
       return;
     }
 
-    // Se vieram parâmetros de Matéria/Tópico, abre o Gerador de IA
     if (paramTopicId || paramSubjectId) {
       queueMicrotask(() => {
         setIsAIModalOpen(true);
@@ -239,7 +221,6 @@ export default function QuestoesPage() {
     }
   }, [searchParams]);
 
-  // Salva estado da sessão + tempo atual no localStorage
   useEffect(() => {
     if (!isMounted) return;
     try {
@@ -256,7 +237,7 @@ export default function QuestoesPage() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(currentState));
       }
     } catch (e) {
-      console.error("Erro ao salvar no localStorage:", e);
+      console.error("Erro ao salvar localStorage:", e);
     }
   }, [
     currentQuizId,
@@ -269,7 +250,6 @@ export default function QuestoesPage() {
     isMounted,
   ]);
 
-  // Timer do Cronômetro
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTimerRunning && questions.length > 0) {
@@ -278,7 +258,6 @@ export default function QuestoesPage() {
     return () => clearInterval(interval);
   }, [isTimerRunning, questions.length]);
 
-  // 🟢 2. Sincronizar Disciplinas, Matéria e Tópico Específico (com deduplicação de matérias)
   useEffect(() => {
     if (!isAIModalOpen) return;
 
@@ -286,8 +265,6 @@ export default function QuestoesPage() {
       .then((res) => res.json())
       .then((json) => {
         const rawSubjects: SubjectItem[] = json.data || [];
-
-        // Deduplica matérias pelo nome e mescla tópicos
         const uniqueSubjectsMap = new Map<string, SubjectItem>();
 
         rawSubjects.forEach((sub) => {
@@ -298,11 +275,9 @@ export default function QuestoesPage() {
               ...(existing.topics || []),
               ...(sub.topics || []),
             ];
-
             const uniqueTopics = Array.from(
               new Map(combinedTopics.map((t) => [t.id, t])).values(),
             );
-
             existing.topics = uniqueTopics;
           } else {
             uniqueSubjectsMap.set(nameKey, {
@@ -321,25 +296,20 @@ export default function QuestoesPage() {
 
         if (paramSubjectId) {
           const decodedSubject = decodeURIComponent(paramSubjectId);
-
           const matchedSubject = loadedSubjects.find(
             (s) =>
               s.id === decodedSubject ||
-              s.name.trim().toLowerCase() ===
-                decodedSubject.trim().toLowerCase(),
+              s.name.trim().toLowerCase() === decodedSubject.trim().toLowerCase(),
           );
 
           if (matchedSubject) {
             setMateria(matchedSubject.name);
-
             if (paramTopicId && matchedSubject.topics) {
               const matchedTopic = matchedSubject.topics.find(
                 (t) =>
                   t.id === paramTopicId ||
-                  t.title.trim().toLowerCase() ===
-                    paramTopicId.trim().toLowerCase(),
+                  t.title.trim().toLowerCase() === paramTopicId.trim().toLowerCase(),
               );
-
               setSelectedTopicId(matchedTopic ? matchedTopic.id : paramTopicId);
             }
           } else {
@@ -371,7 +341,6 @@ export default function QuestoesPage() {
   const percentageAcc =
     answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
-  // Ações da página
   const handleTabChange = (newTab: "create" | "history") => {
     if (
       activeTab === "create" &&
@@ -572,11 +541,9 @@ export default function QuestoesPage() {
       const generatedQuestions = json.data || [];
       setQuestions(generatedQuestions);
 
-      // 🟢 Fecha o modal imediatamente
       setIsAIModalOpen(false);
 
       if (generatedQuestions.length > 0) {
-        // 🟢 Salva o simulado e captura o ID retornado imediatamente
         const saveRes = await fetch("/api/questions/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -596,7 +563,6 @@ export default function QuestoesPage() {
           setCurrentQuizId(generatedId);
         }
 
-        // 🟢 Limpa a URL e revalida rotas do Next.js sem acionar reabertura de modal
         router.replace("/questions", { scroll: false });
         router.refresh();
       }
@@ -607,7 +573,7 @@ export default function QuestoesPage() {
     }
   };
 
-  // Atalhos de teclado
+  // Atalhos globais
   useEffect(() => {
     if (
       activeTab !== "create" ||
@@ -709,7 +675,7 @@ export default function QuestoesPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased relative">
+    <div className="min-h-screen bg-[#02050e] text-slate-100 p-4 md:p-8 font-sans antialiased relative selection:bg-indigo-500/30">
       {questions.length > 0 && activeTab === "create" && (
         <FloatingTimer
           seconds={timerSeconds}
@@ -718,25 +684,26 @@ export default function QuestoesPage() {
         />
       )}
 
-      <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
-        {/* HEADER */}
-        <div className="flex items-start justify-between border-b border-slate-900 pb-6">
-          <div className="flex items-center gap-3">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-6">
+          <div className="flex items-center gap-3.5">
             <button
               onClick={openSidebar}
               type="button"
-              className="p-2 bg-[#090d16] border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 md:hidden transition-colors cursor-pointer"
+              className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors cursor-pointer"
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <HelpCircle size={24} className="text-indigo-400" />
-                Questões & Simulados
+              <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                  <HelpCircle size={20} />
+                </div>
+                Banco de Provas & Simulados
               </h1>
-              <p className="text-sm text-slate-400 mt-0.5 max-w-xl">
-                Simulado inédito focado na banca {banca || "selecionada"}.
-                Avalie seu rendimento em tempo real.
+              <p className="text-xs text-slate-400 mt-1">
+                Simulados inteligentes focados na banca <strong className="text-indigo-400">{banca || "FGV"}</strong>. Treine com feedback em tempo real.
               </p>
             </div>
           </div>
@@ -745,38 +712,38 @@ export default function QuestoesPage() {
             <button
               onClick={() => setIsAIModalOpen(true)}
               type="button"
-              className="bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 text-xs px-3 py-2 rounded-xl transition-all font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-950/40 cursor-pointer"
+              className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs px-4 py-2.5 rounded-xl transition-all font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer"
             >
-              <Sparkles size={14} />
-              Novo Simulado com IA
+              <Sparkles size={14} className="text-indigo-200" />
+              <span>Novo Simulado IA</span>
             </button>
           )}
         </div>
 
-        {/* BARRA DE PROGRESSO */}
+        {/* ================= 2. BARRA DE PROGRESSO DO SIMULADO ================= */}
         {questions.length > 0 && activeTab === "create" && (
-          <div className="bg-[#090d16]/80 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-md animate-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center justify-between mb-2 text-xs">
-              <div className="flex items-center gap-2 font-bold text-slate-300">
-                <span>Progresso do Caderno</span>
-                <span className="text-slate-500">•</span>
-                <span className="text-indigo-400 font-mono">
+          <div className="bg-[#090d16]/90 border border-white/10 rounded-2xl p-4 shadow-2xl backdrop-blur-md">
+            <div className="flex items-center justify-between mb-2.5 text-xs">
+              <div className="flex items-center gap-2 font-bold text-slate-200">
+                <span className="text-indigo-400">Progresso do Caderno</span>
+                <span className="text-slate-600">•</span>
+                <span className="font-mono text-slate-300">
                   {answeredCount}/{totalQuestions} respondidas
                 </span>
               </div>
               <div className="flex items-center gap-3 font-semibold text-xs">
-                <span className="text-emerald-400">
+                <span className="text-emerald-400 font-mono">
                   {correctCount} Acerto(s)
                 </span>
-                <span className="text-slate-600">|</span>
-                <span className="text-indigo-300 font-mono">
+                <span className="text-slate-700">|</span>
+                <span className="text-indigo-300 font-mono font-bold">
                   Aproveitamento: {percentageAcc}%
                 </span>
               </div>
             </div>
-            <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/60">
+            <div className="w-full bg-slate-950/80 rounded-full h-2 overflow-hidden border border-white/5">
               <div
-                className="bg-linear-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-500 rounded-full"
+                className="bg-gradient-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"
                 style={{
                   width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%`,
                 }}
@@ -785,21 +752,21 @@ export default function QuestoesPage() {
           </div>
         )}
 
-        {/* SELETORES DE ABA */}
-        <div className="flex border-b border-slate-900 gap-2">
+        {/* ================= 3. NAVEGAÇÃO DE ABAS GLASSMORPHIC ================= */}
+        <div className="flex border-b border-white/10 gap-2">
           <button
             onClick={() => handleTabChange("create")}
             type="button"
-            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
+            className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
               activeTab === "create"
-                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-                : "border-transparent text-slate-500 hover:text-slate-300"
+                ? "border-indigo-500 text-indigo-400 bg-white/5"
+                : "border-transparent text-slate-400 hover:text-white"
             }`}
           >
             {questions.length > 0 ? (
               <>
-                <span>📝</span>
-                <span>Caderno Atual</span>
+                <Zap size={14} className="text-indigo-400" />
+                <span>Caderno Ativo</span>
               </>
             ) : (
               <>
@@ -814,22 +781,22 @@ export default function QuestoesPage() {
               fetchQuizHistory();
             }}
             type="button"
-            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
+            className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
               activeTab === "history"
-                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-                : "border-transparent text-slate-500 hover:text-slate-300"
+                ? "border-indigo-500 text-indigo-400 bg-white/5"
+                : "border-transparent text-slate-400 hover:text-white"
             }`}
           >
             <History size={14} />
-            Meus Simulados Salvos
+            <span>Simulados Salvos</span>
           </button>
         </div>
 
-        {/* ABA 1: HUB OU CADERNO ATIVO */}
+        {/* ================= 4. ABA 1: HUB OU CADERNO ATIVO ================= */}
         {activeTab === "create" && (
           <>
             {questions.length === 0 ? (
-              <div className="space-y-6 animate-in fade-in duration-500">
+              <div className="space-y-6">
                 {pausedSession &&
                   pausedSession.questions &&
                   pausedSession.questions.length > 0 && (
@@ -857,52 +824,48 @@ export default function QuestoesPage() {
                     />
                   )}
 
-                {/* BANNER HERO */}
-                <div className="relative overflow-hidden bg-linear-to-br from-[#0c0f1d] via-[#090d16] to-[#05070c] border border-indigo-500/20 rounded-3xl p-8 shadow-[0_0_50px_-12px_rgba(79,70,229,0.15)]">
+                {/* BANNER HERO SPOTLIGHT */}
+                <div className="relative overflow-hidden bg-gradient-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl">
+                  <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-indigo-500/10 blur-[100px]" />
                   <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                     <div className="space-y-4 max-w-xl">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-md">
-                        <Sparkles
-                          size={12}
-                          className="text-indigo-400 animate-pulse"
-                        />
-                        <span className="text-[11px] font-bold tracking-wider text-indigo-300 uppercase">
+                        <Sparkles size={12} className="text-indigo-400 animate-pulse" />
+                        <span className="text-[10px] font-extrabold tracking-widest text-indigo-300 uppercase">
                           Central de Treinamento
                         </span>
                       </div>
-                      <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                      <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
                         Pratique com questões inéditas e simulados direcionados
                       </h2>
                       <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                        Gere cadernos adaptativos configurados por IA ou retome
-                        seus testes anteriores.
+                        Gere cadernos adaptativos configurados pela IA ou retome seus testes anteriores com feedback em tempo real.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* OPCÕES DE CRIAÇÃO */}
+                {/* OPÇÕES DE CRIAÇÃO */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div
                     onClick={() => setIsAIModalOpen(true)}
-                    className="group relative bg-linear-to-b from-[#0e1222]/90 to-[#090d16]/90 hover:from-[#12182e] hover:to-[#0c101d] border border-indigo-500/20 hover:border-indigo-500/50 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.98] shadow-xl flex flex-col justify-between overflow-hidden"
+                    className="group relative bg-gradient-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-indigo-500/40 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
                   >
                     <div className="space-y-4 relative z-10">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
                         <Sparkles size={22} />
                       </div>
                       <div>
                         <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">
-                          Novo Simulado por IA
+                          Gerar Simulado por IA
                         </h3>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          Filtre por banca, disciplina e grau de complexidade
-                          para gerar testes exclusivos.
+                          Filtre por banca, disciplina e dificuldade para montar cadernos sob medida.
                         </p>
                       </div>
                     </div>
                     <div className="mt-8 flex items-center gap-2 text-xs font-bold text-indigo-400">
-                      <span>Configurar Simulado</span>
+                      <span>Configurar Parâmetros</span>
                       <ArrowRight size={14} />
                     </div>
                   </div>
@@ -912,10 +875,10 @@ export default function QuestoesPage() {
                       handleTabChange("history");
                       fetchQuizHistory();
                     }}
-                    className="group relative bg-linear-to-b from-[#0e1222]/60 to-[#090d16]/90 hover:from-[#12182e] hover:to-[#0c101d] border border-slate-800 hover:border-slate-700 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.98] shadow-xl flex flex-col justify-between overflow-hidden"
+                    className="group relative bg-gradient-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-white/20 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
                   >
                     <div className="space-y-4 relative z-10">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-300">
+                      <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300">
                         <History size={22} />
                       </div>
                       <div>
@@ -923,8 +886,7 @@ export default function QuestoesPage() {
                           Meus Simulados Salvos
                         </h3>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          Acesse cadernos criados anteriormente e treine
-                          novamente de forma gratuita.
+                          Acesse e refaça cadernos salvos no seu histórico a qualquer momento.
                         </p>
                       </div>
                     </div>
@@ -936,11 +898,12 @@ export default function QuestoesPage() {
                 </div>
               </div>
             ) : (
+              /* CADERNO DE QUESTÕES EM RESOLUÇÃO */
               <div className="space-y-6">
                 <div className="bg-[#090d16]/90 border border-indigo-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2 py-0.5 rounded uppercase tracking-wider">
+                      <span className="text-[10px] font-extrabold bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                         {banca}
                       </span>
                       <span className="text-xs text-slate-400 font-medium">
@@ -963,7 +926,7 @@ export default function QuestoesPage() {
                       setIsTimerRunning(false);
                     }}
                     type="button"
-                    className="text-xs text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/40 bg-slate-950 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+                    className="text-xs text-slate-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 bg-slate-950 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-medium"
                   >
                     Encerrar Caderno
                   </button>
@@ -1003,7 +966,7 @@ export default function QuestoesPage() {
           </>
         )}
 
-        {/* ABA 2: HISTÓRICO */}
+        {/* ================= 5. ABA 2: HISTÓRICO ================= */}
         {activeTab === "history" && (
           <QuizHistoryTab
             history={quizHistory}
@@ -1058,7 +1021,7 @@ export default function QuestoesPage() {
         )}
       </div>
 
-      {/* MODAL 1: GERAR POR IA */}
+      {/* MODAL: GERAR POR IA */}
       <GenerateAIModal
         isOpen={isAIModalOpen}
         isGenerating={isGenerating}
@@ -1075,7 +1038,6 @@ export default function QuestoesPage() {
         onBancaChange={setBanca}
         onMateriaChange={(newMateria) => {
           setMateria(newMateria);
-          // Limpa o tópico selecionado apenas se o usuário trocou manualmente a matéria no select
           const paramSubjectId = searchParams.get("subjectId");
           const decodedParam = paramSubjectId
             ? decodeURIComponent(paramSubjectId)
@@ -1093,7 +1055,7 @@ export default function QuestoesPage() {
         onSubmit={handleGenerateSimulado}
       />
 
-      {/* MODAL 2: DIAGNÓSTICO COGNITIVO */}
+      {/* MODAL: DIAGNÓSTICO E RECOMPENSAS */}
       {showCompletionModal && (
         <CompletionModal
           totalQuestions={totalQuestions}
@@ -1115,31 +1077,30 @@ export default function QuestoesPage() {
         />
       )}
 
-      {/* MODAL NAVEGAÇÃO PENDENTE */}
+      {/* MODAL DE CONFIRMAÇÃO DE NAVEGAÇÃO PENDENTE */}
       {pendingTab && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className="text-base font-semibold text-slate-100 mb-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+          <div className="bg-[#090d16] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-white">
               Deseja sair do simulado atual?
             </h3>
-            <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-              Se mudar para o histórico agora, o progresso não salvo será
-              perdido.
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Ao alternar de aba agora, as respostas não finalizadas neste caderno serão descartadas.
             </p>
-            <div className="flex items-center gap-3 justify-end">
+            <div className="flex items-center gap-3 justify-end pt-2">
               <button
                 onClick={() => setPendingTab(null)}
                 type="button"
-                className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold rounded-xl cursor-pointer transition-colors"
               >
                 Continuar respondendo
               </button>
               <button
                 onClick={confirmNavigation}
                 type="button"
-                className="px-4 py-2 bg-rose-600/20 text-rose-300 text-xs font-semibold rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-semibold rounded-xl cursor-pointer transition-colors"
               >
-                Sim, sair e descartar
+                Sair e descartar
               </button>
             </div>
           </div>
