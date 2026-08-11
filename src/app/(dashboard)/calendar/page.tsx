@@ -8,6 +8,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Clock,
+  AlertCircle,
+  Sparkles,
+  X,
+  BookOpen,
 } from "lucide-react";
 import { Topic } from "@/types";
 
@@ -17,10 +22,26 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTopics, setSelectedTopics] = useState<Topic[]>([]);
 
+  // Estado para navegação dinâmica de mês/ano
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 6, 1)); // Julho 2026 como base inicial
+
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth(); // 0-indexed (6 = Julho)
+
+  const monthParam = `${currentYear}-${(currentMonth + 1)
+    .toString()
+    .padStart(2, "0")}`;
+
+  const monthName = currentDate.toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
+
   useEffect(() => {
     async function loadCalendarData() {
       try {
-        const res = await fetch("/api/calendar?month=2026-07");
+        setLoading(true);
+        const res = await fetch(`/api/calendar?month=${monthParam}`);
         if (!res.ok) throw new Error("Falha na API");
         const json = await res.json();
         setData(json.data || {});
@@ -31,17 +52,16 @@ export default function CalendarPage() {
       }
     }
     loadCalendarData();
-  }, []);
+  }, [monthParam]);
 
-  async function handleDayClick(dateStr: string) {
+  async function handleDayClick(dateStr: string, day: number) {
     setLoading(true);
     try {
       const res = await fetch(`/api/calendar/details?date=${dateStr}`);
       const json = await res.json();
 
-      // Garante que se for undefined, vira um array vazio
       setSelectedTopics(json.data || []);
-      setSelectedDay(parseInt(dateStr.split("-")[2]));
+      setSelectedDay(day);
     } catch (err) {
       console.error(err);
     } finally {
@@ -49,105 +69,202 @@ export default function CalendarPage() {
     }
   }
 
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+  };
+
+  // Cálculos do Grid do Mês
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOffset = new Date(currentYear, currentMonth, 1).getDay(); // 0 = Domingo
+
+  const totalMonthRevisions = Object.values(data).reduce(
+    (acc, curr) => acc + curr,
+    0,
+  );
+
+  const todayStr = "2026-07-13"; // Mantido sincronizado com o mockup atual
+  const todayCount = data[todayStr] || 0;
+
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="relative min-h-screen bg-[#02050e] text-slate-100 p-4 md:p-8 font-sans antialiased selection:bg-indigo-500/30 overflow-hidden">
+      {/* Luz Ambient Neon de Fundo */}
+      <div className="pointer-events-none absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-indigo-500/10 blur-[140px]" />
+      <div className="pointer-events-none absolute top-1/3 right-10 h-[400px] w-[400px] rounded-full bg-cyan-500/10 blur-[130px]" />
+
+      <div className="relative z-10 max-w-5xl mx-auto space-y-6">
+        {/* ================= 1. NAVEGAÇÃO DE VOLTA ================= */}
         <div className="flex items-center justify-between">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors group"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors group cursor-pointer"
           >
             <ArrowLeft
               size={14}
-              className="transition-transform group-hover:-translate-x-0.5"
+              className="transition-transform group-hover:-translate-x-1 text-indigo-400"
             />
             <span>Voltar para a Dashboard</span>
           </Link>
         </div>
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-[#090d16] border border-slate-800 p-4 rounded-xl">
-            <p className="text-[10px] text-slate-500 uppercase font-bold">
-              Total este mês
-            </p>
-            <p className="text-xl font-bold text-white">24</p>
+
+        {/* ================= 2. KPIS DE RESUMO SUPERIOR ================= */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-[#090d16] to-[#05070e] border border-white/10 p-5 rounded-3xl backdrop-blur-2xl shadow-2xl flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider">
+                Total Este Mês
+              </p>
+              <p className="text-2xl font-black text-white font-mono mt-1">
+                {totalMonthRevisions || 24}
+              </p>
+            </div>
+            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+              <Sparkles size={18} />
+            </div>
           </div>
-          <div className="bg-[#090d16] border border-slate-800 p-4 rounded-xl">
-            <p className="text-[10px] text-slate-500 uppercase font-bold">
-              Hoje
-            </p>
-            <p className="text-xl font-bold text-indigo-400">4</p>
+
+          <div className="bg-gradient-to-br from-[#090d16] to-[#05070e] border border-white/10 p-5 rounded-3xl backdrop-blur-2xl shadow-2xl flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider">
+                Revisões de Hoje
+              </p>
+              <p className="text-2xl font-black text-indigo-400 font-mono mt-1">
+                {todayCount || 4}
+              </p>
+            </div>
+            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+              <Clock size={18} />
+            </div>
           </div>
-          <div className="bg-[#090d16] border border-slate-800 p-4 rounded-xl">
-            <p className="text-[10px] text-slate-500 uppercase font-bold">
-              Atrasados
-            </p>
-            <p className="text-xl font-bold text-rose-400">1</p>
+
+          <div className="bg-gradient-to-br from-[#090d16] to-[#05070e] border border-white/10 p-5 rounded-3xl backdrop-blur-2xl shadow-2xl flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider">
+                Revisões Atrasadas
+              </p>
+              <p className="text-2xl font-black text-rose-400 font-mono mt-1">
+                1
+              </p>
+            </div>
+            <div className="p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+              <AlertCircle size={18} />
+            </div>
           </div>
         </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <CalendarIcon size={24} className="text-indigo-400" />
-              Calendário de Revisões
-            </h1>
+
+        {/* ================= 3. CABEÇALHO DO CALENDÁRIO ================= */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+              <CalendarIcon size={20} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-white tracking-tight">
+                Calendário de Revisões
+              </h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Visão temporal das suas sessões agendadas pelo algoritmo SM-2.
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 bg-slate-950 border border-slate-900 p-1.5 rounded-xl">
-            <button className="p-1 hover:text-indigo-400 transition-colors">
+
+          {/* Navegação de Mês */}
+          <div className="flex items-center gap-2 bg-[#090d16] border border-white/10 p-1.5 rounded-2xl shadow-lg">
+            <button
+              onClick={handlePrevMonth}
+              className="p-1.5 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer active:scale-95"
+              title="Mês anterior"
+            >
               <ChevronLeft size={16} />
             </button>
-            <span className="text-xs font-semibold px-2">Julho 2026</span>
-            <button className="p-1 hover:text-indigo-400 transition-colors">
+            <span className="text-xs font-bold px-2 text-slate-200 capitalize min-w-[110px] text-center">
+              {monthName}
+            </span>
+            <button
+              onClick={handleNextMonth}
+              className="p-1.5 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer active:scale-95"
+              title="Próximo mês"
+            >
               <ChevronRight size={16} />
             </button>
           </div>
         </div>
 
-        {/* Container do Calendário */}
-        <div className="bg-[#090d16] border border-slate-800 rounded-2xl p-6 shadow-xl">
-          {/* Cabeçalho da Grid (Dias da Semana) */}
-          <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">
+        {/* ================= 4. GRADE DO CALENDÁRIO ULTRA-PREMIUM ================= */}
+        <div className="bg-gradient-to-br from-[#090d16] to-[#05070e] border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-2xl">
+          {loading && (
+            <div className="flex items-center justify-center gap-2 py-2 text-xs text-indigo-400 font-bold">
+              <Loader2 size={14} className="animate-spin" /> Atualizando
+              agenda...
+            </div>
+          )}
+
+          {/* Cabeçalho dos Dias da Semana */}
+          <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-3">
             {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
               <span key={d}>{d}</span>
             ))}
           </div>
 
-          {/* Grid dos Dias */}
-          <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: 31 }).map((_, i) => {
-              const day = i + 1;
-              const dateStr = `2026-07-${day.toString().padStart(2, "0")}`;
-              const isToday = day === 13;
+          {/* Grid de Dias */}
+          <div className="grid grid-cols-7 gap-2.5">
+            {/* Espaços vazios antes do dia 1 */}
+            {Array.from({ length: firstDayOffset }).map((_, idx) => (
+              <div key={`offset-${idx}`} className="h-24 rounded-2xl bg-transparent" />
+            ))}
 
-              // 1. Buscamos a quantidade de revisões para este dia específico
+            {/* Dias do Mês */}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const dateStr = `${currentYear}-${(currentMonth + 1)
+                .toString()
+                .padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+
+              const isToday = day === 13 && currentMonth === 6 && currentYear === 2026;
               const count = data[dateStr] || 0;
 
               return (
                 <div
                   key={day}
-                  onClick={() => {
-                    handleDayClick(dateStr);
-                  }}
-                  className={`h-24 p-3 border rounded-xl flex flex-col justify-between transition-all cursor-pointer group 
-        ${
-          isToday
-            ? "border-indigo-500/50 bg-indigo-500/5"
-            : "border-slate-800 bg-slate-950 hover:border-slate-700 hover:bg-slate-900"
-        }
-        ${count === 0 ? "opacity-50 hover:opacity-100" : ""}
-      `}
+                  onClick={() => handleDayClick(dateStr, day)}
+                  className={`h-24 p-3 rounded-2xl border flex flex-col justify-between transition-all cursor-pointer group relative overflow-hidden ${
+                    isToday
+                      ? "border-indigo-500 bg-indigo-500/10 shadow-[0_0_20px_rgba(99,102,241,0.25)]"
+                      : count > 0
+                        ? "border-white/10 bg-slate-950/80 hover:border-indigo-500/40 hover:bg-[#0c101d]"
+                        : "border-white/5 bg-slate-950/40 opacity-60 hover:opacity-100 hover:border-white/10"
+                  }`}
                 >
-                  <span
-                    className={`text-xs font-bold ${isToday ? "text-indigo-400" : "text-slate-500"}`}
-                  >
-                    {day}
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-xs font-bold font-mono ${
+                        isToday
+                          ? "text-indigo-400 font-extrabold"
+                          : "text-slate-400 group-hover:text-white"
+                      }`}
+                    >
+                      {day}
+                    </span>
 
-                  {/* 2. Renderizamos o contador se houver revisões */}
+                    {isToday && (
+                      <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/20 px-1.5 py-0.2 rounded-full border border-indigo-500/30">
+                        Hoje
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Contador de Revisões */}
                   {count > 0 && (
-                    <div className="flex items-center gap-1.5 animate-in zoom-in duration-300">
-                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-                      <span className="text-[10px] font-bold text-indigo-300">
-                        {count}
+                    <div className="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-xl w-fit">
+                      <span className="flex h-1.5 w-1.5 relative shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
+                      </span>
+                      <span className="text-[10px] font-mono font-bold text-indigo-300">
+                        {count} {count === 1 ? "revisão" : "revisões"}
                       </span>
                     </div>
                   )}
@@ -158,61 +275,70 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      {/* ================= 5. MODAL DE DETALHES DO DIA ================= */}
       {selectedDay && (
         <div
-          className="fixed inset-0 bg-[#030712]/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
           onClick={() => setSelectedDay(null)}
         >
           <div
-            className="bg-[#090d16] border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl relative"
+            className="bg-[#090d16] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl relative space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Cabeçalho alinhado com o seu Dashboard */}
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-sm font-bold text-slate-200">
-                  Revisões do dia
-                </h2>
-                <p className="text-xs text-indigo-400 font-semibold mt-0.5">
-                  {selectedDay} de Julho, 2026
-                </p>
+            {/* Cabeçalho do Modal */}
+            <div className="flex justify-between items-start border-b border-white/10 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                  <BookOpen size={18} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white">
+                    Revisões do Dia
+                  </h2>
+                  <p className="text-xs text-indigo-400 font-semibold mt-0.5">
+                    {selectedDay} de {monthName}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedDay(null)}
-                className="text-slate-500 hover:text-indigo-400 transition-colors"
+                className="text-slate-400 hover:text-white p-1 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
               >
-                <span className="text-xl">×</span>
+                <X size={18} />
               </button>
             </div>
 
-            {/* Lista de tópicos no mesmo estilo do seu Planner/PendingSubjects */}
-            <div className="space-y-3">
+            {/* Lista de Tópicos */}
+            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
               {selectedTopics.length > 0 ? (
                 selectedTopics.map((topic) => (
                   <div
                     key={topic.id}
-                    className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between group"
+                    className="p-3.5 bg-slate-950/80 border border-white/10 hover:border-indigo-500/30 rounded-2xl flex items-center justify-between gap-3 group transition-all"
                   >
-                    <div>
-                      <p className="text-xs font-bold text-slate-200">
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block truncate">
+                        {topic.subject?.name || "Sem Matéria"}
+                      </span>
+                      <p className="text-xs font-bold text-slate-200 truncate group-hover:text-white">
                         {topic.title}
                       </p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">
-                        {topic.subject?.name || "Sem Matéria"}
-                      </p>
                     </div>
+
                     <Link
                       href={`/revisar/${topic.id}`}
-                      className="text-[10px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg transition-colors"
+                      className="text-[11px] font-bold bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white px-3.5 py-1.5 rounded-xl transition-all shadow-md shadow-indigo-600/20 shrink-0 cursor-pointer"
                     >
                       Revisar
                     </Link>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-slate-500 text-center py-6">
-                  Nenhuma revisão pendente.
-                </p>
+                <div className="py-8 text-center space-y-1">
+                  <p className="text-xs text-slate-400 font-medium">
+                    Nenhuma revisão agendada para este dia.
+                  </p>
+                </div>
               )}
             </div>
           </div>
