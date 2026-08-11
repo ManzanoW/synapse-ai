@@ -28,7 +28,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Calcula os acertos da sessão de questões
+    // 1. Localiza a matéria
+    const subjectRecord = await prisma.subject.findFirst({
+      where: {
+        name: { equals: subject.trim(), mode: "insensitive" },
+        userId: userId,
+      },
+    });
+
+    // 2. 🟢 BUSCA O TÓPICO CORRETO (por UUID ou por Nome/Título)
+    let resolvedTopicId: string | null = null;
+
+    if (topicId) {
+      const topicMatch = await prisma.topic.findFirst({
+        where: {
+          OR: [
+            { id: topicId },
+            { title: { equals: topicId.trim(), mode: "insensitive" } },
+          ],
+          subject: { userId: userId },
+        },
+        select: { id: true },
+      });
+
+      if (topicMatch) {
+        resolvedTopicId = topicMatch.id;
+      }
+    }
+
+    // 3. Calcula os acertos da sessão de questões
     const totalCount = questions.length;
     const correctCount = questions.filter(
       (q: {
@@ -43,14 +71,11 @@ export async function POST(request: Request) {
           (q.userAnswer === q.answer || q.userAnswer === q.gabaritoCorreto)),
     ).length;
 
-    // 2. ⚡ GANHO DE XP COM MULTIPLICADOR DE STREAK E BÔNUS DE GABARITO (PERFECT SCORE)
+    // 4. ⚡ GANHO DE XP
     const baseXp = correctCount * XP_REWARDS.QUESTION_CORRECT;
-
-    // Bônus de Perfect Score: +25% de XP se acertar 100% em cadernos de no mínimo 5 questões
     const isPerfectScore = totalCount >= 5 && correctCount === totalCount;
     const perfectBonusMultiplier = isPerfectScore ? 0.25 : 0;
 
-    // Resgata o registro atual de estatísticas para verificar o streak do usuário
     const currentStats = await prisma.userStats.findUnique({
       where: { userId: userId },
     });
@@ -62,7 +87,6 @@ export async function POST(request: Request) {
       0.5,
     );
 
-    // Multiplicador Total (1 + Streak + Gabarito)
     const totalMultiplier = 1 + streakBonus + perfectBonusMultiplier;
     const earnedXp = Math.round(baseXp * totalMultiplier);
 
@@ -90,62 +114,77 @@ export async function POST(request: Request) {
     const totalXp = updatedStats?.totalXp ?? 0;
     const levelInfo = calculateLevel(totalXp);
 
-    // 3. Localiza o registro da matéria vinculada ao usuário
-    const subjectRecord = await prisma.subject.findFirst({
-      where: {
-        name: { equals: subject.trim(), mode: "insensitive" },
-        userId: userId,
-      },
-      include: {
-        topics: { take: 1 },
-      },
-    });
-
-    const targetTopicId = topicId || subjectRecord?.topics[0]?.id;
-
-    // 4. Salva ou Atualiza o Quiz existente para não duplicar no Histórico
+    // 5. 🛡️ PROTEÇÃO CONTRA DUPLICAÇÃO: Salva, Atualiza ou Reutiliza Quiz recente
     let quizRecord;
 
     if (quizId) {
+      // Caso 1: ID do Quiz explícito fornecido
       quizRecord = await prisma.quiz.update({
         where: { id: quizId },
         data: {
           questions,
           difficulty: difficulty || "Média",
           banca: banca || "Geral",
+          topicId: resolvedTopicId,
         },
       });
     } else {
-      quizRecord = await prisma.quiz.create({
-        data: {
-          banca: banca || "Geral",
+      // Caso 2: Sem ID explícito -> Verifica se um quiz idêntico foi criado nos últimos 30 segundos
+      const recentDuplicate = await prisma.quiz.findFirst({
+        where: {
+          userId,
+          topicId: resolvedTopicId,
           subject,
-          difficulty: difficulty || "Média",
-          questions,
-          userId: userId,
-          topicId: targetTopicId || null,
+          createdAt: {
+            gte: new Date(Date.now() - 30 * 1000), // 30 segundos de janela para deduplicação
+          },
         },
+        orderBy: { createdAt: "desc" },
       });
+
+      if (recentDuplicate) {
+        // Se encontrou um quiz idêntico criado há instantes, apenas atualiza o existente
+        quizRecord = await prisma.quiz.update({
+          where: { id: recentDuplicate.id },
+          data: {
+            questions,
+            difficulty: difficulty || "Média",
+            banca: banca || "Geral",
+          },
+        });
+      } else {
+        // Caso contrário, cria um novo registro
+        quizRecord = await prisma.quiz.create({
+          data: {
+            banca: banca || "Geral",
+            subject,
+            difficulty: difficulty || "Média",
+            questions,
+            userId: userId,
+            topicId: resolvedTopicId,
+          },
+        });
+      }
     }
 
-    // 5. 🚀 Registra no QuizAttempt para histórico e fórmula do Edital
-    if (targetTopicId) {
+    // 6. 🚀 Registra no QuizAttempt e atualiza no Tópico exato
+    if (resolvedTopicId) {
       await prisma.quizAttempt.create({
         data: {
           userId: userId,
-          topicId: targetTopicId,
+          topicId: resolvedTopicId,
           totalCount,
           correctCount,
         },
       });
 
       await prisma.topic.update({
-        where: { id: targetTopicId },
+        where: { id: resolvedTopicId },
         data: { lastQuizAt: new Date() },
       });
     }
 
-    // 6. Atualiza o SRS da matéria se aplicável
+    // 7. Atualiza o SRS da matéria se aplicável
     if (subjectRecord && totalCount > 0) {
       const performance = correctCount / totalCount >= 0.7 ? "bom" : "dificil";
       await updateSubjectSRS(subjectRecord.id, performance);
@@ -155,6 +194,7 @@ export async function POST(request: Request) {
       {
         success: true,
         id: quizRecord.id,
+        quizId: quizRecord.id,
         correctCount,
         totalCount,
         earnedXp,

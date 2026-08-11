@@ -57,11 +57,13 @@ export interface Topic {
   nextRev: string | null;
   relevance?: string;
   color?: string | null;
+  // ID do simulado gerado vinculando ao Planner
+  quizId?: string | null;
   // Campos do motor SM-2
   easiness?: number;
   interval?: number;
   repetitions?: number;
-  // 🟢 RELACIONAMENTO ATUALIZADO:
+  // RELACIONAMENTO ATUALIZADO:
   subject?: {
     id?: string;
     name: string;

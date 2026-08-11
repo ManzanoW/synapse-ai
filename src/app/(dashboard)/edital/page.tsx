@@ -54,22 +54,33 @@ function PlannerContent() {
   // 🔄 Recarregamento manual em segundo plano
   async function refreshData() {
     try {
-      const response = await fetch(`/api/edital?mode=topics`);
-      if (!response.ok) return;
-      const json = await response.json();
-
-      setTopics(json.data || []);
-      const subjectsRes = await fetch(`/api/edital?mode=subjects`);
+      const subjectsRes = await fetch(`/api/edital?mode=subjects`, {
+        cache: "no-store",
+      });
       if (subjectsRes.ok) {
         const subjectsJson = await subjectsRes.json();
-        setSubjects(subjectsJson.data || []);
+        const subjectsData = subjectsJson.data || [];
+        setSubjects(subjectsData);
+
+        // 🟢 Extrai a lista de tópicos mantendo a referência do nome da matéria pai
+        const extractedTopics = subjectsData.flatMap((sub: any) =>
+          (sub.topics || []).map((t: any) => ({
+            ...t,
+            subjectName: sub.name,
+            subjectColor: sub.color || t.subjectColor || t.subject?.color,
+          })),
+        );
+
+        if (extractedTopics.length > 0) {
+          setTopics(extractedTopics);
+        }
       }
     } catch (err) {
       console.error("Erro ao atualizar dados:", err);
     }
   }
 
-  // 🎣 Carregamento inicial
+  // 🎣 Carregamento inicial (apenas uma chamada única usando mode=subjects)
   useEffect(() => {
     let isMounted = true;
 
@@ -78,20 +89,29 @@ function PlannerContent() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/edital?mode=topics`);
-        if (!response.ok)
+        const subjectsRes = await fetch(`/api/edital?mode=subjects`, {
+          cache: "no-store",
+        });
+        if (!subjectsRes.ok)
           throw new Error("Falha ao carregar os dados do banco.");
-        const json = await response.json();
+
+        const subjectsJson = await subjectsRes.json();
 
         if (!isMounted) return;
 
-        setTopics(json.data || []);
+        const subjectsData = subjectsJson.data || [];
+        setSubjects(subjectsData);
 
-        const subjectsRes = await fetch(`/api/edital?mode=subjects`);
-        if (subjectsRes.ok && isMounted) {
-          const subjectsJson = await subjectsRes.json();
-          setSubjects(subjectsJson.data || []);
-        }
+        // 🟢 Extrai os tópicos associando corretamente a matéria pai e o quizId
+        const extractedTopics = subjectsData.flatMap((sub: any) =>
+          (sub.topics || []).map((t: any) => ({
+            ...t,
+            subjectName: sub.name,
+            subjectColor: sub.color || t.subjectColor || t.subject?.color,
+          })),
+        );
+
+        setTopics(extractedTopics);
       } catch (err: unknown) {
         if (isMounted) {
           setError(err instanceof Error ? err.message : "Erro desconhecido");
@@ -191,16 +211,20 @@ function PlannerContent() {
     }
   }
 
-  // Mapeamento dos tópicos para o formato exigido pelo PlannerView
-  const mappedTopicsForView = topics.map((t) => ({
+  // 🟢 Mapeamento preservando a matéria correta e o quizId
+  const mappedTopicsForView = topics.map((t: any) => ({
     id: t.id,
     title: t.title,
-    subjectName: t.subject?.name || "Geral",
-    subjectColor: t.subject?.color,
+    subjectName: t.subjectName || t.subject?.name || "Geral",
+    subjectColor: t.subjectColor || t.subject?.color,
     firstStudy: t.firstStudy,
     performance: t.performance,
     lastRev: t.lastRev,
     nextRev: t.nextRev,
+    quizId:
+      typeof t.quizId === "string" && t.quizId.trim().length > 0
+        ? t.quizId
+        : null,
   }));
 
   return (
@@ -274,6 +298,62 @@ function PlannerContent() {
             onReviewClick={(topic: Topic) => setActiveReviewTopic(topic)}
           />
         </section>
+
+        {/* Header de Metricas Globais */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-gradient-to-r from-[#090d16] via-[#0c1222] to-[#090d16] border border-white/10 p-4 rounded-2xl shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-bold text-xs">
+              {
+                topics.filter(
+                  (t: any) => t.firstStudy && t.firstStudy !== "Pendente",
+                ).length
+              }{" "}
+              / {topics.length}
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                Tópicos Concluídos
+              </p>
+              <p className="text-xs font-semibold text-slate-200">
+                Avanço no Edital
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 md:border-x border-white/10 md:px-4">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs">
+              {subjects.length}
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                Disciplinas
+              </p>
+              <p className="text-xs font-semibold text-slate-200">
+                Mapeadas no Plano
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                Desempenho Geral
+              </p>
+              <p className="text-xs font-semibold text-slate-200">
+                Média em Questões
+              </p>
+            </div>
+            <span className="text-sm font-mono font-bold text-indigo-400">
+              {Math.round(
+                topics.reduce(
+                  (acc: number, t: any) => acc + (t.performance || 0),
+                  0,
+                ) / (topics.length || 1),
+              )}
+              %
+            </span>
+          </div>
+        </div>
 
         {/* Tabela do Planner */}
         {loading ? (
@@ -389,7 +469,7 @@ function PlannerContent() {
   );
 }
 
-// 🟢 2. Export default envelopado no Suspense Boundary que satisfaz o Next.js
+// 🟢 Export default envelopado no Suspense Boundary
 export default function PlannerPage() {
   return (
     <Suspense

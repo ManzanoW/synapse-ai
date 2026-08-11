@@ -6,7 +6,6 @@ import { calculateEarnedXp, calculateLevel } from "@/lib/gamification";
 
 export const dynamic = "force-dynamic";
 
-// Helper para capturar e validar o ID do usuário autenticado
 async function getAuthenticatedUserId() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -15,7 +14,6 @@ async function getAuthenticatedUserId() {
   return session.user.id;
 }
 
-// GET: Busca o Edital Verticalizado, Lista de Tópicos ou Fila de Revisões Diárias
 export async function GET(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
@@ -24,7 +22,7 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const mode = searchParams.get("mode") || "topics"; // 'topics', 'subjects' ou 'review'
+    const mode = searchParams.get("mode") || "topics";
     const type = searchParams.get("type");
 
     if (type === "pending") {
@@ -39,19 +37,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: pendencias });
     }
 
-    // 1. Modo: Filtrar apenas tópicos que precisam ser revisados HOJE (Fila de Ebbinghaus)
     if (mode === "review") {
       const now = new Date();
-
       const reviewQueue = await prisma.topic.findMany({
         where: {
           subject: { userId: userId },
           OR: [{ firstStudy: "Pendente" }, { nextRev: { lte: now } }],
         },
         include: {
-          subject: {
-            select: { name: true, color: true },
-          },
+          subject: { select: { name: true, color: true } },
           flashcards: true,
         },
         orderBy: [{ firstStudy: "asc" }, { nextRev: "asc" }],
@@ -60,33 +54,29 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: reviewQueue }, { status: 200 });
     }
 
-    // 2. Modo: Subjects (Com Fórmula de Domínio Real & Progresso Geral)
+    // 🟢 Busca todos os quizzes do usuário de uma só vez para fazer o cruzamento resiliente
+    const userQuizzes = await prisma.quiz.findMany({
+      where: { userId },
+      select: { id: true, topicId: true, subject: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const userAttempts = await prisma.quizAttempt.findMany({
+      where: { userId },
+      select: { id: true, topicId: true },
+      orderBy: { completedAt: "desc" },
+    });
+
     if (mode === "subjects") {
       try {
         const subjects = await prisma.subject.findMany({
-          where: {
-            userId: userId,
-          },
-          select: {
-            id: true,
-            name: true,
-            color: true,
-            importance: true,
+          where: { userId },
+          orderBy: { name: "asc" },
+          include: {
             topics: {
-              select: {
-                id: true,
-                title: true,
-                firstStudy: true,
-                interval: true,
-                reviewHistories: {
-                  select: { grade: true },
-                },
-                quizAttempts: {
-                  select: {
-                    totalCount: true,
-                    correctCount: true,
-                  },
-                },
+              orderBy: { title: "asc" },
+              include: {
+                reviewHistories: { select: { grade: true } },
               },
             },
           },
@@ -99,10 +89,21 @@ export async function GET(request: Request) {
           let subjectProgressSum = 0;
           const rawTopics = sub.topics || [];
 
-          const formattedTopics = rawTopics.map((topic) => {
+          const formattedTopics = rawTopics.map((topic: any) => {
             totalTopicsGlobal++;
 
-            // 1. Teoria Base (Máx 20%)
+            // 🟢 Busca estrita e segura APENAS na tabela de Quizzes (Simulados reais ativos)
+            const matchingQuiz = (userQuizzes || []).find((q) => {
+              if (!q || !q.id || !q.topicId) return false;
+              return String(q.topicId).trim() === String(topic.id).trim();
+            });
+
+            // 🟢 Atribui APENAS o ID do Quiz ativo (ignora o histórico do QuizAttempt)
+            const activeQuizId = matchingQuiz?.id
+              ? String(matchingQuiz.id)
+              : null;
+
+            // 1. Teoria Base
             const theoryScore =
               topic.firstStudy === "Concluido"
                 ? 20
@@ -111,9 +112,9 @@ export async function GET(request: Request) {
                   ? 10
                   : 0;
 
-            // 2. Retenção SM-2 (Máx 40%)
+            // 2. Retenção SM-2
             const reviewHistories = topic.reviewHistories || [];
-            const validReviews = reviewHistories.filter((r) => {
+            const validReviews = reviewHistories.filter((r: any) => {
               const gradeStr =
                 r && r.grade ? String(r.grade).toUpperCase() : "";
               return ["BOM", "FACIL", "3", "4", "5"].includes(gradeStr);
@@ -123,29 +124,8 @@ export async function GET(request: Request) {
             const intervalScore = Math.min(1, (topic.interval || 0) / 30) * 20;
             const flashcardScore = reviewVolumeScore + intervalScore;
 
-            // 3. Banco de Questões (Máx 40%)
-            const quizAttempts = topic.quizAttempts || [];
-
-            const totalAsked = quizAttempts.reduce(
-              (acc, q) => acc + Number(q?.totalCount || 0),
-              0,
-            );
-            const totalCorrect = quizAttempts.reduce(
-              (acc, q) => acc + Number(q?.correctCount || 0),
-              0,
-            );
-
-            const MIN_QUESTIONS_TARGET = 20;
-            let quizScore = 0;
-
-            if (totalAsked > 0) {
-              const accuracyRatio = totalCorrect / totalAsked;
-              const volumeRatio = Math.min(
-                1,
-                totalAsked / MIN_QUESTIONS_TARGET,
-              );
-              quizScore = accuracyRatio * volumeRatio * 40;
-            }
+            // 3. Banco de Questões (Apenas pontua se houver quiz ativo cadastrado)
+            const quizScore = activeQuizId ? 40 : 0;
 
             const topicProgress = Math.min(
               100,
@@ -156,7 +136,14 @@ export async function GET(request: Request) {
             return {
               id: topic.id,
               title: topic.title,
+              subjectName: sub.name,
+              subjectColor: sub.color,
+              firstStudy: topic.firstStudy,
+              performance: topic.performance,
+              lastRev: topic.lastRev,
+              nextRev: topic.nextRev,
               progress: topicProgress,
+              quizId: activeQuizId, // Retorna null estrito se não existir um Quiz ativo para este UUID
             };
           });
 
@@ -187,7 +174,7 @@ export async function GET(request: Request) {
           data: formattedSubjects,
         });
       } catch (subErr) {
-        console.error("❌ Erro interno no modo subjects:", subErr);
+        console.error("❌ Erro no modo subjects:", subErr);
         return NextResponse.json(
           { error: "Erro interno no modo subjects", details: String(subErr) },
           { status: 500 },
@@ -195,20 +182,31 @@ export async function GET(request: Request) {
       }
     }
 
-    // 3. Modo Padrão (topics)
+    // Modo Padrão
     const topics = await prisma.topic.findMany({
-      where: {
-        subject: { userId: userId },
-      },
+      where: { subject: { userId } },
       include: {
-        subject: {
-          select: { name: true, color: true },
-        },
+        subject: { select: { name: true, color: true } },
       },
       orderBy: { id: "desc" },
     });
 
-    return NextResponse.json({ data: topics }, { status: 200 });
+    const formattedTopics = topics.map((t: any) => {
+      const matchingQuiz = userQuizzes.find(
+        (q) =>
+          q.topicId === t.id ||
+          (q.topicId &&
+            q.topicId.trim().toLowerCase() === t.title.trim().toLowerCase()),
+      );
+      return {
+        ...t,
+        subjectName: t.subject?.name || "Geral",
+        subjectColor: t.subject?.color || "#3B82F6",
+        quizId: matchingQuiz?.id || null,
+      };
+    });
+
+    return NextResponse.json({ data: formattedTopics }, { status: 200 });
   } catch (error: unknown) {
     console.error("❌ ERRO NO GET /api/edital:", error);
     const message = error instanceof Error ? error.message : String(error);
@@ -219,7 +217,6 @@ export async function GET(request: Request) {
   }
 }
 
-// POST: Trata tanto a criação de novos conteúdos quanto a atualização da curva de Ebbinghaus
 export async function POST(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
@@ -229,7 +226,6 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    // 🌟 FLUXO A: Criação de Novo Conteúdo / Tópico
     if (body.action === "CREATE") {
       const { title, subjectName, relevance } = body;
 
@@ -242,11 +238,8 @@ export async function POST(request: Request) {
 
       let subject = await prisma.subject.findFirst({
         where: {
-          name: {
-            equals: subjectName.trim(),
-            mode: "insensitive",
-          },
-          userId: userId,
+          name: { equals: subjectName.trim(), mode: "insensitive" },
+          userId,
         },
       });
 
@@ -259,7 +252,7 @@ export async function POST(request: Request) {
         subject = await prisma.subject.create({
           data: {
             name: subjectName.trim(),
-            userId: userId,
+            userId,
             importance: "5",
             color: randomColor,
           },
@@ -282,7 +275,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🧠 FLUXO B: Atualizar histórico e curva de esquecimento (SM-2)
     const { topicId, grade, performance, streakDays = 0 } = body;
 
     if (!topicId || !grade) {
@@ -293,10 +285,7 @@ export async function POST(request: Request) {
     }
 
     const currentTopic = await prisma.topic.findFirst({
-      where: {
-        id: topicId,
-        subject: { userId: userId },
-      },
+      where: { id: topicId, subject: { userId } },
     });
 
     if (!currentTopic) {
@@ -310,25 +299,16 @@ export async function POST(request: Request) {
       data: { topicId, grade },
     });
 
-    // ⚡ CÁLCULO DINÂMICO DE XP COM STREAK MULTIPLIER
     const earnedXp = calculateEarnedXp(grade, Number(streakDays));
 
-    // Persiste o XP no banco de dados
     const updatedStats = await prisma.userStats.upsert({
-      where: { userId: userId },
-      update: {
-        totalXp: { increment: earnedXp },
-      },
-      create: {
-        userId: userId,
-        totalXp: earnedXp,
-      },
+      where: { userId },
+      update: { totalXp: { increment: earnedXp } },
+      create: { userId, totalXp: earnedXp },
     });
 
-    // Calcula o novo nível e progresso atualizado
     const levelInfo = calculateLevel(updatedStats.totalXp);
 
-    // --- LÓGICA DO ALGORITMO SM-2 ---
     let q = 5;
     if (grade === "Difícil") q = 3;
     if (grade === "Errei") q = 1;
@@ -376,9 +356,9 @@ export async function POST(request: Request) {
         performance: performance !== undefined ? performance : 0,
         lastRev: new Date(),
         nextRev: nextRevisionDate,
-        easiness: easiness,
-        interval: interval,
-        repetitions: repetitions,
+        easiness,
+        interval,
+        repetitions,
       },
     });
 
@@ -415,10 +395,7 @@ export async function DELETE(request: Request) {
 
     if (topicId) {
       const topic = await prisma.topic.findFirst({
-        where: {
-          id: topicId,
-          subject: { userId: userId },
-        },
+        where: { id: topicId, subject: { userId } },
       });
 
       if (!topic) {
@@ -428,16 +405,14 @@ export async function DELETE(request: Request) {
         );
       }
 
-      await prisma.topic.delete({
-        where: { id: topicId },
-      });
+      await prisma.topic.delete({ where: { id: topicId } });
       return NextResponse.json({ success: true, deletedTopicId: topicId });
     }
 
     if (subjectId) {
       const subject = await prisma.subject.findFirst({
         where: {
-          userId: userId,
+          userId,
           OR: [{ id: subjectId }, { name: subjectId }],
         },
       });
@@ -449,13 +424,8 @@ export async function DELETE(request: Request) {
         );
       }
 
-      await prisma.topic.deleteMany({
-        where: { subjectId: subject.id },
-      });
-
-      await prisma.subject.delete({
-        where: { id: subject.id },
-      });
+      await prisma.topic.deleteMany({ where: { subjectId: subject.id } });
+      await prisma.subject.delete({ where: { id: subject.id } });
 
       return NextResponse.json({ success: true, deletedSubjectId: subject.id });
     }

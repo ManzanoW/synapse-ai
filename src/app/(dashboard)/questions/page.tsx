@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
 import {
@@ -69,7 +69,7 @@ function randomizeQuizSession(questionsList: QuestaoIA[]): QuestaoIA[] {
       return q;
     }
     const alternativaCorretaObj = q.alternativas.find(
-      (alt) => alt.id === q.gabaritoCorreto
+      (alt) => alt.id === q.gabaritoCorreto,
     );
     const textoCorreto = alternativaCorretaObj
       ? alternativaCorretaObj.texto
@@ -95,6 +95,8 @@ function randomizeQuizSession(questionsList: QuestaoIA[]): QuestaoIA[] {
 }
 
 export default function QuestoesPage() {
+  const router = useRouter();
+
   const { openSidebar } = useSidebar();
   const searchParams = useSearchParams();
 
@@ -102,11 +104,11 @@ export default function QuestoesPage() {
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
-    null
+    null,
   );
   const [activeTab, setActiveTab] = useState<"create" | "history">("create");
   const [pendingTab, setPendingTab] = useState<"create" | "history" | null>(
-    null
+    null,
   );
 
   // Estados do caderno / questões
@@ -140,7 +142,7 @@ export default function QuestoesPage() {
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [qtdQuestoes, setQtdQuestoes] = useState("5");
   const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
-    "banca"
+    "banca",
   );
   const [dificuldade, setDificuldade] = useState("Média");
   const [textoBase, setTextoBase] = useState("");
@@ -156,7 +158,7 @@ export default function QuestoesPage() {
   // Sessão pausada
   const STORAGE_KEY = "deepwork_quiz_session_v1";
   const [pausedSession, setPausedSession] = useState<PausedSession | null>(
-    null
+    null,
   );
   const [isMounted, setIsMounted] = useState(false);
 
@@ -178,7 +180,7 @@ export default function QuestoesPage() {
           level: levelUpData.newLevel,
           title: levelUpData.title || "Iniciante Consciente",
           timestamp: Date.now(),
-        })
+        }),
       );
     }
   }, [levelUpData]);
@@ -199,14 +201,41 @@ export default function QuestoesPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // 🟢 1. Tratar parâmetros da URL e abrir Modal (com suporte a quizId, subjectId e topicId)
   useEffect(() => {
     const paramTopicId = searchParams.get("topicId");
-    if (paramTopicId) {
-      const timer = setTimeout(() => {
-        setSelectedTopicId(paramTopicId);
+    const paramSubjectId = searchParams.get("subjectId");
+    const paramQuizId = searchParams.get("quizId");
+
+    // Se veio um quizId, carrega o simulado pré-existente
+    if (paramQuizId) {
+      fetch("/api/questions/list")
+        .then((res) => res.json())
+        .then((json) => {
+          const historyList: QuizHistoryItem[] = json.data || [];
+          const foundQuiz = historyList.find((q) => q.id === paramQuizId);
+
+          if (foundQuiz && foundQuiz.questions?.length > 0) {
+            setCurrentQuizId(foundQuiz.id);
+            setQuestions(foundQuiz.questions);
+            setBanca(foundQuiz.banca || "FGV");
+            setMateria(foundQuiz.subject || "");
+            setSelectedAnswers({});
+            setCheckedQuestions({});
+            setTimerSeconds(0);
+            setIsTimerRunning(true);
+            setActiveTab("create");
+          }
+        })
+        .catch(console.error);
+      return;
+    }
+
+    // Se vieram parâmetros de Matéria/Tópico, abre o Gerador de IA
+    if (paramTopicId || paramSubjectId) {
+      queueMicrotask(() => {
         setIsAIModalOpen(true);
-      }, 0);
-      return () => clearTimeout(timer);
+      });
     }
   }, [searchParams]);
 
@@ -249,25 +278,86 @@ export default function QuestoesPage() {
     return () => clearInterval(interval);
   }, [isTimerRunning, questions.length]);
 
+  // 🟢 2. Sincronizar Disciplinas, Matéria e Tópico Específico (com deduplicação de matérias)
   useEffect(() => {
-    if (isAIModalOpen) {
-      fetch("/api/edital?mode=subjects")
-        .then((res) => res.json())
-        .then((json) => {
-          const loadedSubjects: SubjectItem[] = json.data || [];
-          setSubjects(loadedSubjects);
-          if (loadedSubjects.length > 0 && !materia) {
-            setMateria(loadedSubjects[0].name);
+    if (!isAIModalOpen) return;
+
+    fetch("/api/edital?mode=subjects")
+      .then((res) => res.json())
+      .then((json) => {
+        const rawSubjects: SubjectItem[] = json.data || [];
+
+        // Deduplica matérias pelo nome e mescla tópicos
+        const uniqueSubjectsMap = new Map<string, SubjectItem>();
+
+        rawSubjects.forEach((sub) => {
+          const nameKey = sub.name.trim();
+          if (uniqueSubjectsMap.has(nameKey)) {
+            const existing = uniqueSubjectsMap.get(nameKey)!;
+            const combinedTopics = [
+              ...(existing.topics || []),
+              ...(sub.topics || []),
+            ];
+
+            const uniqueTopics = Array.from(
+              new Map(combinedTopics.map((t) => [t.id, t])).values(),
+            );
+
+            existing.topics = uniqueTopics;
+          } else {
+            uniqueSubjectsMap.set(nameKey, {
+              ...sub,
+              name: nameKey,
+              topics: sub.topics ? [...sub.topics] : [],
+            });
           }
-        })
-        .catch(console.error);
-    }
-  }, [isAIModalOpen, materia]);
+        });
+
+        const loadedSubjects = Array.from(uniqueSubjectsMap.values());
+        setSubjects(loadedSubjects);
+
+        const paramSubjectId = searchParams.get("subjectId");
+        const paramTopicId = searchParams.get("topicId");
+
+        if (paramSubjectId) {
+          const decodedSubject = decodeURIComponent(paramSubjectId);
+
+          const matchedSubject = loadedSubjects.find(
+            (s) =>
+              s.id === decodedSubject ||
+              s.name.trim().toLowerCase() ===
+                decodedSubject.trim().toLowerCase(),
+          );
+
+          if (matchedSubject) {
+            setMateria(matchedSubject.name);
+
+            if (paramTopicId && matchedSubject.topics) {
+              const matchedTopic = matchedSubject.topics.find(
+                (t) =>
+                  t.id === paramTopicId ||
+                  t.title.trim().toLowerCase() ===
+                    paramTopicId.trim().toLowerCase(),
+              );
+
+              setSelectedTopicId(matchedTopic ? matchedTopic.id : paramTopicId);
+            }
+          } else {
+            setMateria(decodedSubject);
+            if (paramTopicId) setSelectedTopicId(paramTopicId);
+          }
+        } else if (loadedSubjects.length > 0) {
+          setMateria((prev) => prev || loadedSubjects[0].name);
+          if (paramTopicId) setSelectedTopicId(paramTopicId);
+        }
+      })
+      .catch(console.error);
+  }, [isAIModalOpen, searchParams]);
 
   const currentSubjectObj = subjects.find(
     (s) =>
       s.id === materia ||
-      s.name.trim().toLowerCase() === materia.trim().toLowerCase()
+      s.name.trim().toLowerCase() === materia.trim().toLowerCase(),
   );
   const availableTopics = currentSubjectObj?.topics || [];
 
@@ -276,7 +366,7 @@ export default function QuestoesPage() {
   const correctCount = Object.keys(checkedQuestions).filter(
     (idxStr) =>
       selectedAnswers[Number(idxStr)] ===
-      questions[Number(idxStr)]?.gabaritoCorreto
+      questions[Number(idxStr)]?.gabaritoCorreto,
   ).length;
   const percentageAcc =
     answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
@@ -334,7 +424,7 @@ export default function QuestoesPage() {
         setIsSyncingSM2(false);
       }
     },
-    [selectedTopicId]
+    [selectedTopicId],
   );
 
   const handleAnswerQuestion = useCallback(
@@ -347,7 +437,7 @@ export default function QuestoesPage() {
         const finalCorrect = Object.keys(nextChecked).filter(
           (idxStr) =>
             selectedAnswers[Number(idxStr)] ===
-            questions[Number(idxStr)]?.gabaritoCorreto
+            questions[Number(idxStr)]?.gabaritoCorreto,
         ).length;
         const finalAcc = Math.round((finalCorrect / totalQuestions) * 100);
 
@@ -405,7 +495,7 @@ export default function QuestoesPage() {
       dificuldade,
       gamificationStats,
       refreshStats,
-    ]
+    ],
   );
 
   const handleCreateFlashcard = async (index: number) => {
@@ -481,9 +571,12 @@ export default function QuestoesPage() {
       const json = await response.json();
       const generatedQuestions = json.data || [];
       setQuestions(generatedQuestions);
+
+      // 🟢 Fecha o modal imediatamente
       setIsAIModalOpen(false);
 
       if (generatedQuestions.length > 0) {
+        // 🟢 Salva o simulado e captura o ID retornado imediatamente
         const saveRes = await fetch("/api/questions/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -495,8 +588,17 @@ export default function QuestoesPage() {
             questions: generatedQuestions,
           }),
         });
+
         const saveData = await saveRes.json();
-        if (saveData.id) setCurrentQuizId(saveData.id);
+        const generatedId = saveData.id || saveData.quizId || null;
+
+        if (generatedId) {
+          setCurrentQuizId(generatedId);
+        }
+
+        // 🟢 Limpa a URL e revalida rotas do Next.js sem acionar reabertura de modal
+        router.replace("/questions", { scroll: false });
+        router.refresh();
       }
     } catch (error) {
       console.error("Erro ao gerar simulado:", error);
@@ -561,7 +663,7 @@ export default function QuestoesPage() {
 
       if (e.key === "Enter") {
         const hasSelectedAnswer = Boolean(
-          selectedAnswers[focusedQuestionIndex]
+          selectedAnswers[focusedQuestionIndex],
         );
 
         if (!isAlreadyAnswered && hasSelectedAnswer) {
@@ -739,10 +841,10 @@ export default function QuestoesPage() {
                         setQuestions(pausedSession.questions || []);
                         setSelectedAnswers(pausedSession.selectedAnswers || {});
                         setCheckedQuestions(
-                          pausedSession.checkedQuestions || {}
+                          pausedSession.checkedQuestions || {},
                         );
                         setCreatedFlashcards(
-                          pausedSession.createdFlashcards || {}
+                          pausedSession.createdFlashcards || {},
                         );
                         setTimerSeconds(pausedSession.timerSeconds || 0);
                         setIsTimerRunning(true);
@@ -821,7 +923,7 @@ export default function QuestoesPage() {
                           Meus Simulados Salvos
                         </h3>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          Acessee cadernos criados anteriormente e treine
+                          Acesse cadernos criados anteriormente e treine
                           novamente de forma gratuita.
                         </p>
                       </div>
@@ -971,9 +1073,17 @@ export default function QuestoesPage() {
         availableTopics={availableTopics}
         onClose={() => setIsAIModalOpen(false)}
         onBancaChange={setBanca}
-        onMateriaChange={(val) => {
-          setMateria(val);
-          setSelectedTopicId("");
+        onMateriaChange={(newMateria) => {
+          setMateria(newMateria);
+          // Limpa o tópico selecionado apenas se o usuário trocou manualmente a matéria no select
+          const paramSubjectId = searchParams.get("subjectId");
+          const decodedParam = paramSubjectId
+            ? decodeURIComponent(paramSubjectId)
+            : "";
+
+          if (newMateria !== decodedParam) {
+            setSelectedTopicId("");
+          }
         }}
         onTopicChange={setSelectedTopicId}
         onFonteChange={setFonteConteudo}

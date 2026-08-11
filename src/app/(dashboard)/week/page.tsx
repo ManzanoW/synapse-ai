@@ -174,7 +174,6 @@ export default function WeekPage() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    // Função interna autoexecutável para evitar chamadas de setState síncronas no corpo do Effect
     const fetchData = async () => {
       await loadWeekData(controller.signal);
       clearTimeout(timeoutId);
@@ -241,7 +240,6 @@ export default function WeekPage() {
     });
   };
 
-  // ⚡ FUNÇÃO DE SWAP UNIFICADA PARA AMBAS AS VISÕES
   const handleSwapSubject = ({
     currentSubjectId,
     targetSubjectId,
@@ -549,7 +547,7 @@ export default function WeekPage() {
           />
         ) : (
           <div className="space-y-8 animate-in fade-in duration-300">
-            {/* 🟢 BANNER DE REMANEJAMENTO NA VISÃO SEMANAL */}
+            {/* Banner de Remanejamento */}
             {data?.missedDayName && (
               <RescheduleBanner
                 missedDayName={data.missedDayName}
@@ -582,7 +580,7 @@ export default function WeekPage() {
 
                 return (
                   <button
-                    key={day.dayIndex}
+                    key={`day-${day.dayIndex}`}
                     onClick={() => setSelectedDayIndex(day.dayIndex)}
                     className={`flex flex-col items-start min-w-35 p-3.5 rounded-2xl border transition-all duration-200 relative text-left shrink-0 cursor-pointer ${
                       isSelected
@@ -684,7 +682,7 @@ export default function WeekPage() {
 
                           return (
                             <div
-                              key={subject.id}
+                              key={`subject-${subject.id}-${sIdx}`}
                               className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-5 space-y-3 relative overflow-hidden group/card hover:border-slate-700 transition-all shadow-md"
                             >
                               <div
@@ -735,13 +733,13 @@ export default function WeekPage() {
 
                               <div className="space-y-2 pl-2 pt-1">
                                 {hasTopics ? (
-                                  subject.assignedTopics.map((topic) => {
+                                  subject.assignedTopics.map((topic, tIdx) => {
                                     const isDone =
                                       topic.firstStudy === "Em Revisão";
 
                                     return (
                                       <div
-                                        key={topic.id}
+                                        key={`topic-${topic.id}-${tIdx}`}
                                         onClick={() =>
                                           handleToggleTopic(
                                             topic.id,
@@ -836,9 +834,9 @@ export default function WeekPage() {
                         d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       />
 
-                      {donutSegments.map((seg) => (
+                      {donutSegments.map((seg, segIdx) => (
                         <circle
-                          key={seg.id}
+                          key={`donut-${seg.id}-${segIdx}`}
                           className="transition-all duration-700 ease-out"
                           stroke={seg.color}
                           strokeWidth="3.8"
@@ -869,7 +867,10 @@ export default function WeekPage() {
                     const subjectColor = getSubjectColor(subject, sIdx);
 
                     return (
-                      <div key={subject.id} className="space-y-1">
+                      <div
+                        key={`overview-${subject.id}-${sIdx}`}
+                        className="space-y-1"
+                      >
                         <div className="flex justify-between items-center text-xs font-medium">
                           <div className="flex items-center gap-2 truncate pr-2">
                             <span
@@ -977,7 +978,7 @@ export default function WeekPage() {
                 <div className="grid grid-cols-7 gap-1.5 pt-1">
                   {[1, 2, 3, 4, 5, 6, 7].map((num) => (
                     <button
-                      key={num}
+                      key={`active-day-${num}`}
                       type="button"
                       onClick={() => setActiveDays(num)}
                       className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
@@ -1064,7 +1065,7 @@ export default function WeekPage() {
                   const color = getSubjectColor(s, idx);
                   return (
                     <button
-                      key={s.id}
+                      key={`swap-${s.id}-${idx}`}
                       disabled={isPending}
                       onClick={() =>
                         handleSwapSubject({
