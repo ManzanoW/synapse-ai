@@ -108,7 +108,7 @@ export function QuestionCard({
       {/* BADGE FLUTUANTE DE FOCO */}
       {isFocused && (
         <div
-          className={`absolute -top-[13px] right-8 px-3 py-1 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-xl z-30 border font-extrabold uppercase tracking-widest ${
+          className={`absolute -top-3.25 right-8 px-3 py-1 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-xl z-30 border font-extrabold uppercase tracking-widest ${
             respondida
               ? acertou
                 ? "bg-[#080b13] border-emerald-500/80 text-emerald-400"
