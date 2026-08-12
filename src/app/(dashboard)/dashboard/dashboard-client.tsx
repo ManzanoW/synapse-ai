@@ -240,7 +240,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
 
     if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
-      return "/cards";
+      return "/flashcards";
     }
 
     const titleLower = item.title?.toLowerCase() || "";
@@ -262,7 +262,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
 
     if (titleLower.includes("card") || titleLower.includes("flashcard")) {
-      return "/cards";
+      return "/flashcards";
     }
 
     return "/edital";
@@ -333,7 +333,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
 
           <Link
-            href="/cards"
+            href="/flashcards"
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all active:scale-95 cursor-pointer"
           >
             <Zap size={14} className="fill-white" />
@@ -356,7 +356,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               icon: Layers,
               color: "text-indigo-400",
               bg: "bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/40",
-              href: "/cards",
+              href: "/flashcards",
             },
             {
               title: "Edital Verticalizado",
@@ -564,8 +564,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         title: "Revisar Flashcards",
                         target: 15,
                         current: stats?.metrics.totalFlashcards ?? 0,
-                        unit: "cards",
-                        actionUrl: "/cards",
+                        unit: "flashcards",
+                        actionUrl: "/flashcards",
                         completed: (stats?.metrics.totalFlashcards ?? 0) >= 15,
                       },
                       {
