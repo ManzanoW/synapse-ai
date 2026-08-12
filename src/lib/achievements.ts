@@ -12,7 +12,9 @@ export interface UserAchievementProgress {
   achievementId: string;
   currentValue: number;
   isUnlocked: boolean;
+  isClaimed?: boolean;
   unlockedAt?: string;
+  claimedAt?: string;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [

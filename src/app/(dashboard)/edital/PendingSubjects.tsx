@@ -72,7 +72,7 @@ export default function PendingSubjects({
         {visiblePendings.map((topic) => (
           <div
             key={topic.id}
-            className="group relative bg-[#090d16]/90 hover:bg-[#0c101d] border border-white/[0.08] hover:border-indigo-500/30 px-3.5 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-between gap-3 shadow-md"
+            className="group relative bg-[#090d16]/90 hover:bg-[#0c101d] border border-white/8 hover:border-indigo-500/30 px-3.5 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-between gap-3 shadow-md"
           >
             {/* Lado Esquerdo: Badge + Título em linha única */}
             <div className="min-w-0 flex-1 space-y-0.5">

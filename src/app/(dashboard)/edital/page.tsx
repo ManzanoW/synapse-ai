@@ -300,7 +300,7 @@ function PlannerContent() {
         </section>
 
         {/* Header de Metricas Globais */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-gradient-to-r from-[#090d16] via-[#0c1222] to-[#090d16] border border-white/10 p-4 rounded-2xl shadow-xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-linear-to-r from-[#090d16] via-[#0c1222] to-[#090d16] border border-white/10 p-4 rounded-2xl shadow-xl">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-bold text-xs">
               {

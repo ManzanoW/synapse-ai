@@ -41,13 +41,14 @@ model User {
 
 // 🏆 Modelo para Gamificação e XP
 model UserStats {
-  id            String    @id @default(cuid())
-  userId        String    @unique
-  totalXp       Int       @default(0)
-  streakDays    Int       @default(0)
-  lastStudyDate DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  totalXp             Int       @default(0)
+  streakDays          Int       @default(0)
+  claimedAchievements String    @default("")
+  lastStudyDate       DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -213,5 +214,21 @@ model StudySession {
   notes           String?
   createdAt       DateTime @default(now())
 
+  @@index([userId])
+}
+
+// 🏅 Progresso do Usuário em Conquistas/Insígnias
+model UserAchievementProgress {
+  id            String    @id @default(cuid())
+  userId        String
+  achievementId String // ID da conquista (ex: "level_5", "fire_starter")
+  currentValue  Int       @default(0)
+  isUnlocked    Boolean   @default(false)
+  unlockedAt    DateTime?
+  isClaimed     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, achievementId])
   @@index([userId])
 }
