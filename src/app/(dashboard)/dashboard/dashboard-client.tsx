@@ -568,16 +568,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         actionUrl: "/cards",
                         completed: (stats?.metrics.totalFlashcards ?? 0) >= 15,
                       },
-                      {
+                      {{
                         id: "q3",
-                        title: "Sessão de Foco",
+                        title: "Avançar no Edital",
                         target: 1,
-                        current:
-                          (stats?.metrics.sessionsCount ?? 0) > 0 ? 1 : 0,
-                        unit: "sessão",
-                        actionUrl: "#pomodoro",
+                        current: (stats?.metrics.sessionsCount ?? 0) > 0 ? 1 : 0,
+                        unit: "tópico",
+                        actionUrl: "/edital",
                         completed: (stats?.metrics.sessionsCount ?? 0) > 0,
-                      },
+                      }
                     ].map((quest) => {
                       const progress = Math.min(
                         100,
