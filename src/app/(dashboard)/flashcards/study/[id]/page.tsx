@@ -2,14 +2,38 @@ import { prisma } from "@/lib/prisma";
 import StudyFlashcard from "@/components/flashcards/StudyFlashcard";
 import Link from "next/link";
 import { ArrowLeft, Layers } from "lucide-react";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
 export default async function StudyPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+
   const { id } = await params;
 
+  // CASO 1: REVISÃO GERAL DE TODOS OS CARDS
+  if (id === "all") {
+    const allFlashcards = await prisma.flashcard.findMany({
+      where: {
+        deck: { userId: session.user.id },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return (
+      <StudyFlashcard
+        deckTitle="Revisão Geral"
+        cards={allFlashcards}
+        deckId="all"
+      />
+    );
+  }
+
+  // CASO 2: BARALHO ESPECÍFICO
   const deck = await prisma.deck.findUnique({
     where: { id },
     include: {
@@ -23,8 +47,6 @@ export default async function StudyPage({
     return (
       <div className="flex items-center justify-center min-h-[85vh] p-4 font-sans">
         <div className="w-full max-w-md p-8 bg-slate-900/80 border border-slate-800 rounded-3xl backdrop-blur-2xl text-center space-y-4 shadow-2xl relative overflow-hidden">
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
-
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto shadow-inner">
             <Layers size={24} />
           </div>
