@@ -29,7 +29,6 @@ import {
   ArrowRight,
   Layers,
   HelpCircle,
-  PlayCircle,
   Trophy,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
@@ -332,6 +331,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </p>
             </div>
           </div>
+
+          <Link
+            href="/cards"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all active:scale-95 cursor-pointer"
+          >
+            <Zap size={14} className="fill-white" />
+            <span>Iniciar Estudos do Dia</span>
+          </Link>
         </div>
 
         {/* ================= ATALHOS RÁPIDOS ================= */}
@@ -349,7 +356,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               icon: Layers,
               color: "text-indigo-400",
               bg: "bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/40",
-              href: "/flashcards",
+              href: "/cards",
             },
             {
               title: "Edital Verticalizado",
@@ -561,7 +568,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         actionUrl: "/cards",
                         completed: (stats?.metrics.totalFlashcards ?? 0) >= 15,
                       },
-                      {{
+                      {
                         id: "q3",
                         title: "Avançar no Edital",
                         target: 1,
@@ -569,7 +576,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         unit: "tópico",
                         actionUrl: "/edital",
                         completed: (stats?.metrics.sessionsCount ?? 0) > 0,
-                      }
+                      },
                     ].map((quest) => {
                       const progress = Math.min(
                         100,
