@@ -26,8 +26,11 @@ import {
   X,
   Zap,
   TrendingUp,
-  Clock,
   ArrowRight,
+  Layers,
+  HelpCircle,
+  PlayCircle,
+  Trophy,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -338,6 +341,56 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </button>
         </div>
 
+        {/* ================= ATALHOS RÁPIDOS ================= */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            {
+              title: "Resolver Questões",
+              icon: HelpCircle,
+              color: "text-amber-400",
+              bg: "bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40",
+              href: "/questions",
+            },
+            {
+              title: "Praticar Cards",
+              icon: Layers,
+              color: "text-indigo-400",
+              bg: "bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/40",
+              href: "/cards",
+            },
+            {
+              title: "Iniciar Foco",
+              icon: PlayCircle,
+              color: "text-cyan-400",
+              bg: "bg-cyan-500/10 border-cyan-500/20 hover:border-cyan-500/40",
+              href: "#pomodoro",
+            },
+            {
+              title: "Hall de Conquistas",
+              icon: Trophy,
+              color: "text-emerald-400",
+              bg: "bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40",
+              href: "/conquistas",
+            },
+          ].map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={idx}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-2xl border p-3 backdrop-blur-xl transition-all duration-200 active:scale-95 ${item.bg}`}
+              >
+                <div className={`p-2 rounded-xl ${item.color}`}>
+                  <Icon size={18} />
+                </div>
+                <span className="text-xs font-bold text-slate-200 truncate">
+                  {item.title}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+
         {/* ================= BANNER DE REMANEJAMENTO ================= */}
         {missedDayName && (stats?.journey?.completedTopics ?? 0) > 0 && (
           <RescheduleBanner
@@ -352,7 +405,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
         {/* ================= 2. BANNER HERO DE JORNADA ULTRA-PREMIUM ================= */}
         <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl">
-          {/* Luz de Spot Neon de Fundo */}
           <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-indigo-500/10 blur-[120px]" />
           <div className="pointer-events-none absolute -right-32 -bottom-32 h-96 w-96 rounded-full bg-cyan-500/10 blur-[120px]" />
 
@@ -472,7 +524,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-9">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {/* CARD 1: Missões do Dia (Daily Quest Log) */}
+              {/* CARD 1: Missões do Dia */}
               <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30">
                 <div className="flex h-full flex-col justify-between space-y-4">
                   <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -666,7 +718,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             </div>
 
-            {/* CARD 3: Sugestões com IA Synapse Core */}
+            {/* CARD 3: Sugestões com IA */}
             <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-cyan-500/30">
               <div className="mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -975,7 +1027,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </section>
 
             {/* 4. POMODORO TIMER */}
-            <PomodoroTimer />
+            <div id="pomodoro">
+              <PomodoroTimer />
+            </div>
           </div>
         </div>
       </div>
