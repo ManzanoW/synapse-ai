@@ -19,7 +19,6 @@ import Link from "next/link";
 import { Deck } from "@/types";
 import CreateDeckModal from "@/components/decks/CreateDeckModal";
 
-// Helper de temas e cores dinâmicas para os cards
 function getSubjectTheme(color?: string | null, name?: string) {
   const normalized = (name || "").toLowerCase();
 
@@ -71,7 +70,6 @@ function getSubjectTheme(color?: string | null, name?: string) {
     };
   }
 
-  // Padrão Indigo / Slate para Geral e Outros
   return {
     badge: "bg-indigo-500/20 border-indigo-500/40 text-indigo-300",
     icon: "from-indigo-500/25 via-slate-900 to-cyan-500/10 border-indigo-500/40 text-indigo-300 group-hover:bg-indigo-600 group-hover:text-white",
@@ -114,7 +112,7 @@ export default function DecksPage() {
   const handleDeleteDeck = async (deckId: string, deckTitle: string) => {
     if (
       !confirm(
-        `Tem certeza que deseja excluir o baralho "${deckTitle}"? Todos os flashcards dele serão apagados.`,
+        `Tem certeza que deseja excluir o baralho "${deckTitle}"? Todos os flashcards dele serão apagados.`
       )
     ) {
       return;
@@ -154,7 +152,7 @@ export default function DecksPage() {
     return decks.filter(
       (deck) =>
         deck.title?.toLowerCase().includes(query) ||
-        deck.subject?.name?.toLowerCase().includes(query),
+        deck.subject?.name?.toLowerCase().includes(query)
     );
   }, [decks, searchQuery]);
 
@@ -166,10 +164,9 @@ export default function DecksPage() {
   }, [decks]);
 
   return (
-    <div className="relative min-h-screen p-8 max-w-350 mx-auto text-slate-100 space-y-8 animate-fade-in overflow-hidden">
-      {/* AMBIENT LIGHTS */}
-      <div className="absolute top-0 left-1/3 w-137.5 h-137.5 bg-indigo-600/12 rounded-full blur-[140px] pointer-events-none -z-10" />
-      <div className="absolute top-1/2 right-10 w-96 h-96 bg-violet-600/12 rounded-full blur-[120px] pointer-events-none -z-10" />
+    <div className="relative min-h-screen p-4 md:p-8 max-w-7xl mx-auto text-slate-100 space-y-8 animate-fade-in overflow-hidden font-sans">
+      <div className="absolute top-0 left-1/3 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div className="absolute top-1/2 right-10 w-96 h-96 bg-violet-600/10 rounded-full blur-[120px] pointer-events-none -z-10" />
 
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
@@ -198,7 +195,7 @@ export default function DecksPage() {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="group flex items-center gap-2 bg-linear-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs px-6 py-3.5 rounded-2xl transition-all duration-300 shadow-lg shadow-indigo-600/30 active:scale-95 border border-indigo-400/30 cursor-pointer"
+          className="group flex items-center gap-2 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs px-6 py-3.5 rounded-2xl transition-all duration-300 shadow-lg shadow-indigo-600/30 active:scale-95 border border-indigo-400/30 cursor-pointer"
         >
           <Plus
             size={18}
@@ -208,10 +205,10 @@ export default function DecksPage() {
         </button>
       </div>
 
-      {/* WIDGETS DE RESUMO  */}
+      {/* WIDGETS DE RESUMO */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div className="relative overflow-hidden p-5 bg-slate-900/80 border border-indigo-500/30 hover:border-indigo-500/50 rounded-2xl backdrop-blur-2xl flex items-center gap-4 transition-all duration-300 shadow-xl shadow-indigo-950/30 group">
-          <div className="absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all" />
+          <div className="absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20">
             <Layers size={22} />
           </div>
@@ -219,14 +216,14 @@ export default function DecksPage() {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
               Total de Baralhos
             </span>
-            <span className="text-2xl font-black bg-linear-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent">
+            <span className="text-2xl font-black bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent">
               {decks.length}
             </span>
           </div>
         </div>
 
         <div className="relative overflow-hidden p-5 bg-slate-900/80 border border-violet-500/30 hover:border-violet-500/50 rounded-2xl backdrop-blur-2xl flex items-center gap-4 transition-all duration-300 shadow-xl shadow-violet-950/30 group">
-          <div className="absolute top-0 right-0 w-28 h-28 bg-violet-500/10 rounded-full blur-xl group-hover:bg-violet-500/20 transition-all" />
+          <div className="absolute top-0 right-0 w-28 h-28 bg-violet-500/10 rounded-full blur-xl group-hover:bg-violet-500/20 transition-all pointer-events-none" />
           <div className="w-12 h-12 rounded-2xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center shrink-0 shadow-md shadow-violet-500/20">
             <Zap size={22} />
           </div>
@@ -234,14 +231,14 @@ export default function DecksPage() {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
               Cards Cadastrados
             </span>
-            <span className="text-2xl font-black bg-linear-to-r from-white via-violet-100 to-violet-300 bg-clip-text text-transparent">
+            <span className="text-2xl font-black bg-gradient-to-r from-white via-violet-100 to-violet-300 bg-clip-text text-transparent">
               {totalCardsCount}
             </span>
           </div>
         </div>
 
         <div className="relative overflow-hidden p-5 bg-slate-900/80 border border-emerald-500/30 hover:border-emerald-500/50 rounded-2xl backdrop-blur-2xl flex items-center gap-4 transition-all duration-300 shadow-xl shadow-emerald-950/30 group">
-          <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all" />
+          <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
           <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
             <CheckCircle2 size={22} />
           </div>
@@ -268,7 +265,7 @@ export default function DecksPage() {
             placeholder="Buscar por nome do baralho ou matéria..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-950/90 border border-slate-700/80 focus:border-indigo-500 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden transition-all shadow-inner"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-950/90 border border-slate-700/80 focus:border-indigo-500 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-all shadow-inner"
           />
         </div>
 
@@ -381,7 +378,7 @@ export default function DecksPage() {
                 {/* CORPO DO CARD */}
                 <div className="flex items-start gap-4 z-10">
                   <div
-                    className={`w-13 h-13 rounded-2xl bg-linear-to-br border flex items-center justify-center group-hover:scale-105 transition-all duration-300 shadow-md shrink-0 ${theme.icon}`}
+                    className={`w-13 h-13 rounded-2xl bg-gradient-to-br border flex items-center justify-center group-hover:scale-105 transition-all duration-300 shadow-md shrink-0 ${theme.icon}`}
                   >
                     <BookOpen size={22} />
                   </div>
@@ -405,10 +402,10 @@ export default function DecksPage() {
                     <span className="flex h-2 w-2 relative">
                       <span
                         className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${theme.glowDot}`}
-                      ></span>
+                      />
                       <span
                         className={`relative inline-flex rounded-full h-2 w-2 ${theme.glowDot}`}
-                      ></span>
+                      />
                     </span>
                     <span className="text-slate-300 text-xs font-bold">
                       {cardCount} {cardCount === 1 ? "card" : "cards"}
