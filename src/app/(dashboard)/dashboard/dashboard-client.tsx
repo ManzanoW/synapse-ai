@@ -332,13 +332,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </p>
             </div>
           </div>
-
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-500 active:scale-95 cursor-pointer"
-          >
-            <span>+ Novo Conteúdo</span>
-          </button>
         </div>
 
         {/* ================= ATALHOS RÁPIDOS ================= */}
