@@ -356,21 +356,21 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               icon: Layers,
               color: "text-indigo-400",
               bg: "bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/40",
-              href: "/cards",
+              href: "/flashcards",
             },
             {
-              title: "Iniciar Foco",
-              icon: PlayCircle,
+              title: "Edital Verticalizado",
+              icon: BookOpen,
               color: "text-cyan-400",
               bg: "bg-cyan-500/10 border-cyan-500/20 hover:border-cyan-500/40",
-              href: "#pomodoro",
+              href: "/edital",
             },
             {
               title: "Hall de Conquistas",
               icon: Trophy,
               color: "text-emerald-400",
               bg: "bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40",
-              href: "/conquistas",
+              href: "/achievements",
             },
           ].map((item, idx) => {
             const Icon = item.icon;
