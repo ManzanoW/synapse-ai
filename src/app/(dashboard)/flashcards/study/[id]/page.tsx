@@ -19,10 +19,9 @@ export default async function StudyPage({
     },
   });
 
-  // Tela defensiva de Deck Não Encontrado
   if (!deck) {
     return (
-      <div className="flex items-center justify-center min-h-[85vh] p-4">
+      <div className="flex items-center justify-center min-h-[85vh] p-4 font-sans">
         <div className="w-full max-w-md p-8 bg-slate-900/80 border border-slate-800 rounded-3xl backdrop-blur-2xl text-center space-y-4 shadow-2xl relative overflow-hidden">
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
 
