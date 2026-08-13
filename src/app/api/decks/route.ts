@@ -1,13 +1,77 @@
 // src/app/api/decks/route.ts
 
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { FlashcardRaw } from "@/types";
 import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+interface AIResponse {
+  text: string | null;
+}
+
+/**
+ * 🔄 Função de geração com Retry e Schema Estruturado usando gemini-3.5-flash-lite
+ */
+async function generateFlashcardsWithRetry(
+  prompt: string,
+  retries = 2
+): Promise<AIResponse> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const result = await ai.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.3,
+          maxOutputTokens: 8192,
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              flashcards: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    question: {
+                      type: Type.STRING,
+                      description: "Pergunta objetiva e conceitual para active recall.",
+                    },
+                    answer: {
+                      type: Type.STRING,
+                      description: "Resposta direta e precisa do conceito.",
+                    },
+                    details: {
+                      type: Type.STRING,
+                      description: "Breve explicação ou dica complementar do tema.",
+                    },
+                  },
+                  required: ["question", "answer"],
+                },
+              },
+            },
+            required: ["flashcards"],
+          },
+        },
+      });
+
+      return { text: result.text || "" };
+    } catch (error: unknown) {
+      const err = error as { status?: number };
+      if (err.status === 503 && i < retries - 1) {
+        await new Promise((res) => setTimeout(res, 1000));
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("Falha ao gerar flashcards após múltiplas tentativas.");
+}
 
 /**
  * 📥 GET: Lista todos os baralhos do usuário autenticado
@@ -69,8 +133,7 @@ export async function POST(request: Request) {
     } = body;
 
     // 🟢 DEFINE O TÍTULO DO BARALHO:
-    // Se o usuário selecionou um tópico específico, o título do deck é o nome do tópico.
-    // Caso contrário, fica "Todos os Tópicos".
+    // Se selecionou um tópico específico, o título é o nome do tópico. Senão "Todos os Tópicos".
     const deckTitle =
       topicName && topicName.trim() !== ""
         ? topicName
@@ -80,7 +143,9 @@ export async function POST(request: Request) {
 
     let baseText = content;
     if (fonteConteudo === "banca" || !baseText) {
-      baseText = `Matéria: ${subjectName}${topicName ? `, Tópico: ${topicName}` : ""}`;
+      baseText = `Matéria: ${subjectName}${
+        topicName ? `, Tópico: ${topicName}` : ""
+      }`;
     }
 
     if (!subjectName || !baseText) {
@@ -94,34 +159,21 @@ export async function POST(request: Request) {
     const depthLevel = dificuldade || "MÉDIA";
 
     const prompt = `
-      Você é um especialista em memorização ativa e inteligência educacional.
+      Você é um professor PhD e especialista em memorização ativa.
       Gere EXATAMENTE ${totalFlashcards} flashcards de estudo focados no escopo: "${baseText}".
-      Nível de profundidade/dificuldade das perguntas: ${depthLevel}.
-
-      Retorne ESTRITAMENTE um JSON válido no seguinte formato e sem explicações externas:
-      {
-        "flashcards": [
-          {
-            "question": "Pergunta clara e objetiva para active recall",
-            "answer": "Resposta direta e precisa",
-            "details": "Breve explicação complementar do conceito"
-          }
-        ]
-      }
+      Nível de profundidade/dificuldade dos conceitos: ${depthLevel}.
     `;
 
-    // modelo atualizado para o endpoint oficial
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: { responseMimeType: "application/json" },
-    });
+    // 🟢 CHAMADA GEMINI 3.5 FLASH LITE COM SCHEMA OBRIGATÓRIO E RETRY
+    const response = await generateFlashcardsWithRetry(prompt);
 
-    const resultText = response.text || '{"flashcards": []}';
+    if (!response.text) {
+      throw new Error("Nenhum conteúdo retornado pela IA.");
+    }
 
     let data: { flashcards: FlashcardRaw[] };
     try {
-      data = JSON.parse(resultText) as { flashcards: FlashcardRaw[] };
+      data = JSON.parse(response.text) as { flashcards: FlashcardRaw[] };
     } catch {
       data = { flashcards: [] };
     }
@@ -142,7 +194,7 @@ export async function POST(request: Request) {
 
     const newDeck = await prisma.deck.create({
       data: {
-        title: deckTitle, // Salva o nome do tópico ou "Todos os Tópicos"
+        title: deckTitle, // Salva o nome do Tópico Específico ou "Todos os Tópicos"
         color: color || "bg-indigo-500",
         subjectId: resolvedSubjectId, // Associa à Matéria Principal
         userId: userId,
