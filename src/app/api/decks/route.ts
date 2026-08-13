@@ -1,3 +1,5 @@
+// src/app/api/decks/route.ts
+
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
@@ -7,42 +9,6 @@ import { auth } from "@/auth";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-/**
- * 📥 GET: Lista todos os baralhos do usuário autenticado
- */
-export async function GET() {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const decks = await prisma.deck.findMany({
-      where: { userId }, // 🔒 Filtra apenas decks do usuário
-      include: {
-        subject: true,
-        _count: {
-          select: { flashcards: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json({ data: decks }, { status: 200 });
-  } catch (error) {
-    console.error("❌ Erro no GET /api/decks:", error);
-    return NextResponse.json(
-      { error: "Falha ao buscar decks." },
-      { status: 500 },
-    );
-  }
-}
-
-/**
- * 📤 POST: Gera um novo baralho com flashcards via IA vinculados ao usuário
- */
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -52,25 +18,58 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { name, subjectId, topicId, content, color } = await request.json();
+    const body = await request.json();
+    const {
+      name,
+      materia,
+      subjectId,
+      topicId,
+      topicName,
+      content,
+      fonteConteudo,
+      dificuldade,
+      qtdCards,
+      color,
+    } = body;
 
-    if (!name || !content) {
+    // 🟢 1. Resolve o título final do Baralho e o contexto do texto
+    const deckTitle = name || materia || "Novo Baralho";
+    
+    // Se o usuário selecionou "Matéria/Edital", monta o texto base com os nomes da matéria e tópico
+    let baseText = content;
+    if (fonteConteudo === "banca" || !baseText) {
+      baseText = `Matéria: ${materia || deckTitle}${topicName ? `, Tópico: ${topicName}` : ""}`;
+    }
+
+    if (!deckTitle || !baseText) {
       return NextResponse.json(
-        { error: "Nome e conteúdo são obrigatórios." },
-        { status: 400 },
+        { error: "Matéria principal ou conteúdo para a IA é obrigatório." },
+        { status: 400 }
       );
     }
 
+    // 🟢 2. Monta o Prompt alinhado aos filtros do modal
+    const totalFlashcards = qtdCards || 10;
+    const depthLevel = dificuldade || "MÉDIA";
+
     const prompt = `
-      Você é um especialista em memorização ativa. Gere flashcards baseados neste conteúdo: "${content}".
-      Retorne ESTRITAMENTE um JSON no seguinte formato:
+      Você é um especialista em memorização ativa e inteligência educacional.
+      Gere EXATAMENTE ${totalFlashcards} flashcards de estudo focados no escopo: "${baseText}".
+      Nível de profundidade/dificuldade das perguntas: ${depthLevel}.
+
+      Retorne ESTRITAMENTE um JSON válido no seguinte formato e sem explicações externas:
       {
         "flashcards": [
-          { "question": "Pergunta curta e direta", "answer": "Resposta clara", "details": "Explicação breve" }
+          {
+            "question": "Pergunta clara e objetiva para active recall",
+            "answer": "Resposta direta e precisa",
+            "details": "Breve explicação complementar do conceito"
+          }
         ]
       }
     `;
 
+    // 🟢 3. Chamada corrigida da Gemini API usando modelo estável
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash-lite",
       contents: prompt,
@@ -86,13 +85,28 @@ export async function POST(request: Request) {
       data = { flashcards: [] };
     }
 
-    // Cria o Deck e insere os flashcards atomicamente vinculando ao usuário
+    // 🟢 4. Busca ou associa o SubjectId caso não tenha sido enviado
+    let resolvedSubjectId = subjectId || null;
+    if (!resolvedSubjectId && materia) {
+      const foundSubject = await prisma.subject.findFirst({
+        where: {
+          name: { equals: materia.trim(), mode: "insensitive" },
+          userId: userId,
+        },
+        select: { id: true },
+      });
+      if (foundSubject) {
+        resolvedSubjectId = foundSubject.id;
+      }
+    }
+
+    // 🟢 5. Persiste o Deck e seus Flashcards atomicamente no Prisma
     const newDeck = await prisma.deck.create({
       data: {
-        title: name,
+        title: deckTitle,
         color: color || "bg-indigo-500",
-        subjectId: subjectId || null,
-        userId: userId, // 🔒 Utiliza o ID da sessão do usuário
+        subjectId: resolvedSubjectId,
+        userId: userId,
         flashcards: {
           create: (data.flashcards || []).map(
             (f): Prisma.FlashcardCreateWithoutDeckInput => ({
@@ -100,7 +114,7 @@ export async function POST(request: Request) {
               answer: f.answer,
               details: f.details || "",
               topic: topicId ? { connect: { id: topicId } } : undefined,
-            }),
+            })
           ),
         },
       },
@@ -110,11 +124,11 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ data: newDeck }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Erro ao criar deck:", error);
     return NextResponse.json(
-      { error: "Falha ao processar deck." },
-      { status: 500 },
+      { error: "Falha ao processar deck.", details: error.message },
+      { status: 500 }
     );
   }
 }
