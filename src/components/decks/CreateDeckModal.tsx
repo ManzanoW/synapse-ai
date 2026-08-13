@@ -9,7 +9,6 @@ import {
   AlertCircle,
   BookOpen,
   Target,
-  FileText,
   Layers,
   Palette,
 } from "lucide-react";
@@ -42,53 +41,51 @@ export default function CreateDeckModal({
   const [error, setError] = useState<string | null>(null);
 
   // Estados dos Parâmetros da IA
-  const [name, setName] = useState("");
   const [materia, setMateria] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">("banca");
   const [content, setContent] = useState("");
   const [dificuldade, setDificuldade] = useState("MÉDIA");
   const [qtdCards, setQtdCards] = useState("10");
-  const [color, setColor] = useState("bg-indigo-500");
+  const [color, setColor] = useState("bg-[#00f2fe]"); // Ciano padronizado
 
-  // Dados das matérias e tópicos carregados do banco/edital
+  // Dados das matérias e tópicos carregados do edital
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
 
-  // 🟢 Carrega e deduplica matérias e tópicos dinamicamente
-useEffect(() => {
-  fetch("/api/edital?mode=subjects")
-    .then((res) => res.json())
-    .then((json) => {
-      const rawSubjects: SubjectItem[] = json.data || [];
-      const uniqueSubjectsMap = new Map<string, SubjectItem>();
+  // Carrega e deduplica matérias e tópicos dinamicamente
+  useEffect(() => {
+    fetch("/api/edital?mode=subjects")
+      .then((res) => res.json())
+      .then((json) => {
+        const rawSubjects: SubjectItem[] = json.data || [];
+        const uniqueSubjectsMap = new Map<string, SubjectItem>();
 
-      rawSubjects.forEach((sub) => {
-        const nameKey = sub.name.trim();
-        if (uniqueSubjectsMap.has(nameKey)) {
-          // Se a matéria já existe no Map, junta os tópicos sem duplicar IDs de tópicos
-          const existing = uniqueSubjectsMap.get(nameKey)!;
-          const combinedTopics = [
-            ...(existing.topics || []),
-            ...(sub.topics || []),
-          ];
-          const uniqueTopics = Array.from(
-            new Map(combinedTopics.map((t) => [t.id, t])).values()
-          );
-          existing.topics = uniqueTopics;
-        } else {
-          uniqueSubjectsMap.set(nameKey, {
-            ...sub,
-            name: nameKey,
-            topics: sub.topics ? [...sub.topics] : [],
-          });
-        }
-      });
+        rawSubjects.forEach((sub) => {
+          const nameKey = sub.name.trim();
+          if (uniqueSubjectsMap.has(nameKey)) {
+            const existing = uniqueSubjectsMap.get(nameKey)!;
+            const combinedTopics = [
+              ...(existing.topics || []),
+              ...(sub.topics || []),
+            ];
+            const uniqueTopics = Array.from(
+              new Map(combinedTopics.map((t) => [t.id, t])).values()
+            );
+            existing.topics = uniqueTopics;
+          } else {
+            uniqueSubjectsMap.set(nameKey, {
+              ...sub,
+              name: nameKey,
+              topics: sub.topics ? [...sub.topics] : [],
+            });
+          }
+        });
 
-      const loadedSubjects = Array.from(uniqueSubjectsMap.values());
-      setSubjects(loadedSubjects);
-    })
-    .catch((err) => console.error("Erro ao carregar matérias:", err));
-}, []);
+        const loadedSubjects = Array.from(uniqueSubjectsMap.values());
+        setSubjects(loadedSubjects);
+      })
+      .catch((err) => console.error("Erro ao carregar matérias:", err));
+  }, []);
 
   // Fechar com a tecla ESC
   useEffect(() => {
@@ -109,17 +106,27 @@ useEffect(() => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!materia) {
+      setError("Por favor, selecione a matéria principal para o baralho.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
+
+    // Resolve o nome do tópico selecionado (se houver)
+    const selectedTopicObj = availableTopics.find((t) => t.id === selectedTopicId);
+    const topicoNome = selectedTopicObj ? selectedTopicObj.title : null;
 
     try {
       const response = await fetch("/api/decks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name || materia || "Novo Baralho",
+          name: materia, // O nome do baralho agora é a própria matéria
           materia,
           topicId: selectedTopicId || null,
+          topicName: topicoNome,
           fonteConteudo,
           content: fonteConteudo === "texto" ? content : undefined,
           dificuldade,
@@ -190,22 +197,6 @@ useEffect(() => {
 
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="space-y-5">
-          
-          {/* TÍTULO DO BARALHO */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-extrabold tracking-wider uppercase text-slate-400 flex items-center gap-2">
-              <FileText size={13} className="text-indigo-400" />
-              Título do Baralho
-            </label>
-            <input
-              required
-              disabled={loading}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Arquitetura de Software, Direito Penal..."
-              className="w-full bg-[#0a0f1d] border border-white/10 focus:border-indigo-500/60 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors disabled:opacity-50"
-            />
-          </div>
 
           {/* MATÉRIA PRINCIPAL E TÓPICO */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -215,6 +206,7 @@ useEffect(() => {
                 Matéria Principal
               </label>
               <select
+                required
                 disabled={loading}
                 value={materia}
                 onChange={(e) => {
@@ -315,7 +307,7 @@ useEffect(() => {
               Nível de Profundidade
             </label>
             <div className="grid grid-cols-4 gap-2">
-              {["FÁCIL", "MÉDIA", "DIFÍCIL", "SINTÉTICO"].map((lvl) => (
+              {["FÁCIL", "MÉDIA", "DIFÍCIL", "RESUMIDO"].map((lvl) => (
                 <button
                   key={lvl}
                   type="button"
@@ -390,7 +382,7 @@ useEffect(() => {
 
           {/* BOTÃO DE ENVIO */}
           <button
-            disabled={loading || !name}
+            disabled={loading || !materia}
             type="submit"
             className="w-full bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold py-3.5 px-4 rounded-xl text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer mt-2"
           >
