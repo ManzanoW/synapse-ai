@@ -69,13 +69,13 @@ export default async function FlashcardsPage() {
     },
   });
 
-  // 5. Métrica de retenção aproximada (calculada ou padrão de retenção alta do SM-2)
+  // 5. Métrica de retenção aproximada do algoritmo
   const estimatedRetention = totalCards > 0 ? "88.5%" : "100%";
   const streakDays: number = 0;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto text-slate-100 space-y-8 selection:bg-indigo-500/30 font-sans">
-      {/* 🚀 HERO BANNER - COMMAND CENTER */}
+      {/* 🚀 HERO BANNER */}
       <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-950/90 via-slate-900/90 to-slate-950 border border-indigo-500/30 p-6 md:p-8 shadow-2xl backdrop-blur-2xl">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -315,6 +315,7 @@ export default async function FlashcardsPage() {
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
+                        {/* Pílula: Exibe a Matéria Principal */}
                         <span className="text-[10px] font-bold px-2.5 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-md">
                           {subjectName}
                         </span>
@@ -322,6 +323,8 @@ export default async function FlashcardsPage() {
                           {count} {count === 1 ? "card" : "cards"}
                         </span>
                       </div>
+                      
+                      {/* Título: Exibe o Tópico Específico ou "Todos os Tópicos" */}
                       <h3 className="font-bold text-slate-100 text-base truncate group-hover:text-indigo-300 transition-colors">
                         {deck.title}
                       </h3>
