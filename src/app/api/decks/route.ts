@@ -68,14 +68,22 @@ export async function POST(request: Request) {
       color,
     } = body;
 
-    const deckTitle = name || materia || "Novo Baralho";
-    
+    // 🟢 DEFINE O TÍTULO DO BARALHO:
+    // Se o usuário selecionou um tópico específico, o título do deck é o nome do tópico.
+    // Caso contrário, fica "Todos os Tópicos".
+    const deckTitle =
+      topicName && topicName.trim() !== ""
+        ? topicName
+        : "Todos os Tópicos";
+
+    const subjectName = materia || name || "Geral";
+
     let baseText = content;
     if (fonteConteudo === "banca" || !baseText) {
-      baseText = `Matéria: ${materia || deckTitle}${topicName ? `, Tópico: ${topicName}` : ""}`;
+      baseText = `Matéria: ${subjectName}${topicName ? `, Tópico: ${topicName}` : ""}`;
     }
 
-    if (!deckTitle || !baseText) {
+    if (!subjectName || !baseText) {
       return NextResponse.json(
         { error: "Matéria principal ou conteúdo para a IA é obrigatório." },
         { status: 400 }
@@ -102,8 +110,9 @@ export async function POST(request: Request) {
       }
     `;
 
+    // modelo atualizado para o endpoint oficial
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash-lite", 
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
@@ -118,10 +127,10 @@ export async function POST(request: Request) {
     }
 
     let resolvedSubjectId = subjectId || null;
-    if (!resolvedSubjectId && materia) {
+    if (!resolvedSubjectId && subjectName) {
       const foundSubject = await prisma.subject.findFirst({
         where: {
-          name: { equals: materia.trim(), mode: "insensitive" },
+          name: { equals: subjectName.trim(), mode: "insensitive" },
           userId: userId,
         },
         select: { id: true },
@@ -133,9 +142,9 @@ export async function POST(request: Request) {
 
     const newDeck = await prisma.deck.create({
       data: {
-        title: deckTitle,
+        title: deckTitle, // Salva o nome do tópico ou "Todos os Tópicos"
         color: color || "bg-indigo-500",
-        subjectId: resolvedSubjectId,
+        subjectId: resolvedSubjectId, // Associa à Matéria Principal
         userId: userId,
         flashcards: {
           create: (data.flashcards || []).map(
@@ -149,6 +158,7 @@ export async function POST(request: Request) {
         },
       },
       include: {
+        subject: true,
         _count: { select: { flashcards: true } },
       },
     });
