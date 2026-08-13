@@ -24,13 +24,19 @@ export interface DashboardSubject extends Subject {
   };
 }
 
-export interface Flashcard {
-  id: string;
+// src/types/index.ts
 
-  // Suporte à nova estrutura por Decks / SM-2
+export interface BaseFlashcard {
+  id: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+export interface Flashcard extends BaseFlashcard {
+  // Suporte à estrutura por Decks / SM-2
   front?: string;
   back?: string;
-  deckId?: string;
+  deckId?: string | null;
   interval?: number;
   repetitions?: number;
   easeFactor?: number;
@@ -40,12 +46,9 @@ export interface Flashcard {
   question?: string;
   answer?: string;
   details?: string | null;
-  topicId?: string;
+  topicId?: string | null;
   topicTitle?: string;
   subjectName?: string;
-
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
 }
 
 export interface Topic {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -28,6 +28,7 @@ import {
 
 interface SidebarProps {
   user?: {
+    id?: string;
     name?: string | null;
     email?: string | null;
     image?: string | null;
@@ -70,10 +71,16 @@ const NAV_GROUPS = [
 export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const { isOpen, closeSidebar } = useSidebar();
-  const { stats, isLoading } = useGamification();
+  const { stats, isLoading, refreshStats } = useGamification();
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      refreshStats(user.id);
+    }
+  }, [user?.id, refreshStats]);
 
   const gamification = stats?.gamification;
   const streak = stats?.streak;

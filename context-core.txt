@@ -1,0 +1,1437 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/actions/**/*, src/types/**/*, src/context/**/*, src/lib/**/*
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+src/
+  actions/
+    auth-actions.ts
+  context/
+    AchievementContext.tsx
+    GamificationContext.tsx
+  lib/
+    utils/
+      pace.ts
+    achievements-engine.ts
+    achievements.ts
+    adaptive-rebalancer.ts
+    analytics-utils.ts
+    check-achievements.ts
+    gamification.ts
+    prisma.ts
+    sidebar-context.tsx
+    sm2.ts
+    srs-algorithm.ts
+    srs-service.ts
+    study-cycle.ts
+    supabase.ts
+  types/
+    adaptive.ts
+    index.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/lib/analytics-utils.ts">
+// Define a estrutura de uma questão individual
+export interface Question {
+  isCorrect: boolean;
+  difficulty: string;
+}
+
+// Define a estrutura do objeto 'quiz' que vem do banco
+export interface Quiz {
+  subject: string;
+  questions: Question[];
+}
+
+// Define a estrutura do acumulador do reduce
+interface SubjectStats {
+  total: number;
+  hits: number;
+}
+
+export const calculatePerformance = (quizzes: Quiz[]) => {
+  const summary = { bom: 0, dificil: 0, errei: 0 };
+  let totalQuestions = 0;
+  let totalCorrect = 0;
+
+  // Usamos Record<string, SubjectStats> para tipar o objeto dinâmico
+  const performanceBySubject: Record<string, SubjectStats> = quizzes.reduce(
+    (acc: Record<string, SubjectStats>, q: Quiz) => {
+      if (!acc[q.subject]) {
+        acc[q.subject] = { total: 0, hits: 0 };
+      }
+
+      const correctCount = q.questions.filter((item) => item.isCorrect).length;
+
+      acc[q.subject].total += q.questions.length;
+      acc[q.subject].hits += correctCount;
+
+      totalQuestions += q.questions.length;
+      totalCorrect += correctCount;
+
+      return acc;
+    },
+    {},
+  );
+
+  quizzes.forEach((q) => {
+    q.questions.forEach((item) => {
+      if (item.isCorrect === true) {
+        summary.bom += 1;
+      } else {
+        if (item.difficulty === "Difícil") {
+          summary.errei += 1;
+        } else {
+          summary.dificil += 1;
+        }
+      }
+    });
+  });
+
+  return { summary, performanceBySubject, totalQuestions, totalCorrect };
+};
+</file>
+
+<file path="src/lib/prisma.ts">
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+// Cria o escopo global seguro para o TypeScript não recriar conexões no desenvolvimento
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+let prismaInstance: PrismaClient;
+
+// Pega a URL de conexão do ambiente
+const connectionString = process.env.DATABASE_URL;
+
+// Se a URL não existir (acontece durante o worker de build do Next.js),
+// nós criamos um cliente vazio ou mockado para a compilação passar direto
+if (!connectionString) {
+  // Inicialização fake para o compilador estático do Next.js ignorar o erro de parâmetro vazio
+  prismaInstance = new PrismaClient({
+    // Passamos um adapter dummy apenas para o construtor do Prisma 7 aceitar a instância no build
+    adapter: new PrismaPg(
+      new Pool({
+        connectionString: "postgresql://mock:mock@localhost:5432/mock",
+      }),
+    ),
+  });
+} else {
+  // Fluxo real de execução (Desenvolvimento e Produção)
+  if (!globalForPrisma.prisma) {
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaPg(pool);
+    globalForPrisma.prisma = new PrismaClient({ adapter });
+  }
+  prismaInstance = globalForPrisma.prisma;
+}
+
+export const prisma = prismaInstance;
+</file>
+
+<file path="src/lib/sidebar-context.tsx">
+'use client';
+
+import React, { createContext, useContext, useState } from 'react';
+
+interface SidebarContextType {
+  isOpen: boolean;
+  openSidebar: () => void;
+  closeSidebar: () => void;
+}
+
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
+
+export function SidebarProvider({ children }: { children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const openSidebar = () => setIsOpen(true);
+  const closeSidebar = () => setIsOpen(false);
+
+  return (
+    <SidebarContext.Provider value={{ isOpen, openSidebar, closeSidebar }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+}
+
+export function useSidebar() {
+  const context = useContext(SidebarContext);
+  if (!context) {
+    throw new Error('useSidebar deve ser usado dentro de um SidebarProvider');
+  }
+  return context;
+}
+</file>
+
+<file path="src/lib/sm2.ts">
+
+</file>
+
+<file path="src/lib/srs-algorithm.ts">
+// src/lib/srs-algorithm.ts
+
+export const calculateNextReview = (
+  performance: "bom" | "dificil" | "errei",
+  currentInterval: number,
+) => {
+  // Se errou, revisa em 1 dia (reset)
+  if (performance === "errei") return 1;
+
+  // Se foi difícil, revisa em 3 dias
+  if (performance === "dificil") return 3;
+
+  // Se foi bom, multiplica o intervalo atual por 2 (dobra o tempo)
+  return currentInterval * 2 || 7;
+};
+</file>
+
+<file path="src/lib/srs-service.ts">
+import { prisma } from "@/lib/prisma";
+
+export async function updateSubjectSRS(
+  subjectId: string,
+  performance: "bom" | "dificil" | "errei",
+) {
+  const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+  if (!subject) return;
+
+  let { interval, easiness } = subject;
+  let nextInterval = interval;
+
+  // Lógica do Algoritmo SM-2 adaptada
+  if (performance === "bom") {
+    easiness += 0.1;
+    nextInterval = interval === 1 ? 6 : Math.round(interval * easiness);
+  } else if (performance === "dificil") {
+    easiness = Math.max(1.3, easiness - 0.2);
+    nextInterval = Math.max(1, Math.round(interval * 0.5));
+  } else {
+    // "errei" -> Reset total
+    easiness = Math.max(1.3, easiness - 0.5);
+    nextInterval = 1;
+  }
+
+  const nextReviewDate = new Date();
+  nextReviewDate.setDate(nextReviewDate.getDate() + nextInterval);
+
+  return await prisma.subject.update({
+    where: { id: subjectId },
+    data: {
+      lastReviewed: new Date(),
+      nextReview: nextReviewDate,
+      interval: nextInterval,
+      easiness: easiness,
+    },
+  });
+}
+</file>
+
+<file path="src/lib/supabase.ts">
+
+</file>
+
+<file path="src/context/AchievementContext.tsx">
+"use client";
+
+import React, { createContext, useContext, useState } from "react";
+import {
+  AchievementToast,
+  ToastAchievement,
+} from "@/components/achievements/achievement-toast";
+
+interface AchievementContextType {
+  notifyAchievement: (achievement: ToastAchievement) => void;
+}
+
+const AchievementContext = createContext<AchievementContextType | undefined>(
+  undefined,
+);
+
+export function AchievementProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [activeAchievement, setActiveAchievement] =
+    useState<ToastAchievement | null>(null);
+
+  const notifyAchievement = (achievement: ToastAchievement) => {
+    setActiveAchievement(achievement);
+  };
+
+  return (
+    <AchievementContext.Provider value={{ notifyAchievement }}>
+      {children}
+      <AchievementToast
+        achievement={activeAchievement}
+        onClose={() => setActiveAchievement(null)}
+      />
+    </AchievementContext.Provider>
+  );
+}
+
+export function useAchievement() {
+  const context = useContext(AchievementContext);
+  if (!context) {
+    throw new Error(
+      "useAchievement deve ser usado dentro de um AchievementProvider",
+    );
+  }
+  return context;
+}
+</file>
+
+<file path="src/context/GamificationContext.tsx">
+"use client";
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+
+interface LevelInfo {
+  level: number;
+  currentLevelXp: number;
+  nextLevelXp: number;
+  progressPercentage: number;
+  title: string;
+}
+
+interface WeekDay {
+  dayLabel: string;
+  active: boolean;
+}
+
+interface StatsData {
+  gamification: {
+    totalXp: number;
+    level: number;
+    currentLevelXp: number;
+    nextLevelXp: number;
+    progressPercentage: number;
+    title: string;
+  };
+  streak: {
+    currentDays: number;
+    weekDays: WeekDay[];
+  };
+}
+
+interface GamificationContextType {
+  stats: StatsData | null;
+  isLoading: boolean;
+  refreshStats: () => Promise<void>;
+}
+
+const GamificationContext = createContext<GamificationContextType | undefined>(
+  undefined,
+);
+
+export function GamificationProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/user/stats");
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar estatísticas do usuário:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchStats();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [fetchStats]);
+
+  return (
+    <GamificationContext.Provider
+      value={{
+        stats,
+        isLoading,
+        refreshStats: fetchStats,
+      }}
+    >
+      {children}
+    </GamificationContext.Provider>
+  );
+}
+
+export function useGamification() {
+  const context = useContext(GamificationContext);
+  if (!context) {
+    throw new Error(
+      "useGamification deve ser usado dentro de GamificationProvider",
+    );
+  }
+  return context;
+}
+</file>
+
+<file path="src/lib/utils/pace.ts">
+export function calculateIdealPace(
+  remainingTopics: number,
+  targetExamDate: Date | string | null,
+) {
+  if (!targetExamDate || remainingTopics <= 0) return null;
+
+  const now = new Date();
+  const examDate = new Date(targetExamDate);
+  const diffTime = examDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) return null;
+
+  const remainingWeeks = diffDays / 7;
+  // Arredonda para 1 casa decimal (ex: 2.7 tópicos/semana)
+  const topicsPerWeek = (remainingTopics / remainingWeeks).toFixed(1);
+
+  return {
+    daysRemaining: diffDays,
+    weeksRemaining: Math.ceil(remainingWeeks),
+    topicsPerWeek: parseFloat(topicsPerWeek),
+  };
+}
+</file>
+
+<file path="src/lib/adaptive-rebalancer.ts">
+import {
+  SubjectPerformance,
+  AdaptiveAdjustment,
+  RebalanceParams,
+} from "@/types/adaptive";
+
+export function calculateAdaptiveRebalance(
+  params: RebalanceParams,
+): AdaptiveAdjustment[] {
+  const adjustments: AdaptiveAdjustment[] = [];
+
+  // 1. Fator Anti-Acúmulo: Ajuste pelo número de dias perdidos
+  const totalWeeklyMinutes = params.weeklyGoalHours * 60;
+  const remainingDays = Math.max(
+    1,
+    params.activeDaysPerWeek - params.daysMissedThisWeek,
+  );
+  const rebalancedDailyGoalMinutes =
+    totalWeeklyMinutes / params.activeDaysPerWeek;
+
+  params.performances.forEach((subject) => {
+    let newMinutes = subject.targetWeeklyMinutes;
+    let reason = "Carga regular mantida pelo ciclo.";
+    let type: AdaptiveAdjustment["type"] = "REBALANCE";
+
+    // 2. Análise de Desempenho (Reforço vs Redução)
+    if (subject.accuracyPercentage < 65 && subject.totalQuestionsSolved >= 10) {
+      // Inserção/Aumento de Reforço Ativo (+25% de tempo)
+      newMinutes = Math.round(subject.targetWeeklyMinutes * 1.25);
+      reason = `Desempenho em ${subject.accuracyPercentage}% (Abaixo do alvo de 70%). Bloco de Reforço Ativo inserido.`;
+      type = "REINFORCEMENT";
+    } else if (
+      subject.accuracyPercentage > 85 &&
+      subject.totalQuestionsSolved >= 15
+    ) {
+      // Redução de carga em matérias dominadas (-15% de tempo)
+      newMinutes = Math.round(subject.targetWeeklyMinutes * 0.85);
+      reason = `Domínio alto (${subject.accuracyPercentage}% de acertos). Tempo otimizado para matérias críticas.`;
+      type = "REDUCTIONS" as any;
+    }
+
+    adjustments.push({
+      subjectId: subject.subjectId,
+      subjectName: subject.subjectName,
+      originalMinutes: subject.targetWeeklyMinutes,
+      adjustedMinutes: newMinutes,
+      reason,
+      type,
+    });
+  });
+
+  return adjustments;
+}
+</file>
+
+<file path="src/lib/check-achievements.ts">
+import { ToastAchievement } from "@/components/achievements/achievement-toast";
+import { ACHIEVEMENTS } from "@/lib/achievements";
+
+export async function checkNewAchievements(
+  notifyFn: (achievement: ToastAchievement) => void
+) {
+  try {
+    const res = await fetch("/api/achievements");
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const progressList = data.progress || [];
+
+    // Busca o histórico local para não repetir notificações já exibidas
+    const notifiedIds: string[] = JSON.parse(
+      localStorage.getItem("notified_achievements") || "[]"
+    );
+
+    // Filtra conquistas recém-desbloqueadas
+    const newUnlocked = progressList.filter(
+      (item: { isUnlocked: boolean; achievementId: string }) =>
+        item.isUnlocked && !notifiedIds.includes(item.achievementId)
+    );
+
+    if (newUnlocked.length > 0) {
+      for (const item of newUnlocked) {
+        // Busca os dados diretamente da constante centralizada em achievements.ts
+        const badge = ACHIEVEMENTS.find((b) => b.id === item.achievementId);
+
+        if (badge) {
+          notifyFn({
+            id: badge.id,
+            title: badge.title,
+            description: badge.description,
+            icon: badge.icon,
+            xpReward: badge.xpReward,
+          });
+
+          notifiedIds.push(badge.id);
+        }
+      }
+
+      // Atualiza o histórico local
+      localStorage.setItem("notified_achievements", JSON.stringify(notifiedIds));
+    }
+  } catch (error) {
+    console.error("Erro ao verificar conquistas:", error);
+  }
+}
+</file>
+
+<file path="src/lib/gamification.ts">
+export interface LevelInfo {
+  level: number;
+  currentXp: number;
+  nextLevelXp: number;
+  progressPercentage: number; // 👈 Adicionado
+  title: string;
+}
+
+// Configuração das patentes por nível
+export const TITLES: Record<number, string> = {
+  1: "Iniciante Consciente",
+  3: "Aprendiz de Elite",
+  5: "Mestre da Retenção",
+  10: "Sábio da Memória",
+  15: "Estrategista de Edital",
+  20: "Especialista em Domínio",
+  30: "Mestre da Neuroplasticidade",
+  40: "Arquiteto do Conhecimento",
+  50: "Lenda da Aprovação",
+};
+
+/**
+ * Calcula o nível com base no XP acumulado (fórmula progressiva)
+ */
+export function calculateLevel(totalXp: number): LevelInfo {
+  let level = 1;
+  let xpForNext = 500;
+  let accumulatedXp = 0;
+
+  while (totalXp >= accumulatedXp + xpForNext) {
+    accumulatedXp += xpForNext;
+    level++;
+    xpForNext = Math.floor(xpForNext * 1.25); // Cada nível exige 25% a mais de XP
+  }
+
+  const currentXp = totalXp - accumulatedXp;
+
+  // 📐 Calcula a porcentagem do progresso do nível atual (0% a 100%)
+  const progressPercentage = Math.min(
+    100,
+    Math.max(0, Math.round((currentXp / xpForNext) * 100)),
+  );
+
+  // Encontra o título correspondente ao nível atual
+  const titleKeys = Object.keys(TITLES)
+    .map(Number)
+    .sort((a, b) => b - a);
+  const titleKey = titleKeys.find((k) => level >= k) || 1;
+
+  return {
+    level,
+    currentXp,
+    nextLevelXp: xpForNext,
+    progressPercentage,
+    title: TITLES[titleKey],
+  };
+}
+
+/**
+ * Valores padrão de ganho de XP por ação no sistema
+ */
+export const XP_REWARDS = {
+  REVIEW_EASY: 25, // Revisão classificada como "Fácil"
+  REVIEW_HARD: 15, // Revisão "Difícil"
+  REVIEW_AGAIN: 5, // Revisão "Errei"
+  QUESTION_CORRECT: 20, // Questão/Quiz correto
+  POMODORO_COMPLETE: 50, // Ciclo Pomodoro concluído
+  STREAK_BONUS_MULTIPLIER: 0.1, // +10% de XP por dia de streak ativo
+};
+
+/**
+ * Calcula o ganho de XP considerando a classificação e o streak ativo
+ */
+export function calculateEarnedXp(
+  grade: string,
+  streakDays: number = 0,
+): number {
+  let baseXp = XP_REWARDS.REVIEW_AGAIN;
+
+  if (grade === "Bom" || grade === "Fácil") {
+    baseXp = XP_REWARDS.REVIEW_EASY;
+  } else if (grade === "Difícil") {
+    baseXp = XP_REWARDS.REVIEW_HARD;
+  }
+
+  // Bônus de 10% por dia, limitado a um máximo de +50% (1.5x)
+  const streakBonus = Math.min(
+    streakDays * XP_REWARDS.STREAK_BONUS_MULTIPLIER,
+    0.5,
+  );
+  const multiplier = 1 + streakBonus;
+
+  return Math.round(baseXp * multiplier);
+}
+</file>
+
+<file path="src/types/adaptive.ts">
+// src/types/adaptive.ts
+
+export interface SubjectPerformance {
+  subjectId: string;
+  subjectName: string;
+  accuracyPercentage: number; // Ex: 58 (%)
+  totalQuestionsSolved: number;
+  lastStudiedAt: Date;
+  targetWeeklyMinutes: number;
+}
+
+export interface RebalanceParams {
+  studyMode: "WEEKLY" | "CYCLE";
+  weeklyGoalHours: number;
+  activeDaysPerWeek: number;
+  daysMissedThisWeek: number;
+  performances: SubjectPerformance[];
+}
+
+export interface AdaptiveAdjustment {
+  subjectId: string;
+  subjectName: string;
+  originalMinutes: number;
+  adjustedMinutes: number;
+  reason: string;
+  type: "REINFORCEMENT" | "REDUCTION" | "REBALANCE";
+}
+</file>
+
+<file path="src/actions/auth-actions.ts">
+"use server";
+
+import { signIn, signOut } from "@/auth";
+
+export async function loginWithGoogle() {
+  await signIn("google", { redirectTo: "/dashboard" });
+}
+
+export async function loginWithGithub() {
+  await signIn("github", { redirectTo: "/dashboard" });
+}
+
+export async function logoutAction() {
+  await signOut({ redirectTo: "/login" });
+}
+</file>
+
+<file path="src/lib/achievements-engine.ts">
+import { prisma } from "@/lib/prisma";
+import { ACHIEVEMENTS } from "@/lib/achievements";
+
+export function calculateLevel(xp: number): number {
+  if (xp < 100) return 1;
+  if (xp < 300) return 2;
+  if (xp < 600) return 3;
+  if (xp < 1000) return 4;
+  return Math.floor((xp - 1000) / 500) + 5;
+}
+
+export async function getUserAchievementsProgress(userId: string) {
+  try {
+    const userStats = await prisma.userStats.findUnique({
+      where: { userId },
+    });
+
+    const reviewCount = await prisma.reviewHistory.count({
+      where: {
+        topic: {
+          subject: {
+            userId,
+          },
+        },
+      },
+    });
+
+    const quizCount = await prisma.quizAttempt.count({
+      where: { userId },
+    });
+
+    const currentStreak = userStats?.streakDays ?? 0;
+    const totalXp = userStats?.totalXp ?? 0;
+    const currentLevel = calculateLevel(totalXp);
+
+    // Converte a string salva no banco em uma lista de IDs resgatados
+    const claimedIds = userStats?.claimedAchievements
+      ? userStats.claimedAchievements.split(",").map((id) => id.trim())
+      : [];
+
+    const progressList = ACHIEVEMENTS.map((badge) => {
+      let currentValue = 0;
+
+      if (
+        badge.id === "level_5" ||
+        badge.id.startsWith("level_") ||
+        badge.category === "MASTERY"
+      ) {
+        currentValue = currentLevel;
+      } else if (badge.id === "xp_rookie" || badge.category === "XP") {
+        currentValue = totalXp;
+      } else if (badge.category === "STREAK") {
+        currentValue = currentStreak;
+      } else if (badge.category === "REVIEWS") {
+        currentValue = reviewCount;
+      } else if (badge.id.includes("quiz") || badge.id.includes("simulado")) {
+        currentValue = quizCount;
+      }
+
+      const isUnlocked = currentValue >= badge.targetValue;
+      const isClaimed = claimedIds.includes(badge.id);
+
+      return {
+        achievementId: badge.id,
+        currentValue: Math.min(currentValue, badge.targetValue),
+        isUnlocked,
+        isClaimed,
+        unlockedAt: isUnlocked ? new Date().toISOString() : undefined,
+      };
+    });
+
+    return progressList;
+  } catch (error) {
+    console.error("Erro ao calcular progresso de conquistas:", error);
+    return [];
+  }
+}
+</file>
+
+<file path="src/lib/achievements.ts">
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  xpReward: number;
+  category: "STREAK" | "REVIEWS" | "XP" | "MASTERY";
+  targetValue: number;
+}
+
+export interface UserAchievementProgress {
+  achievementId: string;
+  currentValue: number;
+  isUnlocked: boolean;
+  isClaimed?: boolean;
+  unlockedAt?: string;
+  claimedAt?: string;
+}
+
+export const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: "first_step",
+    title: "Primeiro Passo",
+    description: "Concluiu a primeira sessão de revisão.",
+    icon: "🌱",
+    xpReward: 50,
+    category: "REVIEWS",
+    targetValue: 1,
+  },
+  {
+    id: "fire_starter",
+    title: "Chama Inicial",
+    description: "Manteve um streak de 3 dias consecutivos.",
+    icon: "🔥",
+    xpReward: 100,
+    category: "STREAK",
+    targetValue: 3,
+  },
+  {
+    id: "fire_master",
+    title: "Inabalável",
+    description: "Manteve um streak de 7 dias consecutivos.",
+    icon: "⚡",
+    xpReward: 250,
+    category: "STREAK",
+    targetValue: 7,
+  },
+  {
+    id: "card_master",
+    title: "Mestre dos Cards",
+    description: "Completou 100 revisões ativas no sistema.",
+    icon: "🎴",
+    xpReward: 300,
+    category: "REVIEWS",
+    targetValue: 100,
+  },
+  {
+    id: "xp_rookie",
+    title: "Acumulador de Conhecimento",
+    description: "Alcançou 1.000 XP total no Synapse AI.",
+    icon: "🏆",
+    xpReward: 150,
+    category: "XP",
+    targetValue: 1000,
+  },
+  {
+    id: "level_5",
+    title: "Mente Afiada",
+    description: "Alcançou o Nível 5 de Synapse.",
+    icon: "🚀",
+    xpReward: 500,
+    category: "MASTERY",
+    targetValue: 5,
+  },
+];
+</file>
+
+<file path="src/types/index.ts">
+import { Quiz } from "@prisma/client";
+
+export interface Subject {
+  id: string;
+  name: string;
+  importance?: string;
+  priority?: string;
+  color?: string | null;
+  userId: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  _count?: {
+    topics: number;
+  };
+  topics?: Topic[];
+}
+
+export interface DashboardSubject extends Subject {
+  progress?: number;
+  accuracy?: number;
+  timeSpent?: string;
+  _count?: {
+    topics: number;
+  };
+}
+
+export interface Flashcard {
+  id: string;
+
+  // Suporte à nova estrutura por Decks / SM-2
+  front?: string;
+  back?: string;
+  deckId?: string;
+  interval?: number;
+  repetitions?: number;
+  easeFactor?: number;
+  dueDate?: string | Date;
+
+  // Suporte ao formato legado / baseado em Tópicos
+  question?: string;
+  answer?: string;
+  details?: string | null;
+  topicId?: string;
+  topicTitle?: string;
+  subjectName?: string;
+
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+export interface Topic {
+  id: string;
+  title: string;
+  firstStudy: string;
+  performance: number;
+  lastRev: string | null;
+  nextRev: string | null;
+  relevance?: string;
+  color?: string | null;
+  // ID do simulado gerado vinculando ao Planner
+  quizId?: string | null;
+  // Campos do motor SM-2
+  easiness?: number;
+  interval?: number;
+  repetitions?: number;
+  // RELACIONAMENTO ATUALIZADO:
+  subject?: {
+    id?: string;
+    name: string;
+    color?: string | null;
+  };
+  subjectId: string;
+  flashcards?: Flashcard[];
+  questions?: Quiz[];
+}
+
+export interface ReviewTopic {
+  id: string;
+  title: string;
+  firstStudy: string;
+  performance?: number;
+  subject?: {
+    name: string;
+    color?: string;
+  };
+}
+
+export interface ReviewHistory {
+  id: string;
+  topicId: string;
+  grade: string;
+  createdAt: Date;
+}
+
+export interface FlashcardRaw {
+  question: string;
+  answer: string;
+  details: string;
+}
+
+export interface Deck {
+  id: string;
+  title: string;
+  color?: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  subjectId?: string | null;
+
+  subject?: {
+    id?: string;
+    name: string;
+    color?: string | null;
+  } | null;
+
+  flashcards?: Flashcard[];
+  _count?: {
+    flashcards: number;
+  };
+}
+</file>
+
+<file path="src/lib/study-cycle.ts">
+export interface Topic {
+  id: string;
+  title: string;
+  firstStudy?: string;
+  relevance?: string | null;
+  performance?: number;
+}
+
+export interface SubjectInput {
+  id: string;
+  name: string;
+  priority: number;
+  color?: string | null;
+  assignedDay?: number | null;
+  lastReviewed?: Date | string;
+  nextReview?: Date | string;
+  interval?: number;
+  easiness?: number;
+  topics?: Topic[];
+}
+
+export interface ScheduledSubject extends SubjectInput {
+  weeklyMinutesAllocated: number;
+  dailyMinutesAllocated: number;
+  percentageOfTotal: number;
+  assignedTopics: Topic[];
+}
+
+export interface DaySchedule {
+  dayIndex: number;
+  dayName: string;
+  totalMinutes: number;
+  subjects: ScheduledSubject[];
+}
+
+export interface CycleBlock {
+  blockNumber: number;
+  subjectId: string;
+  subjectName: string;
+  color: string;
+  durationMinutes: number;
+  assignedTopics: Topic[];
+  status: "COMPLETED" | "CURRENT" | "PENDING";
+}
+
+export interface SM2UpdateResult {
+  newInterval: number;
+  newEasiness: number;
+  newRepetitions: number;
+  nextReviewDate: Date;
+}
+
+export function formatMinutes(minutes: number): string {
+  if (minutes <= 0) return "0m";
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+export function calculateSM2Interval(
+  currentInterval: number,
+  easinessFactor: number,
+  grade: number,
+  subjectPriority: number,
+): { newInterval: number; newEasiness: number } {
+  let newEasiness =
+    easinessFactor + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
+  if (newEasiness < 1.3) newEasiness = 1.3;
+
+  let baseInterval: number;
+  if (grade < 3) {
+    baseInterval = 1;
+  } else if (currentInterval === 0) {
+    baseInterval = 1;
+  } else if (currentInterval === 1) {
+    baseInterval = 6;
+  } else {
+    baseInterval = Math.round(currentInterval * newEasiness);
+  }
+
+  const priorityFactor = Math.max(0.4, 2.0 / Math.max(subjectPriority, 0.5));
+  const newInterval = Math.max(1, Math.round(baseInterval * priorityFactor));
+
+  return { newInterval, newEasiness: Number(newEasiness.toFixed(2)) };
+}
+
+export function processSM2Review(
+  currentInterval: number,
+  currentEasiness: number,
+  currentRepetitions: number,
+  grade: number,
+  subjectPriority: number = 6.3,
+): SM2UpdateResult {
+  let newEasiness =
+    currentEasiness + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
+  if (newEasiness < 1.3) newEasiness = 1.3;
+
+  let newInterval: number;
+  let newRepetitions: number;
+
+  if (grade < 3) {
+    newRepetitions = 0;
+    newInterval = 1;
+  } else {
+    newRepetitions = currentRepetitions + 1;
+    if (newRepetitions === 1) {
+      newInterval = 1;
+    } else if (newRepetitions === 2) {
+      newInterval = 6;
+    } else {
+      newInterval = Math.round(currentInterval * newEasiness);
+    }
+  }
+
+  const priorityFactor = Math.max(0.4, 2.0 / Math.max(subjectPriority, 0.5));
+  const finalInterval = Math.max(1, Math.round(newInterval * priorityFactor));
+
+  const nextReviewDate = new Date();
+  nextReviewDate.setDate(nextReviewDate.getDate() + finalInterval);
+
+  return {
+    newInterval: finalInterval,
+    newEasiness: Number(newEasiness.toFixed(2)),
+    newRepetitions,
+    nextReviewDate,
+  };
+}
+
+/**
+ * Função Auxiliar de Calculo do Score de Urgência SM-2
+ */
+function getSM2UrgencyScore(
+  subject: SubjectInput,
+  nowTimestamp: number,
+): number {
+  const nextTime = subject.nextReview
+    ? new Date(subject.nextReview).getTime()
+    : 0;
+
+  // Fator de atraso (Overdue)
+  const overdueDays =
+    nextTime > 0
+      ? Math.max(0, (nowTimestamp - nextTime) / (1000 * 60 * 60 * 24))
+      : 0;
+
+  // Dificuldade calculada pelo Easiness Factor do SM-2
+  const easiness = subject.easiness || 2.5;
+  const difficultyMultiplier = 2.5 / Math.max(1.3, easiness);
+
+  // Score = (Prioridade base + Peso de atraso em dias) * Multiplicador de retenção
+  return ((subject.priority || 1) + overdueDays * 1.5) * difficultyMultiplier;
+}
+
+/**
+ * MÓDULO 1: Cronograma Semanal (Dinamizado pelo SM-2)
+ */
+export function buildWeeklySchedule(
+  subjects: SubjectInput[],
+  weeklyGoalHours: number,
+  activeDaysPerWeek: number,
+) {
+  if (!subjects || !subjects.length || activeDaysPerWeek <= 0) {
+    return { scheduleByDay: [], subjectOverview: [] };
+  }
+
+  const daysOfWeek = [
+    "Segunda",
+    "Terça",
+    "Quarta",
+    "Quinta",
+    "Sexta",
+    "Sábado",
+    "Domingo",
+  ];
+
+  const totalWeeklyMinutes = Math.max(1, weeklyGoalHours * 60);
+  const totalPriority = subjects.reduce((acc, s) => acc + (s.priority || 1), 0);
+
+  const subjectOverview = subjects.map((subject) => {
+    const priority = subject.priority || 1;
+    const percentage = Math.round((priority / totalPriority) * 100);
+    const weeklyMinutes = Math.round(
+      (totalWeeklyMinutes * priority) / totalPriority,
+    );
+
+    return {
+      ...subject,
+      percentageOfTotal: percentage,
+      weeklyMinutesAllocated: weeklyMinutes,
+    };
+  });
+
+  // SANITIZAÇÃO: Se mais de 50% das matérias têm o mesmo assignedDay, consideramos erro no banco e resetamos localmente
+  const assignedDaysCount: Record<number, number> = {};
+  subjects.forEach((s) => {
+    if (s.assignedDay !== null && s.assignedDay !== undefined) {
+      assignedDaysCount[s.assignedDay] =
+        (assignedDaysCount[s.assignedDay] || 0) + 1;
+    }
+  });
+
+  const hasCorruptedAssignedDays = Object.values(assignedDaysCount).some(
+    (count) => count >= Math.ceil(subjects.length / 2) && subjects.length > 2,
+  );
+
+  const sanitizedSubjects = subjects.map((s) => ({
+    ...s,
+    assignedDay: hasCorruptedAssignedDays ? null : s.assignedDay,
+  }));
+
+  const now = new Date().getTime();
+
+  // Ordenação Dinâmica Unificada baseada no SM-2
+  const sortedSubjects = [...sanitizedSubjects].sort((a, b) => {
+    const scoreA = getSM2UrgencyScore(a, now);
+    const scoreB = getSM2UrgencyScore(b, now);
+    return scoreB - scoreA;
+  });
+
+  const daysSubjectsMap: SubjectInput[][] = Array.from(
+    { length: activeDaysPerWeek },
+    () => [],
+  );
+
+  // Define limite rígido por dia
+  const maxSubjectsPerDay = Math.min(
+    3,
+    Math.max(2, Math.ceil(sanitizedSubjects.length / activeDaysPerWeek)),
+  );
+
+  // Distribuição Round-Robin entre os dias
+  let subjectPointer = 0;
+
+  for (let pass = 0; pass < maxSubjectsPerDay; pass++) {
+    for (let dayIdx = 0; dayIdx < activeDaysPerWeek; dayIdx++) {
+      if (daysSubjectsMap[dayIdx].length >= maxSubjectsPerDay) continue;
+
+      let attempts = 0;
+      while (attempts < sortedSubjects.length) {
+        const candidate =
+          sortedSubjects[subjectPointer % sortedSubjects.length];
+        subjectPointer++;
+        attempts++;
+
+        if (!daysSubjectsMap[dayIdx].some((s) => s.id === candidate.id)) {
+          daysSubjectsMap[dayIdx].push(candidate);
+          break;
+        }
+      }
+    }
+  }
+
+  // 🟢 MONTAGEM FINAL DO CRONOGRAMA COM PONTEIROS DE TÓPICOS GLOBAIS
+  const topicPointers: Record<string, number> = {};
+  sanitizedSubjects.forEach((s) => (topicPointers[s.id] = 0));
+
+  const scheduleByDay: DaySchedule[] = [];
+  const dayTotalMinutes = Math.round(totalWeeklyMinutes / activeDaysPerWeek);
+
+  for (let dayIdx = 0; dayIdx < activeDaysPerWeek; dayIdx++) {
+    const dayName = daysOfWeek[dayIdx % daysOfWeek.length];
+
+    const subjectsForToday = daysSubjectsMap[dayIdx].slice(
+      0,
+      maxSubjectsPerDay,
+    );
+
+    const dayPrioritySum = subjectsForToday.reduce(
+      (acc, s) => acc + (s.priority || 1),
+      0,
+    );
+
+    const daySubjects: ScheduledSubject[] = [];
+
+    subjectsForToday.forEach((subject) => {
+      const priority = subject.priority || 1;
+      const dailyMinutes = Math.round(
+        (dayTotalMinutes * priority) / Math.max(1, dayPrioritySum),
+      );
+      const overview = subjectOverview.find((s) => s.id === subject.id);
+
+      // --- DISTRIBUIÇÃO SEQUENCIAL SEM DUPLICAR NA SEMANA ---
+      const allTopics = subject.topics || [];
+      const assignedTopics: Topic[] = [];
+
+      if (allTopics.length > 0) {
+        const targetTopicCount =
+          dailyMinutes >= 90 ? 3 : dailyMinutes >= 45 ? 2 : 1;
+
+        // Pega os tópicos em ordem sequencial usando o ponteiro global da matéria
+        const currentPointer = topicPointers[subject.id] || 0;
+
+        for (let t = 0; t < targetTopicCount; t++) {
+          const topicIndex = (currentPointer + t) % allTopics.length;
+          assignedTopics.push(allTopics[topicIndex]);
+        }
+
+        // Avança o ponteiro global da matéria para o próximo dia em que ela for estudada
+        topicPointers[subject.id] = currentPointer + assignedTopics.length;
+      }
+
+      daySubjects.push({
+        ...subject,
+        weeklyMinutesAllocated: overview?.weeklyMinutesAllocated || 0,
+        dailyMinutesAllocated: dailyMinutes,
+        percentageOfTotal: overview?.percentageOfTotal || 0,
+        assignedTopics,
+      });
+    });
+
+    scheduleByDay.push({
+      dayIndex: dayIdx,
+      dayName,
+      totalMinutes: dayTotalMinutes,
+      subjects: daySubjects,
+    });
+  }
+
+  return { scheduleByDay, subjectOverview };
+}
+
+/**
+ * MÓDULO 2: Ciclo de Estudos (Sincronizado com Priorização do SM-2)
+ */
+export function buildStudyCycleBlocks(
+  subjects: SubjectInput[],
+  weeklyGoalHours: number,
+  currentIndex: number = 0,
+  palette: string[],
+) {
+  if (!subjects || !subjects.length) {
+    return {
+      blocks: [],
+      totalBlocks: 0,
+      totalMinutes: 0,
+      completedBlocks: 0,
+      currentProgress: 0,
+      subjectBreakdown: [],
+    };
+  }
+
+  const now = new Date().getTime();
+
+  // Sincroniza a ordem dos blocos do ciclo com o mesmo algoritmo SM-2 da Visão Semanal
+  const sortedSubjects = [...subjects].sort((a, b) => {
+    const scoreA = getSM2UrgencyScore(a, now);
+    const scoreB = getSM2UrgencyScore(b, now);
+    return scoreB - scoreA;
+  });
+
+  const totalPriority = sortedSubjects.reduce(
+    (acc, s) => acc + (s.priority || 1),
+    0,
+  );
+  const totalWeeklyMinutes = Math.max(1, weeklyGoalHours * 60);
+  const BLOCK_SIZE_MINUTES = 90;
+
+  const blocks: CycleBlock[] = [];
+  let blockCounter = 1;
+
+  const topicPointers: Record<string, number> = {};
+  sortedSubjects.forEach((s) => (topicPointers[s.id] = 0));
+
+  const subjectBreakdown: {
+    id: string;
+    name: string;
+    color: string;
+    allocatedMinutes: number;
+    percentage: number;
+  }[] = [];
+
+  sortedSubjects.forEach((subject, idx) => {
+    const priority = subject.priority || 1;
+    const allocatedMinutes = Math.round(
+      (totalWeeklyMinutes * priority) / Math.max(1, totalPriority),
+    );
+    const percentage = Math.round(
+      (priority / Math.max(1, totalPriority)) * 100,
+    );
+
+    const subjectColor =
+      subject.color && subject.color.startsWith("#")
+        ? subject.color
+        : palette[idx % palette.length];
+
+    subjectBreakdown.push({
+      id: subject.id,
+      name: subject.name,
+      color: subjectColor,
+      allocatedMinutes,
+      percentage,
+    });
+
+    const numberOfBlocks = Math.max(
+      1,
+      Math.round(allocatedMinutes / BLOCK_SIZE_MINUTES),
+    );
+    const blockDuration = Math.round(allocatedMinutes / numberOfBlocks);
+
+    const allTopics = subject.topics || [];
+
+    for (let b = 0; b < numberOfBlocks; b++) {
+      let assignedTopics: Topic[] = [];
+
+      if (allTopics.length > 0) {
+        const startIdx = topicPointers[subject.id] % allTopics.length;
+        assignedTopics = allTopics.slice(startIdx, startIdx + 2);
+        topicPointers[subject.id] += assignedTopics.length;
+      }
+
+      let status: "COMPLETED" | "CURRENT" | "PENDING" = "PENDING";
+      if (blockCounter - 1 < currentIndex) status = "COMPLETED";
+      else if (blockCounter - 1 === currentIndex) status = "CURRENT";
+
+      blocks.push({
+        blockNumber: blockCounter,
+        subjectId: subject.id,
+        subjectName: subject.name,
+        color: subjectColor,
+        durationMinutes: blockDuration,
+        assignedTopics,
+        status,
+      });
+
+      blockCounter++;
+    }
+  });
+
+  const totalMinutes = blocks.reduce((acc, b) => acc + b.durationMinutes, 0);
+  const completedBlocks = blocks.filter((b) => b.status === "COMPLETED").length;
+  const currentProgress = blocks.length
+    ? Math.round((completedBlocks / blocks.length) * 100)
+    : 0;
+
+  return {
+    blocks,
+    totalBlocks: blocks.length,
+    totalMinutes,
+    completedBlocks,
+    currentProgress,
+    subjectBreakdown,
+  };
+}
+</file>
+
+</files>

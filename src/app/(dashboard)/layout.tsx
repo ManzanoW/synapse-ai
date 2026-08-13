@@ -18,7 +18,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <GamificationProvider>
+      <GamificationProvider userId={session?.user?.id}>
         <AchievementProvider>
           {" "}
           {/* 👈 Envolva a aplicação aqui */}

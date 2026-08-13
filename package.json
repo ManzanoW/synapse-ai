@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "npx prisma generate && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "context:study": "npx repomix --include \"src/app/(dashboard)/study/**/*,src/components/flashcards/**/*,src/components/decks/**/*,src/components/questions/**/*\" --ignore \"src/components/ui/**,**/*.skeleton.tsx\" -o context-study.txt",
+    "context:core": "npx repomix --include \"src/actions/**/*,src/types/**/*,src/context/**/*,src/lib/**/*\" -o context-core.txt",
+    "context:gamification": "npx repomix --include \"src/components/gamification/**/*,src/components/achievements/**/*\" -o context-gamification.txt"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

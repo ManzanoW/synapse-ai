@@ -7,21 +7,14 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
+import { getUserStatsAction } from "@/actions/gamification-actions";
 
-interface LevelInfo {
-  level: number;
-  currentLevelXp: number;
-  nextLevelXp: number;
-  progressPercentage: number;
-  title: string;
-}
-
-interface WeekDay {
+export interface WeekDay {
   dayLabel: string;
   active: boolean;
 }
 
-interface StatsData {
+export interface StatsData {
   gamification: {
     totalXp: number;
     level: number;
@@ -36,10 +29,10 @@ interface StatsData {
   };
 }
 
-interface GamificationContextType {
+export interface GamificationContextType {
   stats: StatsData | null;
   isLoading: boolean;
-  refreshStats: () => Promise<void>;
+  refreshStats: (targetUserId?: string) => Promise<void>;
 }
 
 const GamificationContext = createContext<GamificationContextType | undefined>(
@@ -48,40 +41,68 @@ const GamificationContext = createContext<GamificationContextType | undefined>(
 
 export function GamificationProvider({
   children,
+  userId,
 }: {
   children: React.ReactNode;
+  userId?: string;
 }) {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const res = await fetch("/api/user/stats");
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
+  const refreshStats = useCallback(
+    async (targetUserId?: string) => {
+      const activeUserId = targetUserId || userId;
+      if (!activeUserId) return;
+
+      try {
+        const response = await getUserStatsAction(activeUserId);
+        if (response.success && response.data) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error("Erro ao recarregar estatísticas:", error);
       }
-    } catch (error) {
-      console.error("Erro ao carregar estatísticas do usuário:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [userId],
+  );
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchStats();
-    }, 0);
+    let isMounted = true;
 
-    return () => clearTimeout(timer);
-  }, [fetchStats]);
+    async function loadInitialStats() {
+      if (!userId) {
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await getUserStatsAction(userId);
+        if (isMounted && response.success && response.data) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error(
+          "Erro ao carregar estatísticas via Server Action:",
+          error,
+        );
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadInitialStats();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userId]);
 
   return (
     <GamificationContext.Provider
       value={{
         stats,
         isLoading,
-        refreshStats: fetchStats,
+        refreshStats,
       }}
     >
       {children}

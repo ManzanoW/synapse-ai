@@ -1,0 +1,1263 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/app/(dashboard)/study/**/*, src/components/flashcards/**/*, src/components/decks/**/*, src/components/questions/**/*
+- Files matching these patterns are excluded: src/components/ui/**, **/*.skeleton.tsx
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+src/
+  components/
+    decks/
+      CreateDeckModal.tsx
+    flashcards/
+      Flashcard.tsx
+      FlashcardCreator.tsx
+      FlashcardModal.tsx
+      StudyFlashcard.tsx
+    questions/
+      TimerWidget.tsx
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/components/flashcards/Flashcard.tsx">
+"use client";
+import { useState } from "react";
+
+export default function Flashcard({
+  question,
+  answer,
+}: {
+  question: string;
+  answer: string;
+}) {
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  return (
+    <div
+      onClick={() => setIsFlipped(!isFlipped)}
+      className={`cursor-pointer w-full p-8 rounded-2xl border transition-all duration-500 transform ${
+        isFlipped
+          ? "bg-indigo-900 border-indigo-500"
+          : "bg-[#090d16] border-slate-800"
+      }`}
+    >
+      <p className="text-slate-400 text-sm mb-2">
+        {isFlipped ? "Resposta" : "Pergunta"}
+      </p>
+      <p className="text-xl font-bold">{isFlipped ? answer : question}</p>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/flashcards/FlashcardCreator.tsx">
+"use client";
+
+import { useState } from "react";
+
+export default function FlashcardCreator({ topicId }: { topicId: string }) {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [details, setDetails] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const res = await fetch("/api/flashcards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topicId, question, answer, details }),
+    });
+
+    if (res.ok) {
+      setQuestion("");
+      setAnswer("");
+      setDetails("");
+      alert("Flashcard adicionado com sucesso!");
+    } else {
+      alert("Erro ao salvar flashcard.");
+    }
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="bg-[#090d16] border border-slate-800 p-6 rounded-2xl space-y-4"
+    >
+      <input
+        placeholder="Pergunta"
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-white"
+      />
+      <input
+        placeholder="Resposta"
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
+        className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-white"
+      />
+      <textarea
+        placeholder="Detalhes adicionais (opcional)"
+        value={details}
+        onChange={(e) => setDetails(e.target.value)}
+        className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-white"
+      />
+      <button
+        type="submit"
+        className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold"
+      >
+        Criar Flashcard
+      </button>
+    </form>
+  );
+}
+</file>
+
+<file path="src/components/decks/CreateDeckModal.tsx">
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { X, Loader2, Sparkles, Wand2, AlertCircle } from "lucide-react";
+
+interface CreateDeckModalProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+const COLOR_OPTIONS = [
+  {
+    label: "Índigo",
+    value: "bg-indigo-500",
+    border: "border-indigo-500",
+    glow: "shadow-indigo-500/20",
+  },
+  {
+    label: "Púrpura",
+    value: "bg-purple-500",
+    border: "border-purple-500",
+    glow: "shadow-purple-500/20",
+  },
+  {
+    label: "Ciano",
+    value: "bg-cyan-500",
+    border: "border-cyan-500",
+    glow: "shadow-cyan-500/20",
+  },
+  {
+    label: "Esmeralda",
+    value: "bg-emerald-500",
+    border: "border-emerald-500",
+    glow: "shadow-emerald-500/20",
+  },
+  {
+    label: "Rosa",
+    value: "bg-rose-500",
+    border: "border-rose-500",
+    glow: "shadow-rose-500/20",
+  },
+  {
+    label: "Âmbar",
+    value: "bg-amber-500",
+    border: "border-amber-500",
+    glow: "shadow-amber-500/20",
+  },
+];
+
+export default function CreateDeckModal({
+  onClose,
+  onSuccess,
+}: CreateDeckModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    content: "",
+    color: "bg-indigo-500",
+  });
+
+  // Fechar com a tecla ESC
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !loading) onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, loading]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          content: formData.content,
+          color: formData.color,
+        }),
+      });
+
+      if (response.ok) {
+        onSuccess();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        setError(
+          data.message || "Erro ao processar conteúdo com IA. Tente novamente.",
+        );
+      }
+    } catch (err) {
+      console.error("Erro na requisição:", err);
+      setError("Falha na conexão com o servidor. Verifique sua rede.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in"
+    >
+      <div className="relative w-full max-w-lg bg-slate-950/90 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-[0_0_50px_-12px_rgba(99,102,241,0.25)] backdrop-blur-2xl overflow-hidden select-none">
+        {/* Glow de Fundo Sutil */}
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Header do Modal */}
+        <div className="flex justify-between items-start mb-6">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold tracking-wider uppercase">
+              <Sparkles size={11} /> Gerador IA
+            </div>
+            <h2 className="text-xl font-bold text-white tracking-tight">
+              Criar Baralho com IA
+            </h2>
+          </div>
+
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-400 hover:text-white transition-all disabled:opacity-50"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Mensagem de Erro */}
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Formulário */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Campo Título */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Título do Baralho
+            </label>
+            <input
+              required
+              disabled={loading}
+              className="w-full bg-slate-900/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-all disabled:opacity-50"
+              placeholder="Ex: Arquitetura de Software, Direito Penal..."
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+            />
+          </div>
+
+          {/* Campo Conteúdo Base */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Conteúdo Base para a IA
+            </label>
+            <textarea
+              required
+              disabled={loading}
+              rows={4}
+              className="w-full bg-slate-900/80 border border-white/10 rounded-xl p-4 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-all resize-none disabled:opacity-50"
+              placeholder="Cole aqui o resumo, lei, anotações de aula ou artigo..."
+              value={formData.content}
+              onChange={(e) =>
+                setFormData({ ...formData, content: e.target.value })
+              }
+            />
+            <p className="text-[10px] text-slate-500 mt-1.5">
+              O Gemini extrairá os conceitos principais e gerará os flashcards
+              em segundos.
+            </p>
+          </div>
+
+          {/* Seletor de Cores */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Cor do Baralho
+            </label>
+            <div className="flex items-center gap-3">
+              {COLOR_OPTIONS.map((c) => {
+                const isSelected = formData.color === c.value;
+                return (
+                  <button
+                    key={c.value}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => setFormData({ ...formData, color: c.value })}
+                    className={`w-7 h-7 rounded-full ${c.value} transition-all relative flex items-center justify-center ${
+                      isSelected
+                        ? `ring-2 ring-white ring-offset-2 ring-offset-slate-950 scale-110 ${c.glow}`
+                        : "opacity-60 hover:opacity-100"
+                    }`}
+                    title={c.label}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Botão de Envio */}
+          <button
+            disabled={loading || !formData.name || !formData.content}
+            type="submit"
+            className="w-full bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-3.5 px-4 rounded-xl text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin text-white" size={16} />
+                <span>Processando com IA...</span>
+              </>
+            ) : (
+              <>
+                <Wand2 size={16} />
+                <span>Gerar Flashcards</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/questions/TimerWidget.tsx">
+"use client";
+
+import React from "react";
+import { Play, Pause, RotateCcw, Clock } from "lucide-react";
+import { useStudyTimer } from "@/hooks/useStudyTimer";
+
+interface TimerWidgetProps {
+  onReset?: () => void;
+}
+
+export function TimerWidget({ onReset }: TimerWidgetProps) {
+  const { formattedTime, isRunning, toggle, reset } = useStudyTimer({
+    autoStart: true,
+    storageKey: "questoes_timer",
+  });
+
+  const handleReset = () => {
+    reset();
+    if (onReset) onReset();
+  };
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center gap-2 font-mono text-base font-semibold text-slate-700 dark:text-slate-200">
+        <Clock
+          className={`h-4 w-4 ${isRunning ? "text-emerald-500 animate-pulse" : "text-slate-400"}`}
+        />
+        <span>{formattedTime}</span>
+      </div>
+
+      <div className="flex items-center gap-1 border-l border-slate-200 pl-2 dark:border-slate-800">
+        <button
+          onClick={toggle}
+          className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          title={isRunning ? "Pausar tempo" : "Iniciar tempo"}
+        >
+          {isRunning ? (
+            <Pause className="h-4 w-4" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )}
+        </button>
+
+        <button
+          onClick={handleReset}
+          className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          title="Reiniciar tempo"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/flashcards/FlashcardModal.tsx">
+"use client";
+
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  X,
+  Loader2,
+  Sparkles,
+  Eye,
+  Edit3,
+  HelpCircle,
+  CheckCircle2,
+} from "lucide-react";
+import { Flashcard } from "@/types";
+
+interface FlashcardModalProps {
+  isOpen?: boolean;
+  deckId: string;
+  initialData?: Flashcard | null;
+  onClose: () => void;
+  onSuccess?: () => void;
+}
+
+export default function FlashcardModal({
+  isOpen = true,
+  deckId,
+  initialData,
+  onClose,
+  onSuccess,
+}: FlashcardModalProps) {
+  // Inicialização segura
+  const [front, setFront] = useState(() => {
+    if (!initialData) return "";
+    const raw = initialData as unknown as Record<string, string | undefined>;
+    return raw.front || initialData.question || "";
+  });
+
+  const [back, setBack] = useState(() => {
+    if (!initialData) return "";
+    const raw = initialData as unknown as Record<string, string | undefined>;
+    return raw.back || initialData.answer || "";
+  });
+
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Submissão do formulário
+  const handleSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      if (!front.trim() || !back.trim() || submitting) return;
+
+      setSubmitting(true);
+      try {
+        const isEditing = !!initialData?.id;
+        const url = isEditing
+          ? `/api/flashcards/${initialData.id}`
+          : `/api/flashcards`;
+
+        const method = isEditing ? "PUT" : "POST";
+
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deckId,
+            front,
+            back,
+            question: front,
+            answer: back,
+          }),
+        });
+
+        if (!res.ok) throw new Error("Erro ao salvar flashcard");
+
+        if (onSuccess) onSuccess();
+        onClose();
+      } catch (err) {
+        console.error("Erro ao salvar flashcard:", err);
+        alert("Não foi possível salvar o flashcard. Tente novamente.");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [front, back, submitting, initialData, deckId, onSuccess, onClose],
+  );
+
+  // Atalhos de teclado: Esc para fechar, Ctrl/Cmd + Enter para enviar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      if (e.key === "Escape") {
+        onClose();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose, handleSubmit]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="w-full max-w-xl bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl relative">
+        {/* Glow de fundo */}
+        <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Header do Modal */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/80 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white leading-tight">
+                {initialData ? "Editar Flashcard" : "Novo Flashcard"}
+              </h2>
+              <p className="text-xs text-slate-400">
+                {initialData
+                  ? "Atualize os termos deste card."
+                  : "Adicione uma nova pergunta e resposta."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Seletor Editar / Preview */}
+            <div className="flex bg-slate-950/60 p-1 rounded-xl border border-slate-800/80 text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab("edit")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-colors ${
+                  activeTab === "edit"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Edit3 size={13} /> Editar
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("preview")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-colors ${
+                  activeTab === "preview"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Eye size={13} /> Preview
+              </button>
+            </div>
+
+            <button
+              onClick={onClose}
+              type="button"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Corpo do Modal */}
+        <div className="p-6 relative z-10">
+          {activeTab === "edit" ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                  <span className="flex items-center gap-1 text-indigo-400">
+                    <HelpCircle size={13} /> Frente (Pergunta / Conceito)
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    Obrigatório
+                  </span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={front}
+                  onChange={(e) => setFront(e.target.value)}
+                  placeholder="Ex: O que é Coesão e Acoplamento em Arquitetura de Software?"
+                  required
+                  className="w-full bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500/60 focus:outline-none resize-none transition-all shadow-inner"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <CheckCircle2 size={13} /> Verso (Resposta / Explicação)
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    Obrigatório
+                  </span>
+                </label>
+                <textarea
+                  rows={4}
+                  value={back}
+                  onChange={(e) => setBack(e.target.value)}
+                  placeholder="Ex: Coesão mede o grau de relação funcional das responsabilidades de um módulo. Acoplamento mede o nível de dependência entre diferentes módulos."
+                  required
+                  className="w-full bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500/60 focus:outline-none resize-none transition-all shadow-inner"
+                />
+              </div>
+
+              {/* Rodapé do Form */}
+              <div className="pt-3 border-t border-slate-800/60 flex items-center justify-between">
+                <span className="text-[11px] text-slate-500 hidden sm:inline-block">
+                  Pressione{" "}
+                  <kbd className="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono text-[10px]">
+                    Ctrl
+                  </kbd>{" "}
+                  +{" "}
+                  <kbd className="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono text-[10px]">
+                    Enter
+                  </kbd>{" "}
+                  para salvar
+                </span>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting || !front.trim() || !back.trim()}
+                    className="flex items-center justify-center gap-2 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting && (
+                      <Loader2 size={14} className="animate-spin" />
+                    )}
+                    <span>
+                      {initialData ? "Salvar Alterações" : "Criar Flashcard"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          ) : (
+            /* Modo Preview */
+            <div className="space-y-4">
+              <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-5 space-y-4">
+                <div>
+                  <span className="text-[10px] font-bold tracking-wider text-indigo-400 uppercase bg-indigo-500/10 px-2.5 py-1 rounded-md border border-indigo-500/20">
+                    Frente / Pergunta
+                  </span>
+                  <p className="text-sm font-medium text-slate-100 mt-2 leading-relaxed">
+                    {front || (
+                      <span className="italic text-slate-600">
+                        Escreva uma pergunta para visualizar...
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <div className="border-t border-slate-800/80 pt-4">
+                  <span className="text-[10px] font-bold tracking-wider text-emerald-400 uppercase bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
+                    Verso / Resposta
+                  </span>
+                  <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                    {back || (
+                      <span className="italic text-slate-600">
+                        Escreva uma resposta para visualizar...
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("edit")}
+                  className="text-xs text-indigo-400 hover:underline font-medium"
+                >
+                  Voltar para edição
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/flashcards/StudyFlashcard.tsx">
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import {
+  X,
+  HelpCircle,
+  Check,
+  ArrowLeft,
+  RotateCw,
+  Sparkles,
+  Zap,
+  Loader2,
+  Brain,
+  Award,
+  Command,
+} from "lucide-react";
+import Link from "next/link";
+import confetti from "canvas-confetti";
+import { useGamification } from "@/context/GamificationContext";
+import { useAchievement } from "@/context/AchievementContext";
+import { checkNewAchievements } from "@/lib/check-achievements";
+
+interface Flashcard {
+  id: string;
+  question?: string;
+  answer?: string;
+  front?: string;
+  back?: string;
+  details?: string | null;
+  topicId?: string | null;
+  deckId?: string | null;
+}
+
+interface StudyFlashcardProps {
+  cards: Flashcard[];
+  deckTitle?: string;
+  deckId?: string;
+}
+
+export default function StudyFlashcard({
+  cards,
+  deckTitle,
+}: StudyFlashcardProps) {
+  const [index, setIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
+
+  // 🟢 HOOKS DE GAMIFICAÇÃO & CONQUISTAS
+  const { stats: gamificationStats, refreshStats } = useGamification();
+  const { notifyAchievement } = useAchievement();
+
+  const [levelUpData, setLevelUpData] = useState<{
+    leveledUp: boolean;
+    newLevel: number;
+    title?: string;
+  } | null>(null);
+
+  const [performanceStats, setPerformanceStats] = useState({
+    erros: 0,
+    acertos: 0,
+  });
+
+  const currentCard = cards[index];
+  const progress = cards.length > 0 ? ((index + 1) / cards.length) * 100 : 0;
+
+  const frontText = currentCard
+    ? currentCard.question ||
+      (currentCard as unknown as Record<string, string>).front ||
+      "Sem pergunta"
+    : "";
+
+  const backText = currentCard
+    ? currentCard.answer ||
+      (currentCard as unknown as Record<string, string>).back ||
+      "Sem resposta"
+    : "";
+
+  const handleAnswer = useCallback(
+    async (grade: number) => {
+      if (!currentCard || isSubmitting) return;
+
+      setIsSubmitting(true);
+      setSelectedGrade(grade);
+
+      if (grade < 3) {
+        setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
+      } else {
+        setPerformanceStats((prev) => ({ ...prev, acertos: prev.acertos + 1 }));
+      }
+
+      // ⚡ Converte nota numérica em string para o motor de gamificação
+      const gradeLabel =
+        grade >= 5
+          ? "Fácil"
+          : grade >= 4
+            ? "Bom"
+            : grade >= 3
+              ? "Difícil"
+              : "Errei";
+
+      try {
+        // Nível anterior do contexto
+        const previousLevel = gamificationStats?.gamification?.level ?? 1;
+
+        // 1. Registra o ganho de XP na rota dedicada de gamificação de flashcards
+        const resReview = await fetch("/api/flashcards/review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardId: currentCard.id,
+            grade: gradeLabel,
+          }),
+        });
+
+        if (resReview.ok) {
+          const data = await resReview.json();
+
+          // Checa evolução de nível
+          if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
+            const newLevel = data.levelInfo.level;
+            const newTitle = data.levelInfo.title || "Mestre da Retenção";
+
+            setLevelUpData({
+              leveledUp: true,
+              newLevel,
+              title: newTitle,
+            });
+
+            // 💾 Grava notificação para a Dashboard
+            localStorage.setItem(
+              "pending_levelup_notification",
+              JSON.stringify({
+                level: newLevel,
+                title: newTitle,
+                timestamp: Date.now(),
+              }),
+            );
+          }
+        }
+
+        // 2. Atualiza os algoritmos de repetibilidade (SM-2)
+        await fetch("/api/review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardId: currentCard.id,
+            flashcardId: currentCard.id,
+            topicId:
+              currentCard.topicId || currentCard.deckId || currentCard.id,
+            grade,
+            source: "FLASHCARD",
+          }),
+        });
+
+        // Atualiza os dados de XP globais no app
+        await refreshStats();
+      } catch (error) {
+        console.error("Erro ao sincronizar revisão do flashcard:", error);
+      } finally {
+        setIsSubmitting(false);
+        setSelectedGrade(null);
+      }
+
+      if (index < cards.length - 1) {
+        setIndex((prev) => prev + 1);
+        setIsFlipped(false);
+      } else {
+        setIsFinished(true);
+        confetti({
+          particleCount: 200,
+          spread: 90,
+          origin: { x: 0.5, y: 0.55 },
+          colors: ["#818cf8", "#c084fc", "#38bdf8", "#34d399", "#ffffff"],
+        });
+
+        // 🏆 Dispara a verificação e notificação de novas conquistas em tempo real
+        checkNewAchievements(notifyAchievement);
+      }
+    },
+    [
+      index,
+      cards,
+      currentCard,
+      isSubmitting,
+      gamificationStats,
+      refreshStats,
+      notifyAchievement,
+    ],
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isFinished || !currentCard || isSubmitting) return;
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        setIsFlipped((prev) => !prev);
+      } else if (isFlipped) {
+        if (e.key === "1") handleAnswer(0);
+        if (e.key === "2") handleAnswer(3);
+        if (e.key === "3") handleAnswer(4);
+        if (e.key === "4") handleAnswer(5);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFlipped, isFinished, currentCard, isSubmitting, handleAnswer]);
+
+  if (!cards || cards.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[85vh] p-4">
+        <div className="w-full max-w-md p-8 bg-slate-900/80 border border-slate-800 rounded-3xl backdrop-blur-2xl text-center space-y-4 shadow-2xl relative overflow-hidden">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+            <Sparkles size={24} />
+          </div>
+          <h3 className="text-xl font-bold text-slate-100">Baralho Vazio</h3>
+          <p className="text-slate-400 text-xs">
+            Adicione novos cards para continuar.
+          </p>
+          <Link
+            href="/flashcards/decks"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-xs"
+          >
+            <ArrowLeft size={15} /> Voltar
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-center min-h-[88vh] p-4 relative overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+        <div className="w-162.5 h-112.5 bg-linear-to-r from-indigo-600/15 via-violet-600/20 to-indigo-500/15 rounded-full blur-[120px] opacity-80" />
+        <div className="absolute top-1/3 w-75 h-50 bg-cyan-500/10 rounded-full blur-[90px]" />
+      </div>
+
+      <div className="w-full max-w-2xl p-6 md:p-9 bg-slate-950/80 border border-slate-800/80 rounded-[2.5rem] backdrop-blur-3xl shadow-[0_0_80px_-15px_rgba(99,102,241,0.25)] select-none transition-all relative overflow-hidden z-10">
+        <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent" />
+
+        {isFinished ? (
+          <div className="text-center py-8 space-y-6 relative z-10 animate-in fade-in zoom-in-95 duration-300">
+            <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-2xl animate-pulse" />
+              <div className="relative w-20 h-20 bg-linear-to-br from-emerald-500/20 via-indigo-500/20 to-slate-900 border border-emerald-500/40 rounded-3xl flex items-center justify-center text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.2)] rotate-3">
+                <Award size={42} strokeWidth={1.75} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-emerald-400 uppercase bg-emerald-500/10 px-3.5 py-1.5 rounded-full border border-emerald-500/30 backdrop-blur-md">
+                <Sparkles size={12} /> Sessão Concluída
+              </span>
+              <h2 className="text-3xl md:text-4xl font-black text-transparent bg-linear-to-r from-white via-slate-100 to-indigo-200 bg-clip-text pt-2">
+                Sinapses Reforçadas!
+              </h2>
+              <p className="text-slate-400 text-xs max-w-xs mx-auto leading-relaxed">
+                Você concluiu a revisão de{" "}
+                <strong className="text-indigo-300 font-semibold">
+                  {cards.length} cards
+                </strong>{" "}
+                com sucesso.
+              </p>
+            </div>
+
+            {/* 🟢 BANNER DE LEVEL UP SE HOUVER SUBIDA DE NÍVEL */}
+            {levelUpData?.leveledUp && (
+              <div className="mx-auto max-w-md rounded-2xl border border-purple-500/40 bg-linear-to-r from-purple-900/50 via-indigo-900/50 to-purple-900/50 p-4 shadow-[0_0_25px_rgba(168,85,247,0.3)] animate-bounce">
+                <p className="text-xs font-black tracking-wider text-purple-300 uppercase">
+                  🎉 LEVEL UP ALCANÇADO!
+                </p>
+                <p className="mt-1 text-sm font-bold text-white">
+                  Você subiu para o{" "}
+                  <span className="text-amber-300">
+                    Nível {levelUpData.newLevel}! 🚀
+                  </span>
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto bg-slate-900/40 border border-white/5 p-4 rounded-3xl backdrop-blur-md shadow-inner">
+              <div className="border-r border-slate-800/80 pr-2">
+                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+                  Dominados
+                </span>
+                <span className="text-xl font-black text-emerald-400 font-mono tracking-tight">
+                  {performanceStats.acertos}
+                </span>
+              </div>
+              <div className="pl-2">
+                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+                  Revisar
+                </span>
+                <span className="text-xl font-black text-rose-400 font-mono tracking-tight">
+                  {performanceStats.erros}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-xs text-indigo-300/90 bg-linear-to-r from-indigo-500/10 via-purple-500/10 to-transparent border border-indigo-500/20 p-4 rounded-2xl max-w-md mx-auto flex items-center gap-3 text-left">
+              <div className="p-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 shrink-0">
+                <Brain size={20} />
+              </div>
+              <span className="text-[11px] leading-relaxed">
+                <strong>Algoritmo SM-2 Ativo:</strong> O intervalo ideal para a
+                próxima repetição foi adjusted para maximizar a retenção a longo
+                prazo.
+              </span>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row justify-center gap-3">
+              <button
+                onClick={() => {
+                  setIndex(0);
+                  setIsFlipped(false);
+                  setIsFinished(false);
+                  setPerformanceStats({ erros: 0, acertos: 0 });
+                  setLevelUpData(null);
+                }}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-2xl font-semibold text-xs transition-all active:scale-95 shadow-md"
+              >
+                <RotateCw size={14} /> Recomeçar
+              </button>
+
+              <Link
+                href="/flashcards/decks"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl font-bold text-xs transition-all shadow-[0_0_25px_rgba(99,102,241,0.4)] active:scale-95"
+              >
+                <ArrowLeft size={15} /> Finalizar
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-5 relative z-10">
+              <Link
+                href="/flashcards/decks"
+                className="group inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-indigo-300 transition-colors"
+              >
+                <ArrowLeft
+                  size={14}
+                  className="group-hover:-translate-x-1 transition-transform text-indigo-400"
+                />
+                {deckTitle || "Sair do Estudo"}
+              </Link>
+
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[11px] font-mono shadow-inner">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                <span className="font-bold text-indigo-400">{index + 1}</span>
+                <span className="text-slate-600">/</span>
+                <span className="text-slate-400">{cards.length}</span>
+              </div>
+            </div>
+
+            <div className="mb-6 relative z-10">
+              <div className="h-2 w-full bg-slate-900/90 rounded-full overflow-hidden border border-slate-800/80 p-0.5 shadow-inner">
+                <div
+                  className="h-full bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(99,102,241,0.8)]"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            <div
+              className="relative w-full h-87.5 md:h-97.5 mb-6 cursor-pointer group"
+              style={{ perspective: "1200px" }}
+              onClick={() => setIsFlipped(!isFlipped)}
+            >
+              <div
+                className={`w-full h-full relative transition-transform duration-700 ease-out ${
+                  isFlipped ? "transform-[rotateY(180deg)]" : ""
+                }`}
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                {/* FRENTE */}
+                <div
+                  className="absolute inset-0 w-full h-full bg-linear-to-b from-slate-900/95 via-slate-950/95 to-slate-950/98 border border-slate-800 group-hover:border-indigo-500/50 rounded-3xl p-7 md:p-9 flex flex-col justify-between text-center backdrop-blur-2xl shadow-2xl transition-all duration-300"
+                  style={{ backfaceVisibility: "hidden" }}
+                >
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+
+                  <div className="w-full flex justify-between items-center relative z-10">
+                    <span className="text-[9px] font-bold tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-lg uppercase backdrop-blur-md">
+                      Pergunta
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono tracking-wider">
+                      CARD #{index + 1}
+                    </span>
+                  </div>
+
+                  <div className="my-auto space-y-4 max-w-lg mx-auto relative z-10">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                      <HelpCircle size={20} />
+                    </div>
+                    <h2 className="text-xl md:text-2xl font-semibold text-slate-100 leading-relaxed tracking-tight">
+                      {frontText}
+                    </h2>
+                  </div>
+
+                  <div className="inline-flex items-center justify-center gap-2 text-[10px] text-slate-400 uppercase tracking-widest font-medium relative z-10">
+                    <span>Aperte</span>
+                    <kbd className="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-200 border border-slate-700 text-[10px] font-mono shadow-md flex items-center gap-1">
+                      <Command size={10} /> Espaço
+                    </kbd>
+                    <span>para virar</span>
+                  </div>
+                </div>
+
+                {/* VERSO */}
+                <div
+                  className="absolute inset-0 w-full h-full bg-linear-to-b from-indigo-950/30 via-slate-950/95 to-slate-950/98 border border-indigo-500/40 rounded-3xl p-7 md:p-9 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_0_40px_rgba(99,102,241,0.15)]"
+                  style={{
+                    backfaceVisibility: "hidden",
+                    transform: "rotateY(180deg)",
+                  }}
+                >
+                  <div className="w-full flex justify-between items-center">
+                    <span className="text-[9px] font-bold tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg uppercase backdrop-blur-md">
+                      Resposta
+                    </span>
+                    <span className="text-[10px] text-emerald-400/80 font-mono tracking-wider">
+                      EXPLICATIVO
+                    </span>
+                  </div>
+
+                  <div className="my-auto space-y-3 max-w-lg mx-auto overflow-y-auto max-h-52 px-2 custom-scrollbar">
+                    <h3 className="text-base md:text-lg font-medium text-slate-100 leading-relaxed">
+                      {backText}
+                    </h3>
+
+                    {currentCard.details && (
+                      <p className="text-xs text-slate-400 bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-2xl leading-relaxed text-left shadow-inner">
+                        {currentCard.details}
+                      </p>
+                    )}
+                  </div>
+
+                  <span className="text-[10px] text-indigo-300/80 uppercase tracking-widest font-semibold">
+                    Classifique sua facilidade
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={`grid grid-cols-4 gap-2.5 transition-all duration-300 ${
+                isFlipped
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-3 pointer-events-none"
+              }`}
+            >
+              {[
+                {
+                  label: "ERREI",
+                  grade: 0,
+                  key: "1",
+                  icon: X,
+                  style:
+                    "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-rose-400 hover:border-rose-500/60 shadow-[0_0_15px_rgba(244,63,94,0.15)]",
+                },
+                {
+                  label: "DIFÍCIL",
+                  grade: 3,
+                  key: "2",
+                  icon: HelpCircle,
+                  style:
+                    "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-400 hover:border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.15)]",
+                },
+                {
+                  label: "BOM",
+                  grade: 4,
+                  key: "3",
+                  icon: Check,
+                  style:
+                    "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400 hover:border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.15)]",
+                },
+                {
+                  label: "FÁCIL",
+                  grade: 5,
+                  key: "4",
+                  icon: Zap,
+                  style:
+                    "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/30 text-indigo-400 hover:border-indigo-500/60 shadow-[0_0_15px_rgba(99,102,241,0.15)]",
+                },
+              ].map((btn) => (
+                <button
+                  key={btn.label}
+                  disabled={isSubmitting}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAnswer(btn.grade);
+                  }}
+                  className={`group relative flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border font-bold text-[10px] tracking-widest transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${btn.style}`}
+                >
+                  <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-slate-950/80 text-[9px] font-mono opacity-60 group-hover:opacity-100 transition-opacity border border-white/10">
+                    {btn.key}
+                  </span>
+                  {isSubmitting && selectedGrade === btn.grade ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <btn.icon
+                      size={17}
+                      className="group-hover:scale-110 transition-transform"
+                    />
+                  )}
+                  <span>{btn.label}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+</file>
+
+</files>
