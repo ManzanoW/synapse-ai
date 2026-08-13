@@ -9,6 +9,42 @@ import { auth } from "@/auth";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+/**
+ * 📥 GET: Lista todos os baralhos do usuário autenticado
+ */
+export async function GET() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const decks = await prisma.deck.findMany({
+      where: { userId },
+      include: {
+        subject: true,
+        _count: {
+          select: { flashcards: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ data: decks }, { status: 200 });
+  } catch (error: any) {
+    console.error("❌ Erro no GET /api/decks:", error);
+    return NextResponse.json(
+      { error: "Falha ao buscar decks.", details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * 📤 POST: Gera um novo baralho com flashcards via IA
+ */
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -32,10 +68,8 @@ export async function POST(request: Request) {
       color,
     } = body;
 
-    // 🟢 1. Resolve o título final do Baralho e o contexto do texto
     const deckTitle = name || materia || "Novo Baralho";
     
-    // Se o usuário selecionou "Matéria/Edital", monta o texto base com os nomes da matéria e tópico
     let baseText = content;
     if (fonteConteudo === "banca" || !baseText) {
       baseText = `Matéria: ${materia || deckTitle}${topicName ? `, Tópico: ${topicName}` : ""}`;
@@ -48,7 +82,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🟢 2. Monta o Prompt alinhado aos filtros do modal
     const totalFlashcards = qtdCards || 10;
     const depthLevel = dificuldade || "MÉDIA";
 
@@ -69,9 +102,8 @@ export async function POST(request: Request) {
       }
     `;
 
-    // 🟢 3. Chamada corrigida da Gemini API usando modelo estável
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash-lite",
+      model: "gemini-3.5-flash-lite", 
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
@@ -85,7 +117,6 @@ export async function POST(request: Request) {
       data = { flashcards: [] };
     }
 
-    // 🟢 4. Busca ou associa o SubjectId caso não tenha sido enviado
     let resolvedSubjectId = subjectId || null;
     if (!resolvedSubjectId && materia) {
       const foundSubject = await prisma.subject.findFirst({
@@ -100,7 +131,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // 🟢 5. Persiste o Deck e seus Flashcards atomicamente no Prisma
     const newDeck = await prisma.deck.create({
       data: {
         title: deckTitle,
