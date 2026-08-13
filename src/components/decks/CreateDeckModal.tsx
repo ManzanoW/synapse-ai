@@ -54,16 +54,41 @@ export default function CreateDeckModal({
   // Dados das matérias e tópicos carregados do banco/edital
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
 
-  // Carrega matérias e tópicos dinamicamente do edital
-  useEffect(() => {
-    fetch("/api/edital?mode=subjects")
-      .then((res) => res.json())
-      .then((json) => {
-        const loadedSubjects: SubjectItem[] = json.data || [];
-        setSubjects(loadedSubjects);
-      })
-      .catch((err) => console.error("Erro ao carregar matérias:", err));
-  }, []);
+  // 🟢 Carrega e deduplica matérias e tópicos dinamicamente
+useEffect(() => {
+  fetch("/api/edital?mode=subjects")
+    .then((res) => res.json())
+    .then((json) => {
+      const rawSubjects: SubjectItem[] = json.data || [];
+      const uniqueSubjectsMap = new Map<string, SubjectItem>();
+
+      rawSubjects.forEach((sub) => {
+        const nameKey = sub.name.trim();
+        if (uniqueSubjectsMap.has(nameKey)) {
+          // Se a matéria já existe no Map, junta os tópicos sem duplicar IDs de tópicos
+          const existing = uniqueSubjectsMap.get(nameKey)!;
+          const combinedTopics = [
+            ...(existing.topics || []),
+            ...(sub.topics || []),
+          ];
+          const uniqueTopics = Array.from(
+            new Map(combinedTopics.map((t) => [t.id, t])).values()
+          );
+          existing.topics = uniqueTopics;
+        } else {
+          uniqueSubjectsMap.set(nameKey, {
+            ...sub,
+            name: nameKey,
+            topics: sub.topics ? [...sub.topics] : [],
+          });
+        }
+      });
+
+      const loadedSubjects = Array.from(uniqueSubjectsMap.values());
+      setSubjects(loadedSubjects);
+    })
+    .catch((err) => console.error("Erro ao carregar matérias:", err));
+}, []);
 
   // Fechar com a tecla ESC
   useEffect(() => {
