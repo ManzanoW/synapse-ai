@@ -144,112 +144,6 @@ src/
 <files>
 This section contains the contents of the repository's files.
 
-<file path="src/actions/adaptive-actions.ts">
-"use server";
-
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { calculateAdaptiveRebalance } from "@/lib/adaptive-rebalancer";
-import { RebalanceParams, AdaptiveAdjustment } from "@/types/adaptive";
-import { revalidateTag, revalidatePath } from "next/cache";
-
-export interface RebalanceActionResult {
-  success: boolean;
-  data?: AdaptiveAdjustment[];
-  error?: string;
-}
-
-export async function rebalanceScheduleAction(
-  params: RebalanceParams,
-  userIdParam?: string,
-): Promise<RebalanceActionResult> {
-  try {
-    const session = await auth();
-    const userId = userIdParam || session?.user?.id;
-
-    if (!userId) {
-      return {
-        success: false,
-        error: "Usuário não autenticado.",
-      };
-    }
-
-    // 1. Atualiza as metas gerais de estudo no usuário se fornecidas
-    if (
-      params.weeklyGoalHours ||
-      params.activeDaysPerWeek ||
-      params.studyMode
-    ) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          ...(params.weeklyGoalHours && {
-            weeklyGoalHours: params.weeklyGoalHours,
-          }),
-          ...(params.activeDaysPerWeek && {
-            activeDaysPerWeek: params.activeDaysPerWeek,
-          }),
-          ...(params.studyMode && { studyMode: params.studyMode }),
-        },
-      });
-    }
-
-    // 2. Executa a inteligência de rebalanceamento adaptativo se houver dados de performance
-    let adjustments: AdaptiveAdjustment[] = [];
-
-    if (params.performances && params.performances.length > 0) {
-      adjustments = calculateAdaptiveRebalance(params);
-
-      // Atualiza o tempo/prioridade das matérias rebalanceadas no banco
-      for (const adj of adjustments) {
-        if (adj.subjectId) {
-          // Casting duplo para evitar o erro de sobreposição de tipos do TS
-          const adjRecord = adj as unknown as Record<string, unknown>;
-          const targetMinutes =
-            adjRecord.targetWeeklyMinutes ??
-            adjRecord.adjustedWeeklyMinutes ??
-            adjRecord.suggestedMinutes ??
-            adjRecord.targetMinutes ??
-            120;
-
-          await prisma.subject.updateMany({
-            where: { id: adj.subjectId, userId },
-            data: {
-              priority: Number(targetMinutes),
-            },
-          });
-        }
-      }
-    }
-
-    // 3. Revalida o cache das rotas afetadas
-    try {
-      (revalidateTag as unknown as (tag: string) => void)(
-        `user-schedule-${userId}`,
-      );
-      revalidatePath("/week");
-      revalidatePath("/performance");
-    } catch {
-      // Ignora falhas de revalidação caso executado fora do contexto HTTP
-    }
-
-    return {
-      success: true,
-      data: adjustments,
-    };
-  } catch (err) {
-    console.error("Erro em rebalanceScheduleAction:", err);
-    return {
-      success: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Falha ao recalcular o rebalanceamento adaptativo.",
-    };
-  }
-}
-</file>
-
 <file path="src/app/api/questions/[id]/route.ts">
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -425,6 +319,112 @@ export function useSidebar() {
 
 <file path="src/lib/supabase.ts">
 
+</file>
+
+<file path="src/actions/adaptive-actions.ts">
+"use server";
+
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { calculateAdaptiveRebalance } from "@/lib/adaptive-rebalancer";
+import { RebalanceParams, AdaptiveAdjustment } from "@/types/adaptive";
+import { revalidateTag, revalidatePath } from "next/cache";
+
+export interface RebalanceActionResult {
+  success: boolean;
+  data?: AdaptiveAdjustment[];
+  error?: string;
+}
+
+export async function rebalanceScheduleAction(
+  params: RebalanceParams,
+  userIdParam?: string,
+): Promise<RebalanceActionResult> {
+  try {
+    const session = await auth();
+    const userId = userIdParam || session?.user?.id;
+
+    if (!userId) {
+      return {
+        success: false,
+        error: "Usuário não autenticado.",
+      };
+    }
+
+    // 1. Atualiza as metas gerais de estudo no usuário se fornecidas
+    if (
+      params.weeklyGoalHours ||
+      params.activeDaysPerWeek ||
+      params.studyMode
+    ) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(params.weeklyGoalHours && {
+            weeklyGoalHours: params.weeklyGoalHours,
+          }),
+          ...(params.activeDaysPerWeek && {
+            activeDaysPerWeek: params.activeDaysPerWeek,
+          }),
+          ...(params.studyMode && { studyMode: params.studyMode }),
+        },
+      });
+    }
+
+    // 2. Executa a inteligência de rebalanceamento adaptativo se houver dados de performance
+    let adjustments: AdaptiveAdjustment[] = [];
+
+    if (params.performances && params.performances.length > 0) {
+      adjustments = calculateAdaptiveRebalance(params);
+
+      // Atualiza o tempo/prioridade das matérias rebalanceadas no banco
+      for (const adj of adjustments) {
+        if (adj.subjectId) {
+          // Casting duplo para evitar o erro de sobreposição de tipos do TS
+          const adjRecord = adj as unknown as Record<string, unknown>;
+          const targetMinutes =
+            adjRecord.targetWeeklyMinutes ??
+            adjRecord.adjustedWeeklyMinutes ??
+            adjRecord.suggestedMinutes ??
+            adjRecord.targetMinutes ??
+            120;
+
+          await prisma.subject.updateMany({
+            where: { id: adj.subjectId, userId },
+            data: {
+              priority: Number(targetMinutes),
+            },
+          });
+        }
+      }
+    }
+
+    // 3. Revalida o cache das rotas afetadas
+    try {
+      (revalidateTag as unknown as (tag: string) => void)(
+        `user-schedule-${userId}`,
+      );
+      revalidatePath("/week");
+      revalidatePath("/performance");
+    } catch {
+      // Ignora falhas de revalidação caso executado fora do contexto HTTP
+    }
+
+    return {
+      success: true,
+      data: adjustments,
+    };
+  } catch (err) {
+    console.error("Erro em rebalanceScheduleAction:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao recalcular o rebalanceamento adaptativo.",
+    };
+  }
+}
 </file>
 
 <file path="src/actions/deck-actions.ts">
@@ -611,213 +611,6 @@ export async function GET() {
     console.error("❌ Erro ao buscar histórico de analytics:", error);
     return NextResponse.json(
       { error: "Falha ao buscar histórico" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/analytics/performance/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-
-interface TopicData {
-  id: string;
-  title: string;
-  status: string;
-  easiness: number | null;
-  interval: number | null;
-  nextReview: Date | null;
-}
-
-interface SubjectData {
-  id: string;
-  name: string;
-  topics: TopicData[];
-}
-
-interface QuestionLogData {
-  isCorrect: boolean;
-  topicId?: string | null;
-  createdAt: Date;
-}
-
-interface StudySessionData {
-  durationMinutes: number | null;
-  createdAt: Date;
-}
-
-export async function GET() {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    // 1. Busca matérias, tópicos e históricos
-    const [subjects, studySessions] = await Promise.all([
-      prisma.subject.findMany({
-        where: { userId },
-        include: {
-          topics: {
-            select: {
-              id: true,
-              title: true,
-              status: true,
-              easiness: true,
-              interval: true,
-              nextReview: true,
-            },
-          },
-        },
-      }),
-      prisma.studySession.findMany({
-        where: { userId },
-        select: {
-          durationMinutes: true,
-          createdAt: true,
-        },
-      }),
-    ]);
-
-    // Tentativa de busca dos logs de questões adaptada ao schema
-    let questionLogs: QuestionLogData[] = [];
-    try {
-      // @ts-expect-error - Fallback dinamico para model de log de questoes se existir no schema
-      if (prisma.questionHistory) {
-        // @ts-expect-error - query dinamica
-        questionLogs = await prisma.questionHistory.findMany({
-          where: { userId },
-          select: { isCorrect: true, topicId: true, createdAt: true },
-        });
-      }
-    } catch {
-      questionLogs = [];
-    }
-
-    // 2. Cálculo de métricas gerais do SM-2
-    let totalTopics = 0;
-    let sumEasiness = 0;
-    let pendingReviewsCount = 0;
-    const now = new Date();
-
-    (subjects as SubjectData[]).forEach((sub: SubjectData) => {
-      sub.topics.forEach((topic: TopicData) => {
-        totalTopics++;
-        sumEasiness += topic.easiness || 2.5;
-        if (topic.nextReview && new Date(topic.nextReview) <= now) {
-          pendingReviewsCount++;
-        }
-      });
-    });
-
-    const avgEasiness = totalTopics > 0 ? sumEasiness / totalTopics : 2.5;
-    const estimatedRetention = `${Math.min(
-      98,
-      Math.round((avgEasiness / 2.5) * 85),
-    )}%`;
-
-    // 3. Resumo de Qualidade de Feedback
-    const totalQuestions = questionLogs.length;
-    const correctCount = questionLogs.filter(
-      (q: QuestionLogData) => q.isCorrect,
-    ).length;
-    const incorrectCount = totalQuestions - correctCount;
-
-    const performanceSummary = {
-      bom: correctCount,
-      dificil: Math.round(incorrectCount * 0.4),
-      errei: Math.round(incorrectCount * 0.6),
-    };
-
-    // 4. Mapeamento de estatísticas por disciplina
-    const subjectStats = (subjects as SubjectData[]).map((sub: SubjectData) => {
-      const topicIds = sub.topics.map((t: TopicData) => t.id);
-      const logs = questionLogs.filter(
-        (q: QuestionLogData) => q.topicId && topicIds.includes(q.topicId),
-      );
-      const total = logs.length;
-      const correct = logs.filter((l: QuestionLogData) => l.isCorrect).length;
-      const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
-
-      return {
-        subjectId: sub.id,
-        subject: sub.name,
-        total,
-        correct,
-        accuracy,
-        targetWeeklyMinutes: 120,
-      };
-    });
-
-    // 5. Identificação dos Pontos Fracos (< 60% de acerto)
-    const weakTopics: Array<{
-      id: string;
-      title: string;
-      subject: string;
-      accuracy: number;
-      total: number;
-    }> = [];
-
-    (subjects as SubjectData[]).forEach((sub: SubjectData) => {
-      sub.topics.forEach((topic: TopicData) => {
-        const logs = questionLogs.filter(
-          (q: QuestionLogData) => q.topicId === topic.id,
-        );
-        if (logs.length >= 3) {
-          const correct = logs.filter(
-            (l: QuestionLogData) => l.isCorrect,
-          ).length;
-          const accuracy = Math.round((correct / logs.length) * 100);
-          if (accuracy < 60) {
-            weakTopics.push({
-              id: topic.id,
-              title: topic.title,
-              subject: sub.name,
-              accuracy,
-              total: logs.length,
-            });
-          }
-        }
-      });
-    });
-
-    // 6. Carga de revisão dos últimos 7 dias da semana
-    const daysOfWeek = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
-    const chartDistribution = daysOfWeek.map((dayLabel, index) => {
-      const count = (studySessions as StudySessionData[]).filter(
-        (s: StudySessionData) => {
-          const day = new Date(s.createdAt).getDay();
-          return day === index;
-        },
-      ).length;
-
-      return {
-        day: dayLabel,
-        quantidade: count,
-      };
-    });
-
-    return NextResponse.json({
-      metrics: {
-        totalTopics,
-        completedReviews: studySessions.length,
-        estimatedRetention,
-        avgEasiness,
-        materiasPendentes: pendingReviewsCount,
-      },
-      chartDistribution,
-      performanceSummary,
-      subjectStats,
-      weakTopics,
-    });
-  } catch (error) {
-    console.error("❌ Erro ao buscar estatísticas de performance:", error);
-    return NextResponse.json(
-      { error: "Erro interno ao processar estatísticas" },
       { status: 500 },
     );
   }
@@ -2649,6 +2442,213 @@ export async function POST(req: Request) {
 }
 </file>
 
+<file path="src/app/api/analytics/performance/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+interface TopicData {
+  id: string;
+  title: string;
+  status: string;
+  easiness: number | null;
+  interval: number | null;
+  nextReview: Date | null;
+}
+
+interface SubjectData {
+  id: string;
+  name: string;
+  topics: TopicData[];
+}
+
+interface QuestionLogData {
+  isCorrect: boolean;
+  topicId?: string | null;
+  createdAt: Date;
+}
+
+interface StudySessionData {
+  durationMinutes: number | null;
+  createdAt: Date;
+}
+
+export async function GET() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    // 1. Busca matérias, tópicos e históricos
+    const [subjects, studySessions] = await Promise.all([
+      prisma.subject.findMany({
+        where: { userId },
+        include: {
+          topics: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              easiness: true,
+              interval: true,
+              nextReview: true,
+            },
+          },
+        },
+      }),
+      prisma.studySession.findMany({
+        where: { userId },
+        select: {
+          durationMinutes: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    // Tentativa de busca dos logs de questões adaptada ao schema
+    let questionLogs: QuestionLogData[] = [];
+    try {
+      // @ts-expect-error - Fallback dinamico para model de log de questoes se existir no schema
+      if (prisma.questionHistory) {
+        // @ts-expect-error - query dinamica
+        questionLogs = await prisma.questionHistory.findMany({
+          where: { userId },
+          select: { isCorrect: true, topicId: true, createdAt: true },
+        });
+      }
+    } catch {
+      questionLogs = [];
+    }
+
+    // 2. Cálculo de métricas gerais do SM-2
+    let totalTopics = 0;
+    let sumEasiness = 0;
+    let pendingReviewsCount = 0;
+    const now = new Date();
+
+    (subjects as SubjectData[]).forEach((sub: SubjectData) => {
+      sub.topics.forEach((topic: TopicData) => {
+        totalTopics++;
+        sumEasiness += topic.easiness || 2.5;
+        if (topic.nextReview && new Date(topic.nextReview) <= now) {
+          pendingReviewsCount++;
+        }
+      });
+    });
+
+    const avgEasiness = totalTopics > 0 ? sumEasiness / totalTopics : 2.5;
+    const estimatedRetention = `${Math.min(
+      98,
+      Math.round((avgEasiness / 2.5) * 85),
+    )}%`;
+
+    // 3. Resumo de Qualidade de Feedback
+    const totalQuestions = questionLogs.length;
+    const correctCount = questionLogs.filter(
+      (q: QuestionLogData) => q.isCorrect,
+    ).length;
+    const incorrectCount = totalQuestions - correctCount;
+
+    const performanceSummary = {
+      bom: correctCount,
+      dificil: Math.round(incorrectCount * 0.4),
+      errei: Math.round(incorrectCount * 0.6),
+    };
+
+    // 4. Mapeamento de estatísticas por disciplina
+    const subjectStats = (subjects as SubjectData[]).map((sub: SubjectData) => {
+      const topicIds = sub.topics.map((t: TopicData) => t.id);
+      const logs = questionLogs.filter(
+        (q: QuestionLogData) => q.topicId && topicIds.includes(q.topicId),
+      );
+      const total = logs.length;
+      const correct = logs.filter((l: QuestionLogData) => l.isCorrect).length;
+      const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+      return {
+        subjectId: sub.id,
+        subject: sub.name,
+        total,
+        correct,
+        accuracy,
+        targetWeeklyMinutes: 120,
+      };
+    });
+
+    // 5. Identificação dos Pontos Fracos (< 60% de acerto)
+    const weakTopics: Array<{
+      id: string;
+      title: string;
+      subject: string;
+      accuracy: number;
+      total: number;
+    }> = [];
+
+    (subjects as SubjectData[]).forEach((sub: SubjectData) => {
+      sub.topics.forEach((topic: TopicData) => {
+        const logs = questionLogs.filter(
+          (q: QuestionLogData) => q.topicId === topic.id,
+        );
+        if (logs.length >= 3) {
+          const correct = logs.filter(
+            (l: QuestionLogData) => l.isCorrect,
+          ).length;
+          const accuracy = Math.round((correct / logs.length) * 100);
+          if (accuracy < 60) {
+            weakTopics.push({
+              id: topic.id,
+              title: topic.title,
+              subject: sub.name,
+              accuracy,
+              total: logs.length,
+            });
+          }
+        }
+      });
+    });
+
+    // 6. Carga de revisão dos últimos 7 dias da semana
+    const daysOfWeek = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+    const chartDistribution = daysOfWeek.map((dayLabel, index) => {
+      const count = (studySessions as StudySessionData[]).filter(
+        (s: StudySessionData) => {
+          const day = new Date(s.createdAt).getDay();
+          return day === index;
+        },
+      ).length;
+
+      return {
+        day: dayLabel,
+        quantidade: count,
+      };
+    });
+
+    return NextResponse.json({
+      metrics: {
+        totalTopics,
+        completedReviews: studySessions.length,
+        estimatedRetention,
+        avgEasiness,
+        materiasPendentes: pendingReviewsCount,
+      },
+      chartDistribution,
+      performanceSummary,
+      subjectStats,
+      weakTopics,
+    });
+  } catch (error) {
+    console.error("❌ Erro ao buscar estatísticas de performance:", error);
+    return NextResponse.json(
+      { error: "Erro interno ao processar estatísticas" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
 <file path="src/app/api/analytics/route.ts">
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -3418,276 +3418,6 @@ export async function DELETE(
     console.error("Erro ao deletar deck:", error);
     return NextResponse.json(
       { error: "Erro ao excluir baralho" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/questions/save/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { updateSubjectSRS } from "@/lib/srs-service";
-import { auth } from "@/auth";
-import { XP_REWARDS, calculateLevel } from "@/lib/gamification";
-import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
-
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const body = await request.json();
-    console.log("Payload recebido no save:", body);
-
-    const { quizId, banca, subject, difficulty, questions, topicId } = body;
-
-    if (!subject || !questions || questions.length === 0) {
-      return NextResponse.json(
-        {
-          error: "Dados obrigatórios ausentes.",
-          received: { subject, questionsCount: questions?.length },
-        },
-        { status: 400 },
-      );
-    }
-
-    // 1. Localiza a matéria
-    const subjectRecord = await prisma.subject.findFirst({
-      where: {
-        name: { equals: subject.trim(), mode: "insensitive" },
-        userId: userId,
-      },
-    });
-
-    // 2. 🟢 BUSCA O TÓPICO CORRETO (por UUID ou por Nome/Título)
-    let resolvedTopicId: string | null = null;
-
-    if (topicId) {
-      const topicMatch = await prisma.topic.findFirst({
-        where: {
-          OR: [
-            { id: topicId },
-            { title: { equals: topicId.trim(), mode: "insensitive" } },
-          ],
-          subject: { userId: userId },
-        },
-        select: { id: true },
-      });
-
-      if (topicMatch) {
-        resolvedTopicId = topicMatch.id;
-      }
-    }
-
-    // 3. Calcula os acertos da sessão de questões
-    const totalCount = questions.length;
-    const correctCount = questions.filter(
-      (q: {
-        isCorrect?: boolean;
-        correct?: boolean;
-        userAnswer?: string;
-        answer?: string;
-        gabaritoCorreto?: string;
-      }) =>
-        q.isCorrect === true ||
-        (q.userAnswer &&
-          (q.userAnswer === q.answer || q.userAnswer === q.gabaritoCorreto)),
-    ).length;
-
-    // 4. ⚡ GANHO DE XP
-    const baseXp = correctCount * XP_REWARDS.QUESTION_CORRECT;
-    const isPerfectScore = totalCount >= 5 && correctCount === totalCount;
-    const perfectBonusMultiplier = isPerfectScore ? 0.25 : 0;
-
-    const currentStats = await prisma.userStats.findUnique({
-      where: { userId: userId },
-    });
-
-    const streakDays =
-      (currentStats as { streakDays?: number } | null)?.streakDays || 0;
-    const streakBonus = Math.min(
-      streakDays * (XP_REWARDS.STREAK_BONUS_MULTIPLIER || 0.1),
-      0.5,
-    );
-
-    const totalMultiplier = 1 + streakBonus + perfectBonusMultiplier;
-    const earnedXp = Math.round(baseXp * totalMultiplier);
-
-    let updatedStats;
-
-    if (earnedXp > 0) {
-      updatedStats = await prisma.userStats.upsert({
-        where: { userId: userId },
-        update: {
-          totalXp: { increment: earnedXp },
-        },
-        create: {
-          userId: userId,
-          totalXp: earnedXp,
-        },
-      });
-    } else {
-      updatedStats =
-        currentStats ??
-        (await prisma.userStats.findUnique({
-          where: { userId: userId },
-        }));
-    }
-
-    const totalXp = updatedStats?.totalXp ?? 0;
-    const levelInfo = calculateLevel(totalXp);
-
-    // 5. 🛡️ PROTEÇÃO CONTRA DUPLICAÇÃO: Salva, Atualiza ou Reutiliza Quiz recente
-    let quizRecord;
-
-    if (quizId) {
-      // Caso 1: ID do Quiz explícito fornecido
-      quizRecord = await prisma.quiz.update({
-        where: { id: quizId },
-        data: {
-          questions,
-          difficulty: difficulty || "Média",
-          banca: banca || "Geral",
-          topicId: resolvedTopicId,
-        },
-      });
-    } else {
-      // Caso 2: Sem ID explícito -> Verifica se um quiz idêntico foi criado nos últimos 30 segundos
-      const recentDuplicate = await prisma.quiz.findFirst({
-        where: {
-          userId,
-          topicId: resolvedTopicId,
-          subject,
-          createdAt: {
-            gte: new Date(Date.now() - 30 * 1000),
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      });
-
-      if (recentDuplicate) {
-        quizRecord = await prisma.quiz.update({
-          where: { id: recentDuplicate.id },
-          data: {
-            questions,
-            difficulty: difficulty || "Média",
-            banca: banca || "Geral",
-          },
-        });
-      } else {
-        quizRecord = await prisma.quiz.create({
-          data: {
-            banca: banca || "Geral",
-            subject,
-            difficulty: difficulty || "Média",
-            questions,
-            userId: userId,
-            topicId: resolvedTopicId,
-          },
-        });
-      }
-    }
-
-    // 6. 🚀 Registra no QuizAttempt e atualiza no Tópico exato
-    if (resolvedTopicId) {
-      await prisma.quizAttempt.create({
-        data: {
-          userId: userId,
-          topicId: resolvedTopicId,
-          totalCount,
-          correctCount,
-        },
-      });
-
-      await prisma.topic.update({
-        where: { id: resolvedTopicId },
-        data: { lastQuizAt: new Date() },
-      });
-    }
-
-    // 7. Atualiza o SRS da matéria se aplicável
-    if (subjectRecord && totalCount > 0) {
-      const performance = correctCount / totalCount >= 0.7 ? "bom" : "dificil";
-      await updateSubjectSRS(subjectRecord.id, performance);
-    }
-
-    // 8. 🎯 ADAPTIVE REBALANCER: Avalia o histórico de questões da matéria
-    let isRebalanced = false;
-
-    if (subjectRecord) {
-      const attempts = await prisma.quizAttempt.findMany({
-        where: {
-          userId: userId,
-          topic: {
-            subjectId: subjectRecord.id,
-          },
-        },
-        select: {
-          totalCount: true,
-          correctCount: true,
-        },
-      });
-
-      const totalQuestionsSolved = attempts.reduce(
-        (acc, curr) => acc + curr.totalCount,
-        0,
-      );
-
-      if (totalQuestionsSolved >= 10) {
-        isRebalanced = true;
-        const totalCorrectSolved = attempts.reduce(
-          (acc, curr) => acc + curr.correctCount,
-          0,
-        );
-        const accuracyPercentage = Math.round(
-          (totalCorrectSolved / totalQuestionsSolved) * 100,
-        );
-
-        await rebalanceScheduleAction({
-          studyMode: "WEEKLY",
-          weeklyGoalHours: 10,
-          activeDaysPerWeek: 5,
-          daysMissedThisWeek: 0,
-          performances: [
-            {
-              subjectId: subjectRecord.id,
-              subjectName: subjectRecord.name,
-              accuracyPercentage,
-              totalQuestionsSolved,
-              lastStudiedAt: new Date(),
-              targetWeeklyMinutes: 120,
-            },
-          ],
-        });
-      }
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        id: quizRecord.id,
-        quizId: quizRecord.id,
-        correctCount,
-        totalCount,
-        earnedXp,
-        totalXp,
-        levelInfo,
-        isPerfectScore,
-        rebalanced: isRebalanced,
-        rebalancedSubject: subjectRecord ? subjectRecord.name : subject,
-      },
-      { status: 200 },
-    );
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Erro ao salvar quiz e tentativas:", error);
-    return NextResponse.json(
-      { error: "Falha ao salvar quiz.", details: errorMessage },
       { status: 500 },
     );
   }
@@ -4559,6 +4289,301 @@ export async function POST(request: Request) {
 }
 </file>
 
+<file path="src/app/api/questions/save/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { updateSubjectSRS } from "@/lib/srs-service";
+import { auth } from "@/auth";
+import { XP_REWARDS, calculateLevel } from "@/lib/gamification";
+import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    console.log("Payload recebido no save:", body);
+
+    const { quizId, banca, subject, difficulty, questions, topicId } = body;
+
+    if (!subject || !questions || questions.length === 0) {
+      return NextResponse.json(
+        {
+          error: "Dados obrigatórios ausentes.",
+          received: { subject, questionsCount: questions?.length },
+        },
+        { status: 400 },
+      );
+    }
+
+    // 1. Localiza a matéria
+    const subjectRecord = await prisma.subject.findFirst({
+      where: {
+        name: { equals: subject.trim(), mode: "insensitive" },
+        userId: userId,
+      },
+    });
+
+    // src/app/api/questions/save/route.ts (Substitua as seções 2 e 3 do arquivo)
+
+    // 2. 🟢 BUSCA O TÓPICO CORRETO (Resolução por UUID, Nome ou Fallback via Quiz existente)
+    let resolvedTopicId: string | null = null;
+
+    if (topicId && topicId !== "ALL") {
+      const topicMatch = await prisma.topic.findFirst({
+        where: {
+          OR: [
+            { id: topicId },
+            { title: { equals: String(topicId).trim(), mode: "insensitive" } },
+          ],
+          subject: { userId: userId },
+        },
+        select: { id: true },
+      });
+
+      if (topicMatch) {
+        resolvedTopicId = topicMatch.id;
+      }
+    }
+
+    // 🔄 FALLBACK: Se o topicId não foi encontrado pelo filtro, recupera o topicId original salvo no Quiz
+    if (!resolvedTopicId && quizId) {
+      const existingQuiz = await prisma.quiz.findUnique({
+        where: { id: quizId },
+        select: { topicId: true },
+      });
+      if (existingQuiz?.topicId) {
+        resolvedTopicId = existingQuiz.topicId;
+      }
+    }
+
+    // 3. 🟢 CALCULA OS ACERTOS COM COMPARAÇÃO ROBUSTA
+    const totalCount = questions.length;
+    const correctCount = questions.filter(
+      (q: {
+        isCorrect?: boolean;
+        correct?: boolean;
+        userAnswer?: string;
+        answer?: string;
+        gabaritoCorreto?: string;
+        correctAnswer?: string;
+      }) => {
+        if (q.isCorrect === true || q.correct === true) return true;
+
+        const userAns = q.userAnswer
+          ? String(q.userAnswer).trim().toLowerCase()
+          : null;
+        const correctAns =
+          q.gabaritoCorreto || q.answer || q.correctAnswer
+            ? String(q.gabaritoCorreto || q.answer || q.correctAnswer)
+                .trim()
+                .toLowerCase()
+            : null;
+
+        return Boolean(userAns && correctAns && userAns === correctAns);
+      },
+    ).length;
+
+    // 4. ⚡ GANHO DE XP
+    const baseXp = correctCount * XP_REWARDS.QUESTION_CORRECT;
+    const isPerfectScore = totalCount >= 5 && correctCount === totalCount;
+    const perfectBonusMultiplier = isPerfectScore ? 0.25 : 0;
+
+    const currentStats = await prisma.userStats.findUnique({
+      where: { userId: userId },
+    });
+
+    const streakDays =
+      (currentStats as { streakDays?: number } | null)?.streakDays || 0;
+    const streakBonus = Math.min(
+      streakDays * (XP_REWARDS.STREAK_BONUS_MULTIPLIER || 0.1),
+      0.5,
+    );
+
+    const totalMultiplier = 1 + streakBonus + perfectBonusMultiplier;
+    const earnedXp = Math.round(baseXp * totalMultiplier);
+
+    let updatedStats;
+
+    if (earnedXp > 0) {
+      updatedStats = await prisma.userStats.upsert({
+        where: { userId: userId },
+        update: {
+          totalXp: { increment: earnedXp },
+        },
+        create: {
+          userId: userId,
+          totalXp: earnedXp,
+        },
+      });
+    } else {
+      updatedStats =
+        currentStats ??
+        (await prisma.userStats.findUnique({
+          where: { userId: userId },
+        }));
+    }
+
+    const totalXp = updatedStats?.totalXp ?? 0;
+    const levelInfo = calculateLevel(totalXp);
+
+    // 5. 🛡️ PROTEÇÃO CONTRA DUPLICAÇÃO: Salva, Atualiza ou Reutiliza Quiz recente
+    let quizRecord;
+
+    if (quizId) {
+      // Caso 1: ID do Quiz explícito fornecido
+      quizRecord = await prisma.quiz.update({
+        where: { id: quizId },
+        data: {
+          questions,
+          difficulty: difficulty || "Média",
+          banca: banca || "Geral",
+          topicId: resolvedTopicId,
+        },
+      });
+    } else {
+      // Caso 2: Sem ID explícito -> Verifica se um quiz idêntico foi criado nos últimos 30 segundos
+      const recentDuplicate = await prisma.quiz.findFirst({
+        where: {
+          userId,
+          topicId: resolvedTopicId,
+          subject,
+          createdAt: {
+            gte: new Date(Date.now() - 30 * 1000),
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (recentDuplicate) {
+        quizRecord = await prisma.quiz.update({
+          where: { id: recentDuplicate.id },
+          data: {
+            questions,
+            difficulty: difficulty || "Média",
+            banca: banca || "Geral",
+          },
+        });
+      } else {
+        quizRecord = await prisma.quiz.create({
+          data: {
+            banca: banca || "Geral",
+            subject,
+            difficulty: difficulty || "Média",
+            questions,
+            userId: userId,
+            topicId: resolvedTopicId,
+          },
+        });
+      }
+    }
+
+    // 6. 🚀 Registra no QuizAttempt e atualiza no Tópico exato
+    if (resolvedTopicId) {
+      await prisma.quizAttempt.create({
+        data: {
+          userId: userId,
+          topicId: resolvedTopicId,
+          totalCount,
+          correctCount,
+        },
+      });
+
+      await prisma.topic.update({
+        where: { id: resolvedTopicId },
+        data: { lastQuizAt: new Date() },
+      });
+    }
+
+    // 7. Atualiza o SRS da matéria se aplicável
+    if (subjectRecord && totalCount > 0) {
+      const performance = correctCount / totalCount >= 0.7 ? "bom" : "dificil";
+      await updateSubjectSRS(subjectRecord.id, performance);
+    }
+
+    // 8. 🎯 ADAPTIVE REBALANCER: Avalia o histórico de questões da matéria
+    let isRebalanced = false;
+
+    if (subjectRecord) {
+      const attempts = await prisma.quizAttempt.findMany({
+        where: {
+          userId: userId,
+          topic: {
+            subjectId: subjectRecord.id,
+          },
+        },
+        select: {
+          totalCount: true,
+          correctCount: true,
+        },
+      });
+
+      const totalQuestionsSolved = attempts.reduce(
+        (acc, curr) => acc + curr.totalCount,
+        0,
+      );
+
+      if (totalQuestionsSolved >= 10) {
+        isRebalanced = true;
+        const totalCorrectSolved = attempts.reduce(
+          (acc, curr) => acc + curr.correctCount,
+          0,
+        );
+        const accuracyPercentage = Math.round(
+          (totalCorrectSolved / totalQuestionsSolved) * 100,
+        );
+
+        await rebalanceScheduleAction({
+          studyMode: "WEEKLY",
+          weeklyGoalHours: 10,
+          activeDaysPerWeek: 5,
+          daysMissedThisWeek: 0,
+          performances: [
+            {
+              subjectId: subjectRecord.id,
+              subjectName: subjectRecord.name,
+              accuracyPercentage,
+              totalQuestionsSolved,
+              lastStudiedAt: new Date(),
+              targetWeeklyMinutes: 120,
+            },
+          ],
+        });
+      }
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        id: quizRecord.id,
+        quizId: quizRecord.id,
+        correctCount,
+        totalCount,
+        earnedXp,
+        totalXp,
+        levelInfo,
+        isPerfectScore,
+        rebalanced: isRebalanced,
+        rebalancedSubject: subjectRecord ? subjectRecord.name : subject,
+      },
+      { status: 200 },
+    );
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Erro ao salvar quiz e tentativas:", error);
+    return NextResponse.json(
+      { error: "Falha ao salvar quiz.", details: errorMessage },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
 <file path="src/types/index.ts">
 import { Quiz } from "@prisma/client";
 
@@ -5410,7 +5435,7 @@ export async function POST(request: Request) {
       Além da questão e das alternativas, gere uma versão em Flashcard (Active Recall) para cada item: no 'flashcardFrente', faça uma pergunta conceitual e direta sobre a matéria testada; no 'flashcardVerso', responda com o conceito direto de forma clara e sintética.    
       `;
 
-    const response = await generateContentWithRetry(prompt);
+    const response = await generateContentWithRetry(prompt); //
 
     if (!response.text) {
       throw new Error("Nenhum conteúdo retornado pela IA.");
@@ -5421,7 +5446,15 @@ export async function POST(request: Request) {
 
     let savedQuiz = null;
     if (userId) {
-      // 🟢 2. Salva o registro no modelo Quiz
+      // 🟢 1. Localiza ou cria a associação do Tópico de forma resiliente
+      if (targetTopicUuid) {
+        const topicExists = await prisma.topic.findUnique({
+          where: { id: targetTopicUuid },
+        });
+        if (!topicExists) targetTopicUuid = null;
+      }
+
+      // 🟢 2. Salva o registro no modelo Quiz com relacionamento tipado
       savedQuiz = await prisma.quiz.create({
         data: {
           userId,
@@ -5431,33 +5464,25 @@ export async function POST(request: Request) {
           topicId: targetTopicUuid,
           questions: questoesProcessadas as unknown as Prisma.InputJsonValue,
         },
+        include: {
+          topic: {
+            select: { id: true, title: true },
+          },
+        },
       });
 
-      // 🟢 3. Cria obrigatoriamente a tentativa no modelo QuizAttempt
+      // 🟢 3. Registra a tentativa inicial no QuizAttempt
       if (targetTopicUuid) {
         await prisma.quizAttempt
           .create({
             data: {
-              id: savedQuiz.id,
               userId,
               topicId: targetTopicUuid,
               totalCount: questoesProcessadas.length,
               correctCount: 0,
             },
           })
-          .catch(async () => {
-            // Fallback caso a chave primária 'id' seja gerada automaticamente pelo Prisma
-            await prisma.quizAttempt
-              .create({
-                data: {
-                  userId,
-                  topicId: targetTopicUuid as string,
-                  totalCount: questoesProcessadas.length,
-                  correctCount: 0,
-                },
-              })
-              .catch((e) => console.error("Erro ao registrar QuizAttempt:", e));
-          });
+          .catch((e) => console.error("Aviso ao registrar QuizAttempt:", e));
       }
     }
 

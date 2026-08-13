@@ -5,10 +5,10 @@ import { auth } from "@/auth";
 interface TopicData {
   id: string;
   title: string;
-  status: string;
   easiness: number | null;
   interval: number | null;
-  nextReview: Date | null;
+  nextRev?: Date | null;
+  nextReview?: Date | null;
 }
 
 interface SubjectData {
@@ -37,7 +37,7 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // 1. Busca matérias, tópicos e históricos
+    // 1. Busca matérias, tópicos e históricos com o nome do campo corrigido
     const [subjects, studySessions] = await Promise.all([
       prisma.subject.findMany({
         where: { userId },
@@ -46,10 +46,9 @@ export async function GET() {
             select: {
               id: true,
               title: true,
-              status: true,
               easiness: true,
               interval: true,
-              nextReview: true,
+              nextRev: true, // 🟢 Alterado de nextReview para nextRev
             },
           },
         },
@@ -88,7 +87,10 @@ export async function GET() {
       sub.topics.forEach((topic: TopicData) => {
         totalTopics++;
         sumEasiness += topic.easiness || 2.5;
-        if (topic.nextReview && new Date(topic.nextReview) <= now) {
+
+        // Suporta tanto nextRev quanto fallback
+        const reviewDate = topic.nextRev || topic.nextReview;
+        if (reviewDate && new Date(reviewDate) <= now) {
           pendingReviewsCount++;
         }
       });

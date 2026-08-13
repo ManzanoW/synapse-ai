@@ -152,6 +152,63 @@ export default function FlashcardCreator({ topicId }: { topicId: string }) {
 }
 </file>
 
+<file path="src/components/questions/TimerWidget.tsx">
+"use client";
+
+import React from "react";
+import { Play, Pause, RotateCcw, Clock } from "lucide-react";
+import { useStudyTimer } from "@/hooks/useStudyTimer";
+
+interface TimerWidgetProps {
+  onReset?: () => void;
+}
+
+export function TimerWidget({ onReset }: TimerWidgetProps) {
+  const { formattedTime, isRunning, toggle, reset } = useStudyTimer({
+    autoStart: true,
+    storageKey: "questoes_timer",
+  });
+
+  const handleReset = () => {
+    reset();
+    if (onReset) onReset();
+  };
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center gap-2 font-mono text-base font-semibold text-slate-700 dark:text-slate-200">
+        <Clock
+          className={`h-4 w-4 ${isRunning ? "text-emerald-500 animate-pulse" : "text-slate-400"}`}
+        />
+        <span>{formattedTime}</span>
+      </div>
+
+      <div className="flex items-center gap-1 border-l border-slate-200 pl-2 dark:border-slate-800">
+        <button
+          onClick={toggle}
+          className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          title={isRunning ? "Pausar tempo" : "Iniciar tempo"}
+        >
+          {isRunning ? (
+            <Pause className="h-4 w-4" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )}
+        </button>
+
+        <button
+          onClick={handleReset}
+          className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          title="Reiniciar tempo"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+</file>
+
 <file path="src/components/decks/CreateDeckModal.tsx">
 "use client";
 
@@ -262,7 +319,7 @@ export default function CreateDeckModal({
       }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in"
     >
-      <div className="relative w-full max-w-lg bg-slate-950/90 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-[0_0_50px_-12px_rgba(99,102,241,0.25)] backdrop-blur-2xl overflow-hidden select-none">
+      <div className="relative w-full max-w-lg bg-slate-950/90 border border-white/10 rounded-4xl p-6 md:p-8 shadow-[0_0_50px_-12px_rgba(99,102,241,0.25)] backdrop-blur-2xl overflow-hidden select-none">
         {/* Glow de Fundo Sutil */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -380,63 +437,6 @@ export default function CreateDeckModal({
             )}
           </button>
         </form>
-      </div>
-    </div>
-  );
-}
-</file>
-
-<file path="src/components/questions/TimerWidget.tsx">
-"use client";
-
-import React from "react";
-import { Play, Pause, RotateCcw, Clock } from "lucide-react";
-import { useStudyTimer } from "@/hooks/useStudyTimer";
-
-interface TimerWidgetProps {
-  onReset?: () => void;
-}
-
-export function TimerWidget({ onReset }: TimerWidgetProps) {
-  const { formattedTime, isRunning, toggle, reset } = useStudyTimer({
-    autoStart: true,
-    storageKey: "questoes_timer",
-  });
-
-  const handleReset = () => {
-    reset();
-    if (onReset) onReset();
-  };
-
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-center gap-2 font-mono text-base font-semibold text-slate-700 dark:text-slate-200">
-        <Clock
-          className={`h-4 w-4 ${isRunning ? "text-emerald-500 animate-pulse" : "text-slate-400"}`}
-        />
-        <span>{formattedTime}</span>
-      </div>
-
-      <div className="flex items-center gap-1 border-l border-slate-200 pl-2 dark:border-slate-800">
-        <button
-          onClick={toggle}
-          className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-          title={isRunning ? "Pausar tempo" : "Iniciar tempo"}
-        >
-          {isRunning ? (
-            <Pause className="h-4 w-4" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-        </button>
-
-        <button
-          onClick={handleReset}
-          className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-          title="Reiniciar tempo"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </button>
       </div>
     </div>
   );
@@ -742,7 +742,13 @@ export default function FlashcardModal({
 <file path="src/components/flashcards/StudyFlashcard.tsx">
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useOptimistic,
+  useTransition,
+} from "react";
 import {
   X,
   HelpCircle,
@@ -761,6 +767,7 @@ import confetti from "canvas-confetti";
 import { useGamification } from "@/context/GamificationContext";
 import { useAchievement } from "@/context/AchievementContext";
 import { checkNewAchievements } from "@/lib/check-achievements";
+import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 
 interface Flashcard {
   id: string;
@@ -777,19 +784,48 @@ interface StudyFlashcardProps {
   cards: Flashcard[];
   deckTitle?: string;
   deckId?: string;
+  userId?: string;
+}
+
+interface OptimisticState {
+  index: number;
+  acertos: number;
+  erros: number;
 }
 
 export default function StudyFlashcard({
   cards,
   deckTitle,
+  userId,
 }: StudyFlashcardProps) {
   const [index, setIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
 
-  // 🟢 HOOKS DE GAMIFICAÇÃO & CONQUISTAS
+  const [, startTransition] = useTransition();
+
+  const [performanceStats, setPerformanceStats] = useState({
+    erros: 0,
+    acertos: 0,
+  });
+
+  // 🟢 ESTADO OTIMISTA (Avança o card e atualiza métricas imediatamente)
+  const [optimisticState, setOptimisticState] = useOptimistic<
+    OptimisticState,
+    { grade: number }
+  >(
+    { index, acertos: performanceStats.acertos, erros: performanceStats.erros },
+    (currentState, action) => {
+      const isSuccess = action.grade >= 3;
+      return {
+        index: Math.min(currentState.index + 1, cards.length),
+        acertos: isSuccess ? currentState.acertos + 1 : currentState.acertos,
+        erros: !isSuccess ? currentState.erros + 1 : currentState.erros,
+      };
+    },
+  );
+
   const { stats: gamificationStats, refreshStats } = useGamification();
   const { notifyAchievement } = useAchievement();
 
@@ -799,13 +835,10 @@ export default function StudyFlashcard({
     title?: string;
   } | null>(null);
 
-  const [performanceStats, setPerformanceStats] = useState({
-    erros: 0,
-    acertos: 0,
-  });
-
-  const currentCard = cards[index];
-  const progress = cards.length > 0 ? ((index + 1) / cards.length) * 100 : 0;
+  const currentIndex = optimisticState.index;
+  const currentCard = cards[currentIndex];
+  const progress =
+    cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
 
   const frontText = currentCard
     ? currentCard.question ||
@@ -821,18 +854,18 @@ export default function StudyFlashcard({
 
   const handleAnswer = useCallback(
     async (grade: number) => {
-      if (!currentCard || isSubmitting) return;
+      if (!currentCard) return;
 
-      setIsSubmitting(true);
       setSelectedGrade(grade);
+      setIsFlipped(false);
 
-      if (grade < 3) {
-        setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
-      } else {
-        setPerformanceStats((prev) => ({ ...prev, acertos: prev.acertos + 1 }));
-      }
+      const isLastCard = index >= cards.length - 1;
 
-      // ⚡ Converte nota numérica em string para o motor de gamificação
+      // ⚡ ATUALIZAÇÃO OTIMISTICA INSTANTÂNEA
+      startTransition(() => {
+        setOptimisticState({ grade });
+      });
+
       const gradeLabel =
         grade >= 5
           ? "Fácil"
@@ -843,23 +876,35 @@ export default function StudyFlashcard({
               : "Errei";
 
       try {
-        // Nível anterior do contexto
         const previousLevel = gamificationStats?.gamification?.level ?? 1;
 
-        // 1. Registra o ganho de XP na rota dedicada de gamificação de flashcards
-        const resReview = await fetch("/api/flashcards/review", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cardId: currentCard.id,
-            grade: gradeLabel,
+        // Requisições em paralelo
+        const [resReview] = await Promise.all([
+          fetch("/api/flashcards/review", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cardId: currentCard.id,
+              grade: gradeLabel,
+            }),
           }),
-        });
+          fetch("/api/review", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cardId: currentCard.id,
+              flashcardId: currentCard.id,
+              topicId:
+                currentCard.topicId || currentCard.deckId || currentCard.id,
+              grade,
+              source: "FLASHCARD",
+            }),
+          }),
+        ]);
 
         if (resReview.ok) {
           const data = await resReview.json();
 
-          // Checa evolução de nível
           if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
             const newLevel = data.levelInfo.level;
             const newTitle = data.levelInfo.title || "Mestre da Retenção";
@@ -869,46 +914,30 @@ export default function StudyFlashcard({
               newLevel,
               title: newTitle,
             });
-
-            // 💾 Grava notificação para a Dashboard
-            localStorage.setItem(
-              "pending_levelup_notification",
-              JSON.stringify({
-                level: newLevel,
-                title: newTitle,
-                timestamp: Date.now(),
-              }),
-            );
           }
         }
 
-        // 2. Atualiza os algoritmos de repetibilidade (SM-2)
-        await fetch("/api/review", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cardId: currentCard.id,
-            flashcardId: currentCard.id,
-            topicId:
-              currentCard.topicId || currentCard.deckId || currentCard.id,
-            grade,
-            source: "FLASHCARD",
-          }),
-        });
-
-        // Atualiza os dados de XP globais no app
+        if (userId) {
+          await invalidateUserCacheAction(userId);
+        }
         await refreshStats();
       } catch (error) {
         console.error("Erro ao sincronizar revisão do flashcard:", error);
       } finally {
-        setIsSubmitting(false);
+        // Confirma a transição real de estado após a promessa
+        setIndex((prev) => prev + 1);
+        if (grade < 3) {
+          setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
+        } else {
+          setPerformanceStats((prev) => ({
+            ...prev,
+            acertos: prev.acertos + 1,
+          }));
+        }
         setSelectedGrade(null);
       }
 
-      if (index < cards.length - 1) {
-        setIndex((prev) => prev + 1);
-        setIsFlipped(false);
-      } else {
+      if (isLastCard) {
         setIsFinished(true);
         confetti({
           particleCount: 200,
@@ -917,7 +946,6 @@ export default function StudyFlashcard({
           colors: ["#818cf8", "#c084fc", "#38bdf8", "#34d399", "#ffffff"],
         });
 
-        // 🏆 Dispara a verificação e notificação de novas conquistas em tempo real
         checkNewAchievements(notifyAchievement);
       }
     },
@@ -925,16 +953,17 @@ export default function StudyFlashcard({
       index,
       cards,
       currentCard,
-      isSubmitting,
       gamificationStats,
       refreshStats,
       notifyAchievement,
+      setOptimisticState,
+      userId,
     ],
   );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isFinished || !currentCard || isSubmitting) return;
+      if (isFinished || !currentCard) return;
 
       if (e.code === "Space") {
         e.preventDefault();
@@ -949,7 +978,7 @@ export default function StudyFlashcard({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFlipped, isFinished, currentCard, isSubmitting, handleAnswer]);
+  }, [isFlipped, isFinished, currentCard, handleAnswer]);
 
   if (!cards || cards.length === 0) {
     return (
@@ -1008,7 +1037,6 @@ export default function StudyFlashcard({
               </p>
             </div>
 
-            {/* 🟢 BANNER DE LEVEL UP SE HOUVER SUBIDA DE NÍVEL */}
             {levelUpData?.leveledUp && (
               <div className="mx-auto max-w-md rounded-2xl border border-purple-500/40 bg-linear-to-r from-purple-900/50 via-indigo-900/50 to-purple-900/50 p-4 shadow-[0_0_25px_rgba(168,85,247,0.3)] animate-bounce">
                 <p className="text-xs font-black tracking-wider text-purple-300 uppercase">
@@ -1029,7 +1057,7 @@ export default function StudyFlashcard({
                   Dominados
                 </span>
                 <span className="text-xl font-black text-emerald-400 font-mono tracking-tight">
-                  {performanceStats.acertos}
+                  {optimisticState.acertos}
                 </span>
               </div>
               <div className="pl-2">
@@ -1037,7 +1065,7 @@ export default function StudyFlashcard({
                   Revisar
                 </span>
                 <span className="text-xl font-black text-rose-400 font-mono tracking-tight">
-                  {performanceStats.erros}
+                  {optimisticState.erros}
                 </span>
               </div>
             </div>
@@ -1048,7 +1076,7 @@ export default function StudyFlashcard({
               </div>
               <span className="text-[11px] leading-relaxed">
                 <strong>Algoritmo SM-2 Ativo:</strong> O intervalo ideal para a
-                próxima repetição foi adjusted para maximizar a retenção a longo
+                próxima repetição foi ajustado para maximizar a retenção a longo
                 prazo.
               </span>
             </div>
@@ -1091,7 +1119,9 @@ export default function StudyFlashcard({
 
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[11px] font-mono shadow-inner">
                 <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                <span className="font-bold text-indigo-400">{index + 1}</span>
+                <span className="font-bold text-indigo-400">
+                  {currentIndex + 1}
+                </span>
                 <span className="text-slate-600">/</span>
                 <span className="text-slate-400">{cards.length}</span>
               </div>
@@ -1100,7 +1130,7 @@ export default function StudyFlashcard({
             <div className="mb-6 relative z-10">
               <div className="h-2 w-full bg-slate-900/90 rounded-full overflow-hidden border border-slate-800/80 p-0.5 shadow-inner">
                 <div
-                  className="h-full bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(99,102,241,0.8)]"
+                  className="h-full bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 rounded-full transition-all duration-300 ease-out shadow-[0_0_12px_rgba(99,102,241,0.8)]"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -1129,7 +1159,7 @@ export default function StudyFlashcard({
                       Pergunta
                     </span>
                     <span className="text-[10px] text-slate-500 font-mono tracking-wider">
-                      CARD #{index + 1}
+                      CARD #{currentIndex + 1}
                     </span>
                   </div>
 
@@ -1173,7 +1203,7 @@ export default function StudyFlashcard({
                       {backText}
                     </h3>
 
-                    {currentCard.details && (
+                    {currentCard?.details && (
                       <p className="text-xs text-slate-400 bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-2xl leading-relaxed text-left shadow-inner">
                         {currentCard.details}
                       </p>
@@ -1230,18 +1260,17 @@ export default function StudyFlashcard({
               ].map((btn) => (
                 <button
                   key={btn.label}
-                  disabled={isSubmitting}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAnswer(btn.grade);
                   }}
-                  className={`group relative flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border font-bold text-[10px] tracking-widest transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${btn.style}`}
+                  className={`group relative flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border font-bold text-[10px] tracking-widest transition-all duration-200 active:scale-95 ${btn.style}`}
                 >
                   <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-slate-950/80 text-[9px] font-mono opacity-60 group-hover:opacity-100 transition-opacity border border-white/10">
                     {btn.key}
                   </span>
-                  {isSubmitting && selectedGrade === btn.grade ? (
-                    <Loader2 size={16} className="animate-spin" />
+                  {selectedGrade === btn.grade ? (
+                    <Loader2 size={17} className="animate-spin" />
                   ) : (
                     <btn.icon
                       size={17}

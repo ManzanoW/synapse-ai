@@ -43,7 +43,10 @@ The content is organized as follows:
 <directory_structure>
 src/
   actions/
+    adaptive-actions.ts
     auth-actions.ts
+    deck-actions.ts
+    gamification-actions.ts
   context/
     AchievementContext.tsx
     GamificationContext.tsx
@@ -53,7 +56,9 @@ src/
     achievements-engine.ts
     achievements.ts
     adaptive-rebalancer.ts
+    ai-validator.ts
     analytics-utils.ts
+    cache-service.ts
     check-achievements.ts
     gamification.ts
     prisma.ts
@@ -206,71 +211,251 @@ export function useSidebar() {
 }
 </file>
 
-<file path="src/lib/sm2.ts">
+<file path="src/lib/supabase.ts">
 
 </file>
 
-<file path="src/lib/srs-algorithm.ts">
-// src/lib/srs-algorithm.ts
+<file path="src/actions/adaptive-actions.ts">
+"use server";
 
-export const calculateNextReview = (
-  performance: "bom" | "dificil" | "errei",
-  currentInterval: number,
-) => {
-  // Se errou, revisa em 1 dia (reset)
-  if (performance === "errei") return 1;
-
-  // Se foi difícil, revisa em 3 dias
-  if (performance === "dificil") return 3;
-
-  // Se foi bom, multiplica o intervalo atual por 2 (dobra o tempo)
-  return currentInterval * 2 || 7;
-};
-</file>
-
-<file path="src/lib/srs-service.ts">
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { calculateAdaptiveRebalance } from "@/lib/adaptive-rebalancer";
+import { RebalanceParams, AdaptiveAdjustment } from "@/types/adaptive";
+import { revalidateTag, revalidatePath } from "next/cache";
 
-export async function updateSubjectSRS(
-  subjectId: string,
-  performance: "bom" | "dificil" | "errei",
-) {
-  const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
-  if (!subject) return;
+export interface RebalanceActionResult {
+  success: boolean;
+  data?: AdaptiveAdjustment[];
+  error?: string;
+}
 
-  let { interval, easiness } = subject;
-  let nextInterval = interval;
+export async function rebalanceScheduleAction(
+  params: RebalanceParams,
+  userIdParam?: string,
+): Promise<RebalanceActionResult> {
+  try {
+    const session = await auth();
+    const userId = userIdParam || session?.user?.id;
 
-  // Lógica do Algoritmo SM-2 adaptada
-  if (performance === "bom") {
-    easiness += 0.1;
-    nextInterval = interval === 1 ? 6 : Math.round(interval * easiness);
-  } else if (performance === "dificil") {
-    easiness = Math.max(1.3, easiness - 0.2);
-    nextInterval = Math.max(1, Math.round(interval * 0.5));
-  } else {
-    // "errei" -> Reset total
-    easiness = Math.max(1.3, easiness - 0.5);
-    nextInterval = 1;
+    if (!userId) {
+      return {
+        success: false,
+        error: "Usuário não autenticado.",
+      };
+    }
+
+    // 1. Atualiza as metas gerais de estudo no usuário se fornecidas
+    if (
+      params.weeklyGoalHours ||
+      params.activeDaysPerWeek ||
+      params.studyMode
+    ) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(params.weeklyGoalHours && {
+            weeklyGoalHours: params.weeklyGoalHours,
+          }),
+          ...(params.activeDaysPerWeek && {
+            activeDaysPerWeek: params.activeDaysPerWeek,
+          }),
+          ...(params.studyMode && { studyMode: params.studyMode }),
+        },
+      });
+    }
+
+    // 2. Executa a inteligência de rebalanceamento adaptativo se houver dados de performance
+    let adjustments: AdaptiveAdjustment[] = [];
+
+    if (params.performances && params.performances.length > 0) {
+      adjustments = calculateAdaptiveRebalance(params);
+
+      // Atualiza o tempo/prioridade das matérias rebalanceadas no banco
+      for (const adj of adjustments) {
+        if (adj.subjectId) {
+          // Casting duplo para evitar o erro de sobreposição de tipos do TS
+          const adjRecord = adj as unknown as Record<string, unknown>;
+          const targetMinutes =
+            adjRecord.targetWeeklyMinutes ??
+            adjRecord.adjustedWeeklyMinutes ??
+            adjRecord.suggestedMinutes ??
+            adjRecord.targetMinutes ??
+            120;
+
+          await prisma.subject.updateMany({
+            where: { id: adj.subjectId, userId },
+            data: {
+              priority: Number(targetMinutes),
+            },
+          });
+        }
+      }
+    }
+
+    // 3. Revalida o cache das rotas afetadas
+    try {
+      (revalidateTag as unknown as (tag: string) => void)(
+        `user-schedule-${userId}`,
+      );
+      revalidatePath("/week");
+      revalidatePath("/performance");
+    } catch {
+      // Ignora falhas de revalidação caso executado fora do contexto HTTP
+    }
+
+    return {
+      success: true,
+      data: adjustments,
+    };
+  } catch (err) {
+    console.error("Erro em rebalanceScheduleAction:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao recalcular o rebalanceamento adaptativo.",
+    };
   }
-
-  const nextReviewDate = new Date();
-  nextReviewDate.setDate(nextReviewDate.getDate() + nextInterval);
-
-  return await prisma.subject.update({
-    where: { id: subjectId },
-    data: {
-      lastReviewed: new Date(),
-      nextReview: nextReviewDate,
-      interval: nextInterval,
-      easiness: easiness,
-    },
-  });
 }
 </file>
 
-<file path="src/lib/supabase.ts">
+<file path="src/actions/deck-actions.ts">
+"use server";
 
+import { prisma } from "@/lib/prisma";
+import { revalidateTag } from "next/cache";
+
+export interface CreateDeckWithAIInput {
+  name: string;
+  content: string;
+  color?: string;
+  userId: string; // Campo obrigatório exigido pelo Prisma Schema
+}
+
+export async function createDeckWithAIAction(input: CreateDeckWithAIInput) {
+  try {
+    if (!input.userId) {
+      return {
+        success: false,
+        error: "Usuário não autenticado para criar o baralho.",
+      };
+    }
+
+    if (!input.name.trim() || !input.content.trim()) {
+      return {
+        success: false,
+        error: "O título e o conteúdo base são obrigatórios.",
+      };
+    }
+
+    // Criação do baralho no banco vinculada ao usuário
+    const newDeck = await prisma.deck.create({
+      data: {
+        title: input.name,
+        color: input.color || "bg-indigo-500",
+        userId: input.userId,
+      },
+    });
+
+    (revalidateTag as (tag: string) => void)(`user-decks-${input.userId}`);
+
+    return {
+      success: true,
+      data: newDeck,
+    };
+  } catch (err) {
+    console.error("Erro ao criar baralho com IA:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao gerar o baralho. Tente novamente.",
+    };
+  }
+}
+</file>
+
+<file path="src/actions/gamification-actions.ts">
+"use server";
+
+import { revalidateTag } from "next/cache";
+import {
+  getCachedUserStats,
+  getCachedAchievementsProgress,
+} from "@/lib/cache-service";
+import { calculateLevel } from "@/lib/gamification";
+
+export async function getUserStatsAction(userId: string) {
+  try {
+    const userStats = await getCachedUserStats(userId);
+
+    const totalXp = userStats?.totalXp ?? 0;
+    const levelInfo = calculateLevel(totalXp);
+    const currentStreak = userStats?.streakDays ?? 0;
+
+    const weekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map(
+      (dayLabel) => ({
+        dayLabel,
+        active: currentStreak > 0,
+      }),
+    );
+
+    return {
+      success: true,
+      data: {
+        gamification: {
+          totalXp,
+          level: levelInfo.level,
+          currentLevelXp: levelInfo.currentXp,
+          nextLevelXp: levelInfo.nextLevelXp,
+          progressPercentage: levelInfo.progressPercentage,
+          title: levelInfo.title,
+        },
+        streak: {
+          currentDays: currentStreak,
+          weekDays,
+        },
+      },
+    };
+  } catch (err) {
+    console.error("Erro em getUserStatsAction:", err);
+    return {
+      success: false,
+      error: "Não foi possível carregar as estatísticas.",
+    };
+  }
+}
+
+export async function getAchievementsProgressAction(userId: string) {
+  try {
+    const data = await getCachedAchievementsProgress(userId);
+    return { success: true, data };
+  } catch (err) {
+    console.error("Erro em getAchievementsProgressAction:", err);
+    return {
+      success: false,
+      error: "Não foi possível carregar o progresso de conquistas.",
+    };
+  }
+}
+
+/**
+ * Invalida o cache do usuário após ações de ganho de XP ou finalização de estudo
+ */
+export async function invalidateUserCacheAction(userId: string) {
+  try {
+    // Passamos o perfil 'default' ou forçamos a chamada sem o segundo argumento usando tipagem se necessário
+    (revalidateTag as (tag: string) => void)(`user-stats-${userId}`);
+    (revalidateTag as (tag: string) => void)(`user-achievements-${userId}`);
+    return { success: true };
+  } catch (err) {
+    console.error("Erro ao revalidar cache:", err);
+    return { success: false, error: "Falha ao revalidar cache." };
+  }
+}
 </file>
 
 <file path="src/context/AchievementContext.tsx">
@@ -318,109 +503,6 @@ export function useAchievement() {
   if (!context) {
     throw new Error(
       "useAchievement deve ser usado dentro de um AchievementProvider",
-    );
-  }
-  return context;
-}
-</file>
-
-<file path="src/context/GamificationContext.tsx">
-"use client";
-
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
-
-interface LevelInfo {
-  level: number;
-  currentLevelXp: number;
-  nextLevelXp: number;
-  progressPercentage: number;
-  title: string;
-}
-
-interface WeekDay {
-  dayLabel: string;
-  active: boolean;
-}
-
-interface StatsData {
-  gamification: {
-    totalXp: number;
-    level: number;
-    currentLevelXp: number;
-    nextLevelXp: number;
-    progressPercentage: number;
-    title: string;
-  };
-  streak: {
-    currentDays: number;
-    weekDays: WeekDay[];
-  };
-}
-
-interface GamificationContextType {
-  stats: StatsData | null;
-  isLoading: boolean;
-  refreshStats: () => Promise<void>;
-}
-
-const GamificationContext = createContext<GamificationContextType | undefined>(
-  undefined,
-);
-
-export function GamificationProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [stats, setStats] = useState<StatsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchStats = useCallback(async () => {
-    try {
-      const res = await fetch("/api/user/stats");
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar estatísticas do usuário:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchStats();
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [fetchStats]);
-
-  return (
-    <GamificationContext.Provider
-      value={{
-        stats,
-        isLoading,
-        refreshStats: fetchStats,
-      }}
-    >
-      {children}
-    </GamificationContext.Provider>
-  );
-}
-
-export function useGamification() {
-  const context = useContext(GamificationContext);
-  if (!context) {
-    throw new Error(
-      "useGamification deve ser usado dentro de GamificationProvider",
     );
   }
   return context;
@@ -507,6 +589,119 @@ export function calculateAdaptiveRebalance(
 
   return adjustments;
 }
+</file>
+
+<file path="src/lib/ai-validator.ts">
+import { z } from "zod";
+
+export interface AIValidationResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+/**
+ * Limpa a string da IA, realiza o parse JSON e valida contra um schema Zod.
+ */
+export async function parseAndValidateAIResponse<T>(
+  rawResponse: string,
+  schema: z.ZodSchema<T>,
+): Promise<AIValidationResult<T>> {
+  try {
+    // Sanitize: remove blocos de código markdown
+    const cleanedJson = rawResponse
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/, "")
+      .trim();
+
+    const parsed = JSON.parse(cleanedJson);
+    const validatedData = schema.parse(parsed);
+
+    return { success: true, data: validatedData };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      const issues = err.issues
+        .map((i) => `${i.path.join(".") || "raiz"}: ${i.message}`)
+        .join("; ");
+      return {
+        success: false,
+        error: `Estrutura gerada pela IA é inválida: ${issues}`,
+      };
+    }
+
+    if (err instanceof SyntaxError) {
+      return {
+        success: false,
+        error: "A resposta fornecida pela IA não é um JSON válido.",
+      };
+    }
+
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro desconhecido ao processar resposta da IA.",
+    };
+  }
+}
+
+// --- SCHEMAS PADRÃO DO APP ---
+
+export const generatedFlashcardSchema = z.object({
+  front: z.string().min(1, "A pergunta é obrigatória"),
+  back: z.string().min(1, "A resposta é obrigatória"),
+  details: z.string().optional().nullable(),
+});
+
+export const generatedDeckResponseSchema = z.object({
+  title: z.string().min(1, "O título do baralho é obrigatório"),
+  cards: z
+    .array(generatedFlashcardSchema)
+    .min(5, "Deve ser gerado ao menos 5 flashcards"),
+});
+
+export type GeneratedFlashcard = z.infer<typeof generatedFlashcardSchema>;
+export type GeneratedDeckResponse = z.infer<typeof generatedDeckResponseSchema>;
+</file>
+
+<file path="src/lib/cache-service.ts">
+import { unstable_cache } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { getUserAchievementsProgress } from "@/lib/achievements-engine";
+
+/**
+ * Cache para busca das estatísticas do usuário (XP, Nível, Streak)
+ */
+export const getCachedUserStats = (userId: string) =>
+  unstable_cache(
+    async () => {
+      return await prisma.userStats.findUnique({
+        where: { userId },
+      });
+    },
+    [`user-stats-${userId}`],
+    {
+      tags: [`user-stats-${userId}`],
+      revalidate: 300, // Revalida automaticamente a cada 5 minutos
+    },
+  )();
+
+/**
+ * Cache para o progresso de conquistas do usuário
+ */
+export const getCachedAchievementsProgress = (userId: string) =>
+  unstable_cache(
+    async () => {
+      return await getUserAchievementsProgress(userId);
+    },
+    [`user-achievements-${userId}`],
+    {
+      tags: [`user-achievements-${userId}`],
+      revalidate: 300,
+    },
+  )();
 </file>
 
 <file path="src/lib/check-achievements.ts">
@@ -658,6 +853,154 @@ export function calculateEarnedXp(
 }
 </file>
 
+<file path="src/lib/sm2.ts">
+// src/lib/sm2.ts
+
+export interface SM2Input {
+  interval: number;
+  easiness: number;
+  repetitions: number;
+  grade: number; // Nota de 0 a 5
+}
+
+export interface SM2Output {
+  nextInterval: number;
+  nextEasiness: number;
+  nextRepetitions: number;
+  nextReviewDate: Date;
+}
+
+export type PerformanceLabel =
+  "bom" | "dificil" | "errei" | "Fácil" | "Bom" | "Difícil" | "Errei";
+
+/**
+ * Converte rótulos legíveis de desempenho para a nota numérica padrão do SM-2 (0 a 5)
+ */
+export function convertLabelToGrade(label: PerformanceLabel): number {
+  const normalized = label.toLowerCase();
+  switch (normalized) {
+    case "fácil":
+    case "facil":
+      return 5;
+    case "bom":
+      return 4;
+    case "dificil":
+    case "difícil":
+      return 3;
+    case "errei":
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Algoritmo SM-2 Oficial (SuperMemo 2)
+ * Calcula os novos valores de intervalo, fator de facilidade e repetições.
+ */
+export function calculateSM2(params: SM2Input): SM2Output {
+  const { interval, easiness, repetitions, grade } = params;
+
+  // Garante que a nota esteja dentro da escala válida de 0 a 5
+  const q = Math.max(0, Math.min(5, grade));
+
+  // 1. Cálculo do novo Fator de Facilidade (Easiness Factor)
+  let nextEasiness = easiness + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
+  if (nextEasiness < 1.3) nextEasiness = 1.3;
+
+  let nextInterval: number;
+  let nextRepetitions: number;
+
+  // 2. Se errou ou teve desempenho ruim (nota < 3), reseta o ciclo
+  if (q < 3) {
+    nextRepetitions = 0;
+    nextInterval = 1;
+  } else {
+    nextRepetitions = repetitions + 1;
+    if (nextRepetitions === 1) {
+      nextInterval = 1;
+    } else if (nextRepetitions === 2) {
+      nextInterval = 6;
+    } else {
+      nextInterval = Math.round(interval * nextEasiness);
+    }
+  }
+
+  const nextReviewDate = new Date();
+  nextReviewDate.setDate(nextReviewDate.getDate() + nextInterval);
+
+  return {
+    nextInterval,
+    nextEasiness: Number(nextEasiness.toFixed(2)),
+    nextRepetitions,
+    nextReviewDate,
+  };
+}
+
+/**
+ * Utilitário legador/adaptador para simplificar atualizações por texto ("bom", "dificil", "errei")
+ */
+export function calculateSM2FromLabel(
+  interval: number,
+  easiness: number,
+  repetitions: number,
+  label: PerformanceLabel,
+): SM2Output {
+  const grade = convertLabelToGrade(label);
+  return calculateSM2({ interval, easiness, repetitions, grade });
+}
+</file>
+
+<file path="src/lib/srs-algorithm.ts">
+// src/lib/srs-algorithm.ts
+import { convertLabelToGrade, calculateSM2 } from "@/lib/sm2";
+
+export const calculateNextReview = (
+  performance: "bom" | "dificil" | "errei",
+  currentInterval: number,
+) => {
+  const grade = convertLabelToGrade(performance);
+  const result = calculateSM2({
+    interval: currentInterval,
+    easiness: 2.5,
+    repetitions: 1,
+    grade,
+  });
+
+  return result.nextInterval;
+};
+</file>
+
+<file path="src/lib/srs-service.ts">
+// src/lib/srs-service.ts
+import { prisma } from "@/lib/prisma";
+import { calculateSM2FromLabel } from "@/lib/sm2";
+
+export async function updateSubjectSRS(
+  subjectId: string,
+  performance: "bom" | "dificil" | "errei",
+) {
+  const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+  if (!subject) return;
+
+  const { nextInterval, nextEasiness, nextReviewDate } = calculateSM2FromLabel(
+    subject.interval || 1,
+    subject.easiness || 2.5,
+    1,
+    performance,
+  );
+
+  return await prisma.subject.update({
+    where: { id: subjectId },
+    data: {
+      lastReviewed: new Date(),
+      nextReview: nextReviewDate,
+      interval: nextInterval,
+      easiness: nextEasiness,
+    },
+  });
+}
+</file>
+
 <file path="src/types/adaptive.ts">
 // src/types/adaptive.ts
 
@@ -703,6 +1046,130 @@ export async function loginWithGithub() {
 
 export async function logoutAction() {
   await signOut({ redirectTo: "/login" });
+}
+</file>
+
+<file path="src/context/GamificationContext.tsx">
+"use client";
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import { getUserStatsAction } from "@/actions/gamification-actions";
+
+export interface WeekDay {
+  dayLabel: string;
+  active: boolean;
+}
+
+export interface StatsData {
+  gamification: {
+    totalXp: number;
+    level: number;
+    currentLevelXp: number;
+    nextLevelXp: number;
+    progressPercentage: number;
+    title: string;
+  };
+  streak: {
+    currentDays: number;
+    weekDays: WeekDay[];
+  };
+}
+
+export interface GamificationContextType {
+  stats: StatsData | null;
+  isLoading: boolean;
+  refreshStats: (targetUserId?: string) => Promise<void>;
+}
+
+const GamificationContext = createContext<GamificationContextType | undefined>(
+  undefined,
+);
+
+export function GamificationProvider({
+  children,
+  userId,
+}: {
+  children: React.ReactNode;
+  userId?: string;
+}) {
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const refreshStats = useCallback(
+    async (targetUserId?: string) => {
+      const activeUserId = targetUserId || userId;
+      if (!activeUserId) return;
+
+      try {
+        const response = await getUserStatsAction(activeUserId);
+        if (response.success && response.data) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error("Erro ao recarregar estatísticas:", error);
+      }
+    },
+    [userId],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadInitialStats() {
+      if (!userId) {
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await getUserStatsAction(userId);
+        if (isMounted && response.success && response.data) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error(
+          "Erro ao carregar estatísticas via Server Action:",
+          error,
+        );
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadInitialStats();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userId]);
+
+  return (
+    <GamificationContext.Provider
+      value={{
+        stats,
+        isLoading,
+        refreshStats,
+      }}
+    >
+      {children}
+    </GamificationContext.Provider>
+  );
+}
+
+export function useGamification() {
+  const context = useContext(GamificationContext);
+  if (!context) {
+    throw new Error(
+      "useGamification deve ser usado dentro de GamificationProvider",
+    );
+  }
+  return context;
 }
 </file>
 
@@ -891,13 +1358,19 @@ export interface DashboardSubject extends Subject {
   };
 }
 
-export interface Flashcard {
-  id: string;
+// src/types/index.ts
 
-  // Suporte à nova estrutura por Decks / SM-2
+export interface BaseFlashcard {
+  id: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+export interface Flashcard extends BaseFlashcard {
+  // Suporte à estrutura por Decks / SM-2
   front?: string;
   back?: string;
-  deckId?: string;
+  deckId?: string | null;
   interval?: number;
   repetitions?: number;
   easeFactor?: number;
@@ -907,12 +1380,9 @@ export interface Flashcard {
   question?: string;
   answer?: string;
   details?: string | null;
-  topicId?: string;
+  topicId?: string | null;
   topicTitle?: string;
   subjectName?: string;
-
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
 }
 
 export interface Topic {
