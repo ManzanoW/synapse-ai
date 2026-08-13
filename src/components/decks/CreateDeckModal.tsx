@@ -107,7 +107,7 @@ export default function CreateDeckModal({
       }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in"
     >
-      <div className="relative w-full max-w-lg bg-slate-950/90 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-[0_0_50px_-12px_rgba(99,102,241,0.25)] backdrop-blur-2xl overflow-hidden select-none">
+      <div className="relative w-full max-w-lg bg-slate-950/90 border border-white/10 rounded-4xl p-6 md:p-8 shadow-[0_0_50px_-12px_rgba(99,102,241,0.25)] backdrop-blur-2xl overflow-hidden select-none">
         {/* Glow de Fundo Sutil */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 

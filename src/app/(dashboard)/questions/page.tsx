@@ -12,8 +12,6 @@ import {
   Home,
   ArrowRight,
   Zap,
-  CheckCircle2,
-  Clock,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -105,19 +103,31 @@ export default function QuestoesPage() {
   // Estados gerais
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
+    null,
+  );
   const [activeTab, setActiveTab] = useState<"create" | "history">("create");
-  const [pendingTab, setPendingTab] = useState<"create" | "history" | null>(null);
+  const [pendingTab, setPendingTab] = useState<"create" | "history" | null>(
+    null,
+  );
 
   // Estados do caderno / questões
   const [banca, setBanca] = useState("FGV");
   const [questions, setQuestions] = useState<QuestaoIA[]>([]);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
-  const [checkedQuestions, setCheckedQuestions] = useState<Record<number, boolean>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<number, string>
+  >({});
+  const [checkedQuestions, setCheckedQuestions] = useState<
+    Record<number, boolean>
+  >({});
   const [currentQuizId, setCurrentQuizId] = useState<string | null>(null);
   const [savedErrors, setSavedErrors] = useState<Record<number, boolean>>({});
-  const [creatingFlashcardIndex, setCreatingFlashcardIndex] = useState<number | null>(null);
-  const [createdFlashcards, setCreatedFlashcards] = useState<Record<number, boolean>>({});
+  const [creatingFlashcardIndex, setCreatingFlashcardIndex] = useState<
+    number | null
+  >(null);
+  const [createdFlashcards, setCreatedFlashcards] = useState<
+    Record<number, boolean>
+  >({});
   const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
 
   // Cronômetro e conclusão
@@ -131,7 +141,9 @@ export default function QuestoesPage() {
   const [materia, setMateria] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [qtdQuestoes, setQtdQuestoes] = useState("5");
-  const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">("banca");
+  const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
+    "banca",
+  );
   const [dificuldade, setDificuldade] = useState("Média");
   const [textoBase, setTextoBase] = useState("");
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
@@ -145,7 +157,9 @@ export default function QuestoesPage() {
 
   // Sessão pausada
   const STORAGE_KEY = "deepwork_quiz_session_v1";
-  const [pausedSession, setPausedSession] = useState<PausedSession | null>(null);
+  const [pausedSession, setPausedSession] = useState<PausedSession | null>(
+    null,
+  );
   const [isMounted, setIsMounted] = useState(false);
 
   // Level up
@@ -299,7 +313,8 @@ export default function QuestoesPage() {
           const matchedSubject = loadedSubjects.find(
             (s) =>
               s.id === decodedSubject ||
-              s.name.trim().toLowerCase() === decodedSubject.trim().toLowerCase(),
+              s.name.trim().toLowerCase() ===
+                decodedSubject.trim().toLowerCase(),
           );
 
           if (matchedSubject) {
@@ -308,7 +323,8 @@ export default function QuestoesPage() {
               const matchedTopic = matchedSubject.topics.find(
                 (t) =>
                   t.id === paramTopicId ||
-                  t.title.trim().toLowerCase() === paramTopicId.trim().toLowerCase(),
+                  t.title.trim().toLowerCase() ===
+                    paramTopicId.trim().toLowerCase(),
               );
               setSelectedTopicId(matchedTopic ? matchedTopic.id : paramTopicId);
             }
@@ -420,7 +436,7 @@ export default function QuestoesPage() {
               quizId: currentQuizId,
               banca: banca || "Geral",
               subject: materia?.trim() || "Geral",
-              topicId: selectedTopicId || null,
+              topicId: selectedTopicId || null, // Se vazio, o backend recuperará via currentQuizId
               difficulty: dificuldade || "Média",
               questions: questions.map((q, idx) => ({
                 ...q,
@@ -513,63 +529,63 @@ export default function QuestoesPage() {
   const handleGenerateSimulado = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
-    setSelectedAnswers({});
-    setCheckedQuestions({});
-    setSavedErrors({});
-    setCreatedFlashcards({});
-    setShowCompletionModal(false);
-    setTimerSeconds(0);
-    setFocusedQuestionIndex(0);
-    setIsTimerRunning(true);
 
     try {
+      // Resolve o nome do tópico selecionado
+      const selectedTopicObj = availableTopics.find(
+        (t) => t.id === selectedTopicId,
+      );
+      const topicoNome = selectedTopicObj
+        ? selectedTopicObj.title
+        : selectedTopicId;
+
       const response = await fetch("/api/questions/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           banca,
-          materia,
-          topicoId: selectedTopicId || null,
-          qtdQuestoes,
-          fonteConteudo,
+          materia, // Usando a variável correta de estado no lugar de 'selectedMateria'
+          topicoId: selectedTopicId || "ALL",
+          topicoNome: topicoNome || "Todos os Tópicos da Matéria",
+          qtdQuestoes: parseInt(qtdQuestoes, 10),
           dificuldade,
-          textoBase: fonteConteudo === "texto" ? textoBase : "",
+          textoBase,
+          fonteConteudo,
         }),
       });
 
       const json = await response.json();
-      const generatedQuestions = json.data || [];
-      setQuestions(generatedQuestions);
 
-      setIsAIModalOpen(false);
-
-      if (generatedQuestions.length > 0) {
-        const saveRes = await fetch("/api/questions/save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            banca,
-            subject: materia,
-            topicId: selectedTopicId || null,
-            difficulty: dificuldade,
-            questions: generatedQuestions,
-          }),
-        });
-
-        const saveData = await saveRes.json();
-        const generatedId = saveData.id || saveData.quizId || null;
-
-        if (generatedId) {
-          setCurrentQuizId(generatedId);
-        }
-
-        router.replace("/questions", { scroll: false });
-        router.refresh();
+      if (!response.ok) {
+        throw new Error(
+          json.error || json.details || "Falha ao gerar simulado com IA.",
+        );
       }
-    } catch (error) {
-      console.error("Erro ao gerar simulado:", error);
+
+      if (!json.data || json.data.length === 0) {
+        throw new Error(
+          "A IA não retornou questões para o escopo selecionado.",
+        );
+      }
+
+      // Atualiza os estados locais da sessão ativa
+      setQuestions(json.data);
+      setCurrentQuizId(json.quizId || null);
+      setIsAIModalOpen(false); // Nome correto da variável de estado
+      setSelectedAnswers({});
+      setCheckedQuestions({});
+      setSavedErrors({});
+      setCreatedFlashcards({});
+      setTimerSeconds(0);
+      setIsTimerRunning(true);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Erro desconhecido ao gerar questões.";
+      console.error("Erro ao gerar simulado:", msg);
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(false); // Corrigido o vazamento de classe Tailwind 'font-medium'
     }
   };
 
@@ -703,7 +719,9 @@ export default function QuestoesPage() {
                 Banco de Provas & Simulados
               </h1>
               <p className="text-xs text-slate-400 mt-1">
-                Simulados inteligentes focados na banca <strong className="text-indigo-400">{banca || "FGV"}</strong>. Treine com feedback em tempo real.
+                Simulados inteligentes focados na banca{" "}
+                <strong className="text-indigo-400">{banca || "FGV"}</strong>.
+                Treine com feedback em tempo real.
               </p>
             </div>
           </div>
@@ -743,7 +761,7 @@ export default function QuestoesPage() {
             </div>
             <div className="w-full bg-slate-950/80 rounded-full h-2 overflow-hidden border border-white/5">
               <div
-                className="bg-gradient-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                className="bg-linear-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"
                 style={{
                   width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%`,
                 }}
@@ -825,12 +843,15 @@ export default function QuestoesPage() {
                   )}
 
                 {/* BANNER HERO SPOTLIGHT */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl">
+                <div className="relative overflow-hidden bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl">
                   <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-indigo-500/10 blur-[100px]" />
                   <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                     <div className="space-y-4 max-w-xl">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-md">
-                        <Sparkles size={12} className="text-indigo-400 animate-pulse" />
+                        <Sparkles
+                          size={12}
+                          className="text-indigo-400 animate-pulse"
+                        />
                         <span className="text-[10px] font-extrabold tracking-widest text-indigo-300 uppercase">
                           Central de Treinamento
                         </span>
@@ -839,7 +860,8 @@ export default function QuestoesPage() {
                         Pratique com questões inéditas e simulados direcionados
                       </h2>
                       <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                        Gere cadernos adaptativos configurados pela IA ou retome seus testes anteriores com feedback em tempo real.
+                        Gere cadernos adaptativos configurados pela IA ou retome
+                        seus testes anteriores com feedback em tempo real.
                       </p>
                     </div>
                   </div>
@@ -849,7 +871,7 @@ export default function QuestoesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div
                     onClick={() => setIsAIModalOpen(true)}
-                    className="group relative bg-gradient-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-indigo-500/40 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
+                    className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-indigo-500/40 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
                   >
                     <div className="space-y-4 relative z-10">
                       <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
@@ -860,7 +882,8 @@ export default function QuestoesPage() {
                           Gerar Simulado por IA
                         </h3>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          Filtre por banca, disciplina e dificuldade para montar cadernos sob medida.
+                          Filtre por banca, disciplina e dificuldade para montar
+                          cadernos sob medida.
                         </p>
                       </div>
                     </div>
@@ -875,7 +898,7 @@ export default function QuestoesPage() {
                       handleTabChange("history");
                       fetchQuizHistory();
                     }}
-                    className="group relative bg-gradient-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-white/20 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
+                    className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-white/20 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
                   >
                     <div className="space-y-4 relative z-10">
                       <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300">
@@ -886,7 +909,8 @@ export default function QuestoesPage() {
                           Meus Simulados Salvos
                         </h3>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          Acesse e refaça cadernos salvos no seu histórico a qualquer momento.
+                          Acesse e refaça cadernos salvos no seu histórico a
+                          qualquer momento.
                         </p>
                       </div>
                     </div>
@@ -1085,7 +1109,8 @@ export default function QuestoesPage() {
               Deseja sair do simulado atual?
             </h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Ao alternar de aba agora, as respostas não finalizadas neste caderno serão descartadas.
+              Ao alternar de aba agora, as respostas não finalizadas neste
+              caderno serão descartadas.
             </p>
             <div className="flex items-center gap-3 justify-end pt-2">
               <button

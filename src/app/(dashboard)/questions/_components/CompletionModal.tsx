@@ -1,7 +1,15 @@
 "use client";
 
 import React from "react";
-import { Trophy, Loader2, RotateCcw, Clock, Zap, CheckCircle2 } from "lucide-react";
+import {
+  Trophy,
+  Loader2,
+  RotateCcw,
+  Clock,
+  Zap,
+  CheckCircle2,
+  Sliders,
+} from "lucide-react";
 
 interface CompletionModalProps {
   totalQuestions: number;
@@ -15,6 +23,10 @@ interface CompletionModalProps {
     newLevel: number;
     title?: string;
   } | null;
+  rebalancedData?: {
+    rebalanced: boolean;
+    subjectName?: string;
+  } | null;
   onRestart: () => void;
   onReview: () => void;
 }
@@ -27,6 +39,7 @@ export function CompletionModal({
   lastEarnedXp,
   isSyncingSM2,
   levelUpData,
+  rebalancedData,
   onRestart,
   onReview,
 }: CompletionModalProps) {
@@ -95,10 +108,9 @@ export function CompletionModal({
           </p>
         </div>
 
-        {/* CARDS DE MÉTRICAS - REDIMENSIONADOS */}
+        {/* CARDS DE MÉTRICAS */}
         <div className="bg-slate-950/80 border border-slate-800/80 p-3.5 rounded-2xl shadow-inner space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 items-stretch">
-            {/* TOTAL */}
             <div className="flex flex-col justify-center p-2 bg-slate-900/40 border border-slate-800/60 rounded-xl">
               <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                 Total
@@ -108,7 +120,6 @@ export function CompletionModal({
               </span>
             </div>
 
-            {/* ACERTOS */}
             <div className="flex flex-col justify-center p-2 bg-slate-900/40 border border-slate-800/60 rounded-xl">
               <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                 Acertos
@@ -118,7 +129,6 @@ export function CompletionModal({
               </span>
             </div>
 
-            {/* TAXA */}
             <div className="flex flex-col justify-center p-2 bg-slate-900/40 border border-slate-800/60 rounded-xl">
               <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                 Taxa
@@ -132,9 +142,8 @@ export function CompletionModal({
               </span>
             </div>
 
-            {/* TEMPO - FORMATADO E AMPLIADO */}
             <div className="flex flex-col justify-center p-2 bg-indigo-500/10 border border-indigo-500/25 rounded-xl">
-              <span className="block text-[10px] text-indigo-300 font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+              <span className="block text-[10px] text-indigo-300 font-bold uppercase tracking-wider items-center justify-center gap-1">
                 <Clock size={11} /> Tempo Total
               </span>
               <span className="text-base font-black text-indigo-200 font-mono mt-0.5">
@@ -146,7 +155,6 @@ export function CompletionModal({
             </div>
           </div>
 
-          {/* Destaque do XP Ganho */}
           <div
             className={`flex items-center justify-between px-4 py-2 rounded-xl transition-all border ${
               isPerfect
@@ -169,6 +177,27 @@ export function CompletionModal({
             </div>
           </div>
         </div>
+
+        {/* BANNER DE REBALANCEAMENTO ADAPTATIVO */}
+        {rebalancedData?.rebalanced && (
+          <div className="relative overflow-hidden bg-linear-to-r from-cyan-950/60 via-cyan-900/40 to-slate-900/60 border border-cyan-500/40 p-3 rounded-2xl shadow-lg animate-in fade-in duration-300 text-left flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 shrink-0">
+              <Sliders size={18} />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 block">
+                Carga Semanal Rebalanceada
+              </span>
+              <p className="text-xs text-slate-200 leading-snug">
+                As metas de estudo para{" "}
+                <strong className="text-cyan-200 font-semibold">
+                  {rebalancedData.subjectName || "esta disciplina"}
+                </strong>{" "}
+                foram reajustadas automaticamente no seu Planner.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* BANNER DE LEVEL UP */}
         {levelUpData?.leveledUp && (

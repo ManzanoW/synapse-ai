@@ -276,7 +276,7 @@ export async function POST(request: Request) {
       Além da questão e das alternativas, gere uma versão em Flashcard (Active Recall) para cada item: no 'flashcardFrente', faça uma pergunta conceitual e direta sobre a matéria testada; no 'flashcardVerso', responda com o conceito direto de forma clara e sintética.    
       `;
 
-    const response = await generateContentWithRetry(prompt);
+    const response = await generateContentWithRetry(prompt); //
 
     if (!response.text) {
       throw new Error("Nenhum conteúdo retornado pela IA.");
@@ -287,7 +287,15 @@ export async function POST(request: Request) {
 
     let savedQuiz = null;
     if (userId) {
-      // 🟢 2. Salva o registro no modelo Quiz
+      // 🟢 1. Localiza ou cria a associação do Tópico de forma resiliente
+      if (targetTopicUuid) {
+        const topicExists = await prisma.topic.findUnique({
+          where: { id: targetTopicUuid },
+        });
+        if (!topicExists) targetTopicUuid = null;
+      }
+
+      // 🟢 2. Salva o registro no modelo Quiz com relacionamento tipado
       savedQuiz = await prisma.quiz.create({
         data: {
           userId,
@@ -297,33 +305,25 @@ export async function POST(request: Request) {
           topicId: targetTopicUuid,
           questions: questoesProcessadas as unknown as Prisma.InputJsonValue,
         },
+        include: {
+          topic: {
+            select: { id: true, title: true },
+          },
+        },
       });
 
-      // 🟢 3. Cria obrigatoriamente a tentativa no modelo QuizAttempt
+      // 🟢 3. Registra a tentativa inicial no QuizAttempt
       if (targetTopicUuid) {
         await prisma.quizAttempt
           .create({
             data: {
-              id: savedQuiz.id,
               userId,
               topicId: targetTopicUuid,
               totalCount: questoesProcessadas.length,
               correctCount: 0,
             },
           })
-          .catch(async () => {
-            // Fallback caso a chave primária 'id' seja gerada automaticamente pelo Prisma
-            await prisma.quizAttempt
-              .create({
-                data: {
-                  userId,
-                  topicId: targetTopicUuid as string,
-                  totalCount: questoesProcessadas.length,
-                  correctCount: 0,
-                },
-              })
-              .catch((e) => console.error("Erro ao registrar QuizAttempt:", e));
-          });
+          .catch((e) => console.error("Aviso ao registrar QuizAttempt:", e));
       }
     }
 

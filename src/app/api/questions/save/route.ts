@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { updateSubjectSRS } from "@/lib/srs-service";
 import { auth } from "@/auth";
 import { XP_REWARDS, calculateLevel } from "@/lib/gamification";
+import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
 
 export async function POST(request: Request) {
   try {
@@ -36,15 +37,17 @@ export async function POST(request: Request) {
       },
     });
 
-    // 2. 🟢 BUSCA O TÓPICO CORRETO (por UUID ou por Nome/Título)
+    // src/app/api/questions/save/route.ts (Substitua as seções 2 e 3 do arquivo)
+
+    // 2. 🟢 BUSCA O TÓPICO CORRETO (Resolução por UUID, Nome ou Fallback via Quiz existente)
     let resolvedTopicId: string | null = null;
 
-    if (topicId) {
+    if (topicId && topicId !== "ALL") {
       const topicMatch = await prisma.topic.findFirst({
         where: {
           OR: [
             { id: topicId },
-            { title: { equals: topicId.trim(), mode: "insensitive" } },
+            { title: { equals: String(topicId).trim(), mode: "insensitive" } },
           ],
           subject: { userId: userId },
         },
@@ -56,7 +59,18 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. Calcula os acertos da sessão de questões
+    // 🔄 FALLBACK: Se o topicId não foi encontrado pelo filtro, recupera o topicId original salvo no Quiz
+    if (!resolvedTopicId && quizId) {
+      const existingQuiz = await prisma.quiz.findUnique({
+        where: { id: quizId },
+        select: { topicId: true },
+      });
+      if (existingQuiz?.topicId) {
+        resolvedTopicId = existingQuiz.topicId;
+      }
+    }
+
+    // 3. 🟢 CALCULA OS ACERTOS COM COMPARAÇÃO ROBUSTA
     const totalCount = questions.length;
     const correctCount = questions.filter(
       (q: {
@@ -65,10 +79,22 @@ export async function POST(request: Request) {
         userAnswer?: string;
         answer?: string;
         gabaritoCorreto?: string;
-      }) =>
-        q.isCorrect === true ||
-        (q.userAnswer &&
-          (q.userAnswer === q.answer || q.userAnswer === q.gabaritoCorreto)),
+        correctAnswer?: string;
+      }) => {
+        if (q.isCorrect === true || q.correct === true) return true;
+
+        const userAns = q.userAnswer
+          ? String(q.userAnswer).trim().toLowerCase()
+          : null;
+        const correctAns =
+          q.gabaritoCorreto || q.answer || q.correctAnswer
+            ? String(q.gabaritoCorreto || q.answer || q.correctAnswer)
+                .trim()
+                .toLowerCase()
+            : null;
+
+        return Boolean(userAns && correctAns && userAns === correctAns);
+      },
     ).length;
 
     // 4. ⚡ GANHO DE XP
@@ -136,14 +162,13 @@ export async function POST(request: Request) {
           topicId: resolvedTopicId,
           subject,
           createdAt: {
-            gte: new Date(Date.now() - 30 * 1000), // 30 segundos de janela para deduplicação
+            gte: new Date(Date.now() - 30 * 1000),
           },
         },
         orderBy: { createdAt: "desc" },
       });
 
       if (recentDuplicate) {
-        // Se encontrou um quiz idêntico criado há instantes, apenas atualiza o existente
         quizRecord = await prisma.quiz.update({
           where: { id: recentDuplicate.id },
           data: {
@@ -153,7 +178,6 @@ export async function POST(request: Request) {
           },
         });
       } else {
-        // Caso contrário, cria um novo registro
         quizRecord = await prisma.quiz.create({
           data: {
             banca: banca || "Geral",
@@ -190,6 +214,57 @@ export async function POST(request: Request) {
       await updateSubjectSRS(subjectRecord.id, performance);
     }
 
+    // 8. 🎯 ADAPTIVE REBALANCER: Avalia o histórico de questões da matéria
+    let isRebalanced = false;
+
+    if (subjectRecord) {
+      const attempts = await prisma.quizAttempt.findMany({
+        where: {
+          userId: userId,
+          topic: {
+            subjectId: subjectRecord.id,
+          },
+        },
+        select: {
+          totalCount: true,
+          correctCount: true,
+        },
+      });
+
+      const totalQuestionsSolved = attempts.reduce(
+        (acc, curr) => acc + curr.totalCount,
+        0,
+      );
+
+      if (totalQuestionsSolved >= 10) {
+        isRebalanced = true;
+        const totalCorrectSolved = attempts.reduce(
+          (acc, curr) => acc + curr.correctCount,
+          0,
+        );
+        const accuracyPercentage = Math.round(
+          (totalCorrectSolved / totalQuestionsSolved) * 100,
+        );
+
+        await rebalanceScheduleAction({
+          studyMode: "WEEKLY",
+          weeklyGoalHours: 10,
+          activeDaysPerWeek: 5,
+          daysMissedThisWeek: 0,
+          performances: [
+            {
+              subjectId: subjectRecord.id,
+              subjectName: subjectRecord.name,
+              accuracyPercentage,
+              totalQuestionsSolved,
+              lastStudiedAt: new Date(),
+              targetWeeklyMinutes: 120,
+            },
+          ],
+        });
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,
@@ -201,6 +276,8 @@ export async function POST(request: Request) {
         totalXp,
         levelInfo,
         isPerfectScore,
+        rebalanced: isRebalanced,
+        rebalancedSubject: subjectRecord ? subjectRecord.name : subject,
       },
       { status: 200 },
     );

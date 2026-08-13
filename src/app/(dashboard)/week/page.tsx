@@ -19,10 +19,12 @@ import {
   TrendingUp,
   ArrowRightLeft,
   X,
+  Sliders,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
 import { RescheduleBanner } from "@/components/week/reschedule-banner";
+import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
 
 const HIGH_CONTRAST_PALETTE = [
   "#f43f5e",
@@ -131,16 +133,10 @@ export default function WeekPage() {
       const res = await fetch("/api/week", {
         signal: controllerSignal,
         cache: "no-store",
-        headers: {
-          "Cache-Control": "no-store",
-        },
+        headers: { "Cache-Control": "no-store" },
       });
 
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => "");
-        console.error("❌ Resposta de erro da API:", res.status, errorText);
-        throw new Error(`Erro na requisição: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Erro na requisição: ${res.status}`);
 
       const json = await res.json();
 
@@ -160,9 +156,7 @@ export default function WeekPage() {
         }
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") {
-        console.warn("⏱️ A requisição excedeu o tempo limite e foi cancelada.");
-      } else {
+      if (!(err instanceof Error && err.name === "AbortError")) {
         console.error("❌ Erro de conexão ao buscar /api/week:", err);
       }
     } finally {
@@ -181,14 +175,31 @@ export default function WeekPage() {
 
     fetchData();
 
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, []);
+
+  const handleTriggerRebalance = () => {
+    startTransition(async () => {
+      try {
+        const result = await rebalanceScheduleAction({
+          studyMode,
+          weeklyGoalHours: goalHours,
+          activeDaysPerWeek: activeDays,
+          daysMissedThisWeek: data?.missedDayName ? 1 : 0,
+          performances: [],
+        });
+
+        if (result?.success) {
+          await loadWeekData();
+        }
+      } catch (err) {
+        console.error("Erro ao aplicar rebalanceamento adaptativo:", err);
+      }
+    });
+  };
 
   const handleToggleMode = (mode: "WEEKLY" | "CYCLE") => {
     setStudyMode(mode);
-
     startTransition(async () => {
       try {
         const res = await fetch("/api/week", {
@@ -196,7 +207,6 @@ export default function WeekPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ studyMode: mode }),
         });
-
         if (!res.ok) throw new Error("Erro ao trocar modo");
         const json = await res.json();
         if (json.data) setData(json.data);
@@ -279,25 +289,26 @@ export default function WeekPage() {
   const handleSaveSettings = () => {
     startTransition(async () => {
       try {
+        // 1. Persiste as novas metas diretamente no banco via PATCH /api/week
         const res = await fetch("/api/week", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             weeklyGoalHours: goalHours,
             activeDaysPerWeek: activeDays,
+            studyMode,
           }),
         });
 
         if (!res.ok) throw new Error("Erro ao salvar configurações");
+
         const json = await res.json();
 
         if (json.data) {
-          setData(json.data);
-          setIsModalOpen(false);
-          if (json.data.scheduleByDay && json.data.scheduleByDay.length > 0) {
-            setSelectedDayIndex(json.data.scheduleByDay[0].dayIndex);
-          }
+          setData(json.data); // Atualiza o estado da tela imediatamente com os novos cálculos
         }
+
+        setIsModalOpen(false);
       } catch (err) {
         console.error("Erro ao salvar meta:", err);
       }
@@ -311,7 +322,6 @@ export default function WeekPage() {
 
     setData((prev) => {
       if (!prev) return null;
-
       const updatedScheduleByDay = prev.scheduleByDay.map((day) => ({
         ...day,
         subjects: day.subjects.map((sub) => ({
@@ -327,7 +337,6 @@ export default function WeekPage() {
           ),
         })),
       }));
-
       return { ...prev, scheduleByDay: updatedScheduleByDay };
     });
 
@@ -344,9 +353,7 @@ export default function WeekPage() {
       if (!res.ok) throw new Error("Erro ao atualizar status do tópico");
     } catch (err) {
       console.error("Erro ao salvar progresso do tópico:", err);
-      const res = await fetch("/api/week");
-      const json = await res.json();
-      if (json.data) setData(json.data);
+      await loadWeekData();
     }
   };
 
@@ -397,7 +404,6 @@ export default function WeekPage() {
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-8 font-sans antialiased selection:bg-indigo-500/30">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Top Navigation */}
         <div className="flex items-center justify-between">
           <Link
             href="/dashboard"
@@ -410,16 +416,27 @@ export default function WeekPage() {
             <span>Voltar para Dashboard</span>
           </Link>
 
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
-          >
-            <Settings2 size={14} />
-            <span>Editar Configurações</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleTriggerRebalance}
+              disabled={isPending}
+              title="Recalcular distribuição adaptativa com base nas suas metas e desempenho"
+              className="flex items-center gap-2 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 px-3.5 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <Sliders size={14} className={isPending ? "animate-spin" : ""} />
+              <span className="hidden sm:inline">Rebalancear Carga</span>
+            </button>
+
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
+            >
+              <Settings2 size={14} />
+              <span>Configurações</span>
+            </button>
+          </div>
         </div>
 
-        {/* Sub-Header Tabs */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-2 bg-slate-950/80 border border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-2xl">
           <div className="inline-flex items-center bg-slate-900/60 p-1 rounded-xl border border-slate-800/80 w-full md:w-auto">
             <button
@@ -493,7 +510,6 @@ export default function WeekPage() {
           </div>
         </div>
 
-        {/* Title Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/60 pb-5">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-3">
@@ -511,7 +527,7 @@ export default function WeekPage() {
           </div>
           <span className="self-start sm:self-auto text-xs bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5 shadow-sm">
             <Sparkles size={13} className="text-indigo-400 animate-pulse" />
-            Sugestões Ativas da IA
+            Rebalanceador Adaptativo Ativo
           </span>
         </div>
 
@@ -547,19 +563,24 @@ export default function WeekPage() {
           />
         ) : (
           <div className="space-y-8 animate-in fade-in duration-300">
-            {/* Banner de Remanejamento */}
             {data?.missedDayName && (
               <RescheduleBanner
                 missedDayName={data.missedDayName}
                 userId={data?.userId}
-                onActionCompleted={() => {
+                onActionCompleted={async () => {
+                  await rebalanceScheduleAction({
+                    studyMode,
+                    weeklyGoalHours: goalHours,
+                    activeDaysPerWeek: activeDays,
+                    daysMissedThisWeek: 1,
+                    performances: [],
+                  });
                   setLoading(true);
-                  loadWeekData();
+                  await loadWeekData();
                 }}
               />
             )}
 
-            {/* Seleção de Dias da Semana */}
             <div className="flex items-center gap-3 overflow-x-auto p-1.5 pt-2 pb-3 scrollbar-none">
               {data?.scheduleByDay?.map((day) => {
                 const isSelected = day.dayIndex === selectedDayIndex;
@@ -815,8 +836,8 @@ export default function WeekPage() {
                     Distribuição Semanal de Carga
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
-                    Proporção calculada automaticamente com base nas prioridades
-                    das matérias.
+                    Proporção calculada e ajustada adaptativamente com base no
+                    seu desempenho.
                   </p>
                 </div>
 
@@ -911,10 +932,8 @@ export default function WeekPage() {
                 <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3.5 flex gap-2.5 items-start">
                   <Info size={15} className="text-indigo-400 shrink-0 mt-0.5" />
                   <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Para reajustar o peso ou tempo alocado de cada matéria,
-                    edite a{" "}
-                    <strong className="text-slate-200">prioridade</strong> no
-                    módulo do Edital.
+                    O tempo de estudo é rebalanceado automaticamente para
+                    reforçar matérias com menor taxa de acerto (&lt; 65%).
                   </p>
                 </div>
               </div>
@@ -923,7 +942,6 @@ export default function WeekPage() {
         )}
       </div>
 
-      {/* MODAL DE CONFIGURAÇÕES DE META */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
@@ -1011,7 +1029,7 @@ export default function WeekPage() {
                 {isPending ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    <span>Calculando...</span>
+                    <span>Rebalanceando...</span>
                   </>
                 ) : (
                   <>
@@ -1025,7 +1043,6 @@ export default function WeekPage() {
         </div>
       )}
 
-      {/* MODAL DE SWAP NO CRONOGRAMA SEMANAL */}
       {swapModalOpen && subjectToSwap && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
