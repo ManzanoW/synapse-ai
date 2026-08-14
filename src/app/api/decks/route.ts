@@ -14,7 +14,7 @@ interface AIResponse {
 }
 
 /**
- * 🔄 Função de geração com Retry e Schema Estruturado usando gemini-3.5-flash-lite
+ * 🔄 Função de geração com Retry e Schema Estruturado
  */
 async function generateFlashcardsWithRetry(
   prompt: string,
