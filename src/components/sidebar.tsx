@@ -104,6 +104,22 @@ export default function Sidebar({ user }: SidebarProps) {
     }
   };
 
+  useEffect(() => {
+    if (user?.id) {
+      refreshStats(user.id);
+    }
+
+    // 🟢 Escuta revisões de flashcards/questões para recarregar os dados na Sidebar
+    const handleXpUpdate = () => {
+      if (user?.id) {
+        refreshStats(user.id);
+      }
+    };
+
+    window.addEventListener("xp-updated", handleXpUpdate);
+    return () => window.removeEventListener("xp-updated", handleXpUpdate);
+  }, [user?.id, refreshStats]);
+
   return (
     <>
       <LogoutModal

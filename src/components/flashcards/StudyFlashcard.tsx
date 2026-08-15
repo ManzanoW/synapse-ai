@@ -119,7 +119,7 @@ export default function StudyFlashcard({
 
       const isLastCard = index >= cards.length - 1;
 
-      // ⚡ ATUALIZAÇÃO OTIMISTICA INSTANTÂNEA
+      // ⚡ ATUALIZAÇÃO OTIMÍSTICA INSTANTÂNEA
       startTransition(() => {
         setOptimisticState({ grade });
       });
@@ -162,6 +162,17 @@ export default function StudyFlashcard({
 
         if (resReview.ok) {
           const data = await resReview.json();
+
+          // 🟢 DISPARO DO EVENTO DE XP PARA A SIDEBAR REAGIR EM TEMPO REAL
+          window.dispatchEvent(
+            new CustomEvent("xp-updated", {
+              detail: {
+                totalXp: data.totalXp,
+                earnedXp: data.earnedXp,
+                levelInfo: data.levelInfo,
+              },
+            }),
+          );
 
           if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
             const newLevel = data.levelInfo.level;
