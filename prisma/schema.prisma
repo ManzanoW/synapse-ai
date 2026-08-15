@@ -31,6 +31,7 @@ model User {
   subjects      Subject[]
   studySessions StudySession[]
   quizzes       Quiz[]
+  decks         Deck[]
 
   // 🏆 Gamificação
   userStats UserStats?
@@ -142,14 +143,16 @@ model Deck {
   createdAt DateTime @default(now())
 
   subjectId String?
-  subject   Subject? @relation(fields: [subjectId], references: [id])
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
 
   // 🔗 Vínculo direto do Deck com o Tópico do Edital
   topicId String?
   topic   Topic?  @relation(fields: [topicId], references: [id], onDelete: SetNull)
 
   flashcards Flashcard[]
-  userId     String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model QuizAttempt {
