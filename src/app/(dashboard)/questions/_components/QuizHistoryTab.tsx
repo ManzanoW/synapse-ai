@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   RotateCcw,
   Bookmark,
+  BookOpen,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
 
