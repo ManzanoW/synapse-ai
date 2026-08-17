@@ -239,25 +239,36 @@ export function QuizHistoryTab({
           )}
         </div>
       ) : history.length === 0 ? (
-        /* SEM SIMULADOS */
-        <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl my-6">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
-            <Layers size={24} />
-          </div>
-          <h3 className="text-sm font-semibold text-slate-200 mb-1">
-            Nenhum simulado salvo ainda
-          </h3>
-          <p className="text-xs text-slate-400 max-w-sm mb-5">
-            Gere novos cadernos de questões para treinar. Seus simulados concluídos aparecerão listados aqui automaticamente.
-          </p>
-          <button
-            onClick={onCreateNewQuiz}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-98 cursor-pointer"
-          >
-            Criar meu primeiro simulado
-          </button>
-        </div>
-      ) : filteredHistory.length === 0 ? (
+  /* SEM SIMULADOS */
+  <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-3xl my-6 space-y-4">
+    <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
+      <Layers size={28} />
+    </div>
+    <div className="space-y-1">
+      <h3 className="text-base font-bold text-slate-100">
+        Nenhum simulado salvo ainda
+      </h3>
+      <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+        Gere novos cadernos de questões para treinar. Certifique-se de ter cadastrado suas matérias no <strong className="text-indigo-300">Edital</strong> para obter questões 100% personalizadas.
+      </p>
+    </div>
+    <div className="flex flex-col sm:flex-row gap-3 pt-2">
+      <button
+        onClick={onCreateNewQuiz}
+        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-98 cursor-pointer"
+      >
+        Gerar Simulado
+      </button>
+      <Link
+        href="/edital"
+        className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all border border-slate-700/80 flex items-center justify-center gap-2"
+      >
+        <BookOpen size={14} />
+        <span>Ir para Editais</span>
+      </Link>
+    </div>
+  </div>
+) : filteredHistory.length === 0 ? (
         /* SEM RESULTADOS NA BUSCA */
         <div className="text-center py-12 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
           <p className="text-xs text-slate-400">
