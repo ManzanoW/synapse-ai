@@ -453,7 +453,7 @@ export default function QuestoesPage() {
           const data = await response.json();
           if (data.earnedXp !== undefined) setLastEarnedXp(data.earnedXp);
 
-          // 🟢 DISPARO DO EVENTO GLOBAL PARA SINC DA SIDEBAR
+          // DISPARO DO EVENTO GLOBAL PARA SINC DA SIDEBAR
           window.dispatchEvent(
             new CustomEvent("xp-updated", {
               detail: {
