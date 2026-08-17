@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
 import {
@@ -12,6 +13,8 @@ import {
   Home,
   ArrowRight,
   Zap,
+  BookOpen,
+  AlertCircle,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -272,9 +275,8 @@ export default function QuestoesPage() {
     return () => clearInterval(interval);
   }, [isTimerRunning, questions.length]);
 
+  // Carrega as matérias do Edital
   useEffect(() => {
-    if (!isAIModalOpen) return;
-
     fetch("/api/edital?mode=subjects")
       .then((res) => res.json())
       .then((json) => {
@@ -326,7 +328,9 @@ export default function QuestoesPage() {
                   t.title.trim().toLowerCase() ===
                     paramTopicId.trim().toLowerCase(),
               );
-              setSelectedTopicId(matchedTopic ? matchedTopic.id : paramTopicId);
+              setSelectedTopicId(
+                matchedTopic ? matchedTopic.id : paramTopicId,
+              );
             }
           } else {
             setMateria(decodedSubject);
@@ -338,7 +342,7 @@ export default function QuestoesPage() {
         }
       })
       .catch(console.error);
-  }, [isAIModalOpen, searchParams]);
+  }, [searchParams]);
 
   const currentSubjectObj = subjects.find(
     (s) =>
@@ -436,7 +440,7 @@ export default function QuestoesPage() {
               quizId: currentQuizId,
               banca: banca || "Geral",
               subject: materia?.trim() || "Geral",
-              topicId: selectedTopicId || null, // Se vazio, o backend recuperará via currentQuizId
+              topicId: selectedTopicId || null,
               difficulty: dificuldade || "Média",
               questions: questions.map((q, idx) => ({
                 ...q,
@@ -448,6 +452,17 @@ export default function QuestoesPage() {
 
           const data = await response.json();
           if (data.earnedXp !== undefined) setLastEarnedXp(data.earnedXp);
+
+          // 🟢 DISPARO DO EVENTO GLOBAL PARA SINC DA SIDEBAR
+          window.dispatchEvent(
+            new CustomEvent("xp-updated", {
+              detail: {
+                totalXp: data.totalXp,
+                earnedXp: data.earnedXp,
+                levelInfo: data.levelInfo,
+              },
+            }),
+          );
 
           const newLevel = data.levelInfo?.level;
           const previousLevel = gamificationStats?.gamification?.level ?? 1;
@@ -521,7 +536,7 @@ export default function QuestoesPage() {
       setQuizHistory(json.data || []);
     } catch (error) {
       console.error("Erro ao carregar histórico:", error);
-    } finally {
+    } fontally {
       setIsLoadingHistory(false);
     }
   };
@@ -531,7 +546,6 @@ export default function QuestoesPage() {
     setIsGenerating(true);
 
     try {
-      // Resolve o nome do tópico selecionado
       const selectedTopicObj = availableTopics.find(
         (t) => t.id === selectedTopicId,
       );
@@ -544,7 +558,7 @@ export default function QuestoesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           banca,
-          materia, // Usando a variável correta de estado no lugar de 'selectedMateria'
+          materia,
           topicoId: selectedTopicId || "ALL",
           topicoNome: topicoNome || "Todos os Tópicos da Matéria",
           qtdQuestoes: parseInt(qtdQuestoes, 10),
@@ -568,10 +582,9 @@ export default function QuestoesPage() {
         );
       }
 
-      // Atualiza os estados locais da sessão ativa
       setQuestions(json.data);
       setCurrentQuizId(json.quizId || null);
-      setIsAIModalOpen(false); // Nome correto da variável de estado
+      setIsAIModalOpen(false);
       setSelectedAnswers({});
       setCheckedQuestions({});
       setSavedErrors({});
@@ -585,11 +598,11 @@ export default function QuestoesPage() {
           : "Erro desconhecido ao gerar questões.";
       console.error("Erro ao gerar simulado:", msg);
     } finally {
-      setIsGenerating(false); // Corrigido o vazamento de classe Tailwind 'font-medium'
+      setIsGenerating(false);
     }
   };
 
-  // Atalhos globais
+  // 🎯 ATALHOS DE TECLADO MELHORADOS: Suporta Teclas A, B, C, D, E e 1, 2, 3, 4, 5
   useEffect(() => {
     if (
       activeTab !== "create" ||
@@ -613,28 +626,48 @@ export default function QuestoesPage() {
       const currentQuestion = questions[focusedQuestionIndex];
       if (!currentQuestion) return;
 
-      const isAlreadyAnswered = Boolean(checkedQuestions[focusedQuestionIndex]);
+      const isAlreadyAnswered = Boolean(
+        checkedQuestions[focusedQuestionIndex],
+      );
 
-      if (["1", "2", "3", "4", "5"].includes(e.key)) {
+      const keyUpper = e.key.toUpperCase();
+
+      // Suporte para A, B, C, D, E e Números 1 a 5
+      const mapKeyToAlt: Record<string, string> = {
+        A: "A",
+        B: "B",
+        C: "C",
+        D: "D",
+        E: "E",
+        "1": "A",
+        "2": "B",
+        "3": "C",
+        "4": "D",
+        "5": "E",
+      };
+
+      if (mapKeyToAlt[keyUpper]) {
         if (isAlreadyAnswered) return;
 
-        const num = parseInt(e.key, 10);
         if (currentQuestion.formato === "multipla") {
-          const altIndex = num - 1;
-          if (currentQuestion.alternativas?.[altIndex]) {
-            const selectedAltId = currentQuestion.alternativas[altIndex].id;
+          const targetAltId = mapKeyToAlt[keyUpper];
+          const hasAlt = currentQuestion.alternativas?.some(
+            (alt) => alt.id === targetAltId,
+          );
+          if (hasAlt) {
             setSelectedAnswers((prev) => ({
               ...prev,
-              [focusedQuestionIndex]: selectedAltId,
+              [focusedQuestionIndex]: targetAltId,
             }));
           }
         } else {
-          if (num === 1) {
+          // Certo ou Errado
+          if (keyUpper === "C" || keyUpper === "1") {
             setSelectedAnswers((prev) => ({
               ...prev,
               [focusedQuestionIndex]: "Certo",
             }));
-          } else if (num === 2) {
+          } else if (keyUpper === "E" || keyUpper === "2") {
             setSelectedAnswers((prev) => ({
               ...prev,
               [focusedQuestionIndex]: "Errado",
@@ -737,6 +770,39 @@ export default function QuestoesPage() {
             </button>
           )}
         </div>
+
+        {/* ⚠️ BANNER DE AVISO: SE NÃO HOUVER EDITaL CADASTRADO */}
+        {subjects.length === 0 && questions.length === 0 && (
+          <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-amber-950/60 via-slate-900 to-slate-950 border border-amber-500/40 p-6 shadow-2xl backdrop-blur-2xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative z-10">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
+                  <BookOpen size={24} />
+                </div>
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
+                    <AlertCircle size={12} /> Passo Inicial Necessário
+                  </div>
+                  <h2 className="text-base font-bold text-white tracking-tight">
+                    Cadastre suas matérias na aba &quot;Edital&quot;
+                  </h2>
+                  <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                    Para gerar simulados direcionados por disciplina e tópico com a IA, cadastre primeiro o edital do seu concurso.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href="/edital"
+                className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs px-5 py-3 rounded-2xl transition-all shadow-lg shadow-amber-500/20 active:scale-95 shrink-0 cursor-pointer"
+              >
+                <BookOpen size={16} />
+                <span>Ir para Editais</span>
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* ================= 2. BARRA DE PROGRESSO DO SIMULADO ================= */}
         {questions.length > 0 && activeTab === "create" && (
