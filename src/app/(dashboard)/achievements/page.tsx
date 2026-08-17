@@ -158,7 +158,7 @@ export default function AchievementsPage() {
 
   return (
     <div className="relative min-h-screen bg-[#02050e] p-4 text-slate-100 selection:bg-amber-500/30 md:p-8 font-sans antialiased overflow-hidden">
-      {/* Luz Ambient Neon de Fundo */}
+      {/* Luz Ambiente Neon de Fundo */}
       <div className="pointer-events-none absolute top-0 left-1/4 h-125 w-125 rounded-full bg-amber-500/10 blur-[150px]" />
       <div className="pointer-events-none absolute top-1/3 right-10 h-100 w-100 rounded-full bg-purple-500/10 blur-[130px]" />
 
