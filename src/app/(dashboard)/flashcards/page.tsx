@@ -1,3 +1,5 @@
+// src/app/(dashboard)/flashcards/page.tsx
+
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { auth } from "@/auth";
@@ -15,6 +17,7 @@ import {
   ChevronRight,
   TrendingUp,
   Check,
+  AlertCircle,
 } from "lucide-react";
 
 export default async function FlashcardsPage() {
@@ -26,19 +29,24 @@ export default async function FlashcardsPage() {
 
   const userId = session.user.id;
 
-  // 1. Total de baralhos criados pelo usuário
+  // 0. Verifica se o usuário já cadastrou matérias no edital
+  const totalSubjects = await prisma.subject.count({
+    where: { userId },
+  });
+
+  // 1. Total de baralhos
   const totalDecks = await prisma.deck.count({
     where: { userId },
   });
 
-  // 2. Total de flashcards pertencentes aos baralhos do usuário
+  // 2. Total de flashcards
   const totalCards = await prisma.flashcard.count({
     where: {
       deck: { userId },
     },
   });
 
-  // 3. Busca de cards com revisão pendente no algoritmo de repetição espaçada (SM-2)
+  // 3. Busca de cards com revisão pendente (SM-2)
   const dueCardsCount = await prisma.flashcard.count({
     where: {
       deck: { userId },
@@ -58,7 +66,7 @@ export default async function FlashcardsPage() {
     },
   });
 
-  // 4. Busca os baralhos mais recentes do usuário
+  // 4. Busca os baralhos mais recentes
   const recentDecks = await prisma.deck.findMany({
     where: { userId },
     take: 5,
@@ -69,12 +77,45 @@ export default async function FlashcardsPage() {
     },
   });
 
-  // 5. Métrica de retenção aproximada do algoritmo
   const estimatedRetention = totalCards > 0 ? "88.5%" : "100%";
   const streakDays: number = 0;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto text-slate-100 space-y-8 selection:bg-indigo-500/30 font-sans">
+      {/* ⚠️ BANNER DE ONBOARDING: SE NÃO HOUVER EDITaL CADASTRADO */}
+      {totalSubjects === 0 && (
+        <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-amber-950/60 via-slate-900 to-slate-950 border border-amber-500/40 p-6 md:p-7 shadow-2xl backdrop-blur-2xl">
+          <div className="absolute -top-12 -right-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative z-10">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
+                <BookOpen size={24} />
+              </div>
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
+                  <AlertCircle size={12} /> Passo Inicial Necessário
+                </div>
+                <h2 className="text-lg font-bold text-white tracking-tight">
+                  Cadastre suas matérias na aba &quot;Edital&quot;
+                </h2>
+                <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                  Para gerar Flashcards automatizados por IA com base na sua banca e disciplinas, cadastre primeiro o edital do seu concurso.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/edital"
+              className="inline-flex items-center gap-2.5 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-6 py-3.5 rounded-2xl transition-all shadow-lg shadow-amber-500/20 active:scale-95 shrink-0 cursor-pointer"
+            >
+              <BookOpen size={16} />
+              <span>Cadastrar Edital Agora</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* 🚀 HERO BANNER */}
       <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-950/90 via-slate-900/90 to-slate-950 border border-indigo-500/30 p-6 md:p-8 shadow-2xl backdrop-blur-2xl">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -315,7 +356,6 @@ export default async function FlashcardsPage() {
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        {/* Pílula: Exibe a Matéria Principal */}
                         <span className="text-[10px] font-bold px-2.5 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-md">
                           {subjectName}
                         </span>
@@ -323,8 +363,7 @@ export default async function FlashcardsPage() {
                           {count} {count === 1 ? "card" : "cards"}
                         </span>
                       </div>
-                      
-                      {/* Título: Exibe o Tópico Específico ou "Todos os Tópicos" */}
+
                       <h3 className="font-bold text-slate-100 text-base truncate group-hover:text-indigo-300 transition-colors">
                         {deck.title}
                       </h3>
