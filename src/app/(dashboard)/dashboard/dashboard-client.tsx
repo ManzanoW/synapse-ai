@@ -549,9 +549,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </section>
 
-        {/* ================= 3. GRADE PRINCIPAL HARMONIOSA ================= */}
+        {/* ================= 3. GRADE PRINCIPAL HARMONIOSA E SIMÉTRICA ================= */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-          {/* COLUNA PRINCIPAL (`lg:col-span-8`) */}
+          {/* COLUNA ESQUERDA - CONTEÚDO PRINCIPAL (`lg:col-span-8`) */}
           <div className="space-y-6 lg:col-span-8">
             {/* BANNER DE ONBOARDING REQUERIDO (QUANDO NÃO HÁ EDITAL) */}
             {!hasEditalSubjects && (
@@ -991,9 +991,25 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </motion.div>
               )}
             </div>
+
+            {/* CARD 5: INTENSIFICAÇÃO DE ESTUDOS (HEATMAP NA COLUNA PRINCIPAL) */}
+            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
+              <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-2">
+                <div className="flex items-center gap-2">
+                  <Activity size={16} className="text-indigo-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                    Intensidade de Estudos
+                  </h3>
+                </div>
+                <span className="font-mono text-[10px] text-slate-400">
+                  Últimos 90 Dias
+                </span>
+              </div>
+              <Heatmap />
+            </div>
           </div>
 
-          {/* BARRA LATERAL DIREITA COMPACTA (`lg:col-span-4`) */}
+          {/* BARRA LATERAL DIREITA PERFECT-FIT (`lg:col-span-4`) */}
           <div className="space-y-6 lg:col-span-4">
             {/* WIDGET 1: GAMIFICAÇÃO & NÍVEL */}
             <Link
@@ -1050,7 +1066,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <PomodoroTimer />
             </div>
 
-            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA (UNIFICADAS UMA ÚNICA VEZ) */}
+            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA (UNIFICADAS EM CARD COMPACTO) */}
             <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               {/* Meta Semanal */}
               <Link href="/performance" className="group block space-y-2">
@@ -1123,19 +1139,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   ))}
                 </div>
               </Link>
-            </div>
-
-            {/* WIDGET 4: HEATMAP (INTEGRADO NA BARRA LATERAL) */}
-            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
-              <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-2">
-                <div className="flex items-center gap-2">
-                  <Activity size={15} className="text-indigo-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                    Intensidade de Estudos
-                  </h3>
-                </div>
-              </div>
-              <Heatmap />
             </div>
           </div>
         </div>
