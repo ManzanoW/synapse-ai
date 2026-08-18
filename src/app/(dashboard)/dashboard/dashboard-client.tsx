@@ -37,7 +37,6 @@ import {
   Trophy,
   Award,
   Lock,
-  Activity,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -426,7 +425,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           />
         )}
 
-        {/* ================= 2. BANNER HERO DE JORNADA ULTRA-PREMIUM ================= */}
+        {/* ================= 2. BANNER HERO DE JORNADA ================= */}
         <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl">
           <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-indigo-500/10 blur-[120px]" />
           <div className="pointer-events-none absolute -right-32 -bottom-32 h-96 w-96 rounded-full bg-cyan-500/10 blur-[120px]" />
@@ -549,9 +548,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </section>
 
-        {/* ================= 3. GRADE PRINCIPAL HARMONIOSA E SIMÉTRICA ================= */}
+        {/* ================= 3. LAYOUT PRINCIPAL (PERFEITAMENTE SIMÉTRICO) ================= */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-          {/* COLUNA ESQUERDA - CONTEÚDO PRINCIPAL (`lg:col-span-8`) */}
+          {/* COLUNA ESQUERDA - FOCO EM AÇÃO E CONTEÚDO (`lg:col-span-8`) */}
           <div className="space-y-6 lg:col-span-8">
             {/* BANNER DE ONBOARDING REQUERIDO (QUANDO NÃO HÁ EDITAL) */}
             {!hasEditalSubjects && (
@@ -991,25 +990,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </motion.div>
               )}
             </div>
-
-            {/* CARD 5: INTENSIFICAÇÃO DE ESTUDOS (HEATMAP NA COLUNA PRINCIPAL) */}
-            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
-              <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-2">
-                <div className="flex items-center gap-2">
-                  <Activity size={16} className="text-indigo-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                    Intensidade de Estudos
-                  </h3>
-                </div>
-                <span className="font-mono text-[10px] text-slate-400">
-                  Últimos 90 Dias
-                </span>
-              </div>
-              <Heatmap />
-            </div>
           </div>
 
-          {/* BARRA LATERAL DIREITA PERFECT-FIT (`lg:col-span-4`) */}
+          {/* BARRA LATERAL DIREITA PERFEITA (`lg:col-span-4`) */}
           <div className="space-y-6 lg:col-span-4">
             {/* WIDGET 1: GAMIFICAÇÃO & NÍVEL */}
             <Link
@@ -1066,7 +1049,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <PomodoroTimer />
             </div>
 
-            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA (UNIFICADAS EM CARD COMPACTO) */}
+            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA (CARD UNIFICADO) */}
             <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               {/* Meta Semanal */}
               <Link href="/performance" className="group block space-y-2">
@@ -1139,6 +1122,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   ))}
                 </div>
               </Link>
+            </div>
+
+            {/* WIDGET 4: HEATMAP ORIGINAL (DENTRO DA BARRA LATERAL COM PROPORÇÃO PERFEITA) */}
+            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
+              <Heatmap />
             </div>
           </div>
         </div>
