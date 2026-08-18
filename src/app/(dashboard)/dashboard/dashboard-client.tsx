@@ -37,6 +37,7 @@ import {
   Trophy,
   Award,
   Lock,
+  Activity,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -990,9 +991,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </motion.div>
               )}
             </div>
+
+            {/* CARD 5: HEATMAP (REPOSICIONADO NA COLUNA ESQUERDA) */}
+            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
+              <Heatmap />
+            </div>
           </div>
 
-          {/* BARRA LATERAL DIREITA PERFEITA (`lg:col-span-4`) */}
+          {/* BARRA LATERAL DIREITA (`lg:col-span-4`) */}
           <div className="space-y-6 lg:col-span-4">
             {/* WIDGET 1: GAMIFICAÇÃO & NÍVEL */}
             <Link
@@ -1049,7 +1055,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <PomodoroTimer />
             </div>
 
-            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA (CARD UNIFICADO) */}
+            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA */}
             <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               {/* Meta Semanal */}
               <Link href="/performance" className="group block space-y-2">
@@ -1122,11 +1128,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   ))}
                 </div>
               </Link>
-            </div>
-
-            {/* WIDGET 4: HEATMAP ORIGINAL (DENTRO DA BARRA LATERAL COM PROPORÇÃO PERFEITA) */}
-            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
-              <Heatmap />
             </div>
           </div>
         </div>
