@@ -14,10 +14,11 @@ export default function Heatmap() {
       .catch((err) => console.error("Erro ao carregar heatmap:", err));
   }, []);
 
-  // 35 dias (5 semanas x 7 dias)
-  const days = Array.from({ length: 35 }, (_, i) => {
+  // 91 dias (13 semanas / ~3 meses) para preencher a largura de forma equilibrada
+  const daysCount = 91;
+  const days = Array.from({ length: daysCount }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() - (34 - i));
+    d.setDate(d.getDate() - (daysCount - 1 - i));
     return d.toISOString().split("T")[0];
   });
 
@@ -36,8 +37,9 @@ export default function Heatmap() {
 
   const weekDays = ["D", "S", "T", "Q", "Q", "S", "S"];
 
-  // Agrupa os 35 dias em 5 colunas de semanas (cada coluna tem 7 dias)
-  const weeks = Array.from({ length: 5 }, (_, weekIdx) =>
+  // Agrupa os dias em colunas de semanas (cada coluna tem 7 dias)
+  const weeksCount = Math.ceil(daysCount / 7);
+  const weeks = Array.from({ length: weeksCount }, (_, weekIdx) =>
     days.slice(weekIdx * 7, weekIdx * 7 + 7),
   );
 
@@ -49,7 +51,7 @@ export default function Heatmap() {
           <span className="font-mono font-bold text-indigo-400">
             {activeDaysCount}
           </span>{" "}
-          dias ativos nos últimos 35 dias
+          dias ativos nos últimos 90 dias
         </p>
 
         {/* Legenda de Intensidade */}
@@ -63,10 +65,10 @@ export default function Heatmap() {
         </div>
       </div>
 
-      {/* 2. Grid de Tamanho Fixo e Compacto */}
-      <div className="flex items-start gap-3">
-        {/* Rótulo dos dias da semana (S, T, Q...) */}
-        <div className="flex flex-col gap-1.5 pt-0.5 text-[10px] font-mono font-bold text-slate-500">
+      {/* 2. Grid de Tamanho Fixo Distribuído na Horizontal */}
+      <div className="flex items-start gap-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-white/10">
+        {/* Rótulo dos dias da semana (D, S, T, Q...) */}
+        <div className="flex flex-col gap-1.5 pt-0.5 text-[10px] font-mono font-bold text-slate-500 shrink-0">
           {weekDays.map((day, idx) => (
             <span key={idx} className="h-3.5 leading-3.5">
               {day}
@@ -74,8 +76,8 @@ export default function Heatmap() {
           ))}
         </div>
 
-        {/* Grade de Semanas (Blocos de 14px x 14px) */}
-        <div className="flex gap-1.5">
+        {/* Grade de Semanas */}
+        <div className="flex gap-1.5 min-w-max justify-between flex-1">
           {weeks.map((week, weekIdx) => (
             <div key={weekIdx} className="flex flex-col gap-1.5">
               {week.map((day) => {
