@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Activity, Calendar } from "lucide-react";
 
 export default function Heatmap() {
   const [data, setData] = useState<Record<string, number>>({});
@@ -8,16 +9,14 @@ export default function Heatmap() {
   useEffect(() => {
     fetch("/api/analytics/history")
       .then((res) => res.json())
-      .then((json) => {
-        setData(json.data || {});
-      })
+      .then((json) => setData(json.data || {}))
       .catch((err) => console.error("Erro ao carregar heatmap:", err));
   }, []);
 
-  // 105 dias = 15 semanas (preenche perfeitamente a largura da coluna esquerda)
-  const days = Array.from({ length: 105 }, (_, i) => {
+  // 112 dias = 16 semanas exatas
+  const days = Array.from({ length: 112 }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() - (104 - i));
+    d.setDate(d.getDate() - (111 - i));
     return d.toISOString().split("T")[0];
   });
 
@@ -25,23 +24,42 @@ export default function Heatmap() {
 
   const getIntensityStyle = (count: number | undefined) => {
     const val = count || 0;
-    if (val === 0) return "bg-slate-900/80 border border-white/5";
-    if (val < 3) return "bg-indigo-950/90 border border-indigo-500/40 text-indigo-300";
-    if (val < 6) return "bg-indigo-600 border border-indigo-400 text-white";
-    return "bg-indigo-400 border border-indigo-200 text-slate-950";
+    if (val === 0)
+      return "bg-slate-900/90 border border-white/5 hover:border-white/20";
+    if (val < 3)
+      return "bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.2)] hover:scale-110";
+    if (val < 6)
+      return "bg-indigo-600 border border-indigo-400 text-white shadow-[0_0_12px_rgba(99,102,241,0.5)] hover:scale-110";
+    return "bg-indigo-400 border border-indigo-200 text-slate-950 shadow-[0_0_16px_rgba(129,140,248,0.8)] hover:scale-110";
   };
 
   const weekDays = ["D", "S", "T", "Q", "Q", "S", "S"];
-  const weeks = Array.from({ length: 15 }, (_, i) => days.slice(i * 7, i * 7 + 7));
+  const weeks = Array.from({ length: 16 }, (_, i) =>
+    days.slice(i * 7, i * 7 + 7)
+  );
 
   return (
-    <div className="space-y-3">
-      {/* Resumo e Legenda */}
-      <div className="flex items-center justify-between text-[11px] text-slate-400">
-        <p>
-          <strong className="font-mono font-bold text-indigo-400">{activeDaysCount}</strong> dias ativos nos últimos 3 meses
-        </p>
+    <div className="space-y-4">
+      {/* 1. Cabeçalho Destaque com Ícone */}
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
+            <Activity size={16} />
+          </div>
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              Intensidade de Estudos
+            </h3>
+            <p className="text-[10px] text-slate-400">
+              <strong className="font-mono font-bold text-indigo-400">
+                {activeDaysCount}
+              </strong>{" "}
+              dias ativos nos últimos 4 meses
+            </p>
+          </div>
+        </div>
 
+        {/* Legenda Estilizada */}
         <div className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400">
           <span className="text-slate-500">Menos</span>
           <span className="h-2.5 w-2.5 rounded-xs bg-slate-900 border border-white/5" />
@@ -52,28 +70,30 @@ export default function Heatmap() {
         </div>
       </div>
 
-      {/* Grade Horizontal de Semanas de tamanho FIXO */}
-      <div className="flex items-start gap-2.5 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-white/10">
-        {/* Rótulo dos dias */}
-        <div className="flex flex-col gap-1.5 pt-0.5 text-[10px] font-mono font-bold text-slate-500 shrink-0">
-          {weekDays.map((day, idx) => (
-            <span key={idx} className="h-3.5 leading-3.5">
-              {day}
+      {/* 2. Matriz de Blocos Perfeitamente Distribuídos */}
+      <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1">
+        {/* Coluna dos Dias */}
+        <div className="flex flex-col justify-between py-0.5 text-[10px] font-mono font-bold text-slate-500 shrink-0 h-28">
+          {weekDays.map((d, idx) => (
+            <span key={idx} className="leading-3">
+              {d}
             </span>
           ))}
         </div>
 
-        {/* Semanas (Blocos de 14px x 14px distribuídos suavemente) */}
-        <div className="flex gap-1.5 justify-between w-full">
-          {weeks.map((week, weekIdx) => (
-            <div key={weekIdx} className="flex flex-col gap-1.5">
+        {/* Semanas alinhadas proporcionalmente */}
+        <div className="flex flex-1 justify-between gap-1.5">
+          {weeks.map((week, wIdx) => (
+            <div key={wIdx} className="flex flex-col justify-between gap-1">
               {week.map((day) => {
                 const count = data?.[day] || 0;
                 return (
                   <div
                     key={day}
-                    title={`${day}: ${count} revisões`}
-                    className={`h-3.5 w-3.5 shrink-0 rounded-xs transition-all cursor-pointer ${getIntensityStyle(count)}`}
+                    title={`${day.split("-").reverse().join("/")}: ${count} revisões`}
+                    className={`h-3.5 w-3.5 shrink-0 rounded-xs transition-all duration-200 cursor-pointer ${getIntensityStyle(
+                      count
+                    )}`}
                   />
                 );
               })}
