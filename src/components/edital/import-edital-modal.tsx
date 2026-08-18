@@ -10,6 +10,9 @@ import {
   ChevronDown,
   ChevronRight,
   ArrowLeft,
+  FileText,
+  HelpCircle,
+  Play,
 } from "lucide-react";
 
 interface TopicItem {
@@ -18,11 +21,10 @@ interface TopicItem {
   selected: boolean;
 }
 
-// 🟢 1. Interface atualizada com a cor da matéria
 interface SubjectItem {
   id: string;
   name: string;
-  color?: string; // Hex da cor retornado pela IA
+  color?: string;
   selected: boolean;
   topics: TopicItem[];
 }
@@ -37,11 +39,18 @@ interface RawMateria {
   nome?: string;
   materia?: string;
   name?: string;
-  cor?: string; // 🟢 Suporte para o retorno da IA
+  cor?: string;
   color?: string;
   topicos?: string[];
   topics?: string[];
 }
+
+const DATAPREV_EXAMPLE = `MODULO II - CONHECIMENTOS ESPECÍFICOS:
+PERFIL 1: ANÁLISE DE NEGÓCIOS DE TI:
+1 Análise de negócios. 2 Gestão por processos e gestão funcional. 2.1 Ciclo PDCA. 3 Gerenciamento de Processos de Negócio (BPM CBOK v4.0). 3.1 Conceitos, modelagem de processos. 6 Gerenciamento de indicadores, metas e resultados. 7 Gestão Ágil de Projetos. 8. Gerenciamento de produtos. 9. COBIT 2019. 10 ITIL v4.
+
+EXPERIÊNCIA DO USUÁRIO (UX) E DESIGN:
+13 User experience (UX): 13.1 Conceitos de acessibilidade e usabilidade. 13.2 Histórias do usuário. 14 Storytelling com dados. 15 Prototipação. 16 Design thinking. 17 Análise de personas de usuários de software. 18 Mínimo Produto Viável (MVP).`;
 
 export function ImportEditalModal({
   isOpen,
@@ -49,7 +58,7 @@ export function ImportEditalModal({
   onImportSuccess,
 }: ImportEditalModalProps) {
   const [step, setStep] = useState<"input" | "preview">("input");
-  const [activeTab, setActiveTab] = useState<"file" | "text">("file");
+  const [activeTab, setActiveTab] = useState<"file" | "text">("text");
   const [rawText, setRawText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -85,7 +94,7 @@ export function ImportEditalModal({
           selectedFile.name.endsWith(".pdf")
         ) {
           alert(
-            "Para arquivos PDF longos, copie e cole a seção de Conteúdo Programático diretamente na aba 'Colar Texto do Edital' para melhores resultados.",
+            "Para PDFs do edital, selecione e copie o trecho de Conteúdo Programático diretamente do seu leitor de PDF e cole na aba 'Colar Texto do Edital'.",
           );
           setIsProcessing(false);
           setActiveTab("text");
@@ -113,17 +122,14 @@ export function ImportEditalModal({
         throw new Error(result.error || "Erro ao processar o edital");
       }
 
-      console.log("Materias recebidas do backend:", result.materias);
-
       const rawList: RawMateria[] = Array.isArray(result.materias)
         ? result.materias
         : [];
 
-      // 🟢 2. Mapeia o retorno PRESERVANDO a cor enviada pela IA
       const formattedSubjects: SubjectItem[] = rawList.map(
         (m: RawMateria, mIdx: number) => {
           const name = m.nome || m.materia || m.name || "Matéria sem nome";
-          const subjectColor = m.cor || m.color; // Captura a cor!
+          const subjectColor = m.cor || m.color;
           const rawTopics = Array.isArray(m.topicos)
             ? m.topicos
             : Array.isArray(m.topics)
@@ -133,7 +139,7 @@ export function ImportEditalModal({
           return {
             id: `materia-${mIdx}`,
             name,
-            color: subjectColor, // 🟢 Armazena a cor no estado do React
+            color: subjectColor,
             selected: true,
             topics: rawTopics.map((t: string, tIdx: number) => ({
               id: `topico-${mIdx}-${tIdx}`,
@@ -146,7 +152,7 @@ export function ImportEditalModal({
 
       if (formattedSubjects.length === 0) {
         alert(
-          "Nenhuma matéria foi encontrada no texto enviado. Tente colar apenas o Conteúdo Programático.",
+          "Nenhuma matéria foi encontrada no texto enviado. Tente colar apenas o trecho do Conteúdo Programático.",
         );
         return;
       }
@@ -206,13 +212,12 @@ export function ImportEditalModal({
     setExpandedSubjects((prev) => ({ ...prev, [subjectId]: !prev[subjectId] }));
   };
 
-  // 🟢 3. Confirmação e envio FINAL repassando a propriedade `cor`
   const handleConfirmImport = async () => {
     const finalData = parsedSubjects
       .filter((sub) => sub.selected)
       .map((sub) => ({
         name: sub.name,
-        cor: sub.color, // 🟢 REPASSA A COR PARA A API DE IMPORTAÇÃO
+        cor: sub.color,
         topics: sub.topics
           .filter((t) => t.selected)
           .map((t) => ({ name: t.name })),
@@ -236,16 +241,14 @@ export function ImportEditalModal({
         }),
       });
 
-      const rawText = await response.text();
+      const rawResText = await response.text();
 
       let result;
       try {
-        result = JSON.parse(rawText);
+        result = JSON.parse(rawResText);
       } catch {
-        console.error("Servidor respondeu com HTML/Texto em vez de JSON:");
-        console.error(rawText);
         throw new Error(
-          `Resposta do servidor não é um JSON válido. Status: ${response.status}`,
+          `Resposta do servidor não é válida. Status: ${response.status}`,
         );
       }
 
@@ -272,7 +275,7 @@ export function ImportEditalModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-slate-950 border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden text-slate-200 flex flex-col max-h-[85vh]">
+      <div className="relative w-full max-w-2xl bg-slate-950 border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden text-slate-200 flex flex-col max-h-[88vh]">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
           <div className="flex items-center gap-2">
@@ -295,7 +298,7 @@ export function ImportEditalModal({
               </h2>
               <p className="text-xs text-slate-400">
                 {step === "input"
-                  ? "Extraia a estrutura de estudos automaticamente"
+                  ? "Extraia a estrutura de estudos do seu concurso automaticamente"
                   : "Selecione o que deseja adicionar ao seu Planner"}
               </p>
             </div>
@@ -311,27 +314,56 @@ export function ImportEditalModal({
         {/* Corpo */}
         <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
           {step === "input" ? (
-            <div className="space-y-6">
+            <div className="space-y-5">
+              {/* Card Didático de Onde Pegar */}
+              <div className="p-4 rounded-2xl bg-linear-to-r from-indigo-950/40 to-slate-900/60 border border-indigo-500/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
+                    <HelpCircle size={15} />
+                    Como pegar do PDF do edital?
+                  </span>
+                  <button
+                    onClick={() => {
+                      setActiveTab("text");
+                      setRawText(DATAPREV_EXAMPLE);
+                    }}
+                    className="flex items-center gap-1 text-[11px] font-extrabold text-amber-400 hover:text-amber-300 transition-colors bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg cursor-pointer"
+                  >
+                    <Play size={11} className="fill-amber-400" />
+                    <span>Testar com Exemplo</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Abra o PDF do seu concurso (ex:{" "}
+                  <strong>DATAPREV, FGV, Cebraspe</strong>), vá na seção de{" "}
+                  <strong>CONHECIMENTOS ESPECÍFICOS</strong>, selecione o texto
+                  bruto dos tópicos e cole abaixo. Não precisa formatar nada!
+                </p>
+              </div>
+
+              {/* Tabs */}
               <div className="flex p-1 bg-slate-900/80 border border-white/5 rounded-xl">
                 <button
-                  onClick={() => setActiveTab("file")}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                    activeTab === "file"
-                      ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  Enviar Arquivo (TXT)
-                </button>
-                <button
                   onClick={() => setActiveTab("text")}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     activeTab === "text"
                       ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  Colar Texto do Edital
+                  <FileText size={14} />
+                  <span>Colar Texto do Edital (Recomendado)</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("file")}
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    activeTab === "file"
+                      ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Upload size={14} />
+                  <span>Enviar TXT</span>
                 </button>
               </div>
 
@@ -347,7 +379,8 @@ export function ImportEditalModal({
                         : "Clique para enviar um arquivo TXT"}
                     </p>
                     <p className="text-[10px] text-slate-500 mt-1">
-                      Formatos suportados: TXT (ou cole em texto)
+                      Para arquivos PDF, utilize a aba &quot;Colar Texto do
+                      Edital&quot;
                     </p>
                   </div>
                   <input
@@ -361,11 +394,11 @@ export function ImportEditalModal({
                 </label>
               ) : (
                 <textarea
-                  rows={7}
+                  rows={8}
                   value={rawText}
                   onChange={(e) => setRawText(e.target.value)}
-                  placeholder="Cole aqui o conteúdo programático do edital (Ex: PORTUGUÊS: Ortografia...)"
-                  className="w-full p-3 rounded-xl bg-slate-900/60 border border-white/10 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors resize-none"
+                  placeholder="Cole aqui o conteúdo programático copiado do edital PDF...&#10;&#10;Exemplo:&#10;MODULO II - CONHECIMENTOS ESPECÍFICOS:&#10;PERFIL 1: ANÁLISE DE NEGÓCIOS DE TI:&#10;1 Análise de negócios. 2 Gestão por processos..."
+                  className="w-full p-3.5 rounded-xl bg-slate-900/60 border border-white/10 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors resize-none leading-relaxed font-mono"
                 />
               )}
             </div>
@@ -397,19 +430,18 @@ export function ImportEditalModal({
                           {sub.selected && <Check size={12} />}
                         </button>
 
-                        {/* Indicador visual da Cor da Matéria */}
                         {sub.color && (
                           <span
                             className="w-2.5 h-2.5 rounded-full shrink-0"
                             style={{ backgroundColor: sub.color }}
-                            title={`Cor do domínio: ${sub.color}`}
+                            title={`Cor atribuída: ${sub.color}`}
                           />
                         )}
 
                         <span className="text-xs font-semibold text-slate-200">
                           {sub.name}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
                           {selectedCount}/{sub.topics.length} tópicos
                         </span>
                       </div>
@@ -491,7 +523,7 @@ export function ImportEditalModal({
               ) : (
                 <>
                   <Sparkles size={14} />
-                  <span>Analisar Edital</span>
+                  <span>Analisar Edital com IA</span>
                 </>
               )}
             </button>

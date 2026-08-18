@@ -11,6 +11,10 @@ import {
   CheckCircle2,
   AlertCircle,
   XCircle,
+  BookOpen,
+  Copy,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import PendingSubjects from "./PendingSubjects";
 import { Topic } from "@/types";
@@ -19,12 +23,28 @@ import { PlannerView } from "@/components/edital/planner-table";
 import { NewContentModal } from "@/components/create-subject-modal";
 import { useSearchParams } from "next/navigation";
 
-interface Subject {
+interface ApiTopic {
+  id: string;
+  title: string;
+  firstStudy?: string;
+  performance?: number;
+  lastRev?: string;
+  nextRev?: string;
+  quizId?: string | null;
+  subjectColor?: string;
+  subject?: {
+    name?: string;
+    color?: string;
+  };
+}
+
+interface ApiSubject {
   id: string;
   name: string;
   importance?: string;
   priority?: string;
   color?: string | null;
+  topics?: ApiTopic[];
   _count: {
     topics: number;
   };
@@ -33,9 +53,8 @@ interface Subject {
 function PlannerContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjects, setSubjects] = useState<ApiSubject[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const targetSubjectId = searchParams.get("subjectId");
 
@@ -59,12 +78,11 @@ function PlannerContent() {
       });
       if (subjectsRes.ok) {
         const subjectsJson = await subjectsRes.json();
-        const subjectsData = subjectsJson.data || [];
+        const subjectsData: ApiSubject[] = subjectsJson.data || [];
         setSubjects(subjectsData);
 
-        // 🟢 Extrai a lista de tópicos mantendo a referência do nome da matéria pai
-        const extractedTopics = subjectsData.flatMap((sub: any) =>
-          (sub.topics || []).map((t: any) => ({
+        const extractedTopics = subjectsData.flatMap((sub) =>
+          (sub.topics || []).map((t) => ({
             ...t,
             subjectName: sub.name,
             subjectColor: sub.color || t.subjectColor || t.subject?.color,
@@ -72,7 +90,7 @@ function PlannerContent() {
         );
 
         if (extractedTopics.length > 0) {
-          setTopics(extractedTopics);
+          setTopics(extractedTopics as unknown as Topic[]);
         }
       }
     } catch (err) {
@@ -80,14 +98,13 @@ function PlannerContent() {
     }
   }
 
-  // 🎣 Carregamento inicial (apenas uma chamada única usando mode=subjects)
+  // 🎣 Carregamento inicial
   useEffect(() => {
     let isMounted = true;
 
     async function loadData() {
       try {
         setLoading(true);
-        setError(null);
 
         const subjectsRes = await fetch(`/api/edital?mode=subjects`, {
           cache: "no-store",
@@ -99,23 +116,22 @@ function PlannerContent() {
 
         if (!isMounted) return;
 
-        const subjectsData = subjectsJson.data || [];
+        const subjectsData: ApiSubject[] = subjectsJson.data || [];
         setSubjects(subjectsData);
 
-        // 🟢 Extrai os tópicos associando corretamente a matéria pai e o quizId
-        const extractedTopics = subjectsData.flatMap((sub: any) =>
-          (sub.topics || []).map((t: any) => ({
+        const extractedTopics = subjectsData.flatMap((sub) =>
+          (sub.topics || []).map((t) => ({
             ...t,
             subjectName: sub.name,
             subjectColor: sub.color || t.subjectColor || t.subject?.color,
           })),
         );
 
-        setTopics(extractedTopics);
+        setTopics(extractedTopics as unknown as Topic[]);
       } catch (err: unknown) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : "Erro desconhecido");
-        }
+        console.error(
+          err instanceof Error ? err.message : "Erro desconhecido ao carregar",
+        );
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -211,21 +227,23 @@ function PlannerContent() {
     }
   }
 
-  // 🟢 Mapeamento preservando a matéria correta e o quizId
-  const mappedTopicsForView = topics.map((t: any) => ({
-    id: t.id,
-    title: t.title,
-    subjectName: t.subjectName || t.subject?.name || "Geral",
-    subjectColor: t.subjectColor || t.subject?.color,
-    firstStudy: t.firstStudy,
-    performance: t.performance,
-    lastRev: t.lastRev,
-    nextRev: t.nextRev,
-    quizId:
-      typeof t.quizId === "string" && t.quizId.trim().length > 0
-        ? t.quizId
-        : null,
-  }));
+  const mappedTopicsForView = topics.map((t) => {
+    const item = t as unknown as ApiTopic;
+    return {
+      id: item.id,
+      title: item.title,
+      subjectName: item.subject?.name || "Geral",
+      subjectColor: item.subjectColor || item.subject?.color,
+      firstStudy: item.firstStudy,
+      performance: item.performance,
+      lastRev: item.lastRev,
+      nextRev: item.nextRev,
+      quizId:
+        typeof item.quizId === "string" && item.quizId.trim().length > 0
+          ? item.quizId
+          : null,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-6 font-sans antialiased relative">
@@ -272,7 +290,7 @@ function PlannerContent() {
             <div className="flex items-center gap-2 shrink-0 justify-end">
               <button
                 onClick={() => setIsImportModalOpen(true)}
-                className="flex items-center justify-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 text-slate-400 text-xs font-medium px-4 py-2 rounded-xl transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.15)]"
               >
                 <UploadCloud size={14} className="text-indigo-400" />
                 <span>Importar Edital</span>
@@ -299,13 +317,13 @@ function PlannerContent() {
           />
         </section>
 
-        {/* Header de Metricas Globais */}
+        {/* Header de Métricas Globais */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-linear-to-r from-[#090d16] via-[#0c1222] to-[#090d16] border border-white/10 p-4 rounded-2xl shadow-xl">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-bold text-xs">
               {
                 topics.filter(
-                  (t: any) => t.firstStudy && t.firstStudy !== "Pendente",
+                  (t) => t.firstStudy && t.firstStudy !== "Pendente",
                 ).length
               }{" "}
               / {topics.length}
@@ -346,7 +364,7 @@ function PlannerContent() {
             <span className="text-sm font-mono font-bold text-indigo-400">
               {Math.round(
                 topics.reduce(
-                  (acc: number, t: any) => acc + (t.performance || 0),
+                  (acc: number, t) => acc + (t.performance || 0),
                   0,
                 ) / (topics.length || 1),
               )}
@@ -355,6 +373,91 @@ function PlannerContent() {
           </div>
         </div>
 
+        {/* GUIA DIDÁTICO / EMPTY STATE QUANDO NÃO HÁ MATÉRIAS */}
+        {!loading && subjects.length === 0 && (
+          <div className="relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-linear-to-br from-[#090d19] via-[#050812] to-[#020409] p-6 md:p-8 shadow-2xl">
+            <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
+            <div className="relative z-10 max-w-3xl space-y-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-[11px] font-bold text-indigo-300">
+                <Sparkles size={14} className="animate-pulse" />
+                <span>Como cadastrar seu Edital em segundos</span>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-white tracking-tight md:text-2xl">
+                  Importe as matérias do seu Concurso com IA
+                </h3>
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                  Não perca tempo criando tópico por tópico manualmente. Você só
+                  precisa copiar o texto do edital em PDF e colar no Synapse.
+                </p>
+              </div>
+
+              {/* Passos */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-4 space-y-2">
+                  <div className="flex items-center justify-between text-indigo-400">
+                    <BookOpen size={18} />
+                    <span className="font-mono text-xs font-black text-slate-500">
+                      01
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-200">
+                    Abra seu Edital PDF
+                  </h4>
+                  <p className="text-[11px] text-slate-400 leading-normal">
+                    Vá até a seção de <strong>Conteúdo Programático</strong> ou{" "}
+                    <strong>Conhecimentos Específicos</strong>.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-4 space-y-2">
+                  <div className="flex items-center justify-between text-cyan-400">
+                    <Copy size={18} />
+                    <span className="font-mono text-xs font-black text-slate-500">
+                      02
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-200">
+                    Copie o Texto Bruto
+                  </h4>
+                  <p className="text-[11px] text-slate-400 leading-normal">
+                    Selecione e copie todo o bloco de disciplinas sem se
+                    preocupar com formatação.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-4 space-y-2">
+                  <div className="flex items-center justify-between text-emerald-400">
+                    <Sparkles size={18} />
+                    <span className="font-mono text-xs font-black text-slate-500">
+                      03
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-200">
+                    A IA Mapeia Tudo
+                  </h4>
+                  <p className="text-[11px] text-slate-400 leading-normal">
+                    Cole no Synapse! Nossa IA extrai matérias, organiza tópicos
+                    e gera o plano de estudos.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 text-xs font-extrabold text-white shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer"
+                >
+                  <UploadCloud size={16} />
+                  <span>Importar meu Edital Agora</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tabela do Planner */}
         {loading ? (
           <div className="flex items-center justify-center py-10 gap-2">
@@ -362,21 +465,23 @@ function PlannerContent() {
             <span className="text-xs text-slate-500">Carregando dados...</span>
           </div>
         ) : (
-          <PlannerView
-            topics={mappedTopicsForView}
-            subjects={subjects}
-            searchQuery={searchQuery}
-            targetSubjectId={targetSubjectId}
-            onReviewClick={(topicId) => {
-              const found = topics.find((t) => t.id === topicId);
-              if (found) {
-                setActiveReviewTopic(found);
-                setPerformanceValue(found.performance || 100);
-              }
-            }}
-            onDeleteTopic={handleDeleteTopic}
-            onDeleteSubject={handleDeleteSubject}
-          />
+          subjects.length > 0 && (
+            <PlannerView
+              topics={mappedTopicsForView}
+              subjects={subjects}
+              searchQuery={searchQuery}
+              targetSubjectId={targetSubjectId}
+              onReviewClick={(topicId) => {
+                const found = topics.find((t) => t.id === topicId);
+                if (found) {
+                  setActiveReviewTopic(found);
+                  setPerformanceValue(found.performance || 100);
+                }
+              }}
+              onDeleteTopic={handleDeleteTopic}
+              onDeleteSubject={handleDeleteSubject}
+            />
+          )
         )}
       </div>
 
@@ -459,8 +564,7 @@ function PlannerContent() {
         <ImportEditalModal
           isOpen={isImportModalOpen}
           onClose={() => setIsImportModalOpen(false)}
-          onImportSuccess={async (data) => {
-            console.log("Edital processado com sucesso:", data);
+          onImportSuccess={async () => {
             await refreshData();
           }}
         />
@@ -469,7 +573,6 @@ function PlannerContent() {
   );
 }
 
-// 🟢 Export default envelopado no Suspense Boundary
 export default function PlannerPage() {
   return (
     <Suspense
