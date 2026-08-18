@@ -548,8 +548,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </section>
 
-        {/* ================= 3. GRADE PRINCIPAL DE CONTEÚDO ================= */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* ================= 3. ESTRUTURA PRINCIPAL (EQUILIBRADA) ================= */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+          {/* COLUNA ESQUERDA: AÇÃO E MATÉRIAS */}
           <div className="space-y-6 lg:col-span-8">
             {/* BANNER DE ONBOARDING REQUERIDO (QUANDO NÃO HÁ EDITAL) */}
             {!hasEditalSubjects && (
@@ -991,9 +992,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
-          {/* ================= 4. BARRA LATERAL DIREITA COMPACTA ================= */}
+          {/* COLUNA DIREITA: AÇÕES RÁPIDAS (ALTURA AJUSTADA PERFEITAMENTE) */}
           <div className="space-y-6 lg:col-span-4">
-            {/* 🎯 WIDGET 1: GAMIFICAÇÃO & NÍVEL */}
+            {/* WIDGET 1: GAMIFICAÇÃO & NÍVEL */}
             <Link
               href="/achievements"
               className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] via-[#0b1021] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/40"
@@ -1043,7 +1044,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             </Link>
 
-            {/* 🎯 WIDGET 2: CONSTÂNCIA (STREAK) */}
+            {/* WIDGET 2: POMODORO TIMER */}
+            <div id="pomodoro">
+              <PomodoroTimer />
+            </div>
+
+            {/* WIDGET 3: CONSTÂNCIA (STREAK) */}
             <Link
               href="/performance"
               className="group relative block overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-amber-500/30"
@@ -1104,16 +1110,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 ))}
               </div>
             </Link>
+          </div>
 
-            {/* 🎯 WIDGET 3: POMODORO TIMER */}
-            <div id="pomodoro">
-              <PomodoroTimer />
-            </div>
-
-            {/* 🎯 WIDGET 4: META SEMANAL */}
+          {/* ================= 4. RODAPÉ NIVELADO DE ESTATÍSTICAS (OCUPA TODA A LARGURA) ================= */}
+          <div className="col-span-12 grid grid-cols-1 gap-6 md:grid-cols-12 items-stretch pt-2">
+            {/* META SEMANAL */}
             <Link
               href="/performance"
-              className="group block rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30"
+              className="group md:col-span-4 flex flex-col justify-between rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30"
             >
               <div className="mb-3 flex items-start justify-between">
                 <div>
@@ -1129,7 +1133,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="space-y-2 pt-1">
+              <div className="space-y-2 pt-2">
                 <div className="h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/80 p-0.5">
                   <div
                     className="h-full rounded-full bg-linear-to-r from-indigo-500 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-700"
@@ -1146,10 +1150,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             </Link>
 
-            {/* 🎯 WIDGET 5: HEATMAP COMPACTO */}
-            <section className="overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl backdrop-blur-2xl">
+            {/* INTENSIFICADE DE ESTUDOS (HEATMAP INTEIRO) */}
+            <div className="md:col-span-8 overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               <Heatmap />
-            </section>
+            </div>
           </div>
         </div>
       </div>
