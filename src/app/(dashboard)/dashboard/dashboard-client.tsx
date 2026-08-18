@@ -551,7 +551,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         {/* ================= 3. GRADE PRINCIPAL DE CONTEÚDO ================= */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-8">
-            {/* 🛑 BANNER DE ONBOARDING REQUERIDO (QUANDO NÃO HÁ EDITAL) */}
+            {/* BANNER DE ONBOARDING REQUERIDO (QUANDO NÃO HÁ EDITAL) */}
             {!hasEditalSubjects && (
               <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 sm:p-8">
                 <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
@@ -989,22 +989,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </motion.div>
               )}
             </div>
-
-            {/* 📊 REALOCADO: HEATMAP NA COLUNA PRINCIPAL */}
-            <section className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
-              <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                  Intensidade de Estudos
-                </span>
-                <span className="text-[10px] font-mono text-slate-400">
-                  Últimos 12 Meses
-                </span>
-              </div>
-              <Heatmap />
-            </section>
           </div>
 
-          {/* ================= 4. BARRA LATERAL DIREITA ================= */}
+          {/* ================= 4. BARRA LATERAL DIREITA COMPACTA ================= */}
           <div className="space-y-6 lg:col-span-4">
             {/* 🎯 WIDGET 1: GAMIFICAÇÃO & NÍVEL */}
             <Link
@@ -1118,7 +1105,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             </Link>
 
-            {/* 🎯 WIDGET 3: POMODORO TIMER (SUBIU DE POSIÇÃO) */}
+            {/* 🎯 WIDGET 3: POMODORO TIMER */}
             <div id="pomodoro">
               <PomodoroTimer />
             </div>
@@ -1158,6 +1145,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </span>
               </div>
             </Link>
+
+            {/* 🎯 WIDGET 5: HEATMAP COMPACTO */}
+            <section className="overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl backdrop-blur-2xl">
+              <Heatmap />
+            </section>
           </div>
         </div>
       </div>
