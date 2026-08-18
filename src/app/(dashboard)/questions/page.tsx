@@ -14,7 +14,7 @@ import {
   ArrowRight,
   Zap,
   BookOpen,
-  AlertCircle,
+  Lock,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -150,6 +150,7 @@ export default function QuestoesPage() {
   const [dificuldade, setDificuldade] = useState("Média");
   const [textoBase, setTextoBase] = useState("");
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Histórico
   const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
@@ -277,6 +278,10 @@ export default function QuestoesPage() {
 
   // Carrega as matérias do Edital
   useEffect(() => {
+    queueMicrotask(() => {
+      setIsInitialLoading(true);
+    });
+
     fetch("/api/edital?mode=subjects")
       .then((res) => res.json())
       .then((json) => {
@@ -328,9 +333,7 @@ export default function QuestoesPage() {
                   t.title.trim().toLowerCase() ===
                     paramTopicId.trim().toLowerCase(),
               );
-              setSelectedTopicId(
-                matchedTopic ? matchedTopic.id : paramTopicId,
-              );
+              setSelectedTopicId(matchedTopic ? matchedTopic.id : paramTopicId);
             }
           } else {
             setMateria(decodedSubject);
@@ -341,7 +344,10 @@ export default function QuestoesPage() {
           if (paramTopicId) setSelectedTopicId(paramTopicId);
         }
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => {
+        setIsInitialLoading(false);
+      });
   }, [searchParams]);
 
   const currentSubjectObj = subjects.find(
@@ -543,6 +549,7 @@ export default function QuestoesPage() {
 
   const handleGenerateSimulado = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (subjects.length === 0) return;
     setIsGenerating(true);
 
     try {
@@ -602,7 +609,7 @@ export default function QuestoesPage() {
     }
   };
 
-  // 🎯 ATALHOS DE TECLADO MELHORADOS: Suporta Teclas A, B, C, D, E e 1, 2, 3, 4, 5
+  // 🎯 ATALHOS DE TECLADO MELHORADOS
   useEffect(() => {
     if (
       activeTab !== "create" ||
@@ -626,13 +633,10 @@ export default function QuestoesPage() {
       const currentQuestion = questions[focusedQuestionIndex];
       if (!currentQuestion) return;
 
-      const isAlreadyAnswered = Boolean(
-        checkedQuestions[focusedQuestionIndex],
-      );
+      const isAlreadyAnswered = Boolean(checkedQuestions[focusedQuestionIndex]);
 
       const keyUpper = e.key.toUpperCase();
 
-      // Suporte para A, B, C, D, E e Números 1 a 5
       const mapKeyToAlt: Record<string, string> = {
         A: "A",
         B: "B",
@@ -661,7 +665,6 @@ export default function QuestoesPage() {
             }));
           }
         } else {
-          // Certo ou Errado
           if (keyUpper === "C" || keyUpper === "1") {
             setSelectedAnswers((prev) => ({
               ...prev,
@@ -723,6 +726,15 @@ export default function QuestoesPage() {
     handleAnswerQuestion,
   ]);
 
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-[#02050e] text-slate-400 flex flex-col items-center justify-center gap-3 text-xs">
+        <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
+        <span>Sincronizando banco de dados cognitivo...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#02050e] text-slate-100 p-4 md:p-8 font-sans antialiased relative selection:bg-indigo-500/30">
       {questions.length > 0 && activeTab === "create" && (
@@ -759,355 +771,370 @@ export default function QuestoesPage() {
             </div>
           </div>
 
-          {questions.length > 0 && activeTab === "create" && (
-            <button
-              onClick={() => setIsAIModalOpen(true)}
-              type="button"
-              className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs px-4 py-2.5 rounded-xl transition-all font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer"
-            >
-              <Sparkles size={14} className="text-indigo-200" />
-              <span>Novo Simulado IA</span>
-            </button>
-          )}
+          {questions.length > 0 &&
+            activeTab === "create" &&
+            subjects.length > 0 && (
+              <button
+                onClick={() => setIsAIModalOpen(true)}
+                type="button"
+                className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs px-4 py-2.5 rounded-xl transition-all font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer"
+              >
+                <Sparkles size={14} className="text-indigo-200" />
+                <span>Novo Simulado IA</span>
+              </button>
+            )}
         </div>
 
-        {/* ⚠️ BANNER DE AVISO: SE NÃO HOUVER EDITaL CADASTRADO */}
+        {/* 🛑 COMPONENTE OBRIGATÓRIO BLOQUEANTE SE O EDITAL ESTIVER VAZIO */}
         {subjects.length === 0 && questions.length === 0 && (
-          <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-amber-950/60 via-slate-900 to-slate-950 border border-amber-500/40 p-6 shadow-2xl backdrop-blur-2xl">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative z-10">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
-                  <BookOpen size={24} />
-                </div>
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
-                    <AlertCircle size={12} /> Passo Inicial Necessário
-                  </div>
-                  <h2 className="text-base font-bold text-white tracking-tight">
-                    Cadastre suas matérias na aba &quot;Edital&quot;
-                  </h2>
-                  <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-                    Para gerar simulados direcionados por disciplina e tópico com a IA, cadastre primeiro o edital do seu concurso.
-                  </p>
-                </div>
+          <div className="min-h-[60vh] flex items-center justify-center py-4">
+            <div className="relative overflow-hidden max-w-xl w-full bg-linear-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl space-y-6">
+              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10 relative z-10">
+                <BookOpen size={28} />
               </div>
-
-              <Link
-                href="/edital"
-                className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs px-5 py-3 rounded-2xl transition-all shadow-lg shadow-amber-500/20 active:scale-95 shrink-0 cursor-pointer"
-              >
-                <BookOpen size={16} />
-                <span>Ir para Editais</span>
-                <ArrowRight size={16} />
-              </Link>
+              <div className="space-y-2 relative z-10">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
+                  <Lock size={12} /> Etapa Obrigatória
+                </div>
+                <h2 className="text-xl font-black text-white tracking-tight">
+                  Cadastre seu Edital Primeiro
+                </h2>
+                <p className="text-slate-300 text-xs leading-relaxed max-w-sm mx-auto">
+                  Para gerar simulados ou flashcards adaptados com IA para o seu
+                  concurso, você precisa primeiro cadastrar matérias e tópicos
+                  na aba de Editais.
+                </p>
+              </div>
+              <div className="pt-2 relative z-10">
+                <Link
+                  href="/edital"
+                  className="inline-flex items-center gap-2 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-6 py-3.5 rounded-xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 cursor-pointer"
+                >
+                  <BookOpen size={15} />
+                  <span>Configurar Edital</span>
+                  <ArrowRight size={15} />
+                </Link>
+              </div>
             </div>
           </div>
         )}
 
-        {/* ================= 2. BARRA DE PROGRESSO DO SIMULADO ================= */}
-        {questions.length > 0 && activeTab === "create" && (
-          <div className="bg-[#090d16]/90 border border-white/10 rounded-2xl p-4 shadow-2xl backdrop-blur-md">
-            <div className="flex items-center justify-between mb-2.5 text-xs">
-              <div className="flex items-center gap-2 font-bold text-slate-200">
-                <span className="text-indigo-400">Progresso do Caderno</span>
-                <span className="text-slate-600">•</span>
-                <span className="font-mono text-slate-300">
-                  {answeredCount}/{totalQuestions} respondidas
-                </span>
+        {/* ================= CONTEÚDO NORMAL DA PÁGINA (SÓ RENDERIZA SE TIVER SUBJECTS) ================= */}
+        {subjects.length > 0 && (
+          <>
+            {/* ================= 2. BARRA DE PROGRESSO DO SIMULADO ================= */}
+            {questions.length > 0 && activeTab === "create" && (
+              <div className="bg-[#090d16]/90 border border-white/10 rounded-2xl p-4 shadow-2xl backdrop-blur-md">
+                <div className="flex items-center justify-between mb-2.5 text-xs">
+                  <div className="flex items-center gap-2 font-bold text-slate-200">
+                    <span className="text-indigo-400">
+                      Progresso do Caderno
+                    </span>
+                    <span className="text-slate-600">•</span>
+                    <span className="font-mono text-slate-300">
+                      {answeredCount}/{totalQuestions} respondidas
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 font-semibold text-xs">
+                    <span className="text-emerald-400 font-mono">
+                      {correctCount} Acerto(s)
+                    </span>
+                    <span className="text-slate-700">|</span>
+                    <span className="text-indigo-300 font-mono font-bold">
+                      Aproveitamento: {percentageAcc}%
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full bg-slate-950/80 rounded-full h-2 overflow-hidden border border-white/5">
+                  <div
+                    className="bg-linear-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                    style={{
+                      width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-3 font-semibold text-xs">
-                <span className="text-emerald-400 font-mono">
-                  {correctCount} Acerto(s)
-                </span>
-                <span className="text-slate-700">|</span>
-                <span className="text-indigo-300 font-mono font-bold">
-                  Aproveitamento: {percentageAcc}%
-                </span>
-              </div>
+            )}
+
+            {/* ================= 3. NAVEGAÇÃO DE ABAS ================= */}
+            <div className="flex border-b border-white/10 gap-2">
+              <button
+                onClick={() => handleTabChange("create")}
+                type="button"
+                className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
+                  activeTab === "create"
+                    ? "border-indigo-500 text-indigo-400 bg-white/5"
+                    : "border-transparent text-slate-400 hover:text-white"
+                }`}
+              >
+                {questions.length > 0 ? (
+                  <>
+                    <Zap size={14} className="text-indigo-400" />
+                    <span>Caderno Ativo</span>
+                  </>
+                ) : (
+                  <>
+                    <Home size={14} />
+                    <span>Início</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  handleTabChange("history");
+                  fetchQuizHistory();
+                }}
+                type="button"
+                className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
+                  activeTab === "history"
+                    ? "border-indigo-500 text-indigo-400 bg-white/5"
+                    : "border-transparent text-slate-400 hover:text-white"
+                }`}
+              >
+                <History size={14} />
+                <span>Simulados Salvos</span>
+              </button>
             </div>
-            <div className="w-full bg-slate-950/80 rounded-full h-2 overflow-hidden border border-white/5">
-              <div
-                className="bg-linear-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                style={{
-                  width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%`,
+
+            {/* ================= 4. ABA 1: HUB OU CADERNO ATIVO ================= */}
+            {activeTab === "create" && (
+              <>
+                {questions.length === 0 ? (
+                  <div className="space-y-6">
+                    {pausedSession &&
+                      pausedSession.questions &&
+                      pausedSession.questions.length > 0 && (
+                        <ResumeSessionCard
+                          session={pausedSession}
+                          onResume={() => {
+                            setCurrentQuizId(pausedSession.quizId || null);
+                            setBanca(pausedSession.banca || "FGV");
+                            setQuestions(pausedSession.questions || []);
+                            setSelectedAnswers(
+                              pausedSession.selectedAnswers || {},
+                            );
+                            setCheckedQuestions(
+                              pausedSession.checkedQuestions || {},
+                            );
+                            setCreatedFlashcards(
+                              pausedSession.createdFlashcards || {},
+                            );
+                            setTimerSeconds(pausedSession.timerSeconds || 0);
+                            setIsTimerRunning(true);
+                          }}
+                          onDiscard={(e) => {
+                            e.stopPropagation();
+                            localStorage.removeItem(STORAGE_KEY);
+                            setPausedSession(null);
+                          }}
+                        />
+                      )}
+
+                    {/* BANNER HERO SPOTLIGHT */}
+                    <div className="relative overflow-hidden bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl">
+                      <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-indigo-500/10 blur-[100px]" />
+                      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                        <div className="space-y-4 max-w-xl">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-md">
+                            <Sparkles
+                              size={12}
+                              className="text-indigo-400 animate-pulse"
+                            />
+                            <span className="text-[10px] font-extrabold tracking-widest text-indigo-300 uppercase">
+                              Central de Treinamento
+                            </span>
+                          </div>
+                          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+                            Pratique com questões inéditas e simulados
+                            direcionados
+                          </h2>
+                          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            Gere cadernos adaptativos configurados pela IA ou
+                            retome seus testes anteriores com feedback em tempo
+                            real.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* OPÇÕES DE CRIAÇÃO */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div
+                        onClick={() => setIsAIModalOpen(true)}
+                        className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-indigo-500/40 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
+                      >
+                        <div className="space-y-4 relative z-10">
+                          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                            <Sparkles size={22} />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">
+                              Gerar Simulado por IA
+                            </h3>
+                            <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                              Filtre por banca, disciplina e dificuldade para
+                              montar cadernos sob medida.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-8 flex items-center gap-2 text-xs font-bold text-indigo-400">
+                          <span>Configurar Parâmetros</span>
+                          <ArrowRight size={14} />
+                        </div>
+                      </div>
+
+                      <div
+                        onClick={() => {
+                          handleTabChange("history");
+                          fetchQuizHistory();
+                        }}
+                        className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-white/20 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
+                      >
+                        <div className="space-y-4 relative z-10">
+                          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300">
+                            <History size={22} />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-white group-hover:text-slate-200 transition-colors">
+                              Meus Simulados Salvos
+                            </h3>
+                            <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                              Acesse e refaça cadernos salvos no seu histórico a
+                              qualquer momento.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-8 flex items-center gap-2 text-xs font-bold text-slate-400">
+                          <span>Ver Cadernos Salvos</span>
+                          <ArrowRight size={14} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* CADERNO DE QUESTÕES EM RESOLUÇÃO */
+                  <div className="space-y-6">
+                    <div className="bg-[#090d16]/90 border border-indigo-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-extrabold bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                            {banca}
+                          </span>
+                          <span className="text-xs text-slate-400 font-medium">
+                            Caderno em Resolução
+                          </span>
+                        </div>
+                        <h2 className="text-lg font-bold text-slate-100">
+                          {materia || "Simulado Customizado"}
+                        </h2>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setQuestions([]);
+                          setSelectedAnswers({});
+                          setCheckedQuestions({});
+                          localStorage.removeItem(STORAGE_KEY);
+                          setPausedSession(null);
+                          setCurrentQuizId(null);
+                          setIsTimerRunning(false);
+                        }}
+                        type="button"
+                        className="text-xs text-slate-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 bg-slate-950 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-medium"
+                      >
+                        Encerrar Caderno
+                      </button>
+                    </div>
+
+                    <div className="space-y-6 pb-12">
+                      {questions.map((questao, index) => (
+                        <QuestionCard
+                          key={`questao-${index}`}
+                          questao={questao}
+                          index={index}
+                          isFocused={index === focusedQuestionIndex}
+                          respondida={Boolean(checkedQuestions[index])}
+                          alternativaSelecionada={selectedAnswers[index]}
+                          isSavedError={Boolean(savedErrors[index])}
+                          isFlashcardCreated={Boolean(createdFlashcards[index])}
+                          isCreatingFlashcard={creatingFlashcardIndex === index}
+                          onSelectAnswer={(altId) =>
+                            setSelectedAnswers((prev) => ({
+                              ...prev,
+                              [index]: altId,
+                            }))
+                          }
+                          onAnswerQuestion={() => handleAnswerQuestion(index)}
+                          onToggleSaveError={() =>
+                            setSavedErrors((prev) => ({
+                              ...prev,
+                              [index]: !prev[index],
+                            }))
+                          }
+                          onCreateFlashcard={() => handleCreateFlashcard(index)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ================= 5. ABA 2: HISTÓRICO ================= */}
+            {activeTab === "history" && (
+              <QuizHistoryTab
+                history={quizHistory}
+                isLoading={isLoadingHistory}
+                searchTerm={searchTerm}
+                sortBy={sortBy}
+                confirmingDeleteId={confirmingDeleteId}
+                loadingQuizId={loadingQuizId}
+                onSearchChange={setSearchTerm}
+                onSortChange={setSortBy}
+                onLoadSavedQuiz={(savedQ, savedBanca, id) => {
+                  setLoadingQuizId(id);
+                  setTimeout(() => {
+                    const randomized = randomizeQuizSession(savedQ);
+                    setCurrentQuizId(id);
+                    setSelectedAnswers({});
+                    setCheckedQuestions({});
+                    setSavedErrors({});
+                    setCreatedFlashcards({});
+                    setShowCompletionModal(false);
+                    setQuestions(randomized);
+                    setBanca(savedBanca);
+                    handleTabChange("create");
+                    setLoadingQuizId(null);
+                    setTimerSeconds(0);
+                    setFocusedQuestionIndex(0);
+                    setIsTimerRunning(true);
+                  }, 200);
+                }}
+                onConfirmDelete={setConfirmingDeleteId}
+                onDeleteSimulado={async (id) => {
+                  try {
+                    const res = await fetch(`/api/questions/${id}`, {
+                      method: "DELETE",
+                    });
+                    if (res.ok) {
+                      setQuizHistory((prev) => prev.filter((i) => i.id !== id));
+                      setConfirmingDeleteId(null);
+                    }
+                  } catch (err) {
+                    console.error("Erro ao deletar:", err);
+                  }
+                }}
+                onCreateNewQuiz={() => {
+                  setQuestions([]);
+                  setSelectedAnswers({});
+                  setCheckedQuestions({});
+                  setCurrentQuizId(null);
+                  handleTabChange("create");
                 }}
               />
-            </div>
-          </div>
-        )}
-
-        {/* ================= 3. NAVEGAÇÃO DE ABAS GLASSMORPHIC ================= */}
-        <div className="flex border-b border-white/10 gap-2">
-          <button
-            onClick={() => handleTabChange("create")}
-            type="button"
-            className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
-              activeTab === "create"
-                ? "border-indigo-500 text-indigo-400 bg-white/5"
-                : "border-transparent text-slate-400 hover:text-white"
-            }`}
-          >
-            {questions.length > 0 ? (
-              <>
-                <Zap size={14} className="text-indigo-400" />
-                <span>Caderno Ativo</span>
-              </>
-            ) : (
-              <>
-                <Home size={14} />
-                <span>Início</span>
-              </>
-            )}
-          </button>
-          <button
-            onClick={() => {
-              handleTabChange("history");
-              fetchQuizHistory();
-            }}
-            type="button"
-            className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
-              activeTab === "history"
-                ? "border-indigo-500 text-indigo-400 bg-white/5"
-                : "border-transparent text-slate-400 hover:text-white"
-            }`}
-          >
-            <History size={14} />
-            <span>Simulados Salvos</span>
-          </button>
-        </div>
-
-        {/* ================= 4. ABA 1: HUB OU CADERNO ATIVO ================= */}
-        {activeTab === "create" && (
-          <>
-            {questions.length === 0 ? (
-              <div className="space-y-6">
-                {pausedSession &&
-                  pausedSession.questions &&
-                  pausedSession.questions.length > 0 && (
-                    <ResumeSessionCard
-                      session={pausedSession}
-                      onResume={() => {
-                        setCurrentQuizId(pausedSession.quizId || null);
-                        setBanca(pausedSession.banca || "FGV");
-                        setQuestions(pausedSession.questions || []);
-                        setSelectedAnswers(pausedSession.selectedAnswers || {});
-                        setCheckedQuestions(
-                          pausedSession.checkedQuestions || {},
-                        );
-                        setCreatedFlashcards(
-                          pausedSession.createdFlashcards || {},
-                        );
-                        setTimerSeconds(pausedSession.timerSeconds || 0);
-                        setIsTimerRunning(true);
-                      }}
-                      onDiscard={(e) => {
-                        e.stopPropagation();
-                        localStorage.removeItem(STORAGE_KEY);
-                        setPausedSession(null);
-                      }}
-                    />
-                  )}
-
-                {/* BANNER HERO SPOTLIGHT */}
-                <div className="relative overflow-hidden bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl">
-                  <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-indigo-500/10 blur-[100px]" />
-                  <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                    <div className="space-y-4 max-w-xl">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-md">
-                        <Sparkles
-                          size={12}
-                          className="text-indigo-400 animate-pulse"
-                        />
-                        <span className="text-[10px] font-extrabold tracking-widest text-indigo-300 uppercase">
-                          Central de Treinamento
-                        </span>
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
-                        Pratique com questões inéditas e simulados direcionados
-                      </h2>
-                      <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                        Gere cadernos adaptativos configurados pela IA ou retome
-                        seus testes anteriores com feedback em tempo real.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* OPÇÕES DE CRIAÇÃO */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div
-                    onClick={() => setIsAIModalOpen(true)}
-                    className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-indigo-500/40 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
-                  >
-                    <div className="space-y-4 relative z-10">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                        <Sparkles size={22} />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">
-                          Gerar Simulado por IA
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          Filtre por banca, disciplina e dificuldade para montar
-                          cadernos sob medida.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-8 flex items-center gap-2 text-xs font-bold text-indigo-400">
-                      <span>Configurar Parâmetros</span>
-                      <ArrowRight size={14} />
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => {
-                      handleTabChange("history");
-                      fetchQuizHistory();
-                    }}
-                    className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-white/20 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
-                  >
-                    <div className="space-y-4 relative z-10">
-                      <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300">
-                        <History size={22} />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white group-hover:text-slate-200 transition-colors">
-                          Meus Simulados Salvos
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          Acesse e refaça cadernos salvos no seu histórico a
-                          qualquer momento.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-8 flex items-center gap-2 text-xs font-bold text-slate-400">
-                      <span>Ver Cadernos Salvos</span>
-                      <ArrowRight size={14} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* CADERNO DE QUESTÕES EM RESOLUÇÃO */
-              <div className="space-y-6">
-                <div className="bg-[#090d16]/90 border border-indigo-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-extrabold bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                        {banca}
-                      </span>
-                      <span className="text-xs text-slate-400 font-medium">
-                        Caderno em Resolução
-                      </span>
-                    </div>
-                    <h2 className="text-lg font-bold text-slate-100">
-                      {materia || "Simulado Customizado"}
-                    </h2>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setQuestions([]);
-                      setSelectedAnswers({});
-                      setCheckedQuestions({});
-                      localStorage.removeItem(STORAGE_KEY);
-                      setPausedSession(null);
-                      setCurrentQuizId(null);
-                      setIsTimerRunning(false);
-                    }}
-                    type="button"
-                    className="text-xs text-slate-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 bg-slate-950 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-medium"
-                  >
-                    Encerrar Caderno
-                  </button>
-                </div>
-
-                <div className="space-y-6 pb-12">
-                  {questions.map((questao, index) => (
-                    <QuestionCard
-                      key={`questao-${index}`}
-                      questao={questao}
-                      index={index}
-                      isFocused={index === focusedQuestionIndex}
-                      respondida={Boolean(checkedQuestions[index])}
-                      alternativaSelecionada={selectedAnswers[index]}
-                      isSavedError={Boolean(savedErrors[index])}
-                      isFlashcardCreated={Boolean(createdFlashcards[index])}
-                      isCreatingFlashcard={creatingFlashcardIndex === index}
-                      onSelectAnswer={(altId) =>
-                        setSelectedAnswers((prev) => ({
-                          ...prev,
-                          [index]: altId,
-                        }))
-                      }
-                      onAnswerQuestion={() => handleAnswerQuestion(index)}
-                      onToggleSaveError={() =>
-                        setSavedErrors((prev) => ({
-                          ...prev,
-                          [index]: !prev[index],
-                        }))
-                      }
-                      onCreateFlashcard={() => handleCreateFlashcard(index)}
-                    />
-                  ))}
-                </div>
-              </div>
             )}
           </>
-        )}
-
-        {/* ================= 5. ABA 2: HISTÓRICO ================= */}
-        {activeTab === "history" && (
-          <QuizHistoryTab
-            history={quizHistory}
-            isLoading={isLoadingHistory}
-            searchTerm={searchTerm}
-            sortBy={sortBy}
-            confirmingDeleteId={confirmingDeleteId}
-            loadingQuizId={loadingQuizId}
-            onSearchChange={setSearchTerm}
-            onSortChange={setSortBy}
-            onLoadSavedQuiz={(savedQ, savedBanca, id) => {
-              setLoadingQuizId(id);
-              setTimeout(() => {
-                const randomized = randomizeQuizSession(savedQ);
-                setCurrentQuizId(id);
-                setSelectedAnswers({});
-                setCheckedQuestions({});
-                setSavedErrors({});
-                setCreatedFlashcards({});
-                setShowCompletionModal(false);
-                setQuestions(randomized);
-                setBanca(savedBanca);
-                handleTabChange("create");
-                setLoadingQuizId(null);
-                setTimerSeconds(0);
-                setFocusedQuestionIndex(0);
-                setIsTimerRunning(true);
-              }, 200);
-            }}
-            onConfirmDelete={setConfirmingDeleteId}
-            onDeleteSimulado={async (id) => {
-              try {
-                const res = await fetch(`/api/questions/${id}`, {
-                  method: "DELETE",
-                });
-                if (res.ok) {
-                  setQuizHistory((prev) => prev.filter((i) => i.id !== id));
-                  setConfirmingDeleteId(null);
-                }
-              } catch (err) {
-                console.error("Erro ao deletar:", err);
-              }
-            }}
-            onCreateNewQuiz={() => {
-              setQuestions([]);
-              setSelectedAnswers({});
-              setCheckedQuestions({});
-              setCurrentQuizId(null);
-              handleTabChange("create");
-            }}
-          />
         )}
       </div>
 

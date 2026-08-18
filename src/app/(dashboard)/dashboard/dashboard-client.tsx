@@ -36,6 +36,7 @@ import {
   HelpCircle,
   Trophy,
   Award,
+  Lock,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -53,14 +54,6 @@ interface JourneyData {
 
 interface DashboardStats {
   journey?: JourneyData;
-  gamification?: {
-    level: number;
-    currentXp: number;
-    totalXp?: number;
-    nextLevelXp: number;
-    currentLevelXp?: number;
-    title: string;
-  };
   metrics: {
     totalTimeFormatted: string;
     precision: string;
@@ -94,14 +87,7 @@ interface Suggestion {
   description: string;
   type: "CRITICAL" | "SUGGESTED" | string;
   icon?: "brain" | "clipboard" | string;
-  actionType?:
-    | "QUIZ"
-    | "SIMULADO"
-    | "EDITAL"
-    | "PLANNER"
-    | "CARDS"
-    | "FLASHCARDS"
-    | string;
+  actionType?: string;
   topicId?: string;
   subjectId?: string;
 }
@@ -120,14 +106,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Estados da IA
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
 
-  // Dados do BD
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const { stats: gamificationStats } = useGamification();
+
+  // Fonte primária de Gamificação unificada
+  const { stats: globalGamification } = useGamification();
 
   const [subjects, setSubjects] = useState<DashboardSubject[]>([]);
 
@@ -177,11 +163,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
       if (resWeek.ok) {
         const jsonWeek = await resWeek.json();
-        if (jsonWeek.data?.missedDayName) {
-          setMissedDayName(jsonWeek.data.missedDayName);
-        } else {
-          setMissedDayName(null);
-        }
+        setMissedDayName(jsonWeek.data?.missedDayName || null);
       }
     } catch (err) {
       console.error("Erro ao carregar dados do Dashboard:", err);
@@ -190,7 +172,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   }, []);
 
-  // 1. Solução ESLint: Execução envolvida em startTransition para evitar efeito síncrono no mount
   useEffect(() => {
     startTransition(() => {
       loadDashboardData();
@@ -245,17 +226,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
       return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
     }
-
     if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
       return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
     }
-
     if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
       return "/flashcards";
     }
 
     const titleLower = item.title?.toLowerCase() || "";
-
     if (
       titleLower.includes("simulado") ||
       titleLower.includes("quiz") ||
@@ -263,7 +241,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     ) {
       return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
     }
-
     if (
       titleLower.includes("edital") ||
       titleLower.includes("avançar") ||
@@ -271,7 +248,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     ) {
       return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
     }
-
     if (titleLower.includes("card") || titleLower.includes("flashcard")) {
       return "/flashcards";
     }
@@ -317,40 +293,21 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     },
   };
 
-  // 2. Solução TypeScript: Mapeamento de propriedades do gamificationStats com fallback dinâmico (Record<string, unknown>)
-  const gStats = (gamificationStats || {}) as Record<string, unknown>;
+  // Garante a leitura direta da Gamificação Global
+  const gStats = (globalGamification?.gamification ||
+    globalGamification ||
+    {}) as Record<string, unknown>;
 
   const currentXp = Number(
-    gStats.totalXp ??
-      gStats.xp ??
-      stats?.gamification?.totalXp ??
-      stats?.gamification?.currentXp ??
-      0,
+    gStats.totalXp ?? gStats.xp ?? gStats.currentXp ?? 0,
   );
-
-  const level = Number(
-    gStats.level ?? gStats.currentLevel ?? stats?.gamification?.level ?? 1,
-  );
-
+  const level = Number(gStats.level ?? gStats.currentLevel ?? 1);
   const levelTitle = String(
-    gStats.title ??
-      gStats.levelTitle ??
-      stats?.gamification?.title ??
-      "Iniciante",
+    gStats.title ?? gStats.levelTitle ?? "Iniciante Consciente",
   );
-
-  const nextLevelXp = Number(
-    gStats.nextLevelXp ??
-      gStats.targetXp ??
-      stats?.gamification?.nextLevelXp ??
-      1000,
-  );
-
+  const nextLevelXp = Number(gStats.nextLevelXp ?? gStats.targetXp ?? 1000);
   const currentLevelMinXp = Number(
-    gStats.currentLevelXp ??
-      gStats.minLevelXp ??
-      stats?.gamification?.currentLevelXp ??
-      0,
+    gStats.currentLevelXp ?? gStats.minLevelXp ?? 0,
   );
 
   const xpProgressInLevel = Math.max(0, currentXp - currentLevelMinXp);
@@ -359,6 +316,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     100,
     Math.round((xpProgressInLevel / xpSpanForLevel) * 100),
   );
+
+  const hasEditalSubjects = subjects.length > 0;
 
   return (
     <div className="min-h-screen bg-[#02050e] p-4 font-sans text-slate-100 selection:bg-indigo-500/30 md:p-8">
@@ -377,21 +336,25 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight text-white">
                 Dashboard
               </h1>
-              <p className="mt-0.5 text-xs text-slate-400">
+              <p className="mt-0.5 text-xs text-slate-300">
                 Bem-vindo de volta,{" "}
-                <span className="font-bold text-indigo-400">
+                <strong className="text-indigo-400 font-bold">
                   {user.name || "Estudante"}
-                </span>
+                </strong>
               </p>
             </div>
           </div>
 
           <Link
-            href="/flashcards"
-            className="flex items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all active:scale-95 cursor-pointer"
+            href={hasEditalSubjects ? "/flashcards" : "/edital"}
+            className="flex items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all active:scale-95 cursor-pointer"
           >
             <Zap size={14} className="fill-white" />
-            <span>Iniciar Estudos do Dia</span>
+            <span>
+              {hasEditalSubjects
+                ? "Iniciar Estudos do Dia"
+                : "Configurar Edital"}
+            </span>
           </Link>
         </div>
 
@@ -418,6 +381,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               color: "text-cyan-400",
               bg: "bg-cyan-500/10 border-cyan-500/20 hover:border-cyan-500/40",
               href: "/edital",
+              badge: !hasEditalSubjects ? "Passo 1" : undefined,
             },
             {
               title: "Hall de Conquistas",
@@ -432,14 +396,21 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <Link
                 key={idx}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-2xl border p-3 backdrop-blur-xl transition-all duration-200 active:scale-95 ${item.bg}`}
+                className={`relative flex items-center justify-between gap-3 rounded-2xl border p-3 backdrop-blur-xl transition-all duration-200 active:scale-95 ${item.bg}`}
               >
-                <div className={`p-2 rounded-xl ${item.color}`}>
-                  <Icon size={18} />
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`p-2 rounded-xl shrink-0 ${item.color}`}>
+                    <Icon size={18} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-200 truncate">
+                    {item.title}
+                  </span>
                 </div>
-                <span className="text-xs font-bold text-slate-200 truncate">
-                  {item.title}
-                </span>
+                {item.badge && (
+                  <span className="text-[9px] font-extrabold uppercase bg-amber-500/20 border border-amber-500/30 text-amber-300 px-2 py-0.5 rounded-full shrink-0">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -509,10 +480,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div>
                 <div className="flex items-baseline gap-2">
                   <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
-                    {stats?.journey?.topicsPerWeek ?? 0}
+                    {hasEditalSubjects
+                      ? (stats?.journey?.topicsPerWeek ?? 0)
+                      : "—"}
                   </span>
                   <span className="text-xs font-medium text-slate-400">
-                    tópicos / sem
+                    {hasEditalSubjects ? "tópicos / sem" : "Aguardando Edital"}
                   </span>
                 </div>
               </div>
@@ -520,7 +493,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
                 <span className="font-medium">Ritmo atual:</span>
                 <strong className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 font-mono font-bold text-amber-300">
-                  {stats?.journey?.currentPace ?? 0.0} / sem
+                  {hasEditalSubjects
+                    ? `${stats?.journey?.currentPace ?? 0.0} / sem`
+                    : "—"}
                 </strong>
               </div>
             </div>
@@ -565,9 +540,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <span className="font-medium">Status:</span>
                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 text-[11px] font-bold text-indigo-300">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-                  {stats?.journey?.percentage === 100
-                    ? "Edital Completo"
-                    : "Em Andamento"}
+                  {!hasEditalSubjects
+                    ? "Não Iniciado"
+                    : stats?.journey?.percentage === 100
+                      ? "Edital Completo"
+                      : "Em Andamento"}
                 </span>
               </div>
             </div>
@@ -577,6 +554,36 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         {/* ================= 3. GRADE PRINCIPAL DE CONTEÚDO ================= */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-9">
+            {/* ONBOARDING REQUERIDO (POSICIONADO NO TOPO QUANDO EDITAL FOR ZERADO) */}
+            {!hasEditalSubjects && (
+              <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 sm:p-8 shadow-2xl backdrop-blur-2xl transition-all duration-300">
+                <div className="pointer-events-none absolute -top-20 -right-20 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl" />
+                <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                  <div className="space-y-2 max-w-lg">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-extrabold uppercase tracking-wider">
+                      <Lock size={12} /> Onboarding Requerido
+                    </div>
+                    <h3 className="text-lg font-black text-white tracking-tight">
+                      Configure seu Edital para Ativar a IA
+                    </h3>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Cadastre as disciplinas do seu concurso para desbloquear
+                      sugestões inteligentes de revisão, cálculo automático de
+                      ritmo e plano de estudos personalizado.
+                    </p>
+                  </div>
+                  <Link
+                    href="/edital"
+                    className="inline-flex items-center gap-2 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-5 py-3 rounded-xl transition-all shadow-lg shadow-amber-500/20 shrink-0 cursor-pointer active:scale-95"
+                  >
+                    <BookOpen size={15} />
+                    <span>Cadastrar Edital</span>
+                    <ArrowRight size={15} />
+                  </Link>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {/* CARD 1: Missões do Dia */}
               <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30">
@@ -772,156 +779,158 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             </div>
 
-            {/* CARD 3: Sugestões com IA */}
-            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-cyan-500/30">
-              <div className="mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                    <Sparkles size={18} className="animate-pulse" />
-                  </div>
-                  <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
-                    Sugestões Inteligentes da IA
-                  </h3>
-                </div>
-                <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[10px] font-bold text-cyan-300 uppercase">
-                  Synapse Neural
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                <AnimatePresence mode="wait">
-                  {suggestions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 py-6 text-center">
-                      <p className="text-xs text-slate-400">
-                        Nenhuma pendência crítica. Seu cronograma está 100%
-                        otimizado!
-                      </p>
+            {/* CARD 3: Sugestões com IA (Visível quando o Edital estiver cadastrado) */}
+            {hasEditalSubjects && (
+              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-cyan-500/30">
+                <div className="mb-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                      <Sparkles size={18} className="animate-pulse" />
                     </div>
-                  ) : (
-                    suggestions.map((item: Suggestion) => {
-                      const targetUrl = getSuggestionUrl(item);
+                    <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
+                      Sugestões Inteligentes da IA
+                    </h3>
+                  </div>
+                  <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[10px] font-bold text-cyan-300 uppercase">
+                    Synapse Neural
+                  </span>
+                </div>
 
-                      return (
-                        <motion.div
-                          key={item.id}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, x: -10 }}
-                          transition={{ duration: 0.3 }}
-                          className={`group/item relative flex items-center justify-between gap-4 rounded-2xl border bg-slate-950/60 p-4 transition-all duration-200 hover:-translate-y-0.5 ${
-                            item.type === "CRITICAL"
-                              ? "border-rose-500/20 hover:border-rose-500/40"
-                              : "border-white/5 hover:border-emerald-500/30"
-                          }`}
-                        >
-                          <Link
-                            href={targetUrl}
-                            className="flex flex-1 items-start gap-3.5"
+                <div className="space-y-3">
+                  <AnimatePresence mode="wait">
+                    {suggestions.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 py-6 text-center">
+                        <p className="text-xs text-slate-400">
+                          Nenhuma pendência crítica. Seu cronograma está 100%
+                          otimizado!
+                        </p>
+                      </div>
+                    ) : (
+                      suggestions.map((item: Suggestion) => {
+                        const targetUrl = getSuggestionUrl(item);
+
+                        return (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            transition={{ duration: 0.3 }}
+                            className={`group/item relative flex items-center justify-between gap-4 rounded-2xl border bg-slate-950/60 p-4 transition-all duration-200 hover:-translate-y-0.5 ${
+                              item.type === "CRITICAL"
+                                ? "border-rose-500/20 hover:border-rose-500/40"
+                                : "border-white/5 hover:border-emerald-500/30"
+                            }`}
                           >
-                            <div
-                              className={`shrink-0 rounded-xl border p-2.5 ${
-                                item.icon === "brain"
-                                  ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
-                                  : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                              }`}
+                            <Link
+                              href={targetUrl}
+                              className="flex flex-1 items-start gap-3.5"
                             >
-                              {item.icon === "brain" ? (
-                                <BrainCircuit size={18} />
-                              ) : (
-                                <ClipboardList size={18} />
-                              )}
-                            </div>
+                              <div
+                                className={`shrink-0 rounded-xl border p-2.5 ${
+                                  item.icon === "brain"
+                                    ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
+                                    : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                }`}
+                              >
+                                {item.icon === "brain" ? (
+                                  <BrainCircuit size={18} />
+                                ) : (
+                                  <ClipboardList size={18} />
+                                )}
+                              </div>
 
-                            <div className="flex-1">
-                              <h4 className="text-sm font-bold text-slate-200 group-hover/item:text-indigo-300 transition-colors">
-                                {item.title}
-                              </h4>
-                              <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
-                                {item.description}
-                              </p>
-                            </div>
-                          </Link>
+                              <div className="flex-1">
+                                <h4 className="text-sm font-bold text-slate-200 group-hover/item:text-indigo-300 transition-colors">
+                                  {item.title}
+                                </h4>
+                                <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
+                                  {item.description}
+                                </p>
+                              </div>
+                            </Link>
 
-                          <div className="flex shrink-0 items-center gap-2">
-                            <span
-                              className={`rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold ${
-                                item.type === "CRITICAL"
-                                  ? "border-rose-500/30 bg-rose-500/10 text-rose-400"
-                                  : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                              }`}
-                            >
-                              {item.type === "CRITICAL"
-                                ? "CRÍTICO"
-                                : "SUGERIDO"}
-                            </span>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <span
+                                className={`rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold ${
+                                  item.type === "CRITICAL"
+                                    ? "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                                    : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                }`}
+                              >
+                                {item.type === "CRITICAL"
+                                  ? "CRÍTICO"
+                                  : "SUGERIDO"}
+                              </span>
 
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                setSuggestions((prev) =>
-                                  prev.filter((s) => s.id !== item.id),
-                                );
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setSuggestions((prev) =>
+                                    prev.filter((s) => s.id !== item.id),
+                                  );
 
-                                if (item.topicId) {
-                                  await fetch(
-                                    "/api/edital/complete-suggestion",
-                                    {
-                                      method: "POST",
-                                      headers: {
-                                        "Content-Type": "application/json",
+                                  if (item.topicId) {
+                                    await fetch(
+                                      "/api/edital/complete-suggestion",
+                                      {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                          topicId: item.topicId,
+                                          type: "DISMISSED",
+                                        }),
                                       },
-                                      body: JSON.stringify({
-                                        topicId: item.topicId,
-                                        type: "DISMISSED",
-                                      }),
-                                    },
-                                  ).catch(console.error);
-                                }
-                              }}
-                              className="cursor-pointer rounded-xl p-1.5 text-slate-500 hover:bg-slate-800/60 hover:text-white transition-colors"
-                              title="Dispensar sugestão"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        </motion.div>
-                      );
-                    })
-                  )}
-                </AnimatePresence>
-              </div>
+                                    ).catch(console.error);
+                                  }
+                                }}
+                                className="cursor-pointer rounded-xl p-1.5 text-slate-500 hover:bg-slate-800/60 hover:text-white transition-colors"
+                                title="Dispensar sugestão"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </motion.div>
+                        );
+                      })
+                    )}
+                  </AnimatePresence>
+                </div>
 
-              <button
-                onClick={handleOptimizeSchedule}
-                disabled={isOptimizing}
-                className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-linear-to-r from-cyan-500/15 via-indigo-500/10 to-cyan-500/15 py-3 text-xs font-bold text-cyan-300 transition-all hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] active:scale-[0.99] disabled:opacity-50"
-              >
-                {isOptimizing ? (
-                  <>
-                    <RefreshCw
-                      size={14}
-                      className="animate-spin text-cyan-400"
-                    />
-                    <span>Otimizando seu ciclo de estudos...</span>
-                  </>
-                ) : isOptimized ? (
-                  <>
-                    <CheckCircle2 size={14} className="text-emerald-400" />
-                    <span className="text-emerald-400">
-                      Cronograma Rebalanceado!
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles
-                      size={14}
-                      className="animate-pulse text-cyan-400"
-                    />
-                    <span>Otimizar Cronograma com IA</span>
-                  </>
-                )}
-              </button>
-            </div>
+                <button
+                  onClick={handleOptimizeSchedule}
+                  disabled={isOptimizing}
+                  className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-linear-to-r from-cyan-500/15 via-indigo-500/10 to-cyan-500/15 py-3 text-xs font-bold text-cyan-300 transition-all hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] active:scale-[0.99] disabled:opacity-50"
+                >
+                  {isOptimizing ? (
+                    <>
+                      <RefreshCw
+                        size={14}
+                        className="animate-spin text-cyan-400"
+                      />
+                      <span>Otimizando seu ciclo de estudos...</span>
+                    </>
+                  ) : isOptimized ? (
+                    <>
+                      <CheckCircle2 size={14} className="text-emerald-400" />
+                      <span className="text-emerald-400">
+                        Cronograma Rebalanceado!
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles
+                        size={14}
+                        className="animate-pulse text-cyan-400"
+                      />
+                      <span>Otimizar Cronograma com IA</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* CARD 4: Minhas Matérias */}
             <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
@@ -1050,7 +1059,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <p className="mt-1 font-mono text-3xl font-black text-white">
                     {Number(
                       gStats.streakDays ??
-                        gamificationStats?.streak?.currentDays ??
+                        globalGamification?.streak?.currentDays ??
                         0,
                     )}{" "}
                     Dias
@@ -1062,7 +1071,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     className={
                       Number(
                         gStats.streakDays ??
-                          gamificationStats?.streak?.currentDays ??
+                          globalGamification?.streak?.currentDays ??
                           0,
                       ) > 0
                         ? "animate-pulse text-amber-400 fill-amber-400/30"
@@ -1074,7 +1083,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div className="flex justify-between gap-1.5 pt-1">
                 {(
-                  gamificationStats?.streak?.weekDays || [
+                  globalGamification?.streak?.weekDays || [
                     { dayLabel: "S", active: false },
                     { dayLabel: "T", active: false },
                     { dayLabel: "Q", active: false },
