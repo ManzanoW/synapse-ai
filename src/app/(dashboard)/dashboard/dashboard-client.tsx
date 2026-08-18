@@ -1127,20 +1127,41 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
 
           {/* ================= 4. RODAPÉ DE INTENSIFICAÇÃO / HEATMAP HORIZONTAL ================= */}
-          <div className="col-span-12 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
-            <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
-              <div className="flex items-center gap-2">
-                <Activity size={16} className="text-indigo-400" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                  Intensidade de Estudos
-                </h3>
+          <div className="col-span-12 grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+            {/* CARD 1: Meta Semanal + Constância (col-span-4) */}
+            <div className="md:col-span-4 flex flex-col justify-between rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Meta Semanal</span>
+                  <span className="font-mono text-xs font-bold text-indigo-400">{stats?.weeklyGoal?.percentage ?? 0}%</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950">
+                  <div
+                    className="h-full rounded-full bg-linear-to-r from-indigo-500 to-purple-500 transition-all duration-700"
+                    style={{ width: `${stats?.weeklyGoal?.percentage ?? 0}%` }}
+                  />
+                </div>
+                <p className="text-right font-mono text-[10px] text-slate-500">
+                  {stats?.weeklyGoal?.current ?? 0} / {stats?.weeklyGoal?.target ?? 50} revisões
+                </p>
               </div>
-              <span className="font-mono text-[10px] text-slate-400">
-                Últimos 6 Meses
-              </span>
+          
+              <div className="border-t border-white/5 pt-3 mt-3 flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Streak</span>
+                <span className="font-mono text-xs font-extrabold text-amber-400">
+                  {Number(gStats.streakDays ?? globalGamification?.streak?.currentDays ?? 0)} Dias
+                </span>
+              </div>
             </div>
-            
-            <Heatmap />
+          
+            {/* CARD 2: Heatmap Rebalanceado (col-span-8) */}
+            <div className="md:col-span-8 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
+              <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Intensidade de Estudos</h3>
+                <span className="font-mono text-[10px] text-slate-400">Últimos 90 Dias</span>
+              </div>
+              <Heatmap />
+            </div>
           </div>
         </div>
       </div>
