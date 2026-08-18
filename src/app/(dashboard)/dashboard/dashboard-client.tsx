@@ -1136,12 +1136,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </h3>
               </div>
               <span className="font-mono text-[10px] text-slate-400">
-                Histórico de Atividade
+                Últimos 6 Meses
               </span>
             </div>
-            <div className="w-full overflow-x-auto">
-              <Heatmap />
-            </div>
+            
+            <Heatmap />
           </div>
         </div>
       </div>
