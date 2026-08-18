@@ -37,6 +37,7 @@ import {
   Trophy,
   Award,
   Lock,
+  Activity,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -548,9 +549,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </section>
 
-        {/* ================= 3. ESTRUTURA PRINCIPAL (EQUILIBRADA) ================= */}
+        {/* ================= 3. GRADE PRINCIPAL HARMONIOSA ================= */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-          {/* COLUNA ESQUERDA: AÇÃO E MATÉRIAS */}
+          {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
           <div className="space-y-6 lg:col-span-8">
             {/* BANNER DE ONBOARDING REQUERIDO (QUANDO NÃO HÁ EDITAL) */}
             {!hasEditalSubjects && (
@@ -992,7 +993,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
-          {/* COLUNA DIREITA: AÇÕES RÁPIDAS (ALTURA AJUSTADA PERFEITAMENTE) */}
+          {/* COLUNA DIREITA COMPACTA (`lg:col-span-4`) */}
           <div className="space-y-6 lg:col-span-4">
             {/* WIDGET 1: GAMIFICAÇÃO & NÍVEL */}
             <Link
@@ -1049,55 +1050,68 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <PomodoroTimer />
             </div>
 
-            {/* WIDGET 3: CONSTÂNCIA (STREAK) */}
-            <Link
-              href="/performance"
-              className="group relative block overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-amber-500/30"
-            >
-              <div className="mb-4 flex items-start justify-between">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-amber-400">
+            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA UNIFICADAS */}
+            <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
+              {/* Meta Semanal */}
+              <Link href="/performance" className="group block space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-indigo-400">
+                    Meta Semanal
+                  </span>
+                  <span className="font-mono text-xs font-black text-indigo-400">
+                    {stats?.weeklyGoal?.percentage ?? 0}%
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
+                  <div
+                    className="h-full rounded-full bg-linear-to-r from-indigo-500 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-700"
+                    style={{
+                      width: `${stats?.weeklyGoal?.percentage ?? 0}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between font-mono text-[10px] text-slate-500">
+                  <span>Concluído</span>
+                  <span>
+                    {stats?.weeklyGoal?.current ?? 0} /{" "}
+                    {stats?.weeklyGoal?.target ?? 50} revisões
+                  </span>
+                </div>
+              </Link>
+
+              <div className="my-2 border-t border-white/5" />
+
+              {/* Constância / Streak */}
+              <Link href="/performance" className="group block space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-amber-400">
                     Constância
-                  </h3>
-                  <p className="mt-1 font-mono text-3xl font-black text-white">
+                  </span>
+                  <span className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
+                    <Flame size={14} className="fill-amber-400 text-amber-400" />
                     {Number(
                       gStats.streakDays ??
                         globalGamification?.streak?.currentDays ??
                         0,
                     )}{" "}
                     Dias
-                  </p>
+                  </span>
                 </div>
-                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-transform group-hover:scale-105">
-                  <Flame
-                    size={20}
-                    className={
-                      Number(
-                        gStats.streakDays ??
-                          globalGamification?.streak?.currentDays ??
-                          0,
-                      ) > 0
-                        ? "fill-amber-400/30 animate-pulse text-amber-400"
-                        : ""
-                    }
-                  />
-                </div>
-              </div>
 
-              <div className="flex justify-between gap-1.5 pt-1">
-                {(
-                  globalGamification?.streak?.weekDays || [
-                    { dayLabel: "S", active: false },
-                    { dayLabel: "T", active: false },
-                    { dayLabel: "Q", active: false },
-                    { dayLabel: "Q", active: false },
-                    { dayLabel: "S", active: false },
-                    { dayLabel: "S", active: false },
-                    { dayLabel: "D", active: false },
-                  ]
-                ).map((day, idx) => (
-                  <div key={idx} className="flex flex-col items-center gap-1">
+                <div className="flex justify-between gap-1">
+                  {(
+                    globalGamification?.streak?.weekDays || [
+                      { dayLabel: "S", active: false },
+                      { dayLabel: "T", active: false },
+                      { dayLabel: "Q", active: false },
+                      { dayLabel: "Q", active: false },
+                      { dayLabel: "S", active: false },
+                      { dayLabel: "S", active: false },
+                      { dayLabel: "D", active: false },
+                    ]
+                  ).map((day, idx) => (
                     <div
+                      key={idx}
                       className={`flex h-7 w-7 items-center justify-center rounded-xl font-mono text-[10px] font-bold transition-all ${
                         day.active
                           ? "bg-linear-to-br from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
@@ -1106,52 +1120,26 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     >
                       {day.dayLabel}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </Link>
+                  ))}
+                </div>
+              </Link>
+            </div>
           </div>
 
-          {/* ================= 4. RODAPÉ NIVELADO DE ESTATÍSTICAS (OCUPA TODA A LARGURA) ================= */}
-          <div className="col-span-12 grid grid-cols-1 gap-6 md:grid-cols-12 items-stretch pt-2">
-            {/* META SEMANAL */}
-            <Link
-              href="/performance"
-              className="group md:col-span-4 flex flex-col justify-between rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30"
-            >
-              <div className="mb-3 flex items-start justify-between">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-indigo-400">
-                    Meta Semanal
-                  </h3>
-                  <p className="mt-1 font-mono text-3xl font-black text-white">
-                    {stats?.weeklyGoal?.percentage ?? 0}%
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-transform group-hover:scale-105">
-                  <BarChart3 size={20} />
-                </div>
+          {/* ================= 4. RODAPÉ DE INTENSIFICAÇÃO / HEATMAP HORIZONTAL ================= */}
+          <div className="col-span-12 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
+            <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
+              <div className="flex items-center gap-2">
+                <Activity size={16} className="text-indigo-400" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                  Intensidade de Estudos
+                </h3>
               </div>
-
-              <div className="space-y-2 pt-2">
-                <div className="h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/80 p-0.5">
-                  <div
-                    className="h-full rounded-full bg-linear-to-r from-indigo-500 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-700"
-                    style={{
-                      width: `${stats?.weeklyGoal?.percentage ?? 0}%`,
-                    }}
-                  />
-                </div>
-
-                <span className="block font-mono text-right text-[10px] font-semibold text-slate-400">
-                  {stats?.weeklyGoal?.current ?? 0} /{" "}
-                  {stats?.weeklyGoal?.target ?? 50} revisões
-                </span>
-              </div>
-            </Link>
-
-            {/* INTENSIFICADE DE ESTUDOS (HEATMAP INTEIRO) */}
-            <div className="md:col-span-8 overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
+              <span className="font-mono text-[10px] text-slate-400">
+                Histórico de Atividade
+              </span>
+            </div>
+            <div className="w-full overflow-x-auto">
               <Heatmap />
             </div>
           </div>
