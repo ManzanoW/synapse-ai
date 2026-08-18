@@ -104,7 +104,7 @@ interface DashboardClientProps {
 export default function DashboardClient({ user }: DashboardClientProps) {
   const { openSidebar } = useSidebar();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
@@ -112,9 +112,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
 
-  // Fonte primária de Gamificação unificada
   const { stats: globalGamification } = useGamification();
-
   const [subjects, setSubjects] = useState<DashboardSubject[]>([]);
 
   const [levelUpData, setLevelUpData] = useState<{
@@ -137,9 +135,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
       const resSuggestions = await fetch("/api/edital/rebalance", {
         method: "POST",
-      });
+      }).catch(() => null);
 
-      if (resSuggestions.ok) {
+      if (resSuggestions && resSuggestions.ok) {
         const jsonSuggestions = await resSuggestions.json();
         if (jsonSuggestions.suggestions?.length) {
           setSuggestions(jsonSuggestions.suggestions);
@@ -293,7 +291,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     },
   };
 
-  // Garante a leitura direta da Gamificação Global
   const gStats = (globalGamification?.gamification ||
     globalGamification ||
     {}) as Record<string, unknown>;
@@ -303,7 +300,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   );
   const level = Number(gStats.level ?? gStats.currentLevel ?? 1);
   const levelTitle = String(
-    gStats.title ?? gStats.levelTitle ?? "Iniciante Consciente",
+    gStats.title ?? gStats.levelTitle ?? "Mestre da Retenção",
   );
   const nextLevelXp = Number(gStats.nextLevelXp ?? gStats.targetXp ?? 1000);
   const currentLevelMinXp = Number(
@@ -320,7 +317,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const hasEditalSubjects = subjects.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#02050e] p-4 font-sans text-slate-100 selection:bg-indigo-500/30 md:p-8">
+    <div className="min-h-screen w-full bg-[#02050e] p-4 font-sans text-slate-100 selection:bg-indigo-500/30 md:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
         <div className="flex items-center justify-between">
@@ -338,7 +335,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </h1>
               <p className="mt-0.5 text-xs text-slate-300">
                 Bem-vindo de volta,{" "}
-                <strong className="text-indigo-400 font-bold">
+                <strong className="font-bold text-indigo-400">
                   {user.name || "Estudante"}
                 </strong>
               </p>
@@ -347,7 +344,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           <Link
             href={hasEditalSubjects ? "/flashcards" : "/edital"}
-            className="flex items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all active:scale-95 cursor-pointer"
+            className="flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-500 hover:to-purple-500 active:scale-95"
           >
             <Zap size={14} className="fill-white" />
             <span>
@@ -398,16 +395,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 href={item.href}
                 className={`relative flex items-center justify-between gap-3 rounded-2xl border p-3 backdrop-blur-xl transition-all duration-200 active:scale-95 ${item.bg}`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`p-2 rounded-xl shrink-0 ${item.color}`}>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className={`shrink-0 rounded-xl p-2 ${item.color}`}>
                     <Icon size={18} />
                   </div>
-                  <span className="text-xs font-bold text-slate-200 truncate">
+                  <span className="truncate text-xs font-bold text-slate-200">
                     {item.title}
                   </span>
                 </div>
                 {item.badge && (
-                  <span className="text-[9px] font-extrabold uppercase bg-amber-500/20 border border-amber-500/30 text-amber-300 px-2 py-0.5 rounded-full shrink-0">
+                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-[9px] font-extrabold text-amber-300 uppercase">
                     {item.badge}
                   </span>
                 )}
@@ -481,7 +478,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <div className="flex items-baseline gap-2">
                   <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
                     {hasEditalSubjects
-                      ? (stats?.journey?.topicsPerWeek ?? 0)
+                      ? stats?.journey?.topicsPerWeek ?? 0
                       : "—"}
                   </span>
                   <span className="text-xs font-medium text-slate-400">
@@ -554,16 +551,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         {/* ================= 3. GRADE PRINCIPAL DE CONTEÚDO ================= */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-9">
-            {/* ONBOARDING REQUERIDO (POSICIONADO NO TOPO QUANDO EDITAL FOR ZERADO) */}
+            {/* 🛑 BANNER DE ONBOARDING REQUERIDO (QUANDO NÃO HÁ EDITAL) */}
             {!hasEditalSubjects && (
-              <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 sm:p-8 shadow-2xl backdrop-blur-2xl transition-all duration-300">
-                <div className="pointer-events-none absolute -top-20 -right-20 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl" />
-                <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                  <div className="space-y-2 max-w-lg">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-extrabold uppercase tracking-wider">
+              <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 sm:p-8">
+                <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
+                <div className="relative z-10 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+                  <div className="max-w-lg space-y-2">
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-extrabold text-amber-300 uppercase tracking-wider">
                       <Lock size={12} /> Onboarding Requerido
                     </div>
-                    <h3 className="text-lg font-black text-white tracking-tight">
+                    <h3 className="text-lg font-black tracking-tight text-white">
                       Configure seu Edital para Ativar a IA
                     </h3>
                     <p className="text-xs text-slate-300 leading-relaxed">
@@ -574,7 +571,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                   <Link
                     href="/edital"
-                    className="inline-flex items-center gap-2 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-5 py-3 rounded-xl transition-all shadow-lg shadow-amber-500/20 shrink-0 cursor-pointer active:scale-95"
+                    className="inline-flex cursor-pointer items-center gap-2 shrink-0 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 px-5 py-3 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 active:scale-95"
                   >
                     <BookOpen size={15} />
                     <span>Cadastrar Edital</span>
@@ -594,7 +591,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         <Target size={16} />
                       </div>
                       <div>
-                        <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
                           Missões de Hoje
                         </h3>
                         <p className="text-[10px] text-slate-400">
@@ -615,29 +612,29 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         id: "q1",
                         title: "Responder Questões",
                         target: 10,
-                        current: stats?.metrics.questionsCount ?? 0,
+                        current: stats?.metrics?.questionsCount ?? 0,
                         unit: "questões",
                         actionUrl: "/questions",
-                        completed: (stats?.metrics.questionsCount ?? 0) >= 10,
+                        completed: (stats?.metrics?.questionsCount ?? 0) >= 10,
                       },
                       {
                         id: "q2",
                         title: "Revisar Flashcards",
                         target: 15,
-                        current: stats?.metrics.totalFlashcards ?? 0,
+                        current: stats?.metrics?.totalFlashcards ?? 0,
                         unit: "flashcards",
                         actionUrl: "/flashcards",
-                        completed: (stats?.metrics.totalFlashcards ?? 0) >= 15,
+                        completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
                       },
                       {
                         id: "q3",
                         title: "Avançar no Edital",
                         target: 1,
                         current:
-                          (stats?.metrics.sessionsCount ?? 0) > 0 ? 1 : 0,
+                          (stats?.metrics?.sessionsCount ?? 0) > 0 ? 1 : 0,
                         unit: "tópico",
                         actionUrl: "/edital",
-                        completed: (stats?.metrics.sessionsCount ?? 0) > 0,
+                        completed: (stats?.metrics?.sessionsCount ?? 0) > 0,
                       },
                     ].map((quest) => {
                       const progress = Math.min(
@@ -669,10 +666,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                               )}
                             </div>
 
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1">
+                            <div className="min-w-0 flex-1">
+                              <div className="mb-1 flex items-center justify-between">
                                 <h4
-                                  className={`text-xs font-bold truncate ${
+                                  className={`truncate text-xs font-bold ${
                                     quest.completed
                                       ? "text-slate-400 line-through"
                                       : "text-slate-200"
@@ -680,7 +677,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                 >
                                   {quest.title}
                                 </h4>
-                                <span className="font-mono text-[10px] text-slate-400 shrink-0">
+                                <span className="shrink-0 font-mono text-[10px] text-slate-400">
                                   {quest.current}/{quest.target}
                                 </span>
                               </div>
@@ -701,7 +698,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           {!quest.completed && (
                             <Link
                               href={quest.actionUrl}
-                              className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300 hover:bg-indigo-500/20 transition-all active:scale-95"
+                              className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300 transition-all hover:bg-indigo-500/20 active:scale-95"
                             >
                               Ir
                             </Link>
@@ -716,35 +713,35 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               {/* CARD 2: Métricas de Desempenho */}
               <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30">
                 <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
-                  <span className="text-xs font-bold tracking-wider text-slate-200 uppercase">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
                     Estatísticas Chave
                   </span>
-                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-indigo-400 uppercase">
+                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
                     <Zap size={11} /> Tempo Real
                   </span>
                 </div>
 
                 <div className="mb-6 flex gap-6">
                   <div>
-                    <span className="mb-1 block text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Tempo Total
                     </span>
                     <span className="font-mono text-2xl font-black text-white md:text-3xl">
-                      {stats?.metrics.totalTimeFormatted || "0h 0m"}
+                      {stats?.metrics?.totalTimeFormatted || "0h 0m"}
                     </span>
                   </div>
 
                   <div className="flex-1">
-                    <div className="mb-1 flex justify-between text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                    <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       <span>Precisão</span>
-                      <span className="font-mono text-emerald-400 font-bold">
-                        {stats?.metrics.precision || "0%"}
+                      <span className="font-mono font-bold text-emerald-400">
+                        {stats?.metrics?.precision || "0%"}
                       </span>
                     </div>
                     <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
                       <div
                         className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.6)] transition-all duration-700"
-                        style={{ width: stats?.metrics.precision || "0%" }}
+                        style={{ width: stats?.metrics?.precision || "0%" }}
                       />
                     </div>
                   </div>
@@ -756,7 +753,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       Sessões
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics.sessionsCount ?? 0}
+                      {stats?.metrics?.sessionsCount ?? 0}
                     </span>
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
@@ -764,7 +761,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       Questões
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics.questionsCount ?? 0}
+                      {stats?.metrics?.questionsCount ?? 0}
                     </span>
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
@@ -772,14 +769,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       Méd/Dia
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics.averageTimePerSession || "0min"}
+                      {stats?.metrics?.averageTimePerSession || "0min"}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* CARD 3: Sugestões com IA (Visível quando o Edital estiver cadastrado) */}
+            {/* CARD 3: Sugestões com IA */}
             {hasEditalSubjects && (
               <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-cyan-500/30">
                 <div className="mb-5 flex items-center justify-between">
@@ -787,11 +784,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                       <Sparkles size={18} className="animate-pulse" />
                     </div>
-                    <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
                       Sugestões Inteligentes da IA
                     </h3>
                   </div>
-                  <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[10px] font-bold text-cyan-300 uppercase">
+                  <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[10px] font-bold uppercase text-cyan-300">
                     Synapse Neural
                   </span>
                 </div>
@@ -841,7 +838,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                               </div>
 
                               <div className="flex-1">
-                                <h4 className="text-sm font-bold text-slate-200 group-hover/item:text-indigo-300 transition-colors">
+                                <h4 className="text-sm font-bold text-slate-200 transition-colors group-hover/item:text-indigo-300">
                                   {item.title}
                                 </h4>
                                 <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
@@ -886,7 +883,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                     ).catch(console.error);
                                   }
                                 }}
-                                className="cursor-pointer rounded-xl p-1.5 text-slate-500 hover:bg-slate-800/60 hover:text-white transition-colors"
+                                className="cursor-pointer rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-slate-800/60 hover:text-white"
                                 title="Dispensar sugestão"
                               >
                                 <X size={14} />
@@ -937,13 +934,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <BookOpen size={18} className="text-indigo-400" />
-                  <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
                     Minhas Matérias
                   </h3>
                 </div>
                 <Link
                   href="/edital"
-                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                  className="flex items-center gap-1 text-xs font-semibold text-indigo-400 transition-colors hover:text-indigo-300"
                 >
                   <span>Ver todas</span>
                   <ArrowRight size={13} />
@@ -999,47 +996,47 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* 🎯 WIDGET: CENTRAL DE GAMIFICAÇÃO & NÍVEL */}
             <Link
               href="/achievements"
-              className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] via-[#0b1021] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-amber-500/40 hover:-translate-y-0.5"
+              className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] via-[#0b1021] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/40"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-black text-lg shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-lg text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                     {level}
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-400">
                       Nível Atual
                     </span>
-                    <h3 className="text-sm font-bold text-white tracking-tight group-hover:text-amber-300 transition-colors">
+                    <h3 className="text-sm font-bold tracking-tight text-white transition-colors group-hover:text-amber-300">
                       {levelTitle}
                     </h3>
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+                <div className="shrink-0 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-2.5 text-amber-400">
                   <Award size={18} />
                 </div>
               </div>
 
-              <div className="pt-4 space-y-2">
-                <div className="flex justify-between items-center text-xs font-mono">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <Zap size={13} className="text-amber-400 fill-amber-400" />{" "}
+              <div className="space-y-2 pt-4">
+                <div className="flex items-center justify-between font-mono text-xs">
+                  <span className="flex items-center gap-1 text-slate-400">
+                    <Zap size={13} className="fill-amber-400 text-amber-400" />{" "}
                     XP: <strong className="text-white">{currentXp}</strong>
                   </span>
-                  <span className="text-amber-400 font-bold">
+                  <span className="font-bold text-amber-400">
                     {levelProgressPercent}%
                   </span>
                 </div>
 
-                <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5 p-0.5">
+                <div className="h-2 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950 p-0.5">
                   <div
                     style={{ width: `${levelProgressPercent}%` }}
-                    className="h-full bg-linear-to-r from-amber-500 to-yellow-300 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                    className="h-full rounded-full bg-linear-to-r from-amber-500 to-yellow-300 shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-500"
                   />
                 </div>
 
-                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                <div className="flex justify-between font-mono text-[10px] text-slate-500">
                   <span>Nível {level}</span>
                   <span>Próximo: {nextLevelXp} XP</span>
                 </div>
@@ -1053,7 +1050,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             >
               <div className="mb-4 flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-bold tracking-wider text-slate-400 uppercase group-hover:text-amber-400 transition-colors">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-amber-400">
                     Constância
                   </h3>
                   <p className="mt-1 font-mono text-3xl font-black text-white">
@@ -1074,7 +1071,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           globalGamification?.streak?.currentDays ??
                           0,
                       ) > 0
-                        ? "animate-pulse text-amber-400 fill-amber-400/30"
+                        ? "fill-amber-400/30 animate-pulse text-amber-400"
                         : ""
                     }
                   />
@@ -1115,11 +1112,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             >
               <div className="mb-3 flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-bold tracking-wider text-slate-400 uppercase group-hover:text-indigo-400 transition-colors">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-indigo-400">
                     Meta Semanal
                   </h3>
                   <p className="mt-1 font-mono text-3xl font-black text-white">
-                    {stats?.weeklyGoal.percentage ?? 0}%
+                    {stats?.weeklyGoal?.percentage ?? 0}%
                   </p>
                 </div>
                 <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-transform group-hover:scale-105">
@@ -1132,14 +1129,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <div
                     className="h-full rounded-full bg-linear-to-r from-indigo-500 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-700"
                     style={{
-                      width: `${stats?.weeklyGoal.percentage ?? 0}%`,
+                      width: `${stats?.weeklyGoal?.percentage ?? 0}%`,
                     }}
                   />
                 </div>
 
-                <span className="block text-right font-mono text-[10px] font-semibold text-slate-400">
-                  {stats?.weeklyGoal.current ?? 0} /{" "}
-                  {stats?.weeklyGoal.target ?? 50} revisões
+                <span className="block font-mono text-right text-[10px] font-semibold text-slate-400">
+                  {stats?.weeklyGoal?.current ?? 0} /{" "}
+                  {stats?.weeklyGoal?.target ?? 50} revisões
                 </span>
               </div>
             </Link>
