@@ -37,7 +37,6 @@ import {
   Trophy,
   Award,
   Lock,
-  Activity,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -549,9 +548,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </section>
 
-        {/* ================= 3. LAYOUT PRINCIPAL (PERFEITAMENTE SIMÉTRICO) ================= */}
+        {/* ================= 3. LAYOUT PRINCIPAL (EQUILIBRADO) ================= */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-          {/* COLUNA ESQUERDA - FOCO EM AÇÃO E CONTEÚDO (`lg:col-span-8`) */}
+          {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
           <div className="space-y-6 lg:col-span-8">
             {/* BANNER DE ONBOARDING REQUERIDO (QUANDO NÃO HÁ EDITAL) */}
             {!hasEditalSubjects && (
@@ -931,7 +930,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             )}
 
-            {/* CARD 4: Minhas Matérias */}
+            {/* CARD 4: Minhas Matérias (COM SCROLL INTERNO PARA MANTÊ-LO COMPACTO) */}
             <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -944,7 +943,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   href="/edital"
                   className="flex items-center gap-1 text-xs font-semibold text-indigo-400 transition-colors hover:text-indigo-300"
                 >
-                  <span>Ver todas</span>
+                  <span>Ver todas ({subjects.length})</span>
                   <ArrowRight size={13} />
                 </Link>
               </div>
@@ -968,33 +967,31 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </button>
                 </div>
               ) : (
-                <motion.div
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-1 gap-4 md:grid-cols-2"
-                >
-                  {subjects.map((sub) => (
-                    <motion.div key={sub.id} variants={itemVariants}>
-                      <Link href={`/edital?subjectId=${sub.id}`}>
-                        <SubjectCard
-                          title={sub.name}
-                          colorClass={sub.color || "#3B82F6"}
-                          progress={sub.progress ?? 0}
-                          accuracy={sub.accuracy ?? 0}
-                          timeSpent={sub.timeSpent ?? "0min"}
-                          totalCards={sub._count?.topics ?? 0}
-                        />
-                      </Link>
-                    </motion.div>
-                  ))}
-                </motion.div>
+                /* Container com altura máxima e rolagem suave */
+                <div className="max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                  <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="grid grid-cols-1 gap-4 md:grid-cols-2"
+                  >
+                    {subjects.map((sub) => (
+                      <motion.div key={sub.id} variants={itemVariants}>
+                        <Link href={`/edital?subjectId=${sub.id}`}>
+                          <SubjectCard
+                            title={sub.name}
+                            colorClass={sub.color || "#3B82F6"}
+                            progress={sub.progress ?? 0}
+                            accuracy={sub.accuracy ?? 0}
+                            timeSpent={sub.timeSpent ?? "0min"}
+                            totalCards={sub._count?.topics ?? 0}
+                          />
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                </div>
               )}
-            </div>
-
-            {/* CARD 5: HEATMAP (REPOSICIONADO NA COLUNA ESQUERDA) */}
-            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
-              <Heatmap />
             </div>
           </div>
 
@@ -1130,6 +1127,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </Link>
             </div>
           </div>
+        </div>
+
+        {/* ================= 4. HEATMAP FULL-WIDTH NO RODAPÉ DA PÁGINA (col-span-12) ================= */}
+        <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
+          <Heatmap />
         </div>
       </div>
 
