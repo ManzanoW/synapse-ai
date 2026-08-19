@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Calendar } from "lucide-react";
+import { Activity } from "lucide-react";
 
 export default function Heatmap() {
   const [data, setData] = useState<Record<string, number>>({});
@@ -13,7 +13,7 @@ export default function Heatmap() {
       .catch((err) => console.error("Erro ao carregar heatmap:", err));
   }, []);
 
-  // 112 dias = 16 semanas exatas
+  // 112 dias = 16 semanas
   const days = Array.from({ length: 112 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (111 - i));
@@ -25,9 +25,9 @@ export default function Heatmap() {
   const getIntensityStyle = (count: number | undefined) => {
     const val = count || 0;
     if (val === 0)
-      return "bg-slate-900/90 border border-white/5 hover:border-white/20";
+      return "bg-slate-900/90 border border-white/5 hover:border-indigo-400/50 hover:bg-slate-800";
     if (val < 3)
-      return "bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.2)] hover:scale-110";
+      return "bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.25)] hover:border-indigo-400 hover:scale-110";
     if (val < 6)
       return "bg-indigo-600 border border-indigo-400 text-white shadow-[0_0_12px_rgba(99,102,241,0.5)] hover:scale-110";
     return "bg-indigo-400 border border-indigo-200 text-slate-950 shadow-[0_0_16px_rgba(129,140,248,0.8)] hover:scale-110";
@@ -40,7 +40,7 @@ export default function Heatmap() {
 
   return (
     <div className="space-y-4">
-      {/* 1. Cabeçalho Destaque com Ícone */}
+      {/* 1. Cabeçalho Destaque */}
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-2.5">
           <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
@@ -70,8 +70,8 @@ export default function Heatmap() {
         </div>
       </div>
 
-      {/* 2. Matriz de Blocos Perfeitamente Distribuídos */}
-      <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1">
+      {/* 2. Matriz de Blocos com Tooltip Flutuante */}
+      <div className="flex items-center justify-between gap-3 pt-2">
         {/* Coluna dos Dias */}
         <div className="flex flex-col justify-between py-0.5 text-[10px] font-mono font-bold text-slate-500 shrink-0 h-28">
           {weekDays.map((d, idx) => (
@@ -81,20 +81,32 @@ export default function Heatmap() {
           ))}
         </div>
 
-        {/* Semanas alinhadas proporcionalmente */}
+        {/* Semanas alinhadas com suporte a Hover e Tooltip */}
         <div className="flex flex-1 justify-between gap-1.5">
           {weeks.map((week, wIdx) => (
             <div key={wIdx} className="flex flex-col justify-between gap-1">
               {week.map((day) => {
                 const count = data?.[day] || 0;
+                const formattedDate = day.split("-").reverse().join("/");
+
                 return (
-                  <div
-                    key={day}
-                    title={`${day.split("-").reverse().join("/")}: ${count} revisões`}
-                    className={`h-3.5 w-3.5 shrink-0 rounded-xs transition-all duration-200 cursor-pointer ${getIntensityStyle(
-                      count
-                    )}`}
-                  />
+                  <div key={day} className="group relative flex items-center justify-center">
+                    {/* Bloco Interativo */}
+                    <div
+                      className={`h-3.5 w-3.5 shrink-0 rounded-xs transition-all duration-200 cursor-pointer ${getIntensityStyle(
+                        count
+                      )}`}
+                    />
+
+                    {/* Tooltip Flutuante Estilo Vercel */}
+                    <div className="pointer-events-none absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50">
+                      <div className="whitespace-nowrap rounded-lg border border-white/10 bg-slate-900/95 px-2.5 py-1 font-mono text-[10px] text-slate-100 shadow-2xl backdrop-blur-md">
+                        <strong className="text-indigo-400">{formattedDate}</strong>: {count}{" "}
+                        {count === 1 ? "revisão" : "revisões"}
+                      </div>
+                      <div className="-mt-1 h-1.5 w-1.5 rotate-45 border-r border-b border-white/10 bg-slate-900" />
+                    </div>
+                  </div>
                 );
               })}
             </div>
