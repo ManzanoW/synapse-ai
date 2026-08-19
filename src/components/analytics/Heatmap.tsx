@@ -13,10 +13,10 @@ export default function Heatmap() {
       .catch((err) => console.error("Erro ao carregar heatmap:", err));
   }, []);
 
-  // 70 dias = 10 semanas (tamanho perfeito para caber na coluna lateral de 4 colunas)
-  const days = Array.from({ length: 70 }, (_, i) => {
+  // 84 dias = 12 semanas (preenchimento perfeito e denso para a sidebar)
+  const days = Array.from({ length: 84 }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() - (69 - i));
+    d.setDate(d.getDate() - (83 - i));
     return d.toISOString().split("T")[0];
   });
 
@@ -34,7 +34,7 @@ export default function Heatmap() {
   };
 
   const weekDays = ["D", "S", "T", "Q", "Q", "S", "S"];
-  const weeks = Array.from({ length: 10 }, (_, i) =>
+  const weeks = Array.from({ length: 12 }, (_, i) =>
     days.slice(i * 7, i * 7 + 7)
   );
 
@@ -54,7 +54,7 @@ export default function Heatmap() {
               <strong className="font-mono font-bold text-indigo-400">
                 {activeDaysCount}
               </strong>{" "}
-              dias ativos (10 sem)
+              dias ativos (12 sem)
             </p>
           </div>
         </div>
@@ -68,8 +68,8 @@ export default function Heatmap() {
         </div>
       </div>
 
-      {/* 2. Matriz Ajustada para Sidebar */}
-      <div className="flex items-center justify-between gap-2 pt-1">
+      {/* 2. Matriz Agrupada e Centralizada */}
+      <div className="flex items-center justify-center gap-2.5 pt-1">
         {/* Coluna dos Dias */}
         <div className="flex flex-col justify-between py-0.5 text-[9px] font-mono font-bold text-slate-500 shrink-0 h-28">
           {weekDays.map((d, idx) => (
@@ -79,8 +79,8 @@ export default function Heatmap() {
           ))}
         </div>
 
-        {/* 10 Semanas distribuídas proporcionalmente */}
-        <div className="flex flex-1 justify-between gap-1">
+        {/* 12 Semanas com espaçamento fixo e denso (gap-1.5) */}
+        <div className="flex items-center justify-center gap-1.5">
           {weeks.map((week, wIdx) => (
             <div key={wIdx} className="flex flex-col justify-between gap-1">
               {week.map((day) => {
