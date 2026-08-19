@@ -36,9 +36,6 @@ import {
   Trophy,
   Award,
   Lock,
-  Clock,
-  CalendarDays,
-  PlayCircle,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 
@@ -317,7 +314,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   );
 
   const hasEditalSubjects = subjects.length > 0;
-  // Exibimos as primeiras 4 matérias para manter o card limpo e sem cortes
   const displayedSubjects = subjects.slice(0, 4);
 
   return (
@@ -552,388 +548,390 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </section>
 
-        {/* ================= 3. LAYOUT PRINCIPAL (PERFEITAMENTE SIMÉTRICO) ================= */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+        {/* ================= 3. LAYOUT PRINCIPAL (ALINHAMENTO AUTO-AJUSTÁVEL) ================= */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-stretch">
           {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
-          <div className="space-y-6 lg:col-span-8">
-            {/* BANNER DE ONBOARDING REQUERIDO */}
-            {!hasEditalSubjects && (
-              <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 sm:p-8">
-                <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
-                <div className="relative z-10 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-                  <div className="max-w-lg space-y-2">
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-extrabold text-amber-300 uppercase tracking-wider">
-                      <Lock size={12} /> Onboarding Requerido
+          <div className="space-y-6 lg:col-span-8 flex flex-col justify-between">
+            <div className="space-y-6">
+              {/* BANNER DE ONBOARDING REQUERIDO */}
+              {!hasEditalSubjects && (
+                <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 sm:p-8">
+                  <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
+                  <div className="relative z-10 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+                    <div className="max-w-lg space-y-2">
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-extrabold text-amber-300 uppercase tracking-wider">
+                        <Lock size={12} /> Onboarding Requerido
+                      </div>
+                      <h3 className="text-lg font-black tracking-tight text-white">
+                        Configure seu Edital para Ativar a IA
+                      </h3>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        Cadastre as disciplinas do seu concurso para desbloquear
+                        sugestões inteligentes de revisão, cálculo automático de
+                        ritmo e plano de estudos personalizado.
+                      </p>
                     </div>
-                    <h3 className="text-lg font-black tracking-tight text-white">
-                      Configure seu Edital para Ativar a IA
-                    </h3>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      Cadastre as disciplinas do seu concurso para desbloquear
-                      sugestões inteligentes de revisão, cálculo automático de
-                      ritmo e plano de estudos personalizado.
-                    </p>
+                    <Link
+                      href="/edital"
+                      className="inline-flex cursor-pointer items-center gap-2 shrink-0 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 px-5 py-3 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 active:scale-95"
+                    >
+                      <BookOpen size={15} />
+                      <span>Cadastrar Edital</span>
+                      <ArrowRight size={15} />
+                    </Link>
                   </div>
-                  <Link
-                    href="/edital"
-                    className="inline-flex cursor-pointer items-center gap-2 shrink-0 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 px-5 py-3 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 active:scale-95"
-                  >
-                    <BookOpen size={15} />
-                    <span>Cadastrar Edital</span>
-                    <ArrowRight size={15} />
-                  </Link>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {/* CARD 1: Missões do Dia */}
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30">
-                <div className="flex h-full flex-col justify-between space-y-4">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
-                        <Target size={16} />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                          Missões de Hoje
-                        </h3>
-                        <p className="text-[10px] text-slate-400">
-                          Garanta seu bônus de XP diário
-                        </p>
-                      </div>
-                    </div>
-
-                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300">
-                      +50 XP
-                    </span>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {[
-                      {
-                        id: "q1",
-                        title: "Responder Questões",
-                        target: 10,
-                        current: stats?.metrics?.questionsCount ?? 0,
-                        unit: "questões",
-                        actionUrl: "/questions",
-                        completed: (stats?.metrics?.questionsCount ?? 0) >= 10,
-                      },
-                      {
-                        id: "q2",
-                        title: "Revisar Flashcards",
-                        target: 15,
-                        current: stats?.metrics?.totalFlashcards ?? 0,
-                        unit: "flashcards",
-                        actionUrl: "/flashcards",
-                        completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
-                      },
-                      {
-                        id: "q3",
-                        title: "Avançar no Edital",
-                        target: 1,
-                        current:
-                          (stats?.metrics?.sessionsCount ?? 0) > 0 ? 1 : 0,
-                        unit: "tópico",
-                        actionUrl: "/edital",
-                        completed: (stats?.metrics?.sessionsCount ?? 0) > 0,
-                      },
-                    ].map((quest) => {
-                      const progress = Math.min(
-                        100,
-                        Math.round((quest.current / quest.target) * 100),
-                      );
-
-                      return (
-                        <div
-                          key={quest.id}
-                          className={`flex items-center justify-between gap-3 rounded-2xl border p-3 transition-all ${
-                            quest.completed
-                              ? "border-emerald-500/20 bg-emerald-500/5"
-                              : "border-white/5 bg-slate-950/40 hover:border-white/10"
-                          }`}
-                        >
-                          <div className="flex flex-1 items-center gap-3">
-                            <div
-                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
-                                quest.completed
-                                  ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
-                                  : "border-white/10 bg-slate-900 text-slate-500"
-                              }`}
-                            >
-                              {quest.completed ? (
-                                <CheckCircle2 size={16} />
-                              ) : (
-                                <Zap size={14} className="text-amber-400" />
-                              )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="mb-1 flex items-center justify-between">
-                                <h4
-                                  className={`truncate text-xs font-bold ${
-                                    quest.completed
-                                      ? "text-slate-400 line-through"
-                                      : "text-slate-200"
-                                  }`}
-                                >
-                                  {quest.title}
-                                </h4>
-                                <span className="shrink-0 font-mono text-[10px] text-slate-400">
-                                  {quest.current}/{quest.target}
-                                </span>
-                              </div>
-
-                              <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    quest.completed
-                                      ? "bg-emerald-400"
-                                      : "bg-indigo-500"
-                                  }`}
-                                  style={{ width: `${progress}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {!quest.completed && (
-                            <Link
-                              href={quest.actionUrl}
-                              className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300 transition-all hover:bg-indigo-500/20 active:scale-95"
-                            >
-                              Ir
-                            </Link>
-                          )}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* CARD 1: Missões do Dia */}
+                <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30">
+                  <div className="flex h-full flex-col justify-between space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
+                          <Target size={16} />
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+                        <div>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                            Missões de Hoje
+                          </h3>
+                          <p className="text-[10px] text-slate-400">
+                            Garanta seu bônus de XP diário
+                          </p>
+                        </div>
+                      </div>
 
-              {/* CARD 2: Métricas de Desempenho */}
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30">
-                <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                    Estatísticas Chave
-                  </span>
-                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
-                    <Zap size={11} /> Tempo Real
-                  </span>
-                </div>
-
-                <div className="mb-6 flex gap-6">
-                  <div>
-                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Tempo Total
-                    </span>
-                    <span className="font-mono text-2xl font-black text-white md:text-3xl">
-                      {stats?.metrics?.totalTimeFormatted || "0h 0m"}
-                    </span>
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      <span>Precisão</span>
-                      <span className="font-mono font-bold text-emerald-400">
-                        {stats?.metrics?.precision || "0%"}
+                      <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300">
+                        +50 XP
                       </span>
                     </div>
-                    <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
-                      <div
-                        className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.6)] transition-all duration-700"
-                        style={{ width: stats?.metrics?.precision || "0%" }}
-                      />
-                    </div>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2.5 border-t border-white/10 pt-4 text-center">
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase">
-                      Sessões
-                    </span>
-                    <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics?.sessionsCount ?? 0}
-                    </span>
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase">
-                      Questões
-                    </span>
-                    <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics?.questionsCount ?? 0}
-                    </span>
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase">
-                      Méd/Dia
-                    </span>
-                    <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics?.averageTimePerSession || "0min"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* CARD 3: Sugestões com IA */}
-            {hasEditalSubjects && (
-              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-cyan-500/30">
-                <div className="mb-5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                      <Sparkles size={18} className="animate-pulse" />
-                    </div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                      Sugestões Inteligentes da IA
-                    </h3>
-                  </div>
-                  <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[10px] font-bold uppercase text-cyan-300">
-                    Synapse Neural
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  <AnimatePresence mode="wait">
-                    {suggestions.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 py-6 text-center">
-                        <p className="text-xs text-slate-400">
-                          Nenhuma pendência crítica. Seu cronograma está 100%
-                          otimizado!
-                        </p>
-                      </div>
-                    ) : (
-                      suggestions.map((item: Suggestion) => {
-                        const targetUrl = getSuggestionUrl(item);
+                    <div className="space-y-2.5">
+                      {[
+                        {
+                          id: "q1",
+                          title: "Responder Questões",
+                          target: 10,
+                          current: stats?.metrics?.questionsCount ?? 0,
+                          unit: "questões",
+                          actionUrl: "/questions",
+                          completed: (stats?.metrics?.questionsCount ?? 0) >= 10,
+                        },
+                        {
+                          id: "q2",
+                          title: "Revisar Flashcards",
+                          target: 15,
+                          current: stats?.metrics?.totalFlashcards ?? 0,
+                          unit: "flashcards",
+                          actionUrl: "/flashcards",
+                          completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
+                        },
+                        {
+                          id: "q3",
+                          title: "Avançar no Edital",
+                          target: 1,
+                          current:
+                            (stats?.metrics?.sessionsCount ?? 0) > 0 ? 1 : 0,
+                          unit: "tópico",
+                          actionUrl: "/edital",
+                          completed: (stats?.metrics?.sessionsCount ?? 0) > 0,
+                        },
+                      ].map((quest) => {
+                        const progress = Math.min(
+                          100,
+                          Math.round((quest.current / quest.target) * 100),
+                        );
 
                         return (
-                          <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, x: -10 }}
-                            transition={{ duration: 0.3 }}
-                            className={`group/item relative flex items-center justify-between gap-4 rounded-2xl border bg-slate-950/60 p-4 transition-all duration-200 hover:-translate-y-0.5 ${
-                              item.type === "CRITICAL"
-                                ? "border-rose-500/20 hover:border-rose-500/40"
-                                : "border-white/5 hover:border-emerald-500/30"
+                          <div
+                            key={quest.id}
+                            className={`flex items-center justify-between gap-3 rounded-2xl border p-3 transition-all ${
+                              quest.completed
+                                ? "border-emerald-500/20 bg-emerald-500/5"
+                                : "border-white/5 bg-slate-950/40 hover:border-white/10"
                             }`}
                           >
-                            <Link
-                              href={targetUrl}
-                              className="flex flex-1 items-start gap-3.5"
-                            >
+                            <div className="flex flex-1 items-center gap-3">
                               <div
-                                className={`shrink-0 rounded-xl border p-2.5 ${
-                                  item.icon === "brain"
-                                    ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
-                                    : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
+                                  quest.completed
+                                    ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
+                                    : "border-white/10 bg-slate-900 text-slate-500"
                                 }`}
                               >
-                                {item.icon === "brain" ? (
-                                  <BrainCircuit size={18} />
+                                {quest.completed ? (
+                                  <CheckCircle2 size={16} />
                                 ) : (
-                                  <ClipboardList size={18} />
+                                  <Zap size={14} className="text-amber-400" />
                                 )}
                               </div>
 
-                              <div className="flex-1">
-                                <h4 className="text-sm font-bold text-slate-200 transition-colors group-hover/item:text-indigo-300">
-                                  {item.title}
-                                </h4>
-                                <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
-                                  {item.description}
-                                </p>
+                              <div className="min-w-0 flex-1">
+                                <div className="mb-1 flex items-center justify-between">
+                                  <h4
+                                    className={`truncate text-xs font-bold ${
+                                      quest.completed
+                                        ? "text-slate-400 line-through"
+                                        : "text-slate-200"
+                                    }`}
+                                  >
+                                    {quest.title}
+                                  </h4>
+                                  <span className="shrink-0 font-mono text-[10px] text-slate-400">
+                                    {quest.current}/{quest.target}
+                                  </span>
+                                </div>
+
+                                <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                      quest.completed
+                                        ? "bg-emerald-400"
+                                        : "bg-indigo-500"
+                                    }`}
+                                    style={{ width: `${progress}%` }}
+                                  />
+                                </div>
                               </div>
-                            </Link>
-
-                            <div className="flex shrink-0 items-center gap-2">
-                              <span
-                                className={`rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold ${
-                                  item.type === "CRITICAL"
-                                    ? "border-rose-500/30 bg-rose-500/10 text-rose-400"
-                                    : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                                }`}
-                              >
-                                {item.type === "CRITICAL"
-                                  ? "CRÍTICO"
-                                  : "SUGERIDO"}
-                              </span>
-
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  setSuggestions((prev) =>
-                                    prev.filter((s) => s.id !== item.id),
-                                  );
-
-                                  if (item.topicId) {
-                                    await fetch(
-                                      "/api/edital/complete-suggestion",
-                                      {
-                                        method: "POST",
-                                        headers: {
-                                          "Content-Type": "application/json",
-                                        },
-                                        body: JSON.stringify({
-                                          topicId: item.topicId,
-                                          type: "DISMISSED",
-                                        }),
-                                      },
-                                    ).catch(console.error);
-                                  }
-                                }}
-                                className="cursor-pointer rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-slate-800/60 hover:text-white"
-                                title="Dispensar sugestão"
-                              >
-                                <X size={14} />
-                              </button>
                             </div>
-                          </motion.div>
+
+                            {!quest.completed && (
+                              <Link
+                                href={quest.actionUrl}
+                                className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300 transition-all hover:bg-indigo-500/20 active:scale-95"
+                              >
+                                Ir
+                              </Link>
+                            )}
+                          </div>
                         );
-                      })
-                    )}
-                  </AnimatePresence>
+                      })}
+                    </div>
+                  </div>
                 </div>
 
-                <button
-                  onClick={handleOptimizeSchedule}
-                  disabled={isOptimizing}
-                  className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-linear-to-r from-cyan-500/15 via-indigo-500/10 to-cyan-500/15 py-3 text-xs font-bold text-cyan-300 transition-all hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] active:scale-[0.99] disabled:opacity-50"
-                >
-                  {isOptimizing ? (
-                    <>
-                      <RefreshCw
-                        size={14}
-                        className="animate-spin text-cyan-400"
-                      />
-                      <span>Otimizando seu ciclo de estudos...</span>
-                    </>
-                  ) : isOptimized ? (
-                    <>
-                      <CheckCircle2 size={14} className="text-emerald-400" />
-                      <span className="text-emerald-400">
-                        Cronograma Rebalanceado!
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles
-                        size={14}
-                        className="animate-pulse text-cyan-400"
-                      />
-                      <span>Otimizar Cronograma com IA</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+                {/* CARD 2: Métricas de Desempenho */}
+                <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30">
+                  <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                      Estatísticas Chave
+                    </span>
+                    <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
+                      <Zap size={11} /> Tempo Real
+                    </span>
+                  </div>
 
-            {/* CARD 4: Minhas Matérias (GRID NATIVO SEM CORTE/SCROLL) */}
+                  <div className="mb-6 flex gap-6">
+                    <div>
+                      <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Tempo Total
+                      </span>
+                      <span className="font-mono text-2xl font-black text-white md:text-3xl">
+                        {stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                      </span>
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <span>Precisão</span>
+                        <span className="font-mono font-bold text-emerald-400">
+                          {stats?.metrics?.precision || "0%"}
+                        </span>
+                      </div>
+                      <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
+                        <div
+                          className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.6)] transition-all duration-700"
+                          style={{ width: stats?.metrics?.precision || "0%" }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2.5 border-t border-white/10 pt-4 text-center">
+                    <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase">
+                        Sessões
+                      </span>
+                      <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
+                        {stats?.metrics?.sessionsCount ?? 0}
+                      </span>
+                    </div>
+                    <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase">
+                        Questões
+                      </span>
+                      <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
+                        {stats?.metrics?.questionsCount ?? 0}
+                      </span>
+                    </div>
+                    <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase">
+                        Méd/Dia
+                      </span>
+                      <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
+                        {stats?.metrics?.averageTimePerSession || "0min"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 3: Sugestões com IA */}
+              {hasEditalSubjects && (
+                <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-cyan-500/30">
+                  <div className="mb-5 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                        <Sparkles size={18} className="animate-pulse" />
+                      </div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                        Sugestões Inteligentes da IA
+                      </h3>
+                    </div>
+                    <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[10px] font-bold uppercase text-cyan-300">
+                      Synapse Neural
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <AnimatePresence mode="wait">
+                      {suggestions.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 py-6 text-center">
+                          <p className="text-xs text-slate-400">
+                            Nenhuma pendência crítica. Seu cronograma está 100%
+                            otimizado!
+                          </p>
+                        </div>
+                      ) : (
+                        suggestions.map((item: Suggestion) => {
+                          const targetUrl = getSuggestionUrl(item);
+
+                          return (
+                            <motion.div
+                              key={item.id}
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, x: -10 }}
+                              transition={{ duration: 0.3 }}
+                              className={`group/item relative flex items-center justify-between gap-4 rounded-2xl border bg-slate-950/60 p-4 transition-all duration-200 hover:-translate-y-0.5 ${
+                                item.type === "CRITICAL"
+                                  ? "border-rose-500/20 hover:border-rose-500/40"
+                                  : "border-white/5 hover:border-emerald-500/30"
+                              }`}
+                            >
+                              <Link
+                                href={targetUrl}
+                                className="flex flex-1 items-start gap-3.5"
+                              >
+                                <div
+                                  className={`shrink-0 rounded-xl border p-2.5 ${
+                                    item.icon === "brain"
+                                      ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
+                                      : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                  }`}
+                                >
+                                  {item.icon === "brain" ? (
+                                    <BrainCircuit size={18} />
+                                  ) : (
+                                    <ClipboardList size={18} />
+                                  )}
+                                </div>
+
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-bold text-slate-200 transition-colors group-hover/item:text-indigo-300">
+                                    {item.title}
+                                  </h4>
+                                  <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
+                                    {item.description}
+                                  </p>
+                                </div>
+                              </Link>
+
+                              <div className="flex shrink-0 items-center gap-2">
+                                <span
+                                  className={`rounded-full border px-2.5 py-1 font-mono text-[9px] font-bold ${
+                                    item.type === "CRITICAL"
+                                      ? "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                                      : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                  }`}
+                                >
+                                  {item.type === "CRITICAL"
+                                    ? "CRÍTICO"
+                                    : "SUGERIDO"}
+                                </span>
+
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    setSuggestions((prev) =>
+                                      prev.filter((s) => s.id !== item.id),
+                                    );
+
+                                    if (item.topicId) {
+                                      await fetch(
+                                        "/api/edital/complete-suggestion",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            topicId: item.topicId,
+                                            type: "DISMISSED",
+                                          }),
+                                        },
+                                      ).catch(console.error);
+                                    }
+                                  }}
+                                  className="cursor-pointer rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-slate-800/60 hover:text-white"
+                                  title="Dispensar sugestão"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            </motion.div>
+                          );
+                        })
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <button
+                    onClick={handleOptimizeSchedule}
+                    disabled={isOptimizing}
+                    className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-linear-to-r from-cyan-500/15 via-indigo-500/10 to-cyan-500/15 py-3 text-xs font-bold text-cyan-300 transition-all hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {isOptimizing ? (
+                      <>
+                        <RefreshCw
+                          size={14}
+                          className="animate-spin text-cyan-400"
+                        />
+                        <span>Otimizando seu ciclo de estudos...</span>
+                      </>
+                    ) : isOptimized ? (
+                      <>
+                        <CheckCircle2 size={14} className="text-emerald-400" />
+                        <span className="text-emerald-400">
+                          Cronograma Rebalanceado!
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles
+                          size={14}
+                          className="animate-pulse text-cyan-400"
+                        />
+                        <span>Otimizar Cronograma com IA</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* CARD 4: Minhas Matérias (GRID TOTALMENTE VISÍVEL E LIMPO) */}
             <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -995,12 +993,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
-          {/* BARRA LATERAL DIREITA (`lg:col-span-4`) */}
-          <div className="space-y-6 lg:col-span-4">
+          {/* BARRA LATERAL DIREITA (`lg:col-span-4` - PREENCHIMENTO AUTOMÁTICO VIA FLEX) */}
+          <div className="space-y-6 lg:col-span-4 flex flex-col justify-between">
             {/* WIDGET 1: GAMIFICAÇÃO & NÍVEL */}
             <Link
               href="/achievements"
-              className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] via-[#0b1021] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/40"
+              className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] via-[#0b1021] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/40 shrink-0"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3">
@@ -1048,12 +1046,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </Link>
 
             {/* WIDGET 2: POMODORO TIMER */}
-            <div id="pomodoro">
+            <div id="pomodoro" className="shrink-0">
               <PomodoroTimer />
             </div>
 
-            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA */}
-            <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
+            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA (ESTICA DINAMICAMENTE PARA SELAR O ALINHAMENTO) */}
+            <div className="flex-1 flex flex-col justify-between space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               {/* Meta Semanal */}
               <Link href="/performance" className="group block space-y-2">
                 <div className="flex items-center justify-between">
@@ -1126,67 +1124,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </Link>
             </div>
-
-            {/* WIDGET 4: PRÓXIMAS REVISÕES (PREENCHE A ALTURA RESTANTE COM CONTEÚDO ÚTIL) */}
-            <div className="group overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="flex items-center gap-2">
-                  <CalendarDays size={16} className="text-indigo-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                    Próximos Passos
-                  </h3>
-                </div>
-                <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[9px] font-mono text-indigo-300">
-                  Ciclo Ativo
-                </span>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-slate-950/40 p-3">
-                  <div className="flex items-center gap-2.5">
-                    <PlayCircle size={16} className="text-emerald-400" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-200">
-                        Prática Diária de Flashcards
-                      </p>
-                      <p className="text-[10px] text-slate-400">
-                        Sessão recomendada de 15 min
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    href="/flashcards"
-                    className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-bold text-indigo-300 transition-colors hover:bg-indigo-500/20"
-                  >
-                    Iniciar
-                  </Link>
-                </div>
-
-                <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-slate-950/40 p-3">
-                  <div className="flex items-center gap-2.5">
-                    <HelpCircle size={16} className="text-amber-400" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-200">
-                        Banco de Questões
-                      </p>
-                      <p className="text-[10px] text-slate-400">
-                        Testar retenção do edital
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    href="/questions"
-                    className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold text-amber-300 transition-colors hover:bg-amber-500/20"
-                  >
-                    Acessar
-                  </Link>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* ================= 4. HEATMAP NO RODAPÉ ================= */}
+        {/* ================= 4. HEATMAP PERFEITAMENTE ENCAIXADO NO RODAPÉ ================= */}
         <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
           <Heatmap />
         </div>
