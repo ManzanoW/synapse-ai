@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { motion, AnimatePresence } from "framer-motion";
+import { EditalEmptyState } from "@/components/edital-empty-state";
 
 interface CycleViewProps {
   blocks: CycleBlock[];
@@ -58,7 +59,6 @@ export function CycleView({
   onUndoBlock,
   onSwapBlockSubject,
 }: CycleViewProps) {
-  // Estado local para reatividade imediata na UI
   const [cycleBlocks, setCycleBlocks] = useState<CycleBlock[]>(initialBlocks);
   const [expandedBlockNumber, setExpandedBlockNumber] = useState<number | null>(
     null,
@@ -66,39 +66,41 @@ export function CycleView({
   const [activeSessionBlock, setActiveSessionBlock] =
     useState<CycleBlock | null>(null);
 
-  // Sincroniza o estado local quando os dados da prop mudarem
   useEffect(() => {
     setCycleBlocks(initialBlocks);
   }, [initialBlocks]);
 
-  // Estados para Modal de Troca/Swap de Matéria no Ciclo
   const [swapModalOpen, setSwapModalOpen] = useState(false);
   const [blockToSwap, setBlockToSwap] = useState<CycleBlock | null>(null);
 
-  // Estados do Player Imersivo
   const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>("");
+
+  if (subjectBreakdown.length === 0) {
+    return (
+      <EditalEmptyState
+        title="Ciclo de Estudos sem Matérias"
+        description="O algoritmo de ciclo alternado exige o cadastro de disciplinas no seu edital para gerar blocos de estudo sequenciais."
+      />
+    );
+  }
 
   const remainingMinutes = Math.max(
     0,
     totalMinutes * (1 - currentProgress / 100),
   );
 
-  // Identifica o bloco atual ("CURRENT")
   const currentBlock =
     cycleBlocks.find((b) => b.status === "CURRENT") || cycleBlocks[0];
 
-  // Mapeamento auxiliar de porcentagem/importância para priorização
   const subjectImportanceMap = new Map(
     subjectBreakdown.map((s) => [s.name, s.percentage]),
   );
 
-  // Filtra blocos futuros mantendo a ordem sequencial determinística
   const upcomingBlocks = cycleBlocks
     .filter((b) => b.blockNumber !== currentBlock?.blockNumber)
     .sort((a, b) => {
-      // Blocos concluídos vão para o final
       if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1;
       if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1;
       return a.blockNumber - b.blockNumber;
@@ -144,14 +146,11 @@ export function CycleView({
     onCompleteBlock();
   };
 
-  // HANDLER AJUSTADO: Extrai o ID da matéria atual do bloco e o ID da matéria selecionada
   const handleExecuteSwap = (targetSubjectName: string) => {
     if (!blockToSwap || !targetSubjectName) return;
 
-    // 1. Extrai o ID da matéria atualmente vinculada ao bloco
     const currentSubjectId = blockToSwap.subjectId;
 
-    // 2. Localiza o ID real da matéria de destino (busca no breakdown e nos blocos)
     const targetSubjectBreakdown = subjectBreakdown.find(
       (s) => s.name === targetSubjectName,
     );
@@ -173,11 +172,6 @@ export function CycleView({
       return;
     }
 
-    console.log(
-      `🚀 Trocando Bloco #${blockToSwap.blockNumber}: ${blockToSwap.subjectName} (${currentSubjectId}) ➔ ${targetSubjectName} (${targetSubjectId})`,
-    );
-
-    // 3. Atualização otimista imediata na interface
     setCycleBlocks((prev) =>
       prev.map((b) =>
         b.blockNumber === blockToSwap.blockNumber
@@ -191,7 +185,6 @@ export function CycleView({
       ),
     );
 
-    // 4. Dispara a requisição passando os dois IDs necessários para o swap no banco
     if (onSwapBlockSubject) {
       onSwapBlockSubject(
         currentSubjectId,
@@ -204,7 +197,6 @@ export function CycleView({
     setBlockToSwap(null);
   };
 
-  // SVG Donut Multi-Colorido para o Painel Cyberpunk de Distribuição
   const donutSegments = (() => {
     let accumulated = 0;
     return subjectBreakdown.map((sub, idx) => {
@@ -224,7 +216,6 @@ export function CycleView({
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* 1. PAINEL DE TELEMETRIA SUPERIOR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* CARD DE PROGRESSO DA VOLTA */}
         <div className="lg:col-span-2 bg-gradient-to-br from-slate-900/90 via-slate-950 to-indigo-950/40 border border-slate-800/80 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between">
           <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -314,7 +305,6 @@ export function CycleView({
           </div>
         </div>
 
-        {/* DISTRIBUIÇÃO DAS MATÉRIAS */}
         <div className="bg-slate-900/50 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase flex items-center gap-2">
@@ -390,7 +380,7 @@ export function CycleView({
         </div>
       </div>
 
-      {/* 2. HERO CARD: CENTRAL DE EXECUÇÃO DO BLOCO ATUAL */}
+      {/* 2. HERO CARD */}
       {currentBlock && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
@@ -434,7 +424,6 @@ export function CycleView({
                     {formatMinutes(currentBlock.durationMinutes)}
                   </span>
 
-                  {/* Botão de Swap no Alvo Primário */}
                   <button
                     onClick={() => {
                       setBlockToSwap(currentBlock);
@@ -625,7 +614,7 @@ export function CycleView({
         </div>
       </div>
 
-      {/* MODAL DE SWAP DE MATÉRIA NO CICLO */}
+      {/* MODAL DE SWAP */}
       {swapModalOpen && blockToSwap && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
@@ -705,7 +694,7 @@ export function CycleView({
         </div>
       )}
 
-      {/* 4. PLAYER DE ESTUDO IMERSIVO */}
+      {/* PLAYER DE ESTUDO IMERSIVO */}
       {activeSessionBlock && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-indigo-500/30 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">

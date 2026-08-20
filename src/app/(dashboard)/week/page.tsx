@@ -25,6 +25,7 @@ import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
 import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
+import { EditalEmptyState } from "@/components/edital-empty-state";
 
 const HIGH_CONTRAST_PALETTE = [
   "#f43f5e",
@@ -289,7 +290,6 @@ export default function WeekPage() {
   const handleSaveSettings = () => {
     startTransition(async () => {
       try {
-        // 1. Persiste as novas metas diretamente no banco via PATCH /api/week
         const res = await fetch("/api/week", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -305,7 +305,7 @@ export default function WeekPage() {
         const json = await res.json();
 
         if (json.data) {
-          setData(json.data); // Atualiza o estado da tela imediatamente com os novos cálculos
+          setData(json.data);
         }
 
         setIsModalOpen(false);
@@ -356,6 +356,8 @@ export default function WeekPage() {
       await loadWeekData();
     }
   };
+
+  const hasSubjects = (data?.subjectOverview?.length ?? 0) > 0;
 
   const activeDaySchedule =
     data?.scheduleByDay?.find((d) => d.dayIndex === selectedDayIndex) ||
@@ -419,7 +421,7 @@ export default function WeekPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleTriggerRebalance}
-              disabled={isPending}
+              disabled={isPending || !hasSubjects}
               title="Recalcular distribuição adaptativa com base nas suas metas e desempenho"
               className="flex items-center gap-2 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 px-3.5 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
             >
@@ -538,6 +540,12 @@ export default function WeekPage() {
               Carregando planejamento de estudos...
             </p>
           </div>
+        ) : !hasSubjects ? (
+          /* ================= INCENTIVO DE ONBOARDING SE NÃO HOUVER EDITAL ================= */
+          <EditalEmptyState
+            title="Seu Planejamento precisa de um Edital"
+            description="Cadastre as disciplinas do seu concurso para que a IA organize automaticamente seu planejamento semanal e ciclo de estudos adaptativo."
+          />
         ) : studyMode === "CYCLE" ? (
           <CycleView
             blocks={data?.cycle?.blocks || []}
@@ -942,6 +950,7 @@ export default function WeekPage() {
         )}
       </div>
 
+      {/* MODAL DE CONFIGURAÇÕES */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
@@ -1043,6 +1052,7 @@ export default function WeekPage() {
         </div>
       )}
 
+      {/* MODAL DE SWAP */}
       {swapModalOpen && subjectToSwap && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useSidebar } from "@/lib/sidebar-context";
 import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
+import { EditalEmptyState } from "@/components/edital-empty-state";
 import {
   Menu,
   TrendingUp,
@@ -159,6 +160,8 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
     );
   }
 
+  const hasTopics = data.metrics.totalTopics > 0;
+
   const totalSummary =
     data.performanceSummary.bom +
     data.performanceSummary.dificil +
@@ -206,7 +209,13 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
           </div>
         </div>
 
-        {data.metrics.materiasPendentes > 0 ? (
+        {/* BANNER DE REVISÕES OU ONBOARDING DE EDITAL */}
+        {!hasTopics ? (
+          <EditalEmptyState
+            title="Mapeamento de Performance Inativo"
+            description="Cadastre os tópicos do seu edital para começar a acompanhar seu grau de domínio, probabilidade de retenção e curva de esquecimento por matéria."
+          />
+        ) : data.metrics.materiasPendentes > 0 ? (
           <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-950/80 via-indigo-900/40 to-[#04060c] border border-indigo-500/40 p-6 shadow-2xl backdrop-blur-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group hover:border-indigo-500/60 transition-all">
             <div className="pointer-events-none absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent" />
             <div className="flex items-center gap-4 relative z-10">
@@ -253,7 +262,7 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
           </div>
         )}
 
-        {hasRebalanceSuggestions && (
+        {hasRebalanceSuggestions && hasTopics && (
           <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#0b1021] to-[#050814] border border-cyan-500/30 p-6 backdrop-blur-2xl space-y-4 shadow-2xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
               <div className="flex items-center gap-3">

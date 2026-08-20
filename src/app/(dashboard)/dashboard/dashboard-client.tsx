@@ -343,14 +343,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
 
           <Link
-            href={hasEditalSubjects ? "/flashcards" : "/edital"}
+            href={!isLoading && hasEditalSubjects ? "/flashcards" : "/edital"}
             className="flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-500 hover:to-purple-500 active:scale-95"
           >
             <Zap size={14} className="fill-white" />
             <span>
-              {hasEditalSubjects
-                ? "Iniciar Estudos do Dia"
-                : "Configurar Edital"}
+              {isLoading
+                ? "Carregando..."
+                : hasEditalSubjects
+                  ? "Iniciar Estudos do Dia"
+                  : "Configurar Edital"}
             </span>
           </Link>
         </div>
@@ -378,7 +380,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               color: "text-cyan-400",
               bg: "bg-cyan-500/10 border-cyan-500/20 hover:border-cyan-500/40",
               href: "/edital",
-              badge: !hasEditalSubjects ? "Passo 1" : undefined,
+              badge: !isLoading && !hasEditalSubjects ? "Passo 1" : undefined,
             },
             {
               title: "Hall de Conquistas",
@@ -414,16 +416,18 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         </div>
 
         {/* ================= BANNER DE REMANEJAMENTO ================= */}
-        {missedDayName && (stats?.journey?.completedTopics ?? 0) > 0 && (
-          <RescheduleBanner
-            missedDayName={missedDayName}
-            userId={user.id}
-            onActionCompleted={() => {
-              setMissedDayName(null);
-              loadDashboardData();
-            }}
-          />
-        )}
+        {!isLoading &&
+          missedDayName &&
+          (stats?.journey?.completedTopics ?? 0) > 0 && (
+            <RescheduleBanner
+              missedDayName={missedDayName}
+              userId={user.id}
+              onActionCompleted={() => {
+                setMissedDayName(null);
+                loadDashboardData();
+              }}
+            />
+          )}
 
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
         <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl">
@@ -444,9 +448,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-4xl font-black tracking-tight text-white">
-                    {stats?.journey?.daysRemaining ?? 0}
-                  </span>
+                  {isLoading ? (
+                    <div className="h-9 w-24 animate-pulse rounded-lg bg-slate-800/80" />
+                  ) : (
+                    <span className="font-mono text-4xl font-black tracking-tight text-white">
+                      {stats?.journey?.daysRemaining ?? 0}
+                    </span>
+                  )}
                   <span className="text-xs font-semibold text-slate-400">
                     dias restantes
                   </span>
@@ -455,9 +463,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
                 <span className="font-medium">Semanas até a prova:</span>
-                <strong className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono font-bold text-slate-200">
-                  {stats?.journey?.weeksRemaining ?? 0} sem
-                </strong>
+                {isLoading ? (
+                  <div className="h-5 w-12 animate-pulse rounded bg-slate-800/80" />
+                ) : (
+                  <strong className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono font-bold text-slate-200">
+                    {stats?.journey?.weeksRemaining ?? 0} sem
+                  </strong>
+                )}
               </div>
             </div>
 
@@ -476,24 +488,36 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
-                    {hasEditalSubjects
-                      ? stats?.journey?.topicsPerWeek ?? 0
-                      : "—"}
-                  </span>
+                  {isLoading ? (
+                    <div className="h-9 w-20 animate-pulse rounded-lg bg-slate-800/80" />
+                  ) : (
+                    <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
+                      {hasEditalSubjects
+                        ? (stats?.journey?.topicsPerWeek ?? 0)
+                        : "—"}
+                    </span>
+                  )}
                   <span className="text-xs font-medium text-slate-400">
-                    {hasEditalSubjects ? "tópicos / sem" : "Aguardando Edital"}
+                    {isLoading
+                      ? "Carregando..."
+                      : hasEditalSubjects
+                        ? "tópicos / sem"
+                        : "Aguardando Edital"}
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
                 <span className="font-medium">Ritmo atual:</span>
-                <strong className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 font-mono font-bold text-amber-300">
-                  {hasEditalSubjects
-                    ? `${stats?.journey?.currentPace ?? 0.0} / sem`
-                    : "—"}
-                </strong>
+                {isLoading ? (
+                  <div className="h-5 w-16 animate-pulse rounded bg-slate-800/80" />
+                ) : (
+                  <strong className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 font-mono font-bold text-amber-300">
+                    {hasEditalSubjects
+                      ? `${stats?.journey?.currentPace ?? 0.0} / sem`
+                      : "—"}
+                  </strong>
+                )}
               </div>
             </div>
 
@@ -512,22 +536,33 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between">
-                  <span className="font-mono text-4xl font-black tracking-tight text-white">
-                    {stats?.journey?.percentage ?? 0}%
-                  </span>
-                  <span className="font-mono text-[11px] text-slate-400">
-                    <strong className="font-bold text-slate-100">
-                      {stats?.journey?.completedTopics ?? 0}
-                    </strong>
-                    /{stats?.journey?.totalTopics ?? 0} tópicos
-                  </span>
+                  {isLoading ? (
+                    <div className="h-9 w-20 animate-pulse rounded-lg bg-slate-800/80" />
+                  ) : (
+                    <span className="font-mono text-4xl font-black tracking-tight text-white">
+                      {stats?.journey?.percentage ?? 0}%
+                    </span>
+                  )}
+                  {isLoading ? (
+                    <div className="h-4 w-16 animate-pulse rounded bg-slate-800/80" />
+                  ) : (
+                    <span className="font-mono text-[11px] text-slate-400">
+                      <strong className="font-bold text-slate-100">
+                        {stats?.journey?.completedTopics ?? 0}
+                      </strong>
+                      /{stats?.journey?.totalTopics ?? 0} tópicos
+                    </span>
+                  )}
                 </div>
 
                 <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/80 p-0.5">
                   <div
                     className="h-full rounded-full bg-linear-to-r from-cyan-500 to-emerald-400 shadow-[0_0_12px_rgba(34,211,238,0.6)] transition-all duration-1000 ease-out"
                     style={{
-                      width: `${Math.max(3, stats?.journey?.percentage ?? 0)}%`,
+                      width: `${Math.max(
+                        3,
+                        isLoading ? 0 : (stats?.journey?.percentage ?? 0),
+                      )}%`,
                     }}
                   />
                 </div>
@@ -535,14 +570,18 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
                 <span className="font-medium">Status:</span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 text-[11px] font-bold text-indigo-300">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-                  {!hasEditalSubjects
-                    ? "Não Iniciado"
-                    : stats?.journey?.percentage === 100
-                      ? "Edital Completo"
-                      : "Em Andamento"}
-                </span>
+                {isLoading ? (
+                  <div className="h-5 w-20 animate-pulse rounded bg-slate-800/80" />
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 text-[11px] font-bold text-indigo-300">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
+                    {!hasEditalSubjects
+                      ? "Não Iniciado"
+                      : stats?.journey?.percentage === 100
+                        ? "Edital Completo"
+                        : "Em Andamento"}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -552,8 +591,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
           {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
           <div className="space-y-6 lg:col-span-8">
-            {/* BANNER DE ONBOARDING REQUERIDO */}
-            {!hasEditalSubjects && (
+            {/* BANNER DE ONBOARDING REQUERIDO (SÓ APARECE DEPOIS DO LOADING SE REALMENTE NÃO HOUVER EDITAL) */}
+            {!isLoading && !hasEditalSubjects && (
               <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 sm:p-8">
                 <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
                 <div className="relative z-10 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
@@ -726,22 +765,30 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Tempo Total
                     </span>
-                    <span className="font-mono text-2xl font-black text-white md:text-3xl">
-                      {stats?.metrics?.totalTimeFormatted || "0h 0m"}
-                    </span>
+                    {isLoading ? (
+                      <div className="h-8 w-20 animate-pulse rounded-lg bg-slate-800/80" />
+                    ) : (
+                      <span className="font-mono text-2xl font-black text-white md:text-3xl">
+                        {stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex-1">
                     <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       <span>Precisão</span>
                       <span className="font-mono font-bold text-emerald-400">
-                        {stats?.metrics?.precision || "0%"}
+                        {isLoading ? "..." : stats?.metrics?.precision || "0%"}
                       </span>
                     </div>
                     <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
                       <div
                         className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.6)] transition-all duration-700"
-                        style={{ width: stats?.metrics?.precision || "0%" }}
+                        style={{
+                          width: isLoading
+                            ? "0%"
+                            : stats?.metrics?.precision || "0%",
+                        }}
                       />
                     </div>
                   </div>
@@ -753,7 +800,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       Sessões
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics?.sessionsCount ?? 0}
+                      {isLoading ? "-" : (stats?.metrics?.sessionsCount ?? 0)}
                     </span>
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
@@ -761,7 +808,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       Questões
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics?.questionsCount ?? 0}
+                      {isLoading ? "-" : (stats?.metrics?.questionsCount ?? 0)}
                     </span>
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
@@ -769,7 +816,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       Méd/Dia
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
-                      {stats?.metrics?.averageTimePerSession || "0min"}
+                      {isLoading
+                        ? "-"
+                        : stats?.metrics?.averageTimePerSession || "0min"}
                     </span>
                   </div>
                 </div>
@@ -777,7 +826,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
 
             {/* CARD 3: Sugestões com IA */}
-            {hasEditalSubjects && (
+            {!isLoading && hasEditalSubjects && (
               <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-cyan-500/30">
                 <div className="mb-5 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -929,7 +978,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             )}
 
-            {/* CARD 4: Minhas Matérias (GRID TOTALMENTE VISÍVEL E COMPACTO) */}
+            {/* CARD 4: Minhas Matérias */}
             <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -942,7 +991,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   href="/edital"
                   className="flex items-center gap-1 text-xs font-semibold text-indigo-400 transition-colors hover:text-indigo-300"
                 >
-                  <span>Ver todas ({subjects.length})</span>
+                  <span>Ver todas ({isLoading ? "..." : subjects.length})</span>
                   <ArrowRight size={13} />
                 </Link>
               </div>
@@ -1048,7 +1097,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <PomodoroTimer />
             </div>
 
-            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA (PROPORCIONAL E COMPACTO) */}
+            {/* WIDGET 3: META SEMANAL & CONSTÂNCIA */}
             <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               {/* Meta Semanal */}
               <Link href="/performance" className="group block space-y-2">
@@ -1086,7 +1135,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     Constância
                   </span>
                   <span className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
-                    <Flame size={14} className="fill-amber-400 text-amber-400" />
+                    <Flame
+                      size={14}
+                      className="fill-amber-400 text-amber-400"
+                    />
                     {Number(
                       gStats.streakDays ??
                         globalGamification?.streak?.currentDays ??
@@ -1123,7 +1175,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </Link>
             </div>
 
-            {/* WIDGET 4: HEATMAP (REPOSICIONADO NA BARRA LATERAL PARA ENCAIXE NATURAL) */}
+            {/* WIDGET 4: HEATMAP */}
             <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl backdrop-blur-2xl">
               <Heatmap />
             </div>
