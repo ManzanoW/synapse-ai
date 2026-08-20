@@ -133,7 +133,6 @@ function PlannerContent() {
         console.error(
           err instanceof Error ? err.message : "Erro desconhecido ao carregar",
         );
-      } font-sans
       } finally {
         if (isMounted) {
           setLoading(false);
