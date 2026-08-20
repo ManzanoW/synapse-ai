@@ -26,6 +26,7 @@ import { useSearchParams } from "next/navigation";
 interface ApiTopic {
   id: string;
   title: string;
+  subjectName?: string;
   firstStudy?: string;
   performance?: number;
   lastRev?: string;
@@ -45,7 +46,7 @@ interface ApiSubject {
   priority?: string;
   color?: string | null;
   topics?: ApiTopic[];
-  _count: {
+  _count?: {
     topics: number;
   };
 }
@@ -132,6 +133,7 @@ function PlannerContent() {
         console.error(
           err instanceof Error ? err.message : "Erro desconhecido ao carregar",
         );
+      } font-sans
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -227,12 +229,13 @@ function PlannerContent() {
     }
   }
 
+  // ✅ CORREÇÃO: Lê 'item.subjectName' prioritariamente antes de tentar 'item.subject?.name' ou fallback "Geral"
   const mappedTopicsForView = topics.map((t) => {
     const item = t as unknown as ApiTopic;
     return {
       id: item.id,
       title: item.title,
-      subjectName: item.subject?.name || "Geral",
+      subjectName: item.subjectName || item.subject?.name || "Geral",
       subjectColor: item.subjectColor || item.subject?.color,
       firstStudy: item.firstStudy,
       performance: item.performance,
