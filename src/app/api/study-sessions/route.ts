@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { auth } from "@/auth";
 
 export async function POST(req: Request) {
   try {
     const session = await auth();
+    const userId = session?.user?.id;
 
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
     // Registra a sessão de estudo no banco
     const studySession = await prisma.studySession.create({
       data: {
-        userId: session.user.id,
+        userId,
         subjectId,
         durationMinutes,
         completedAt: new Date(),
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, data: studySession });
+    return NextResponse.json({ success: true, data: studySession }, { status: 201 });
   } catch (error) {
     console.error("❌ Erro ao salvar sessão de estudo:", error);
     return NextResponse.json(
