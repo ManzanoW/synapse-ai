@@ -125,19 +125,19 @@ export default function WeekPage() {
 
   const [swapModalOpen, setSwapModalOpen] = useState(false);
   const [subjectToSwap, setSubjectToSwap] = useState<ScheduledSubject | null>(
-    null,
+    null
   );
 
   // ⏱️ ESTADOS DO MODO FOCO / CRONÔMETRO
   const [focusSubject, setFocusSubject] = useState<ScheduledSubject | null>(
-    null,
+    null
   );
   const [focusTimeLeft, setFocusTimeLeft] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
 
   const getSubjectColor = (
     subject: { color?: string | null },
-    index: number,
+    index: number
   ) => {
     if (
       subject.color &&
@@ -178,18 +178,17 @@ export default function WeekPage() {
         if (json.data.scheduleByDay && json.data.scheduleByDay.length > 0) {
           const todayName = getTodayNamePT();
           const todaySchedule = json.data.scheduleByDay.find((d: DaySchedule) =>
-            d.dayName.toUpperCase().includes(todayName),
+            d.dayName.toUpperCase().includes(todayName)
           );
 
           setSelectedDayIndex((prev) => {
             if (prev !== 0) {
               const prevExists = json.data.scheduleByDay.some(
-                (d: DaySchedule) => d.dayIndex === prev,
+                (d: DaySchedule) => d.dayIndex === prev
               );
               if (prevExists) return prev;
             }
 
-            // Seleciona o dia de hoje se encontrado na agenda, se não o primeiro
             return todaySchedule
               ? todaySchedule.dayIndex
               : json.data.scheduleByDay[0].dayIndex;
@@ -254,13 +253,32 @@ export default function WeekPage() {
   const handleFinishSessionAndComplete = async () => {
     if (!focusSubject) return;
 
-    // Conclui todos os tópicos pendentes da matéria dessa sessão
+    // 1. Conclui todos os tópicos pendentes da matéria dessa sessão
     const pendingTopics = focusSubject.assignedTopics.filter(
-      (t) => t.firstStudy !== "Em Revisão",
+      (t) => t.firstStudy !== "Em Revisão"
     );
 
     for (const topic of pendingTopics) {
       await handleToggleTopic(topic.id, topic.firstStudy);
+    }
+
+    // 2. Registra o tempo de estudo no banco de dados
+    const initialSeconds = Math.max(focusSubject.dailyMinutesAllocated * 60, 60);
+    const secondsStudied = initialSeconds - focusTimeLeft;
+    const minutesStudied = Math.max(Math.round(secondsStudied / 60), 1);
+
+    try {
+      await fetch("/api/study-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subjectId: focusSubject.id,
+          durationMinutes: minutesStudied,
+          topicsCompleted: pendingTopics.map((t) => t.id),
+        }),
+      });
+    } catch (err) {
+      console.error("Erro ao registrar sessão no histórico:", err);
     }
 
     setFocusSubject(null);
@@ -421,7 +439,7 @@ export default function WeekPage() {
                   firstStudy: newFirstStudy,
                   performance: newPerformance,
                 }
-              : top,
+              : top
           ),
         })),
       }));
@@ -468,7 +486,7 @@ export default function WeekPage() {
   const activeDayProgressPercent =
     activeDayTotalTopicsCount > 0
       ? Math.round(
-          (activeDayCompletedTopicsCount / activeDayTotalTopicsCount) * 100,
+          (activeDayCompletedTopicsCount / activeDayTotalTopicsCount) * 100
         )
       : 0;
 
@@ -611,7 +629,7 @@ export default function WeekPage() {
             <p className="text-xs text-slate-400 mt-1">
               {studyMode === "CYCLE"
                 ? `${data?.cycle?.totalBlocks || 0} blocos • Total: ${formatMinutes(
-                    data?.cycle?.totalMinutes || 0,
+                    data?.cycle?.totalMinutes || 0
                   )}`
                 : "Selecione o dia do planejamento e execute seus alvos com prioridade dinâmica."}
             </p>
@@ -648,7 +666,7 @@ export default function WeekPage() {
             onSwapBlockSubject={(
               currentSubjectId,
               targetSubjectId,
-              blockNumber,
+              blockNumber
             ) =>
               handleSwapSubject({
                 currentSubjectId,
@@ -677,7 +695,7 @@ export default function WeekPage() {
               />
             )}
 
-            {/* BARRA DE SELEÇÃO DE DIAS COM BADGE HOJE CORRIGIDA */}
+            {/* BARRA DE SELEÇÃO DE DIAS */}
             <div className="flex items-center gap-3 overflow-x-auto p-1.5 pt-2 pb-3 scrollbar-none">
               {data?.scheduleByDay?.map((day) => {
                 const isSelected = day.dayIndex === selectedDayIndex;
@@ -686,13 +704,13 @@ export default function WeekPage() {
                   (acc, sub) =>
                     acc +
                     sub.assignedTopics.filter(
-                      (t) => t.firstStudy === "Em Revisão",
+                      (t) => t.firstStudy === "Em Revisão"
                     ).length,
-                  0,
+                  0
                 );
                 const totalCount = day.subjects.reduce(
                   (acc, sub) => acc + sub.assignedTopics.length,
-                  0,
+                  0
                 );
                 const isDayDone =
                   totalCount > 0 && completedCount === totalCount;
@@ -807,7 +825,7 @@ export default function WeekPage() {
                             subject.assignedTopics.length > 0;
 
                           const subCompleted = subject.assignedTopics.filter(
-                            (t) => t.firstStudy === "Em Revisão",
+                            (t) => t.firstStudy === "Em Revisão"
                           ).length;
                           const subTotal = subject.assignedTopics.length;
                           const subPercent =
@@ -876,7 +894,7 @@ export default function WeekPage() {
 
                                   <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-3 py-1 rounded-xl">
                                     {formatMinutes(
-                                      subject.dailyMinutesAllocated,
+                                      subject.dailyMinutesAllocated
                                     )}
                                   </span>
                                 </div>
@@ -904,7 +922,7 @@ export default function WeekPage() {
                                         onClick={() =>
                                           handleToggleTopic(
                                             topic.id,
-                                            topic.firstStudy,
+                                            topic.firstStudy
                                           )
                                         }
                                         className={`flex items-center justify-between text-xs px-3.5 py-2.5 rounded-xl border transition-all cursor-pointer group/topic ${
@@ -1120,7 +1138,7 @@ export default function WeekPage() {
                 onClick={() => {
                   const initial = Math.max(
                     focusSubject.dailyMinutesAllocated * 60,
-                    60,
+                    60
                   );
                   setFocusTimeLeft(initial);
                 }}
