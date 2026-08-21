@@ -43,7 +43,7 @@ interface CycleViewProps {
   onSwapBlockSubject?: (
     currentSubjectId: string,
     targetSubjectId: string,
-    blockNumber: number,
+    blockNumber: number
   ) => void;
 }
 
@@ -60,9 +60,9 @@ export function CycleView({
   onSwapBlockSubject,
 }: CycleViewProps) {
   const [cycleBlocks, setCycleBlocks] = useState<CycleBlock[]>(initialBlocks);
-  const [expandedBlockNumber, setExpandedBlockNumber] = useState<number | null>(
-    null,
-  );
+  const [expandedBlockNumber, setExpandedBlockNumber] = useState<
+    number | null
+  >(null);
   const [activeSessionBlock, setActiveSessionBlock] =
     useState<CycleBlock | null>(null);
 
@@ -88,14 +88,14 @@ export function CycleView({
 
   const remainingMinutes = Math.max(
     0,
-    totalMinutes * (1 - currentProgress / 100),
+    totalMinutes * (1 - currentProgress / 100)
   );
 
   const currentBlock =
     cycleBlocks.find((b) => b.status === "CURRENT") || cycleBlocks[0];
 
   const subjectImportanceMap = new Map(
-    subjectBreakdown.map((s) => [s.name, s.percentage]),
+    subjectBreakdown.map((s) => [s.name, s.percentage])
   );
 
   const upcomingBlocks = cycleBlocks
@@ -140,7 +140,28 @@ export function CycleView({
     setExpandedBlockNumber((prev) => (prev === blockNum ? null : blockNum));
   };
 
-  const handleFinishSession = () => {
+  const handleFinishSession = async () => {
+    if (!activeSessionBlock) return;
+
+    // Registra o tempo estudado no banco
+    const initialSeconds = activeSessionBlock.durationMinutes * 60;
+    const secondsStudied = initialSeconds - secondsRemaining;
+    const minutesStudied = Math.max(Math.round(secondsStudied / 60), 1);
+
+    try {
+      await fetch("/api/study-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subjectId: activeSessionBlock.subjectId,
+          durationMinutes: minutesStudied,
+          topicsCompleted: activeSessionBlock.assignedTopics.map((t) => t.id),
+        }),
+      });
+    } catch (err) {
+      console.error("Erro ao registrar sessão do ciclo no histórico:", err);
+    }
+
     setIsTimerRunning(false);
     setActiveSessionBlock(null);
     onCompleteBlock();
@@ -152,10 +173,10 @@ export function CycleView({
     const currentSubjectId = blockToSwap.subjectId;
 
     const targetSubjectBreakdown = subjectBreakdown.find(
-      (s) => s.name === targetSubjectName,
+      (s) => s.name === targetSubjectName
     );
     const targetMatchingBlock = cycleBlocks.find(
-      (b) => b.subjectName === targetSubjectName,
+      (b) => b.subjectName === targetSubjectName
     );
 
     const targetSubjectId =
@@ -181,15 +202,15 @@ export function CycleView({
               subjectName: targetSubjectName,
               color: targetSubjectBreakdown?.color || b.color,
             }
-          : b,
-      ),
+          : b
+      )
     );
 
     if (onSwapBlockSubject) {
       onSwapBlockSubject(
         currentSubjectId,
         targetSubjectId,
-        blockToSwap.blockNumber,
+        blockToSwap.blockNumber
       );
     }
 
@@ -512,7 +533,9 @@ export function CycleView({
             return (
               <motion.div
                 layout
-                key={`upcoming-${block.subjectId || block.subjectName}-${block.blockNumber}-${idx}`}
+                key={`upcoming-${block.subjectId || block.subjectName}-${
+                  block.blockNumber
+                }-${idx}`}
                 className={`border rounded-2xl p-4 space-y-3 transition-colors duration-300 relative overflow-hidden ${
                   isDone
                     ? "bg-slate-950/30 border-slate-800/40 opacity-50"
@@ -598,7 +621,9 @@ export function CycleView({
                       <div className="pt-2 border-t border-slate-800/60 space-y-1.5">
                         {block.assignedTopics.map((top, topIdx) => (
                           <div
-                            key={`upcoming-top-${top.id || top.title}-${topIdx}`}
+                            key={`upcoming-top-${
+                              top.id || top.title
+                            }-${topIdx}`}
                             className="text-[11px] text-slate-400 bg-slate-950/80 p-2 rounded-lg border border-slate-900 truncate"
                           >
                             • {top.title}
