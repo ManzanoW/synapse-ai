@@ -12,23 +12,17 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { subjectId, durationMinutes, topicsCompleted } = body;
+    const { durationMinutes, topicsCompleted } = body;
 
-    if (!subjectId || !durationMinutes) {
-      return NextResponse.json(
-        { error: "Dados incompletos para registrar sessão." },
-        { status: 400 }
-      );
-    }
+    const duration = Number(durationMinutes) || 1;
 
-    // Registra a sessão conectando as relações de User e Subject no Prisma
+    // Registra a sessão com os campos garantidos do modelo StudySession
     const studySession = await prisma.studySession.create({
       data: {
-        user: { connect: { id: userId } },
-        subject: { connect: { id: subjectId } },
-        durationMinutes,
+        userId,
+        durationMinutes: duration,
         completedAt: new Date(),
-        topicsCount: topicsCompleted?.length || 0,
+        topicsCount: Array.isArray(topicsCompleted) ? topicsCompleted.length : 0,
       },
     });
 
