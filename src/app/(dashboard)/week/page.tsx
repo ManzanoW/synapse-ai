@@ -20,6 +20,9 @@ import {
   ArrowRightLeft,
   X,
   Sliders,
+  Play,
+  Pause,
+  RotateCcw,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
@@ -40,6 +43,16 @@ const HIGH_CONTRAST_PALETTE = [
   "#6366f1",
   "#f97316",
   "#00f5d4",
+];
+
+const WEEKDAYS_PT = [
+  "DOMINGO",
+  "SEGUNDA",
+  "TERÇA",
+  "QUARTA",
+  "QUINTA",
+  "SEXTA",
+  "SÁBADO",
 ];
 
 interface Topic {
@@ -115,6 +128,13 @@ export default function WeekPage() {
     null,
   );
 
+  // ⏱️ ESTADOS DO MODO FOCO / CRONÔMETRO
+  const [focusSubject, setFocusSubject] = useState<ScheduledSubject | null>(
+    null,
+  );
+  const [focusTimeLeft, setFocusTimeLeft] = useState<number>(0);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+
   const getSubjectColor = (
     subject: { color?: string | null },
     index: number,
@@ -127,6 +147,14 @@ export default function WeekPage() {
       return subject.color;
     }
     return HIGH_CONTRAST_PALETTE[index % HIGH_CONTRAST_PALETTE.length];
+  };
+
+  /**
+   * Identifica o nome do dia da semana em Português conforme a data real do dispositivo
+   */
+  const getTodayNamePT = () => {
+    const day = new Date().getDay(); // 0 a 6
+    return WEEKDAYS_PT[day];
   };
 
   const loadWeekData = async (controllerSignal?: AbortSignal) => {
@@ -148,11 +176,23 @@ export default function WeekPage() {
         setActiveDays(json.data.activeDaysPerWeek ?? 5);
 
         if (json.data.scheduleByDay && json.data.scheduleByDay.length > 0) {
+          const todayName = getTodayNamePT();
+          const todaySchedule = json.data.scheduleByDay.find((d: DaySchedule) =>
+            d.dayName.toUpperCase().includes(todayName),
+          );
+
           setSelectedDayIndex((prev) => {
-            const exists = json.data.scheduleByDay.some(
-              (d: DaySchedule) => d.dayIndex === prev,
-            );
-            return exists ? prev : json.data.scheduleByDay[0].dayIndex;
+            if (prev !== 0) {
+              const prevExists = json.data.scheduleByDay.some(
+                (d: DaySchedule) => d.dayIndex === prev,
+              );
+              if (prevExists) return prev;
+            }
+
+            // Seleciona o dia de hoje se encontrado na agenda, se não o primeiro
+            return todaySchedule
+              ? todaySchedule.dayIndex
+              : json.data.scheduleByDay[0].dayIndex;
           });
         }
       }
@@ -178,6 +218,54 @@ export default function WeekPage() {
 
     return () => controller.abort();
   }, []);
+
+  // ⏱️ TIMER EFFECT PARA MODO FOCO
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isTimerRunning && focusTimeLeft > 0) {
+      interval = setInterval(() => {
+        setFocusTimeLeft((prev) => {
+          if (prev <= 1) {
+            setIsTimerRunning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerRunning, focusTimeLeft]);
+
+  const startFocusSession = (subject: ScheduledSubject) => {
+    setFocusSubject(subject);
+    const initialSeconds = Math.max(subject.dailyMinutesAllocated * 60, 60);
+    setFocusTimeLeft(initialSeconds);
+    setIsTimerRunning(true);
+  };
+
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
+  const handleFinishSessionAndComplete = async () => {
+    if (!focusSubject) return;
+
+    // Conclui todos os tópicos pendentes da matéria dessa sessão
+    const pendingTopics = focusSubject.assignedTopics.filter(
+      (t) => t.firstStudy !== "Em Revisão",
+    );
+
+    for (const topic of pendingTopics) {
+      await handleToggleTopic(topic.id, topic.firstStudy);
+    }
+
+    setFocusSubject(null);
+    setIsTimerRunning(false);
+  };
 
   const handleTriggerRebalance = () => {
     startTransition(async () => {
@@ -358,6 +446,7 @@ export default function WeekPage() {
   };
 
   const hasSubjects = (data?.subjectOverview?.length ?? 0) > 0;
+  const todayNamePT = getTodayNamePT();
 
   const activeDaySchedule =
     data?.scheduleByDay?.find((d) => d.dayIndex === selectedDayIndex) ||
@@ -541,7 +630,6 @@ export default function WeekPage() {
             </p>
           </div>
         ) : !hasSubjects ? (
-          /* ================= INCENTIVO DE ONBOARDING SE NÃO HOUVER EDITAL ================= */
           <EditalEmptyState
             title="Seu Planejamento precisa de um Edital"
             description="Cadastre as disciplinas do seu concurso para que a IA organize automaticamente seu planejamento semanal e ciclo de estudos adaptativo."
@@ -589,9 +677,11 @@ export default function WeekPage() {
               />
             )}
 
+            {/* BARRA DE SELEÇÃO DE DIAS COM BADGE HOJE CORRIGIDA */}
             <div className="flex items-center gap-3 overflow-x-auto p-1.5 pt-2 pb-3 scrollbar-none">
               {data?.scheduleByDay?.map((day) => {
                 const isSelected = day.dayIndex === selectedDayIndex;
+                const isToday = day.dayName.toUpperCase().includes(todayNamePT);
                 const completedCount = day.subjects.reduce(
                   (acc, sub) =>
                     acc +
@@ -611,20 +701,27 @@ export default function WeekPage() {
                   <button
                     key={`day-${day.dayIndex}`}
                     onClick={() => setSelectedDayIndex(day.dayIndex)}
-                    className={`flex flex-col items-start min-w-35 p-3.5 rounded-2xl border transition-all duration-200 relative text-left shrink-0 cursor-pointer ${
+                    className={`flex flex-col items-start min-w-36 p-3.5 rounded-2xl border transition-all duration-200 relative text-left shrink-0 cursor-pointer ${
                       isSelected
                         ? "bg-indigo-950/40 border-indigo-500/80 text-white ring-1 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.15)]"
                         : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/70 hover:text-slate-200"
                     }`}
                   >
                     <div className="flex items-center justify-between w-full mb-1">
-                      <span
-                        className={`text-xs font-black uppercase tracking-wider ${
-                          isSelected ? "text-white" : "text-slate-300"
-                        }`}
-                      >
-                        {day.dayName}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`text-xs font-black uppercase tracking-wider ${
+                            isSelected ? "text-white" : "text-slate-300"
+                          }`}
+                        >
+                          {day.dayName}
+                        </span>
+                        {isToday && (
+                          <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                            Hoje
+                          </span>
+                        )}
+                      </div>
                       {isDayDone && (
                         <CheckCircle2 size={13} className="text-emerald-400" />
                       )}
@@ -709,6 +806,15 @@ export default function WeekPage() {
                             subject.assignedTopics &&
                             subject.assignedTopics.length > 0;
 
+                          const subCompleted = subject.assignedTopics.filter(
+                            (t) => t.firstStudy === "Em Revisão",
+                          ).length;
+                          const subTotal = subject.assignedTopics.length;
+                          const subPercent =
+                            subTotal > 0
+                              ? Math.round((subCompleted / subTotal) * 100)
+                              : 0;
+
                           return (
                             <div
                               key={`subject-${subject.id}-${sIdx}`}
@@ -731,12 +837,28 @@ export default function WeekPage() {
                                       boxShadow: `0 0 8px ${subjectColor}`,
                                     }}
                                   />
-                                  <h4 className="text-base font-bold text-white tracking-tight">
-                                    {subject.name}
-                                  </h4>
+                                  <div>
+                                    <h4 className="text-base font-bold text-white tracking-tight">
+                                      {subject.name}
+                                    </h4>
+                                    <span className="text-[10px] text-slate-500 font-mono block">
+                                      {subCompleted}/{subTotal} tópicos
+                                      concluídos ({subPercent}%)
+                                    </span>
+                                  </div>
                                 </div>
 
                                 <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => startFocusSession(subject)}
+                                    title="Iniciar sessão de estudo focada para esta matéria"
+                                    className="p-1.5 px-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all active:scale-95 flex items-center gap-1.5 text-[11px] font-semibold cursor-pointer shadow-sm"
+                                  >
+                                    <Play size={12} className="fill-current" />
+                                    <span>Iniciar</span>
+                                  </button>
+
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -758,6 +880,16 @@ export default function WeekPage() {
                                     )}
                                   </span>
                                 </div>
+                              </div>
+
+                              <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden ml-2 pr-2">
+                                <div
+                                  className="h-full transition-all duration-300 rounded-full"
+                                  style={{
+                                    width: `${subPercent}%`,
+                                    backgroundColor: subjectColor,
+                                  }}
+                                />
                               </div>
 
                               <div className="space-y-2 pl-2 pt-1">
@@ -949,6 +1081,79 @@ export default function WeekPage() {
           </div>
         )}
       </div>
+
+      {/* ⏱️ MODAL MODULO FOCO / POMODORO COM CONCLUIR SESSÃO */}
+      {focusSubject && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-sm w-full p-6 space-y-6 shadow-2xl text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 left-0 h-1 bg-emerald-500" />
+
+            <div>
+              <span className="text-[10px] uppercase tracking-widest font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                Sessão em Andamento
+              </span>
+              <h3 className="text-lg font-bold text-white mt-3 truncate">
+                {focusSubject.name}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Mantenha o foco total durante esse bloco.
+              </p>
+            </div>
+
+            <div className="py-2">
+              <div className="text-5xl font-black font-mono tracking-tight text-white drop-shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                {formatTimer(focusTimeLeft)}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsTimerRunning(!isTimerRunning)}
+                className="p-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center cursor-pointer"
+              >
+                {isTimerRunning ? <Pause size={18} /> : <Play size={18} />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const initial = Math.max(
+                    focusSubject.dailyMinutesAllocated * 60,
+                    60,
+                  );
+                  setFocusTimeLeft(initial);
+                }}
+                className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer"
+              >
+                <RotateCcw size={18} />
+              </button>
+            </div>
+
+            <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleFinishSessionAndComplete}
+                className="w-full py-2.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-600/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 size={14} />
+                <span>Concluir Sessão e Marcar Tópicos</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setFocusSubject(null);
+                  setIsTimerRunning(false);
+                }}
+                className="w-full py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Sair sem concluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE CONFIGURAÇÕES */}
       {isModalOpen && (
