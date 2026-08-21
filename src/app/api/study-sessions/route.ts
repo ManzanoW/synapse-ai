@@ -21,11 +21,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Registra a sessão de estudo no banco
+    // Registra a sessão conectando as relações de User e Subject no Prisma
     const studySession = await prisma.studySession.create({
       data: {
-        userId,
-        subjectId,
+        user: { connect: { id: userId } },
+        subject: { connect: { id: subjectId } },
         durationMinutes,
         completedAt: new Date(),
         topicsCount: topicsCompleted?.length || 0,
