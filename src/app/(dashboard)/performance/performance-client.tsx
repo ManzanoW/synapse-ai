@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, useCallback } from "react";
 import Link from "next/link";
 import { useSidebar } from "@/lib/sidebar-context";
 import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
@@ -74,36 +74,41 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [currentDayName] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    return new Date()
-      .toLocaleDateString("pt-BR", { weekday: "short" })
-      .substring(0, 3)
-      .toUpperCase();
-  });
+  const [currentDayName, setCurrentDayName] = useState<string>("");
 
   const [isRebalancing, startRebalanceTransition] = useTransition();
   const [rebalancedSuccess, setRebalancedSuccess] = useState(false);
 
+  // 1. Evita Hydration Mismatch definindo a data apenas no cliente
   useEffect(() => {
-    async function fetchAnalytics() {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/analytics/performance");
-
-        if (!response.ok) throw new Error("Falha ao carregar estatísticas");
-        const json = await response.json();
-        setData(json);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro desconhecido");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchAnalytics();
+    const day = new Date()
+      .toLocaleDateString("pt-BR", { weekday: "short" })
+      .substring(0, 3)
+      .toUpperCase();
+    setCurrentDayName(day);
   }, []);
 
+  // 2. Função de carregamento memorizada
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/analytics/performance");
+
+      if (!response.ok) throw new Error("Falha ao carregar estatísticas");
+      const json = await response.json();
+      setData(json);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro desconhecido");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  // 3. Rebalanceamento adaptativo com re-fetch automático
   const handleApplyAdaptiveRebalance = () => {
     startRebalanceTransition(async () => {
       try {
@@ -127,6 +132,7 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
 
         if (res?.success) {
           setRebalancedSuccess(true);
+          await fetchAnalytics(); // Recarrega as métricas atualizadas
           setTimeout(() => setRebalancedSuccess(false), 4000);
         }
       } catch (err) {
@@ -169,7 +175,7 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
 
   const maxChartQty = Math.max(
     ...data.chartDistribution.map((d) => d.quantidade),
-    1,
+    1
   );
 
   const highPrioritySubjects =
