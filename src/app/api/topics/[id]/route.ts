@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -16,13 +16,23 @@ export async function PATCH(
     const body = await request.json();
     const { firstStudy, performance } = body;
 
-    // Atualiza o tópico no banco de dados
-    const updatedTopic = await prisma.topic.update({
+    const now = new Date();
+    const isCompleted = firstStudy === "Em Revisão" || firstStudy === "Concluido";
+
+    // Data de revisão em 1 dia
+    const nextRevisionAt = new Date(now);
+    nextRevisionAt.setDate(nextRevisionAt.getDate() + 1);
+
+    const updatedTopic = await (prisma.topic as any).update({
       where: { id },
       data: {
         ...(firstStudy !== undefined && { firstStudy }),
         ...(performance !== undefined && { performance }),
-        lastRev: new Date(),
+        lastRev: now,
+        ...(isCompleted && {
+          lastStudiedAt: now,
+          nextRevisionAt,
+        }),
       },
     });
 
@@ -32,7 +42,7 @@ export async function PATCH(
     console.error("❌ ERRO AO ATUALIZAR TÓPICO:", error);
     return NextResponse.json(
       { error: "Internal Server Error", details: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
