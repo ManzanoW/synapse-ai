@@ -13,27 +13,7 @@ export async function GET() {
 
     const suggestions = [];
 
-    // 1. Busca tópicos sem primeiro estudo (Avançar no Edital)
-    const unstudiedTopic = await (prisma.topic as any).findFirst({
-      where: {
-        subject: { userId },
-        firstStudy: { in: [null, "NaoIniciado", "Não Iniciado"] },
-      },
-      include: { subject: { select: { name: true } } },
-    });
-
-    if (unstudiedTopic) {
-      suggestions.push({
-        id: `advance-${unstudiedTopic.id}`,
-        type: "ADVANCE",
-        title: `Avançar no Edital: ${unstudiedTopic.title}`,
-        description: `Matéria: ${unstudiedTopic.subject?.name || "Geral"}. Você ainda não realizou o primeiro estudo deste tópico.`,
-        tag: "SUGERIDO",
-        actionUrl: "/edital",
-      });
-    }
-
-    // 2. Busca tópicos com desempenho crítico (< 60% de acerto)
+    // 1. Tópico crítico por baixo desempenho (< 60% de acerto)
     const weakTopic = await (prisma.topic as any).findFirst({
       where: {
         subject: { userId },
@@ -45,15 +25,37 @@ export async function GET() {
     if (weakTopic) {
       suggestions.push({
         id: `weak-${weakTopic.id}`,
-        type: "WARNING",
-        title: `Reforço Crítico: ${weakTopic.title}`,
-        description: `Matéria: ${weakTopic.subject?.name || "Geral"}. Seu aproveitamento neste tópico está em ${weakTopic.performance}%. Recomendamos criar Flashcards ou resolver mais questões.`,
-        tag: "PRIORIDADE",
+        topicId: weakTopic.id,
+        type: "CRITICAL",
+        icon: "brain",
+        title: `Atenção no Edital: ${weakTopic.title}`,
+        description: `Matéria: ${weakTopic.subject?.name || "Geral"}. O aproveitamento neste tópico está em ${weakTopic.performance}%. Recomendamos criar Flashcards ou resolver questões.`,
         actionUrl: `/questions?topicId=${weakTopic.id}`,
       });
     }
 
-    // 3. Recomenda criar Flashcards para matérias sem Decks
+    // 2. Avançar no Edital (tópicos não estudados)
+    const unstudiedTopic = await (prisma.topic as any).findFirst({
+      where: {
+        subject: { userId },
+        firstStudy: { in: [null, "NaoIniciado", "Não Iniciado"] },
+      },
+      include: { subject: { select: { name: true } } },
+    });
+
+    if (unstudiedTopic) {
+      suggestions.push({
+        id: `advance-${unstudiedTopic.id}`,
+        topicId: unstudiedTopic.id,
+        type: "SUGERIDO",
+        icon: "list",
+        title: `Avançar no Edital: ${unstudiedTopic.title}`,
+        description: `Matéria: ${unstudiedTopic.subject?.name || "Geral"}. Você ainda não realizou o primeiro estudo deste tópico.`,
+        actionUrl: "/edital",
+      });
+    }
+
+    // 3. Criar Decks para disciplinas sem Flashcards
     const subjectWithoutDeck = await (prisma.subject as any).findFirst({
       where: {
         userId,
@@ -64,19 +66,19 @@ export async function GET() {
     if (subjectWithoutDeck) {
       suggestions.push({
         id: `deck-${subjectWithoutDeck.id}`,
-        type: "FLASHCARD",
-        title: `Criar Decks de Flashcards`,
-        description: `Monte Cards na disciplina "${subjectWithoutDeck.name}" para proteger sua retenção a longo prazo no algoritmo SM-2.`,
-        tag: "SUGERIDO",
+        type: "SUGERIDO",
+        icon: "brain",
+        title: "Criar Decks de Flashcards",
+        description: `Monte Cards de "${subjectWithoutDeck.name}" para proteger sua retenção a longo prazo.`,
         actionUrl: "/cards",
       });
     }
 
     return NextResponse.json({ success: true, data: suggestions });
   } catch (error) {
-    console.error("❌ Erro ao gerar sugestões da IA:", error);
+    console.error("❌ Erro ao gerar sugestões:", error);
     return NextResponse.json(
-      { error: "Erro ao gerar sugestões." },
+      { error: "Erro ao carregar sugestões." },
       { status: 500 }
     );
   }
