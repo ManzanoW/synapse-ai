@@ -89,6 +89,7 @@ interface Suggestion {
   actionType?: string;
   topicId?: string;
   subjectId?: string;
+  actionUrl?: string;
 }
 
 interface DashboardClientProps {
@@ -122,24 +123,57 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
   const [missedDayName, setMissedDayName] = useState<string | null>(null);
 
+  // Helper de Redirecionamento Dinâmico para as Sugestões
+  const getSuggestionUrl = (item: Suggestion): string => {
+    if (item.actionUrl) return item.actionUrl;
+
+    if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
+      return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+    }
+    if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
+      return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
+    }
+    if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
+      return "/cards";
+    }
+
+    const titleLower = item.title?.toLowerCase() || "";
+    if (
+      titleLower.includes("simulado") ||
+      titleLower.includes("quiz") ||
+      titleLower.includes("questõ")
+    ) {
+      return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+    }
+    if (
+      titleLower.includes("edital") ||
+      titleLower.includes("avançar") ||
+      titleLower.includes("estudo")
+    ) {
+      return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
+    }
+    if (titleLower.includes("card") || titleLower.includes("flashcard")) {
+      return "/cards";
+    }
+
+    return "/edital";
+  };
+
   const loadDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
 
-      const [resSubjects, resStats, resWeek] = await Promise.all([
+      const [resSubjects, resStats, resWeek, resSuggestions] = await Promise.all([
         fetch("/api/edital?mode=subjects", { cache: "no-store" }),
         fetch("/api/dashboard/stats", { cache: "no-store" }),
         fetch("/api/week", { cache: "no-store" }),
+        fetch("/api/ai/suggestions", { cache: "no-store" }).catch(() => null),
       ]);
-
-      const resSuggestions = await fetch("/api/edital/rebalance", {
-        method: "POST",
-      }).catch(() => null);
 
       if (resSuggestions && resSuggestions.ok) {
         const jsonSuggestions = await resSuggestions.json();
-        if (jsonSuggestions.suggestions?.length) {
-          setSuggestions(jsonSuggestions.suggestions);
+        if (jsonSuggestions.data?.length) {
+          setSuggestions(jsonSuggestions.data);
         }
       }
 
@@ -198,16 +232,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const handleOptimizeSchedule = async () => {
     try {
       setIsOptimizing(true);
-      const response = await fetch("/api/edital/rebalance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch("/api/ai/suggestions", {
+        cache: "no-store",
       });
 
       if (!response.ok) throw new Error("Erro ao otimizar cronograma");
       const data = await response.json();
 
-      if (data.suggestions) {
-        setSuggestions(data.suggestions);
+      if (data.data) {
+        setSuggestions(data.data);
       }
 
       setIsOptimized(true);
@@ -217,39 +250,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     } finally {
       setIsOptimizing(false);
     }
-  };
-
-  const getSuggestionUrl = (item: Suggestion) => {
-    if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
-      return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
-    }
-    if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
-      return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
-    }
-    if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
-      return "/flashcards";
-    }
-
-    const titleLower = item.title?.toLowerCase() || "";
-    if (
-      titleLower.includes("simulado") ||
-      titleLower.includes("quiz") ||
-      titleLower.includes("questõ")
-    ) {
-      return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
-    }
-    if (
-      titleLower.includes("edital") ||
-      titleLower.includes("avançar") ||
-      titleLower.includes("estudo")
-    ) {
-      return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
-    }
-    if (titleLower.includes("card") || titleLower.includes("flashcard")) {
-      return "/flashcards";
-    }
-
-    return "/edital";
   };
 
   const handleCreateContent = async (data: {
@@ -343,7 +343,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
 
           <Link
-            href={!isLoading && hasEditalSubjects ? "/flashcards" : "/edital"}
+            href={!isLoading && hasEditalSubjects ? "/cards" : "/edital"}
             className="flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-500 hover:to-purple-500 active:scale-95"
           >
             <Zap size={14} className="fill-white" />
@@ -372,7 +372,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               icon: Layers,
               color: "text-indigo-400",
               bg: "bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/40",
-              href: "/flashcards",
+              href: "/cards",
             },
             {
               title: "Edital Verticalizado",
@@ -406,7 +406,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </span>
                 </div>
                 {item.badge && (
-                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-[9px] font-extrabold text-amber-300 uppercase">
+                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
                     {item.badge}
                   </span>
                 )}
@@ -438,7 +438,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* COLUNA 1: TEMPO RESTANTE */}
             <div className="flex flex-col justify-between space-y-4 md:pr-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                   Tempo Restante
                 </span>
                 <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
@@ -478,7 +478,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* COLUNA 2: RITMO SUGERIDO */}
             <div className="flex flex-col justify-between space-y-4 md:px-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold tracking-widest text-amber-400 uppercase">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">
                   Ritmo Sugerido
                 </span>
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
@@ -526,7 +526,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* COLUNA 3: PROGRESSO GERAL */}
             <div className="flex flex-col justify-between space-y-4 md:pl-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                   Progresso do Edital
                 </span>
                 <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
@@ -588,22 +588,22 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         </section>
 
         {/* ================= 3. LAYOUT PRINCIPAL ================= */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+        <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-12">
           {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
           <div className="space-y-6 lg:col-span-8">
-            {/* BANNER DE ONBOARDING REQUERIDO (SÓ APARECE DEPOIS DO LOADING SE REALMENTE NÃO HOUVER EDITAL) */}
+            {/* BANNER DE ONBOARDING REQUERIDO */}
             {!isLoading && !hasEditalSubjects && (
               <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 sm:p-8">
                 <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
                 <div className="relative z-10 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
                   <div className="max-w-lg space-y-2">
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-extrabold text-amber-300 uppercase tracking-wider">
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-300">
                       <Lock size={12} /> Onboarding Requerido
                     </div>
                     <h3 className="text-lg font-black tracking-tight text-white">
                       Configure seu Edital para Ativar a IA
                     </h3>
-                    <p className="text-xs text-slate-300 leading-relaxed">
+                    <p className="text-xs leading-relaxed text-slate-300">
                       Cadastre as disciplinas do seu concurso para desbloquear
                       sugestões inteligentes de revisão, cálculo automático de
                       ritmo e plano de estudos personalizado.
@@ -662,7 +662,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         target: 15,
                         current: stats?.metrics?.totalFlashcards ?? 0,
                         unit: "flashcards",
-                        actionUrl: "/flashcards",
+                        actionUrl: "/cards",
                         completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
                       },
                       {
@@ -796,7 +796,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
                 <div className="grid grid-cols-3 gap-2.5 border-t border-white/10 pt-4 text-center">
                   <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase">
+                    <span className="block text-[10px] font-bold uppercase text-slate-400">
                       Sessões
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
@@ -804,7 +804,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     </span>
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase">
+                    <span className="block text-[10px] font-bold uppercase text-slate-400">
                       Questões
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
@@ -812,7 +812,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     </span>
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2.5">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase">
+                    <span className="block text-[10px] font-bold uppercase text-slate-400">
                       Méd/Dia
                     </span>
                     <span className="mt-0.5 block font-mono text-base font-extrabold text-white">
