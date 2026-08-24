@@ -814,26 +814,29 @@ export default function QuestoesPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* BOTÃO 1: IMPRESSÃO / PDF */}
-            <button
-              onClick={() => setIsPrintMode(true)}
-              type="button"
-              className="bg-white/5 border border-white/10 hover:border-cyan-500/40 text-cyan-400 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <Printer size={15} />
-              <span>Versão Impressa</span>
-            </button>
+            {/* BOTÃO 1: IMPRESSÃO / PDF (SÓ APARECE SE HOUVER QUESTÕES NA TELA) */}
+            {questions.length > 0 && activeTab === "create" && (
+              <button
+                onClick={() => setIsPrintMode(true)}
+                type="button"
+                className="bg-white/5 border border-white/10 hover:border-cyan-500/40 text-cyan-400 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
+              >
+                <Printer size={15} />
+                <span>Versão Impressa</span>
+              </button>
+            )}
 
-            {/* BOTÃO 2: REGISTRO MANUAL EXTERNO */}
+            {/* BOTÃO 2: REGISTRO MANUAL EXTERNO (SEMPRE VISÍVEL) */}
             <button
               onClick={() => setIsRegisterModalOpen(true)}
               type="button"
-              className="bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+              className="bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
             >
               <PlusCircle size={15} />
               <span>Registrar Externo</span>
             </button>
 
+            {/* BOTÃO 3: NOVO SIMULADO IA */}
             {questions.length > 0 &&
               activeTab === "create" &&
               subjects.length > 0 && (
