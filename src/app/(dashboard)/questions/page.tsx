@@ -561,7 +561,7 @@ export default function QuestoesPage() {
       setQuizHistory(json.data || []);
     } catch (error) {
       console.error("Erro ao carregar histórico:", error);
-    } fontally {
+    } finally {
       setIsLoadingHistory(false);
     }
   };
