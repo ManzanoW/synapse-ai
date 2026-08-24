@@ -15,6 +15,8 @@ import {
   Zap,
   BookOpen,
   Lock,
+  Printer,
+  PlusCircle,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -26,6 +28,10 @@ import { QuestionCard } from "./_components/QuestionCard";
 import { CompletionModal } from "./_components/CompletionModal";
 import { QuizHistoryTab } from "./_components/QuizHistoryTab";
 import { GenerateAIModal } from "./_components/GenerateAIModal";
+
+// Importações dos novos recursos reutilizáveis de src/components/questions/
+import { PrintableQuestions } from "@/components/questions/printable-questions";
+import { RegisterQuestionsModal } from "@/components/questions/register-questions-modal";
 
 export interface QuestaoIA {
   enunciado: string;
@@ -105,6 +111,8 @@ export default function QuestoesPage() {
 
   // Estados gerais
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [isPrintMode, setIsPrintMode] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
     null,
@@ -357,6 +365,16 @@ export default function QuestoesPage() {
   );
   const availableTopics = currentSubjectObj?.topics || [];
 
+  // Mapeamento de tópicos achatados para o Modal
+  const allModalTopics = subjects.flatMap(
+    (s) =>
+      s.topics?.map((t) => ({
+        id: t.id,
+        title: t.title,
+        subjectName: s.name,
+      })) || [],
+  );
+
   const totalQuestions = questions.length;
   const answeredCount = Object.keys(checkedQuestions).length;
   const correctCount = Object.keys(checkedQuestions).filter(
@@ -459,7 +477,6 @@ export default function QuestoesPage() {
           const data = await response.json();
           if (data.earnedXp !== undefined) setLastEarnedXp(data.earnedXp);
 
-          // DISPARO DO EVENTO GLOBAL PARA SINC DA SIDEBAR
           window.dispatchEvent(
             new CustomEvent("xp-updated", {
               detail: {
@@ -604,12 +621,12 @@ export default function QuestoesPage() {
           ? err.message
           : "Erro desconhecido ao gerar questões.";
       console.error("Erro ao gerar simulado:", msg);
-    } finally {
+    } fontally {
       setIsGenerating(false);
     }
   };
 
-  // 🎯 ATALHOS DE TECLADO MELHORADOS
+  // ATALHOS DE TECLADO
   useEffect(() => {
     if (
       activeTab !== "create" ||
@@ -634,7 +651,6 @@ export default function QuestoesPage() {
       if (!currentQuestion) return;
 
       const isAlreadyAnswered = Boolean(checkedQuestions[focusedQuestionIndex]);
-
       const keyUpper = e.key.toUpperCase();
 
       const mapKeyToAlt: Record<string, string> = {
@@ -726,6 +742,41 @@ export default function QuestoesPage() {
     handleAnswerQuestion,
   ]);
 
+  // VIZUALIZAÇÃO MODO IMPRESSÃO / PDF
+  if (isPrintMode) {
+    return (
+      <div>
+        <div className="print:hidden fixed top-4 right-4 z-50">
+          <button
+            onClick={() => setIsPrintMode(false)}
+            className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-slate-700 transition-all cursor-pointer"
+          >
+            Voltar ao Sistema
+          </button>
+        </div>
+        <PrintableQuestions
+          title={materia ? `Simulado - ${materia}` : "Simulado de Questões Geral"}
+          totalQuestions={questions.length > 0 ? questions.length : 20}
+          estimatedTimeMinutes={
+            questions.length > 0 ? questions.length * 2 : 40
+          }
+          questions={
+            questions.length > 0
+              ? questions.map((q, idx) => ({
+                  id: `q-${idx}`,
+                  number: idx + 1,
+                  statement: q.enunciado,
+                  options: q.alternativas?.map((a) => a.texto),
+                  correctOption: q.gabaritoCorreto,
+                  subjectName: materia || "Conhecimentos Gerais",
+                }))
+              : []
+          }
+        />
+      </div>
+    );
+  }
+
   if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-[#02050e] text-slate-400 flex flex-col items-center justify-center gap-3 text-xs">
@@ -747,7 +798,7 @@ export default function QuestoesPage() {
 
       <div className="max-w-4xl mx-auto space-y-6">
         {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
           <div className="flex items-center gap-3.5">
             <button
               onClick={openSidebar}
@@ -771,21 +822,43 @@ export default function QuestoesPage() {
             </div>
           </div>
 
-          {questions.length > 0 &&
-            activeTab === "create" &&
-            subjects.length > 0 && (
-              <button
-                onClick={() => setIsAIModalOpen(true)}
-                type="button"
-                className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs px-4 py-2.5 rounded-xl transition-all font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer"
-              >
-                <Sparkles size={14} className="text-indigo-200" />
-                <span>Novo Simulado IA</span>
-              </button>
-            )}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* BOTÃO NOVO 1: IMPRESSÃO / PDF */}
+            <button
+              onClick={() => setIsPrintMode(true)}
+              type="button"
+              className="bg-white/5 border border-white/10 hover:border-cyan-500/40 text-cyan-400 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Printer size={15} />
+              <span>Versão Impressa</span>
+            </button>
+
+            {/* BOTÃO NOVO 2: REGISTRO MANUAL EXTERNO */}
+            <button
+              onClick={() => setIsRegisterModalOpen(true)}
+              type="button"
+              className="bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <PlusCircle size={15} />
+              <span>Registrar Externo</span>
+            </button>
+
+            {questions.length > 0 &&
+              activeTab === "create" &&
+              subjects.length > 0 && (
+                <button
+                  onClick={() => setIsAIModalOpen(true)}
+                  type="button"
+                  className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs px-4 py-2.5 rounded-xl transition-all font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer"
+                >
+                  <Sparkles size={14} className="text-indigo-200" />
+                  <span>Novo Simulado IA</span>
+                </button>
+              )}
+          </div>
         </div>
 
-        {/* 🛑 COMPONENTE OBRIGATÓRIO BLOQUEANTE SE O EDITAL ESTIVER VAZIO */}
+        {/* COMPONENTE OBRIGATÓRIO BLOQUEANTE SE O EDITAL ESTIVER VAZIO */}
         {subjects.length === 0 && questions.length === 0 && (
           <div className="min-h-[60vh] flex items-center justify-center py-4">
             <div className="relative overflow-hidden max-w-xl w-full bg-linear-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl space-y-6">
@@ -820,10 +893,10 @@ export default function QuestoesPage() {
           </div>
         )}
 
-        {/* ================= CONTEÚDO NORMAL DA PÁGINA (SÓ RENDERIZA SE TIVER SUBJECTS) ================= */}
+        {/* CONTEÚDO NORMAL DA PÁGINA (SÓ RENDERIZA SE TIVER SUBJECTS) */}
         {subjects.length > 0 && (
           <>
-            {/* ================= 2. BARRA DE PROGRESSO DO SIMULADO ================= */}
+            {/* 2. BARRA DE PROGRESSO DO SIMULADO */}
             {questions.length > 0 && activeTab === "create" && (
               <div className="bg-[#090d16]/90 border border-white/10 rounded-2xl p-4 shadow-2xl backdrop-blur-md">
                 <div className="flex items-center justify-between mb-2.5 text-xs">
@@ -857,7 +930,7 @@ export default function QuestoesPage() {
               </div>
             )}
 
-            {/* ================= 3. NAVEGAÇÃO DE ABAS ================= */}
+            {/* 3. NAVEGAÇÃO DE ABAS */}
             <div className="flex border-b border-white/10 gap-2">
               <button
                 onClick={() => handleTabChange("create")}
@@ -897,7 +970,7 @@ export default function QuestoesPage() {
               </button>
             </div>
 
-            {/* ================= 4. ABA 1: HUB OU CADERNO ATIVO ================= */}
+            {/* 4. ABA 1: HUB OU CADERNO ATIVO */}
             {activeTab === "create" && (
               <>
                 {questions.length === 0 ? (
@@ -1081,7 +1154,7 @@ export default function QuestoesPage() {
               </>
             )}
 
-            {/* ================= 5. ABA 2: HISTÓRICO ================= */}
+            {/* 5. ABA 2: HISTÓRICO */}
             {activeTab === "history" && (
               <QuizHistoryTab
                 history={quizHistory}
@@ -1170,6 +1243,16 @@ export default function QuestoesPage() {
         onDificuldadeChange={setDificuldade}
         onQtdQuestoesChange={setQtdQuestoes}
         onSubmit={handleGenerateSimulado}
+      />
+
+      {/* MODAL NOVO: REGISTRAR QUESTÕES EXTERNAS (QConcursos, Tec Concursos) */}
+      <RegisterQuestionsModal
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        topics={allModalTopics}
+        onSuccess={() => {
+          if (refreshStats) refreshStats();
+        }}
       />
 
       {/* MODAL: DIAGNÓSTICO E RECOMPENSAS */}
