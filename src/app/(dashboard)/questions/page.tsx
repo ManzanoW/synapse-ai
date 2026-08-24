@@ -742,7 +742,7 @@ export default function QuestoesPage() {
     handleAnswerQuestion,
   ]);
 
-  // VIZUALIZAÇÃO MODO IMPRESSÃO / PDF (Sem botão superior duplicado)
+  // VIZUALIZAÇÃO MODO IMPRESSÃO / PDF
   if (isPrintMode) {
     return (
       <PrintableQuestions
@@ -813,9 +813,9 @@ export default function QuestoesPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* BOTÃO 1: IMPRESSÃO / PDF (SÓ APARECE SE HOUVER QUESTÕES NA TELA) */}
-            {questions.length > 0 && activeTab === "create" && (
+          <div className="flex items-center gap-2.5">
+            {questions.length > 0 && activeTab === "create" ? (
+              /* AÇÃO EXCLUSIVA DURANTE O SIMULADO (MODO RESOULÇÃO) */
               <button
                 onClick={() => setIsPrintMode(true)}
                 type="button"
@@ -824,31 +824,17 @@ export default function QuestoesPage() {
                 <Printer size={15} />
                 <span>Versão Impressa</span>
               </button>
+            ) : (
+              /* AÇÃO EXCLUSIVA FORA DO SIMULADO (HUB / HISTÓRICO) */
+              <button
+                onClick={() => setIsRegisterModalOpen(true)}
+                type="button"
+                className="bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
+              >
+                <PlusCircle size={15} />
+                <span>Registrar Externo</span>
+              </button>
             )}
-
-            {/* BOTÃO 2: REGISTRO MANUAL EXTERNO (SEMPRE VISÍVEL) */}
-            <button
-              onClick={() => setIsRegisterModalOpen(true)}
-              type="button"
-              className="bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
-            >
-              <PlusCircle size={15} />
-              <span>Registrar Externo</span>
-            </button>
-
-            {/* BOTÃO 3: NOVO SIMULADO IA */}
-            {questions.length > 0 &&
-              activeTab === "create" &&
-              subjects.length > 0 && (
-                <button
-                  onClick={() => setIsAIModalOpen(true)}
-                  type="button"
-                  className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs px-4 py-2.5 rounded-xl transition-all font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer"
-                >
-                  <Sparkles size={14} className="text-indigo-200" />
-                  <span>Novo Simulado IA</span>
-                </button>
-              )}
           </div>
         </div>
 
@@ -1239,7 +1225,7 @@ export default function QuestoesPage() {
         onSubmit={handleGenerateSimulado}
       />
 
-      {/* MODAL NOVO: REGISTRAR QUESTÕES EXTERNAS (QConcursos, Tec Concursos) */}
+      {/* MODAL: REGISTRAR QUESTÕES EXTERNAS (QConcursos, Tec Concursos) */}
       <RegisterQuestionsModal
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
