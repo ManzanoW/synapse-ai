@@ -742,38 +742,29 @@ export default function QuestoesPage() {
     handleAnswerQuestion,
   ]);
 
-  // VIZUALIZAÇÃO MODO IMPRESSÃO / PDF
+  // VIZUALIZAÇÃO MODO IMPRESSÃO / PDF (Sem botão superior duplicado)
   if (isPrintMode) {
     return (
-      <div>
-        <div className="print:hidden fixed top-4 right-4 z-50">
-          <button
-            onClick={() => setIsPrintMode(false)}
-            className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-slate-700 transition-all cursor-pointer"
-          >
-            Voltar ao Sistema
-          </button>
-        </div>
-        <PrintableQuestions
-          title={materia ? `Simulado - ${materia}` : "Simulado de Questões Geral"}
-          totalQuestions={questions.length > 0 ? questions.length : 20}
-          estimatedTimeMinutes={
-            questions.length > 0 ? questions.length * 2 : 40
-          }
-          questions={
-            questions.length > 0
-              ? questions.map((q, idx) => ({
-                  id: `q-${idx}`,
-                  number: idx + 1,
-                  statement: q.enunciado,
-                  options: q.alternativas?.map((a) => a.texto),
-                  correctOption: q.gabaritoCorreto,
-                  subjectName: materia || "Conhecimentos Gerais",
-                }))
-              : []
-          }
-        />
-      </div>
+      <PrintableQuestions
+        title={materia ? `Simulado - ${materia}` : "Simulado de Questões Geral"}
+        totalQuestions={questions.length > 0 ? questions.length : 20}
+        estimatedTimeMinutes={
+          questions.length > 0 ? questions.length * 2 : 40
+        }
+        onBack={() => setIsPrintMode(false)}
+        questions={
+          questions.length > 0
+            ? questions.map((q, idx) => ({
+                id: `q-${idx}`,
+                number: idx + 1,
+                statement: q.enunciado,
+                options: q.alternativas?.map((a) => a.texto),
+                correctOption: q.gabaritoCorreto,
+                subjectName: materia || "Conhecimentos Gerais",
+              }))
+            : []
+        }
+      />
     );
   }
 
@@ -823,7 +814,7 @@ export default function QuestoesPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* BOTÃO NOVO 1: IMPRESSÃO / PDF */}
+            {/* BOTÃO 1: IMPRESSÃO / PDF */}
             <button
               onClick={() => setIsPrintMode(true)}
               type="button"
@@ -833,7 +824,7 @@ export default function QuestoesPage() {
               <span>Versão Impressa</span>
             </button>
 
-            {/* BOTÃO NOVO 2: REGISTRO MANUAL EXTERNO */}
+            {/* BOTÃO 2: REGISTRO MANUAL EXTERNO */}
             <button
               onClick={() => setIsRegisterModalOpen(true)}
               type="button"
