@@ -81,19 +81,19 @@ export function QuestionCard({
     if (isFocused) {
       if (respondida) {
         return acertou
-          ? "bg-gradient-to-br from-emerald-950/20 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-emerald-400 shadow-[0_0_30px_-5px_rgba(16,185,129,0.25)] opacity-100 z-20"
-          : "bg-gradient-to-br from-rose-950/20 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-rose-500 shadow-[0_0_30px_-5px_rgba(244,63,94,0.25)] opacity-100 z-20";
+          ? "bg-gradient-to-br from-emerald-950/20 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-emerald-400 shadow-[0_0_30px_-5px_rgba(16,185,129,0.25)] opacity-100 z-20 scale-[1.01]"
+          : "bg-gradient-to-br from-rose-950/20 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-rose-500 shadow-[0_0_30px_-5px_rgba(244,63,94,0.25)] opacity-100 z-20 scale-[1.01]";
       }
-      return "bg-gradient-to-br from-indigo-950/30 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-indigo-500 shadow-[0_0_30px_-5px_rgba(99,102,241,0.25)] opacity-100 z-20";
+      return "bg-gradient-to-br from-indigo-950/30 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-indigo-500 shadow-[0_0_30px_-5px_rgba(99,102,241,0.25)] opacity-100 z-20 scale-[1.01]";
     }
 
     if (respondida) {
       return acertou
-        ? "bg-[#060810]/70 border border-emerald-500/20 opacity-50 hover:opacity-75 transition-opacity z-0"
-        : "bg-[#060810]/70 border border-rose-500/20 opacity-50 hover:opacity-75 transition-opacity z-0";
+        ? "bg-[#060810]/70 border border-emerald-500/20 opacity-60 hover:opacity-90 transition-all z-0"
+        : "bg-[#060810]/70 border border-rose-500/20 opacity-60 hover:opacity-90 transition-all z-0";
     }
 
-    return "bg-[#060810]/70 border border-slate-800/60 opacity-60 hover:opacity-80 transition-opacity z-0";
+    return "bg-[#060810]/70 border border-slate-800/60 opacity-65 hover:opacity-90 transition-all z-0";
   };
 
   return (
@@ -108,7 +108,7 @@ export function QuestionCard({
       {/* BADGE FLUTUANTE DE FOCO */}
       {isFocused && (
         <div
-          className={`absolute -top-3.25 right-8 px-3 py-1 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-xl z-30 border font-extrabold uppercase tracking-widest ${
+          className={`absolute -top-3.5 right-8 px-3 py-0.5 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-xl z-30 border font-extrabold uppercase tracking-widest ${
             respondida
               ? acertou
                 ? "bg-[#080b13] border-emerald-500/80 text-emerald-400"
@@ -195,12 +195,12 @@ export function QuestionCard({
                         ? "opacity-30 line-through bg-slate-950/20 border-slate-900/50 text-slate-500"
                         : respondida
                           ? alt.id === questao.gabaritoCorreto
-                            ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 font-semibold"
+                            ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 font-semibold shadow-xs"
                             : isSelected
                               ? "bg-rose-500/10 border-rose-500/80 text-rose-300"
                               : "bg-slate-950/30 border-slate-900 text-slate-600"
                           : isSelected
-                            ? "bg-indigo-600/15 border-indigo-500/80 text-slate-100 ring-1 ring-indigo-500/40"
+                            ? "bg-indigo-600/15 border-indigo-500/80 text-slate-100 ring-1 ring-indigo-500/40 shadow-xs"
                             : "bg-slate-950/50 border-slate-800/80 hover:border-slate-700/80 hover:bg-slate-900/40 text-slate-300"
                     }`}
                   >
@@ -210,7 +210,7 @@ export function QuestionCard({
                           isEliminated && !respondida
                             ? "bg-slate-950 border border-slate-900 text-slate-600"
                             : isSelected
-                              ? "bg-indigo-600 text-white shadow-sm"
+                              ? "bg-indigo-600 text-white shadow-xs"
                               : "bg-slate-900 border border-slate-800 text-slate-400 group-hover:border-slate-700 group-hover:text-slate-200"
                         }`}
                       >
@@ -228,7 +228,7 @@ export function QuestionCard({
                     )}
                   </button>
 
-                  {/* BOTÃO ULTRA-DISCRETO DE RISCAR ALTERNATIVA */}
+                  {/* BOTÃO DISCRETO DE RISCAR ALTERNATIVA */}
                   {!respondida && (
                     <button
                       type="button"
@@ -263,12 +263,12 @@ export function QuestionCard({
                   className={`w-full text-left px-4 py-3.5 rounded-xl border text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default ${
                     respondida
                       ? opcao === questao.gabaritoCorreto
-                        ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300"
+                        ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 shadow-xs"
                         : isSelected
                           ? "bg-rose-500/10 border-rose-500/80 text-rose-300"
                           : "bg-slate-950/30 border-slate-900 text-slate-600"
                       : isSelected
-                        ? "bg-indigo-600/15 border-indigo-500/80 text-slate-100 ring-1 ring-indigo-500/40"
+                        ? "bg-indigo-600/15 border-indigo-500/80 text-slate-100 ring-1 ring-indigo-500/40 shadow-xs"
                         : "bg-slate-950/50 border-slate-800/80 hover:border-slate-700/80 hover:bg-slate-900/40 text-slate-300"
                   }`}
                 >
@@ -386,12 +386,12 @@ export function QuestionCard({
               )}
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
-              <strong className="text-indigo-300 font-semibold">
-                Explicação:
-              </strong>{" "}
+            <div className="text-xs text-slate-300 leading-relaxed">
+              <strong className="text-indigo-300 font-semibold block mb-1">
+                Explicação & Justificativa:
+              </strong>
               {renderEnunciado(questao.justificativa)}
-            </p>
+            </div>
           </div>
         )}
       </div>
