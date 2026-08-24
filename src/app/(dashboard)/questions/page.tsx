@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
+
 import {
   Menu,
   HelpCircle,
@@ -28,8 +29,9 @@ import { QuestionCard } from "./_components/QuestionCard";
 import { CompletionModal } from "./_components/CompletionModal";
 import { QuizHistoryTab } from "./_components/QuizHistoryTab";
 import { GenerateAIModal } from "./_components/GenerateAIModal";
+import { QuestionMinimap } from "./_components/QuestionMinimap";
 
-// Importações dos novos recursos reutilizáveis de src/components/questions/
+// Importações dos recursos de impressão e registro externo
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { RegisterQuestionsModal } from "@/components/questions/register-questions-modal";
 
@@ -559,7 +561,7 @@ export default function QuestoesPage() {
       setQuizHistory(json.data || []);
     } catch (error) {
       console.error("Erro ao carregar histórico:", error);
-    } finally {
+    } fontally {
       setIsLoadingHistory(false);
     }
   };
@@ -614,6 +616,7 @@ export default function QuestoesPage() {
       setSavedErrors({});
       setCreatedFlashcards({});
       setTimerSeconds(0);
+      setFocusedQuestionIndex(0);
       setIsTimerRunning(true);
     } catch (err: unknown) {
       const msg =
@@ -815,7 +818,6 @@ export default function QuestoesPage() {
 
           <div className="flex items-center gap-2.5">
             {questions.length > 0 && activeTab === "create" ? (
-              /* AÇÃO EXCLUSIVA DURANTE O SIMULADO (MODO RESOULÇÃO) */
               <button
                 onClick={() => setIsPrintMode(true)}
                 type="button"
@@ -825,7 +827,6 @@ export default function QuestoesPage() {
                 <span>Versão Impressa</span>
               </button>
             ) : (
-              /* AÇÃO EXCLUSIVA FORA DO SIMULADO (HUB / HISTÓRICO) */
               <button
                 onClick={() => setIsRegisterModalOpen(true)}
                 type="button"
@@ -974,6 +975,7 @@ export default function QuestoesPage() {
                               pausedSession.createdFlashcards || {},
                             );
                             setTimerSeconds(pausedSession.timerSeconds || 0);
+                            setFocusedQuestionIndex(0);
                             setIsTimerRunning(true);
                           }}
                           onDiscard={(e) => {
@@ -1100,7 +1102,7 @@ export default function QuestoesPage() {
                       </button>
                     </div>
 
-                    <div className="space-y-6 pb-12">
+                    <div className="space-y-6 pb-24">
                       {questions.map((questao, index) => (
                         <QuestionCard
                           key={`questao-${index}`}
@@ -1191,6 +1193,22 @@ export default function QuestoesPage() {
         )}
       </div>
 
+      {/* FLOATING MINIMAP (BARRA FLUTUANTE DE NAVEGAÇÃO ENTRE QUESTÕES) */}
+      {questions.length > 0 && activeTab === "create" && (
+        <QuestionMinimap
+          questions={questions}
+          checkedQuestions={checkedQuestions}
+          selectedAnswers={selectedAnswers}
+          focusedIndex={focusedQuestionIndex}
+          onSelectQuestion={(idx) => {
+            setFocusedQuestionIndex(idx);
+            document
+              .getElementById(`question-card-${idx}`)
+              ?.scrollIntoView({ behavior: "smooth", block: "center" });
+          }}
+        />
+      )}
+
       {/* MODAL: GERAR POR IA */}
       <GenerateAIModal
         isOpen={isAIModalOpen}
@@ -1225,7 +1243,7 @@ export default function QuestoesPage() {
         onSubmit={handleGenerateSimulado}
       />
 
-      {/* MODAL: REGISTRAR QUESTÕES EXTERNAS (QConcursos, Tec Concursos) */}
+      {/* MODAL: REGISTRAR QUESTÕES EXTERNAS */}
       <RegisterQuestionsModal
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
