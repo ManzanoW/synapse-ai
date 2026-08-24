@@ -621,7 +621,7 @@ export default function QuestoesPage() {
           ? err.message
           : "Erro desconhecido ao gerar questões.";
       console.error("Erro ao gerar simulado:", msg);
-    } fontally {
+    } finally {
       setIsGenerating(false);
     }
   };
