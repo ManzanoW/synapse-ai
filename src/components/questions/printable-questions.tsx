@@ -2,7 +2,6 @@
 
 import React, { useRef } from "react";
 import { Printer, ArrowLeft, CheckSquare } from "lucide-react";
-import Link from "next/link";
 
 interface QuestionItem {
   id: string;
@@ -18,6 +17,12 @@ interface PrintableQuestionsProps {
   totalQuestions: number;
   estimatedTimeMinutes: number;
   questions: QuestionItem[];
+  onBack?: () => void;
+}
+
+// Helper para remover marcadores de Markdown (**bold**) na visualização impressa
+function formatText(text: string) {
+  return text.replace(/\*\*(.*?)\*\*/g, "$1");
 }
 
 export function PrintableQuestions({
@@ -25,6 +30,7 @@ export function PrintableQuestions({
   totalQuestions,
   estimatedTimeMinutes,
   questions,
+  onBack,
 }: PrintableQuestionsProps) {
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -34,18 +40,20 @@ export function PrintableQuestions({
 
   return (
     <div className="min-h-screen bg-[#02050e] text-slate-100 p-4 md:p-8 font-sans">
-      {/* BARRA DE AÇÕES (Oculta na Impressão) */}
-      <div className="print:hidden max-w-5xl mx-auto mb-6 flex items-center justify-between bg-[#090d16] border border-white/10 p-4 rounded-2xl shadow-xl">
-        <Link
-          href="/questions"
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+      {/* BARRA DE AÇÕES (Oculta ao Imprimir / Gerar PDF) */}
+      <div className="print:hidden max-w-4xl mx-auto mb-6 flex items-center justify-between bg-[#090d16] border border-white/10 p-4 rounded-2xl shadow-xl">
+        <button
+          onClick={onBack}
+          type="button"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors cursor-pointer"
         >
           <ArrowLeft size={16} />
           <span>Voltar para Banco de Questões</span>
-        </Link>
+        </button>
 
         <button
           onClick={handlePrint}
+          type="button"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all shadow-lg shadow-cyan-500/20 active:scale-95 cursor-pointer"
         >
           <Printer size={15} />
@@ -53,12 +61,12 @@ export function PrintableQuestions({
         </button>
       </div>
 
-      {/* FOLHA DE PROVA (Visualização em tela / Papel A4 para impressão) */}
+      {/* FOLHA DE PROVA (Formatação A4 em 2 Colunas) */}
       <div
         ref={printRef}
         className="max-w-4xl mx-auto bg-white text-slate-900 p-8 md:p-12 rounded-2xl shadow-2xl print:shadow-none print:max-w-none print:w-full print:p-0 print:m-0 print:bg-white print:text-black"
       >
-        {/* CABEÇALHO */}
+        {/* CABEÇALHO DA PROVA */}
         <header className="border-b-2 border-slate-900 pb-4 mb-6 flex flex-col justify-between gap-4">
           <div className="flex justify-between items-start">
             <div>
@@ -93,7 +101,7 @@ export function PrintableQuestions({
           </div>
         </header>
 
-        {/* QUESTÕES EM 2 COLUNAS (Estilo Concurso) */}
+        {/* CORPO DE QUESTÕES (2 COLUNAS) */}
         <main className="columns-1 md:columns-2 gap-8 space-y-6 print:columns-2 print:gap-6">
           {questions.map((q) => (
             <div
@@ -110,7 +118,7 @@ export function PrintableQuestions({
               </div>
 
               <p className="text-slate-800 leading-relaxed font-serif">
-                {q.statement}
+                {formatText(q.statement)}
               </p>
 
               {q.options && q.options.length > 0 && (
@@ -120,7 +128,9 @@ export function PrintableQuestions({
                     return (
                       <div key={idx} className="flex items-start gap-2">
                         <span className="font-bold text-slate-700">({letter})</span>
-                        <span className="text-slate-700 leading-snug">{opt}</span>
+                        <span className="text-slate-700 leading-snug">
+                          {formatText(opt)}
+                        </span>
                       </div>
                     );
                   })}
@@ -130,8 +140,8 @@ export function PrintableQuestions({
           ))}
         </main>
 
-        {/* CARTÃO RESPOSTA (GABARITO) */}
-        <div className="break-before-page pt-8 border-t-2 border-slate-900 mt-12">
+        {/* CARTÃO RESPOSTA (FOLHA FINAL) */}
+        <div className="print:break-before-page pt-8 border-t-2 border-slate-900 mt-12">
           <h2 className="text-sm font-black uppercase text-slate-900 mb-4 flex items-center gap-2">
             <CheckSquare size={16} /> Folha de Respostas / Gabarito
           </h2>
@@ -152,16 +162,18 @@ export function PrintableQuestions({
         </div>
       </div>
 
+      {/* REGRAS CSS DE IMPRESSÃO A4 */}
       <style jsx global>{`
         @media print {
-          body {
-            background: white !important;
-            color: black !important;
+          body, html {
+            background: #ffffff !important;
+            color: #000000 !important;
           }
-          .print\\:hidden {
+          aside, nav, header, footer, .print\:hidden {
             display: none !important;
           }
           @page {
+            size: A4;
             margin: 12mm;
           }
         }
