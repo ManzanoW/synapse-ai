@@ -3,8 +3,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Bookmark,
-  BookmarkCheck,
   CheckCircle2,
   XCircle,
   Loader2,
@@ -30,7 +28,7 @@ interface QuestionCardProps {
   onAnswerQuestion: () => void;
   onToggleSaveError: () => void;
   onCreateFlashcard: () => void;
-  onToggleFlag?: () => void; 
+  onToggleFlag?: () => void;
 }
 
 const renderEnunciado = (texto: string) => {
@@ -58,13 +56,13 @@ export function QuestionCard({
   respondida,
   isFocused = false,
   alternativaSelecionada,
-  isSavedError,
   isFlashcardCreated,
   isCreatingFlashcard,
+  isFlagged = false,
   onSelectAnswer,
   onAnswerQuestion,
-  onToggleSaveError,
   onCreateFlashcard,
+  onToggleFlag,
 }: QuestionCardProps) {
   const [eliminatedAlts, setEliminatedAlts] = useState<Record<string, boolean>>(
     {},
@@ -134,36 +132,36 @@ export function QuestionCard({
 
       {/* HEADER DA QUESTÃO */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
-  <div className="flex items-center gap-2">
-    <span className="text-xs font-black tracking-wider text-indigo-400 uppercase">
-      QUESTÃO {index + 1}
-    </span>
-    {questao.formato && (
-      <span className="text-[10px] font-bold bg-white/5 border border-white/10 text-slate-400 px-2 py-0.5 rounded-md uppercase">
-        {questao.formato === "multipla" ? "Múltipla Escolha" : "Certo / Errado"}
-      </span>
-    )}
-  </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-black tracking-wider text-indigo-400 uppercase">
+            QUESTÃO {index + 1}
+          </span>
+          {questao.formato && (
+            <span className="text-[10px] font-bold bg-white/5 border border-white/10 text-slate-400 px-2 py-0.5 rounded-md uppercase">
+              {questao.formato === "multipla" ? "Múltipla Escolha" : "Certo / Errado"}
+            </span>
+          )}
+        </div>
 
-  <div className="flex items-center gap-2">
-    {/* BOTÃO DE REVISAR DEPOIS / BANDEIRA */}
-    <button
-      type="button"
-      onClick={onToggleFlag}
-      className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-        isFlagged
-          ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
-          : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-      }`}
-      title="Marcar questão para revisar depois"
-    >
-      <Flag size={13} className={isFlagged ? "fill-amber-300 text-amber-300" : ""} />
-      <span className="hidden sm:inline text-[11px]">
-        {isFlagged ? "Marcada" : "Revisar"}
-      </span>
-    </button>
-  </div>
-</div>
+        <div className="flex items-center gap-2">
+          {/* BOTÃO DE REVISAR DEPOIS / BANDEIRA */}
+          <button
+            type="button"
+            onClick={onToggleFlag}
+            className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              isFlagged
+                ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+            }`}
+            title="Marcar questão para revisar depois"
+          >
+            <Flag size={13} className={isFlagged ? "fill-amber-300 text-amber-300" : ""} />
+            <span className="hidden sm:inline text-[11px]">
+              {isFlagged ? "Marcada" : "Revisar"}
+            </span>
+          </button>
+        </div>
+      </div>
 
       {/* ENUNCIADO */}
       <p className="text-slate-200 text-[15px] sm:text-base font-medium mb-6 leading-relaxed whitespace-pre-line">
