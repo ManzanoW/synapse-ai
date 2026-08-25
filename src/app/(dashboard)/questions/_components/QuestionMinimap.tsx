@@ -68,7 +68,7 @@ export function QuestionMinimap({
           })}
         </div>
 
-        {/* MENSAGEM DE NAVEGAÇÃO RÁPIDA */}
+        {/* MENSAGEM DE NAVEGAÇÃO */}
         <div className="hidden lg:flex items-center gap-1.5 border-l border-white/10 pl-3 text-[10px] text-slate-400 font-mono">
           <span className="bg-white/10 px-1.5 py-0.5 rounded text-slate-300">↑↓</span>
           <span>Navegar</span>
