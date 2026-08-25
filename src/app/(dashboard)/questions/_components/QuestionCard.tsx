@@ -39,7 +39,7 @@ const renderEnunciado = (texto: string) => {
       return (
         <span
           key={`highlight-${i}`}
-          className="inline-block bg-indigo-500/15 text-indigo-200 px-1.5 py-0.5 rounded-md border border-indigo-400/30 font-semibold align-baseline shadow-xs"
+          className="inline-block bg-indigo-500/15 text-indigo-200 px-1.5 py-0.5 mx-0.5 rounded-md border border-indigo-400/30 font-semibold align-baseline shadow-xs"
         >
           {conteudoLimpo}
         </span>

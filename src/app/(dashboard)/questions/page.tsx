@@ -367,7 +367,6 @@ export default function QuestoesPage() {
   );
   const availableTopics = currentSubjectObj?.topics || [];
 
-  // Mapeamento de tópicos achatados para o Modal
   const allModalTopics = subjects.flatMap(
     (s) =>
       s.topics?.map((t) => ({
@@ -745,15 +744,12 @@ export default function QuestoesPage() {
     handleAnswerQuestion,
   ]);
 
-  // VIZUALIZAÇÃO MODO IMPRESSÃO / PDF
   if (isPrintMode) {
     return (
       <PrintableQuestions
         title={materia ? `Simulado - ${materia}` : "Simulado de Questões Geral"}
         totalQuestions={questions.length > 0 ? questions.length : 20}
-        estimatedTimeMinutes={
-          questions.length > 0 ? questions.length * 2 : 40
-        }
+        estimatedTimeMinutes={questions.length > 0 ? questions.length * 2 : 40}
         onBack={() => setIsPrintMode(false)}
         questions={
           questions.length > 0
@@ -803,15 +799,35 @@ export default function QuestoesPage() {
             </button>
             <div>
               <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-xs">
                   <HelpCircle size={20} />
                 </div>
                 Banco de Provas & Simulados
               </h1>
-              <p className="text-xs text-slate-400 mt-1">
-                Simulados inteligentes focados na banca{" "}
-                <strong className="text-indigo-400">{banca || "FGV"}</strong>.
-                Treine com feedback em tempo real.
+
+              {/* DESCRIÇÃO DINÂMICA CONTEXTUAL */}
+              <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                {questions.length > 0 && activeTab === "create" ? (
+                  <>
+                    <span>Resolução ativa para</span>
+                    <span className="inline-flex items-center gap-1 font-bold text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-md border border-indigo-500/20 text-[11px]">
+                      {banca || "Geral"}
+                    </span>
+                    {materia && (
+                      <>
+                        <span className="text-slate-600">•</span>
+                        <span className="text-slate-300 font-medium">
+                          {materia}
+                        </span>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <span>
+                    Crie cadernos adaptativos com inteligência artificial e
+                    acompanhe sua evolução em tempo real.
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -839,7 +855,7 @@ export default function QuestoesPage() {
           </div>
         </div>
 
-        {/* COMPONENTE OBRIGATÓRIO BLOQUEANTE SE O EDITAL ESTIVER VAZIO */}
+        {/* ETAPA OBRIGATÓRIA EDITAL */}
         {subjects.length === 0 && questions.length === 0 && (
           <div className="min-h-[60vh] flex items-center justify-center py-4">
             <div className="relative overflow-hidden max-w-xl w-full bg-linear-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl space-y-6">
@@ -874,7 +890,7 @@ export default function QuestoesPage() {
           </div>
         )}
 
-        {/* CONTEÚDO NORMAL DA PÁGINA (SÓ RENDERIZA SE TIVER SUBJECTS) */}
+        {/* CONTEÚDO PRINCIPAL */}
         {subjects.length > 0 && (
           <>
             {/* 2. BARRA DE PROGRESSO DO SIMULADO */}
@@ -986,7 +1002,7 @@ export default function QuestoesPage() {
                         />
                       )}
 
-                    {/* BANNER HERO SPOTLIGHT */}
+                    {/* HERO SPOTLIGHT */}
                     <div className="relative overflow-hidden bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl">
                       <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-indigo-500/10 blur-[100px]" />
                       <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
@@ -1070,19 +1086,12 @@ export default function QuestoesPage() {
                 ) : (
                   /* CADERNO DE QUESTÕES EM RESOLUÇÃO */
                   <div className="space-y-6">
-                    <div className="bg-[#090d16]/90 border border-indigo-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-extrabold bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                            {banca}
-                          </span>
-                          <span className="text-xs text-slate-400 font-medium">
-                            Caderno em Resolução
-                          </span>
-                        </div>
-                        <h2 className="text-lg font-bold text-slate-100">
-                          {materia || "Simulado Customizado"}
-                        </h2>
+                    <div className="bg-[#090d16]/90 border border-white/10 px-5 py-3 rounded-2xl flex items-center justify-between gap-4 shadow-xl backdrop-blur-md">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-xs text-slate-300 font-semibold tracking-wide uppercase">
+                          Sessão em Andamento
+                        </span>
                       </div>
 
                       <button
@@ -1096,13 +1105,14 @@ export default function QuestoesPage() {
                           setIsTimerRunning(false);
                         }}
                         type="button"
-                        className="text-xs text-slate-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 bg-slate-950 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-medium"
+                        className="text-xs text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/30 bg-slate-950/60 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-medium"
                       >
                         Encerrar Caderno
                       </button>
                     </div>
 
-                    <div className="space-y-6 pb-24">
+                    {/* MARGEM INFERIOR AUMENTADA PARA PB-28 PARA O MINIMAP NÃO COBRIR O CONTEÚDO */}
+                    <div className="space-y-6 pb-28">
                       {questions.map((questao, index) => (
                         <QuestionCard
                           key={`questao-${index}`}
@@ -1193,7 +1203,7 @@ export default function QuestoesPage() {
         )}
       </div>
 
-      {/* FLOATING MINIMAP (BARRA FLUTUANTE DE NAVEGAÇÃO ENTRE QUESTÕES) */}
+      {/* FLOATING MINIMAP */}
       {questions.length > 0 && activeTab === "create" && (
         <QuestionMinimap
           questions={questions}
