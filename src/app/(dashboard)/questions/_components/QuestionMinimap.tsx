@@ -1,14 +1,13 @@
 "use client";
 
-import React from "react";
-import { Flag } from "lucide-react";
+import React, { useEffect, useRef } from "react";
 import { QuestaoIA } from "../page";
 
 interface QuestionMinimapProps {
   questions: QuestaoIA[];
   checkedQuestions: Record<number, boolean>;
   selectedAnswers: Record<number, string>;
-  flaggedQuestions?: Record<number, boolean>;
+  flaggedQuestions: Record<number, boolean>;
   focusedIndex: number;
   onSelectQuestion: (index: number) => void;
 }
@@ -17,60 +16,75 @@ export function QuestionMinimap({
   questions,
   checkedQuestions,
   selectedAnswers,
-  flaggedQuestions = {},
+  flaggedQuestions,
   focusedIndex,
   onSelectQuestion,
 }: QuestionMinimapProps) {
-  if (!questions || questions.length === 0) return null;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const activeItemRef = useRef<HTMLButtonElement>(null);
+
+  // EFETUA O AUTO-SCROLL PARA CENTRALIZAR O NÚMERO SELECIONADO
+  useEffect(() => {
+    if (activeItemRef.current && containerRef.current) {
+      activeItemRef.current.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [focusedIndex]);
 
   return (
-    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 max-w-full px-4">
-      <div className="bg-[#090d16]/95 border border-white/10 shadow-2xl backdrop-blur-xl rounded-2xl px-4 py-2.5 flex items-center gap-2">
-        <div className="flex items-center gap-1.5 overflow-x-auto max-w-[80vw] sm:max-w-md md:max-w-lg scrollbar-none py-0.5">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[90vw] sm:max-w-xl w-full px-2">
+      <div className="bg-[#090d16]/90 border border-white/10 backdrop-blur-xl p-2 rounded-2xl shadow-2xl flex items-center justify-between gap-3">
+        {/* CONTAINER COM ROLAGEM HORIZONTAL INVISÍVEL */}
+        <div
+          ref={containerRef}
+          className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 px-1 scroll-smooth w-full"
+        >
           {questions.map((q, idx) => {
-            const isChecked = Boolean(checkedQuestions[idx]);
+            const isAnswered = Boolean(checkedQuestions[idx]);
+            const isSelected = selectedAnswers[idx] !== undefined;
             const isFlagged = Boolean(flaggedQuestions[idx]);
             const isFocused = idx === focusedIndex;
-            const userAnswer = selectedAnswers[idx];
-            const isCorrect = isChecked && userAnswer === q.gabaritoCorreto;
 
-            let statusStyles = "bg-white/5 border-white/10 text-slate-400 hover:border-white/30";
+            let btnStyle =
+              "bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-white";
 
-            if (isChecked) {
-              if (isCorrect) {
-                statusStyles = "bg-emerald-500/20 border-emerald-500/50 text-emerald-300 font-bold";
-              } else {
-                statusStyles = "bg-rose-500/20 border-rose-500/50 text-rose-300 font-bold";
-              }
-            } else if (userAnswer) {
-              statusStyles = "bg-indigo-500/20 border-indigo-500/40 text-indigo-300 font-bold";
+            if (isAnswered) {
+              const isCorrect = selectedAnswers[idx] === q.gabaritoCorreto;
+              btnStyle = isCorrect
+                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                : "bg-rose-500/20 text-rose-400 border-rose-500/40";
+            } else if (isSelected) {
+              btnStyle = "bg-indigo-500/30 text-indigo-300 border-indigo-500/50";
             }
 
             return (
               <button
-                key={`minimap-item-${idx}`}
-                type="button"
+                key={idx}
+                ref={isFocused ? activeItemRef : null}
                 onClick={() => onSelectQuestion(idx)}
-                className={`relative shrink-0 w-8 h-8 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center border cursor-pointer ${statusStyles} ${
-                  isFocused ? "ring-2 ring-indigo-400 ring-offset-2 ring-offset-[#02050e] scale-105" : ""
+                type="button"
+                className={`relative shrink-0 w-8 h-8 rounded-xl text-xs font-bold border transition-all flex items-center justify-center cursor-pointer ${btnStyle} ${
+                  isFocused
+                    ? "ring-2 ring-indigo-500 ring-offset-2 ring-offset-[#02050e] scale-105 shadow-lg shadow-indigo-500/30 z-10"
+                    : ""
                 }`}
               >
                 <span>{idx + 1}</span>
 
-                {/* ÍCONE DE BANDEIRA / DÚVIDA */}
+                {/* INDICADOR DE FLAG (MARCADA) */}
                 {isFlagged && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 border border-[#02050e] rounded-full flex items-center justify-center shadow-xs">
-                    <Flag size={7} className="text-slate-950 fill-slate-950" />
-                  </span>
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-[#090d16]" />
                 )}
               </button>
             );
           })}
         </div>
 
-        {/* MENSAGEM DE NAVEGAÇÃO */}
-        <div className="hidden lg:flex items-center gap-1.5 border-l border-white/10 pl-3 text-[10px] text-slate-400 font-mono">
-          <span className="bg-white/10 px-1.5 py-0.5 rounded text-slate-300">↑↓</span>
+        <div className="hidden sm:flex items-center gap-1 text-[10px] text-slate-400 font-medium px-2 py-1 rounded-lg bg-white/5 border border-white/5 shrink-0">
+          <span>↕</span>
           <span>Navegar</span>
         </div>
       </div>
