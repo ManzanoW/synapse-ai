@@ -110,7 +110,7 @@ function randomizeQuizSession(questionsList: QuestaoIA[]): QuestaoIA[] {
 
 export default function QuestoesPage() {
   const router = useRouter();
-  const { openSidebar } = useSidebar();
+  const { openSidebar, closeSidebar } = useSidebar();
   const searchParams = useSearchParams();
 
   // Estados gerais
@@ -190,6 +190,13 @@ export default function QuestoesPage() {
   } | null>(null);
 
   const { stats: gamificationStats, refreshStats } = useGamification();
+
+  // EFEITO PARA FECHAR SIDEBAR AO ATIVAR MODO ZEN
+  useEffect(() => {
+    if (isZenMode && closeSidebar) {
+      closeSidebar();
+    }
+  }, [isZenMode, closeSidebar]);
 
   useEffect(() => {
     if (levelUpData?.leveledUp) {
@@ -797,6 +804,24 @@ export default function QuestoesPage() {
 
   return (
     <div className="min-h-screen bg-[#02050e] text-slate-100 p-4 md:p-8 font-sans antialiased relative selection:bg-indigo-500/30">
+      {/* OCULTA A SIDEBAR GLOBAL COMPLETAMENTE QUANDO O MODO ZEN ESTIVER ATIVO */}
+      {isZenMode && (
+        <style jsx global>{`
+          aside,
+          [data-sidebar="sidebar"],
+          .sidebar-container {
+            display: none !important;
+          }
+          main,
+          #dashboard-content {
+            margin-left: 0 !important;
+            padding-left: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+        `}</style>
+      )}
+
       {questions.length > 0 && activeTab === "create" && (
         <FloatingTimer
           seconds={timerSeconds}
