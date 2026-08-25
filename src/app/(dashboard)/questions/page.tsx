@@ -133,6 +133,9 @@ export default function QuestoesPage() {
   const [checkedQuestions, setCheckedQuestions] = useState<
     Record<number, boolean>
   >({});
+  const [flaggedQuestions, setFlaggedQuestions] = useState<
+    Record<number, boolean>
+  >({});
   const [currentQuizId, setCurrentQuizId] = useState<string | null>(null);
   const [savedErrors, setSavedErrors] = useState<Record<number, boolean>>({});
   const [creatingFlashcardIndex, setCreatingFlashcardIndex] = useState<
@@ -233,6 +236,7 @@ export default function QuestoesPage() {
             setMateria(foundQuiz.subject || "");
             setSelectedAnswers({});
             setCheckedQuestions({});
+            setFlaggedQuestions({});
             setTimerSeconds(0);
             setIsTimerRunning(true);
             setActiveTab("create");
@@ -404,6 +408,7 @@ export default function QuestoesPage() {
       setQuestions([]);
       setSelectedAnswers({});
       setCheckedQuestions({});
+      setFlaggedQuestions({});
       setSavedErrors({});
       setCreatedFlashcards({});
       setShowCompletionModal(false);
@@ -612,6 +617,7 @@ export default function QuestoesPage() {
       setIsAIModalOpen(false);
       setSelectedAnswers({});
       setCheckedQuestions({});
+      setFlaggedQuestions({});
       setSavedErrors({});
       setCreatedFlashcards({});
       setTimerSeconds(0);
@@ -749,7 +755,9 @@ export default function QuestoesPage() {
       <PrintableQuestions
         title={materia ? `Simulado - ${materia}` : "Simulado de Questões Geral"}
         totalQuestions={questions.length > 0 ? questions.length : 20}
-        estimatedTimeMinutes={questions.length > 0 ? questions.length * 2 : 40}
+        estimatedTimeMinutes={
+          questions.length > 0 ? questions.length * 2 : 40
+        }
         onBack={() => setIsPrintMode(false)}
         questions={
           questions.length > 0
@@ -1099,6 +1107,7 @@ export default function QuestoesPage() {
                           setQuestions([]);
                           setSelectedAnswers({});
                           setCheckedQuestions({});
+                          setFlaggedQuestions({});
                           localStorage.removeItem(STORAGE_KEY);
                           setPausedSession(null);
                           setCurrentQuizId(null);
@@ -1124,6 +1133,7 @@ export default function QuestoesPage() {
                           isSavedError={Boolean(savedErrors[index])}
                           isFlashcardCreated={Boolean(createdFlashcards[index])}
                           isCreatingFlashcard={creatingFlashcardIndex === index}
+                          isFlagged={Boolean(flaggedQuestions[index])}
                           onSelectAnswer={(altId) =>
                             setSelectedAnswers((prev) => ({
                               ...prev,
@@ -1138,6 +1148,12 @@ export default function QuestoesPage() {
                             }))
                           }
                           onCreateFlashcard={() => handleCreateFlashcard(index)}
+                          onToggleFlag={() =>
+                            setFlaggedQuestions((prev) => ({
+                              ...prev,
+                              [index]: !prev[index],
+                            }))
+                          }
                         />
                       ))}
                     </div>
@@ -1164,6 +1180,7 @@ export default function QuestoesPage() {
                     setCurrentQuizId(id);
                     setSelectedAnswers({});
                     setCheckedQuestions({});
+                    setFlaggedQuestions({});
                     setSavedErrors({});
                     setCreatedFlashcards({});
                     setShowCompletionModal(false);
@@ -1194,6 +1211,7 @@ export default function QuestoesPage() {
                   setQuestions([]);
                   setSelectedAnswers({});
                   setCheckedQuestions({});
+                  setFlaggedQuestions({});
                   setCurrentQuizId(null);
                   handleTabChange("create");
                 }}
@@ -1209,6 +1227,7 @@ export default function QuestoesPage() {
           questions={questions}
           checkedQuestions={checkedQuestions}
           selectedAnswers={selectedAnswers}
+          flaggedQuestions={flaggedQuestions}
           focusedIndex={focusedQuestionIndex}
           onSelectQuestion={(idx) => {
             setFocusedQuestionIndex(idx);
@@ -1276,6 +1295,7 @@ export default function QuestoesPage() {
           onRestart={() => {
             setSelectedAnswers({});
             setCheckedQuestions({});
+            setFlaggedQuestions({});
             setTimerSeconds(0);
             setFocusedQuestionIndex(0);
             setIsTimerRunning(true);
