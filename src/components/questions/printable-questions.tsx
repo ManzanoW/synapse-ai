@@ -44,39 +44,50 @@ export function PrintableQuestions({
 }: PrintableQuestionsProps) {
   return (
     <>
-      {/* ESTILOS DE IMPRESSÃO GLOBAIS QUE OCULTAM A SIDEBAR/APP EXTERNO */}
+      {/* ESTILOS DE IMPRESSÃO OTIMIZADOS */}
       <style jsx global>{`
         @media print {
-          /* Esconde tudo no body */
+          /* Oculta tudo que pertence ao app / sidebar */
           body * {
             visibility: hidden !important;
           }
-          /* Exibe apenas o container da prova */
           #printable-paper,
           #printable-paper * {
             visibility: visible !important;
           }
-          /* Posiciona a folha no topo esquerdo absoluto sem margens externas do app */
           #printable-paper {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
             margin: 0 !important;
-            padding: 10mm !important;
+            padding: 0 !important;
             box-shadow: none !important;
             background: white !important;
             color: black !important;
           }
-          /* Ajuste para impressoras térmicas de 80mm / cupons */
+
+          /* Margens da folha */
           @page {
-            margin: 5mm;
+            margin: 8mm;
+          }
+
+          /* Otimização para cupons / bobinas estreitas (ex: Epson TM-T20) */
+          @media (max-width: 120mm) {
+            .header-info-grid {
+              display: flex !important;
+              flex-direction: column !important;
+              gap: 8px !important;
+            }
+            .header-info-grid > div {
+              width: 100% !important;
+            }
           }
         }
       `}</style>
 
       <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 font-sans print:bg-white print:p-0">
-        {/* BARRA SUPERIOR DE AÇÕES (OCULTA NA IMPRESSÃO) */}
+        {/* BARRA SUPERIOR DE AÇÕES */}
         <div className="max-w-4xl mx-auto mb-6 flex items-center justify-between print:hidden">
           <button
             onClick={onBack}
@@ -97,7 +108,7 @@ export function PrintableQuestions({
           </button>
         </div>
 
-        {/* CONTAINER DA FOLHA (ÚNICA COISA QUE APARECE NO PRINT) */}
+        {/* CONTAINER DA PROVA */}
         <div
           id="printable-paper"
           className="max-w-4xl mx-auto bg-white text-black p-8 md:p-12 rounded-2xl shadow-2xl print:shadow-none print:p-0 print:max-w-none print:w-full"
@@ -114,7 +125,7 @@ export function PrintableQuestions({
               {title}
             </h1>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 text-xs text-slate-700">
+            <div className="header-info-grid grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 text-xs text-slate-700">
               <div>
                 <span className="font-bold text-slate-400 block text-[9px] uppercase">
                   Nome do Candidato:
@@ -132,7 +143,7 @@ export function PrintableQuestions({
             </div>
           </div>
 
-          {/* LISTA DE QUESTÕES (1 Coluna em impressoras pequenas/térmicas, 2 em A4) */}
+          {/* LISTA DE QUESTÕES */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 text-xs text-slate-800 mb-10 print:grid-cols-1 print:sm:grid-cols-2">
             {questions.map((q) => (
               <div key={q.id} className="space-y-2 break-inside-avoid">
