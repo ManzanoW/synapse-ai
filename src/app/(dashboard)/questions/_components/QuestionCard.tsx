@@ -18,16 +18,18 @@ import { QuestaoIA } from "../page";
 interface QuestionCardProps {
   questao: QuestaoIA;
   index: number;
+  isFocused: boolean;
   respondida: boolean;
-  isFocused?: boolean;
   alternativaSelecionada?: string;
   isSavedError: boolean;
   isFlashcardCreated: boolean;
   isCreatingFlashcard: boolean;
-  onSelectAnswer: (answerId: string) => void;
+  isFlagged?: boolean;
+  onSelectAnswer: (altId: string) => void;
   onAnswerQuestion: () => void;
   onToggleSaveError: () => void;
   onCreateFlashcard: () => void;
+  onToggleFlag?: () => void; 
 }
 
 const renderEnunciado = (texto: string) => {
@@ -130,43 +132,37 @@ export function QuestionCard({
       )}
 
       {/* HEADER DA QUESTÃO */}
-      <div className="flex items-center justify-between mb-5 border-b border-slate-800/60 pb-3.5">
-        <div className="flex items-center gap-3">
-          <span className="text-slate-100 font-extrabold text-sm tracking-tight">
-            QUESTÃO {index + 1}
-          </span>
+      <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+  <div className="flex items-center gap-2">
+    <span className="text-xs font-black tracking-wider text-indigo-400 uppercase">
+      QUESTÃO {index + 1}
+    </span>
+    {questao.formato && (
+      <span className="text-[10px] font-bold bg-white/5 border border-white/10 text-slate-400 px-2 py-0.5 rounded-md uppercase">
+        {questao.formato === "multipla" ? "Múltipla Escolha" : "Certo / Errado"}
+      </span>
+    )}
+  </div>
 
-          {respondida && !acertou && (
-            <button
-              onClick={onToggleSaveError}
-              type="button"
-              className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                isSavedError
-                  ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-                  : "bg-slate-900/50 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
-              }`}
-            >
-              {isSavedError ? (
-                <>
-                  <BookmarkCheck size={12} className="text-amber-400" />
-                  <span className="font-semibold">Salva no Caderno</span>
-                </>
-              ) : (
-                <>
-                  <Bookmark size={12} />
-                  <span>Salvar erro</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
-
-        <span className="text-[10px] font-semibold text-indigo-300/80 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-md uppercase tracking-wider">
-          {questao.formato === "multipla"
-            ? "Múltipla Escolha"
-            : "Certo / Errado"}
-        </span>
-      </div>
+  <div className="flex items-center gap-2">
+    {/* BOTÃO DE REVISAR DEPOIS / BANDEIRA */}
+    <button
+      type="button"
+      onClick={onToggleFlag}
+      className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+        isFlagged
+          ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+          : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+      }`}
+      title="Marcar questão para revisar depois"
+    >
+      <Flag size={13} className={isFlagged ? "fill-amber-300 text-amber-300" : ""} />
+      <span className="hidden sm:inline text-[11px]">
+        {isFlagged ? "Marcada" : "Revisar"}
+      </span>
+    </button>
+  </div>
+</div>
 
       {/* ENUNCIADO */}
       <p className="text-slate-200 text-[15px] sm:text-base font-medium mb-6 leading-relaxed whitespace-pre-line">
