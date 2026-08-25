@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma generate && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "context:study": "npx repomix --include \"src/app/(dashboard)/study/**/*,src/components/flashcards/**/*,src/components/decks/**/*,src/components/questions/**/*\" --ignore \"src/components/ui/**,**/*.skeleton.tsx\" -o context-study.txt",
