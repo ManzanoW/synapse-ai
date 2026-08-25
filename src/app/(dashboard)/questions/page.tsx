@@ -18,6 +18,8 @@ import {
   Lock,
   Printer,
   PlusCircle,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -145,6 +147,7 @@ export default function QuestoesPage() {
     Record<number, boolean>
   >({});
   const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
+  const [isZenMode, setIsZenMode] = useState(false); // Modo Foco Total
 
   // Cronômetro e conclusão
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -413,6 +416,7 @@ export default function QuestoesPage() {
       setCreatedFlashcards({});
       setShowCompletionModal(false);
       setCurrentQuizId(null);
+      setIsZenMode(false);
     }
     setPendingTab(null);
   };
@@ -661,6 +665,13 @@ export default function QuestoesPage() {
       const isAlreadyAnswered = Boolean(checkedQuestions[focusedQuestionIndex]);
       const keyUpper = e.key.toUpperCase();
 
+      // ATALHO PARA ATIVAR / DESATIVAR MODO ZEN (FOCO TOTAL)
+      if (keyUpper === "Z") {
+        e.preventDefault();
+        setIsZenMode((prev) => !prev);
+        return;
+      }
+
       const mapKeyToAlt: Record<string, string> = {
         A: "A",
         B: "B",
@@ -795,73 +806,75 @@ export default function QuestoesPage() {
       )}
 
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
-          <div className="flex items-center gap-3.5">
-            <button
-              onClick={openSidebar}
-              type="button"
-              className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors cursor-pointer"
-            >
-              <Menu size={18} />
-            </button>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-xs">
-                  <HelpCircle size={20} />
-                </div>
-                Banco de Provas & Simulados
-              </h1>
+        {/* ================= 1. CABEÇALHO PRINCIPAL (OCULTO NO MODO ZEN) ================= */}
+        {!isZenMode && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6 transition-all duration-300">
+            <div className="flex items-center gap-3.5">
+              <button
+                onClick={openSidebar}
+                type="button"
+                className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors cursor-pointer"
+              >
+                <Menu size={18} />
+              </button>
+              <div>
+                <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-xs">
+                    <HelpCircle size={20} />
+                  </div>
+                  Banco de Provas & Simulados
+                </h1>
 
-              {/* DESCRIÇÃO DINÂMICA CONTEXTUAL */}
-              <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                {questions.length > 0 && activeTab === "create" ? (
-                  <>
-                    <span>Resolução ativa para</span>
-                    <span className="inline-flex items-center gap-1 font-bold text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-md border border-indigo-500/20 text-[11px]">
-                      {banca || "Geral"}
+                {/* DESCRIÇÃO DINÂMICA CONTEXTUAL */}
+                <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                  {questions.length > 0 && activeTab === "create" ? (
+                    <>
+                      <span>Resolução ativa para</span>
+                      <span className="inline-flex items-center gap-1 font-bold text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-md border border-indigo-500/20 text-[11px]">
+                        {banca || "Geral"}
+                      </span>
+                      {materia && (
+                        <>
+                          <span className="text-slate-600">•</span>
+                          <span className="text-slate-300 font-medium">
+                            {materia}
+                          </span>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <span>
+                      Crie cadernos adaptativos com inteligência artificial e
+                      acompanhe sua evolução em tempo real.
                     </span>
-                    {materia && (
-                      <>
-                        <span className="text-slate-600">•</span>
-                        <span className="text-slate-300 font-medium">
-                          {materia}
-                        </span>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <span>
-                    Crie cadernos adaptativos com inteligência artificial e
-                    acompanhe sua evolução em tempo real.
-                  </span>
-                )}
-              </p>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              {questions.length > 0 && activeTab === "create" ? (
+                <button
+                  onClick={() => setIsPrintMode(true)}
+                  type="button"
+                  className="bg-white/5 border border-white/10 hover:border-cyan-500/40 text-cyan-400 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
+                >
+                  <Printer size={15} />
+                  <span>Versão Impressa</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsRegisterModalOpen(true)}
+                  type="button"
+                  className="bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
+                >
+                  <PlusCircle size={15} />
+                  <span>Registrar Externo</span>
+                </button>
+              )}
             </div>
           </div>
-
-          <div className="flex items-center gap-2.5">
-            {questions.length > 0 && activeTab === "create" ? (
-              <button
-                onClick={() => setIsPrintMode(true)}
-                type="button"
-                className="bg-white/5 border border-white/10 hover:border-cyan-500/40 text-cyan-400 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
-              >
-                <Printer size={15} />
-                <span>Versão Impressa</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setIsRegisterModalOpen(true)}
-                type="button"
-                className="bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
-              >
-                <PlusCircle size={15} />
-                <span>Registrar Externo</span>
-              </button>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* ETAPA OBRIGATÓRIA EDITAL */}
         {subjects.length === 0 && questions.length === 0 && (
@@ -935,45 +948,47 @@ export default function QuestoesPage() {
               </div>
             )}
 
-            {/* 3. NAVEGAÇÃO DE ABAS */}
-            <div className="flex border-b border-white/10 gap-2">
-              <button
-                onClick={() => handleTabChange("create")}
-                type="button"
-                className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
-                  activeTab === "create"
-                    ? "border-indigo-500 text-indigo-400 bg-white/5"
-                    : "border-transparent text-slate-400 hover:text-white"
-                }`}
-              >
-                {questions.length > 0 ? (
-                  <>
-                    <Zap size={14} className="text-indigo-400" />
-                    <span>Caderno Ativo</span>
-                  </>
-                ) : (
-                  <>
-                    <Home size={14} />
-                    <span>Início</span>
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  handleTabChange("history");
-                  fetchQuizHistory();
-                }}
-                type="button"
-                className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
-                  activeTab === "history"
-                    ? "border-indigo-500 text-indigo-400 bg-white/5"
-                    : "border-transparent text-slate-400 hover:text-white"
-                }`}
-              >
-                <History size={14} />
-                <span>Simulados Salvos</span>
-              </button>
-            </div>
+            {/* 3. NAVEGAÇÃO DE ABAS (OCULTA NO MODO ZEN) */}
+            {!isZenMode && (
+              <div className="flex border-b border-white/10 gap-2">
+                <button
+                  onClick={() => handleTabChange("create")}
+                  type="button"
+                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
+                    activeTab === "create"
+                      ? "border-indigo-500 text-indigo-400 bg-white/5"
+                      : "border-transparent text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {questions.length > 0 ? (
+                    <>
+                      <Zap size={14} className="text-indigo-400" />
+                      <span>Caderno Ativo</span>
+                    </>
+                  ) : (
+                    <>
+                      <Home size={14} />
+                      <span>Início</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    handleTabChange("history");
+                    fetchQuizHistory();
+                  }}
+                  type="button"
+                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
+                    activeTab === "history"
+                      ? "border-indigo-500 text-indigo-400 bg-white/5"
+                      : "border-transparent text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <History size={14} />
+                  <span>Simulados Salvos</span>
+                </button>
+              </div>
+            )}
 
             {/* 4. ABA 1: HUB OU CADERNO ATIVO */}
             {activeTab === "create" && (
@@ -1098,26 +1113,50 @@ export default function QuestoesPage() {
                       <div className="flex items-center gap-2.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                         <span className="text-xs text-slate-300 font-semibold tracking-wide uppercase">
-                          Sessão em Andamento
+                          {isZenMode ? "Modo Foco Total (Zen)" : "Sessão em Andamento"}
                         </span>
                       </div>
 
-                      <button
-                        onClick={() => {
-                          setQuestions([]);
-                          setSelectedAnswers({});
-                          setCheckedQuestions({});
-                          setFlaggedQuestions({});
-                          localStorage.removeItem(STORAGE_KEY);
-                          setPausedSession(null);
-                          setCurrentQuizId(null);
-                          setIsTimerRunning(false);
-                        }}
-                        type="button"
-                        className="text-xs text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/30 bg-slate-950/60 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-medium"
-                      >
-                        Encerrar Caderno
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {/* BOTÃO DO MODO FOCO / ZEN */}
+                        <button
+                          onClick={() => setIsZenMode((prev) => !prev)}
+                          type="button"
+                          className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                            isZenMode
+                              ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
+                              : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+                          }`}
+                          title={
+                            isZenMode
+                              ? "Sair do Modo Foco (Teclado: Z)"
+                              : "Ativar Modo Foco (Teclado: Z)"
+                          }
+                        >
+                          {isZenMode ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                          <span className="hidden sm:inline text-[11px]">
+                            {isZenMode ? "Sair do Zen" : "Modo Zen"}
+                          </span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setQuestions([]);
+                            setSelectedAnswers({});
+                            setCheckedQuestions({});
+                            setFlaggedQuestions({});
+                            localStorage.removeItem(STORAGE_KEY);
+                            setPausedSession(null);
+                            setCurrentQuizId(null);
+                            setIsTimerRunning(false);
+                            setIsZenMode(false);
+                          }}
+                          type="button"
+                          className="text-xs text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/30 bg-slate-950/60 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-medium"
+                        >
+                          Encerrar Caderno
+                        </button>
+                      </div>
                     </div>
 
                     {/* MARGEM INFERIOR AUMENTADA PARA PB-28 PARA O MINIMAP NÃO COBRIR O CONTEÚDO */}
@@ -1214,6 +1253,7 @@ export default function QuestoesPage() {
                   setFlaggedQuestions({});
                   setCurrentQuizId(null);
                   handleTabChange("create");
+                  setIsZenMode(false);
                 }}
               />
             )}
