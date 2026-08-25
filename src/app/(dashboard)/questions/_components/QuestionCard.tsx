@@ -12,6 +12,7 @@ import {
   CornerDownLeft,
   EyeOff,
   Eye,
+  Flag,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
 
