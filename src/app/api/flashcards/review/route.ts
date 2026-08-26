@@ -1,9 +1,8 @@
-// src/app/api/flashcards/review/route.ts
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { calculateEarnedXp, calculateLevel } from "@/lib/gamification";
+import { calculateSM2, convertLabelToGrade, PerformanceLabel } from "@/lib/sm2";
 
 export async function POST(request: Request) {
   try {
@@ -16,14 +15,14 @@ export async function POST(request: Request) {
 
     const { cardId, grade, streakDays = 0 } = await request.json();
 
-    if (!cardId || !grade) {
+    if (!cardId || grade === undefined) {
       return NextResponse.json(
         { error: "Campos obrigatórios ausentes (cardId, grade)" },
         { status: 400 },
       );
     }
 
-    // 1. Busca o Flashcard e o seu Tópico associado (se houver)
+    // 1. Busca o Flashcard e o seu Tópico associado
     const card = await prisma.flashcard.findUnique({
       where: { id: String(cardId) },
       include: {
@@ -31,8 +30,21 @@ export async function POST(request: Request) {
       },
     });
 
+    if (!card) {
+      return NextResponse.json(
+        { error: "Flashcard não encontrado" },
+        { status: 404 },
+      );
+    }
+
+    // Convertemos o valor recebido para o padrão numérico SM-2 (0 a 5)
+    const numericGrade =
+      typeof grade === "number"
+        ? grade
+        : convertLabelToGrade(String(grade) as PerformanceLabel);
+
     // 2. Calcula e atualiza a Gamificação (XP + Nível)
-    const earnedXp = calculateEarnedXp(grade, streakDays);
+    const earnedXp = calculateEarnedXp(numericGrade, streakDays);
 
     const updatedStats = await prisma.userStats.upsert({
       where: { userId },
@@ -50,59 +62,25 @@ export async function POST(request: Request) {
     const levelInfo = calculateLevel(updatedStats.totalXp);
 
     // 3. Atualiza o algoritmo SM-2 no Tópico do Edital (se vinculado)
-    if (card?.topicId && card.topic) {
-      // Mapeamento da nota (ex: "BOM", "EASY", "HARD", "AGAIN" ou valores numéricos 0 a 5)
-      let q = 3;
-      const gUpper = String(grade).toUpperCase();
-      if (gUpper === "AGAIN" || gUpper === "ERREI" || gUpper === "0") q = 1;
-      else if (gUpper === "HARD" || gUpper === "DIFICIL" || gUpper === "2")
-        q = 2;
-      else if (
-        gUpper === "GOOD" ||
-        gUpper === "BOM" ||
-        gUpper === "3" ||
-        gUpper === "4"
-      )
-        q = 4;
-      else if (gUpper === "EASY" || gUpper === "FACIL" || gUpper === "5") q = 5;
-
-      let easiness = card.topic.easiness || 2.5;
-      let interval = card.topic.interval || 0;
-      let repetitions = card.topic.repetitions || 0;
-
-      if (q < 3) {
-        // Errou: reseta repetições e intervalo
-        repetitions = 0;
-        interval = 1;
-      } else {
-        // Acertou: avança intervalo
-        if (repetitions === 0) interval = 1;
-        else if (repetitions === 1) interval = 6;
-        else interval = Math.round(interval * easiness);
-
-        repetitions += 1;
-      }
-
-      // Novo fator de facilidade (EF)
-      easiness = Math.max(
-        1.3,
-        easiness + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)),
-      );
+    if (card.topicId && card.topic) {
+      const topicSm2 = calculateSM2({
+        interval: card.topic.interval || 0,
+        easiness: card.topic.easiness || 2.5,
+        repetitions: card.topic.repetitions || 0,
+        grade: numericGrade,
+      });
 
       const now = new Date();
-      const nextRev = new Date();
-      nextRev.setDate(now.getDate() + interval);
 
-      // Atualiza o Tópico e registra o histórico de revisão em paralelo
       await Promise.all([
         prisma.topic.update({
           where: { id: card.topicId },
           data: {
-            easiness,
-            interval,
-            repetitions,
+            easiness: topicSm2.nextEasiness,
+            interval: topicSm2.nextInterval,
+            repetitions: topicSm2.nextRepetitions,
             lastRev: now,
-            nextRev,
+            nextRev: topicSm2.nextReviewDate,
             firstStudy: "Concluido",
           },
         }),
@@ -116,7 +94,7 @@ export async function POST(request: Request) {
       ]);
     }
 
-    // 4. Registra a StudySession para alimentar o gráfico do painel semanal
+    // 4. Registra a StudySession para o painel semanal
     await prisma.studySession.create({
       data: {
         userId,
@@ -126,12 +104,10 @@ export async function POST(request: Request) {
     });
 
     // 5. Atualiza o timestamp do flashcard
-    if (card) {
-      await prisma.flashcard.update({
-        where: { id: card.id },
-        data: { updatedAt: new Date() },
-      });
-    }
+    await prisma.flashcard.update({
+      where: { id: card.id },
+      data: { updatedAt: new Date() },
+    });
 
     return NextResponse.json(
       {
