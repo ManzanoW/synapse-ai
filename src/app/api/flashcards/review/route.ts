@@ -44,7 +44,8 @@ export async function POST(request: Request) {
         : convertLabelToGrade(String(grade) as PerformanceLabel);
 
     // 2. Calcula e atualiza a Gamificação (XP + Nível)
-    const earnedXp = calculateEarnedXp(numericGrade, streakDays);
+    // Passamos String(grade) para corresponder ao parâmetro string esperado
+    const earnedXp = calculateEarnedXp(String(grade), streakDays);
 
     const updatedStats = await prisma.userStats.upsert({
       where: { userId },
