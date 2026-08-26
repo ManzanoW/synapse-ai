@@ -12,7 +12,7 @@ export function BottomNavigation() {
     { href: "/dashboard", label: "Início", icon: LayoutDashboard },
     { href: "/edital", label: "Edital", icon: BookOpen },
     { href: "/questions", label: "Provas", icon: HelpCircle },
-    { href: "/cards", label: "Cards", icon: Layers },
+    { href: "/flashcards", label: "Cards", icon: Layers },
   ];
 
   return (
