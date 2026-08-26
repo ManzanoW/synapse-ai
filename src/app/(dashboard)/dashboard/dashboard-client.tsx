@@ -364,7 +364,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         </div>
 
         {/* ================= ATALHOS RÁPIDOS (APENAS DESKTOP) ================= */}
-        {/* Oculto no Mobile para economizar rolagem vertical */}
         <div className="hidden md:grid grid-cols-4 gap-3">
           {[
             {
@@ -437,10 +436,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           )}
 
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
-        {/* Mosaico compacto no Mobile e Expandido no Desktop */}
         <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] p-4 sm:p-6 shadow-2xl backdrop-blur-2xl">
           
-          {/* LAYOUT MOBILE (Linha Única Compacta) */}
+          {/* LAYOUT MOBILE */}
           <div className="grid grid-cols-3 gap-2 text-center divide-x divide-white/10 md:hidden">
             <div className="px-1">
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">
@@ -473,9 +471,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
-          {/* LAYOUT DESKTOP (Completo) */}
+          {/* LAYOUT DESKTOP */}
           <div className="hidden md:grid relative z-10 grid-cols-3 items-stretch gap-0">
-            {/* COLUNA 1: TEMPO RESTANTE */}
             <div className="flex flex-col justify-between space-y-4 pr-8">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
@@ -507,7 +504,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             <div className="pointer-events-none absolute top-4 bottom-4 left-1/3 w-px bg-linear-to-b from-transparent via-white/10 to-transparent" />
 
-            {/* COLUNA 2: RITMO SUGERIDO */}
             <div className="flex flex-col justify-between space-y-4 px-8">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">
@@ -539,7 +535,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             <div className="pointer-events-none absolute top-4 bottom-4 left-2/3 w-px bg-linear-to-b from-transparent via-white/10 to-transparent" />
 
-            {/* COLUNA 3: PROGRESSO GERAL */}
             <div className="flex flex-col justify-between space-y-4 pl-8">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
@@ -588,45 +583,289 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </section>
 
-        {/* ================= 3. SELETOR DE ABAS MOBILE ================= */}
-        {/* Em telas menores que MD, exibe abas alternáveis para não ter que rolar tudo */}
-        <div className="flex md:hidden items-center p-1 bg-[#090d16] border border-white/10 rounded-2xl">
-          <button
-            type="button"
-            onClick={() => setMobileTab("missions")}
-            className={`flex-1 py-2 text-center text-[11px] font-bold rounded-xl transition-all ${
-              mobileTab === "missions"
-                ? "bg-indigo-600 text-white shadow-md"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Missões
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileTab("stats")}
-            className={`flex-1 py-2 text-center text-[11px] font-bold rounded-xl transition-all ${
-              mobileTab === "stats"
-                ? "bg-indigo-600 text-white shadow-md"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Estatísticas
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileTab("gamification")}
-            className={`flex-1 py-2 text-center text-[11px] font-bold rounded-xl transition-all ${
-              mobileTab === "gamification"
-                ? "bg-indigo-600 text-white shadow-md"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Nível / Meta
-          </button>
+        {/* ================= 3. SELETOR DE ABAS E CONTEÚDO EXCLUSIVO MOBILE ================= */}
+        <div className="block md:hidden space-y-4">
+          <div className="flex items-center p-1 bg-[#090d16] border border-white/10 rounded-2xl">
+            <button
+              type="button"
+              onClick={() => setMobileTab("missions")}
+              className={`flex-1 py-2 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                mobileTab === "missions"
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Missões
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("stats")}
+              className={`flex-1 py-2 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                mobileTab === "stats"
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Estatísticas
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("gamification")}
+              className={`flex-1 py-2 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                mobileTab === "gamification"
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Nível / Meta
+            </button>
+          </div>
+
+          {/* CONTEÚDO DA ABA SELECIONADA */}
+          {mobileTab === "missions" && (
+            <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
+                    <Target size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                      Missões de Hoje
+                    </h3>
+                    <p className="text-[10px] text-slate-400">
+                      Garanta seu bônus de XP diário
+                    </p>
+                  </div>
+                </div>
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300">
+                  +50 XP
+                </span>
+              </div>
+
+              <div className="space-y-2.5 pt-4">
+                {[
+                  {
+                    id: "q1",
+                    title: "Responder Questões",
+                    target: 10,
+                    current: stats?.metrics?.questionsCount ?? 0,
+                    actionUrl: "/questions",
+                    completed: (stats?.metrics?.questionsCount ?? 0) >= 10,
+                  },
+                  {
+                    id: "q2",
+                    title: "Revisar Flashcards",
+                    target: 15,
+                    current: stats?.metrics?.totalFlashcards ?? 0,
+                    actionUrl: "/cards",
+                    completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
+                  },
+                  {
+                    id: "q3",
+                    title: "Avançar no Edital",
+                    target: 1,
+                    current: (stats?.metrics?.sessionsCount ?? 0) > 0 ? 1 : 0,
+                    actionUrl: "/edital",
+                    completed: (stats?.metrics?.sessionsCount ?? 0) > 0,
+                  },
+                ].map((quest) => {
+                  const progress = Math.min(
+                    100,
+                    Math.round((quest.current / quest.target) * 100),
+                  );
+
+                  return (
+                    <div
+                      key={quest.id}
+                      className={`flex items-center justify-between gap-3 rounded-2xl border p-3 transition-all ${
+                        quest.completed
+                          ? "border-emerald-500/20 bg-emerald-500/5"
+                          : "border-white/5 bg-slate-950/40"
+                      }`}
+                    >
+                      <div className="flex flex-1 items-center gap-3">
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
+                            quest.completed
+                              ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
+                              : "border-white/10 bg-slate-900 text-slate-500"
+                          }`}
+                        >
+                          {quest.completed ? (
+                            <CheckCircle2 size={16} />
+                          ) : (
+                            <Zap size={14} className="text-amber-400" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex items-center justify-between">
+                            <h4 className="truncate text-xs font-bold text-slate-200">
+                              {quest.title}
+                            </h4>
+                            <span className="shrink-0 font-mono text-[10px] text-slate-400">
+                              {quest.current}/{quest.target}
+                            </span>
+                          </div>
+
+                          <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950">
+                            <div
+                              className={`h-full rounded-full ${
+                                quest.completed ? "bg-emerald-400" : "bg-indigo-500"
+                              }`}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {!quest.completed && (
+                        <Link
+                          href={quest.actionUrl}
+                          className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300"
+                        >
+                          Ir
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {mobileTab === "stats" && (
+            <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                  Estatísticas Chave
+                </span>
+                <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
+                  <Zap size={11} /> Tempo Real
+                </span>
+              </div>
+
+              <div className="mb-6 flex gap-6">
+                <div>
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Tempo Total
+                  </span>
+                  <span className="font-mono text-2xl font-black text-white">
+                    {stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                  </span>
+                </div>
+
+                <div className="flex-1">
+                  <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <span>Precisão</span>
+                    <span className="font-mono font-bold text-emerald-400">
+                      {stats?.metrics?.precision || "0%"}
+                    </span>
+                  </div>
+                  <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
+                    <div
+                      className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
+                      style={{ width: stats?.metrics?.precision || "0%" }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                  <span className="block text-[9px] font-bold uppercase text-slate-400">Sessões</span>
+                  <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.sessionsCount ?? 0}</span>
+                </div>
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                  <span className="block text-[9px] font-bold uppercase text-slate-400">Questões</span>
+                  <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.questionsCount ?? 0}</span>
+                </div>
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                  <span className="block text-[9px] font-bold uppercase text-slate-400">Méd/Dia</span>
+                  <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.averageTimePerSession || "0min"}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {mobileTab === "gamification" && (
+            <div className="space-y-4">
+              <Link
+                href="/achievements"
+                className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl"
+              >
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400">
+                      {level}
+                    </div>
+                    <div>
+                      <span className="block text-[9px] font-bold uppercase text-amber-400">
+                        Nível Atual
+                      </span>
+                      <h3 className="text-xs font-bold text-white">
+                        {levelTitle}
+                      </h3>
+                    </div>
+                  </div>
+                  <Award size={18} className="text-amber-400" />
+                </div>
+
+                <div className="space-y-2 pt-3">
+                  <div className="flex items-center justify-between font-mono text-xs">
+                    <span className="text-slate-400">
+                      XP: <strong className="text-white">{currentXp}</strong>
+                    </span>
+                    <span className="font-bold text-amber-400">{levelProgressPercent}%</span>
+                  </div>
+
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                    <div
+                      style={{ width: `${levelProgressPercent}%` }}
+                      className="h-full rounded-full bg-amber-500"
+                    />
+                  </div>
+                </div>
+              </Link>
+
+              <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
+                <Link href="/performance" className="block space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase text-slate-400">
+                      Meta Semanal
+                    </span>
+                    <span className="font-mono text-xs font-black text-indigo-400">
+                      {stats?.weeklyGoal?.percentage ?? 0}%
+                    </span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                    <div
+                      className="h-full rounded-full bg-indigo-500"
+                      style={{ width: `${stats?.weeklyGoal?.percentage ?? 0}%` }}
+                    />
+                  </div>
+                </Link>
+
+                <div className="my-2 border-t border-white/5" />
+
+                <Link href="/performance" className="block space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase text-slate-400">
+                      Constância
+                    </span>
+                    <span className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
+                      <Flame size={14} className="fill-amber-400 text-amber-400" />
+                      {Number(gStats.streakDays ?? globalGamification?.streak?.currentDays ?? 0)} Dias
+                    </span>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* ================= 4. CONTEÚDO PRINCIPAL (DASHBOARD GRID) ================= */}
+        {/* ================= 4. LAYOUT DESKTOP & DEMAIS COMPONENTES ================= */}
         <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-12">
           
           {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
@@ -655,11 +894,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             )}
 
-            {/* BLOCO DE MISSÕES & MÉTRICAS (Alternável no Mobile, Lado a Lado no Desktop) */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* PAINEL DUPLO APENAS NO DESKTOP */}
+            <div className="hidden md:grid grid-cols-2 gap-6">
               
               {/* CARD 1: Missões do Dia */}
-              <div className={`${mobileTab === "missions" ? "block" : "hidden"} md:block group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl backdrop-blur-2xl`}>
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
                 <div className="flex h-full flex-col justify-between space-y-4">
                   <div className="flex items-center justify-between border-b border-white/5 pb-3">
                     <div className="flex items-center gap-2.5">
@@ -774,7 +1013,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
 
               {/* CARD 2: Métricas de Desempenho */}
-              <div className={`${mobileTab === "stats" ? "block" : "hidden"} md:block group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl backdrop-blur-2xl`}>
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
                 <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
                     Estatísticas Chave
@@ -803,7 +1042,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     </div>
                     <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
                       <div
-                        className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400"
+                        className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
                         style={{ width: stats?.metrics?.precision || "0%" }}
                       />
                     </div>
@@ -829,7 +1068,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             {/* CARD 3: Sugestões com IA */}
             {!isLoading && hasEditalSubjects && (
-              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl">
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400">
@@ -920,107 +1159,115 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
-          {/* BARRA LATERAL DIREITA (`lg:col-span-4`) */}
-          <div className="space-y-6 lg:col-span-4">
+          {/* BARRA LATERAL DIREITA (`lg:col-span-4` - APENAS DESKTOP) */}
+          <div className="hidden md:block space-y-6 lg:col-span-4">
             
-            {/* GAMIFICAÇÃO & NÍVEL (Exibido se selecionado no Mobile, Sempre Visível no Desktop) */}
-            <div className={`${mobileTab === "gamification" ? "block" : "hidden"} md:block space-y-6`}>
-              
-              <Link
-                href="/achievements"
-                className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl"
-              >
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400">
-                      {level}
-                    </div>
-                    <div>
-                      <span className="block text-[9px] font-bold uppercase text-amber-400">
-                        Nível Atual
-                      </span>
-                      <h3 className="text-xs font-bold text-white">
-                        {levelTitle}
-                      </h3>
-                    </div>
+            {/* GAMIFICAÇÃO & NÍVEL */}
+            <Link
+              href="/achievements"
+              className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl"
+            >
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400">
+                    {level}
                   </div>
-                  <Award size={18} className="text-amber-400" />
+                  <div>
+                    <span className="block text-[9px] font-bold uppercase text-amber-400">
+                      Nível Atual
+                    </span>
+                    <h3 className="text-xs font-bold text-white">
+                      {levelTitle}
+                    </h3>
+                  </div>
+                </div>
+                <Award size={18} className="text-amber-400" />
+              </div>
+
+              <div className="space-y-2 pt-3">
+                <div className="flex items-center justify-between font-mono text-xs">
+                  <span className="text-slate-400">
+                    XP: <strong className="text-white">{currentXp}</strong>
+                  </span>
+                  <span className="font-bold text-amber-400">{levelProgressPercent}%</span>
                 </div>
 
-                <div className="space-y-2 pt-3">
-                  <div className="flex items-center justify-between font-mono text-xs">
-                    <span className="text-slate-400">
-                      XP: <strong className="text-white">{currentXp}</strong>
-                    </span>
-                    <span className="font-bold text-amber-400">{levelProgressPercent}%</span>
-                  </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                  <div
+                    style={{ width: `${levelProgressPercent}%` }}
+                    className="h-full rounded-full bg-amber-500"
+                  />
+                </div>
+              </div>
+            </Link>
 
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
-                    <div
-                      style={{ width: `${levelProgressPercent}%` }}
-                      className="h-full rounded-full bg-amber-500"
-                    />
-                  </div>
+            {/* META SEMANAL & CONSTÂNCIA */}
+            <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
+              <Link href="/performance" className="block space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase text-slate-400">
+                    Meta Semanal
+                  </span>
+                  <span className="font-mono text-xs font-black text-indigo-400">
+                    {stats?.weeklyGoal?.percentage ?? 0}%
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                  <div
+                    className="h-full rounded-full bg-indigo-500"
+                    style={{ width: `${stats?.weeklyGoal?.percentage ?? 0}%` }}
+                  />
                 </div>
               </Link>
 
-              {/* META SEMANAL & CONSTÂNCIA */}
-              <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl">
-                <Link href="/performance" className="block space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase text-slate-400">
-                      Meta Semanal
-                    </span>
-                    <span className="font-mono text-xs font-black text-indigo-400">
-                      {stats?.weeklyGoal?.percentage ?? 0}%
-                    </span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
-                    <div
-                      className="h-full rounded-full bg-indigo-500"
-                      style={{ width: `${stats?.weeklyGoal?.percentage ?? 0}%` }}
-                    />
-                  </div>
-                </Link>
+              <div className="my-2 border-t border-white/5" />
 
-                <div className="my-2 border-t border-white/5" />
-
-                <Link href="/performance" className="block space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase text-slate-400">
-                      Constância
-                    </span>
-                    <span className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
-                      <Flame size={14} className="fill-amber-400 text-amber-400" />
-                      {Number(gStats.streakDays ?? globalGamification?.streak?.currentDays ?? 0)} Dias
-                    </span>
-                  </div>
-                </Link>
-              </div>
+              <Link href="/performance" className="block space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase text-slate-400">
+                    Constância
+                  </span>
+                  <span className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
+                    <Flame size={14} className="fill-amber-400 text-amber-400" />
+                    {Number(gStats.streakDays ?? globalGamification?.streak?.currentDays ?? 0)} Dias
+                  </span>
+                </div>
+              </Link>
             </div>
 
-            {/* POMODORO TIMER DOBRÁVEL NO MOBILE */}
-            <div id="pomodoro" className="rounded-3xl border border-white/10 bg-[#090d16] p-2 sm:p-4">
-              <button
-                onClick={() => setIsPomodoroOpenMobile((prev) => !prev)}
-                className="w-full flex items-center justify-between p-2 text-xs font-bold text-slate-300 md:hidden"
-              >
-                <span>Pomodoro Timer</span>
-                {isPomodoroOpenMobile ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-
-              <div className={`${isPomodoroOpenMobile ? "block" : "hidden"} md:block`}>
-                <PomodoroTimer />
-              </div>
+            {/* POMODORO TIMER */}
+            <div id="pomodoro" className="rounded-3xl border border-white/10 bg-[#090d16] p-4">
+              <PomodoroTimer />
             </div>
 
             {/* HEATMAP */}
-            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl">
+            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
               <Heatmap />
             </div>
 
           </div>
         </div>
+
+        {/* POMODORO DOBRÁVEL APENAS NO MOBILE */}
+        <div id="pomodoro-mobile" className="block md:hidden rounded-3xl border border-white/10 bg-[#090d16] p-2 sm:p-4">
+          <button
+            onClick={() => setIsPomodoroOpenMobile((prev) => !prev)}
+            className="w-full flex items-center justify-between p-2 text-xs font-bold text-slate-300"
+          >
+            <span>Pomodoro Timer</span>
+            {isPomodoroOpenMobile ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          <div className={`${isPomodoroOpenMobile ? "block" : "hidden"}`}>
+            <PomodoroTimer />
+          </div>
+        </div>
+
+        {/* HEATMAP NO MOBILE */}
+        <div className="block md:hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
+          <Heatmap />
+        </div>
+
       </div>
 
       <NewContentModal
