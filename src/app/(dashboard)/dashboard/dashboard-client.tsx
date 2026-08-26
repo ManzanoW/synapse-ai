@@ -123,7 +123,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
   const [missedDayName, setMissedDayName] = useState<string | null>(null);
 
-  // Helper de Redirecionamento Dinâmico para as Sugestões
   const getSuggestionUrl = (item: Suggestion): string => {
     if (item.actionUrl) return item.actionUrl;
 
@@ -320,7 +319,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     <div className="min-h-screen w-full bg-[#02050e] p-4 font-sans text-slate-100 selection:bg-indigo-500/30 md:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               onClick={openSidebar}
@@ -330,7 +329,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </button>
 
             <div>
-              <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight text-white">
+              <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-white">
                 Dashboard
               </h1>
               <p className="mt-0.5 text-xs text-slate-300">
@@ -344,7 +343,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           <Link
             href={!isLoading && hasEditalSubjects ? "/cards" : "/edital"}
-            className="flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-500 hover:to-purple-500 active:scale-95"
+            className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-3 sm:py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-500 hover:to-purple-500 active:scale-95"
           >
             <Zap size={14} className="fill-white" />
             <span>
@@ -357,8 +356,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </Link>
         </div>
 
-        {/* ================= ATALHOS RÁPIDOS ================= */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* ================= ATALHOS RÁPIDOS OTIMIZADOS ================= */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-4">
           {[
             {
               title: "Resolver Questões",
@@ -395,18 +394,18 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <Link
                 key={idx}
                 href={item.href}
-                className={`relative flex items-center justify-between gap-3 rounded-2xl border p-3 backdrop-blur-xl transition-all duration-200 active:scale-95 ${item.bg}`}
+                className={`relative flex items-center justify-between gap-2 rounded-2xl border p-2.5 sm:p-3 backdrop-blur-xl transition-all duration-200 active:scale-95 ${item.bg}`}
               >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div className={`shrink-0 rounded-xl p-2 ${item.color}`}>
-                    <Icon size={18} />
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className={`shrink-0 rounded-xl p-1.5 sm:p-2 ${item.color}`}>
+                    <Icon size={16} />
                   </div>
-                  <span className="truncate text-xs font-bold text-slate-200">
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-200 leading-tight">
                     {item.title}
                   </span>
                 </div>
                 {item.badge && (
-                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
+                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/20 px-1.5 py-0.5 text-[8px] sm:text-[9px] font-extrabold uppercase text-amber-300">
                     {item.badge}
                   </span>
                 )}
@@ -415,7 +414,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           })}
         </div>
 
-        {/* ================= BANNER DE REMANEJAMENTO ================= */}
+        {/* BANNER DE REMANEJAMENTO */}
         {!isLoading &&
           missedDayName &&
           (stats?.journey?.completedTopics ?? 0) > 0 && (
@@ -429,7 +428,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             />
           )}
 
-        {/* ================= 2. BANNER HERO DE JORNADA ================= */}
+        {/* BANNER HERO DE JORNADA */}
         <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl">
           <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-indigo-500/10 blur-[120px]" />
           <div className="pointer-events-none absolute -right-32 -bottom-32 h-96 w-96 rounded-full bg-cyan-500/10 blur-[120px]" />
@@ -587,7 +586,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </section>
 
-        {/* ================= 3. LAYOUT PRINCIPAL ================= */}
+        {/* LAYOUT PRINCIPAL */}
         <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-12">
           {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
           <div className="space-y-6 lg:col-span-8">
