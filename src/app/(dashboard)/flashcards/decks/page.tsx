@@ -112,7 +112,7 @@ export default function DecksPage() {
   const handleDeleteDeck = async (deckId: string, deckTitle: string) => {
     if (
       !confirm(
-        `Tem certeza que deseja excluir o baralho "${deckTitle}"? Todos os flashcards dele serão apagados.`
+        `Tem certeza que deseja excluir o baralho "${deckTitle}"? Todos os flashcards dele serão apagados.`,
       )
     ) {
       return;
@@ -152,7 +152,7 @@ export default function DecksPage() {
     return decks.filter(
       (deck) =>
         deck.title?.toLowerCase().includes(query) ||
-        deck.subject?.name?.toLowerCase().includes(query)
+        deck.subject?.name?.toLowerCase().includes(query),
     );
   }, [decks, searchQuery]);
 
@@ -164,16 +164,15 @@ export default function DecksPage() {
   }, [decks]);
 
   return (
-    <div className="relative min-h-screen p-4 md:p-8 max-w-7xl mx-auto text-slate-100 space-y-8 animate-fade-in overflow-hidden font-sans">
+    <div className="relative min-h-screen p-3 sm:p-6 md:p-8 max-w-7xl mx-auto text-slate-100 space-y-6 sm:space-y-8 animate-fade-in font-sans pb-16">
       <div className="absolute top-0 left-1/3 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
-      <div className="absolute top-1/2 right-10 w-96 h-96 bg-violet-600/10 rounded-full blur-[120px] pointer-events-none -z-10" />
 
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
         <div>
           <Link
             href="/flashcards"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-indigo-400 transition-colors mb-2 group"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-indigo-400 transition-colors mb-1.5 group"
           >
             <ArrowLeft
               size={14}
@@ -181,83 +180,76 @@ export default function DecksPage() {
             />
             <span>Voltar para Central</span>
           </Link>
-          <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
             Meus Baralhos
-            <span className="text-xs font-bold px-3 py-1 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 rounded-full shadow-xs">
+            <span className="text-[10px] sm:text-xs font-bold px-2.5 py-0.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 rounded-full">
               {decks.length} {decks.length === 1 ? "coleção" : "coleções"}
             </span>
           </h1>
           <p className="text-slate-400 text-xs mt-1">
-            Gerencie seus conjuntos de estudos e acompanhe suas métricas de
-            memorização.
+            Gerencie seus conjuntos de estudos e acompanhe suas métricas.
           </p>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="group flex items-center gap-2 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs px-6 py-3.5 rounded-2xl transition-all duration-300 shadow-lg shadow-indigo-600/30 active:scale-95 border border-indigo-400/30 cursor-pointer"
+          className="group flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs px-5 py-3 rounded-xl sm:rounded-2xl transition-all shadow-lg shadow-indigo-600/30 active:scale-95 border border-indigo-400/30 cursor-pointer w-full sm:w-auto"
         >
-          <Plus
-            size={18}
-            className="group-hover:rotate-90 transition-transform duration-300"
-          />
+          <Plus size={16} />
           <span>Novo Baralho</span>
         </button>
       </div>
 
-      {/* WIDGETS DE RESUMO */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="relative overflow-hidden p-5 bg-slate-900/80 border border-indigo-500/30 hover:border-indigo-500/50 rounded-2xl backdrop-blur-2xl flex items-center gap-4 transition-all duration-300 shadow-xl shadow-indigo-950/30 group">
-          <div className="absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20">
-            <Layers size={22} />
+      {/* RESUMO */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
+        <div className="p-4 sm:p-5 bg-slate-900/80 border border-indigo-500/30 rounded-2xl backdrop-blur-2xl flex items-center gap-3.5 shadow-xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center shrink-0">
+            <Layers size={20} />
           </div>
-          <div className="z-10">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+          <div>
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
               Total de Baralhos
             </span>
-            <span className="text-2xl font-black bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent">
+            <span className="text-xl sm:text-2xl font-black text-white">
               {decks.length}
             </span>
           </div>
         </div>
 
-        <div className="relative overflow-hidden p-5 bg-slate-900/80 border border-violet-500/30 hover:border-violet-500/50 rounded-2xl backdrop-blur-2xl flex items-center gap-4 transition-all duration-300 shadow-xl shadow-violet-950/30 group">
-          <div className="absolute top-0 right-0 w-28 h-28 bg-violet-500/10 rounded-full blur-xl group-hover:bg-violet-500/20 transition-all pointer-events-none" />
-          <div className="w-12 h-12 rounded-2xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center shrink-0 shadow-md shadow-violet-500/20">
-            <Zap size={22} />
+        <div className="p-4 sm:p-5 bg-slate-900/80 border border-violet-500/30 rounded-2xl backdrop-blur-2xl flex items-center gap-3.5 shadow-xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center shrink-0">
+            <Zap size={20} />
           </div>
-          <div className="z-10">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+          <div>
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
               Cards Cadastrados
             </span>
-            <span className="text-2xl font-black bg-gradient-to-r from-white via-violet-100 to-violet-300 bg-clip-text text-transparent">
+            <span className="text-xl sm:text-2xl font-black text-white">
               {totalCardsCount}
             </span>
           </div>
         </div>
 
-        <div className="relative overflow-hidden p-5 bg-slate-900/80 border border-emerald-500/30 hover:border-emerald-500/50 rounded-2xl backdrop-blur-2xl flex items-center gap-4 transition-all duration-300 shadow-xl shadow-emerald-950/30 group">
-          <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
-            <CheckCircle2 size={22} />
+        <div className="p-4 sm:p-5 bg-slate-900/80 border border-emerald-500/30 rounded-2xl backdrop-blur-2xl flex items-center gap-3.5 shadow-xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center shrink-0">
+            <CheckCircle2 size={20} />
           </div>
-          <div className="z-10">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+          <div>
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
               Algoritmo SM-2
             </span>
-            <span className="text-xs font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 rounded-full inline-block mt-1 shadow-xs">
-              Ativo & Sincronizado
+            <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
+              Sincronizado
             </span>
           </div>
         </div>
       </div>
 
-      {/* 🔍 FILTRO E BUSCA */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/80 p-3.5 border border-slate-700/60 rounded-2xl backdrop-blur-2xl shadow-xl">
+      {/* FILTRO E BUSCA */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/80 p-3 border border-slate-700/60 rounded-2xl backdrop-blur-2xl">
         <div className="relative w-full sm:w-96">
           <Search
-            size={16}
+            size={15}
             className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
           />
           <input
@@ -265,11 +257,11 @@ export default function DecksPage() {
             placeholder="Buscar por nome do baralho ou matéria..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-950/90 border border-slate-700/80 focus:border-indigo-500 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-all shadow-inner"
+            className="w-full pl-9 pr-4 py-2 bg-slate-950/90 border border-slate-700/80 focus:border-indigo-500 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-all"
           />
         </div>
 
-        <div className="text-xs text-slate-400 font-medium self-end sm:self-center pr-2">
+        <div className="text-[11px] text-slate-400 font-medium self-end sm:self-center pr-2">
           Exibindo{" "}
           <strong className="text-indigo-400 font-bold">
             {filteredDecks.length}
@@ -278,56 +270,36 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* ⏳ SKELETON LOADING STATE */}
+      {/* GRID DE CARDS */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="p-6 bg-slate-900/50 border border-slate-800 rounded-3xl animate-pulse space-y-4"
+              className="p-5 bg-slate-900/50 border border-slate-800 rounded-2xl animate-pulse space-y-3"
             >
-              <div className="flex justify-between items-center">
-                <div className="w-20 h-5 bg-slate-800 rounded-lg" />
-                <div className="w-12 h-5 bg-slate-800 rounded-lg" />
-              </div>
-              <div className="w-12 h-12 bg-slate-800 rounded-2xl" />
-              <div className="h-5 bg-slate-800 rounded-md w-3/4" />
-              <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
-                <div className="h-4 bg-slate-800 rounded-md w-20" />
-                <div className="h-9 bg-slate-800 rounded-xl w-24" />
-              </div>
+              <div className="h-4 bg-slate-800 rounded-md w-1/2" />
+              <div className="h-10 bg-slate-800 rounded-xl" />
             </div>
           ))}
         </div>
       ) : filteredDecks.length === 0 ? (
-        /* 📦 EMPTY STATE */
-        <div className="p-16 text-center bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl space-y-3 backdrop-blur-xl">
-          <Layers size={44} className="mx-auto text-slate-600" />
-          <h3 className="text-slate-300 font-bold text-base">
-            {searchQuery
-              ? "Nenhum baralho encontrado"
-              : "Nenhum baralho cadastrado"}
+        <div className="p-10 text-center bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl space-y-3">
+          <Layers size={36} className="mx-auto text-slate-600" />
+          <h3 className="text-slate-300 font-bold text-sm">
+            Nenhum baralho encontrado
           </h3>
-          <p className="text-slate-500 text-xs max-w-xs mx-auto">
-            {searchQuery
-              ? `Sua busca por "${searchQuery}" não encontrou resultados.`
-              : "Comece criando seu primeiro baralho de estudos para ativar o algoritmo."}
-          </p>
           {!searchQuery && (
-            <div className="pt-2">
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer"
-              >
-                <Plus size={16} />
-                <span>Criar Primeiro Baralho</span>
-              </button>
-            </div>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center gap-2 bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-xl"
+            >
+              <Plus size={15} /> Criar Primeiro Baralho
+            </button>
           )}
         </div>
       ) : (
-        /* 🎴 GRID DE CARDS PREMIUM */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredDecks.map((deck) => {
             const cardCount =
               deck._count?.flashcards ?? deck.flashcards?.length ?? 0;
@@ -338,89 +310,72 @@ export default function DecksPage() {
             return (
               <div
                 key={deck.id}
-                className={`group relative flex flex-col justify-between p-6 bg-slate-900/90 hover:bg-slate-900 border border-slate-700/60 ${theme.hoverBorder} rounded-3xl backdrop-blur-2xl transition-all duration-300 shadow-xl hover:shadow-2xl space-y-6 overflow-hidden`}
+                className={`group relative flex flex-col justify-between p-5 sm:p-6 bg-slate-900/90 hover:bg-slate-900 border border-slate-700/60 ${theme.hoverBorder} rounded-2xl sm:rounded-3xl backdrop-blur-2xl transition-all duration-300 shadow-xl space-y-5 overflow-hidden`}
               >
-                {/* CABEÇALHO DO CARD */}
                 <div className="flex items-center justify-between gap-2 z-10">
                   <span
-                    className={`text-[10px] font-bold px-3 py-1 border rounded-xl truncate max-w-[65%] shadow-xs ${theme.badge}`}
+                    className={`text-[10px] font-bold px-2.5 py-0.5 border rounded-lg truncate max-w-[65%] ${theme.badge}`}
                   >
                     {subjectName}
                   </span>
 
-                  <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1">
                     <Link
                       href={`/flashcards/decks/${deck.id}`}
-                      title="Gerenciar Flashcards"
-                      className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
+                      title="Configurações"
                     >
-                      <Settings size={16} />
+                      <Settings size={15} />
                     </Link>
 
                     <button
                       onClick={() => handleDeleteDeck(deck.id, deck.title)}
                       disabled={isDeletingThis}
-                      title="Excluir baralho"
-                      className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/20 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+                      className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
                     >
                       {isDeletingThis ? (
                         <Loader2
-                          size={16}
+                          size={15}
                           className="animate-spin text-rose-400"
                         />
                       ) : (
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                       )}
                     </button>
                   </div>
                 </div>
 
-                {/* CORPO DO CARD */}
-                <div className="flex items-start gap-4 z-10">
+                <div className="flex items-start gap-3.5 z-10">
                   <div
-                    className={`w-13 h-13 rounded-2xl bg-gradient-to-br border flex items-center justify-center group-hover:scale-105 transition-all duration-300 shadow-md shrink-0 ${theme.icon}`}
+                    className={`w-11 h-11 rounded-xl bg-gradient-to-br border flex items-center justify-center shrink-0 ${theme.icon}`}
                   >
-                    <BookOpen size={22} />
+                    <BookOpen size={18} />
                   </div>
 
-                  <div className="space-y-1.5 min-w-0">
+                  <div className="space-y-1 min-w-0">
                     <Link href={`/flashcards/decks/${deck.id}`}>
-                      <h3 className="font-bold text-slate-100 text-base group-hover:text-white transition-colors line-clamp-2 cursor-pointer leading-snug">
+                      <h3 className="font-bold text-slate-100 text-sm sm:text-base group-hover:text-white transition-colors line-clamp-2 leading-snug">
                         {deck.title}
                       </h3>
                     </Link>
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-                      <RotateCw size={12} className={theme.accentText} />
-                      <span>Revisão espaçada ativa</span>
+                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                      <RotateCw size={11} className={theme.accentText} />
+                      <span>Revisão ativa</span>
                     </div>
                   </div>
                 </div>
 
-                {/* RODAPÉ DO CARD */}
-                <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2 z-10">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-2 w-2 relative">
-                      <span
-                        className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${theme.glowDot}`}
-                      />
-                      <span
-                        className={`relative inline-flex rounded-full h-2 w-2 ${theme.glowDot}`}
-                      />
-                    </span>
-                    <span className="text-slate-300 text-xs font-bold">
-                      {cardCount} {cardCount === 1 ? "card" : "cards"}
-                    </span>
-                  </div>
+                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 z-10">
+                  <span className="text-slate-300 text-xs font-bold">
+                    {cardCount} {cardCount === 1 ? "card" : "cards"}
+                  </span>
 
                   <Link
                     href={`/flashcards/study/${deck.id}`}
-                    className={`inline-flex items-center gap-2 text-xs px-5 py-2.5 rounded-xl transition-all active:scale-95 ${theme.btn}`}
+                    className={`inline-flex items-center gap-1.5 text-xs px-4 py-2 rounded-xl transition-all active:scale-95 ${theme.btn}`}
                   >
                     <span>Estudar</span>
-                    <ArrowRight
-                      size={14}
-                      className="group-hover:translate-x-1 transition-transform"
-                    />
+                    <ArrowRight size={13} />
                   </Link>
                 </div>
               </div>
@@ -429,7 +384,6 @@ export default function DecksPage() {
         </div>
       )}
 
-      {/* MODAL DE CRIAÇÃO */}
       {isModalOpen && (
         <CreateDeckModal
           onClose={() => setIsModalOpen(false)}

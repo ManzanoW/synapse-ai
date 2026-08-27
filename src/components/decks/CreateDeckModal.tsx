@@ -72,7 +72,6 @@ export default function CreateDeckModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados dos Parâmetros da IA
   const [materia, setMateria] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
@@ -81,11 +80,10 @@ export default function CreateDeckModal({
   const [content, setContent] = useState("");
   const [dificuldade, setDificuldade] = useState("MÉDIA");
   const [qtdCards, setQtdCards] = useState("10");
-  const [color, setColor] = useState("bg-[#00f2fe]"); // Ciano padronizado
+  const [color, setColor] = useState("bg-[#00f2fe]");
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
   const [isFetchLoading, setIsFetchLoading] = useState(true);
 
-  // Carrega e deduplica matérias e tópicos dinamicamente
   useEffect(() => {
     fetch("/api/edital?mode=subjects")
       .then((res) => res.json())
@@ -120,7 +118,6 @@ export default function CreateDeckModal({
       .finally(() => setIsFetchLoading(false));
   }, []);
 
-  // Fechar com a tecla ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !loading) onClose();
@@ -194,23 +191,22 @@ export default function CreateDeckModal({
       onClick={(e) => {
         if (e.target === e.currentTarget && !loading) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4 animate-fade-in overflow-y-auto"
     >
-      <div className="relative w-full max-w-xl bg-[#070b14] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_-12px_rgba(99,102,241,0.25)] backdrop-blur-2xl my-8 text-slate-100 font-sans select-none">
+      <div className="relative w-full max-w-xl bg-[#070b14] border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl backdrop-blur-2xl my-auto text-slate-100 font-sans select-none">
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Header */}
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex justify-between items-start mb-5">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-extrabold tracking-wider uppercase">
               <Sparkles size={12} /> Gerador IA
             </div>
-            <h2 className="text-xl font-extrabold text-white tracking-tight">
+            <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
               Criar Baralho com IA
             </h2>
-            <p className="text-xs text-slate-400">
-              Configure o escopo e o motor neural para sintetizar seus
-              flashcards.
+            <p className="text-[11px] sm:text-xs text-slate-400">
+              Configure o escopo para sintetizar seus flashcards.
             </p>
           </div>
 
@@ -237,7 +233,7 @@ export default function CreateDeckModal({
             <span>Acessando mapeamento de disciplinas...</span>
           </div>
         ) : hasNoSubjects ? (
-          <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-center space-y-4 py-8 animate-in fade-in duration-300">
+          <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-center space-y-4 py-8">
             <div className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
               <AlertCircle size={20} />
             </div>
@@ -246,8 +242,8 @@ export default function CreateDeckModal({
                 Nenhuma matéria cadastrada
               </h4>
               <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
-                Cadastre as disciplinas do seu concurso na aba Edital para
-                desbloquear a síntese automática de Flashcards com IA.
+                Cadastre as disciplinas na aba Edital para desbloquear a síntese
+                automática.
               </p>
             </div>
             <div className="pt-1">
@@ -262,10 +258,10 @@ export default function CreateDeckModal({
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-extrabold tracking-wider uppercase text-slate-400 flex items-center gap-2">
+                <label className="text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase text-slate-400 flex items-center gap-1.5">
                   <BookOpen size={13} className="text-indigo-400" />
                   Matéria Principal
                 </label>
@@ -277,7 +273,7 @@ export default function CreateDeckModal({
                     setMateria(e.target.value);
                     setSelectedTopicId("");
                   }}
-                  className="w-full bg-slate-950 border border-white/10 focus:border-indigo-500 rounded-xl px-3 py-3 text-xs text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50"
+                  className="w-full bg-slate-950 border border-white/10 focus:border-indigo-500 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <option value="">Selecione uma matéria...</option>
                   {subjects.map((sub) => (
@@ -289,17 +285,17 @@ export default function CreateDeckModal({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-extrabold tracking-wider uppercase text-slate-400 flex items-center gap-2">
+                <label className="text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase text-slate-400 flex items-center gap-1.5">
                   <Target size={13} className="text-indigo-400" />
-                  Tópico Específico (Opcional)
+                  Tópico (Opcional)
                 </label>
                 <select
                   disabled={loading || !materia}
                   value={selectedTopicId}
                   onChange={(e) => setSelectedTopicId(e.target.value)}
-                  className="w-full bg-slate-950 border border-white/10 focus:border-indigo-500 rounded-xl px-3 py-3 text-xs text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50"
+                  className="w-full bg-slate-950 border border-white/10 focus:border-indigo-500 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  <option value="">Todos os Tópicos da Matéria</option>
+                  <option value="">Todos os Tópicos</option>
                   {availableTopics.map((top) => (
                     <option key={top.id} value={top.id}>
                       {top.title}
@@ -309,61 +305,52 @@ export default function CreateDeckModal({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[11px] font-extrabold tracking-wider uppercase text-slate-400">
-                Origem do Conteúdo da IA
+            <div className="space-y-1.5">
+              <label className="text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase text-slate-400">
+                Origem do Conteúdo
               </label>
-              <div className="grid grid-cols-3 gap-2 p-1 bg-slate-950 border border-white/10 rounded-2xl">
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => setFonteConteudo("banca")}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${fonteConteudo === "banca" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" : "text-slate-400 hover:text-white"}`}
-                >
-                  Matéria / Edital
-                </button>
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => setFonteConteudo("texto")}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${fonteConteudo === "texto" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" : "text-slate-400 hover:text-white"}`}
-                >
-                  Colar Texto / Lei
-                </button>
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => setFonteConteudo("pdf")}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${fonteConteudo === "pdf" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" : "text-slate-400 hover:text-white"}`}
-                >
-                  Upload de PDF
-                </button>
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-950 border border-white/10 rounded-xl">
+                {[
+                  { id: "banca", label: "Edital" },
+                  { id: "texto", label: "Texto" },
+                  { id: "pdf", label: "PDF" },
+                ].map((src) => (
+                  <button
+                    key={src.id}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => setFonteConteudo(src.id as any)}
+                    className={`py-2 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${fonteConteudo === src.id ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30" : "text-slate-400 hover:text-white"}`}
+                  >
+                    {src.label}
+                  </button>
+                ))}
               </div>
 
               {fonteConteudo === "texto" && (
                 <textarea
-                  rows={3}
+                  rows={2}
                   disabled={loading}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="Cole aqui o resumo, legislação, lei seca ou anotações..."
-                  className="w-full bg-slate-950 border border-white/10 focus:border-indigo-500 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors mt-2 resize-none disabled:opacity-50"
+                  placeholder="Cole o resumo, lei seca ou anotações..."
+                  className="w-full bg-slate-950 border border-white/10 focus:border-indigo-500 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors mt-2 resize-none disabled:opacity-50"
                 />
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[11px] font-extrabold tracking-wider uppercase text-slate-400">
-                Nível de Profundidade
+            <div className="space-y-1.5">
+              <label className="text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase text-slate-400">
+                Profundidade
               </label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {["FÁCIL", "MÉDIA", "DIFÍCIL", "RESUMIDO"].map((lvl) => (
                   <button
                     key={lvl}
                     type="button"
                     disabled={loading}
                     onClick={() => setDificuldade(lvl)}
-                    className={`py-2.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer ${dificuldade === lvl ? "bg-indigo-600/20 border-indigo-500 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]" : "bg-slate-950 border-white/10 text-slate-400 hover:text-white"}`}
+                    className={`py-2 rounded-xl border text-[11px] font-extrabold transition-all cursor-pointer ${dificuldade === lvl ? "bg-indigo-600/20 border-indigo-500 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]" : "bg-slate-950 border-white/10 text-slate-400 hover:text-white"}`}
                   >
                     {lvl}
                   </button>
@@ -371,13 +358,13 @@ export default function CreateDeckModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[11px] font-extrabold tracking-wider uppercase text-slate-400 flex items-center gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase text-slate-400 flex items-center gap-1.5">
                   <Layers size={13} className="text-indigo-400" />
                   Volume de Cards
                 </label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-1.5">
                   {["5", "10", "15", "20"].map((q) => (
                     <button
                       key={q}
@@ -392,12 +379,12 @@ export default function CreateDeckModal({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-extrabold tracking-wider uppercase text-slate-400 flex items-center gap-2">
+              <div className="space-y-1.5">
+                <label className="text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase text-slate-400 flex items-center gap-1.5">
                   <Palette size={13} className="text-indigo-400" />
                   Cor do Baralho
                 </label>
-                <div className="flex items-center gap-2.5 py-1">
+                <div className="flex items-center gap-2 py-1.5">
                   {COLOR_OPTIONS.map((c) => {
                     const isSelected = color === c.value;
                     return (
@@ -406,7 +393,7 @@ export default function CreateDeckModal({
                         type="button"
                         disabled={loading}
                         onClick={() => setColor(c.value)}
-                        className={`w-7 h-7 rounded-full ${c.value} transition-all relative flex items-center justify-center cursor-pointer ${isSelected ? `ring-2 ring-white ring-offset-2 ring-offset-[#070b14] scale-110 ${c.glow}` : "opacity-60 hover:opacity-100"}`}
+                        className={`w-6 h-6 rounded-full ${c.value} transition-all relative flex items-center justify-center cursor-pointer ${isSelected ? `ring-2 ring-white ring-offset-2 ring-offset-[#070b14] scale-110 ${c.glow}` : "opacity-60 hover:opacity-100"}`}
                         title={c.label}
                       />
                     );
@@ -418,12 +405,12 @@ export default function CreateDeckModal({
             <button
               disabled={loading || !materia}
               type="submit"
-              className="w-full bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold py-3.5 px-4 rounded-xl text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer mt-2"
+              className="w-full bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold py-3 px-4 rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-3"
             >
               {loading ? (
                 <>
                   <Loader2 className="animate-spin text-white" size={16} />
-                  <span>Sintetizando Flashcards...</span>
+                  <span>Sintetizando Cards...</span>
                 </>
               ) : (
                 <>

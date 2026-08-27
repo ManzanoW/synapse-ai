@@ -19,6 +19,7 @@ import {
   Brain,
   Award,
   Command,
+  TouchpadIcon,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -68,7 +69,6 @@ export default function StudyFlashcard({
     acertos: 0,
   });
 
-  // 🟢 ESTADO OTIMISTA (Avança o card e atualiza métricas imediatamente)
   const [optimisticState, setOptimisticState] = useOptimistic<
     OptimisticState,
     { grade: number }
@@ -119,7 +119,6 @@ export default function StudyFlashcard({
 
       const isLastCard = index >= cards.length - 1;
 
-      // ⚡ ATUALIZAÇÃO OTIMÍSTICA INSTANTÂNEA
       startTransition(() => {
         setOptimisticState({ grade });
       });
@@ -136,7 +135,6 @@ export default function StudyFlashcard({
       try {
         const previousLevel = gamificationStats?.gamification?.level ?? 1;
 
-        // Requisições em paralelo
         const [resReview] = await Promise.all([
           fetch("/api/flashcards/review", {
             method: "POST",
@@ -163,7 +161,6 @@ export default function StudyFlashcard({
         if (resReview.ok) {
           const data = await resReview.json();
 
-          // 🟢 DISPARO DO EVENTO DE XP PARA A SIDEBAR REAGIR EM TEMPO REAL
           window.dispatchEvent(
             new CustomEvent("xp-updated", {
               detail: {
@@ -193,7 +190,6 @@ export default function StudyFlashcard({
       } catch (error) {
         console.error("Erro ao sincronizar revisão do flashcard:", error);
       } finally {
-        // Confirma a transição real de estado após a promessa
         setIndex((prev) => prev + 1);
         if (grade < 3) {
           setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
@@ -252,7 +248,7 @@ export default function StudyFlashcard({
   if (!cards || cards.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[85vh] p-4">
-        <div className="w-full max-w-md p-8 bg-slate-900/80 border border-slate-800 rounded-3xl backdrop-blur-2xl text-center space-y-4 shadow-2xl relative overflow-hidden">
+        <div className="w-full max-w-md p-6 sm:p-8 bg-slate-900/80 border border-slate-800 rounded-3xl backdrop-blur-2xl text-center space-y-4 shadow-2xl relative overflow-hidden">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
             <Sparkles size={24} />
           </div>
@@ -272,29 +268,35 @@ export default function StudyFlashcard({
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[88vh] p-4 relative overflow-hidden">
+    <div className="flex items-center justify-center min-h-[82vh] p-0 sm:p-4 relative overflow-hidden pb-12">
+      {/* Luz de Fundo (Ambient Glow) */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-        <div className="w-162.5 h-112.5 bg-linear-to-r from-indigo-600/15 via-violet-600/20 to-indigo-500/15 rounded-full blur-[120px] opacity-80" />
-        <div className="absolute top-1/3 w-75 h-50 bg-cyan-500/10 rounded-full blur-[90px]" />
+        <div className="w-[500px] h-[350px] bg-indigo-600/15 rounded-full blur-[130px] opacity-70" />
+        <div className="absolute top-1/4 w-[280px] h-[200px] bg-violet-600/15 rounded-full blur-[100px]" />
       </div>
 
-      <div className="w-full max-w-2xl p-6 md:p-9 bg-slate-950/80 border border-slate-800/80 rounded-[2.5rem] backdrop-blur-3xl shadow-[0_0_80px_-15px_rgba(99,102,241,0.25)] select-none transition-all relative overflow-hidden z-10">
-        <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent" />
+      {/* Contêiner Principal Limpo no Mobile */}
+      <div className="w-full max-w-2xl p-3 sm:p-7 md:p-8 bg-transparent sm:bg-[#090d16]/90 sm:border sm:border-slate-800/80 rounded-none sm:rounded-[2.5rem] sm:backdrop-blur-3xl sm:shadow-[0_0_50px_-10px_rgba(99,102,241,0.2)] select-none transition-all relative z-10">
+        <div className="hidden sm:block absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
 
         {isFinished ? (
-          <div className="text-center py-8 space-y-6 relative z-10 animate-in fade-in zoom-in-95 duration-300">
-            <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+          <div className="text-center py-6 sm:py-8 space-y-5 sm:space-y-6 relative z-10 animate-in fade-in zoom-in-95 duration-300">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-2xl animate-pulse" />
-              <div className="relative w-20 h-20 bg-linear-to-br from-emerald-500/20 via-indigo-500/20 to-slate-900 border border-emerald-500/40 rounded-3xl flex items-center justify-center text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.2)] rotate-3">
-                <Award size={42} strokeWidth={1.75} />
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 bg-linear-to-br from-emerald-500/20 via-indigo-500/20 to-slate-900 border border-emerald-500/40 rounded-3xl flex items-center justify-center text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.2)] rotate-3">
+                <Award
+                  size={36}
+                  className="sm:w-10 sm:h-10"
+                  strokeWidth={1.75}
+                />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-emerald-400 uppercase bg-emerald-500/10 px-3.5 py-1.5 rounded-full border border-emerald-500/30 backdrop-blur-md">
+            <div className="space-y-1.5 sm:space-y-2">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-emerald-400 uppercase bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30 backdrop-blur-md">
                 <Sparkles size={12} /> Sessão Concluída
               </span>
-              <h2 className="text-3xl md:text-4xl font-black text-transparent bg-linear-to-r from-white via-slate-100 to-indigo-200 bg-clip-text pt-2">
+              <h2 className="text-2xl sm:text-4xl font-black text-transparent bg-linear-to-r from-white via-slate-100 to-indigo-200 bg-clip-text pt-1">
                 Sinapses Reforçadas!
               </h2>
               <p className="text-slate-400 text-xs max-w-xs mx-auto leading-relaxed">
@@ -320,12 +322,12 @@ export default function StudyFlashcard({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto bg-slate-900/40 border border-white/5 p-4 rounded-3xl backdrop-blur-md shadow-inner">
+            <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto bg-slate-900/40 border border-white/5 p-3.5 sm:p-4 rounded-3xl backdrop-blur-md shadow-inner">
               <div className="border-r border-slate-800/80 pr-2">
                 <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">
                   Dominados
                 </span>
-                <span className="text-xl font-black text-emerald-400 font-mono tracking-tight">
+                <span className="text-lg sm:text-xl font-black text-emerald-400 font-mono tracking-tight">
                   {optimisticState.acertos}
                 </span>
               </div>
@@ -333,20 +335,19 @@ export default function StudyFlashcard({
                 <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">
                   Revisar
                 </span>
-                <span className="text-xl font-black text-rose-400 font-mono tracking-tight">
+                <span className="text-lg sm:text-xl font-black text-rose-400 font-mono tracking-tight">
                   {optimisticState.erros}
                 </span>
               </div>
             </div>
 
-            <div className="text-xs text-indigo-300/90 bg-linear-to-r from-indigo-500/10 via-purple-500/10 to-transparent border border-indigo-500/20 p-4 rounded-2xl max-w-md mx-auto flex items-center gap-3 text-left">
+            <div className="text-xs text-indigo-300/90 bg-linear-to-r from-indigo-500/10 via-purple-500/10 to-transparent border border-indigo-500/20 p-3.5 rounded-2xl max-w-md mx-auto flex items-center gap-3 text-left">
               <div className="p-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 shrink-0">
-                <Brain size={20} />
+                <Brain size={18} />
               </div>
               <span className="text-[11px] leading-relaxed">
                 <strong>Algoritmo SM-2 Ativo:</strong> O intervalo ideal para a
-                próxima repetição foi ajustado para maximizar a retenção a longo
-                prazo.
+                próxima repetição foi ajustado para maximizar a retenção.
               </span>
             </div>
 
@@ -359,7 +360,7 @@ export default function StudyFlashcard({
                   setPerformanceStats({ erros: 0, acertos: 0 });
                   setLevelUpData(null);
                 }}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-2xl font-semibold text-xs transition-all active:scale-95 shadow-md"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-2xl font-semibold text-xs transition-all active:scale-95 shadow-md cursor-pointer"
               >
                 <RotateCw size={14} /> Recomeçar
               </button>
@@ -374,20 +375,23 @@ export default function StudyFlashcard({
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-5 relative z-10">
+            {/* Topbar compacta */}
+            <div className="flex items-center justify-between mb-3 relative z-10 px-1">
               <Link
                 href="/flashcards/decks"
-                className="group inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-indigo-300 transition-colors"
+                className="group inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-indigo-300 transition-colors truncate max-w-[200px] sm:max-w-none"
               >
                 <ArrowLeft
                   size={14}
-                  className="group-hover:-translate-x-1 transition-transform text-indigo-400"
+                  className="group-hover:-translate-x-1 transition-transform text-indigo-400 shrink-0"
                 />
-                {deckTitle || "Sair do Estudo"}
+                <span className="truncate">
+                  {deckTitle || "Sair do Estudo"}
+                </span>
               </Link>
 
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[11px] font-mono shadow-inner">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[10px] sm:text-[11px] font-mono shadow-inner shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
                 <span className="font-bold text-indigo-400">
                   {currentIndex + 1}
                 </span>
@@ -396,8 +400,9 @@ export default function StudyFlashcard({
               </div>
             </div>
 
-            <div className="mb-6 relative z-10">
-              <div className="h-2 w-full bg-slate-900/90 rounded-full overflow-hidden border border-slate-800/80 p-0.5 shadow-inner">
+            {/* Barra de Progresso */}
+            <div className="mb-4 relative z-10 px-1">
+              <div className="h-1.5 w-full bg-slate-900/90 rounded-full overflow-hidden border border-slate-800/80 p-0.5 shadow-inner">
                 <div
                   className="h-full bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 rounded-full transition-all duration-300 ease-out shadow-[0_0_12px_rgba(99,102,241,0.8)]"
                   style={{ width: `${progress}%` }}
@@ -405,26 +410,27 @@ export default function StudyFlashcard({
               </div>
             </div>
 
+            {/* Flashcard 3D Container com Glassmorphism Refinado */}
             <div
-              className="relative w-full h-87.5 md:h-97.5 mb-6 cursor-pointer group"
+              className="relative w-full min-h-[360px] sm:min-h-[420px] mb-4 cursor-pointer group flex flex-col"
               style={{ perspective: "1200px" }}
               onClick={() => setIsFlipped(!isFlipped)}
             >
               <div
-                className={`w-full h-full relative transition-transform duration-700 ease-out ${
+                className={`w-full flex-1 relative transition-transform duration-700 ease-out ${
                   isFlipped ? "transform-[rotateY(180deg)]" : ""
                 }`}
                 style={{ transformStyle: "preserve-3d" }}
               >
-                {/* FRENTE */}
+                {/* FRENTE DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-linear-to-b from-slate-900/95 via-slate-950/95 to-slate-950/98 border border-slate-800 group-hover:border-indigo-500/50 rounded-3xl p-7 md:p-9 flex flex-col justify-between text-center backdrop-blur-2xl shadow-2xl transition-all duration-300"
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-300 border-t-indigo-400/40"
                   style={{ backfaceVisibility: "hidden" }}
                 >
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
 
                   <div className="w-full flex justify-between items-center relative z-10">
-                    <span className="text-[9px] font-bold tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-lg uppercase backdrop-blur-md">
+                    <span className="text-[9px] font-extrabold tracking-widest text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 rounded-lg uppercase backdrop-blur-md">
                       Pergunta
                     </span>
                     <span className="text-[10px] text-slate-500 font-mono tracking-wider">
@@ -432,34 +438,47 @@ export default function StudyFlashcard({
                     </span>
                   </div>
 
-                  <div className="my-auto space-y-4 max-w-lg mx-auto relative z-10">
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                      <HelpCircle size={20} />
+                  <div className="my-auto space-y-3 sm:space-y-4 max-w-lg mx-auto relative z-10 py-2">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform shadow-[0_0_20px_rgba(99,102,241,0.15)]">
+                      <HelpCircle size={22} />
                     </div>
-                    <h2 className="text-xl md:text-2xl font-semibold text-slate-100 leading-relaxed tracking-tight">
+                    <h2 className="text-base sm:text-2xl font-bold text-slate-100 leading-relaxed tracking-tight">
                       {frontText}
                     </h2>
                   </div>
 
-                  <div className="inline-flex items-center justify-center gap-2 text-[10px] text-slate-400 uppercase tracking-widest font-medium relative z-10">
-                    <span>Aperte</span>
-                    <kbd className="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-200 border border-slate-700 text-[10px] font-mono shadow-md flex items-center gap-1">
-                      <Command size={10} /> Espaço
-                    </kbd>
-                    <span>para virar</span>
+                  {/* Instrução de Ação Integrada */}
+                  <div className="inline-flex items-center justify-center relative z-10">
+                    {/* Exclusivo Mobile */}
+                    <div className="sm:hidden inline-flex items-center gap-1.5 text-[10px] text-indigo-300 font-medium bg-indigo-950/40 border border-indigo-500/20 px-3.5 py-1.5 rounded-full backdrop-blur-md">
+                      <TouchpadIcon
+                        size={12}
+                        className="animate-pulse text-indigo-400"
+                      />
+                      <span>Toque no card para virar</span>
+                    </div>
+
+                    {/* Exclusivo Desktop */}
+                    <div className="hidden sm:inline-flex items-center gap-1.5 text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                      <span className="text-slate-500">Pressione</span>
+                      <kbd className="px-2.5 py-1 rounded-md bg-slate-900 text-slate-200 border border-slate-700/80 text-[10px] font-mono shadow-md flex items-center gap-1">
+                        <Command size={10} /> Espaço
+                      </kbd>
+                      <span className="text-slate-500">para virar</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* VERSO */}
+                {/* VERSO DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-linear-to-b from-indigo-950/30 via-slate-950/95 to-slate-950/98 border border-indigo-500/40 rounded-3xl p-7 md:p-9 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_0_40px_rgba(99,102,241,0.15)]"
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
                   style={{
                     backfaceVisibility: "hidden",
                     transform: "rotateY(180deg)",
                   }}
                 >
                   <div className="w-full flex justify-between items-center">
-                    <span className="text-[9px] font-bold tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg uppercase backdrop-blur-md">
+                    <span className="text-[9px] font-extrabold tracking-widest text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-lg uppercase backdrop-blur-md">
                       Resposta
                     </span>
                     <span className="text-[10px] text-emerald-400/80 font-mono tracking-wider">
@@ -467,27 +486,28 @@ export default function StudyFlashcard({
                     </span>
                   </div>
 
-                  <div className="my-auto space-y-3 max-w-lg mx-auto overflow-y-auto max-h-52 px-2 custom-scrollbar">
-                    <h3 className="text-base md:text-lg font-medium text-slate-100 leading-relaxed">
+                  <div className="my-auto space-y-2.5 sm:space-y-3 max-w-lg mx-auto overflow-y-auto max-h-56 px-1 custom-scrollbar py-2">
+                    <h3 className="text-sm sm:text-lg font-semibold text-slate-100 leading-relaxed">
                       {backText}
                     </h3>
 
                     {currentCard?.details && (
-                      <p className="text-xs text-slate-400 bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-2xl leading-relaxed text-left shadow-inner">
+                      <p className="text-[11px] sm:text-xs text-slate-300 bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-xl leading-relaxed text-left shadow-inner">
                         {currentCard.details}
                       </p>
                     )}
                   </div>
 
-                  <span className="text-[10px] text-indigo-300/80 uppercase tracking-widest font-semibold">
+                  <span className="text-[9px] sm:text-[10px] text-emerald-300/80 uppercase tracking-widest font-bold">
                     Classifique sua facilidade
                   </span>
                 </div>
               </div>
             </div>
 
+            {/* BOTÕES DE SM-2 COM VISUAL RENOVADO */}
             <div
-              className={`grid grid-cols-4 gap-2.5 transition-all duration-300 ${
+              className={`grid grid-cols-2 sm:grid-cols-4 gap-2.5 transition-all duration-300 ${
                 isFlipped
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-3 pointer-events-none"
@@ -500,7 +520,7 @@ export default function StudyFlashcard({
                   key: "1",
                   icon: X,
                   style:
-                    "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-rose-400 hover:border-rose-500/60 shadow-[0_0_15px_rgba(244,63,94,0.15)]",
+                    "bg-rose-950/30 hover:bg-rose-900/40 border-rose-500/40 text-rose-300 hover:border-rose-400 shadow-md shadow-rose-950/20",
                 },
                 {
                   label: "DIFÍCIL",
@@ -508,7 +528,7 @@ export default function StudyFlashcard({
                   key: "2",
                   icon: HelpCircle,
                   style:
-                    "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-400 hover:border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.15)]",
+                    "bg-amber-950/30 hover:bg-amber-900/40 border-amber-500/40 text-amber-300 hover:border-amber-400 shadow-md shadow-amber-950/20",
                 },
                 {
                   label: "BOM",
@@ -516,7 +536,7 @@ export default function StudyFlashcard({
                   key: "3",
                   icon: Check,
                   style:
-                    "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400 hover:border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.15)]",
+                    "bg-emerald-950/30 hover:bg-emerald-900/40 border-emerald-500/40 text-emerald-300 hover:border-emerald-400 shadow-md shadow-emerald-950/20",
                 },
                 {
                   label: "FÁCIL",
@@ -524,7 +544,7 @@ export default function StudyFlashcard({
                   key: "4",
                   icon: Zap,
                   style:
-                    "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/30 text-indigo-400 hover:border-indigo-500/60 shadow-[0_0_15px_rgba(99,102,241,0.15)]",
+                    "bg-indigo-950/30 hover:bg-indigo-900/40 border-indigo-500/40 text-indigo-300 hover:border-indigo-400 shadow-md shadow-indigo-950/20",
                 },
               ].map((btn) => (
                 <button
@@ -533,16 +553,16 @@ export default function StudyFlashcard({
                     e.stopPropagation();
                     handleAnswer(btn.grade);
                   }}
-                  className={`group relative flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border font-bold text-[10px] tracking-widest transition-all duration-200 active:scale-95 ${btn.style}`}
+                  className={`group relative flex flex-col items-center justify-center gap-1.5 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl border font-extrabold text-[10px] tracking-widest transition-all duration-200 active:scale-95 cursor-pointer ${btn.style}`}
                 >
-                  <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-slate-950/80 text-[9px] font-mono opacity-60 group-hover:opacity-100 transition-opacity border border-white/10">
+                  <span className="hidden sm:block absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-slate-950/80 text-[9px] font-mono opacity-60 group-hover:opacity-100 transition-opacity border border-white/10">
                     {btn.key}
                   </span>
                   {selectedGrade === btn.grade ? (
-                    <Loader2 size={17} className="animate-spin" />
+                    <Loader2 size={18} className="animate-spin" />
                   ) : (
                     <btn.icon
-                      size={17}
+                      size={18}
                       className="group-hover:scale-110 transition-transform"
                     />
                   )}
