@@ -128,7 +128,6 @@ export default function WeekPage() {
     null
   );
 
-  // ⏱️ ESTADOS DO MODO FOCO / CRONÔMETRO
   const [focusSubject, setFocusSubject] = useState<ScheduledSubject | null>(
     null
   );
@@ -149,11 +148,8 @@ export default function WeekPage() {
     return HIGH_CONTRAST_PALETTE[index % HIGH_CONTRAST_PALETTE.length];
   };
 
-  /**
-   * Identifica o nome do dia da semana em Português conforme a data real do dispositivo
-   */
   const getTodayNamePT = () => {
-    const day = new Date().getDay(); // 0 a 6
+    const day = new Date().getDay();
     return WEEKDAYS_PT[day];
   };
 
@@ -218,7 +214,6 @@ export default function WeekPage() {
     return () => controller.abort();
   }, []);
 
-  // ⏱️ TIMER EFFECT PARA MODO FOCO
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (isTimerRunning && focusTimeLeft > 0) {
@@ -253,7 +248,6 @@ export default function WeekPage() {
   const handleFinishSessionAndComplete = async () => {
     if (!focusSubject) return;
 
-    // 1. Conclui todos os tópicos pendentes da matéria dessa sessão
     const pendingTopics = focusSubject.assignedTopics.filter(
       (t) => t.firstStudy !== "Em Revisão"
     );
@@ -262,7 +256,6 @@ export default function WeekPage() {
       await handleToggleTopic(topic.id, topic.firstStudy);
     }
 
-    // 2. Registra o tempo de estudo no banco de dados
     const initialSeconds = Math.max(focusSubject.dailyMinutesAllocated * 60, 60);
     const secondsStudied = initialSeconds - focusTimeLeft;
     const minutesStudied = Math.max(Math.round(secondsStudied / 60), 1);
@@ -511,18 +504,20 @@ export default function WeekPage() {
   })();
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 md:p-8 font-sans antialiased selection:bg-indigo-500/30">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-[#030712] text-slate-100 p-3 sm:p-6 md:p-8 font-sans antialiased selection:bg-indigo-500/30 pb-16">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+        {/* Top Navigation & Controls */}
+        <div className="flex items-center justify-between gap-2">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors group px-3.5 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 shadow-sm"
+            className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors group px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 shadow-sm"
           >
             <ArrowLeft
               size={14}
               className="transition-transform group-hover:-translate-x-1"
             />
-            <span>Voltar para Dashboard</span>
+            <span className="hidden sm:inline">Voltar para Dashboard</span>
+            <span className="sm:hidden">Voltar</span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -530,27 +525,28 @@ export default function WeekPage() {
               onClick={handleTriggerRebalance}
               disabled={isPending || !hasSubjects}
               title="Recalcular distribuição adaptativa com base nas suas metas e desempenho"
-              className="flex items-center gap-2 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 px-3.5 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
             >
               <Sliders size={14} className={isPending ? "animate-spin" : ""} />
-              <span className="hidden sm:inline">Rebalancear Carga</span>
+              <span>Rebalancear</span>
             </button>
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
             >
               <Settings2 size={14} />
-              <span>Configurações</span>
+              <span className="hidden sm:inline">Configurações</span>
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-2 bg-slate-950/80 border border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-2xl">
+        {/* Mode Selector Header Bar */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-2 bg-slate-950/80 border border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-2xl">
           <div className="inline-flex items-center bg-slate-900/60 p-1 rounded-xl border border-slate-800/80 w-full md:w-auto">
             <button
               onClick={() => handleToggleMode("WEEKLY")}
-              className={`relative flex items-center justify-center gap-2.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none cursor-pointer ${
+              className={`relative flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none cursor-pointer ${
                 studyMode === "WEEKLY"
                   ? "bg-slate-800/90 text-white font-semibold shadow-lg shadow-indigo-950/20 border border-indigo-500/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
@@ -573,7 +569,7 @@ export default function WeekPage() {
 
             <button
               onClick={() => handleToggleMode("CYCLE")}
-              className={`relative flex items-center justify-center gap-2.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none cursor-pointer ${
+              className={`relative flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none cursor-pointer ${
                 studyMode === "CYCLE"
                   ? "bg-slate-800/90 text-white font-semibold shadow-lg shadow-indigo-950/20 border border-indigo-500/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
@@ -595,7 +591,7 @@ export default function WeekPage() {
             </button>
           </div>
 
-          <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-900/40 rounded-xl border border-slate-800/50 text-xs font-mono text-slate-400 self-end md:self-auto">
+          <div className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-900/40 rounded-xl border border-slate-800/50 text-xs font-mono text-slate-400 self-end md:self-auto w-full md:w-auto justify-between md:justify-start">
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-slate-500 font-sans tracking-wider uppercase">
                 Meta
@@ -605,9 +601,7 @@ export default function WeekPage() {
               </span>
               <span className="text-slate-600 text-[10px]">/sem</span>
             </div>
-
             <span className="text-slate-800">|</span>
-
             <div className="flex items-center gap-1.5">
               <span className="text-slate-200 font-bold">
                 {data?.activeDaysPerWeek ?? 5}
@@ -619,9 +613,10 @@ export default function WeekPage() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/60 pb-5">
+        {/* Title Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-4">
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
               {studyMode === "CYCLE"
                 ? "Seu Ciclo de Estudos"
                 : "Seu Planejamento Semanal"}
@@ -634,7 +629,7 @@ export default function WeekPage() {
                 : "Selecione o dia do planejamento e execute seus alvos com prioridade dinâmica."}
             </p>
           </div>
-          <span className="self-start sm:self-auto text-xs bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5 shadow-sm">
+          <span className="self-start sm:self-auto text-[11px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5 shadow-sm">
             <Sparkles size={13} className="text-indigo-400 animate-pulse" />
             Rebalanceador Adaptativo Ativo
           </span>
@@ -676,7 +671,7 @@ export default function WeekPage() {
             }
           />
         ) : (
-          <div className="space-y-8 animate-in fade-in duration-300">
+          <div className="space-y-6 animate-in fade-in duration-300">
             {data?.missedDayName && (
               <RescheduleBanner
                 missedDayName={data.missedDayName}
@@ -695,8 +690,8 @@ export default function WeekPage() {
               />
             )}
 
-            {/* BARRA DE SELEÇÃO DE DIAS */}
-            <div className="flex items-center gap-3 overflow-x-auto p-1.5 pt-2 pb-3 scrollbar-none">
+            {/* BARRA DE SELEÇÃO DE DIAS - OTIMIZADA PARA MOBILE */}
+            <div className="flex items-center gap-2.5 overflow-x-auto p-1 pt-1 pb-3 scrollbar-none">
               {data?.scheduleByDay?.map((day) => {
                 const isSelected = day.dayIndex === selectedDayIndex;
                 const isToday = day.dayName.toUpperCase().includes(todayNamePT);
@@ -719,9 +714,9 @@ export default function WeekPage() {
                   <button
                     key={`day-${day.dayIndex}`}
                     onClick={() => setSelectedDayIndex(day.dayIndex)}
-                    className={`flex flex-col items-start min-w-36 p-3.5 rounded-2xl border transition-all duration-200 relative text-left shrink-0 cursor-pointer ${
+                    className={`flex flex-col items-start min-w-[130px] sm:min-w-[145px] p-3 rounded-2xl border transition-all duration-200 relative text-left shrink-0 cursor-pointer ${
                       isSelected
-                        ? "bg-indigo-950/40 border-indigo-500/80 text-white ring-1 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.15)]"
+                        ? "bg-indigo-950/50 border-indigo-500/80 text-white ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-950/30"
                         : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/70 hover:text-slate-200"
                     }`}
                   >
@@ -749,7 +744,7 @@ export default function WeekPage() {
                       {formatMinutes(day.totalMinutes)}
                     </span>
 
-                    <div className="w-full h-1 bg-slate-950 rounded-full mt-3 overflow-hidden">
+                    <div className="w-full h-1 bg-slate-950 rounded-full mt-2.5 overflow-hidden">
                       <div
                         className={`h-full transition-all duration-300 ${
                           isSelected ? "bg-indigo-400" : "bg-indigo-500/60"
@@ -768,13 +763,13 @@ export default function WeekPage() {
               })}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               <div className="lg:col-span-2 space-y-6">
                 {activeDaySchedule && (
-                  <div className="bg-linear-to-br from-slate-900/90 via-slate-950 to-indigo-950/30 border border-slate-800/80 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                  <div className="bg-gradient-to-br from-slate-900/90 via-slate-950 to-indigo-950/30 border border-slate-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-5 backdrop-blur-xl shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/60 pb-5 relative z-10">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-4 relative z-10">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[10px] uppercase tracking-widest px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
@@ -785,17 +780,16 @@ export default function WeekPage() {
                             Foco do Dia
                           </span>
                           <span className="text-xs text-slate-400 font-mono">
-                            Meta:{" "}
-                            {formatMinutes(activeDaySchedule.totalMinutes)}
+                            Meta: {formatMinutes(activeDaySchedule.totalMinutes)}
                           </span>
                         </div>
-                        <h2 className="text-2xl font-black text-white tracking-tight uppercase flex items-center gap-2">
-                          <Target size={22} className="text-indigo-400" />
+                        <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase flex items-center gap-2">
+                          <Target size={20} className="text-indigo-400" />
                           {activeDaySchedule.dayName}
                         </h2>
                       </div>
 
-                      <div className="bg-slate-950/80 border border-slate-800 px-4 py-2 rounded-2xl flex items-center gap-3 shrink-0">
+                      <div className="bg-slate-950/80 border border-slate-800 px-3.5 py-2 rounded-2xl flex items-center gap-3 shrink-0 self-stretch sm:self-auto justify-between sm:justify-start">
                         <div className="text-right">
                           <span className="text-xs font-mono font-bold text-indigo-400 block">
                             {activeDayCompletedTopicsCount}/
@@ -817,7 +811,7 @@ export default function WeekPage() {
                         Matérias Alocadas para {activeDaySchedule.dayName}
                       </h3>
 
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 gap-3.5">
                         {activeDaySchedule.subjects.map((subject, sIdx) => {
                           const subjectColor = getSubjectColor(subject, sIdx);
                           const hasTopics =
@@ -836,7 +830,7 @@ export default function WeekPage() {
                           return (
                             <div
                               key={`subject-${subject.id}-${sIdx}`}
-                              className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-5 space-y-3 relative overflow-hidden group/card hover:border-slate-700 transition-all shadow-md"
+                              className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 sm:p-5 space-y-3 relative overflow-hidden group/card hover:border-slate-700 transition-all shadow-md"
                             >
                               <div
                                 className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl"
@@ -846,17 +840,18 @@ export default function WeekPage() {
                                 }}
                               />
 
-                              <div className="flex items-center justify-between pl-2">
-                                <div className="flex items-center gap-2.5">
+                              {/* Cabeçalho do Card da Matéria Otimizado para Mobile */}
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pl-2">
+                                <div className="flex items-center gap-2.5 min-w-0">
                                   <span
-                                    className="w-2.5 h-2.5 rounded-full"
+                                    className="w-2.5 h-2.5 rounded-full shrink-0"
                                     style={{
                                       backgroundColor: subjectColor,
                                       boxShadow: `0 0 8px ${subjectColor}`,
                                     }}
                                   />
-                                  <div>
-                                    <h4 className="text-base font-bold text-white tracking-tight">
+                                  <div className="min-w-0">
+                                    <h4 className="text-sm sm:text-base font-bold text-white tracking-tight truncate">
                                       {subject.name}
                                     </h4>
                                     <span className="text-[10px] text-slate-500 font-mono block">
@@ -866,37 +861,39 @@ export default function WeekPage() {
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => startFocusSession(subject)}
-                                    title="Iniciar sessão de estudo focada para esta matéria"
-                                    className="p-1.5 px-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all active:scale-95 flex items-center gap-1.5 text-[11px] font-semibold cursor-pointer shadow-sm"
-                                  >
-                                    <Play size={12} className="fill-current" />
-                                    <span>Iniciar</span>
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSubjectToSwap(subject);
-                                      setSwapModalOpen(true);
-                                    }}
-                                    title="Adiar / Trocar por matéria de outro dia"
-                                    className="p-1.5 rounded-lg bg-slate-900/80 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 border border-slate-800/80 transition-all active:scale-95 flex items-center gap-1.5 text-[11px] font-medium cursor-pointer"
-                                  >
-                                    <ArrowRightLeft size={13} />
-                                    <span className="hidden sm:inline">
-                                      Adiar
-                                    </span>
-                                  </button>
-
-                                  <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-3 py-1 rounded-xl">
+                                <div className="flex items-center justify-between sm:justify-end gap-2 border-t sm:border-t-0 border-slate-800/60 pt-2 sm:pt-0">
+                                  <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-2.5 py-1 rounded-xl">
                                     {formatMinutes(
                                       subject.dailyMinutesAllocated
                                     )}
                                   </span>
+
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => startFocusSession(subject)}
+                                      title="Iniciar sessão de estudo focada"
+                                      className="p-1.5 px-3 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all active:scale-95 flex items-center gap-1 text-[11px] font-semibold cursor-pointer shadow-sm"
+                                    >
+                                      <Play size={12} className="fill-current" />
+                                      <span>Iniciar</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSubjectToSwap(subject);
+                                        setSwapModalOpen(true);
+                                      }}
+                                      title="Adiar / Trocar por matéria de outro dia"
+                                      className="p-1.5 rounded-lg bg-slate-900/80 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 border border-slate-800/80 transition-all active:scale-95 flex items-center gap-1 text-[11px] font-medium cursor-pointer"
+                                    >
+                                      <ArrowRightLeft size={13} />
+                                      <span className="hidden sm:inline">
+                                        Adiar
+                                      </span>
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
 
@@ -925,7 +922,7 @@ export default function WeekPage() {
                                             topic.firstStudy
                                           )
                                         }
-                                        className={`flex items-center justify-between text-xs px-3.5 py-2.5 rounded-xl border transition-all cursor-pointer group/topic ${
+                                        className={`flex items-center justify-between text-xs px-3 py-2.5 rounded-xl border transition-all cursor-pointer group/topic ${
                                           isDone
                                             ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-300"
                                             : "bg-slate-900/60 border-slate-800/60 hover:bg-slate-800/50 text-slate-200"
@@ -987,20 +984,20 @@ export default function WeekPage() {
                 )}
               </div>
 
-              <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 space-y-6 lg:sticky lg:top-8 backdrop-blur-md shadow-2xl">
+              {/* Sidebar Distribuição */}
+              <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-5 sm:p-6 space-y-5 lg:sticky lg:top-6 backdrop-blur-md shadow-2xl">
                 <div>
                   <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
                     <TrendingUp size={16} className="text-indigo-400" />
                     Distribuição Semanal de Carga
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
-                    Proporção calculada e ajustada adaptativamente com base no
-                    seu desempenho.
+                    Proporção calculada e ajustada adaptativamente com base no seu desempenho.
                   </p>
                 </div>
 
                 <div className="flex justify-center py-2 relative">
-                  <div className="relative w-44 h-44 flex items-center justify-center">
+                  <div className="relative w-40 h-40 flex items-center justify-center">
                     <svg
                       className="w-full h-full transform -rotate-90"
                       viewBox="0 0 36 36"
@@ -1031,7 +1028,7 @@ export default function WeekPage() {
                     </svg>
 
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span className="text-2xl font-black text-white font-mono tracking-tight">
+                      <span className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
                         {data?.weeklyGoalHours}h
                       </span>
                       <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase">
@@ -1041,7 +1038,7 @@ export default function WeekPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-4 border-t border-slate-800/80 max-h-64 overflow-y-auto pr-1">
+                <div className="space-y-3 pt-3 border-t border-slate-800/80 max-h-56 overflow-y-auto pr-1">
                   {data?.subjectOverview?.map((subject, sIdx) => {
                     const subjectColor = getSubjectColor(subject, sIdx);
 
@@ -1087,11 +1084,10 @@ export default function WeekPage() {
                   })}
                 </div>
 
-                <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3.5 flex gap-2.5 items-start">
+                <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3 flex gap-2 items-start">
                   <Info size={15} className="text-indigo-400 shrink-0 mt-0.5" />
                   <p className="text-[11px] text-slate-400 leading-relaxed">
-                    O tempo de estudo é rebalanceado automaticamente para
-                    reforçar matérias com menor taxa de acerto (&lt; 65%).
+                    O tempo de estudo é rebalanceado automaticamente para reforçar matérias com menor taxa de acerto (&lt; 65%).
                   </p>
                 </div>
               </div>
@@ -1100,7 +1096,7 @@ export default function WeekPage() {
         )}
       </div>
 
-      {/* ⏱️ MODAL MODULO FOCO / POMODORO COM CONCLUIR SESSÃO */}
+      {/* Focus Timer Modal */}
       {focusSubject && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-sm w-full p-6 space-y-6 shadow-2xl text-center relative overflow-hidden">
@@ -1119,7 +1115,7 @@ export default function WeekPage() {
             </div>
 
             <div className="py-2">
-              <div className="text-5xl font-black font-mono tracking-tight text-white drop-shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+              <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white drop-shadow-[0_0_20px_rgba(16,185,129,0.3)]">
                 {formatTimer(focusTimeLeft)}
               </div>
             </div>
@@ -1173,18 +1169,17 @@ export default function WeekPage() {
         </div>
       )}
 
-      {/* MODAL DE CONFIGURAÇÕES */}
+      {/* Settings Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
             <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                 <Settings2 size={18} className="text-indigo-400" />
                 Configurar Meta de Estudo
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Ajuste sua disponibilidade semanal para recalcular o cronograma
-                dinâmico.
+                Ajuste sua disponibilidade semanal para recalcular o cronograma dinâmico.
               </p>
             </div>
 
@@ -1225,7 +1220,7 @@ export default function WeekPage() {
                     {activeDays} dias
                   </span>
                 </div>
-                <div className="grid grid-cols-7 gap-1.5 pt-1">
+                <div className="grid grid-cols-7 gap-1 pt-1">
                   {[1, 2, 3, 4, 5, 6, 7].map((num) => (
                     <button
                       key={`active-day-${num}`}
@@ -1275,7 +1270,7 @@ export default function WeekPage() {
         </div>
       )}
 
-      {/* MODAL DE SWAP */}
+      {/* Swap Modal */}
       {swapModalOpen && subjectToSwap && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
