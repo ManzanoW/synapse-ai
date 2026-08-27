@@ -349,7 +349,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
 
           <Link
-            href={!isLoading && hasEditalSubjects ? "/cards" : "/edital"}
+            href={!isLoading && hasEditalSubjects ? "/flashcards" : "/edital"}
             className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-500 hover:to-purple-500 active:scale-95"
           >
             <Zap size={14} className="fill-white" />
@@ -378,7 +378,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               icon: Layers,
               color: "text-indigo-400",
               bg: "bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/40",
-              href: "/cards",
+              href: "/flashcards",
             },
             {
               title: "Edital Verticalizado",
@@ -935,7 +935,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         title: "Revisar Flashcards",
                         target: 15,
                         current: stats?.metrics?.totalFlashcards ?? 0,
-                        actionUrl: "/cards",
+                        actionUrl: "/flashcards",
                         completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
                       },
                       {
