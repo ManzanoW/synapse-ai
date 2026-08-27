@@ -70,7 +70,7 @@ export async function GET() {
         icon: "brain",
         title: "Criar Decks de Flashcards",
         description: `Monte Cards de "${subjectWithoutDeck.name}" para proteger sua retenção a longo prazo.`,
-        actionUrl: "/cards",
+        actionUrl: "/flashcards",
       });
     }
 
