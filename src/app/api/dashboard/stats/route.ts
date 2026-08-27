@@ -35,13 +35,13 @@ export async function GET() {
     });
 
     // 2. Busca sessões de estudo diretas do Cronograma/Ciclo
-    const studySessions = await (prisma.studySession as any).findMany({
+    const studySessions = await prisma.studySession.findMany({
       where: { userId },
-      select: { durationMinutes: true, completedAt: true, createdAt: true },
+      select: { durationMinutes: true, date: true, createdAt: true },
     });
 
     const sessionMinutesTotal = studySessions.reduce(
-      (acc: number, s: any) => acc + (s.durationMinutes || 0),
+      (acc: number, s: { durationMinutes: number | null }) => acc + (s.durationMinutes || 0),
       0
     );
 
@@ -128,8 +128,8 @@ export async function GET() {
     // 8. Streak
     const studyDays = new Set<string>([
       ...reviews.map((r) => format(r.reviewedAt, "yyyy-MM-dd")),
-      ...studySessions.map((s: any) =>
-        format(s.completedAt || s.createdAt || new Date(), "yyyy-MM-dd")
+      ...studySessions.map((s) =>
+        format(s.date || s.createdAt || new Date(), "yyyy-MM-dd")
       ),
     ]);
 
@@ -155,8 +155,8 @@ export async function GET() {
         reviews.filter((r) => format(r.reviewedAt, "yyyy-MM-dd") === dayStr)
           .length +
         studySessions.filter(
-          (s: any) =>
-            format(s.completedAt || s.createdAt, "yyyy-MM-dd") === dayStr
+          (s) =>
+            format(s.date || s.createdAt, "yyyy-MM-dd") === dayStr
         ).length;
 
       let level = 0;
