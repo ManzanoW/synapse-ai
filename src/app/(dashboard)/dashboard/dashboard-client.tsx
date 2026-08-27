@@ -139,7 +139,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
     }
     if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
-      return "/cards";
+      return "/flashcards";
     }
 
     const titleLower = item.title?.toLowerCase() || "";
@@ -158,7 +158,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
     }
     if (titleLower.includes("card") || titleLower.includes("flashcard")) {
-      return "/cards";
+      return "/flashcards";
     }
 
     return "/edital";
@@ -658,7 +658,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     title: "Revisar Flashcards",
                     target: 15,
                     current: stats?.metrics?.totalFlashcards ?? 0,
-                    actionUrl: "/cards",
+                    actionUrl: "/flashcards",
                     completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
                   },
                   {
