@@ -20,6 +20,10 @@ import {
   PlusCircle,
   Maximize2,
   Minimize2,
+  Clock,
+  Pause,
+  Play,
+  CheckCircle2,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -33,7 +37,6 @@ import { QuizHistoryTab } from "./_components/QuizHistoryTab";
 import { GenerateAIModal } from "./_components/GenerateAIModal";
 import { QuestionMinimap } from "./_components/QuestionMinimap";
 
-// Importações dos recursos de impressão e registro externo
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { RegisterQuestionsModal } from "@/components/questions/register-questions-modal";
 
@@ -108,6 +111,12 @@ function randomizeQuizSession(questionsList: QuestaoIA[]): QuestaoIA[] {
   });
 }
 
+function formatTimer(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 export default function QuestoesPage() {
   const router = useRouter();
   const { openSidebar, closeSidebar } = useSidebar();
@@ -116,6 +125,7 @@ export default function QuestoesPage() {
   // Estados gerais
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
@@ -147,7 +157,7 @@ export default function QuestoesPage() {
     Record<number, boolean>
   >({});
   const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
-  const [isZenMode, setIsZenMode] = useState(false); // Modo Foco Total
+  const [isZenMode, setIsZenMode] = useState(false);
 
   // Cronômetro e conclusão
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -191,7 +201,6 @@ export default function QuestoesPage() {
 
   const { stats: gamificationStats, refreshStats } = useGamification();
 
-  // EFEITO PARA FECHAR SIDEBAR AO ATIVAR MODO ZEN
   useEffect(() => {
     if (isZenMode && closeSidebar) {
       closeSidebar();
@@ -300,7 +309,6 @@ export default function QuestoesPage() {
     return () => clearInterval(interval);
   }, [isTimerRunning, questions.length]);
 
-  // Carrega as matérias do Edital
   useEffect(() => {
     queueMicrotask(() => {
       setIsInitialLoading(true);
@@ -672,7 +680,6 @@ export default function QuestoesPage() {
       const isAlreadyAnswered = Boolean(checkedQuestions[focusedQuestionIndex]);
       const keyUpper = e.key.toUpperCase();
 
-      // ATALHO PARA ATIVAR / DESATIVAR MODO ZEN (FOCO TOTAL)
       if (keyUpper === "Z") {
         e.preventDefault();
         setIsZenMode((prev) => !prev);
@@ -773,9 +780,7 @@ export default function QuestoesPage() {
       <PrintableQuestions
         title={materia ? `Simulado - ${materia}` : "Simulado de Questões Geral"}
         totalQuestions={questions.length > 0 ? questions.length : 20}
-        estimatedTimeMinutes={
-          questions.length > 0 ? questions.length * 2 : 40
-        }
+        estimatedTimeMinutes={questions.length > 0 ? questions.length * 2 : 40}
         onBack={() => setIsPrintMode(false)}
         questions={
           questions.length > 0
@@ -803,8 +808,7 @@ export default function QuestoesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#02050e] text-slate-100 p-4 md:p-8 font-sans antialiased relative selection:bg-indigo-500/30">
-      {/* OCULTA A SIDEBAR GLOBAL COMPLETAMENTE QUANDO O MODO ZEN ESTIVER ATIVO */}
+    <div className="min-h-screen bg-[#02050e] text-slate-100 p-3 sm:p-8 font-sans antialiased relative selection:bg-indigo-500/30">
       {isZenMode && (
         <style jsx global>{`
           aside,
@@ -822,81 +826,53 @@ export default function QuestoesPage() {
         `}</style>
       )}
 
+      {/* Timer Flutuante apenas em Telas Médias/Grandes */}
       {questions.length > 0 && activeTab === "create" && (
-        <FloatingTimer
-          seconds={timerSeconds}
-          isRunning={isTimerRunning}
-          onToggleTimer={() => setIsTimerRunning((prev) => !prev)}
-        />
+        <div className="hidden sm:block">
+          <FloatingTimer
+            seconds={timerSeconds}
+            isRunning={isTimerRunning}
+            onToggleTimer={() => setIsTimerRunning((prev) => !prev)}
+          />
+        </div>
       )}
 
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* ================= 1. CABEÇALHO PRINCIPAL (OCULTO NO MODO ZEN) ================= */}
-        {!isZenMode && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6 transition-all duration-300">
-            <div className="flex items-center gap-3.5">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+        {/* ================= 1. CABEÇALHO PRINCIPAL (SEM QUESTÕES ATIVAS) ================= */}
+        {!isZenMode && questions.length === 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 sm:pb-6 transition-all duration-300">
+            <div className="flex items-start sm:items-center gap-3">
               <button
                 onClick={openSidebar}
                 type="button"
-                className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors cursor-pointer"
+                className="p-2 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors cursor-pointer shrink-0 mt-0.5 sm:mt-0"
               >
                 <Menu size={18} />
               </button>
-              <div>
-                <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-xs">
-                    <HelpCircle size={20} />
+
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2 sm:gap-2.5">
+                  <div className="p-1.5 sm:p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-xs shrink-0">
+                    <HelpCircle size={18} className="sm:w-5 sm:h-5" />
                   </div>
-                  Banco de Provas & Simulados
+                  <span className="truncate">Banco de Provas & Simulados</span>
                 </h1>
 
-                {/* DESCRIÇÃO DINÂMICA CONTEXTUAL */}
-                <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                  {questions.length > 0 && activeTab === "create" ? (
-                    <>
-                      <span>Resolução ativa para</span>
-                      <span className="inline-flex items-center gap-1 font-bold text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-md border border-indigo-500/20 text-[11px]">
-                        {banca || "Geral"}
-                      </span>
-                      {materia && (
-                        <>
-                          <span className="text-slate-600">•</span>
-                          <span className="text-slate-300 font-medium">
-                            {materia}
-                          </span>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <span>
-                      Crie cadernos adaptativos com inteligência artificial e
-                      acompanhe sua evolução em tempo real.
-                    </span>
-                  )}
+                <p className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2 leading-tight">
+                  Crie cadernos adaptativos com IA e acompanhe sua evolução.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              {questions.length > 0 && activeTab === "create" ? (
-                <button
-                  onClick={() => setIsPrintMode(true)}
-                  type="button"
-                  className="bg-white/5 border border-white/10 hover:border-cyan-500/40 text-cyan-400 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
-                >
-                  <Printer size={15} />
-                  <span>Versão Impressa</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => setIsRegisterModalOpen(true)}
-                  type="button"
-                  className="bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
-                >
-                  <PlusCircle size={15} />
-                  <span>Registrar Externo</span>
-                </button>
-              )}
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0">
+              <button
+                onClick={() => setIsRegisterModalOpen(true)}
+                type="button"
+                className="w-full sm:w-auto justify-center bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
+              >
+                <PlusCircle size={15} />
+                <span>Registrar Externo</span>
+              </button>
             </div>
           </div>
         )}
@@ -939,32 +915,110 @@ export default function QuestoesPage() {
         {/* CONTEÚDO PRINCIPAL */}
         {subjects.length > 0 && (
           <>
-            {/* 2. BARRA DE PROGRESSO DO SIMULADO */}
+            {/* HUD REORGANIZADO PARA MODO RESOLUÇÃO (MOBILE & DESKTOP) */}
             {questions.length > 0 && activeTab === "create" && (
-              <div className="bg-[#090d16]/90 border border-white/10 rounded-2xl p-4 shadow-2xl backdrop-blur-md">
-                <div className="flex items-center justify-between mb-2.5 text-xs">
-                  <div className="flex items-center gap-2 font-bold text-slate-200">
-                    <span className="text-indigo-400">
-                      Progresso do Caderno
+              <div className="bg-[#090d16] border border-white/10 rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
+                {/* LINHA 1: MENU + INFO MATÉRIA + TEMPO */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {!isZenMode && (
+                      <button
+                        onClick={openSidebar}
+                        type="button"
+                        className="p-1.5 bg-white/5 border border-white/10 rounded-lg text-slate-400 hover:text-white md:hidden shrink-0 cursor-pointer"
+                      >
+                        <Menu size={16} />
+                      </button>
+                    )}
+                    <span className="px-2 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/30 font-bold text-indigo-300 text-[10px] shrink-0 uppercase">
+                      {banca}
                     </span>
-                    <span className="text-slate-600">•</span>
-                    <span className="font-mono text-slate-300">
-                      {answeredCount}/{totalQuestions} respondidas
+                    <span className="text-xs text-slate-200 font-bold truncate">
+                      {materia || "Simulado"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 font-semibold text-xs">
-                    <span className="text-emerald-400 font-mono">
-                      {correctCount} Acerto(s)
-                    </span>
-                    <span className="text-slate-700">|</span>
-                    <span className="text-indigo-300 font-mono font-bold">
-                      Aproveitamento: {percentageAcc}%
-                    </span>
+
+                  {/* CRONÔMETRO COMPACTO DO MOBILE */}
+                  <div className="flex items-center gap-1.5 bg-indigo-950/60 border border-indigo-500/40 px-2.5 py-1 rounded-xl text-xs font-mono text-indigo-300 shrink-0">
+                    <Clock
+                      size={12}
+                      className="text-emerald-400 animate-pulse"
+                    />
+                    <span>{formatTimer(timerSeconds)}</span>
+                    <button
+                      onClick={() => setIsTimerRunning((prev) => !prev)}
+                      className="p-0.5 hover:bg-white/10 rounded text-slate-400 hover:text-white cursor-pointer ml-0.5"
+                    >
+                      {isTimerRunning ? (
+                        <Pause size={11} />
+                      ) : (
+                        <Play size={11} />
+                      )}
+                    </button>
                   </div>
                 </div>
-                <div className="w-full bg-slate-950/80 rounded-full h-2 overflow-hidden border border-white/5">
+
+                {/* LINHA 2: PROGRESSO + AÇÕES */}
+                <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-2 text-xs">
+                  <div className="flex items-center gap-2 font-mono text-slate-300 text-[11px]">
+                    <span className="font-bold text-emerald-400">
+                      {answeredCount}/{totalQuestions}
+                    </span>
+                    <span className="text-slate-600">•</span>
+                    <span>{percentageAcc}% Acerto</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setIsPrintMode(true)}
+                      type="button"
+                      className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-cyan-400 text-xs font-semibold cursor-pointer"
+                      title="Imprimir"
+                    >
+                      <Printer size={13} />
+                    </button>
+
+                    <button
+                      onClick={() => setIsZenMode((prev) => !prev)}
+                      type="button"
+                      className={`p-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                        isZenMode
+                          ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
+                          : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
+                      }`}
+                      title="Modo Zen"
+                    >
+                      {isZenMode ? (
+                        <Minimize2 size={13} />
+                      ) : (
+                        <Maximize2 size={13} />
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setQuestions([]);
+                        setSelectedAnswers({});
+                        setCheckedQuestions({});
+                        setFlaggedQuestions({});
+                        localStorage.removeItem(STORAGE_KEY);
+                        setPausedSession(null);
+                        setCurrentQuizId(null);
+                        setIsTimerRunning(false);
+                        setIsZenMode(false);
+                      }}
+                      type="button"
+                      className="text-[10px] font-bold text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-lg shrink-0 cursor-pointer"
+                    >
+                      Sair
+                    </button>
+                  </div>
+                </div>
+
+                {/* BARRA DE CARREGAMENTO INTEGRA */}
+                <div className="w-full bg-slate-950/80 rounded-full h-1.5 overflow-hidden border border-white/5">
                   <div
-                    className="bg-linear-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                    className="bg-linear-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-300 rounded-full"
                     style={{
                       width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%`,
                     }}
@@ -973,8 +1027,8 @@ export default function QuestoesPage() {
               </div>
             )}
 
-            {/* 3. NAVEGAÇÃO DE ABAS (OCULTA NO MODO ZEN) */}
-            {!isZenMode && (
+            {/* 3. NAVEGAÇÃO DE ABAS (HUB) */}
+            {!isZenMode && questions.length === 0 && (
               <div className="flex border-b border-white/10 gap-2">
                 <button
                   onClick={() => handleTabChange("create")}
@@ -985,17 +1039,8 @@ export default function QuestoesPage() {
                       : "border-transparent text-slate-400 hover:text-white"
                   }`}
                 >
-                  {questions.length > 0 ? (
-                    <>
-                      <Zap size={14} className="text-indigo-400" />
-                      <span>Caderno Ativo</span>
-                    </>
-                  ) : (
-                    <>
-                      <Home size={14} />
-                      <span>Início</span>
-                    </>
-                  )}
+                  <Home size={14} />
+                  <span>Início</span>
                 </button>
                 <button
                   onClick={() => {
@@ -1051,23 +1096,26 @@ export default function QuestoesPage() {
                       )}
 
                     {/* HERO SPOTLIGHT */}
-                    <div className="relative overflow-hidden bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl">
-                      <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-indigo-500/10 blur-[100px]" />
-                      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                        <div className="space-y-4 max-w-xl">
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-md">
+                    <div className="relative overflow-hidden bg-linear-to-br from-[#0d1326] via-[#090d18] to-[#04060c] border border-indigo-500/20 sm:border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl backdrop-blur-2xl">
+                      <div className="pointer-events-none absolute -top-12 -right-12 h-40 w-40 sm:h-72 sm:w-72 rounded-full bg-indigo-500/20 blur-[60px] sm:blur-[100px]" />
+
+                      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-8">
+                        <div className="space-y-2.5 sm:space-y-4 max-w-xl">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 backdrop-blur-md">
                             <Sparkles
-                              size={12}
+                              size={11}
                               className="text-indigo-400 animate-pulse"
                             />
-                            <span className="text-[10px] font-extrabold tracking-widest text-indigo-300 uppercase">
+                            <span className="text-[9px] sm:text-[10px] font-black tracking-widest text-indigo-300 uppercase">
                               Central de Treinamento
                             </span>
                           </div>
-                          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+
+                          <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-snug sm:leading-tight">
                             Pratique com questões inéditas e simulados
                             direcionados
                           </h2>
+
                           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
                             Gere cadernos adaptativos configurados pela IA ou
                             retome seus testes anteriores com feedback em tempo
@@ -1077,27 +1125,35 @@ export default function QuestoesPage() {
                       </div>
                     </div>
 
-                    {/* OPÇÕES DE CRIAÇÃO */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* CARDS DE AÇÃO */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-5">
                       <div
                         onClick={() => setIsAIModalOpen(true)}
-                        className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-indigo-500/40 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
+                        className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] active:scale-[0.98] sm:active:scale-[0.99] hover:border-indigo-500/50 border border-indigo-500/20 sm:border-white/10 p-5 sm:p-7 rounded-2xl sm:rounded-3xl cursor-pointer transition-all duration-200 shadow-xl flex flex-col justify-between overflow-hidden"
                       >
-                        <div className="space-y-4 relative z-10">
-                          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                            <Sparkles size={22} />
+                        <div className="pointer-events-none absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all" />
+
+                        <div className="space-y-3 sm:space-y-4 relative z-10">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)]">
+                            <Sparkles size={20} className="sm:w-5 sm:h-5" />
                           </div>
+
                           <div>
-                            <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">
-                              Gerar Simulado por IA
+                            <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-indigo-300 transition-colors flex items-center justify-between">
+                              <span>Gerar Simulado por IA</span>
+                              <span className="text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full sm:hidden">
+                                Recomendado
+                              </span>
                             </h3>
-                            <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+
+                            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
                               Filtre por banca, disciplina e dificuldade para
                               montar cadernos sob medida.
                             </p>
                           </div>
                         </div>
-                        <div className="mt-8 flex items-center gap-2 text-xs font-bold text-indigo-400">
+
+                        <div className="mt-5 sm:mt-8 flex items-center gap-2 text-xs font-extrabold text-indigo-400 group-hover:translate-x-1 transition-transform">
                           <span>Configurar Parâmetros</span>
                           <ArrowRight size={14} />
                         </div>
@@ -1108,23 +1164,26 @@ export default function QuestoesPage() {
                           handleTabChange("history");
                           fetchQuizHistory();
                         }}
-                        className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] hover:border-white/20 border border-white/10 p-7 rounded-3xl cursor-pointer transition-all duration-300 active:scale-[0.99] shadow-xl flex flex-col justify-between overflow-hidden"
+                        className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] active:scale-[0.98] sm:active:scale-[0.99] hover:border-white/30 border border-white/10 p-5 sm:p-7 rounded-2xl sm:rounded-3xl cursor-pointer transition-all duration-200 shadow-xl flex flex-col justify-between overflow-hidden"
                       >
-                        <div className="space-y-4 relative z-10">
-                          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300">
-                            <History size={22} />
+                        <div className="space-y-3 sm:space-y-4 relative z-10">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 shadow-inner">
+                            <History size={20} className="sm:w-5 sm:h-5" />
                           </div>
+
                           <div>
-                            <h3 className="text-lg font-bold text-white group-hover:text-slate-200 transition-colors">
+                            <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-slate-200 transition-colors">
                               Meus Simulados Salvos
                             </h3>
-                            <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+
+                            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
                               Acesse e refaça cadernos salvos no seu histórico a
                               qualquer momento.
                             </p>
                           </div>
                         </div>
-                        <div className="mt-8 flex items-center gap-2 text-xs font-bold text-slate-400">
+
+                        <div className="mt-5 sm:mt-8 flex items-center gap-2 text-xs font-extrabold text-slate-400 group-hover:text-slate-200 group-hover:translate-x-1 transition-transform">
                           <span>Ver Cadernos Salvos</span>
                           <ArrowRight size={14} />
                         </div>
@@ -1132,95 +1191,42 @@ export default function QuestoesPage() {
                     </div>
                   </div>
                 ) : (
-                  /* CADERNO DE QUESTÕES EM RESOLUÇÃO */
-                  <div className="space-y-6">
-                    <div className="bg-[#090d16]/90 border border-white/10 px-5 py-3 rounded-2xl flex items-center justify-between gap-4 shadow-xl backdrop-blur-md">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-xs text-slate-300 font-semibold tracking-wide uppercase">
-                          {isZenMode ? "Modo Foco Total (Zen)" : "Sessão em Andamento"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {/* BOTÃO DO MODO FOCO / ZEN */}
-                        <button
-                          onClick={() => setIsZenMode((prev) => !prev)}
-                          type="button"
-                          className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                            isZenMode
-                              ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
-                              : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-                          }`}
-                          title={
-                            isZenMode
-                              ? "Sair do Modo Foco (Teclado: Z)"
-                              : "Ativar Modo Foco (Teclado: Z)"
-                          }
-                        >
-                          {isZenMode ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-                          <span className="hidden sm:inline text-[11px]">
-                            {isZenMode ? "Sair do Zen" : "Modo Zen"}
-                          </span>
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setQuestions([]);
-                            setSelectedAnswers({});
-                            setCheckedQuestions({});
-                            setFlaggedQuestions({});
-                            localStorage.removeItem(STORAGE_KEY);
-                            setPausedSession(null);
-                            setCurrentQuizId(null);
-                            setIsTimerRunning(false);
-                            setIsZenMode(false);
-                          }}
-                          type="button"
-                          className="text-xs text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/30 bg-slate-950/60 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-medium"
-                        >
-                          Encerrar Caderno
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* MARGEM INFERIOR AUMENTADA PARA PB-28 PARA O MINIMAP NÃO COBRIR O CONTEÚDO */}
-                    <div className="space-y-6 pb-28">
-                      {questions.map((questao, index) => (
-                        <QuestionCard
-                          key={`questao-${index}`}
-                          questao={questao}
-                          index={index}
-                          isFocused={index === focusedQuestionIndex}
-                          respondida={Boolean(checkedQuestions[index])}
-                          alternativaSelecionada={selectedAnswers[index]}
-                          isSavedError={Boolean(savedErrors[index])}
-                          isFlashcardCreated={Boolean(createdFlashcards[index])}
-                          isCreatingFlashcard={creatingFlashcardIndex === index}
-                          isFlagged={Boolean(flaggedQuestions[index])}
-                          onSelectAnswer={(altId) =>
-                            setSelectedAnswers((prev) => ({
-                              ...prev,
-                              [index]: altId,
-                            }))
-                          }
-                          onAnswerQuestion={() => handleAnswerQuestion(index)}
-                          onToggleSaveError={() =>
-                            setSavedErrors((prev) => ({
-                              ...prev,
-                              [index]: !prev[index],
-                            }))
-                          }
-                          onCreateFlashcard={() => handleCreateFlashcard(index)}
-                          onToggleFlag={() =>
-                            setFlaggedQuestions((prev) => ({
-                              ...prev,
-                              [index]: !prev[index],
-                            }))
-                          }
-                        />
-                      ))}
-                    </div>
+                  /* LISTA DE QUESTÕES COM PADDING INFERIOR ADEQUADO */
+                  <div className="space-y-6 pb-40">
+                    {questions.map((questao, index) => (
+                      <QuestionCard
+                        key={`questao-${index}`}
+                        questao={questao}
+                        index={index}
+                        isFocused={index === focusedQuestionIndex}
+                        respondida={Boolean(checkedQuestions[index])}
+                        alternativaSelecionada={selectedAnswers[index]}
+                        isSavedError={Boolean(savedErrors[index])}
+                        isFlashcardCreated={Boolean(createdFlashcards[index])}
+                        isCreatingFlashcard={creatingFlashcardIndex === index}
+                        isFlagged={Boolean(flaggedQuestions[index])}
+                        onSelectAnswer={(altId) =>
+                          setSelectedAnswers((prev) => ({
+                            ...prev,
+                            [index]: altId,
+                          }))
+                        }
+                        onAnswerQuestion={() => handleAnswerQuestion(index)}
+                        onToggleSaveError={() =>
+                          setSavedErrors((prev) => ({
+                            ...prev,
+                            [index]: !prev[index],
+                          }))
+                        }
+                        onCreateFlashcard={() => handleCreateFlashcard(index)}
+                        onToggleFlag={() =>
+                          setFlaggedQuestions((prev) => ({
+                            ...prev,
+                            [index]: !prev[index],
+                          }))
+                        }
+                      />
+                    ))}
                   </div>
                 )}
               </>
@@ -1286,7 +1292,7 @@ export default function QuestoesPage() {
         )}
       </div>
 
-      {/* FLOATING MINIMAP */}
+      {/* FLOATING MINIMAP FIXADO ABAIXO DAS QUESTÕES */}
       {questions.length > 0 && activeTab === "create" && (
         <QuestionMinimap
           questions={questions}
@@ -1303,7 +1309,7 @@ export default function QuestoesPage() {
         />
       )}
 
-      {/* MODAL: GERAR POR IA */}
+      {/* MODAL IA */}
       <GenerateAIModal
         isOpen={isAIModalOpen}
         isGenerating={isGenerating}
@@ -1337,7 +1343,6 @@ export default function QuestoesPage() {
         onSubmit={handleGenerateSimulado}
       />
 
-      {/* MODAL: REGISTRAR QUESTÕES EXTERNAS */}
       <RegisterQuestionsModal
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
@@ -1347,7 +1352,6 @@ export default function QuestoesPage() {
         }}
       />
 
-      {/* MODAL: DIAGNÓSTICO E RECOMPENSAS */}
       {showCompletionModal && (
         <CompletionModal
           totalQuestions={totalQuestions}
@@ -1370,7 +1374,6 @@ export default function QuestoesPage() {
         />
       )}
 
-      {/* MODAL DE CONFIRMAÇÃO DE NAVEGAÇÃO PENDENTE */}
       {pendingTab && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-[#090d16] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
@@ -1385,14 +1388,14 @@ export default function QuestoesPage() {
               <button
                 onClick={() => setPendingTab(null)}
                 type="button"
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold rounded-xl cursor-pointer transition-colors"
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold rounded-xl cursor-pointer"
               >
                 Continuar respondendo
               </button>
               <button
                 onClick={confirmNavigation}
                 type="button"
-                className="px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-semibold rounded-xl cursor-pointer transition-colors"
+                className="px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-semibold rounded-xl cursor-pointer"
               >
                 Sair e descartar
               </button>

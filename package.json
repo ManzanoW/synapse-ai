@@ -7,9 +7,13 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "context:study": "npx repomix --include \"src/app/(dashboard)/study/**/*,src/components/flashcards/**/*,src/components/decks/**/*,src/components/questions/**/*\" --ignore \"src/components/ui/**,**/*.skeleton.tsx\" -o context-study.txt",
+    "context:study": "npx repomix --include \"src/app/(dashboard)/study/**/*,src/components/flashcards/**/*,src/components/decks/**/*,src/components/questions/**/*,src/components/questions/**/*,src/app/(dashboard)/questions/**/*\" --ignore \"src/components/ui/**,**/*.skeleton.tsx\" -o context-study.txt",
     "context:core": "npx repomix --include \"src/actions/**/*,src/types/**/*,src/context/**/*,src/lib/**/*\" -o context-core.txt",
-    "context:gamification": "npx repomix --include \"src/components/gamification/**/*,src/components/achievements/**/*\" -o context-gamification.txt"
+    "context:gamification": "npx repomix --include \"src/components/gamification/**/*,src/components/achievements/**/*\" -o context-gamification.txt",
+    "context:edital": "npx repomix --include \"src/app/(dashboard)/edital/**/*,src/components/edital/**/*,src/components/subject*/**/*\" --ignore \"src/components/ui/**,**/*.skeleton.tsx\" -o context-edital.txt",
+    "context:dashboard": "npx repomix --include \"src/app/(dashboard)/dashboard/**/*,src/components/dashboard/**/*,src/components/analytics/**/*,src/components/pomodoro*/**/*\" --ignore \"src/components/ui/**,**/*.skeleton.tsx\" -o context-dashboard.txt",
+    "context:api": "npx repomix --include \"src/app/api/**/*\" -o context-api.txt",
+    "context:all": "npm run context:core && npm run context:edital && npm run context:dashboard && npm run context:study && npm run context:gamification && npm run context:api"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

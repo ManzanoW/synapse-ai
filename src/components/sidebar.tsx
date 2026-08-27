@@ -350,10 +350,13 @@ export default function Sidebar({ user }: SidebarProps) {
 
                 <button
                   type="button"
-                  onClick={() => setIsLogoutModalOpen(true)}
+                  onClick={() => {
+                    closeSidebar();
+                    setIsLogoutModalOpen(true);
+                  }}
                   aria-label="Sair"
                   title="Sair da conta"
-                  className="p-1.5 rounded-lg hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 transition-all shrink-0"
+                  className="p-1.5 rounded-lg hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 transition-all shrink-0 cursor-pointer"
                 >
                   <LogOut size={14} />
                 </button>

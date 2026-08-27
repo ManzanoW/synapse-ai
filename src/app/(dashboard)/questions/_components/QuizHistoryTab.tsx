@@ -60,8 +60,12 @@ export function QuizHistoryTab({
   const [viewMode, setViewMode] = useState<"all" | "errors">("all");
 
   // Filtra todas as questões erradas salvas no histórico
-  const getErrorQuestions = (): (QuestaoIA & { banca: string; subject: string })[] => {
-    const errorQuestions: (QuestaoIA & { banca: string; subject: string })[] = [];
+  const getErrorQuestions = (): (QuestaoIA & {
+    banca: string;
+    subject: string;
+  })[] => {
+    const errorQuestions: (QuestaoIA & { banca: string; subject: string })[] =
+      [];
     history.forEach((item) => {
       const qArray = Array.isArray(item.questions) ? item.questions : [];
       qArray.forEach((q: any) => {
@@ -90,7 +94,9 @@ export function QuizHistoryTab({
     })
     .sort((a, b) => {
       if (sortBy === "oldest") {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
       }
       if (sortBy === "subject") {
         return (a.subject || "").localeCompare(b.subject || "");
@@ -109,17 +115,18 @@ export function QuizHistoryTab({
                 Histórico & Caderno de Erros
               </h2>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Refaça simulados completos ou crie cadernos de recuperação focados nos seus pontos fracos.
+            <p className="text-xs text-slate-400 mt-0.5 leading-snug">
+              Refaça simulados completos ou crie cadernos de recuperação focados
+              nos seus pontos fracos.
             </p>
           </div>
 
           {/* TOGGLE: TODOS OS SIMULADOS X APENAS ERROS */}
-          <div className="flex items-center gap-1 bg-[#090d16] p-1 rounded-xl border border-slate-800/80">
+          <div className="flex items-center gap-1 bg-[#090d16] p-1 rounded-xl border border-slate-800/80 w-full sm:w-auto">
             <button
               onClick={() => setViewMode("all")}
               type="button"
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 viewMode === "all"
                   ? "bg-indigo-600 text-white shadow-md"
                   : "text-slate-400 hover:text-slate-200"
@@ -131,7 +138,7 @@ export function QuizHistoryTab({
             <button
               onClick={() => setViewMode("errors")}
               type="button"
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 viewMode === "errors"
                   ? "bg-rose-600 text-white shadow-md"
                   : "text-slate-400 hover:text-slate-200"
@@ -187,36 +194,43 @@ export function QuizHistoryTab({
         /* VISÃO: CADERNO DE ERROS DEDICADO */
         <div className="space-y-4">
           {errorList.length === 0 ? (
-            <div className="bg-[#090d16]/60 border border-slate-800/80 rounded-2xl p-12 text-center space-y-3">
+            <div className="bg-[#090d16]/60 border border-slate-800/80 rounded-2xl p-8 sm:p-12 text-center space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
                 <Bookmark size={22} />
               </div>
               <h3 className="text-sm font-bold text-slate-200">
                 Nenhum erro registrado!
               </h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                À medida que você responder simulados e errar questões, elas serão salvas automaticamente neste caderno de treino.
+              <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                À medida que você responder simulados e errar questões, elas
+                serão salvas automaticamente neste caderno de treino.
               </p>
             </div>
           ) : (
-            <div className="bg-[#090d16] border border-rose-500/30 rounded-2xl p-6 space-y-5">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div className="bg-[#090d16] border border-rose-500/30 rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 sm:pb-4">
                 <div>
                   <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                    <AlertTriangle size={16} className="text-rose-400" />
-                    Simulado de Recuperação Intensiva
+                    <AlertTriangle
+                      size={16}
+                      className="text-rose-400 shrink-0"
+                    />
+                    <span>Simulado de Recuperação Intensiva</span>
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Você possui {errorList.length} questão(ões) pendente(s) de revisão.
+                    Você possui {errorList.length} questão(ões) pendente(s) de
+                    revisão.
                   </p>
                 </div>
                 <button
-                  onClick={() => onLoadSavedQuiz(errorList, "Recuperação", "errors_session")}
+                  onClick={() =>
+                    onLoadSavedQuiz(errorList, "Recuperação", "errors_session")
+                  }
                   type="button"
-                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-950/50 transition-all flex items-center gap-2 active:scale-[0.98] cursor-pointer"
+                  className="w-full sm:w-auto justify-center px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-950/50 transition-all flex items-center gap-2 active:scale-[0.98] cursor-pointer"
                 >
                   <RotateCcw size={14} />
-                  Refazer Apenas os Erros
+                  <span>Refazer Apenas os Erros</span>
                 </button>
               </div>
 
@@ -224,14 +238,14 @@ export function QuizHistoryTab({
                 {errorList.map((errQ, idx) => (
                   <div
                     key={`err-${idx}`}
-                    className="bg-slate-950/80 border border-slate-800/80 p-3.5 rounded-xl flex items-center justify-between gap-3 text-xs"
+                    className="bg-slate-950/80 border border-slate-800/80 p-3 sm:p-3.5 rounded-xl flex items-center justify-between gap-3 text-xs"
                   >
-                    <div className="space-y-1 min-w-0">
-                      <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 mr-2">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 mr-2 inline-block">
                         {errQ.banca}
                       </span>
-                      <span className="text-slate-300 font-medium truncate block sm:inline">
-                        {errQ.enunciado.replace(/\*\*/g, "").slice(0, 90)}...
+                      <span className="text-slate-300 font-medium line-clamp-2 sm:line-clamp-1">
+                        {errQ.enunciado.replace(/\*\*/g, "")}
                       </span>
                     </div>
                   </div>
@@ -241,36 +255,39 @@ export function QuizHistoryTab({
           )}
         </div>
       ) : history.length === 0 ? (
-  /* SEM SIMULADOS */
-  <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-3xl my-6 space-y-4">
-    <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
-      <Layers size={28} />
-    </div>
-    <div className="space-y-1">
-      <h3 className="text-base font-bold text-slate-100">
-        Nenhum simulado salvo ainda
-      </h3>
-      <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-        Gere novos cadernos de questões para treinar. Certifique-se de ter cadastrado suas matérias no <strong className="text-indigo-300">Edital</strong> para obter questões 100% personalizadas.
-      </p>
-    </div>
-    <div className="flex flex-col sm:flex-row gap-3 pt-2">
-      <button
-        onClick={onCreateNewQuiz}
-        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-98 cursor-pointer"
-      >
-        Gerar Simulado
-      </button>
-      <Link
-        href="/edital"
-        className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all border border-slate-700/80 flex items-center justify-center gap-2"
-      >
-        <BookOpen size={14} />
-        <span>Ir para Editais</span>
-      </Link>
-    </div>
-  </div>
-) : filteredHistory.length === 0 ? (
+        /* SEM SIMULADOS */
+        <div className="flex flex-col items-center justify-center p-6 sm:p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-3xl my-6 space-y-4">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
+            <Layers size={24} className="sm:w-7 sm:h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-slate-100">
+              Nenhum simulado salvo ainda
+            </h3>
+            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+              Gere novos cadernos de questões para treinar. Certifique-se de ter
+              cadastrado suas matérias no{" "}
+              <strong className="text-indigo-300">Edital</strong> para obter
+              questões 100% personalizadas.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full sm:w-auto">
+            <button
+              onClick={onCreateNewQuiz}
+              className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-98 cursor-pointer"
+            >
+              Gerar Simulado
+            </button>
+            <Link
+              href="/edital"
+              className="w-full sm:w-auto px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all border border-slate-700/80 flex items-center justify-center gap-2"
+            >
+              <BookOpen size={14} />
+              <span>Ir para Editais</span>
+            </Link>
+          </div>
+        </div>
+      ) : filteredHistory.length === 0 ? (
         /* SEM RESULTADOS NA BUSCA */
         <div className="text-center py-12 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
           <p className="text-xs text-slate-400">
@@ -280,20 +297,20 @@ export function QuizHistoryTab({
           </p>
         </div>
       ) : (
-        /* LISTA DE SIMULADOS SALVOS */
-        <div className="grid gap-4 sm:grid-cols-2 items-start">
+        /* LISTA DE SIMULADOS SALVOS DA VERSÃO COMPLETA */
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 items-start">
           {filteredHistory.map((item) => {
             const questionsArray = Array.isArray(item.questions)
               ? item.questions
               : [];
             const formattedDate = new Date(item.createdAt).toLocaleDateString(
-              "pt-BR"
+              "pt-BR",
             );
 
             return (
               <div
                 key={`quiz-history-${item.id}`}
-                className="relative overflow-hidden bg-[#090d16]/90 border border-slate-800/80 hover:border-indigo-500/40 p-5 rounded-2xl shadow-xl flex flex-col justify-between hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] transition-all duration-300 group"
+                className="relative overflow-hidden bg-[#090d16]/90 border border-slate-800/80 hover:border-indigo-500/40 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col justify-between hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] transition-all duration-300 group"
               >
                 <div className="absolute top-0 right-0 -mt-6 -mr-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
 
@@ -325,21 +342,27 @@ export function QuizHistoryTab({
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
                       <span className="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-md border border-slate-800/80 text-[11px] text-slate-300 font-medium">
-                        <Layers size={11} className="text-indigo-400" />
+                        <Layers
+                          size={11}
+                          className="text-indigo-400 shrink-0"
+                        />
                         {item.difficulty}
                       </span>
 
                       <span className="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-md border border-slate-800/80 text-[11px] text-slate-300 font-medium">
-                        <HelpCircle size={11} className="text-indigo-400" />
+                        <HelpCircle
+                          size={11}
+                          className="text-indigo-400 shrink-0"
+                        />
                         {questionsArray.length} questões
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-5 relative z-10 pt-3 border-t border-slate-800/60">
+                <div className="mt-4 sm:mt-5 relative z-10 pt-3 border-t border-slate-800/60">
                   {confirmingDeleteId === item.id ? (
                     <div className="bg-rose-950/20 border border-rose-500/30 p-2 rounded-xl flex items-center justify-between gap-2 animate-in fade-in duration-200">
                       <span className="text-[11px] text-rose-300 font-medium pl-1">
@@ -367,7 +390,7 @@ export function QuizHistoryTab({
                           onLoadSavedQuiz(questionsArray, item.banca, item.id)
                         }
                         disabled={loadingQuizId === item.id}
-                        className="flex-1 flex items-center justify-center gap-1.5 text-center py-2.5 bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/35 hover:border-indigo-500/60 text-indigo-200 text-xs font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group/btn cursor-pointer"
+                        className="flex-1 flex items-center justify-center gap-1.5 text-center py-2.5 bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/35 hover:border-indigo-500/60 text-indigo-200 text-xs font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group/btn cursor-pointer min-h-10"
                       >
                         {loadingQuizId === item.id ? (
                           <>
@@ -382,7 +405,9 @@ export function QuizHistoryTab({
                             <span className="text-amber-400 group-hover/btn:scale-110 transition-transform">
                               ⚡
                             </span>
-                            <span>Refazer Caderno (Grátis)</span>
+                            <span className="truncate">
+                              Refazer Caderno (Grátis)
+                            </span>
                           </>
                         )}
                       </button>

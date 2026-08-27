@@ -19,7 +19,8 @@ export default function LogoutModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+    // 🟢 Ajustado z-50 para z-[100]
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
       <div
         className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl transition-all animate-scale-up"
         onClick={(e) => e.stopPropagation()}
@@ -46,7 +47,7 @@ export default function LogoutModal({
             type="button"
             disabled={isLoading}
             onClick={onClose}
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
+            className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50 cursor-pointer"
           >
             Cancelar
           </button>
@@ -55,7 +56,7 @@ export default function LogoutModal({
             type="button"
             disabled={isLoading}
             onClick={onConfirm}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-rose-600/90 hover:bg-rose-600 py-2.5 text-xs font-semibold text-white shadow-[0_0_12px_rgba(225,29,72,0.3)] transition-all disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-rose-600/90 hover:bg-rose-600 py-2.5 text-xs font-semibold text-white shadow-[0_0_12px_rgba(225,29,72,0.3)] transition-all disabled:opacity-50 cursor-pointer"
           >
             {isLoading ? (
               <>

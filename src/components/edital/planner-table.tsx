@@ -98,7 +98,6 @@ export function PlannerView({
     }
   };
 
-  // 🟢 Agrupamento, Filtros e Ordenação Inteligente de Tópicos
   const groupedData = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     const groups: Record<string, PlannerTopic[]> = {};
@@ -134,7 +133,6 @@ export function PlannerView({
     return groups;
   }, [topics, searchQuery, statusFilter]);
 
-  // 🟢 Ordenação Dinâmica das Matérias
   const sortedSubjectNames = useMemo(() => {
     const names = Object.keys(groupedData).filter((subjectName) => {
       if (selectedSubjectFilter === "ALL") return true;
@@ -241,19 +239,19 @@ export function PlannerView({
 
   return (
     <div className="space-y-4 font-sans">
-      {/* 🟢 BARRA DE CONTROLADORES FLOATING GLASS */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-[#090d16]/80 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-2xl">
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+      {/* 🟢 BARRA DE CONTROLADORES FLOATING GLASS RESPONSIVA */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-[#090d16]/80 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-white/10 shadow-2xl">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full lg:w-auto">
           {/* Filtro por Matéria */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 focus-within:ring-1 focus-within:ring-indigo-500">
             <Filter size={13} className="text-indigo-400 shrink-0" />
             <select
               value={selectedSubjectFilter}
               onChange={(e) => setSelectedSubjectFilter(e.target.value)}
-              className="bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs rounded-xl px-3 py-2 focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer transition-colors"
+              className="w-full bg-transparent text-slate-200 text-xs outline-none cursor-pointer"
             >
               <option value="ALL" className="bg-[#090d16] text-slate-200">
-                Todas as Matérias ({Object.keys(groupedData).length})
+                Todas Matérias ({Object.keys(groupedData).length})
               </option>
               {Object.keys(groupedData).map((subName) => (
                 <option
@@ -268,38 +266,43 @@ export function PlannerView({
           </div>
 
           {/* Filtro por Status do Tópico */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs rounded-xl px-3 py-2 focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer transition-colors"
-          >
-            <option value="ALL" className="bg-[#090d16] text-slate-200">
-              Todos os Status
-            </option>
-            <option value="PENDENTE" className="bg-[#090d16] text-slate-200">
-              Apenas Pendentes
-            </option>
-            <option value="EM_REVISAO" className="bg-[#090d16] text-slate-200">
-              Em Revisão / Estudo
-            </option>
-            <option value="WITH_QUIZ" className="bg-[#090d16] text-slate-200">
-              Com Simulado Disponível
-            </option>
-          </select>
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 focus-within:ring-1 focus-within:ring-indigo-500">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full bg-transparent text-slate-200 text-xs outline-none cursor-pointer"
+            >
+              <option value="ALL" className="bg-[#090d16] text-slate-200">
+                Todos os Status
+              </option>
+              <option value="PENDENTE" className="bg-[#090d16] text-slate-200">
+                Apenas Pendentes
+              </option>
+              <option
+                value="EM_REVISAO"
+                className="bg-[#090d16] text-slate-200"
+              >
+                Em Revisão / Estudo
+              </option>
+              <option value="WITH_QUIZ" className="bg-[#090d16] text-slate-200">
+                Com Simulado
+              </option>
+            </select>
+          </div>
 
           {/* Ordenação */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 focus-within:ring-1 focus-within:ring-indigo-500">
             <ArrowUpDown size={13} className="text-indigo-400 shrink-0" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs rounded-xl px-3 py-2 focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer font-medium transition-colors"
+              className="w-full bg-transparent text-slate-200 text-xs outline-none cursor-pointer font-medium"
             >
               <option value="NAME_ASC" className="bg-[#090d16] text-slate-200">
-                Ordem Alfabética (A-Z)
+                Ordem (A-Z)
               </option>
               <option value="NAME_DESC" className="bg-[#090d16] text-slate-200">
-                Ordem Alfabética (Z-A)
+                Ordem (Z-A)
               </option>
               <option
                 value="PROGRESS_DESC"
@@ -323,10 +326,10 @@ export function PlannerView({
           </div>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0 justify-between lg:justify-end">
+        <div className="flex items-center gap-4 shrink-0 justify-between lg:justify-end pt-1 lg:pt-0">
           <button
             onClick={toggleAllSubjects}
-            className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer active:scale-95"
+            className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer active:scale-95"
           >
             <ChevronsUpDown size={14} />
             <span>Expandir / Ocultar Tudo</span>
@@ -376,7 +379,6 @@ export function PlannerView({
             const displayedTopics = subjectTopics.slice(0, limit);
             const hasMore = !isSearching && subjectTopics.length > limit;
 
-            // Parâmetros para o anel SVG de progresso
             const radius = 14;
             const circumference = 2 * Math.PI * radius;
             const strokeDashoffset =
@@ -392,7 +394,6 @@ export function PlannerView({
                 }
                 className="bg-linear-to-br from-[#090d16] via-[#0b101c] to-[#060911] border border-white/10 hover:border-white/20 rounded-2xl overflow-hidden transition-all duration-300 relative group shadow-xl"
               >
-                {/* Borda Iluminada no Lado Esquerdo */}
                 <div
                   className="absolute left-0 top-0 bottom-0 w-1 transition-all duration-300 z-10"
                   style={{
@@ -405,11 +406,11 @@ export function PlannerView({
                 <button
                   type="button"
                   onClick={() => toggleSubject(subjectName)}
-                  className="w-full flex items-center justify-between p-4 pl-5 hover:bg-white/2 transition-colors cursor-pointer text-left gap-4"
+                  className="w-full flex items-center justify-between p-3.5 sm:p-4 pl-4 sm:pl-5 hover:bg-white/2 transition-colors cursor-pointer text-left gap-3"
                 >
-                  <div className="flex items-center gap-4 min-w-0">
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                     <div
-                      className="p-2.5 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-105"
+                      className="p-2 sm:p-2.5 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-105"
                       style={{
                         backgroundColor: `${subColor}15`,
                         border: `1px solid ${subColor}35`,
@@ -421,14 +422,14 @@ export function PlannerView({
                     </div>
 
                     <div className="min-w-0 space-y-0.5">
-                      <h3 className="text-sm font-bold text-slate-100 truncate tracking-tight group-hover:text-white transition-colors">
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-100 truncate tracking-tight group-hover:text-white transition-colors">
                         {subjectName}
                       </h3>
-                      <p className="text-[11px] text-slate-400 font-medium">
+                      <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
                         {subjectTopics.length}{" "}
                         {subjectTopics.length === 1 ? "tópico" : "tópicos"}
                         {progressPercent === 100 && (
-                          <span className="ml-2 text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.2 rounded-full">
+                          <span className="ml-2 text-[9px] sm:text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
                             ✓ Concluída
                           </span>
                         )}
@@ -436,9 +437,8 @@ export function PlannerView({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 shrink-0">
-                    {/* Anel SVG de Progresso Dinâmico */}
-                    <div className="relative flex items-center justify-center w-9 h-9">
+                  <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+                    <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9">
                       <svg className="w-full h-full transform -rotate-90">
                         <circle
                           cx="18"
@@ -462,7 +462,7 @@ export function PlannerView({
                           className="transition-all duration-700 ease-out"
                         />
                       </svg>
-                      <span className="absolute text-[9px] font-mono font-bold text-slate-300">
+                      <span className="absolute text-[8px] sm:text-[9px] font-mono font-bold text-slate-300">
                         {progressPercent}%
                       </span>
                     </div>
@@ -476,13 +476,13 @@ export function PlannerView({
                           count: subjectTopics.length,
                         });
                       }}
-                      className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                      className="p-1.5 sm:p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
                       title="Excluir Matéria"
                     >
                       <Trash2 size={15} />
                     </div>
 
-                    <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 text-[11px] font-semibold text-slate-300 group-hover:text-white transition-colors">
+                    <div className="hidden sm:flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 text-[11px] font-semibold text-slate-300 group-hover:text-white transition-colors">
                       <span>{isOpen ? "Ocultar" : "Expandir"}</span>
                       {isOpen ? (
                         <ChevronDown size={14} className="text-slate-400" />
@@ -497,33 +497,45 @@ export function PlannerView({
                 <div
                   className="overflow-hidden transition-all duration-300 ease-in-out box-border"
                   style={{
-                    maxHeight: isOpen ? "2500px" : "0px",
+                    maxHeight: isOpen ? "3500px" : "0px",
                     opacity: isOpen ? 1 : 0,
                     borderTop: isOpen
                       ? "1px solid rgba(255, 255, 255, 0.08)"
                       : "1px solid transparent",
                   }}
                 >
-                  <div className="p-4 space-y-2.5 bg-black/20">
+                  <div className="p-2.5 sm:p-4 space-y-2 bg-black/20">
                     {displayedTopics.map((t) => (
                       <div
                         key={t.id}
-                        className="bg-white/2 border border-white/5 hover:border-white/15 rounded-xl p-3.5 grid grid-cols-1 lg:grid-cols-12 gap-3 items-center hover:bg-white/4 transition-all box-border"
+                        className="bg-white/2 border border-white/5 hover:border-white/15 rounded-xl p-3 flex flex-col lg:grid lg:grid-cols-12 gap-3 items-start lg:items-center hover:bg-white/4 transition-all"
                       >
-                        <div className="lg:col-span-4 flex items-center gap-3 min-w-0">
-                          <div
-                            className="w-1.5 h-1.5 rounded-full shrink-0"
-                            style={{
-                              backgroundColor: subColor,
-                              boxShadow: `0 0 6px ${subColor}`,
-                            }}
-                          />
-                          <h4 className="text-xs font-medium text-slate-200 truncate">
-                            {t.title}
-                          </h4>
+                        {/* Linha 1 no Mobile: Título + Badge Status */}
+                        <div className="w-full lg:col-span-4 flex items-center justify-between gap-2 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className="w-1.5 h-1.5 rounded-full shrink-0"
+                              style={{
+                                backgroundColor: subColor,
+                                boxShadow: `0 0 6px ${subColor}`,
+                              }}
+                            />
+                            <h4 className="text-xs font-semibold text-slate-200 truncate">
+                              {t.title}
+                            </h4>
+                          </div>
+
+                          <span
+                            className={`lg:hidden text-[9px] px-2 py-0.5 rounded-md border font-semibold shrink-0 ${getStatusColor(
+                              t.firstStudy,
+                            )}`}
+                          >
+                            {t.firstStudy || "Pendente"}
+                          </span>
                         </div>
 
-                        <div className="lg:col-span-2 flex justify-start lg:justify-center">
+                        {/* Coluna Desktop: Status */}
+                        <div className="hidden lg:flex lg:col-span-2 justify-center">
                           <span
                             className={`text-[10px] px-2.5 py-0.5 rounded-md border font-semibold ${getStatusColor(
                               t.firstStudy,
@@ -533,35 +545,44 @@ export function PlannerView({
                           </span>
                         </div>
 
-                        <div className="lg:col-span-1 flex justify-start lg:justify-center">
-                          <span className="text-xs font-mono font-bold text-slate-300">
-                            {t.performance ?? 0}%
+                        {/* Linha 2 no Mobile / Colunas Desktop: Metadados */}
+                        <div className="flex items-center justify-between w-full lg:w-auto lg:col-span-3 text-[11px] text-slate-400 font-medium">
+                          <span className="lg:hidden text-slate-500 text-[10px]">
+                            Desempenho / Próx. Revisão:
                           </span>
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono font-bold text-slate-300">
+                              {t.performance ?? 0}%
+                            </span>
+                            <span>
+                              {t.nextRev
+                                ? `Rev: ${new Date(
+                                    t.nextRev,
+                                  ).toLocaleDateString("pt-BR")}`
+                                : "--"}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="lg:col-span-2 flex justify-start lg:justify-center text-[11px] text-slate-400 font-medium">
-                          {t.nextRev
-                            ? `Rev: ${new Date(t.nextRev).toLocaleDateString("pt-BR")}`
-                            : "--"}
-                        </div>
-
-                        {/* Botões de Ação */}
-                        <div className="lg:col-span-3 flex items-center justify-end gap-2">
+                        {/* Linha 3 no Mobile / Coluna Desktop: Botões de Ação Ampliados */}
+                        <div className="w-full lg:col-span-3 flex items-center justify-end gap-2 pt-2 lg:pt-0 border-t border-white/5 lg:border-none">
                           {t.quizId ? (
                             <Link
                               href={`/questions?quizId=${t.quizId}`}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 shadow-lg shadow-emerald-500/10"
+                              className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/15 text-emerald-300 text-xs font-bold rounded-xl border border-emerald-500/30 active:scale-95 transition-all shadow-md shadow-emerald-500/10"
                             >
                               <Play
                                 size={13}
                                 className="text-emerald-400 fill-emerald-400"
                               />
-                              <span>Fazer Simulado</span>
+                              <span>Simulado</span>
                             </Link>
                           ) : (
                             <Link
-                              href={`/questions?subjectId=${encodeURIComponent(subjectName)}&topicId=${t.id}`}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 shadow-lg shadow-indigo-500/10"
+                              href={`/questions?subjectId=${encodeURIComponent(
+                                subjectName,
+                              )}&topicId=${t.id}`}
+                              className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-500/15 text-indigo-300 text-xs font-bold rounded-xl border border-indigo-500/30 active:scale-95 transition-all shadow-md shadow-indigo-500/10"
                             >
                               <Sparkles size={13} className="text-indigo-400" />
                               <span>Praticar IA</span>
@@ -571,7 +592,7 @@ export function PlannerView({
                           <button
                             type="button"
                             onClick={() => onReviewClick && onReviewClick(t.id)}
-                            className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95 cursor-pointer"
+                            className="flex-1 lg:flex-none px-3 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer text-center"
                           >
                             {t.firstStudy === "Pendente" || !t.firstStudy
                               ? "1º Estudo"
@@ -581,10 +602,10 @@ export function PlannerView({
                           <button
                             type="button"
                             onClick={() => setTopicToDelete(t)}
-                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer shrink-0"
                             title="Excluir tópico"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={15} />
                           </button>
                         </div>
                       </div>
@@ -595,9 +616,9 @@ export function PlannerView({
                         <button
                           type="button"
                           onClick={() => showMoreTopics(subjectName)}
-                          className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-all py-1.5 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 cursor-pointer active:scale-95"
+                          className="w-full sm:w-auto text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-all py-2 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 cursor-pointer active:scale-95"
                         >
-                          + Mostrar mais 5 tópicos de {subjectName}
+                          + Mostrar mais 5 tópicos
                         </button>
                       </div>
                     )}

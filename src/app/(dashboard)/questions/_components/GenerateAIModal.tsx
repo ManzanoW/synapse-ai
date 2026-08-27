@@ -51,7 +51,6 @@ export function GenerateAIModal({
   qtdQuestoes,
   fonteConteudo,
   dificuldade,
-  textoBase,
   subjects,
   availableTopics,
   onClose,
@@ -59,7 +58,6 @@ export function GenerateAIModal({
   onMateriaChange,
   onTopicChange,
   onFonteChange,
-  onTextoBaseChange,
   onDificuldadeChange,
   onQtdQuestoesChange,
   onSubmit,
@@ -69,26 +67,31 @@ export function GenerateAIModal({
   const hasNoSubjects = subjects.length === 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-[#090d16] border border-slate-800 rounded-2xl w-full max-w-xl p-6 space-y-5 shadow-2xl relative max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 scrollbar-none">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-[#090d16] border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl p-5 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 custom-scrollbar">
+        {/* Handle visual no celular */}
+        <div className="w-full flex justify-center pt-1 pb-2 sm:hidden">
+          <div className="w-12 h-1.5 rounded-full bg-slate-700/80" />
+        </div>
+
         <button
           onClick={() => !isGenerating && onClose()}
-          className="absolute top-4 right-4 p-1 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-900 transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-900 transition-colors cursor-pointer"
           disabled={isGenerating}
         >
           <X size={18} />
         </button>
 
-        <div className="flex items-center gap-3.5 border-b border-slate-900 pb-3.5">
-          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl animate-pulse">
+        <div className="flex items-center gap-3 border-b border-slate-900 pb-3">
+          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl animate-pulse shrink-0">
             <Sparkles size={20} />
           </div>
-          <div>
-            <h3 className="text-base font-bold text-slate-200">
+          <div className="min-w-0 pr-6">
+            <h3 className="text-base font-bold text-slate-200 truncate">
               Gerador Cognitivo por IA
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Configure o escopo e o motor neural para simular sua prova.
+            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+              Configure o escopo para simular sua prova.
             </p>
           </div>
         </div>
@@ -104,7 +107,7 @@ export function GenerateAIModal({
               </h4>
               <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
                 Você precisa cadastrar matérias em seu edital primeiro para
-                habilitar o gerador de simulados cognitivos com IA.
+                habilitar o gerador com IA.
               </p>
             </div>
             <div className="pt-1">
@@ -120,7 +123,7 @@ export function GenerateAIModal({
           </div>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="space-y-1.5">
                 <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                   <Target size={12} className="text-indigo-400" /> Banca Alvo
@@ -129,7 +132,7 @@ export function GenerateAIModal({
                   value={banca}
                   onChange={(e) => onBancaChange(e.target.value)}
                   disabled={isGenerating}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 cursor-pointer"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer outline-none focus:border-indigo-500/50"
                 >
                   <option value="Cebraspe">Cebraspe</option>
                   <option value="FGV">FGV</option>
@@ -148,7 +151,7 @@ export function GenerateAIModal({
                   value={materia}
                   onChange={(e) => onMateriaChange(e.target.value)}
                   disabled={isGenerating}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 cursor-pointer"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer outline-none focus:border-indigo-500/50"
                 >
                   {subjects.map((sub) => (
                     <option key={`sub-${sub.id}`} value={sub.name}>
@@ -159,7 +162,7 @@ export function GenerateAIModal({
               </div>
             </div>
 
-            <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
               <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                 <FileText size={12} className="text-indigo-400" /> Tópico
                 Específico (Opcional)
@@ -168,7 +171,7 @@ export function GenerateAIModal({
                 value={selectedTopicId}
                 onChange={(e) => onTopicChange(e.target.value)}
                 disabled={isGenerating || availableTopics.length === 0}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 cursor-pointer disabled:opacity-50"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer disabled:opacity-50 outline-none focus:border-indigo-500/50"
               >
                 <option value="">
                   {availableTopics.length === 0
@@ -188,74 +191,66 @@ export function GenerateAIModal({
               </select>
             </div>
 
-            <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
               <label className="text-slate-400 font-semibold uppercase tracking-wider block">
-                Origem do Conteúdo da IA
+                Origem do Conteúdo
               </label>
-              <div className="grid grid-cols-3 gap-1.5 bg-slate-950 border border-slate-800 p-1 rounded-xl h-9.5 items-center">
+              <div className="grid grid-cols-3 gap-1.5 bg-slate-950 border border-slate-800 p-1 rounded-xl min-h-10 items-center">
                 <button
                   type="button"
                   disabled={isGenerating}
                   onClick={() => onFonteChange("banca")}
-                  className={`py-1 rounded-lg font-bold text-[10px] transition-all text-center ${fonteConteudo === "banca" ? "bg-indigo-600 text-slate-100" : "text-slate-400"}`}
+                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
+                    fonteConteudo === "banca"
+                      ? "bg-indigo-600 text-slate-100 shadow-sm"
+                      : "text-slate-400"
+                  }`}
                 >
-                  Histórico da Banca
+                  Histórico Banca
                 </button>
                 <button
                   type="button"
                   disabled={isGenerating}
                   onClick={() => onFonteChange("texto")}
-                  className={`py-1 rounded-lg font-bold text-[10px] transition-all text-center ${fonteConteudo === "texto" ? "bg-indigo-600 text-slate-100" : "text-slate-400"}`}
+                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
+                    fonteConteudo === "texto"
+                      ? "bg-indigo-600 text-slate-100 shadow-sm"
+                      : "text-slate-400"
+                  }`}
                 >
-                  Colar Texto/Lei
+                  Texto / Lei
                 </button>
                 <button
                   type="button"
                   disabled={isGenerating}
                   onClick={() => onFonteChange("pdf")}
-                  className={`py-1 rounded-lg font-bold text-[10px] transition-all text-center ${fonteConteudo === "pdf" ? "bg-indigo-600 text-slate-100" : "text-slate-400"}`}
+                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
+                    fonteConteudo === "pdf"
+                      ? "bg-indigo-600 text-slate-100 shadow-sm"
+                      : "text-slate-400"
+                  }`}
                 >
-                  Upload de PDF
+                  PDF
                 </button>
               </div>
             </div>
 
-            <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-              {fonteConteudo === "banca" && (
-                <p className="text-[11px] text-slate-500 bg-slate-950/40 border border-slate-900 rounded-xl p-3">
-                  💡 A IA irá mapear o banco de dados público de concursos para
-                  prever e projetar tendências.
-                </p>
-              )}
-              {fonteConteudo === "texto" && (
-                <textarea
-                  rows={3}
-                  value={textoBase}
-                  onChange={(e) => onTextoBaseChange(e.target.value)}
-                  disabled={isGenerating}
-                  placeholder="Cole aqui o artigo da lei..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 resize-none"
-                />
-              )}
-              {fonteConteudo === "pdf" && (
-                <div className="border border-dashed border-slate-800 bg-slate-950/30 rounded-xl p-5 text-center cursor-pointer text-slate-300 font-semibold text-[11px]">
-                  Arraste seu PDF ou clique para buscar
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
               <label className="text-slate-400 font-semibold uppercase tracking-wider block">
-                Nível de Dificuldade
+                Dificuldade
               </label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-1.5">
                 {["Fácil", "Média", "Difícil", "Aleatória"].map((nivel) => (
                   <button
                     key={`diff-${nivel}`}
                     type="button"
                     disabled={isGenerating}
                     onClick={() => onDificuldadeChange(nivel)}
-                    className={`py-2 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all active:scale-[0.98] ${dificuldade === nivel ? "bg-indigo-600/10 border-indigo-500 text-indigo-400" : "bg-slate-950 border-slate-800 text-slate-400"}`}
+                    className={`py-2.5 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer ${
+                      dificuldade === nivel
+                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
+                        : "bg-slate-950 border-slate-800 text-slate-400"
+                    }`}
                   >
                     {nivel}
                   </button>
@@ -263,18 +258,22 @@ export function GenerateAIModal({
               </div>
             </div>
 
-            <div className="space-y-1.5 border-t border-slate-900 pt-3.5">
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
               <label className="text-slate-400 font-semibold uppercase tracking-wider block">
-                Volume do Simulado
+                Volume
               </label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-1.5">
                 {["5", "10", "15", "20"].map((num) => (
                   <button
                     key={`qtd-${num}`}
                     type="button"
                     disabled={isGenerating}
                     onClick={() => onQtdQuestoesChange(num)}
-                    className={`py-2 rounded-xl border font-bold transition-all active:scale-[0.98] ${qtdQuestoes === num ? "bg-indigo-600/20 border-indigo-500 text-indigo-400" : "bg-slate-950 border-slate-800 text-slate-400"}`}
+                    className={`py-2.5 rounded-xl border font-bold text-xs transition-all cursor-pointer ${
+                      qtdQuestoes === num
+                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
+                        : "bg-slate-950 border-slate-800 text-slate-400"
+                    }`}
                   >
                     {num} Q
                   </button>
@@ -285,16 +284,16 @@ export function GenerateAIModal({
             <button
               type="submit"
               disabled={isGenerating}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-lg shadow-indigo-950/40"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-lg shadow-indigo-950/40 cursor-pointer min-h-11"
             >
               {isGenerating ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" />
+                  <Loader2 size={15} className="animate-spin" />
                   <span>Sincronizando sinapses...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles size={14} />
+                  <Sparkles size={15} />
                   <span>Gerar Simulado Inédito</span>
                 </>
               )}

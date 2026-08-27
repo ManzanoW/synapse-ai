@@ -82,19 +82,19 @@ export function QuestionCard({
     if (isFocused) {
       if (respondida) {
         return acertou
-          ? "bg-gradient-to-br from-emerald-950/20 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-emerald-400 shadow-[0_0_30px_-5px_rgba(16,185,129,0.25)] opacity-100 z-20 scale-[1.01]"
-          : "bg-gradient-to-br from-rose-950/20 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-rose-500 shadow-[0_0_30px_-5px_rgba(244,63,94,0.25)] opacity-100 z-20 scale-[1.01]";
+          ? "bg-linear-to-br from-emerald-950/20 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-emerald-400 shadow-[0_0_30px_-5px_rgba(16,185,129,0.25)] opacity-100 z-20 scale-[1.01]"
+          : "bg-linear-to-br from-rose-950/20 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-rose-500 shadow-[0_0_30px_-5px_rgba(244,63,94,0.25)] opacity-100 z-20 scale-[1.01]";
       }
-      return "bg-gradient-to-br from-indigo-950/30 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-indigo-500 shadow-[0_0_30px_-5px_rgba(99,102,241,0.25)] opacity-100 z-20 scale-[1.01]";
+      return "bg-linear-to-br from-indigo-950/30 via-[#0a0e1a] to-[#080b13] border-y border-r border-slate-800/80 border-l-4 border-l-indigo-500 shadow-[0_0_30px_-5px_rgba(99,102,241,0.25)] opacity-100 z-20 scale-[1.01]";
     }
 
     if (respondida) {
       return acertou
-        ? "bg-[#060810]/70 border border-emerald-500/20 opacity-60 hover:opacity-90 transition-all z-0"
-        : "bg-[#060810]/70 border border-rose-500/20 opacity-60 hover:opacity-90 transition-all z-0";
+        ? "bg-[#060810]/70 border border-emerald-500/20 opacity-70 hover:opacity-100 transition-all z-0"
+        : "bg-[#060810]/70 border border-rose-500/20 opacity-70 hover:opacity-100 transition-all z-0";
     }
 
-    return "bg-[#060810]/70 border border-slate-800/60 opacity-65 hover:opacity-90 transition-all z-0";
+    return "bg-[#060810]/70 border border-slate-800/60 opacity-80 hover:opacity-100 transition-all z-0";
   };
 
   return (
@@ -102,14 +102,14 @@ export function QuestionCard({
       id={`question-card-${index}`}
       initial={{ opacity: 0, y: 15 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
+      viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className={`rounded-2xl p-6 transition-all duration-300 relative ${getCardStyle()}`}
+      className={`rounded-2xl p-4 sm:p-6 transition-all duration-300 relative ${getCardStyle()}`}
     >
       {/* BADGE FLUTUANTE DE FOCO */}
       {isFocused && (
         <div
-          className={`absolute -top-3.5 right-8 px-3 py-0.5 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-xl z-30 border font-extrabold uppercase tracking-widest ${
+          className={`absolute -top-3.5 right-4 sm:right-8 px-3 py-0.5 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-xl z-30 border font-extrabold uppercase tracking-widest ${
             respondida
               ? acertou
                 ? "bg-[#080b13] border-emerald-500/80 text-emerald-400"
@@ -131,44 +131,46 @@ export function QuestionCard({
       )}
 
       {/* HEADER DA QUESTÃO */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4 gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-black tracking-wider text-indigo-400 uppercase">
             QUESTÃO {index + 1}
           </span>
           {questao.formato && (
             <span className="text-[10px] font-bold bg-white/5 border border-white/10 text-slate-400 px-2 py-0.5 rounded-md uppercase">
-              {questao.formato === "multipla" ? "Múltipla Escolha" : "Certo / Errado"}
+              {questao.formato === "multipla"
+                ? "Múltipla Escolha"
+                : "Certo / Errado"}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* BOTÃO DE REVISAR DEPOIS / BANDEIRA */}
-          <button
-            type="button"
-            onClick={onToggleFlag}
-            className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              isFlagged
-                ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
-                : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-            }`}
-            title="Marcar questão para revisar depois"
-          >
-            <Flag size={13} className={isFlagged ? "fill-amber-300 text-amber-300" : ""} />
-            <span className="hidden sm:inline text-[11px]">
-              {isFlagged ? "Marcada" : "Revisar"}
-            </span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onToggleFlag}
+          className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 ${
+            isFlagged
+              ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+              : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+          }`}
+          title="Marcar questão para revisar depois"
+        >
+          <Flag
+            size={13}
+            className={isFlagged ? "fill-amber-300 text-amber-300" : ""}
+          />
+          <span className="text-[11px]">
+            {isFlagged ? "Marcada" : "Revisar"}
+          </span>
+        </button>
       </div>
 
       {/* ENUNCIADO */}
-      <p className="text-slate-200 text-[15px] sm:text-base font-medium mb-6 leading-relaxed whitespace-pre-line">
+      <p className="text-slate-200 text-sm sm:text-base font-medium mb-5 leading-relaxed whitespace-pre-line">
         {renderEnunciado(questao.enunciado)}
       </p>
 
-      {/* ALTERNATIVAS */}
+      {/* ALTERNATIVAS COM ÁREA DE TOQUE OTIMIZADA */}
       <div className="space-y-2.5 mb-6">
         {questao.formato === "multipla"
           ? questao.alternativas?.map((alt, altIdx) => {
@@ -179,13 +181,13 @@ export function QuestionCard({
               return (
                 <div
                   key={`q-${index}-alt-${alt.id}`}
-                  className="relative flex items-center gap-2 group"
+                  className="relative flex items-center gap-1.5 group"
                 >
                   <button
                     disabled={respondida}
                     onClick={() => !isEliminated && onSelectAnswer(alt.id)}
                     type="button"
-                    className={`w-full text-left px-4 py-3.5 rounded-xl border text-sm font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default ${
+                    className={`w-full text-left px-3.5 py-3 sm:px-4 sm:py-3.5 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-12 ${
                       isEliminated && !respondida
                         ? "opacity-30 line-through bg-slate-950/20 border-slate-900/50 text-slate-500"
                         : respondida
@@ -199,7 +201,7 @@ export function QuestionCard({
                             : "bg-slate-950/50 border-slate-800/80 hover:border-slate-700/80 hover:bg-slate-900/40 text-slate-300"
                     }`}
                   >
-                    <div className="flex items-start gap-3.5 pr-2">
+                    <div className="flex items-start gap-3 pr-2">
                       <span
                         className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-black shrink-0 transition-all ${
                           isEliminated && !respondida
@@ -217,13 +219,12 @@ export function QuestionCard({
                     </div>
 
                     {!respondida && (
-                      <kbd className="text-[10px] font-mono text-slate-600 group-hover:text-slate-400 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded shrink-0 self-center transition-colors">
+                      <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-slate-400 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded shrink-0 self-center transition-colors">
                         {atalhoNum}
                       </kbd>
                     )}
                   </button>
 
-                  {/* BOTÃO DISCRETO DE RISCAR ALTERNATIVA */}
                   {!respondida && (
                     <button
                       type="button"
@@ -233,13 +234,13 @@ export function QuestionCard({
                           ? "Restaurar alternativa"
                           : "Riscar alternativa"
                       }
-                      className={`p-1.5 rounded-md transition-all shrink-0 cursor-pointer ${
+                      className={`p-2 rounded-lg transition-all shrink-0 cursor-pointer ${
                         isEliminated
-                          ? "text-rose-400 hover:text-rose-300 opacity-80 hover:opacity-100"
-                          : "text-slate-600 hover:text-slate-300 opacity-0 group-hover:opacity-100"
+                          ? "text-rose-400 hover:text-rose-300 opacity-100"
+                          : "text-slate-600 hover:text-slate-300 sm:opacity-0 sm:group-hover:opacity-100"
                       }`}
                     >
-                      {isEliminated ? <Eye size={14} /> : <EyeOff size={14} />}
+                      {isEliminated ? <Eye size={15} /> : <EyeOff size={15} />}
                     </button>
                   )}
                 </div>
@@ -255,7 +256,7 @@ export function QuestionCard({
                   disabled={respondida}
                   onClick={() => onSelectAnswer(opcao)}
                   type="button"
-                  className={`w-full text-left px-4 py-3.5 rounded-xl border text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default ${
+                  className={`w-full text-left px-4 py-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-12 ${
                     respondida
                       ? opcao === questao.gabaritoCorreto
                         ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 shadow-xs"
@@ -269,14 +270,14 @@ export function QuestionCard({
                 >
                   <div className="flex items-center gap-3">
                     <span
-                      className={`w-2 h-2 rounded-full ${
+                      className={`w-2.5 h-2.5 rounded-full ${
                         opcao === "Certo" ? "bg-emerald-400" : "bg-rose-400"
                       }`}
                     />
                     <span>{opcao}</span>
                   </div>
                   {!respondida && (
-                    <kbd className="text-[10px] font-mono text-slate-600 group-hover:text-slate-400 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded transition-colors">
+                    <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-slate-400 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded transition-colors">
                       {atalhoNum}
                     </kbd>
                   )}
@@ -285,7 +286,7 @@ export function QuestionCard({
             })}
       </div>
 
-      {/* RODAPÉ */}
+      {/* RODAPÉ E BOTÃO DE SUBMISSÃO */}
       <div className="flex flex-col gap-4">
         {!respondida ? (
           <div className="flex items-center justify-between border-t border-slate-800/60 pt-4 gap-4">
@@ -303,15 +304,6 @@ export function QuestionCard({
               <span className="text-slate-700">•</span>
 
               <span className="flex items-center gap-1">
-                <kbd className="bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                  1-{qtdOpcoes}
-                </kbd>
-                <span className="text-slate-600 ml-0.5">Opção</span>
-              </span>
-
-              <span className="text-slate-700">•</span>
-
-              <span className="flex items-center gap-1">
                 <kbd className="bg-slate-900 border border-slate-800 text-indigo-300 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5">
                   <CornerDownLeft size={10} /> Enter
                 </kbd>
@@ -323,13 +315,13 @@ export function QuestionCard({
               disabled={!alternativaSelecionada}
               onClick={onAnswerQuestion}
               type="button"
-              className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md shadow-indigo-950/50 ml-auto cursor-pointer"
+              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-indigo-950/50 ml-auto cursor-pointer min-h-11"
             >
               Responder Questão
             </button>
           </div>
         ) : (
-          <div className="rounded-xl p-4 animate-in fade-in duration-300 bg-slate-950/80 border border-slate-800/80 space-y-3">
+          <div className="rounded-xl p-3.5 sm:p-4 animate-in fade-in duration-300 bg-slate-950/80 border border-slate-800/80 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
               <div className="flex items-center gap-2 font-bold text-xs">
                 {acertou ? (
@@ -355,7 +347,7 @@ export function QuestionCard({
                   onClick={onCreateFlashcard}
                   disabled={isCreatingFlashcard || isFlashcardCreated}
                   type="button"
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 active:scale-[0.98] cursor-pointer ${
+                  className={`w-full sm:w-auto px-3 py-2 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer ${
                     isFlashcardCreated
                       ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed opacity-90"
                       : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-300"

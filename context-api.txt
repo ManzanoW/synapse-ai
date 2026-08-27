@@ -46,6 +46,9 @@ src/
     api/
       achievements/
         route.ts
+      ai/
+        suggestions/
+          route.ts
       analytics/
         history/
           route.ts
@@ -93,6 +96,8 @@ src/
           route.ts
       review/
         route.ts
+      study-sessions/
+        route.ts
       subjects/
         list/
           route.ts
@@ -115,38 +120,108 @@ src/
 <files>
 This section contains the contents of the repository's files.
 
-<file path="src/app/api/questions/[id]/route.ts">
+<file path="src/app/api/achievements/route.ts">
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { getUserAchievementsProgress } from "@/lib/achievements-engine";
 import { prisma } from "@/lib/prisma";
+import { ACHIEVEMENTS } from "@/lib/achievements";
+import { Prisma } from "@prisma/client";
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+interface UserStatsWithAchievements {
+  claimedAchievements?: string;
+}
+
+export async function GET() {
   try {
-    // Aguarda o unwrapping de params (obrigatório nas versões atuais do Next.js)
-    const { id } = await params;
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
 
-    if (!id) {
+    const progress = await getUserAchievementsProgress(session.user.id);
+    return NextResponse.json({ progress });
+  } catch (error) {
+    console.error("Erro ao buscar conquistas:", error);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const { achievementId } = await req.json();
+    const userId = session.user.id;
+
+    const badge = ACHIEVEMENTS.find((a) => a.id === achievementId);
+    if (!badge) {
       return NextResponse.json(
-        { error: "ID do simulado não fornecido." },
+        { error: "Conquista inválida" },
         { status: 400 },
       );
     }
 
-    await prisma.quiz.delete({
-      where: { id },
+    const progressList = await getUserAchievementsProgress(userId);
+    const userBadgeProgress = progressList.find(
+      (p) => p.achievementId === achievementId,
+    );
+
+    if (!userBadgeProgress || !userBadgeProgress.isUnlocked) {
+      return NextResponse.json(
+        { error: "Conquista ainda não desbloqueada" },
+        { status: 400 },
+      );
+    }
+
+    if (userBadgeProgress.isClaimed) {
+      return NextResponse.json(
+        { error: "XP já foi resgatado para esta conquista" },
+        { status: 400 },
+      );
+    }
+
+    const userStats = (await prisma.userStats.findUnique({
+      where: { userId },
+    })) as UserStatsWithAchievements | null;
+
+    const currentClaimedRaw = userStats?.claimedAchievements || "";
+    const currentClaimed = currentClaimedRaw
+      ? currentClaimedRaw.split(",").map((id: string) => id.trim())
+      : [];
+
+    if (!currentClaimed.includes(achievementId)) {
+      currentClaimed.push(achievementId);
+    }
+
+    const updatedClaimedString = currentClaimed.filter(Boolean).join(",");
+
+    // Objetos tipados explicitamente via Prisma
+    const updateData: Prisma.UserStatsUpdateInput = {
+      totalXp: { increment: badge.xpReward },
+      claimedAchievements: updatedClaimedString,
+    };
+
+    const createData: Prisma.UserStatsCreateInput = {
+      user: { connect: { id: userId } },
+      totalXp: badge.xpReward,
+      claimedAchievements: updatedClaimedString,
+    };
+
+    await prisma.userStats.upsert({
+      where: { userId },
+      update: updateData,
+      create: createData,
     });
 
+    return NextResponse.json({ success: true, xpEarned: badge.xpReward });
+  } catch (error) {
+    console.error("Erro ao resgatar XP:", error);
     return NextResponse.json(
-      { success: true, message: "Simulado excluído com sucesso." },
-      { status: 200 },
-    );
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Prisma Error ao deletar:", error);
-    return NextResponse.json(
-      { error: "Falha ao excluir o simulado.", details: errorMessage },
+      { error: "Erro ao processar resgate" },
       { status: 500 },
     );
   }
@@ -214,10 +289,10 @@ import { auth } from "@/auth";
 interface TopicData {
   id: string;
   title: string;
-  status: string;
   easiness: number | null;
   interval: number | null;
-  nextReview: Date | null;
+  nextRev?: Date | null;
+  nextReview?: Date | null;
 }
 
 interface SubjectData {
@@ -246,7 +321,7 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // 1. Busca matérias, tópicos e históricos
+    // 1. Busca matérias, tópicos e históricos com o nome do campo corrigido
     const [subjects, studySessions] = await Promise.all([
       prisma.subject.findMany({
         where: { userId },
@@ -255,10 +330,9 @@ export async function GET() {
             select: {
               id: true,
               title: true,
-              status: true,
               easiness: true,
               interval: true,
-              nextReview: true,
+              nextRev: true, // 🟢 Alterado de nextReview para nextRev
             },
           },
         },
@@ -297,7 +371,10 @@ export async function GET() {
       sub.topics.forEach((topic: TopicData) => {
         totalTopics++;
         sumEasiness += topic.easiness || 2.5;
-        if (topic.nextReview && new Date(topic.nextReview) <= now) {
+
+        // Suporta tanto nextRev quanto fallback
+        const reviewDate = topic.nextRev || topic.nextReview;
+        if (reviewDate && new Date(reviewDate) <= now) {
           pendingReviewsCount++;
         }
       });
@@ -413,6 +490,141 @@ export async function GET() {
 }
 </file>
 
+<file path="src/app/api/analytics/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { calculatePerformance, Question } from "@/lib/analytics-utils";
+import { auth } from "@/auth";
+
+export async function GET() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    // 🔒 Filtra os Quizzes do usuário logado
+    const rawQuizzes = await prisma.quiz.findMany({
+      where: {
+        OR: [
+          { userId: userId },
+          {
+            topic: {
+              subject: {
+                userId: userId,
+              },
+            },
+          },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    // Mapeamento fortemente tipado (sem nenhum `any`)
+    const allQuizzes = rawQuizzes.map((q) => ({
+      id: q.id,
+      banca: q.banca,
+      subject: q.subject,
+      difficulty: q.difficulty,
+      createdAt: q.createdAt,
+      userId: q.userId,
+      topicId: q.topicId,
+      questions: q.questions as unknown as Question[],
+    }));
+
+    // Agora é passado sem necessidade do cast `as any`
+    const stats = calculatePerformance(allQuizzes);
+
+    const hoje = new Date();
+
+    // 1. Matérias pendentes de revisão
+    const materiasPendentes = await prisma.subject.count({
+      where: {
+        userId,
+        nextReview: { lte: hoje },
+      },
+    });
+
+    // 2. Média Real do Easiness Factor (EF)
+    const subjects = await prisma.subject.findMany({
+      where: { userId },
+      select: { easiness: true },
+    });
+
+    const avgEasiness =
+      subjects.length > 0
+        ? Number(
+            (
+              subjects.reduce((acc, s) => acc + (s.easiness ?? 2.5), 0) /
+              subjects.length
+            ).toFixed(2),
+          )
+        : 2.5;
+
+    // 3. Distribuição REAL dos últimos 7 dias
+    const weekDaysNames = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
+    const daysMap: Record<string, number> = {};
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayLabel = weekDaysNames[d.getDay()];
+      daysMap[dayLabel] = 0;
+    }
+
+    allQuizzes.forEach((quiz) => {
+      if (quiz.createdAt) {
+        const dayName = weekDaysNames[new Date(quiz.createdAt).getDay()];
+        if (daysMap[dayName] !== undefined) {
+          daysMap[dayName] += 1;
+        }
+      }
+    });
+
+    const chartDistribution = Object.entries(daysMap).map(
+      ([day, quantidade]) => ({
+        day,
+        quantidade,
+      }),
+    );
+
+    const data = {
+      metrics: {
+        totalTopics: Object.keys(stats.performanceBySubject).length,
+        completedReviews: allQuizzes.length,
+        estimatedRetention:
+          stats.totalQuestions > 0
+            ? `${Math.round((stats.totalCorrect / stats.totalQuestions) * 100)}%`
+            : "0%",
+        avgEasiness,
+        materiasPendentes,
+      },
+      chartDistribution,
+      performanceSummary: {
+        bom: stats.summary.bom,
+        dificil: stats.summary.dificil,
+        errei: stats.summary.errei,
+      },
+    };
+
+    return NextResponse.json(data);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("DEBUG API ANALYTICS:", errorMessage);
+
+    return NextResponse.json(
+      {
+        error: "Erro ao calcular analytics",
+        details: errorMessage,
+      },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
 <file path="src/app/api/auth/[...nextauth]/route.ts">
 import { handlers } from "@/auth";
 
@@ -507,42 +719,6 @@ export async function GET(request: Request) {
   }, {});
 
   return NextResponse.json({ data: counts });
-}
-</file>
-
-<file path="src/app/api/edital/complete-suggestion/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // Ajuste conforme seu arquivo do Prisma
-import { auth } from "@/auth";
-
-export async function POST(req: Request) {
-  try {
-    const { topicId, type } = await req.json();
-
-    if (!topicId) {
-      return NextResponse.json(
-        { error: "topicId é obrigatório" },
-        { status: 400 },
-      );
-    }
-
-    // Marca o tópico com o último simulado realizado para não reaparecer na Engine Adaptativa
-    await prisma.topic.update({
-      where: { id: topicId },
-      data: {
-        lastQuizAt: new Date(),
-        // Se você tiver uma flag específica de sugestão consumida, pode usar aqui
-      },
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Erro ao registrar conclusão da sugestão:", error);
-    return NextResponse.json(
-      { error: "Erro interno no servidor" },
-      { status: 500 },
-    );
-  }
 }
 </file>
 
@@ -1033,2248 +1209,6 @@ export async function POST(req: Request) {
 }
 </file>
 
-<file path="src/app/api/flashcards/review/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-import { calculateEarnedXp, calculateLevel } from "@/lib/gamification";
-
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const { cardId, grade, streakDays = 0 } = await request.json();
-
-    if (!cardId || !grade) {
-      return NextResponse.json(
-        { error: "Campos obrigatórios ausentes (cardId, grade)" },
-        { status: 400 },
-      );
-    }
-
-    // 1. Sua função calcula o XP aplicando a nota e o multiplicador de streak
-    const earnedXp = calculateEarnedXp(grade, streakDays);
-
-    // 2. Atualiza ou cria as estatísticas de XP do usuário
-    const updatedStats = await prisma.userStats.upsert({
-      where: { userId },
-      update: {
-        totalXp: { increment: earnedXp },
-      },
-      create: {
-        userId,
-        totalXp: earnedXp,
-      },
-    });
-
-    // 3. Calcula o novo nível e título
-    const levelInfo = calculateLevel(updatedStats.totalXp);
-
-    // 4. Atualiza o timestamp no flashcard (se existir no banco)
-    if (cardId) {
-      await prisma.flashcard
-        .update({
-          where: { id: String(cardId) },
-          data: { updatedAt: new Date() },
-        })
-        .catch(() => {
-          // Ignora caso seja um card em memória/mock sem ID persistido
-        });
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        earnedXp,
-        totalXp: updatedStats.totalXp,
-        levelInfo,
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("❌ Erro ao registrar revisão de flashcard:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor ao processar XP do flashcard" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/questions/list/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-
-export async function GET() {
-  try {
-    // Busca os dados incluindo o relacionamento com o tópico específico
-    const quizzes = await prisma.quiz.findMany({
-      include: {
-        topic: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    return NextResponse.json({ data: quizzes }, { status: 200 });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("ERRO REAL DA API LIST:", error);
-    return NextResponse.json(
-      { error: "Failed to list history.", details: errorMessage },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/review/route.ts">
-// app/api/review/route.ts
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-import { processSM2Review } from "@/lib/study-cycle";
-
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { topicId, grade, source } = body;
-    // source: "FLASHCARD" ou "QUIZ"
-    // grade: nota de 0 a 5 (se for Quiz, converter % de acertos antes)
-
-    if (!topicId || grade === undefined) {
-      return NextResponse.json(
-        { error: "topicId e grade são obrigatórios" },
-        { status: 400 },
-      );
-    }
-
-    // 1. Busca o tópico e a matéria relacionada
-    const topic = await prisma.topic.findUnique({
-      where: { id: topicId },
-      include: { subject: true },
-    });
-
-    if (!topic) {
-      return NextResponse.json(
-        { error: "Tópico não encontrado" },
-        { status: 404 },
-      );
-    }
-
-    // 2. Processa o SM-2 para o Tópico
-    const sm2Topic = processSM2Review(
-      topic.interval,
-      topic.easiness,
-      topic.repetitions,
-      grade,
-      topic.subject.priority,
-    );
-
-    // 3. Transação atômica para salvar Histórico, atualizar Tópico e Matéria
-    await prisma.$transaction([
-      // a) Registra Histórico de Revisão
-      prisma.reviewHistory.create({
-        data: {
-          topicId: topic.id,
-          grade: String(grade),
-        },
-      }),
-
-      // b) Atualiza metadados SM-2 do Tópico
-      prisma.topic.update({
-        where: { id: topic.id },
-        data: {
-          firstStudy: "Em Revisão",
-          performance: Math.round((grade / 5) * 100),
-          easiness: sm2Topic.newEasiness,
-          interval: sm2Topic.newInterval,
-          repetitions: sm2Topic.newRepetitions,
-          lastRev: new Date(),
-          nextRev: sm2Topic.nextReviewDate,
-          lastQuizAt: source === "QUIZ" ? new Date() : topic.lastQuizAt,
-        },
-      }),
-
-      // c) Atualiza a Matéria pai (Subject) para refletir a última revisão
-      prisma.subject.update({
-        where: { id: topic.subjectId },
-        data: {
-          lastReviewed: new Date(),
-          nextReview: sm2Topic.nextReviewDate,
-          interval: sm2Topic.newInterval,
-          easiness: sm2Topic.newEasiness,
-        },
-      }),
-    ]);
-
-    return NextResponse.json({
-      message: "SM-2 atualizado com sucesso!",
-      data: {
-        nextReview: sm2Topic.nextReviewDate,
-        interval: sm2Topic.newInterval,
-        easiness: sm2Topic.newEasiness,
-      },
-    });
-  } catch (error) {
-    console.error("❌ ERRO NO POST /api/review:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/subjects/list/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-
-export async function GET() {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const subjects = await prisma.subject.findMany({
-      where: { userId }, // 🔒 Filtra matérias por usuário
-      orderBy: { name: "asc" },
-    });
-
-    return NextResponse.json({ data: subjects }, { status: 200 });
-  } catch (error) {
-    console.error("Erro na busca de matérias:", error);
-    return NextResponse.json(
-      { error: "Erro ao buscar matérias" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/topics/[id]/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id } = await params;
-    const body = await request.json();
-    const { firstStudy, performance } = body;
-
-    // Atualiza o tópico no banco de dados
-    const updatedTopic = await prisma.topic.update({
-      where: { id },
-      data: {
-        ...(firstStudy !== undefined && { firstStudy }),
-        ...(performance !== undefined && { performance }),
-        lastRev: new Date(),
-      },
-    });
-
-    return NextResponse.json({ data: updatedTopic });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("❌ ERRO AO ATUALIZAR TÓPICO:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: message },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/user/profile/route.ts">
-// src/app/api/user/profile/route.ts
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-
-export async function PATCH(req: Request) {
-  try {
-    const session = await auth();
-
-    if (!session?.user?.id && !session?.user?.email) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const body = await req.json();
-    const { targetExamDate } = body;
-
-    // Converte a string YYYY-MM-DD para Date ou null
-    let parsedDate: Date | null = null;
-    if (targetExamDate) {
-      parsedDate = new Date(targetExamDate);
-      if (isNaN(parsedDate.getTime())) {
-        return NextResponse.json({ error: "Data inválida" }, { status: 400 });
-      }
-    }
-
-    // Identificador para a cláusula WHERE
-    const whereCondition = session.user.id
-      ? { id: session.user.id }
-      : { email: session.user.email! };
-
-    const updatedUser = await prisma.user.update({
-      where: whereCondition,
-      data: {
-        targetExamDate: parsedDate,
-      },
-      select: {
-        id: true,
-        email: true,
-        targetExamDate: true,
-      },
-    });
-
-    return NextResponse.json({
-      message: "Perfil atualizado com sucesso!",
-      user: updatedUser,
-    });
-  } catch (error) {
-    console.error("Erro no endpoint PATCH /api/user/profile:", error);
-    return NextResponse.json(
-      { error: "Erro interno ao atualizar perfil" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/user/stats/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-import { calculateLevel } from "@/lib/gamification";
-
-export async function GET() {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    // 1. Busca ou cria atomicamente as estatísticas do usuário
-    const userStats = await prisma.userStats.upsert({
-      where: { userId },
-      update: {},
-      create: {
-        userId,
-        totalXp: 0,
-        streakDays: 0,
-      },
-    });
-
-    // 2. Calcula as métricas de nível e progresso a partir do XP acumulado
-    const levelInfo = calculateLevel(userStats.totalXp);
-
-    // 3. Resgata os dias de ofensiva com fallback seguro
-    const currentDays = (userStats as { streakDays?: number })?.streakDays || 0;
-
-    return NextResponse.json(
-      {
-        gamification: {
-          totalXp: userStats.totalXp,
-          ...levelInfo,
-        },
-        streak: {
-          currentDays,
-          weekDays: [
-            { dayLabel: "Seg", active: true },
-            { dayLabel: "Ter", active: true },
-            { dayLabel: "Qua", active: true },
-            { dayLabel: "Qui", active: false },
-            { dayLabel: "Sex", active: false },
-            { dayLabel: "Sáb", active: false },
-            { dayLabel: "Dom", active: false },
-          ],
-        },
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("❌ Erro ao buscar stats do usuário:", error);
-    return NextResponse.json(
-      { error: "Erro interno ao carregar estatísticas do usuário" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/week/reschedule/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-
-// Mapeamento auxiliar de dias em português para o índice numérico (0 = Domingo, 1 = Segunda, ...)
-const DAY_NAME_TO_INDEX: Record<string, number> = {
-  Domingo: 0,
-  "Segunda-feira": 1,
-  "Terça-feira": 2,
-  "Quarta-feira": 3,
-  "Quinta-feira": 4,
-  "Sexta-feira": 5,
-  Sábado: 6,
-};
-
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { userId, action, missedDayName } = body;
-
-    console.log("📥 Payload recebido em /api/week/reschedule:", {
-      userId,
-      action,
-      missedDayName,
-    });
-
-    if (!userId || !action) {
-      return NextResponse.json(
-        { error: "Parâmetros 'userId' e 'action' são obrigatórios." },
-        { status: 400 },
-      );
-    }
-
-    const now = new Date();
-    const todayDayIndex = now.getDay(); // Retorna 0 (Domingo) a 6 (Sábado)
-
-    // AÇÃO 1: MARCAR COMO FOLGA
-    if (action === "OFF_DAY") {
-      // Atualiza o updatedAt de todas as matérias para HOJE, sinalizando que a pendência foi resolvida
-      await prisma.subject.updateMany({
-        where: { userId },
-        data: { updatedAt: now },
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: "Dia marcado como folga com sucesso!",
-      });
-    }
-
-    // AÇÃO 2: EMPURRAR MATÉRIAS PARA HOJE
-    if (action === "PUSH_TODAY") {
-      // Se soubermos qual foi o dia perdido (ex: "Domingo"), movemos as matérias desse dia específico para hoje
-      if (missedDayName && DAY_NAME_TO_INDEX[missedDayName] !== undefined) {
-        const missedDayIndex = DAY_NAME_TO_INDEX[missedDayName];
-
-        // Transfere o assignedDay do dia perdido para o dia de hoje
-        await prisma.subject.updateMany({
-          where: {
-            userId,
-            assignedDay: missedDayIndex,
-          },
-          data: {
-            assignedDay: todayDayIndex,
-            updatedAt: now,
-          },
-        });
-      }
-
-      // Atualiza as demais matérias para resetar o cálculo do banner
-      await prisma.subject.updateMany({
-        where: { userId },
-        data: { updatedAt: now },
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: "Matérias rebalanceadas e empurradas para hoje com sucesso!",
-      });
-    }
-
-    // AÇÃO 3: PULAR E VER NO PRÓXIMO CICLO
-    if (action === "SKIP_CYCLE") {
-      // Apenas reseta o flag de dia perdido mantendo a distribuição atual nos dias da semana
-      await prisma.subject.updateMany({
-        where: { userId },
-        data: { updatedAt: now },
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: "Ciclo mantido e pendência ignorada com sucesso!",
-      });
-    }
-
-    return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
-  } catch (error: unknown) {
-    console.error("❌ ERRO em /api/week/reschedule:", error);
-    return NextResponse.json(
-      { error: "Erro interno no servidor ao reagendar." },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/achievements/route.ts">
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { getUserAchievementsProgress } from "@/lib/achievements-engine";
-import { prisma } from "@/lib/prisma";
-import { ACHIEVEMENTS } from "@/lib/achievements";
-import { Prisma } from "@prisma/client";
-
-interface UserStatsWithAchievements {
-  claimedAchievements?: string;
-}
-
-export async function GET() {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const progress = await getUserAchievementsProgress(session.user.id);
-    return NextResponse.json({ progress });
-  } catch (error) {
-    console.error("Erro ao buscar conquistas:", error);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const { achievementId } = await req.json();
-    const userId = session.user.id;
-
-    const badge = ACHIEVEMENTS.find((a) => a.id === achievementId);
-    if (!badge) {
-      return NextResponse.json(
-        { error: "Conquista inválida" },
-        { status: 400 },
-      );
-    }
-
-    const progressList = await getUserAchievementsProgress(userId);
-    const userBadgeProgress = progressList.find(
-      (p) => p.achievementId === achievementId,
-    );
-
-    if (!userBadgeProgress || !userBadgeProgress.isUnlocked) {
-      return NextResponse.json(
-        { error: "Conquista ainda não desbloqueada" },
-        { status: 400 },
-      );
-    }
-
-    if (userBadgeProgress.isClaimed) {
-      return NextResponse.json(
-        { error: "XP já foi resgatado para esta conquista" },
-        { status: 400 },
-      );
-    }
-
-    const userStats = (await prisma.userStats.findUnique({
-      where: { userId },
-    })) as UserStatsWithAchievements | null;
-
-    const currentClaimedRaw = userStats?.claimedAchievements || "";
-    const currentClaimed = currentClaimedRaw
-      ? currentClaimedRaw.split(",").map((id: string) => id.trim())
-      : [];
-
-    if (!currentClaimed.includes(achievementId)) {
-      currentClaimed.push(achievementId);
-    }
-
-    const updatedClaimedString = currentClaimed.filter(Boolean).join(",");
-
-    // Objetos tipados explicitamente via Prisma
-    const updateData: Prisma.UserStatsUpdateInput = {
-      totalXp: { increment: badge.xpReward },
-      claimedAchievements: updatedClaimedString,
-    };
-
-    const createData: Prisma.UserStatsCreateInput = {
-      user: { connect: { id: userId } },
-      totalXp: badge.xpReward,
-      claimedAchievements: updatedClaimedString,
-    };
-
-    await prisma.userStats.upsert({
-      where: { userId },
-      update: updateData,
-      create: createData,
-    });
-
-    return NextResponse.json({ success: true, xpEarned: badge.xpReward });
-  } catch (error) {
-    console.error("Erro ao resgatar XP:", error);
-    return NextResponse.json(
-      { error: "Erro ao processar resgate" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/analytics/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { calculatePerformance, Question } from "@/lib/analytics-utils";
-import { auth } from "@/auth";
-
-export async function GET() {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    // 🔒 Filtra os Quizzes do usuário logado
-    const rawQuizzes = await prisma.quiz.findMany({
-      where: {
-        OR: [
-          { userId: userId },
-          {
-            topic: {
-              subject: {
-                userId: userId,
-              },
-            },
-          },
-        ],
-      },
-      orderBy: { createdAt: "asc" },
-    });
-
-    // Mapeamento fortemente tipado (sem nenhum `any`)
-    const allQuizzes = rawQuizzes.map((q) => ({
-      id: q.id,
-      banca: q.banca,
-      subject: q.subject,
-      difficulty: q.difficulty,
-      createdAt: q.createdAt,
-      userId: q.userId,
-      topicId: q.topicId,
-      questions: q.questions as unknown as Question[],
-    }));
-
-    // Agora é passado sem necessidade do cast `as any`
-    const stats = calculatePerformance(allQuizzes);
-
-    const hoje = new Date();
-
-    // 1. Matérias pendentes de revisão
-    const materiasPendentes = await prisma.subject.count({
-      where: {
-        userId,
-        nextReview: { lte: hoje },
-      },
-    });
-
-    // 2. Média Real do Easiness Factor (EF)
-    const subjects = await prisma.subject.findMany({
-      where: { userId },
-      select: { easiness: true },
-    });
-
-    const avgEasiness =
-      subjects.length > 0
-        ? Number(
-            (
-              subjects.reduce((acc, s) => acc + (s.easiness ?? 2.5), 0) /
-              subjects.length
-            ).toFixed(2),
-          )
-        : 2.5;
-
-    // 3. Distribuição REAL dos últimos 7 dias
-    const weekDaysNames = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
-    const daysMap: Record<string, number> = {};
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dayLabel = weekDaysNames[d.getDay()];
-      daysMap[dayLabel] = 0;
-    }
-
-    allQuizzes.forEach((quiz) => {
-      if (quiz.createdAt) {
-        const dayName = weekDaysNames[new Date(quiz.createdAt).getDay()];
-        if (daysMap[dayName] !== undefined) {
-          daysMap[dayName] += 1;
-        }
-      }
-    });
-
-    const chartDistribution = Object.entries(daysMap).map(
-      ([day, quantidade]) => ({
-        day,
-        quantidade,
-      }),
-    );
-
-    const data = {
-      metrics: {
-        totalTopics: Object.keys(stats.performanceBySubject).length,
-        completedReviews: allQuizzes.length,
-        estimatedRetention:
-          stats.totalQuestions > 0
-            ? `${Math.round((stats.totalCorrect / stats.totalQuestions) * 100)}%`
-            : "0%",
-        avgEasiness,
-        materiasPendentes,
-      },
-      chartDistribution,
-      performanceSummary: {
-        bom: stats.summary.bom,
-        dificil: stats.summary.dificil,
-        errei: stats.summary.errei,
-      },
-    };
-
-    return NextResponse.json(data);
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("DEBUG API ANALYTICS:", errorMessage);
-
-    return NextResponse.json(
-      {
-        error: "Erro ao calcular analytics",
-        details: errorMessage,
-      },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/flashcards/[id]/route.ts">
-// app/api/flashcards/[id]/route.ts
-
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-
-/**
- * 🗑️ DELETE: Remove um flashcard específico garantindo que pertença ao usuário logado
- */
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const { id: flashcardId } = await params;
-
-    // 🛡️ Verifica se o flashcard existe e pertence a um deck do usuário logado
-    const existingCard = await prisma.flashcard.findFirst({
-      where: {
-        id: flashcardId,
-        deck: {
-          userId: userId,
-        },
-      },
-    });
-
-    if (!existingCard) {
-      return NextResponse.json(
-        { error: "Flashcard não encontrado ou sem permissão" },
-        { status: 404 },
-      );
-    }
-
-    // Deleta o flashcard
-    await prisma.flashcard.delete({
-      where: { id: flashcardId },
-    });
-
-    return NextResponse.json(
-      { message: "Flashcard excluído com sucesso" },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("❌ Erro ao excluir flashcard:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor ao excluir flashcard" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/week/swap/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-import { buildWeeklySchedule, buildStudyCycleBlocks } from "@/lib/study-cycle";
-
-const HIGH_CONTRAST_PALETTE = [
-  "#f43f5e",
-  "#06b6d4",
-  "#a855f7",
-  "#10b981",
-  "#f59e0b",
-  "#3b82f6",
-  "#ec4899",
-  "#14b8a6",
-  "#84cc16",
-  "#6366f1",
-];
-
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const userId = session.user.id;
-
-    const {
-      currentSubjectId,
-      targetSubjectId,
-      currentDayIndex,
-      targetDayIndex,
-    } = await request.json();
-
-    if (!currentSubjectId || !targetSubjectId) {
-      return NextResponse.json(
-        { error: "IDs das matérias são obrigatórios." },
-        { status: 400 },
-      );
-    }
-
-    // 1. Busca todas as matérias ordenadas para garantir o reordenamento global
-    const allSubjects = await prisma.subject.findMany({
-      where: { userId },
-      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
-    });
-
-    const subA = allSubjects.find((s) => s.id === currentSubjectId);
-    const subB = allSubjects.find((s) => s.id === targetSubjectId);
-
-    if (!subA || !subB) {
-      return NextResponse.json(
-        { error: "Matérias não encontradas." },
-        { status: 404 },
-      );
-    }
-
-    // Determina os dias no semanal (preserva o dia atual caso não seja passado um novo índice)
-    const newDayForA =
-      targetDayIndex !== undefined
-        ? targetDayIndex
-        : (subB.assignedDay ?? subA.assignedDay);
-    const newDayForB =
-      currentDayIndex !== undefined
-        ? currentDayIndex
-        : (subA.assignedDay ?? subB.assignedDay);
-
-    // 2. Inverte as posições no array de prioridades
-    const updatedList = [...allSubjects];
-    const indexA = updatedList.findIndex((s) => s.id === currentSubjectId);
-    const indexB = updatedList.findIndex((s) => s.id === targetSubjectId);
-
-    if (indexA !== -1 && indexB !== -1) {
-      const temp = updatedList[indexA];
-      updatedList[indexA] = updatedList[indexB];
-      updatedList[indexB] = temp;
-    }
-
-    // 3. Monta as queries de atualização com prioridades calculadas em ordem estritamente decrescente
-    const transactionQueries = updatedList.map((subject, idx) => {
-      const calculatedPriority = Number((10 - idx * 0.1).toFixed(2));
-
-      if (subject.id === currentSubjectId) {
-        return prisma.subject.update({
-          where: { id: currentSubjectId },
-          data: {
-            assignedDay: newDayForA,
-            priority: calculatedPriority,
-          },
-        });
-      }
-
-      if (subject.id === targetSubjectId) {
-        return prisma.subject.update({
-          where: { id: targetSubjectId },
-          data: {
-            assignedDay: newDayForB,
-            priority: calculatedPriority,
-            lastReviewed: new Date(),
-          },
-        });
-      }
-
-      return prisma.subject.update({
-        where: { id: subject.id },
-        data: { priority: calculatedPriority },
-      });
-    });
-
-    // Executa a transação no Prisma
-    await prisma.$transaction(transactionQueries);
-
-    // 4. Busca os dados atualizados do usuário e recarrega os blocos
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        weeklyGoalHours: true,
-        activeDaysPerWeek: true,
-        studyMode: true,
-        cycleCurrentIndex: true,
-        cycleLap: true,
-      },
-    });
-
-    const rawSubjects = await prisma.subject.findMany({
-      where: { userId },
-      include: {
-        topics: {
-          select: {
-            id: true,
-            title: true,
-            firstStudy: true,
-            relevance: true,
-            performance: true,
-          },
-        },
-      },
-      orderBy: { priority: "desc" },
-    });
-
-    const { scheduleByDay, subjectOverview } = buildWeeklySchedule(
-      rawSubjects,
-      user?.weeklyGoalHours ?? 10,
-      user?.activeDaysPerWeek ?? 5,
-    );
-
-    const cycleData = buildStudyCycleBlocks(
-      rawSubjects,
-      user?.weeklyGoalHours ?? 10,
-      user?.cycleCurrentIndex ?? 0,
-      HIGH_CONTRAST_PALETTE,
-    );
-
-    return NextResponse.json({
-      message: "Matérias reorganizadas com sucesso!",
-      data: {
-        studyMode: user?.studyMode ?? "WEEKLY",
-        weeklyGoalHours: user?.weeklyGoalHours ?? 10,
-        activeDaysPerWeek: user?.activeDaysPerWeek ?? 5,
-        cycleCurrentIndex: user?.cycleCurrentIndex ?? 0,
-        cycleLap: user?.cycleLap ?? 1,
-        scheduleByDay,
-        subjectOverview,
-        cycle: cycleData,
-      },
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("❌ ERRO NO POST /api/week/swap:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: message },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/dashboard/stats/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-import { startOfWeek, endOfWeek, subDays, format } from "date-fns";
-
-export async function GET() {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Segunda-feira
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-
-    // 1. Busca histórico de revisões do usuário
-    const reviews = await prisma.reviewHistory.findMany({
-      where: {
-        topic: {
-          subject: {
-            userId: userId,
-          },
-        },
-      },
-      select: {
-        id: true,
-        grade: true,
-        reviewedAt: true,
-        durationSeconds: true,
-      },
-      orderBy: { reviewedAt: "desc" },
-    });
-
-    // 2. Busca total de Decks e Flashcards
-    const totalDecks = await prisma.deck.count({ where: { userId } });
-    const totalFlashcards = await prisma.flashcard.count({
-      where: { deck: { userId } },
-    });
-
-    // 3. Métrica da Jornada: Tópicos Totais vs Concluídos do Usuário
-    const totalTopics = await prisma.topic.count({
-      where: {
-        subject: {
-          userId: userId,
-        },
-      },
-    });
-
-    const completedTopics = await prisma.topic.count({
-      where: {
-        subject: {
-          userId: userId,
-        },
-        firstStudy: "Concluido",
-      },
-    });
-
-    const journeyPercentage =
-      totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
-
-    // 4. Data da Prova Alvo (Busca no User)
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { targetExamDate: true },
-    });
-
-    const hasObjective = !!user?.targetExamDate;
-
-    let daysRemaining = 0;
-    let weeksRemaining = 0;
-    let daysLeftInWeek = 0;
-    let topicsPerWeek = 0;
-
-    if (user?.targetExamDate) {
-      const targetDate = new Date(user.targetExamDate);
-      const diffTime = targetDate.getTime() - now.getTime();
-      daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-
-      // Cálculo preciso de semanas (com casas decimais para divisão justa)
-      const exactWeeksRemaining = daysRemaining / 7;
-      weeksRemaining = Math.floor(daysRemaining / 7);
-      daysLeftInWeek = daysRemaining % 7;
-
-      // Cálculo do Ritmo Ideal (Opção 1)
-      const remainingTopics = Math.max(0, totalTopics - completedTopics);
-      if (exactWeeksRemaining > 0 && remainingTopics > 0) {
-        topicsPerWeek = Number(
-          (remainingTopics / exactWeeksRemaining).toFixed(1),
-        );
-      }
-    }
-
-    // 5. Cálculos de Desempenho
-    const totalQuestions = reviews.length;
-
-    const correctQuestions = reviews.filter((r) => {
-      const g = r.grade.toUpperCase();
-      return (
-        g === "FACIL" || g === "BOM" || g === "3" || g === "4" || g === "5"
-      );
-    }).length;
-
-    const precision =
-      totalQuestions > 0
-        ? Math.round((correctQuestions / totalQuestions) * 100)
-        : 0;
-
-    const totalSeconds = reviews.reduce(
-      (acc, r) => acc + (r.durationSeconds || 60),
-      0,
-    );
-    const totalMinutes = Math.floor(totalSeconds / 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-
-    // 6. Meta Semanal
-    const weeklyLogs = reviews.filter(
-      (r) => r.reviewedAt >= weekStart && r.reviewedAt <= weekEnd,
-    );
-    const weeklyGoalTarget = 50;
-    const weeklyProgress = Math.min(
-      100,
-      Math.round((weeklyLogs.length / weeklyGoalTarget) * 100),
-    );
-
-    // 7. Streak Inteligente
-    const studyDays = new Set<string>(
-      reviews.map((r) => format(r.reviewedAt, "yyyy-MM-dd")),
-    );
-
-    let currentStreak = 0;
-    let checkDate = new Date();
-    const todayStr = format(checkDate, "yyyy-MM-dd");
-
-    if (!studyDays.has(todayStr)) {
-      checkDate = subDays(checkDate, 1);
-    }
-
-    while (studyDays.has(format(checkDate, "yyyy-MM-dd"))) {
-      currentStreak++;
-      checkDate = subDays(checkDate, 1);
-    }
-
-    // 8. Heatmap de Intensidade (28 dias)
-    const heatmap = [];
-    for (let i = 27; i >= 0; i--) {
-      const day = subDays(now, i);
-      const dayStr = format(day, "yyyy-MM-dd");
-      const count = reviews.filter(
-        (r) => format(r.reviewedAt, "yyyy-MM-dd") === dayStr,
-      ).length;
-
-      let level = 0;
-      if (count > 0 && count <= 3) level = 1;
-      else if (count <= 8) level = 2;
-      else if (count <= 15) level = 3;
-      else if (count > 15) level = 4;
-
-      heatmap.push({ date: dayStr, count, level });
-    }
-
-    return NextResponse.json({
-      journey: {
-        hasObjective,
-        daysRemaining: hasObjective ? daysRemaining : 0,
-        weeksRemaining,
-        daysLeftInWeek,
-        percentage: journeyPercentage,
-        totalTopics,
-        completedTopics,
-        remainingTopics: Math.max(0, totalTopics - completedTopics),
-        topicsPerWeek, // Retorna o valor exato ex: 2.7
-      },
-      metrics: {
-        totalTimeFormatted: `${hours}h ${mins}m`,
-        precision: `${precision}%`,
-        sessionsCount: totalDecks,
-        questionsCount: totalQuestions,
-        totalFlashcards: totalFlashcards,
-        averageTimePerSession:
-          totalDecks > 0
-            ? `${Math.round(totalMinutes / totalDecks)}min`
-            : "0min",
-      },
-      streak: {
-        currentDays: currentStreak,
-        weekDays: [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek: number) => {
-          const targetDay = new Date(weekStart);
-          targetDay.setDate(
-            weekStart.getDate() + (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
-          );
-          return {
-            dayLabel: format(targetDay, "ccccc"),
-            active: studyDays.has(format(targetDay, "yyyy-MM-dd")),
-          };
-        }),
-      },
-      weeklyGoal: {
-        percentage: weeklyProgress,
-        target: weeklyGoalTarget,
-        current: weeklyLogs.length,
-      },
-      heatmap,
-    });
-  } catch (error) {
-    console.error("❌ Erro ao buscar dados da dashboard:", error);
-    return NextResponse.json(
-      { error: "Falha ao carregar métricas da dashboard." },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/decks/[id]/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // Ajuste a importação do Prisma para a estrutura do seu projeto
-
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const { id } = await params;
-
-    const deck = await prisma.deck.findUnique({
-      where: { id },
-      include: {
-        subject: true,
-        flashcards: {
-          orderBy: { createdAt: "desc" },
-        },
-      },
-    });
-
-    if (!deck) {
-      return NextResponse.json(
-        { error: "Baralho não encontrado" },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json(deck);
-  } catch (error) {
-    console.error("Erro ao buscar detalhes do deck:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 },
-    );
-  }
-}
-
-// Certifique-se também de manter seu manipulador DELETE caso exista no mesmo arquivo:
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const { id } = await params;
-
-    await prisma.deck.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Erro ao deletar deck:", error);
-    return NextResponse.json(
-      { error: "Erro ao excluir baralho" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/questions/save/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { updateSubjectSRS } from "@/lib/srs-service";
-import { auth } from "@/auth";
-import { XP_REWARDS, calculateLevel } from "@/lib/gamification";
-import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
-
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const body = await request.json();
-    console.log("Payload recebido no save:", body);
-
-    const { quizId, banca, subject, difficulty, questions, topicId } = body;
-
-    if (!subject || !questions || questions.length === 0) {
-      return NextResponse.json(
-        {
-          error: "Dados obrigatórios ausentes.",
-          received: { subject, questionsCount: questions?.length },
-        },
-        { status: 400 },
-      );
-    }
-
-    // 1. Localiza a matéria
-    const subjectRecord = await prisma.subject.findFirst({
-      where: {
-        name: { equals: subject.trim(), mode: "insensitive" },
-        userId: userId,
-      },
-    });
-
-    // 2. 🟢 BUSCA O TÓPICO CORRETO (por UUID ou por Nome/Título)
-    let resolvedTopicId: string | null = null;
-
-    if (topicId) {
-      const topicMatch = await prisma.topic.findFirst({
-        where: {
-          OR: [
-            { id: topicId },
-            { title: { equals: topicId.trim(), mode: "insensitive" } },
-          ],
-          subject: { userId: userId },
-        },
-        select: { id: true },
-      });
-
-      if (topicMatch) {
-        resolvedTopicId = topicMatch.id;
-      }
-    }
-
-    // 3. Calcula os acertos da sessão de questões
-    const totalCount = questions.length;
-    const correctCount = questions.filter(
-      (q: {
-        isCorrect?: boolean;
-        correct?: boolean;
-        userAnswer?: string;
-        answer?: string;
-        gabaritoCorreto?: string;
-      }) =>
-        q.isCorrect === true ||
-        (q.userAnswer &&
-          (q.userAnswer === q.answer || q.userAnswer === q.gabaritoCorreto)),
-    ).length;
-
-    // 4. ⚡ GANHO DE XP
-    const baseXp = correctCount * XP_REWARDS.QUESTION_CORRECT;
-    const isPerfectScore = totalCount >= 5 && correctCount === totalCount;
-    const perfectBonusMultiplier = isPerfectScore ? 0.25 : 0;
-
-    const currentStats = await prisma.userStats.findUnique({
-      where: { userId: userId },
-    });
-
-    const streakDays =
-      (currentStats as { streakDays?: number } | null)?.streakDays || 0;
-    const streakBonus = Math.min(
-      streakDays * (XP_REWARDS.STREAK_BONUS_MULTIPLIER || 0.1),
-      0.5,
-    );
-
-    const totalMultiplier = 1 + streakBonus + perfectBonusMultiplier;
-    const earnedXp = Math.round(baseXp * totalMultiplier);
-
-    let updatedStats;
-
-    if (earnedXp > 0) {
-      updatedStats = await prisma.userStats.upsert({
-        where: { userId: userId },
-        update: {
-          totalXp: { increment: earnedXp },
-        },
-        create: {
-          userId: userId,
-          totalXp: earnedXp,
-        },
-      });
-    } else {
-      updatedStats =
-        currentStats ??
-        (await prisma.userStats.findUnique({
-          where: { userId: userId },
-        }));
-    }
-
-    const totalXp = updatedStats?.totalXp ?? 0;
-    const levelInfo = calculateLevel(totalXp);
-
-    // 5. 🛡️ PROTEÇÃO CONTRA DUPLICAÇÃO: Salva, Atualiza ou Reutiliza Quiz recente
-    let quizRecord;
-
-    if (quizId) {
-      // Caso 1: ID do Quiz explícito fornecido
-      quizRecord = await prisma.quiz.update({
-        where: { id: quizId },
-        data: {
-          questions,
-          difficulty: difficulty || "Média",
-          banca: banca || "Geral",
-          topicId: resolvedTopicId,
-        },
-      });
-    } else {
-      // Caso 2: Sem ID explícito -> Verifica se um quiz idêntico foi criado nos últimos 30 segundos
-      const recentDuplicate = await prisma.quiz.findFirst({
-        where: {
-          userId,
-          topicId: resolvedTopicId,
-          subject,
-          createdAt: {
-            gte: new Date(Date.now() - 30 * 1000),
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      });
-
-      if (recentDuplicate) {
-        quizRecord = await prisma.quiz.update({
-          where: { id: recentDuplicate.id },
-          data: {
-            questions,
-            difficulty: difficulty || "Média",
-            banca: banca || "Geral",
-          },
-        });
-      } else {
-        quizRecord = await prisma.quiz.create({
-          data: {
-            banca: banca || "Geral",
-            subject,
-            difficulty: difficulty || "Média",
-            questions,
-            userId: userId,
-            topicId: resolvedTopicId,
-          },
-        });
-      }
-    }
-
-    // 6. 🚀 Registra no QuizAttempt e atualiza no Tópico exato
-    if (resolvedTopicId) {
-      await prisma.quizAttempt.create({
-        data: {
-          userId: userId,
-          topicId: resolvedTopicId,
-          totalCount,
-          correctCount,
-        },
-      });
-
-      await prisma.topic.update({
-        where: { id: resolvedTopicId },
-        data: { lastQuizAt: new Date() },
-      });
-    }
-
-    // 7. Atualiza o SRS da matéria se aplicável
-    if (subjectRecord && totalCount > 0) {
-      const performance = correctCount / totalCount >= 0.7 ? "bom" : "dificil";
-      await updateSubjectSRS(subjectRecord.id, performance);
-    }
-
-    // 8. 🎯 ADAPTIVE REBALANCER: Avalia o histórico de questões da matéria
-    let isRebalanced = false;
-
-    if (subjectRecord) {
-      const attempts = await prisma.quizAttempt.findMany({
-        where: {
-          userId: userId,
-          topic: {
-            subjectId: subjectRecord.id,
-          },
-        },
-        select: {
-          totalCount: true,
-          correctCount: true,
-        },
-      });
-
-      const totalQuestionsSolved = attempts.reduce(
-        (acc, curr) => acc + curr.totalCount,
-        0,
-      );
-
-      if (totalQuestionsSolved >= 10) {
-        isRebalanced = true;
-        const totalCorrectSolved = attempts.reduce(
-          (acc, curr) => acc + curr.correctCount,
-          0,
-        );
-        const accuracyPercentage = Math.round(
-          (totalCorrectSolved / totalQuestionsSolved) * 100,
-        );
-
-        await rebalanceScheduleAction({
-          studyMode: "WEEKLY",
-          weeklyGoalHours: 10,
-          activeDaysPerWeek: 5,
-          daysMissedThisWeek: 0,
-          performances: [
-            {
-              subjectId: subjectRecord.id,
-              subjectName: subjectRecord.name,
-              accuracyPercentage,
-              totalQuestionsSolved,
-              lastStudiedAt: new Date(),
-              targetWeeklyMinutes: 120,
-            },
-          ],
-        });
-      }
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        id: quizRecord.id,
-        quizId: quizRecord.id,
-        correctCount,
-        totalCount,
-        earnedXp,
-        totalXp,
-        levelInfo,
-        isPerfectScore,
-        rebalanced: isRebalanced,
-        rebalancedSubject: subjectRecord ? subjectRecord.name : subject,
-      },
-      { status: 200 },
-    );
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Erro ao salvar quiz e tentativas:", error);
-    return NextResponse.json(
-      { error: "Falha ao salvar quiz.", details: errorMessage },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/week/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-import { buildWeeklySchedule, buildStudyCycleBlocks } from "@/lib/study-cycle";
-
-export const dynamic = "force-dynamic";
-
-// Paleta Neon de fallback para o Ciclo de Estudos
-const HIGH_CONTRAST_PALETTE = [
-  "#f43f5e", // Rose
-  "#06b6d4", // Cyan
-  "#a855f7", // Purple Neon
-  "#10b981", // Emerald
-  "#f59e0b", // Amber
-  "#3b82f6", // Vivid Blue
-  "#ec4899", // Pink Hot
-  "#14b8a6", // Teal
-  "#84cc16", // Lime
-  "#6366f1", // Indigo
-  "#f97316", // Orange
-  "#00f5d4", // Mint
-];
-
-async function getAuthenticatedUserId() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-  return session.user.id;
-}
-
-/**
- * Função utilitária para verificar se o usuário perdeu a meta/estudo de algum dia anterior
- */
-async function checkMissedDay(userId: string): Promise<string | null> {
-  const DAYS_MAP = [
-    "Domingo",
-    "Segunda-feira",
-    "Terça-feira",
-    "Quarta-feira",
-    "Quinta-feira",
-    "Sexta-feira",
-    "Sábado",
-  ];
-
-  try {
-    const prismaClient = prisma as unknown as Record<
-      string,
-      {
-        findFirst: (
-          args: unknown,
-        ) => Promise<{ createdAt: Date; date?: Date } | null>;
-      }
-    >;
-
-    let lastDate: Date | null = null;
-
-    // 1. Tenta buscar em StudySession se houver registros
-    if (prismaClient.studySession) {
-      const lastLog = await prismaClient.studySession.findFirst({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        select: { createdAt: true, date: true },
-      });
-      if (lastLog) {
-        lastDate = new Date(lastLog.date || lastLog.createdAt);
-      }
-    }
-
-    // 2. Fallback: Busca a última atualização em Subject
-    if (!lastDate) {
-      const lastSubject = await prisma.subject.findFirst({
-        where: { userId },
-        orderBy: { updatedAt: "desc" },
-        select: { updatedAt: true },
-      });
-      if (lastSubject?.updatedAt) {
-        lastDate = new Date(lastSubject.updatedAt);
-      }
-    }
-
-    const now = new Date();
-
-    // Se não houver nenhum registro cadastrado ainda
-    if (!lastDate) {
-      const currentDayIndex = now.getDay();
-      if (currentDayIndex >= 1) {
-        return DAYS_MAP[(currentDayIndex + 6) % 7];
-      }
-      return null;
-    }
-
-    // Normaliza as datas zerando horas/minutos/segundos (Datas puras YYYY-MM-DD)
-    const todayUTCDate = Date.UTC(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    );
-    const lastUTCDate = Date.UTC(
-      lastDate.getFullYear(),
-      lastDate.getMonth(),
-      lastDate.getDate(),
-    );
-
-    // Diferença em dias do calendário
-    const diffDays = Math.floor(
-      (todayUTCDate - lastUTCDate) / (1000 * 60 * 60 * 24),
-    );
-
-    console.log(
-      `🔍 DEBUG checkMissedDay: Data Atual=${now.toISOString()}, Último Registro=${lastDate.toISOString()}, Dias Atraso=${diffDays}`,
-    );
-
-    // Se a última atividade foi de ontem ou antes (1 dia ou mais de diferença)
-    if (diffDays >= 1) {
-      const yesterdayIndex = (now.getDay() + 6) % 7;
-      return DAYS_MAP[yesterdayIndex];
-    }
-
-    return null;
-  } catch (err: unknown) {
-    console.warn("⚠️ Aviso ao verificar dia perdido:", err);
-    return null;
-  }
-}
-
-export async function GET() {
-  try {
-    const userId = await getAuthenticatedUserId();
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // 1. Busca configurações do usuário
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        weeklyGoalHours: true,
-        activeDaysPerWeek: true,
-        studyMode: true,
-        cycleCurrentIndex: true,
-        cycleLap: true,
-      },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado." },
-        { status: 404 },
-      );
-    }
-
-    // 2. Busca matérias e tópicos
-    const rawSubjects = await prisma.subject.findMany({
-      where: { userId },
-      include: {
-        topics: {
-          select: {
-            id: true,
-            title: true,
-            firstStudy: true,
-            relevance: true,
-            performance: true,
-          },
-        },
-      },
-      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
-    });
-
-    // 3. Calcula Cronograma Semanal
-    const { scheduleByDay, subjectOverview } = buildWeeklySchedule(
-      rawSubjects,
-      user.weeklyGoalHours ?? 10,
-      user.activeDaysPerWeek ?? 5,
-    );
-
-    // 4. Calcula Blocos do Ciclo de Estudos
-    const cycleData = buildStudyCycleBlocks(
-      rawSubjects,
-      user.weeklyGoalHours ?? 10,
-      user.cycleCurrentIndex ?? 0,
-      HIGH_CONTRAST_PALETTE,
-    );
-
-    // 5. Verifica se há algum dia ignorado/perdido
-    const missedDayName = await checkMissedDay(userId);
-
-    return NextResponse.json({
-      data: {
-        userId,
-        studyMode: user.studyMode ?? "WEEKLY",
-        weeklyGoalHours: user.weeklyGoalHours ?? 10,
-        activeDaysPerWeek: user.activeDaysPerWeek ?? 5,
-        cycleCurrentIndex: user.cycleCurrentIndex ?? 0,
-        cycleLap: user.cycleLap ?? 1,
-        missedDayName,
-        scheduleByDay,
-        subjectOverview,
-        cycle: cycleData,
-      },
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("❌ ERRO NO GET /api/week:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: message },
-      { status: 500 },
-    );
-  }
-}
-
-export async function PATCH(request: Request) {
-  try {
-    let userId: string | null = null;
-    try {
-      userId = await getAuthenticatedUserId();
-    } catch (authErr) {
-      console.error("❌ Erro de autenticação:", authErr);
-    }
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json().catch(() => ({}));
-    const {
-      weeklyGoalHours,
-      activeDaysPerWeek,
-      studyMode,
-      cycleAction, // "NEXT_BLOCK" | "PREV_BLOCK" | "RESET_LAP" | "SWAP_BLOCK"
-      blockNumber,
-      currentSubjectId,
-      targetSubjectId,
-    } = body;
-
-    // Busca o usuário atual
-    const currentUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        weeklyGoalHours: true,
-        activeDaysPerWeek: true,
-        studyMode: true,
-        cycleCurrentIndex: true,
-        cycleLap: true,
-      },
-    });
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado." },
-        { status: 404 },
-      );
-    }
-
-    let newIndex = currentUser.cycleCurrentIndex ?? 0;
-    let newLap = currentUser.cycleLap ?? 1;
-
-    // Lógica de avanço do ciclo
-    if (cycleAction === "NEXT_BLOCK") {
-      newIndex += 1;
-    } else if (cycleAction === "PREV_BLOCK" && newIndex > 0) {
-      newIndex -= 1;
-    } else if (cycleAction === "RESET_LAP") {
-      newIndex = 0;
-      newLap += 1;
-    }
-
-    // TRATAMENTO DE SWAP UNIFICADO (Atende tanto CycleView quanto WeekView)
-    if (cycleAction === "SWAP_BLOCK" && targetSubjectId) {
-      const rawSubjects = await prisma.subject.findMany({
-        where: { userId },
-        orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
-      });
-
-      let currentSubject = null;
-      const targetSubject = rawSubjects.find((s) => s.id === targetSubjectId);
-
-      // CASO A: Swap vindo do CycleView (passa blockNumber)
-      if (blockNumber !== undefined) {
-        const currentCycleData = buildStudyCycleBlocks(
-          rawSubjects,
-          currentUser.weeklyGoalHours ?? 10,
-          currentUser.cycleCurrentIndex ?? 0,
-          HIGH_CONTRAST_PALETTE,
-        );
-
-        const targetBlock = currentCycleData.blocks.find(
-          (b) => b.blockNumber === blockNumber,
-        );
-
-        if (targetBlock) {
-          currentSubject = rawSubjects.find(
-            (s) => s.name === targetBlock.subjectName,
-          );
-        }
-      }
-      // CASO B: Swap vindo do WeekView ou ID direto
-      else if (currentSubjectId) {
-        currentSubject = rawSubjects.find((s) => s.id === currentSubjectId);
-      }
-
-      // Executa a troca de prioridades entre as duas matérias
-      if (
-        currentSubject &&
-        targetSubject &&
-        currentSubject.id !== targetSubject.id
-      ) {
-        let p1 = targetSubject.priority;
-        const p2 = currentSubject.priority;
-
-        if (p1 === p2) {
-          p1 += 0.01;
-        }
-
-        await prisma.$transaction([
-          prisma.subject.update({
-            where: { id: currentSubject.id },
-            data: { priority: p1 },
-          }),
-          prisma.subject.update({
-            where: { id: targetSubject.id },
-            data: { priority: p2 },
-          }),
-        ]);
-      }
-    }
-
-    // 1. Atualiza dados do usuário
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...(weeklyGoalHours !== undefined && { weeklyGoalHours }),
-        ...(activeDaysPerWeek !== undefined && { activeDaysPerWeek }),
-        ...(studyMode !== undefined && { studyMode }),
-        cycleCurrentIndex: newIndex,
-        cycleLap: newLap,
-      },
-      select: {
-        weeklyGoalHours: true,
-        activeDaysPerWeek: true,
-        studyMode: true,
-        cycleCurrentIndex: true,
-        cycleLap: true,
-      },
-    });
-
-    // 2. Busca matérias atualizadas para recalcular ambas as visões
-    const rawSubjects = await prisma.subject.findMany({
-      where: { userId },
-      include: {
-        topics: {
-          select: {
-            id: true,
-            title: true,
-            firstStudy: true,
-            relevance: true,
-            performance: true,
-          },
-        },
-      },
-      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
-    });
-
-    // 3. Recalcula ambos os módulos de forma sincronizada
-    const { scheduleByDay, subjectOverview } = buildWeeklySchedule(
-      rawSubjects,
-      updatedUser.weeklyGoalHours ?? 10,
-      updatedUser.activeDaysPerWeek ?? 5,
-    );
-
-    const cycleData = buildStudyCycleBlocks(
-      rawSubjects,
-      updatedUser.weeklyGoalHours ?? 10,
-      updatedUser.cycleCurrentIndex ?? 0,
-      HIGH_CONTRAST_PALETTE,
-    );
-
-    const missedDayName = await checkMissedDay(userId);
-
-    return NextResponse.json({
-      message: "Configurações e ciclo atualizados com sucesso!",
-      data: {
-        userId,
-        studyMode: updatedUser.studyMode ?? "WEEKLY",
-        weeklyGoalHours: updatedUser.weeklyGoalHours ?? 10,
-        activeDaysPerWeek: updatedUser.activeDaysPerWeek ?? 5,
-        cycleCurrentIndex: updatedUser.cycleCurrentIndex ?? 0,
-        cycleLap: updatedUser.cycleLap ?? 1,
-        missedDayName,
-        scheduleByDay,
-        subjectOverview,
-        cycle: cycleData,
-      },
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("❌ ERRO GRAVE NO PATCH /api/week:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: message },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/decks/route.ts">
-import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
-import { prisma } from "@/lib/prisma";
-import { FlashcardRaw } from "@/types";
-import { Prisma } from "@prisma/client";
-import { auth } from "@/auth";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-/**
- * 📥 GET: Lista todos os baralhos do usuário autenticado
- */
-export async function GET() {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const decks = await prisma.deck.findMany({
-      where: { userId }, // 🔒 Filtra apenas decks do usuário
-      include: {
-        subject: true,
-        _count: {
-          select: { flashcards: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json({ data: decks }, { status: 200 });
-  } catch (error) {
-    console.error("❌ Erro no GET /api/decks:", error);
-    return NextResponse.json(
-      { error: "Falha ao buscar decks." },
-      { status: 500 },
-    );
-  }
-}
-
-/**
- * 📤 POST: Gera um novo baralho com flashcards via IA vinculados ao usuário
- */
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const { name, subjectId, topicId, content, color } = await request.json();
-
-    if (!name || !content) {
-      return NextResponse.json(
-        { error: "Nome e conteúdo são obrigatórios." },
-        { status: 400 },
-      );
-    }
-
-    const prompt = `
-      Você é um especialista em memorização ativa. Gere flashcards baseados neste conteúdo: "${content}".
-      Retorne ESTRITAMENTE um JSON no seguinte formato:
-      {
-        "flashcards": [
-          { "question": "Pergunta curta e direta", "answer": "Resposta clara", "details": "Explicação breve" }
-        ]
-      }
-    `;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash-lite",
-      contents: prompt,
-      config: { responseMimeType: "application/json" },
-    });
-
-    const resultText = response.text || '{"flashcards": []}';
-
-    let data: { flashcards: FlashcardRaw[] };
-    try {
-      data = JSON.parse(resultText) as { flashcards: FlashcardRaw[] };
-    } catch {
-      data = { flashcards: [] };
-    }
-
-    // Cria o Deck e insere os flashcards atomicamente vinculando ao usuário
-    const newDeck = await prisma.deck.create({
-      data: {
-        title: name,
-        color: color || "bg-indigo-500",
-        subjectId: subjectId || null,
-        userId: userId, // 🔒 Utiliza o ID da sessão do usuário
-        flashcards: {
-          create: (data.flashcards || []).map(
-            (f): Prisma.FlashcardCreateWithoutDeckInput => ({
-              question: f.question,
-              answer: f.answer,
-              details: f.details || "",
-              topic: topicId ? { connect: { id: topicId } } : undefined,
-            }),
-          ),
-        },
-      },
-      include: {
-        _count: { select: { flashcards: true } },
-      },
-    });
-
-    return NextResponse.json({ data: newDeck }, { status: 201 });
-  } catch (error) {
-    console.error("❌ Erro ao criar deck:", error);
-    return NextResponse.json(
-      { error: "Falha ao processar deck." },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/api/flashcards/route.ts">
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
-
-/**
- * 📥 GET: Lista todos os flashcards do usuário logado (ou filtrados por deckId)
- */
-export async function GET(request: Request) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const deckId = searchParams.get("deckId");
-
-    // 🛡️ Filtra estritamente apenas os cards pertencentes aos baralhos do usuário logado
-    const cards = await prisma.flashcard.findMany({
-      where: {
-        deck: {
-          userId: userId, // Multi-Tenancy isolado por usuário
-          ...(deckId ? { id: deckId } : {}),
-        },
-      },
-      include: {
-        deck: {
-          select: { id: true, title: true, subjectId: true, topicId: true },
-        },
-        topic: {
-          select: { id: true, title: true },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    return NextResponse.json({ data: cards });
-  } catch (error) {
-    console.error("❌ Erro no GET /api/flashcards:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor ao buscar flashcards" },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * 📤 POST: Cria um novo flashcard e vincula ao Subject/Deck/Topic do usuário logado
- */
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const { question, answer, details, subject, topicId } = await request.json();
-
-    if (!question || !answer) {
-      return NextResponse.json(
-        { error: "Campos obrigatórios ausentes (question, answer)" },
-        { status: 400 }
-      );
-    }
-
-    // 🛡️ Tratamento ultra seguro para o 'subject'
-    const rawSubject =
-      typeof subject === "object" && subject !== null
-        ? (subject as Record<string, unknown>).name ||
-          (subject as Record<string, unknown>).title ||
-          ""
-        : subject;
-
-    const subjectName =
-      typeof rawSubject === "string" && rawSubject.trim() !== ""
-        ? rawSubject.trim()
-        : "Questões de Prova";
-
-    // 🛡️ 1. Verifica se o flashcard já existe no deck do usuário
-    const existingCard = await prisma.flashcard.findFirst({
-      where: {
-        question: question,
-        deck: {
-          userId: userId,
-        },
-      },
-    });
-
-    if (existingCard) {
-      return NextResponse.json(
-        { data: existingCard, message: "Flashcard já existente." },
-        { status: 200 }
-      );
-    }
-
-    // 🚀 2. Executa as verificações e a criação em uma transação limpa
-    const newFlashcard = await prisma.$transaction(async (tx) => {
-      // Busca ou cria o Subject
-      let userSubject = await tx.subject.findFirst({
-        where: { name: subjectName, userId },
-      });
-
-      if (!userSubject) {
-        userSubject = await tx.subject.create({
-          data: {
-            name: subjectName,
-            importance: "Média",
-            userId,
-          },
-        });
-      }
-
-      // Busca o tópico especificado pelo ID ou tenta encontrar pelo título do subject
-      let topic = topicId
-        ? await tx.topic.findFirst({ where: { id: topicId, subjectId: userSubject.id } })
-        : await tx.topic.findFirst({ where: { title: subjectName, subjectId: userSubject.id } });
-
-      if (!topic) {
-        topic = await tx.topic.create({
-          data: {
-            title: subjectName,
-            subjectId: userSubject.id,
-          },
-        });
-      }
-
-      // Busca ou cria o Deck vinculado também ao topic
-      let userDeck = await tx.deck.findFirst({
-        where: { title: subjectName, userId },
-      });
-
-      if (!userDeck) {
-        userDeck = await tx.deck.create({
-          data: {
-            title: subjectName,
-            color: "bg-blue-500",
-            userId,
-            subjectId: userSubject.id,
-            topicId: topic.id,
-          },
-        });
-      } else if (!userDeck.topicId) {
-        // Vincula o topicId ao deck caso o deck já existia sem tópico associado
-        await tx.deck.update({
-          where: { id: userDeck.id },
-          data: { topicId: topic.id },
-        });
-      }
-
-      // Cria o Flashcard
-      return await tx.flashcard.create({
-        data: {
-          question,
-          answer,
-          details: details || "",
-          deckId: userDeck.id,
-          topicId: topic.id,
-        },
-      });
-    });
-
-    return NextResponse.json({ data: newFlashcard }, { status: 201 });
-  } catch (error) {
-    console.error("Erro no servidor ao criar flashcard:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor ao salvar flashcard" },
-      { status: 500 }
-    );
-  }
-}
-</file>
-
 <file path="src/app/api/edital/route.ts">
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -3722,6 +1656,283 @@ export async function DELETE(request: Request) {
 }
 </file>
 
+<file path="src/app/api/flashcards/[id]/route.ts">
+// app/api/flashcards/[id]/route.ts
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+/**
+ * 🗑️ DELETE: Remove um flashcard específico garantindo que pertença ao usuário logado
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const { id: flashcardId } = await params;
+
+    // 🛡️ Verifica se o flashcard existe e pertence a um deck do usuário logado
+    const existingCard = await prisma.flashcard.findFirst({
+      where: {
+        id: flashcardId,
+        deck: {
+          userId: userId,
+        },
+      },
+    });
+
+    if (!existingCard) {
+      return NextResponse.json(
+        { error: "Flashcard não encontrado ou sem permissão" },
+        { status: 404 },
+      );
+    }
+
+    // Deleta o flashcard
+    await prisma.flashcard.delete({
+      where: { id: flashcardId },
+    });
+
+    return NextResponse.json(
+      { message: "Flashcard excluído com sucesso" },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("❌ Erro ao excluir flashcard:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor ao excluir flashcard" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/flashcards/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+/**
+ * 📥 GET: Lista todos os flashcards do usuário logado (ou filtrados por deckId)
+ */
+export async function GET(request: Request) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const deckId = searchParams.get("deckId");
+
+    // 🛡️ Filtra estritamente apenas os cards pertencentes aos baralhos do usuário logado
+    const cards = await prisma.flashcard.findMany({
+      where: {
+        deck: {
+          userId: userId, // Multi-Tenancy isolado por usuário
+          ...(deckId ? { id: deckId } : {}),
+        },
+      },
+      include: {
+        deck: {
+          select: { id: true, title: true, subjectId: true, topicId: true },
+        },
+        topic: {
+          select: { id: true, title: true },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({ data: cards });
+  } catch (error) {
+    console.error("❌ Erro no GET /api/flashcards:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor ao buscar flashcards" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * 📤 POST: Cria um novo flashcard e vincula ao Subject/Deck/Topic do usuário logado
+ */
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const { question, answer, details, subject, topicId } = await request.json();
+
+    if (!question || !answer) {
+      return NextResponse.json(
+        { error: "Campos obrigatórios ausentes (question, answer)" },
+        { status: 400 }
+      );
+    }
+
+    // 🛡️ Tratamento ultra seguro para o 'subject'
+    const rawSubject =
+      typeof subject === "object" && subject !== null
+        ? (subject as Record<string, unknown>).name ||
+          (subject as Record<string, unknown>).title ||
+          ""
+        : subject;
+
+    const subjectName =
+      typeof rawSubject === "string" && rawSubject.trim() !== ""
+        ? rawSubject.trim()
+        : "Questões de Prova";
+
+    // 🛡️ 1. Verifica se o flashcard já existe no deck do usuário
+    const existingCard = await prisma.flashcard.findFirst({
+      where: {
+        question: question,
+        deck: {
+          userId: userId,
+        },
+      },
+    });
+
+    if (existingCard) {
+      return NextResponse.json(
+        { data: existingCard, message: "Flashcard já existente." },
+        { status: 200 }
+      );
+    }
+
+    // 🚀 2. Executa as verificações e a criação em uma transação limpa
+    const newFlashcard = await prisma.$transaction(async (tx) => {
+      // Busca ou cria o Subject
+      let userSubject = await tx.subject.findFirst({
+        where: { name: subjectName, userId },
+      });
+
+      if (!userSubject) {
+        userSubject = await tx.subject.create({
+          data: {
+            name: subjectName,
+            importance: "Média",
+            userId,
+          },
+        });
+      }
+
+      // Busca o tópico especificado pelo ID ou tenta encontrar pelo título do subject
+      let topic = topicId
+        ? await tx.topic.findFirst({ where: { id: topicId, subjectId: userSubject.id } })
+        : await tx.topic.findFirst({ where: { title: subjectName, subjectId: userSubject.id } });
+
+      if (!topic) {
+        topic = await tx.topic.create({
+          data: {
+            title: subjectName,
+            subjectId: userSubject.id,
+          },
+        });
+      }
+
+      // Busca ou cria o Deck vinculado também ao topic
+      let userDeck = await tx.deck.findFirst({
+        where: { title: subjectName, userId },
+      });
+
+      if (!userDeck) {
+        userDeck = await tx.deck.create({
+          data: {
+            title: subjectName,
+            color: "bg-blue-500",
+            userId,
+            subjectId: userSubject.id,
+            topicId: topic.id,
+          },
+        });
+      } else if (!userDeck.topicId) {
+        // Vincula o topicId ao deck caso o deck já existia sem tópico associado
+        await tx.deck.update({
+          where: { id: userDeck.id },
+          data: { topicId: topic.id },
+        });
+      }
+
+      // Cria o Flashcard
+      return await tx.flashcard.create({
+        data: {
+          question,
+          answer,
+          details: details || "",
+          deckId: userDeck.id,
+          topicId: topic.id,
+        },
+      });
+    });
+
+    return NextResponse.json({ data: newFlashcard }, { status: 201 });
+  } catch (error) {
+    console.error("Erro no servidor ao criar flashcard:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor ao salvar flashcard" },
+      { status: 500 }
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/questions/[id]/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    // Aguarda o unwrapping de params (obrigatório nas versões atuais do Next.js)
+    const { id } = await params;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "ID do simulado não fornecido." },
+        { status: 400 },
+      );
+    }
+
+    await prisma.quiz.delete({
+      where: { id },
+    });
+
+    return NextResponse.json(
+      { success: true, message: "Simulado excluído com sucesso." },
+      { status: 200 },
+    );
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Prisma Error ao deletar:", error);
+    return NextResponse.json(
+      { error: "Falha ao excluir o simulado.", details: errorMessage },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
 <file path="src/app/api/questions/generate/route.ts">
 import { NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
@@ -4001,7 +2212,7 @@ export async function POST(request: Request) {
       Além da questão e das alternativas, gere uma versão em Flashcard (Active Recall) para cada item: no 'flashcardFrente', faça uma pergunta conceitual e direta sobre a matéria testada; no 'flashcardVerso', responda com o conceito direto de forma clara e sintética.    
       `;
 
-    const response = await generateContentWithRetry(prompt);
+    const response = await generateContentWithRetry(prompt); //
 
     if (!response.text) {
       throw new Error("Nenhum conteúdo retornado pela IA.");
@@ -4012,7 +2223,15 @@ export async function POST(request: Request) {
 
     let savedQuiz = null;
     if (userId) {
-      // 🟢 2. Salva o registro no modelo Quiz
+      // 🟢 1. Localiza ou cria a associação do Tópico de forma resiliente
+      if (targetTopicUuid) {
+        const topicExists = await prisma.topic.findUnique({
+          where: { id: targetTopicUuid },
+        });
+        if (!topicExists) targetTopicUuid = null;
+      }
+
+      // 🟢 2. Salva o registro no modelo Quiz com relacionamento tipado
       savedQuiz = await prisma.quiz.create({
         data: {
           userId,
@@ -4022,33 +2241,25 @@ export async function POST(request: Request) {
           topicId: targetTopicUuid,
           questions: questoesProcessadas as unknown as Prisma.InputJsonValue,
         },
+        include: {
+          topic: {
+            select: { id: true, title: true },
+          },
+        },
       });
 
-      // 🟢 3. Cria obrigatoriamente a tentativa no modelo QuizAttempt
+      // 🟢 3. Registra a tentativa inicial no QuizAttempt
       if (targetTopicUuid) {
         await prisma.quizAttempt
           .create({
             data: {
-              id: savedQuiz.id,
               userId,
               topicId: targetTopicUuid,
               totalCount: questoesProcessadas.length,
               correctCount: 0,
             },
           })
-          .catch(async () => {
-            // Fallback caso a chave primária 'id' seja gerada automaticamente pelo Prisma
-            await prisma.quizAttempt
-              .create({
-                data: {
-                  userId,
-                  topicId: targetTopicUuid as string,
-                  totalCount: questoesProcessadas.length,
-                  correctCount: 0,
-                },
-              })
-              .catch((e) => console.error("Erro ao registrar QuizAttempt:", e));
-          });
+          .catch((e) => console.error("Aviso ao registrar QuizAttempt:", e));
       }
     }
 
@@ -4066,6 +2277,2179 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Falha interna.", details: errorMessage },
       { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/questions/list/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export async function GET() {
+  try {
+    // Busca os dados incluindo o relacionamento com o tópico específico
+    const quizzes = await prisma.quiz.findMany({
+      include: {
+        topic: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({ data: quizzes }, { status: 200 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("ERRO REAL DA API LIST:", error);
+    return NextResponse.json(
+      { error: "Failed to list history.", details: errorMessage },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/questions/save/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { updateSubjectSRS } from "@/lib/srs-service";
+import { auth } from "@/auth";
+import { XP_REWARDS, calculateLevel } from "@/lib/gamification";
+import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    console.log("Payload recebido no save:", body);
+
+    const { quizId, banca, subject, difficulty, questions, topicId } = body;
+
+    if (!subject || !questions || questions.length === 0) {
+      return NextResponse.json(
+        {
+          error: "Dados obrigatórios ausentes.",
+          received: { subject, questionsCount: questions?.length },
+        },
+        { status: 400 },
+      );
+    }
+
+    // 1. Localiza a matéria
+    const subjectRecord = await prisma.subject.findFirst({
+      where: {
+        name: { equals: subject.trim(), mode: "insensitive" },
+        userId: userId,
+      },
+    });
+
+    // src/app/api/questions/save/route.ts (Substitua as seções 2 e 3 do arquivo)
+
+    // 2. 🟢 BUSCA O TÓPICO CORRETO (Resolução por UUID, Nome ou Fallback via Quiz existente)
+    let resolvedTopicId: string | null = null;
+
+    if (topicId && topicId !== "ALL") {
+      const topicMatch = await prisma.topic.findFirst({
+        where: {
+          OR: [
+            { id: topicId },
+            { title: { equals: String(topicId).trim(), mode: "insensitive" } },
+          ],
+          subject: { userId: userId },
+        },
+        select: { id: true },
+      });
+
+      if (topicMatch) {
+        resolvedTopicId = topicMatch.id;
+      }
+    }
+
+    // 🔄 FALLBACK: Se o topicId não foi encontrado pelo filtro, recupera o topicId original salvo no Quiz
+    if (!resolvedTopicId && quizId) {
+      const existingQuiz = await prisma.quiz.findUnique({
+        where: { id: quizId },
+        select: { topicId: true },
+      });
+      if (existingQuiz?.topicId) {
+        resolvedTopicId = existingQuiz.topicId;
+      }
+    }
+
+    // 3. 🟢 CALCULA OS ACERTOS COM COMPARAÇÃO ROBUSTA
+    const totalCount = questions.length;
+    const correctCount = questions.filter(
+      (q: {
+        isCorrect?: boolean;
+        correct?: boolean;
+        userAnswer?: string;
+        answer?: string;
+        gabaritoCorreto?: string;
+        correctAnswer?: string;
+      }) => {
+        if (q.isCorrect === true || q.correct === true) return true;
+
+        const userAns = q.userAnswer
+          ? String(q.userAnswer).trim().toLowerCase()
+          : null;
+        const correctAns =
+          q.gabaritoCorreto || q.answer || q.correctAnswer
+            ? String(q.gabaritoCorreto || q.answer || q.correctAnswer)
+                .trim()
+                .toLowerCase()
+            : null;
+
+        return Boolean(userAns && correctAns && userAns === correctAns);
+      },
+    ).length;
+
+    // 4. ⚡ GANHO DE XP
+    const baseXp = correctCount * XP_REWARDS.QUESTION_CORRECT;
+    const isPerfectScore = totalCount >= 5 && correctCount === totalCount;
+    const perfectBonusMultiplier = isPerfectScore ? 0.25 : 0;
+
+    const currentStats = await prisma.userStats.findUnique({
+      where: { userId: userId },
+    });
+
+    const streakDays =
+      (currentStats as { streakDays?: number } | null)?.streakDays || 0;
+    const streakBonus = Math.min(
+      streakDays * (XP_REWARDS.STREAK_BONUS_MULTIPLIER || 0.1),
+      0.5,
+    );
+
+    const totalMultiplier = 1 + streakBonus + perfectBonusMultiplier;
+    const earnedXp = Math.round(baseXp * totalMultiplier);
+
+    let updatedStats;
+
+    if (earnedXp > 0) {
+      updatedStats = await prisma.userStats.upsert({
+        where: { userId: userId },
+        update: {
+          totalXp: { increment: earnedXp },
+        },
+        create: {
+          userId: userId,
+          totalXp: earnedXp,
+        },
+      });
+    } else {
+      updatedStats =
+        currentStats ??
+        (await prisma.userStats.findUnique({
+          where: { userId: userId },
+        }));
+    }
+
+    const totalXp = updatedStats?.totalXp ?? 0;
+    const levelInfo = calculateLevel(totalXp);
+
+    // 5. 🛡️ PROTEÇÃO CONTRA DUPLICAÇÃO: Salva, Atualiza ou Reutiliza Quiz recente
+    let quizRecord;
+
+    if (quizId) {
+      // Caso 1: ID do Quiz explícito fornecido
+      quizRecord = await prisma.quiz.update({
+        where: { id: quizId },
+        data: {
+          questions,
+          difficulty: difficulty || "Média",
+          banca: banca || "Geral",
+          topicId: resolvedTopicId,
+        },
+      });
+    } else {
+      // Caso 2: Sem ID explícito -> Verifica se um quiz idêntico foi criado nos últimos 30 segundos
+      const recentDuplicate = await prisma.quiz.findFirst({
+        where: {
+          userId,
+          topicId: resolvedTopicId,
+          subject,
+          createdAt: {
+            gte: new Date(Date.now() - 30 * 1000),
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (recentDuplicate) {
+        quizRecord = await prisma.quiz.update({
+          where: { id: recentDuplicate.id },
+          data: {
+            questions,
+            difficulty: difficulty || "Média",
+            banca: banca || "Geral",
+          },
+        });
+      } else {
+        quizRecord = await prisma.quiz.create({
+          data: {
+            banca: banca || "Geral",
+            subject,
+            difficulty: difficulty || "Média",
+            questions,
+            userId: userId,
+            topicId: resolvedTopicId,
+          },
+        });
+      }
+    }
+
+    // 6. 🚀 Registra no QuizAttempt e atualiza no Tópico exato
+    if (resolvedTopicId) {
+      await prisma.quizAttempt.create({
+        data: {
+          userId: userId,
+          topicId: resolvedTopicId,
+          totalCount,
+          correctCount,
+        },
+      });
+
+      await prisma.topic.update({
+        where: { id: resolvedTopicId },
+        data: { lastQuizAt: new Date() },
+      });
+    }
+
+    // 7. Atualiza o SRS da matéria se aplicável
+    if (subjectRecord && totalCount > 0) {
+      const performance = correctCount / totalCount >= 0.7 ? "bom" : "dificil";
+      await updateSubjectSRS(subjectRecord.id, performance);
+    }
+
+    // 8. 🎯 ADAPTIVE REBALANCER: Avalia o histórico de questões da matéria
+    let isRebalanced = false;
+
+    if (subjectRecord) {
+      const attempts = await prisma.quizAttempt.findMany({
+        where: {
+          userId: userId,
+          topic: {
+            subjectId: subjectRecord.id,
+          },
+        },
+        select: {
+          totalCount: true,
+          correctCount: true,
+        },
+      });
+
+      const totalQuestionsSolved = attempts.reduce(
+        (acc, curr) => acc + curr.totalCount,
+        0,
+      );
+
+      if (totalQuestionsSolved >= 10) {
+        isRebalanced = true;
+        const totalCorrectSolved = attempts.reduce(
+          (acc, curr) => acc + curr.correctCount,
+          0,
+        );
+        const accuracyPercentage = Math.round(
+          (totalCorrectSolved / totalQuestionsSolved) * 100,
+        );
+
+        await rebalanceScheduleAction({
+          studyMode: "WEEKLY",
+          weeklyGoalHours: 10,
+          activeDaysPerWeek: 5,
+          daysMissedThisWeek: 0,
+          performances: [
+            {
+              subjectId: subjectRecord.id,
+              subjectName: subjectRecord.name,
+              accuracyPercentage,
+              totalQuestionsSolved,
+              lastStudiedAt: new Date(),
+              targetWeeklyMinutes: 120,
+            },
+          ],
+        });
+      }
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        id: quizRecord.id,
+        quizId: quizRecord.id,
+        correctCount,
+        totalCount,
+        earnedXp,
+        totalXp,
+        levelInfo,
+        isPerfectScore,
+        rebalanced: isRebalanced,
+        rebalancedSubject: subjectRecord ? subjectRecord.name : subject,
+      },
+      { status: 200 },
+    );
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Erro ao salvar quiz e tentativas:", error);
+    return NextResponse.json(
+      { error: "Falha ao salvar quiz.", details: errorMessage },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/review/route.ts">
+// app/api/review/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { processSM2Review } from "@/lib/study-cycle";
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { topicId, grade, source } = body;
+    // source: "FLASHCARD" ou "QUIZ"
+    // grade: nota de 0 a 5 (se for Quiz, converter % de acertos antes)
+
+    if (!topicId || grade === undefined) {
+      return NextResponse.json(
+        { error: "topicId e grade são obrigatórios" },
+        { status: 400 },
+      );
+    }
+
+    // 1. Busca o tópico e a matéria relacionada
+    const topic = await prisma.topic.findUnique({
+      where: { id: topicId },
+      include: { subject: true },
+    });
+
+    if (!topic) {
+      return NextResponse.json(
+        { error: "Tópico não encontrado" },
+        { status: 404 },
+      );
+    }
+
+    // 2. Processa o SM-2 para o Tópico
+    const sm2Topic = processSM2Review(
+      topic.interval,
+      topic.easiness,
+      topic.repetitions,
+      grade,
+      topic.subject.priority,
+    );
+
+    // 3. Transação atômica para salvar Histórico, atualizar Tópico e Matéria
+    await prisma.$transaction([
+      // a) Registra Histórico de Revisão
+      prisma.reviewHistory.create({
+        data: {
+          topicId: topic.id,
+          grade: String(grade),
+        },
+      }),
+
+      // b) Atualiza metadados SM-2 do Tópico
+      prisma.topic.update({
+        where: { id: topic.id },
+        data: {
+          firstStudy: "Em Revisão",
+          performance: Math.round((grade / 5) * 100),
+          easiness: sm2Topic.newEasiness,
+          interval: sm2Topic.newInterval,
+          repetitions: sm2Topic.newRepetitions,
+          lastRev: new Date(),
+          nextRev: sm2Topic.nextReviewDate,
+          lastQuizAt: source === "QUIZ" ? new Date() : topic.lastQuizAt,
+        },
+      }),
+
+      // c) Atualiza a Matéria pai (Subject) para refletir a última revisão
+      prisma.subject.update({
+        where: { id: topic.subjectId },
+        data: {
+          lastReviewed: new Date(),
+          nextReview: sm2Topic.nextReviewDate,
+          interval: sm2Topic.newInterval,
+          easiness: sm2Topic.newEasiness,
+        },
+      }),
+    ]);
+
+    return NextResponse.json({
+      message: "SM-2 atualizado com sucesso!",
+      data: {
+        nextReview: sm2Topic.nextReviewDate,
+        interval: sm2Topic.newInterval,
+        easiness: sm2Topic.newEasiness,
+      },
+    });
+  } catch (error) {
+    console.error("❌ ERRO NO POST /api/review:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/subjects/list/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+export async function GET() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const subjects = await prisma.subject.findMany({
+      where: { userId }, // 🔒 Filtra matérias por usuário
+      orderBy: { name: "asc" },
+    });
+
+    return NextResponse.json({ data: subjects }, { status: 200 });
+  } catch (error) {
+    console.error("Erro na busca de matérias:", error);
+    return NextResponse.json(
+      { error: "Erro ao buscar matérias" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/user/profile/route.ts">
+// src/app/api/user/profile/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+export async function PATCH(req: Request) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id && !session?.user?.email) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { targetExamDate } = body;
+
+    // Converte a string YYYY-MM-DD para Date ou null
+    let parsedDate: Date | null = null;
+    if (targetExamDate) {
+      parsedDate = new Date(targetExamDate);
+      if (isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: "Data inválida" }, { status: 400 });
+      }
+    }
+
+    // Identificador para a cláusula WHERE
+    const whereCondition = session.user.id
+      ? { id: session.user.id }
+      : { email: session.user.email! };
+
+    const updatedUser = await prisma.user.update({
+      where: whereCondition,
+      data: {
+        targetExamDate: parsedDate,
+      },
+      select: {
+        id: true,
+        email: true,
+        targetExamDate: true,
+      },
+    });
+
+    return NextResponse.json({
+      message: "Perfil atualizado com sucesso!",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Erro no endpoint PATCH /api/user/profile:", error);
+    return NextResponse.json(
+      { error: "Erro interno ao atualizar perfil" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/user/stats/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { calculateLevel } from "@/lib/gamification";
+
+export async function GET() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    // 1. Busca ou cria atomicamente as estatísticas do usuário
+    const userStats = await prisma.userStats.upsert({
+      where: { userId },
+      update: {},
+      create: {
+        userId,
+        totalXp: 0,
+        streakDays: 0,
+      },
+    });
+
+    // 2. Calcula as métricas de nível e progresso a partir do XP acumulado
+    const levelInfo = calculateLevel(userStats.totalXp);
+
+    // 3. Resgata os dias de ofensiva com fallback seguro
+    const currentDays = (userStats as { streakDays?: number })?.streakDays || 0;
+
+    return NextResponse.json(
+      {
+        gamification: {
+          totalXp: userStats.totalXp,
+          ...levelInfo,
+        },
+        streak: {
+          currentDays,
+          weekDays: [
+            { dayLabel: "Seg", active: true },
+            { dayLabel: "Ter", active: true },
+            { dayLabel: "Qua", active: true },
+            { dayLabel: "Qui", active: false },
+            { dayLabel: "Sex", active: false },
+            { dayLabel: "Sáb", active: false },
+            { dayLabel: "Dom", active: false },
+          ],
+        },
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("❌ Erro ao buscar stats do usuário:", error);
+    return NextResponse.json(
+      { error: "Erro interno ao carregar estatísticas do usuário" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/week/reschedule/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+// Mapeamento auxiliar de dias em português para o índice numérico (0 = Domingo, 1 = Segunda, ...)
+const DAY_NAME_TO_INDEX: Record<string, number> = {
+  Domingo: 0,
+  "Segunda-feira": 1,
+  "Terça-feira": 2,
+  "Quarta-feira": 3,
+  "Quinta-feira": 4,
+  "Sexta-feira": 5,
+  Sábado: 6,
+};
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { userId, action, missedDayName } = body;
+
+    console.log("📥 Payload recebido em /api/week/reschedule:", {
+      userId,
+      action,
+      missedDayName,
+    });
+
+    if (!userId || !action) {
+      return NextResponse.json(
+        { error: "Parâmetros 'userId' e 'action' são obrigatórios." },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+    const todayDayIndex = now.getDay(); // Retorna 0 (Domingo) a 6 (Sábado)
+
+    // AÇÃO 1: MARCAR COMO FOLGA
+    if (action === "OFF_DAY") {
+      // Atualiza o updatedAt de todas as matérias para HOJE, sinalizando que a pendência foi resolvida
+      await prisma.subject.updateMany({
+        where: { userId },
+        data: { updatedAt: now },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Dia marcado como folga com sucesso!",
+      });
+    }
+
+    // AÇÃO 2: EMPURRAR MATÉRIAS PARA HOJE
+    if (action === "PUSH_TODAY") {
+      // Se soubermos qual foi o dia perdido (ex: "Domingo"), movemos as matérias desse dia específico para hoje
+      if (missedDayName && DAY_NAME_TO_INDEX[missedDayName] !== undefined) {
+        const missedDayIndex = DAY_NAME_TO_INDEX[missedDayName];
+
+        // Transfere o assignedDay do dia perdido para o dia de hoje
+        await prisma.subject.updateMany({
+          where: {
+            userId,
+            assignedDay: missedDayIndex,
+          },
+          data: {
+            assignedDay: todayDayIndex,
+            updatedAt: now,
+          },
+        });
+      }
+
+      // Atualiza as demais matérias para resetar o cálculo do banner
+      await prisma.subject.updateMany({
+        where: { userId },
+        data: { updatedAt: now },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Matérias rebalanceadas e empurradas para hoje com sucesso!",
+      });
+    }
+
+    // AÇÃO 3: PULAR E VER NO PRÓXIMO CICLO
+    if (action === "SKIP_CYCLE") {
+      // Apenas reseta o flag de dia perdido mantendo a distribuição atual nos dias da semana
+      await prisma.subject.updateMany({
+        where: { userId },
+        data: { updatedAt: now },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Ciclo mantido e pendência ignorada com sucesso!",
+      });
+    }
+
+    return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
+  } catch (error: unknown) {
+    console.error("❌ ERRO em /api/week/reschedule:", error);
+    return NextResponse.json(
+      { error: "Erro interno no servidor ao reagendar." },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/week/swap/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { buildWeeklySchedule, buildStudyCycleBlocks } from "@/lib/study-cycle";
+
+const HIGH_CONTRAST_PALETTE = [
+  "#f43f5e",
+  "#06b6d4",
+  "#a855f7",
+  "#10b981",
+  "#f59e0b",
+  "#3b82f6",
+  "#ec4899",
+  "#14b8a6",
+  "#84cc16",
+  "#6366f1",
+];
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.user.id;
+
+    const {
+      currentSubjectId,
+      targetSubjectId,
+      currentDayIndex,
+      targetDayIndex,
+    } = await request.json();
+
+    if (!currentSubjectId || !targetSubjectId) {
+      return NextResponse.json(
+        { error: "IDs das matérias são obrigatórios." },
+        { status: 400 },
+      );
+    }
+
+    // 1. Busca todas as matérias ordenadas para garantir o reordenamento global
+    const allSubjects = await prisma.subject.findMany({
+      where: { userId },
+      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+    });
+
+    const subA = allSubjects.find((s) => s.id === currentSubjectId);
+    const subB = allSubjects.find((s) => s.id === targetSubjectId);
+
+    if (!subA || !subB) {
+      return NextResponse.json(
+        { error: "Matérias não encontradas." },
+        { status: 404 },
+      );
+    }
+
+    // Determina os dias no semanal (preserva o dia atual caso não seja passado um novo índice)
+    const newDayForA =
+      targetDayIndex !== undefined
+        ? targetDayIndex
+        : (subB.assignedDay ?? subA.assignedDay);
+    const newDayForB =
+      currentDayIndex !== undefined
+        ? currentDayIndex
+        : (subA.assignedDay ?? subB.assignedDay);
+
+    // 2. Inverte as posições no array de prioridades
+    const updatedList = [...allSubjects];
+    const indexA = updatedList.findIndex((s) => s.id === currentSubjectId);
+    const indexB = updatedList.findIndex((s) => s.id === targetSubjectId);
+
+    if (indexA !== -1 && indexB !== -1) {
+      const temp = updatedList[indexA];
+      updatedList[indexA] = updatedList[indexB];
+      updatedList[indexB] = temp;
+    }
+
+    // 3. Monta as queries de atualização com prioridades calculadas em ordem estritamente decrescente
+    const transactionQueries = updatedList.map((subject, idx) => {
+      const calculatedPriority = Number((10 - idx * 0.1).toFixed(2));
+
+      if (subject.id === currentSubjectId) {
+        return prisma.subject.update({
+          where: { id: currentSubjectId },
+          data: {
+            assignedDay: newDayForA,
+            priority: calculatedPriority,
+          },
+        });
+      }
+
+      if (subject.id === targetSubjectId) {
+        return prisma.subject.update({
+          where: { id: targetSubjectId },
+          data: {
+            assignedDay: newDayForB,
+            priority: calculatedPriority,
+            lastReviewed: new Date(),
+          },
+        });
+      }
+
+      return prisma.subject.update({
+        where: { id: subject.id },
+        data: { priority: calculatedPriority },
+      });
+    });
+
+    // Executa a transação no Prisma
+    await prisma.$transaction(transactionQueries);
+
+    // 4. Busca os dados atualizados do usuário e recarrega os blocos
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        weeklyGoalHours: true,
+        activeDaysPerWeek: true,
+        studyMode: true,
+        cycleCurrentIndex: true,
+        cycleLap: true,
+      },
+    });
+
+    const rawSubjects = await prisma.subject.findMany({
+      where: { userId },
+      include: {
+        topics: {
+          select: {
+            id: true,
+            title: true,
+            firstStudy: true,
+            relevance: true,
+            performance: true,
+          },
+        },
+      },
+      orderBy: { priority: "desc" },
+    });
+
+    const { scheduleByDay, subjectOverview } = buildWeeklySchedule(
+      rawSubjects,
+      user?.weeklyGoalHours ?? 10,
+      user?.activeDaysPerWeek ?? 5,
+    );
+
+    const cycleData = buildStudyCycleBlocks(
+      rawSubjects,
+      user?.weeklyGoalHours ?? 10,
+      user?.cycleCurrentIndex ?? 0,
+      HIGH_CONTRAST_PALETTE,
+    );
+
+    return NextResponse.json({
+      message: "Matérias reorganizadas com sucesso!",
+      data: {
+        studyMode: user?.studyMode ?? "WEEKLY",
+        weeklyGoalHours: user?.weeklyGoalHours ?? 10,
+        activeDaysPerWeek: user?.activeDaysPerWeek ?? 5,
+        cycleCurrentIndex: user?.cycleCurrentIndex ?? 0,
+        cycleLap: user?.cycleLap ?? 1,
+        scheduleByDay,
+        subjectOverview,
+        cycle: cycleData,
+      },
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("❌ ERRO NO POST /api/week/swap:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: message },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/week/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { buildWeeklySchedule, buildStudyCycleBlocks } from "@/lib/study-cycle";
+
+export const dynamic = "force-dynamic";
+
+// Paleta Neon de fallback para o Ciclo de Estudos
+const HIGH_CONTRAST_PALETTE = [
+  "#f43f5e", // Rose
+  "#06b6d4", // Cyan
+  "#a855f7", // Purple Neon
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#3b82f6", // Vivid Blue
+  "#ec4899", // Pink Hot
+  "#14b8a6", // Teal
+  "#84cc16", // Lime
+  "#6366f1", // Indigo
+  "#f97316", // Orange
+  "#00f5d4", // Mint
+];
+
+async function getAuthenticatedUserId() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  return session.user.id;
+}
+
+/**
+ * Função utilitária para verificar se o usuário perdeu a meta/estudo de algum dia anterior
+ */
+async function checkMissedDay(userId: string): Promise<string | null> {
+  const DAYS_MAP = [
+    "Domingo",
+    "Segunda-feira",
+    "Terça-feira",
+    "Quarta-feira",
+    "Quinta-feira",
+    "Sexta-feira",
+    "Sábado",
+  ];
+
+  try {
+    const prismaClient = prisma as unknown as Record<
+      string,
+      {
+        findFirst: (
+          args: unknown,
+        ) => Promise<{ createdAt: Date; date?: Date } | null>;
+      }
+    >;
+
+    let lastDate: Date | null = null;
+
+    // 1. Tenta buscar em StudySession se houver registros
+    if (prismaClient.studySession) {
+      const lastLog = await prismaClient.studySession.findFirst({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true, date: true },
+      });
+      if (lastLog) {
+        lastDate = new Date(lastLog.date || lastLog.createdAt);
+      }
+    }
+
+    // 2. Fallback: Busca a última atualização em Subject
+    if (!lastDate) {
+      const lastSubject = await prisma.subject.findFirst({
+        where: { userId },
+        orderBy: { updatedAt: "desc" },
+        select: { updatedAt: true },
+      });
+      if (lastSubject?.updatedAt) {
+        lastDate = new Date(lastSubject.updatedAt);
+      }
+    }
+
+    const now = new Date();
+
+    // Se não houver nenhum registro cadastrado ainda
+    if (!lastDate) {
+      const currentDayIndex = now.getDay();
+      if (currentDayIndex >= 1) {
+        return DAYS_MAP[(currentDayIndex + 6) % 7];
+      }
+      return null;
+    }
+
+    // Normaliza as datas zerando horas/minutos/segundos (Datas puras YYYY-MM-DD)
+    const todayUTCDate = Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const lastUTCDate = Date.UTC(
+      lastDate.getFullYear(),
+      lastDate.getMonth(),
+      lastDate.getDate(),
+    );
+
+    // Diferença em dias do calendário
+    const diffDays = Math.floor(
+      (todayUTCDate - lastUTCDate) / (1000 * 60 * 60 * 24),
+    );
+
+    console.log(
+      `🔍 DEBUG checkMissedDay: Data Atual=${now.toISOString()}, Último Registro=${lastDate.toISOString()}, Dias Atraso=${diffDays}`,
+    );
+
+    // Se a última atividade foi de ontem ou antes (1 dia ou mais de diferença)
+    if (diffDays >= 1) {
+      const yesterdayIndex = (now.getDay() + 6) % 7;
+      return DAYS_MAP[yesterdayIndex];
+    }
+
+    return null;
+  } catch (err: unknown) {
+    console.warn("⚠️ Aviso ao verificar dia perdido:", err);
+    return null;
+  }
+}
+
+export async function GET() {
+  try {
+    const userId = await getAuthenticatedUserId();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 1. Busca configurações do usuário
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        weeklyGoalHours: true,
+        activeDaysPerWeek: true,
+        studyMode: true,
+        cycleCurrentIndex: true,
+        cycleLap: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Usuário não encontrado." },
+        { status: 404 },
+      );
+    }
+
+    // 2. Busca matérias e tópicos
+    const rawSubjects = await prisma.subject.findMany({
+      where: { userId },
+      include: {
+        topics: {
+          select: {
+            id: true,
+            title: true,
+            firstStudy: true,
+            relevance: true,
+            performance: true,
+          },
+        },
+      },
+      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+    });
+
+    // 3. Calcula Cronograma Semanal
+    const { scheduleByDay, subjectOverview } = buildWeeklySchedule(
+      rawSubjects,
+      user.weeklyGoalHours ?? 10,
+      user.activeDaysPerWeek ?? 5,
+    );
+
+    // 4. Calcula Blocos do Ciclo de Estudos
+    const cycleData = buildStudyCycleBlocks(
+      rawSubjects,
+      user.weeklyGoalHours ?? 10,
+      user.cycleCurrentIndex ?? 0,
+      HIGH_CONTRAST_PALETTE,
+    );
+
+    // 5. Verifica se há algum dia ignorado/perdido
+    const missedDayName = await checkMissedDay(userId);
+
+    return NextResponse.json({
+      data: {
+        userId,
+        studyMode: user.studyMode ?? "WEEKLY",
+        weeklyGoalHours: user.weeklyGoalHours ?? 10,
+        activeDaysPerWeek: user.activeDaysPerWeek ?? 5,
+        cycleCurrentIndex: user.cycleCurrentIndex ?? 0,
+        cycleLap: user.cycleLap ?? 1,
+        missedDayName,
+        scheduleByDay,
+        subjectOverview,
+        cycle: cycleData,
+      },
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("❌ ERRO NO GET /api/week:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: message },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    let userId: string | null = null;
+    try {
+      userId = await getAuthenticatedUserId();
+    } catch (authErr) {
+      console.error("❌ Erro de autenticação:", authErr);
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const {
+      weeklyGoalHours,
+      activeDaysPerWeek,
+      studyMode,
+      cycleAction, // "NEXT_BLOCK" | "PREV_BLOCK" | "RESET_LAP" | "SWAP_BLOCK"
+      blockNumber,
+      currentSubjectId,
+      targetSubjectId,
+    } = body;
+
+    // Busca o usuário atual
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        weeklyGoalHours: true,
+        activeDaysPerWeek: true,
+        studyMode: true,
+        cycleCurrentIndex: true,
+        cycleLap: true,
+      },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: "Usuário não encontrado." },
+        { status: 404 },
+      );
+    }
+
+    let newIndex = currentUser.cycleCurrentIndex ?? 0;
+    let newLap = currentUser.cycleLap ?? 1;
+
+    // Lógica de avanço do ciclo
+    if (cycleAction === "NEXT_BLOCK") {
+      newIndex += 1;
+    } else if (cycleAction === "PREV_BLOCK" && newIndex > 0) {
+      newIndex -= 1;
+    } else if (cycleAction === "RESET_LAP") {
+      newIndex = 0;
+      newLap += 1;
+    }
+
+    // TRATAMENTO DE SWAP UNIFICADO (Atende tanto CycleView quanto WeekView)
+    if (cycleAction === "SWAP_BLOCK" && targetSubjectId) {
+      const rawSubjects = await prisma.subject.findMany({
+        where: { userId },
+        orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+      });
+
+      let currentSubject = null;
+      const targetSubject = rawSubjects.find((s) => s.id === targetSubjectId);
+
+      // CASO A: Swap vindo do CycleView (passa blockNumber)
+      if (blockNumber !== undefined) {
+        const currentCycleData = buildStudyCycleBlocks(
+          rawSubjects,
+          currentUser.weeklyGoalHours ?? 10,
+          currentUser.cycleCurrentIndex ?? 0,
+          HIGH_CONTRAST_PALETTE,
+        );
+
+        const targetBlock = currentCycleData.blocks.find(
+          (b) => b.blockNumber === blockNumber,
+        );
+
+        if (targetBlock) {
+          currentSubject = rawSubjects.find(
+            (s) => s.name === targetBlock.subjectName,
+          );
+        }
+      }
+      // CASO B: Swap vindo do WeekView ou ID direto
+      else if (currentSubjectId) {
+        currentSubject = rawSubjects.find((s) => s.id === currentSubjectId);
+      }
+
+      // Executa a troca de prioridades entre as duas matérias
+      if (
+        currentSubject &&
+        targetSubject &&
+        currentSubject.id !== targetSubject.id
+      ) {
+        let p1 = targetSubject.priority;
+        const p2 = currentSubject.priority;
+
+        if (p1 === p2) {
+          p1 += 0.01;
+        }
+
+        await prisma.$transaction([
+          prisma.subject.update({
+            where: { id: currentSubject.id },
+            data: { priority: p1 },
+          }),
+          prisma.subject.update({
+            where: { id: targetSubject.id },
+            data: { priority: p2 },
+          }),
+        ]);
+      }
+    }
+
+    // 1. Atualiza dados do usuário
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(weeklyGoalHours !== undefined && { weeklyGoalHours }),
+        ...(activeDaysPerWeek !== undefined && { activeDaysPerWeek }),
+        ...(studyMode !== undefined && { studyMode }),
+        cycleCurrentIndex: newIndex,
+        cycleLap: newLap,
+      },
+      select: {
+        weeklyGoalHours: true,
+        activeDaysPerWeek: true,
+        studyMode: true,
+        cycleCurrentIndex: true,
+        cycleLap: true,
+      },
+    });
+
+    // 2. Busca matérias atualizadas para recalcular ambas as visões
+    const rawSubjects = await prisma.subject.findMany({
+      where: { userId },
+      include: {
+        topics: {
+          select: {
+            id: true,
+            title: true,
+            firstStudy: true,
+            relevance: true,
+            performance: true,
+          },
+        },
+      },
+      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+    });
+
+    // 3. Recalcula ambos os módulos de forma sincronizada
+    const { scheduleByDay, subjectOverview } = buildWeeklySchedule(
+      rawSubjects,
+      updatedUser.weeklyGoalHours ?? 10,
+      updatedUser.activeDaysPerWeek ?? 5,
+    );
+
+    const cycleData = buildStudyCycleBlocks(
+      rawSubjects,
+      updatedUser.weeklyGoalHours ?? 10,
+      updatedUser.cycleCurrentIndex ?? 0,
+      HIGH_CONTRAST_PALETTE,
+    );
+
+    const missedDayName = await checkMissedDay(userId);
+
+    return NextResponse.json({
+      message: "Configurações e ciclo atualizados com sucesso!",
+      data: {
+        userId,
+        studyMode: updatedUser.studyMode ?? "WEEKLY",
+        weeklyGoalHours: updatedUser.weeklyGoalHours ?? 10,
+        activeDaysPerWeek: updatedUser.activeDaysPerWeek ?? 5,
+        cycleCurrentIndex: updatedUser.cycleCurrentIndex ?? 0,
+        cycleLap: updatedUser.cycleLap ?? 1,
+        missedDayName,
+        scheduleByDay,
+        subjectOverview,
+        cycle: cycleData,
+      },
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("❌ ERRO GRAVE NO PATCH /api/week:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: message },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/dashboard/stats/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { startOfWeek, endOfWeek, subDays, format } from "date-fns";
+
+export async function GET() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+
+    // 1. Busca histórico de revisões do usuário
+    const reviews = await prisma.reviewHistory.findMany({
+      where: {
+        topic: {
+          subject: {
+            userId: userId,
+          },
+        },
+      },
+      select: {
+        id: true,
+        grade: true,
+        reviewedAt: true,
+        durationSeconds: true,
+      },
+      orderBy: { reviewedAt: "desc" },
+    });
+
+    // 2. Busca sessões de estudo diretas do Cronograma/Ciclo
+    const studySessions = await (prisma.studySession as any).findMany({
+      where: { userId },
+      select: { durationMinutes: true, completedAt: true, createdAt: true },
+    });
+
+    const sessionMinutesTotal = studySessions.reduce(
+      (acc: number, s: any) => acc + (s.durationMinutes || 0),
+      0
+    );
+
+    // 3. Busca total de Decks e Flashcards
+    const totalDecks = await prisma.deck.count({ where: { userId } });
+    const totalFlashcards = await prisma.flashcard.count({
+      where: { deck: { userId } },
+    });
+
+    // 4. Métrica da Jornada
+    const totalTopics = await prisma.topic.count({
+      where: { subject: { userId } },
+    });
+
+    const completedTopics = await prisma.topic.count({
+      where: {
+        subject: { userId },
+        firstStudy: { in: ["Concluido", "Em Revisão"] },
+      },
+    });
+
+    const journeyPercentage =
+      totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+
+    // 5. Data da Prova Alvo
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { targetExamDate: true },
+    });
+
+    const hasObjective = !!user?.targetExamDate;
+    let daysRemaining = 0;
+    let weeksRemaining = 0;
+    let daysLeftInWeek = 0;
+    let topicsPerWeek = 0;
+
+    if (user?.targetExamDate) {
+      const targetDate = new Date(user.targetExamDate);
+      const diffTime = targetDate.getTime() - now.getTime();
+      daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+      const exactWeeksRemaining = daysRemaining / 7;
+      weeksRemaining = Math.floor(daysRemaining / 7);
+      daysLeftInWeek = daysRemaining % 7;
+
+      const remainingTopics = Math.max(0, totalTopics - completedTopics);
+      if (exactWeeksRemaining > 0 && remainingTopics > 0) {
+        topicsPerWeek = Number(
+          (remainingTopics / exactWeeksRemaining).toFixed(1)
+        );
+      }
+    }
+
+    // 6. Cálculos de Tempo e Desempenho Combinados
+    const totalQuestions = reviews.length;
+    const correctQuestions = reviews.filter((r) => {
+      const g = r.grade.toUpperCase();
+      return ["FACIL", "BOM", "3", "4", "5"].includes(g);
+    }).length;
+
+    const precision =
+      totalQuestions > 0
+        ? Math.round((correctQuestions / totalQuestions) * 100)
+        : 0;
+
+    const reviewSeconds = reviews.reduce(
+      (acc, r) => acc + (r.durationSeconds || 60),
+      0
+    );
+    const totalMinutes = Math.floor(reviewSeconds / 60) + sessionMinutesTotal;
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+
+    // 7. Meta Semanal
+    const weeklyLogs = reviews.filter(
+      (r) => r.reviewedAt >= weekStart && r.reviewedAt <= weekEnd
+    );
+    const weeklyGoalTarget = 50;
+    const weeklyProgress = Math.min(
+      100,
+      Math.round((weeklyLogs.length / weeklyGoalTarget) * 100)
+    );
+
+    // 8. Streak
+    const studyDays = new Set<string>([
+      ...reviews.map((r) => format(r.reviewedAt, "yyyy-MM-dd")),
+      ...studySessions.map((s: any) =>
+        format(s.completedAt || s.createdAt || new Date(), "yyyy-MM-dd")
+      ),
+    ]);
+
+    let currentStreak = 0;
+    let checkDate = new Date();
+    const todayStr = format(checkDate, "yyyy-MM-dd");
+
+    if (!studyDays.has(todayStr)) {
+      checkDate = subDays(checkDate, 1);
+    }
+
+    while (studyDays.has(format(checkDate, "yyyy-MM-dd"))) {
+      currentStreak++;
+      checkDate = subDays(checkDate, 1);
+    }
+
+    // 9. Heatmap
+    const heatmap = [];
+    for (let i = 27; i >= 0; i--) {
+      const day = subDays(now, i);
+      const dayStr = format(day, "yyyy-MM-dd");
+      const count =
+        reviews.filter((r) => format(r.reviewedAt, "yyyy-MM-dd") === dayStr)
+          .length +
+        studySessions.filter(
+          (s: any) =>
+            format(s.completedAt || s.createdAt, "yyyy-MM-dd") === dayStr
+        ).length;
+
+      let level = 0;
+      if (count > 0 && count <= 3) level = 1;
+      else if (count <= 8) level = 2;
+      else if (count <= 15) level = 3;
+      else if (count > 15) level = 4;
+
+      heatmap.push({ date: dayStr, count, level });
+    }
+
+    return NextResponse.json({
+      journey: {
+        hasObjective,
+        daysRemaining: hasObjective ? daysRemaining : 0,
+        weeksRemaining,
+        daysLeftInWeek,
+        percentage: journeyPercentage,
+        totalTopics,
+        completedTopics,
+        remainingTopics: Math.max(0, totalTopics - completedTopics),
+        topicsPerWeek,
+      },
+      metrics: {
+        totalTimeFormatted: `${hours}h ${mins}m`,
+        precision: `${precision}%`,
+        sessionsCount: totalDecks + studySessions.length,
+        questionsCount: totalQuestions,
+        totalFlashcards: totalFlashcards,
+        averageTimePerSession:
+          totalDecks + studySessions.length > 0
+            ? `${Math.round(totalMinutes / (totalDecks + studySessions.length))}min`
+            : "0min",
+      },
+      streak: {
+        currentDays: currentStreak,
+        weekDays: [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek: number) => {
+          const targetDay = new Date(weekStart);
+          targetDay.setDate(
+            weekStart.getDate() + (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
+          );
+          return {
+            dayLabel: format(targetDay, "ccccc"),
+            active: studyDays.has(format(targetDay, "yyyy-MM-dd")),
+          };
+        }),
+      },
+      weeklyGoal: {
+        percentage: weeklyProgress,
+        target: weeklyGoalTarget,
+        current: weeklyLogs.length,
+      },
+      heatmap,
+    });
+  } catch (error) {
+    console.error("❌ Erro ao buscar dados da dashboard:", error);
+    return NextResponse.json(
+      { error: "Falha ao carregar métricas da dashboard." },
+      { status: 500 }
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/decks/[id]/route.ts">
+// src/app/api/decks/[id]/route.ts
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+/**
+ * 📥 GET: Busca os detalhes de um baralho específico
+ */
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const deck = await prisma.deck.findFirst({
+      where: { id, userId }, // 🔒 Garante que só busca baralhos do próprio usuário
+      include: {
+        subject: true,
+        topic: true,
+        flashcards: {
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!deck) {
+      return NextResponse.json(
+        { error: "Baralho não encontrado" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(deck);
+  } catch (error) {
+    console.error("Erro ao buscar detalhes do deck:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * 🗑️ DELETE: Exclui um baralho e seus flashcards associados
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    // 🔒 Garante que o baralho pertence ao usuário autenticado antes de apagar
+    const deck = await prisma.deck.findFirst({
+      where: { id, userId },
+    });
+
+    if (!deck) {
+      return NextResponse.json(
+        { error: "Baralho não encontrado ou sem permissão" },
+        { status: 404 },
+      );
+    }
+
+    await prisma.deck.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Erro ao deletar deck:", error);
+    return NextResponse.json(
+      { error: "Erro ao excluir baralho" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/edital/complete-suggestion/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+export async function POST(req: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const { topicId, type } = await req.json();
+
+    if (!topicId) {
+      return NextResponse.json(
+        { error: "topicId é obrigatório" },
+        { status: 400 }
+      );
+    }
+
+    // Atualiza a data do último quiz do tópico
+    await prisma.topic.update({
+      where: { id: topicId },
+      data: {
+        lastQuizAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Erro ao registrar conclusão da sugestão:", error);
+    return NextResponse.json(
+      { error: "Erro interno no servidor" },
+      { status: 500 }
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/topics/[id]/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+    const { firstStudy, performance } = body;
+
+    const now = new Date();
+    const isCompleted = firstStudy === "Em Revisão" || firstStudy === "Concluido";
+
+    // Data de revisão em 1 dia
+    const nextRevisionAt = new Date(now);
+    nextRevisionAt.setDate(nextRevisionAt.getDate() + 1);
+
+    const updatedTopic = await (prisma.topic as any).update({
+      where: { id },
+      data: {
+        ...(firstStudy !== undefined && { firstStudy }),
+        ...(performance !== undefined && { performance }),
+        lastRev: now,
+        ...(isCompleted && {
+          lastStudiedAt: now,
+          nextRevisionAt,
+        }),
+      },
+    });
+
+    return NextResponse.json({ data: updatedTopic });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("❌ ERRO AO ATUALIZAR TÓPICO:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: message },
+      { status: 500 }
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/ai/suggestions/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+export async function GET() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const suggestions = [];
+
+    // 1. Tópico crítico por baixo desempenho (< 60% de acerto)
+    const weakTopic = await (prisma.topic as any).findFirst({
+      where: {
+        subject: { userId },
+        performance: { lte: 60, gt: 0 },
+      },
+      include: { subject: { select: { name: true } } },
+    });
+
+    if (weakTopic) {
+      suggestions.push({
+        id: `weak-${weakTopic.id}`,
+        topicId: weakTopic.id,
+        type: "CRITICAL",
+        icon: "brain",
+        title: `Atenção no Edital: ${weakTopic.title}`,
+        description: `Matéria: ${weakTopic.subject?.name || "Geral"}. O aproveitamento neste tópico está em ${weakTopic.performance}%. Recomendamos criar Flashcards ou resolver questões.`,
+        actionUrl: `/questions?topicId=${weakTopic.id}`,
+      });
+    }
+
+    // 2. Avançar no Edital (tópicos não estudados)
+    const unstudiedTopic = await (prisma.topic as any).findFirst({
+      where: {
+        subject: { userId },
+        firstStudy: { in: [null, "NaoIniciado", "Não Iniciado"] },
+      },
+      include: { subject: { select: { name: true } } },
+    });
+
+    if (unstudiedTopic) {
+      suggestions.push({
+        id: `advance-${unstudiedTopic.id}`,
+        topicId: unstudiedTopic.id,
+        type: "SUGERIDO",
+        icon: "list",
+        title: `Avançar no Edital: ${unstudiedTopic.title}`,
+        description: `Matéria: ${unstudiedTopic.subject?.name || "Geral"}. Você ainda não realizou o primeiro estudo deste tópico.`,
+        actionUrl: "/edital",
+      });
+    }
+
+    // 3. Criar Decks para disciplinas sem Flashcards
+    const subjectWithoutDeck = await (prisma.subject as any).findFirst({
+      where: {
+        userId,
+        decks: { none: {} },
+      },
+    });
+
+    if (subjectWithoutDeck) {
+      suggestions.push({
+        id: `deck-${subjectWithoutDeck.id}`,
+        type: "SUGERIDO",
+        icon: "brain",
+        title: "Criar Decks de Flashcards",
+        description: `Monte Cards de "${subjectWithoutDeck.name}" para proteger sua retenção a longo prazo.`,
+        actionUrl: "/cards",
+      });
+    }
+
+    return NextResponse.json({ success: true, data: suggestions });
+  } catch (error) {
+    console.error("❌ Erro ao gerar sugestões:", error);
+    return NextResponse.json(
+      { error: "Erro ao carregar sugestões." },
+      { status: 500 }
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/decks/route.ts">
+// src/app/api/decks/route.ts
+
+import { NextResponse } from "next/server";
+import { GoogleGenAI, Type } from "@google/genai";
+import { prisma } from "@/lib/prisma";
+import { FlashcardRaw } from "@/types";
+import { Prisma } from "@prisma/client";
+import { auth } from "@/auth";
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+interface AIResponse {
+  text: string | null;
+}
+
+/**
+ * 🔄 Função de geração com Retry e Schema Estruturado
+ */
+async function generateFlashcardsWithRetry(
+  prompt: string,
+  retries = 2
+): Promise<AIResponse> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const result = await ai.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.3,
+          maxOutputTokens: 8192,
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              flashcards: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    question: {
+                      type: Type.STRING,
+                      description: "Pergunta objetiva e conceitual para active recall.",
+                    },
+                    answer: {
+                      type: Type.STRING,
+                      description: "Resposta direta e precisa do conceito.",
+                    },
+                    details: {
+                      type: Type.STRING,
+                      description: "Breve explicação ou dica complementar do tema.",
+                    },
+                  },
+                  required: ["question", "answer"],
+                },
+              },
+            },
+            required: ["flashcards"],
+          },
+        },
+      });
+
+      return { text: result.text || "" };
+    } catch (error: unknown) {
+      const err = error as { status?: number };
+      if (err.status === 503 && i < retries - 1) {
+        await new Promise((res) => setTimeout(res, 1000));
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("Falha ao gerar flashcards após múltiplas tentativas.");
+}
+
+/**
+ * 📥 GET: Lista todos os baralhos do usuário autenticado
+ */
+export async function GET() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const decks = await prisma.deck.findMany({
+      where: { userId },
+      include: {
+        subject: true,
+        _count: {
+          select: { flashcards: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ data: decks }, { status: 200 });
+  } catch (error: any) {
+    console.error("❌ Erro no GET /api/decks:", error);
+    return NextResponse.json(
+      { error: "Falha ao buscar decks.", details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * 📤 POST: Gera um novo baralho com flashcards via IA
+ */
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const {
+      name,
+      materia,
+      subjectId,
+      topicId,
+      topicName,
+      content,
+      fonteConteudo,
+      dificuldade,
+      qtdCards,
+      color,
+    } = body;
+
+    // 🟢 DEFINE O TÍTULO DO BARALHO:
+    // Se selecionou um tópico específico, o título é o nome do tópico. Senão "Todos os Tópicos".
+    const deckTitle =
+      topicName && topicName.trim() !== ""
+        ? topicName
+        : "Todos os Tópicos";
+
+    const subjectName = materia || name || "Geral";
+
+    let baseText = content;
+    if (fonteConteudo === "banca" || !baseText) {
+      baseText = `Matéria: ${subjectName}${
+        topicName ? `, Tópico: ${topicName}` : ""
+      }`;
+    }
+
+    if (!subjectName || !baseText) {
+      return NextResponse.json(
+        { error: "Matéria principal ou conteúdo para a IA é obrigatório." },
+        { status: 400 }
+      );
+    }
+
+    const totalFlashcards = qtdCards || 10;
+    const depthLevel = dificuldade || "MÉDIA";
+
+    const prompt = `
+      Você é um professor PhD e especialista em memorização ativa.
+      Gere EXATAMENTE ${totalFlashcards} flashcards de estudo focados no escopo: "${baseText}".
+      Nível de profundidade/dificuldade dos conceitos: ${depthLevel}.
+    `;
+
+    // 🟢 CHAMADA GEMINI 3.5 FLASH LITE COM SCHEMA OBRIGATÓRIO E RETRY
+    const response = await generateFlashcardsWithRetry(prompt);
+
+    if (!response.text) {
+      throw new Error("Nenhum conteúdo retornado pela IA.");
+    }
+
+    let data: { flashcards: FlashcardRaw[] };
+    try {
+      data = JSON.parse(response.text) as { flashcards: FlashcardRaw[] };
+    } catch {
+      data = { flashcards: [] };
+    }
+
+    let resolvedSubjectId = subjectId || null;
+    if (!resolvedSubjectId && subjectName) {
+      const foundSubject = await prisma.subject.findFirst({
+        where: {
+          name: { equals: subjectName.trim(), mode: "insensitive" },
+          userId: userId,
+        },
+        select: { id: true },
+      });
+      if (foundSubject) {
+        resolvedSubjectId = foundSubject.id;
+      }
+    }
+
+    const newDeck = await prisma.deck.create({
+      data: {
+        title: deckTitle, // Salva o nome do Tópico Específico ou "Todos os Tópicos"
+        color: color || "bg-indigo-500",
+        subjectId: resolvedSubjectId, // Associa à Matéria Principal
+        userId: userId,
+        flashcards: {
+          create: (data.flashcards || []).map(
+            (f): Prisma.FlashcardCreateWithoutDeckInput => ({
+              question: f.question,
+              answer: f.answer,
+              details: f.details || "",
+              topic: topicId ? { connect: { id: topicId } } : undefined,
+            })
+          ),
+        },
+      },
+      include: {
+        subject: true,
+        _count: { select: { flashcards: true } },
+      },
+    });
+
+    return NextResponse.json({ data: newDeck }, { status: 201 });
+  } catch (error: any) {
+    console.error("❌ Erro ao criar deck:", error);
+    return NextResponse.json(
+      { error: "Falha ao processar deck.", details: error.message },
+      { status: 500 }
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/flashcards/review/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { calculateEarnedXp, calculateLevel } from "@/lib/gamification";
+import { calculateSM2, convertLabelToGrade, PerformanceLabel } from "@/lib/sm2";
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const { cardId, grade, streakDays = 0 } = await request.json();
+
+    if (!cardId || grade === undefined) {
+      return NextResponse.json(
+        { error: "Campos obrigatórios ausentes (cardId, grade)" },
+        { status: 400 },
+      );
+    }
+
+    // 1. Busca o Flashcard e o seu Tópico associado
+    const card = await prisma.flashcard.findUnique({
+      where: { id: String(cardId) },
+      include: {
+        topic: true,
+      },
+    });
+
+    if (!card) {
+      return NextResponse.json(
+        { error: "Flashcard não encontrado" },
+        { status: 404 },
+      );
+    }
+
+    // Convertemos o valor recebido para o padrão numérico SM-2 (0 a 5)
+    const numericGrade =
+      typeof grade === "number"
+        ? grade
+        : convertLabelToGrade(String(grade) as PerformanceLabel);
+
+    // 2. Calcula e atualiza a Gamificação (XP + Nível)
+    // Passamos String(grade) para corresponder ao parâmetro string esperado
+    const earnedXp = calculateEarnedXp(String(grade), streakDays);
+
+    const updatedStats = await prisma.userStats.upsert({
+      where: { userId },
+      update: {
+        totalXp: { increment: earnedXp },
+        lastStudyDate: new Date(),
+      },
+      create: {
+        userId,
+        totalXp: earnedXp,
+        lastStudyDate: new Date(),
+      },
+    });
+
+    const levelInfo = calculateLevel(updatedStats.totalXp);
+
+    // 3. Atualiza o algoritmo SM-2 no Tópico do Edital (se vinculado)
+    if (card.topicId && card.topic) {
+      const topicSm2 = calculateSM2({
+        interval: card.topic.interval || 0,
+        easiness: card.topic.easiness || 2.5,
+        repetitions: card.topic.repetitions || 0,
+        grade: numericGrade,
+      });
+
+      const now = new Date();
+
+      await Promise.all([
+        prisma.topic.update({
+          where: { id: card.topicId },
+          data: {
+            easiness: topicSm2.nextEasiness,
+            interval: topicSm2.nextInterval,
+            repetitions: topicSm2.nextRepetitions,
+            lastRev: now,
+            nextRev: topicSm2.nextReviewDate,
+            firstStudy: "Concluido",
+          },
+        }),
+        prisma.reviewHistory.create({
+          data: {
+            topicId: card.topicId,
+            grade: String(grade),
+            durationSeconds: 30,
+          },
+        }),
+      ]);
+    }
+
+    // 4. Registra a StudySession para o painel semanal
+    await prisma.studySession.create({
+      data: {
+        userId,
+        durationMinutes: 1,
+        status: "COMPLETED",
+      },
+    });
+
+    // 5. Atualiza o timestamp do flashcard
+    await prisma.flashcard.update({
+      where: { id: card.id },
+      data: { updatedAt: new Date() },
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        earnedXp,
+        totalXp: updatedStats.totalXp,
+        levelInfo,
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("❌ Erro ao registrar revisão de flashcard:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor ao processar XP do flashcard" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/study-sessions/route.ts">
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+export async function POST(req: Request) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { subjectId, durationMinutes, topicsCompleted } = body;
+
+    const duration = Number(durationMinutes) || 1;
+    const topicsCount = Array.isArray(topicsCompleted) ? topicsCompleted.length : 0;
+
+    // Usamos 'as any' para permitir flexibilidade total com o modelo do Prisma
+    // e evitar que divergências de nome de campo travem o build da aplicação.
+    const studySession = await (prisma.studySession as any).create({
+      data: {
+        userId,
+        subjectId,
+        durationMinutes: duration,
+        topicsCount,
+        completedAt: new Date(),
+        createdAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({ success: true, data: studySession }, { status: 201 });
+  } catch (error) {
+    console.error("❌ Erro ao salvar sessão de estudo:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor ao salvar sessão." },
+      { status: 500 }
     );
   }
 }
