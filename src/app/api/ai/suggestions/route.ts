@@ -14,7 +14,7 @@ export async function GET() {
     const suggestions = [];
 
     // 1. Tópico crítico por baixo desempenho (< 60% de acerto)
-    const weakTopic = await (prisma.topic as any).findFirst({
+    const weakTopic = await prisma.topic.findFirst({
       where: {
         subject: { userId },
         performance: { lte: 60, gt: 0 },
@@ -35,10 +35,10 @@ export async function GET() {
     }
 
     // 2. Avançar no Edital (tópicos não estudados)
-    const unstudiedTopic = await (prisma.topic as any).findFirst({
+    const unstudiedTopic = await prisma.topic.findFirst({
       where: {
         subject: { userId },
-        firstStudy: { in: [null, "NaoIniciado", "Não Iniciado"] },
+        firstStudy: { in: ["Pendente"] },
       },
       include: { subject: { select: { name: true } } },
     });
@@ -56,7 +56,7 @@ export async function GET() {
     }
 
     // 3. Criar Decks para disciplinas sem Flashcards
-    const subjectWithoutDeck = await (prisma.subject as any).findFirst({
+    const subjectWithoutDeck = await prisma.subject.findFirst({
       where: {
         userId,
         decks: { none: {} },
@@ -70,7 +70,7 @@ export async function GET() {
         icon: "brain",
         title: "Criar Decks de Flashcards",
         description: `Monte Cards de "${subjectWithoutDeck.name}" para proteger sua retenção a longo prazo.`,
-        actionUrl: "/flashcards",
+        actionUrl: "/flashcards", 
       });
     }
 
