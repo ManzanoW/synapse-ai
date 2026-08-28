@@ -4,7 +4,7 @@ export interface Subject {
   id: string;
   name: string;
   importance?: string;
-  priority?: string;
+  priority?: number | string;
   color?: string | null;
   userId: string;
   createdAt?: Date;
@@ -18,6 +18,8 @@ export interface Subject {
 export interface DashboardSubject extends Subject {
   progress?: number;
   accuracy?: number;
+  domain?: number;
+  weight?: number;
   timeSpent?: string;
   _count?: {
     topics: number;

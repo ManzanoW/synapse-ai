@@ -152,6 +152,17 @@ export async function GET(request: Request) {
               ? Math.round(subjectProgressSum / formattedTopics.length)
               : 0;
 
+          const allReviews = rawTopics.flatMap((t: any) => t.reviewHistories || []);
+          const correctReviews = allReviews.filter((r: any) => {
+            const gradeStr =
+              r && r.grade ? String(r.grade).toUpperCase() : "";
+            return ["BOM", "FACIL", "3", "4", "5"].includes(gradeStr);
+          }).length;
+          const subjectAccuracy =
+            allReviews.length > 0
+              ? Math.round((correctReviews / allReviews.length) * 100)
+              : subjectProgress;
+
           accumulatedGlobalProgress += subjectProgressSum;
 
           return {
@@ -159,7 +170,11 @@ export async function GET(request: Request) {
             name: sub.name,
             color: sub.color,
             importance: sub.importance,
+            priority: sub.priority ?? 6.3,
+            weight: Math.min(100, Math.round((sub.priority ?? 6.3) * 10)),
             progress: subjectProgress,
+            accuracy: subjectAccuracy,
+            domain: subjectAccuracy,
             topics: formattedTopics,
           };
         });

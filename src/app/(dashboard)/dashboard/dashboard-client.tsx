@@ -40,6 +40,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
+import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
 
 interface JourneyData {
   hasObjective: boolean;
@@ -736,7 +737,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           )}
 
           {mobileTab === "stats" && (
-            <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
+            <div className="space-y-4">
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
               <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
                   Estatísticas Chave
@@ -787,7 +789,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
             </div>
-          )}
+
+            <DomainRadarChart
+              subjects={subjects}
+              isLoading={isLoading}
+            />
+          </div>
+        )}
 
           {mobileTab === "gamification" && (
             <div className="space-y-4">
@@ -1065,6 +1073,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
             </div>
+
+            {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
+            <DomainRadarChart
+              subjects={subjects}
+              isLoading={isLoading}
+            />
 
             {/* CARD 3: Sugestões com IA */}
             {!isLoading && hasEditalSubjects && (
