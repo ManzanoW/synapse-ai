@@ -44,6 +44,8 @@ export interface QuestaoIA {
   enunciado: string;
   formato: string;
   justificativa: string;
+  pegadinhaBanca?: string;
+  explicacaoErro?: string;
   alternativas: { id: string; texto: string }[];
   gabaritoCorreto: string;
   flashcardFrente: string;

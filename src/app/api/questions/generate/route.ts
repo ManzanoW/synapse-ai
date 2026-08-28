@@ -19,6 +19,8 @@ interface QuestaoGerada {
   enunciado: string;
   formato: string;
   justificativa: string;
+  pegadinhaBanca?: string;
+  explicacaoErro?: string;
   alternativas: Alternativa[];
   gabaritoCorreto: string;
   flashcardFrente: string;
@@ -96,6 +98,16 @@ async function generateContentWithRetry(
                     enunciado: { type: Type.STRING },
                     formato: { type: Type.STRING },
                     justificativa: { type: Type.STRING },
+                    pegadinhaBanca: {
+                      type: Type.STRING,
+                      description:
+                        "Explicação clara e detalhada sobre a pegadinha, distrator mais ardiloso ou armadilha formulada pela banca nesta questão.",
+                    },
+                    explicacaoErro: {
+                      type: Type.STRING,
+                      description:
+                        "Diagnóstico cognitivo do ponto cego e motivo específico pelo qual o candidato costuma errar ou confundir os conceitos nesta questão.",
+                    },
                     alternativas: {
                       type: Type.ARRAY,
                       items: {
@@ -123,6 +135,8 @@ async function generateContentWithRetry(
                     "enunciado",
                     "formato",
                     "justificativa",
+                    "pegadinhaBanca",
+                    "explicacaoErro",
                     "alternativas",
                     "gabaritoCorreto",
                     "flashcardFrente",
@@ -273,6 +287,12 @@ export async function POST(request: Request) {
       - Outras bancas: formato "multipla" com exatamente 4 alternativas (ids: "A", "B", "C", "D").
       - "gabaritoCorreto": deve conter APENAS a letra correspondente à opção correta ("A", "B", "C" ou "D") ou "Certo"/"Errado".
     
+      ===================================================================
+      DIAGNÓSTICO DE ERROS E PEGADINHAS DA BANCA (OBRIGATÓRIO):
+      ===================================================================
+      - 'pegadinhaBanca': Explique detalhadamente qual é a pegadinha clássica, o distrator mais ardiloso ou a armadilha conceitual preparada pela banca examinadora nesta questão para induzir o candidato ao erro.
+      - 'explicacaoErro': Diagnóstico objetivo do ponto cego cognitivo do estudante. Explique por que quem erra costuma errar (qual conceito confunde, qual detalhe passa despercebido ou qual premissa incorreta assume).
+
       Além da questão e das alternativas, gere uma versão em Flashcard (Active Recall) para cada item: no 'flashcardFrente', faça uma pergunta conceitual e direta sobre a matéria testada; no 'flashcardVerso', responda com o conceito direto de forma clara e sintética.    
       `;
 

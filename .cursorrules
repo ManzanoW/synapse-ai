@@ -1,0 +1,17 @@
+# Synapse AI - Directives & Rules
+
+## Stack
+
+- Next.js 14+ (App Router), TypeScript, Tailwind CSS, Lucide React, Prisma, Framer Motion.
+
+## Design System & Theme Guidelines
+
+- **Palette**: Dark Mode Premium (`#030712`, `slate-950`, `indigo-600/50`, `cyan-400`, `emerald-500`).
+- **Cards**: Backgrounds translúcidos (`bg-slate-900/60`), bordas suaves (`border-slate-800/80`), `backdrop-blur-xl`, cantos arredondados (`rounded-2xl` ou `rounded-3xl`).
+- **Typography**: Títulos em `font-black` com `tracking-tight`, dados numéricos e cronômetros em `font-mono`.
+- **Mobile First**: Garantir paddings confortáveis em telas pequenas (`p-4 sm:p-6`), botões flexíveis e layouts fluidos (evitar tamanhos fixos sem min-w ou flex-wrap).
+
+## Code Standards
+
+- Prefira Server Components por padrão. Use `"use client"` apenas quando houver interatividade/hooks (`useState`, `useEffect`).
+- Mantenha funções de manipuladores (`handle...`) fortemente tipadas e trate exceções com blocos `try/catch`.

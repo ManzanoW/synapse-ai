@@ -319,7 +319,9 @@ export default function CreateDeckModal({
                     key={src.id}
                     type="button"
                     disabled={loading}
-                    onClick={() => setFonteConteudo(src.id as any)}
+                    onClick={() =>
+                      setFonteConteudo(src.id as "banca" | "texto" | "pdf")
+                    }
                     className={`py-2 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${fonteConteudo === src.id ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30" : "text-slate-400 hover:text-white"}`}
                   >
                     {src.label}

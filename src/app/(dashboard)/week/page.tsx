@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, useOptimistic } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -249,7 +249,7 @@ export default function WeekPage() {
     if (!focusSubject) return;
 
     const pendingTopics = focusSubject.assignedTopics.filter(
-      (t) => t.firstStudy !== "Em Revisão"
+      (t) => t.firstStudy !== "Em Revisão" && t.firstStudy !== "Concluido"
     );
 
     for (const topic of pendingTopics) {
@@ -414,60 +414,113 @@ export default function WeekPage() {
     });
   };
 
+  const [optimisticData, setOptimisticData] = useOptimistic(
+    data,
+    (
+      state: WeekData | null,
+      update: { topicId: string; newFirstStudy: string; newPerformance: number }
+    ): WeekData | null => {
+      if (!state) return null;
+      return {
+        ...state,
+        scheduleByDay: state.scheduleByDay.map((day) => ({
+          ...day,
+          subjects: day.subjects.map((sub) => ({
+            ...sub,
+            assignedTopics: sub.assignedTopics.map((top) =>
+              top.id === update.topicId
+                ? {
+                    ...top,
+                    firstStudy: update.newFirstStudy,
+                    performance: update.newPerformance,
+                  }
+                : top
+            ),
+          })),
+        })),
+      };
+    }
+  );
+
   const handleToggleTopic = async (topicId: string, currentStatus?: string) => {
-    const isCompleted = currentStatus === "Em Revisão";
+    const isCompleted =
+      currentStatus === "Em Revisão" || currentStatus === "Concluido";
     const newFirstStudy = isCompleted ? "Pendente" : "Em Revisão";
     const newPerformance = isCompleted ? 0 : 100;
 
-    setData((prev) => {
-      if (!prev) return null;
-      const updatedScheduleByDay = prev.scheduleByDay.map((day) => ({
-        ...day,
-        subjects: day.subjects.map((sub) => ({
-          ...sub,
-          assignedTopics: sub.assignedTopics.map((top) =>
-            top.id === topicId
-              ? {
-                  ...top,
-                  firstStudy: newFirstStudy,
-                  performance: newPerformance,
-                }
-              : top
-          ),
-        })),
-      }));
-      return { ...prev, scheduleByDay: updatedScheduleByDay };
-    });
-
-    try {
-      const res = await fetch(`/api/topics/${topicId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstStudy: newFirstStudy,
-          performance: newPerformance,
-        }),
+    startTransition(async () => {
+      setOptimisticData({
+        topicId,
+        newFirstStudy,
+        newPerformance,
       });
 
-      if (!res.ok) throw new Error("Erro ao atualizar status do tópico");
-    } catch (err) {
-      console.error("Erro ao salvar progresso do tópico:", err);
-      await loadWeekData();
-    }
+      try {
+        const res = await fetch(`/api/topics/${topicId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firstStudy: newFirstStudy,
+            performance: newPerformance,
+          }),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(
+            errorData.details ||
+              errorData.error ||
+              `Erro ao atualizar status do tópico: ${res.status}`
+          );
+        }
+
+        const resJson = await res.json();
+        const updated = resJson.data;
+
+        setData((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            scheduleByDay: prev.scheduleByDay.map((day) => ({
+              ...day,
+              subjects: day.subjects.map((sub) => ({
+                ...sub,
+                assignedTopics: sub.assignedTopics.map((top) =>
+                  top.id === topicId
+                    ? {
+                        ...top,
+                        firstStudy: updated?.firstStudy ?? newFirstStudy,
+                        performance: updated?.performance ?? newPerformance,
+                      }
+                    : top
+                ),
+              })),
+            })),
+          };
+        });
+      } catch (err) {
+        console.error("Erro ao salvar progresso do tópico:", err);
+        // Force refresh / restore previous state in case optimistic state desyncs
+        setData((prev) => (prev ? { ...prev } : null));
+      }
+    });
   };
 
-  const hasSubjects = (data?.subjectOverview?.length ?? 0) > 0;
+  const displayData = optimisticData ?? data;
+  const hasSubjects = (displayData?.subjectOverview?.length ?? 0) > 0;
   const todayNamePT = getTodayNamePT();
 
   const activeDaySchedule =
-    data?.scheduleByDay?.find((d) => d.dayIndex === selectedDayIndex) ||
-    data?.scheduleByDay?.[0];
+    displayData?.scheduleByDay?.find((d) => d.dayIndex === selectedDayIndex) ||
+    displayData?.scheduleByDay?.[0];
 
   const activeDayCompletedTopicsCount =
     activeDaySchedule?.subjects.reduce((acc, sub) => {
       return (
         acc +
-        sub.assignedTopics.filter((t) => t.firstStudy === "Em Revisão").length
+        sub.assignedTopics.filter(
+          (t) => t.firstStudy === "Em Revisão" || t.firstStudy === "Concluido"
+        ).length
       );
     }, 0) || 0;
 
@@ -484,9 +537,9 @@ export default function WeekPage() {
       : 0;
 
   const donutSegments = (() => {
-    if (!data?.subjectOverview) return [];
+    if (!displayData?.subjectOverview) return [];
     let accumulated = 0;
-    return data.subjectOverview.map((subject, index) => {
+    return displayData.subjectOverview.map((subject, index) => {
       const color = getSubjectColor(subject, index);
       const strokeDasharray = `${subject.percentageOfTotal} ${
         100 - subject.percentageOfTotal
@@ -692,14 +745,16 @@ export default function WeekPage() {
 
             {/* BARRA DE SELEÇÃO DE DIAS - OTIMIZADA PARA MOBILE */}
             <div className="flex items-center gap-2.5 overflow-x-auto p-1 pt-1 pb-3 scrollbar-none">
-              {data?.scheduleByDay?.map((day) => {
+              {displayData?.scheduleByDay?.map((day) => {
                 const isSelected = day.dayIndex === selectedDayIndex;
                 const isToday = day.dayName.toUpperCase().includes(todayNamePT);
                 const completedCount = day.subjects.reduce(
                   (acc, sub) =>
                     acc +
                     sub.assignedTopics.filter(
-                      (t) => t.firstStudy === "Em Revisão"
+                      (t) =>
+                        t.firstStudy === "Em Revisão" ||
+                        t.firstStudy === "Concluido"
                     ).length,
                   0
                 );
@@ -819,7 +874,9 @@ export default function WeekPage() {
                             subject.assignedTopics.length > 0;
 
                           const subCompleted = subject.assignedTopics.filter(
-                            (t) => t.firstStudy === "Em Revisão"
+                            (t) =>
+                              t.firstStudy === "Em Revisão" ||
+                              t.firstStudy === "Concluido"
                           ).length;
                           const subTotal = subject.assignedTopics.length;
                           const subPercent =
@@ -911,7 +968,8 @@ export default function WeekPage() {
                                 {hasTopics ? (
                                   subject.assignedTopics.map((topic, tIdx) => {
                                     const isDone =
-                                      topic.firstStudy === "Em Revisão";
+                                      topic.firstStudy === "Em Revisão" ||
+                                      topic.firstStudy === "Concluido";
 
                                     return (
                                       <div

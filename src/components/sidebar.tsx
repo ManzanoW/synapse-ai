@@ -8,6 +8,7 @@ import { signOut } from "next-auth/react";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
 import LogoutModal from "@/components/logout/logout-modal";
+import { useAudioContext } from "@/contexts/AudioContext";
 import {
   Sparkles,
   Layers,
@@ -24,6 +25,9 @@ import {
   Trophy,
   Zap,
   Loader2,
+  Search,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -72,6 +76,7 @@ export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const { isOpen, closeSidebar } = useSidebar();
   const { stats, isLoading, refreshStats } = useGamification();
+  const { isMuted, toggleMute } = useAudioContext();
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -170,6 +175,44 @@ export default function Sidebar({ user }: SidebarProps) {
             </div>
 
             <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-3 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+          </div>
+
+          {/* Botão de Busca / Command Palette & Botão Mute/Unmute */}
+          <div className="px-1 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                closeSidebar();
+                window.dispatchEvent(new CustomEvent("open-command-palette"));
+              }}
+              className="flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-slate-200 transition-all text-xs cursor-pointer group"
+            >
+              <div className="flex items-center gap-2">
+                <Search size={14} className="text-slate-400 group-hover:text-indigo-400 transition-colors" />
+                <span className="font-medium">Busca rápida...</span>
+              </div>
+              <kbd className="font-mono text-[10px] text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+                ⌘K
+              </kbd>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleMute}
+              title={isMuted ? "Ativar som" : "Silenciar som"}
+              aria-label={isMuted ? "Ativar som" : "Silenciar som"}
+              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                isMuted
+                  ? "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/30"
+                  : "bg-white/5 border-white/10 text-slate-400 hover:text-indigo-300 hover:bg-white/10 hover:border-indigo-500/30"
+              }`}
+            >
+              {isMuted ? (
+                <VolumeX size={15} className="transition-transform active:scale-95" />
+              ) : (
+                <Volume2 size={15} className="transition-transform active:scale-95" />
+              )}
+            </button>
           </div>
 
           {/* Navegação */}

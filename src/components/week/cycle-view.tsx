@@ -1,6 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useOptimistic,
+  useTransition,
+} from "react";
 import {
   Play,
   CheckCircle2,
@@ -43,9 +48,22 @@ interface CycleViewProps {
   onSwapBlockSubject?: (
     currentSubjectId: string,
     targetSubjectId: string,
-    blockNumber: number
+    blockNumber: number,
   ) => void;
 }
+
+type CycleAction =
+  | {
+      type: "COMPLETE_BLOCK";
+      blockNumber?: number;
+    }
+  | {
+      type: "SWAP_BLOCK";
+      blockNumber: number;
+      targetSubjectId: string;
+      targetSubjectName: string;
+      color: string;
+    };
 
 export function CycleView({
   blocks: initialBlocks,
@@ -59,16 +77,62 @@ export function CycleView({
   onUndoBlock,
   onSwapBlockSubject,
 }: CycleViewProps) {
-  const [cycleBlocks, setCycleBlocks] = useState<CycleBlock[]>(initialBlocks);
-  const [expandedBlockNumber, setExpandedBlockNumber] = useState<
-    number | null
-  >(null);
+  const [, startTransition] = useTransition();
+
+  const [optimisticBlocks, setOptimisticBlocks] = useOptimistic(
+    initialBlocks,
+    (state: CycleBlock[], action: CycleAction): CycleBlock[] => {
+      switch (action.type) {
+        case "COMPLETE_BLOCK": {
+          const targetBlockNum =
+            action.blockNumber ??
+            state.find((b) => b.status === "CURRENT")?.blockNumber;
+
+          if (targetBlockNum === undefined) return state;
+
+          const nextBlock =
+            state.find(
+              (b) => b.blockNumber > targetBlockNum && b.status === "PENDING",
+            ) ||
+            state.find(
+              (b) => b.blockNumber !== targetBlockNum && b.status === "PENDING",
+            );
+
+          return state.map((b) => {
+            if (b.blockNumber === targetBlockNum) {
+              return { ...b, status: "COMPLETED" };
+            }
+            if (nextBlock && b.blockNumber === nextBlock.blockNumber) {
+              return { ...b, status: "CURRENT" };
+            }
+            return b;
+          });
+        }
+
+        case "SWAP_BLOCK": {
+          return state.map((b) =>
+            b.blockNumber === action.blockNumber
+              ? {
+                  ...b,
+                  subjectId: action.targetSubjectId,
+                  subjectName: action.targetSubjectName,
+                  color: action.color,
+                }
+              : b,
+          );
+        }
+
+        default:
+          return state;
+      }
+    },
+  );
+
+  const [expandedBlockNumber, setExpandedBlockNumber] = useState<number | null>(
+    null,
+  );
   const [activeSessionBlock, setActiveSessionBlock] =
     useState<CycleBlock | null>(null);
-
-  useEffect(() => {
-    setCycleBlocks(initialBlocks);
-  }, [initialBlocks]);
 
   const [swapModalOpen, setSwapModalOpen] = useState(false);
   const [blockToSwap, setBlockToSwap] = useState<CycleBlock | null>(null);
@@ -86,19 +150,32 @@ export function CycleView({
     );
   }
 
+  const optimisticCompletedBlocks = optimisticBlocks.filter(
+    (b) => b.status === "COMPLETED",
+  ).length;
+
+  const effectiveTotalBlocks = totalBlocks || optimisticBlocks.length;
+
+  const effectiveProgress =
+    effectiveTotalBlocks > 0
+      ? Math.round((optimisticCompletedBlocks / effectiveTotalBlocks) * 100)
+      : currentProgress;
+
   const remainingMinutes = Math.max(
     0,
-    totalMinutes * (1 - currentProgress / 100)
+    totalMinutes * (1 - effectiveProgress / 100),
   );
 
   const currentBlock =
-    cycleBlocks.find((b) => b.status === "CURRENT") || cycleBlocks[0];
+    optimisticBlocks.find((b) => b.status === "CURRENT") ||
+    optimisticBlocks.find((b) => b.status === "PENDING") ||
+    optimisticBlocks[0];
 
   const subjectImportanceMap = new Map(
-    subjectBreakdown.map((s) => [s.name, s.percentage])
+    subjectBreakdown.map((s) => [s.name, s.percentage]),
   );
 
-  const upcomingBlocks = cycleBlocks
+  const upcomingBlocks = optimisticBlocks
     .filter((b) => b.blockNumber !== currentBlock?.blockNumber)
     .sort((a, b) => {
       if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1;
@@ -140,30 +217,40 @@ export function CycleView({
     setExpandedBlockNumber((prev) => (prev === blockNum ? null : blockNum));
   };
 
-  const handleFinishSession = async () => {
+  const handleFinishSession = () => {
     if (!activeSessionBlock) return;
 
-    const initialSeconds = activeSessionBlock.durationMinutes * 60;
+    const blockToFinish = activeSessionBlock;
+    const initialSeconds = blockToFinish.durationMinutes * 60;
     const secondsStudied = initialSeconds - secondsRemaining;
     const minutesStudied = Math.max(Math.round(secondsStudied / 60), 1);
-
-    try {
-      await fetch("/api/study-sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subjectId: activeSessionBlock.subjectId,
-          durationMinutes: minutesStudied,
-          topicsCompleted: activeSessionBlock.assignedTopics.map((t) => t.id),
-        }),
-      });
-    } catch (err) {
-      console.error("Erro ao registrar sessão do ciclo no histórico:", err);
-    }
+    const topicsCompleted = blockToFinish.assignedTopics.map((t) => t.id);
 
     setIsTimerRunning(false);
     setActiveSessionBlock(null);
-    onCompleteBlock();
+
+    startTransition(async () => {
+      setOptimisticBlocks({
+        type: "COMPLETE_BLOCK",
+        blockNumber: blockToFinish.blockNumber,
+      });
+
+      try {
+        await fetch("/api/study-sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subjectId: blockToFinish.subjectId,
+            durationMinutes: minutesStudied,
+            topicsCompleted,
+          }),
+        });
+      } catch (err) {
+        console.error("Erro ao registrar sessão do ciclo no histórico:", err);
+      }
+
+      onCompleteBlock();
+    });
   };
 
   const handleExecuteSwap = (targetSubjectName: string) => {
@@ -172,10 +259,10 @@ export function CycleView({
     const currentSubjectId = blockToSwap.subjectId;
 
     const targetSubjectBreakdown = subjectBreakdown.find(
-      (s) => s.name === targetSubjectName
+      (s) => s.name === targetSubjectName,
     );
-    const targetMatchingBlock = cycleBlocks.find(
-      (b) => b.subjectName === targetSubjectName
+    const targetMatchingBlock = optimisticBlocks.find(
+      (b) => b.subjectName === targetSubjectName,
     );
 
     const targetSubjectId =
@@ -192,29 +279,29 @@ export function CycleView({
       return;
     }
 
-    setCycleBlocks((prev) =>
-      prev.map((b) =>
-        b.blockNumber === blockToSwap.blockNumber
-          ? {
-              ...b,
-              subjectId: targetSubjectId,
-              subjectName: targetSubjectName,
-              color: targetSubjectBreakdown?.color || b.color,
-            }
-          : b
-      )
-    );
-
-    if (onSwapBlockSubject) {
-      onSwapBlockSubject(
-        currentSubjectId,
-        targetSubjectId,
-        blockToSwap.blockNumber
-      );
-    }
+    const blockNumberToSwap = blockToSwap.blockNumber;
+    const newColor = targetSubjectBreakdown?.color || blockToSwap.color;
 
     setSwapModalOpen(false);
     setBlockToSwap(null);
+
+    startTransition(async () => {
+      setOptimisticBlocks({
+        type: "SWAP_BLOCK",
+        blockNumber: blockNumberToSwap,
+        targetSubjectId,
+        targetSubjectName,
+        color: newColor,
+      });
+
+      if (onSwapBlockSubject) {
+        onSwapBlockSubject(
+          currentSubjectId,
+          targetSubjectId,
+          blockNumberToSwap,
+        );
+      }
+    });
   };
 
   const donutSegments = (() => {
@@ -257,7 +344,7 @@ export function CycleView({
             </div>
 
             <div className="flex items-center gap-3">
-              {completedBlocks > 0 && (
+              {optimisticCompletedBlocks > 0 && (
                 <button
                   onClick={onUndoBlock}
                   className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 px-3.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-sm"
@@ -269,10 +356,10 @@ export function CycleView({
               )}
               <div className="bg-indigo-950/80 border border-indigo-800/60 px-5 py-3 rounded-2xl text-right shadow-inner">
                 <span className="text-2xl font-black text-indigo-400 font-mono block leading-none">
-                  {completedBlocks}/{totalBlocks}
+                  {optimisticCompletedBlocks}/{effectiveTotalBlocks}
                 </span>
                 <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-0.5 block">
-                  Blocos ({currentProgress}%)
+                  Blocos ({effectiveProgress}%)
                 </span>
               </div>
             </div>
@@ -292,7 +379,7 @@ export function CycleView({
             <div className="w-full h-3.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800/80 shadow-inner">
               <div
                 className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-700 ease-out shadow-[0_0_15px_rgba(99,102,241,0.6)]"
-                style={{ width: `${currentProgress}%` }}
+                style={{ width: `${effectiveProgress}%` }}
               />
             </div>
           </div>
@@ -311,7 +398,7 @@ export function CycleView({
                 Concluídos
               </span>
               <span className="text-sm font-bold text-emerald-400 font-mono">
-                {completedBlocks} blocos
+                {optimisticCompletedBlocks} blocos
               </span>
             </div>
             <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/50">
@@ -319,7 +406,8 @@ export function CycleView({
                 Restantes
               </span>
               <span className="text-sm font-bold text-indigo-400 font-mono">
-                {totalBlocks - completedBlocks} blocos
+                {Math.max(0, effectiveTotalBlocks - optimisticCompletedBlocks)}{" "}
+                blocos
               </span>
             </div>
           </div>
@@ -461,7 +549,8 @@ export function CycleView({
                     {currentBlock.subjectName}
                   </h2>
                   <p className="text-sm text-slate-300">
-                    Conclua os tópicos previstos abaixo para manter a aceleração ideal do seu ciclo de estudos.
+                    Conclua os tópicos previstos abaixo para manter a aceleração
+                    ideal do seu ciclo de estudos.
                   </p>
                 </div>
 
@@ -760,7 +849,8 @@ export function CycleView({
             {activeSessionBlock.assignedTopics.length > 0 && (
               <div className="space-y-2.5">
                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                  <BookOpen size={14} className="text-indigo-400" /> Tópicos a Cobrir:
+                  <BookOpen size={14} className="text-indigo-400" /> Tópicos a
+                  Cobrir:
                 </label>
                 <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
                   {activeSessionBlock.assignedTopics.map((top, topIdx) => (
@@ -768,7 +858,10 @@ export function CycleView({
                       key={top.id || `session-topic-${top.title}-${topIdx}`}
                       className="text-xs bg-slate-900/90 border border-slate-800/90 p-3 rounded-2xl text-slate-200 flex items-center gap-2.5 shadow-sm"
                     >
-                      <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                      <CheckCircle2
+                        size={16}
+                        className="text-emerald-400 shrink-0"
+                      />
                       <span className="font-medium">{top.title}</span>
                     </div>
                   ))}
@@ -778,7 +871,8 @@ export function CycleView({
 
             <div className="space-y-2.5">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                <FileText size={14} className="text-indigo-400" /> Anotações Rápidas
+                <FileText size={14} className="text-indigo-400" /> Anotações
+                Rápidas
               </label>
               <textarea
                 value={notes}

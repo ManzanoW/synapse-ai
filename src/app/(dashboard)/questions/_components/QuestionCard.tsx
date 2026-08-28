@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
   XCircle,
@@ -11,6 +11,10 @@ import {
   EyeOff,
   Eye,
   Flag,
+  Brain,
+  AlertTriangle,
+  Target,
+  X,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
 
@@ -67,6 +71,7 @@ export function QuestionCard({
   const [eliminatedAlts, setEliminatedAlts] = useState<Record<string, boolean>>(
     {},
   );
+  const [showErrorDiagnosis, setShowErrorDiagnosis] = useState(false);
 
   const toggleEliminate = (e: React.MouseEvent, altId: string) => {
     e.stopPropagation();
@@ -343,33 +348,45 @@ export function QuestionCard({
               </div>
 
               {!acertou && (
-                <button
-                  onClick={onCreateFlashcard}
-                  disabled={isCreatingFlashcard || isFlashcardCreated}
-                  type="button"
-                  className={`w-full sm:w-auto px-3 py-2 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer ${
-                    isFlashcardCreated
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed opacity-90"
-                      : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-300"
-                  }`}
-                >
-                  {isCreatingFlashcard ? (
-                    <>
-                      <Loader2 size={12} className="animate-spin" />
-                      <span>Gerando Flashcard...</span>
-                    </>
-                  ) : isFlashcardCreated ? (
-                    <>
-                      <CheckCircle2 size={12} />
-                      <span>Flashcard Criado!</span>
-                    </>
-                  ) : (
-                    <>
-                      <BrainCircuit size={13} className="text-indigo-400" />
-                      <span>🎴 Criar Flashcard</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setShowErrorDiagnosis(true)}
+                    className="w-full sm:w-auto px-3 py-2 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shadow-xs"
+                    title="Ver pegadinha da banca e diagnóstico de erro"
+                  >
+                    <Brain size={13} className="text-amber-400" />
+                    <span>Por que errei? 🧠</span>
+                  </button>
+
+                  <button
+                    onClick={onCreateFlashcard}
+                    disabled={isCreatingFlashcard || isFlashcardCreated}
+                    type="button"
+                    className={`w-full sm:w-auto px-3 py-2 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer ${
+                      isFlashcardCreated
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed opacity-90"
+                        : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-300"
+                    }`}
+                  >
+                    {isCreatingFlashcard ? (
+                      <>
+                        <Loader2 size={12} className="animate-spin" />
+                        <span>Gerando Flashcard...</span>
+                      </>
+                    ) : isFlashcardCreated ? (
+                      <>
+                        <CheckCircle2 size={12} />
+                        <span>Flashcard Criado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <BrainCircuit size={13} className="text-indigo-400" />
+                        <span>🎴 Criar Flashcard</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
 
@@ -382,6 +399,109 @@ export function QuestionCard({
           </div>
         )}
       </div>
+
+      {/* MODAL DE DIAGNÓSTICO DE ERRO */}
+      <AnimatePresence>
+        {showErrorDiagnosis && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowErrorDiagnosis(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#0c101d] border border-amber-500/30 rounded-2xl w-full max-w-xl shadow-2xl shadow-amber-950/20 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              {/* MODAL HEADER */}
+              <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800/80 bg-slate-900/60">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-xs">
+                    <Brain size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">
+                      Diagnóstico de Erro & Ponto Cego 🧠
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-medium">
+                      Questão {index + 1} • Análise cognitiva imediata
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowErrorDiagnosis(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                  title="Fechar"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* MODAL CONTENT */}
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+                {/* Resumo da resposta */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-medium">Sua resposta:</span>
+                    <span className="font-bold text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-md border border-rose-500/20">
+                      {alternativaSelecionada || "Nenhuma"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-medium">Gabarito correto:</span>
+                    <span className="font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
+                      {questao.gabaritoCorreto}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bloco 1: Pegadinha da Banca */}
+                <div className="rounded-xl p-4 bg-amber-950/15 border border-amber-500/25 space-y-2">
+                  <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
+                    <AlertTriangle size={15} />
+                    <span>Pegadinha da Banca / Armadilha</span>
+                  </div>
+                  <div className="text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
+                    {renderEnunciado(
+                      questao.pegadinhaBanca ||
+                        "A banca utilizou distratores formulados para desviar a atenção do núcleo do comando e induzir o candidato ao erro conceitual.",
+                    )}
+                  </div>
+                </div>
+
+                {/* Bloco 2: Ponto Cego & Explicação do Erro */}
+                <div className="rounded-xl p-4 bg-indigo-950/20 border border-indigo-500/25 space-y-2">
+                  <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wider">
+                    <Target size={15} />
+                    <span>Ponto Cego & Por que você errou</span>
+                  </div>
+                  <div className="text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
+                    {renderEnunciado(
+                      questao.explicacaoErro ||
+                        "Confusão comum na interpretação das regras ou detalhes do enunciado. Revise os conceitos-chave e as exceções associadas a este tópico.",
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* MODAL FOOTER */}
+              <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-800/80 bg-slate-900/40">
+                <button
+                  type="button"
+                  onClick={() => setShowErrorDiagnosis(false)}
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-950/40"
+                >
+                  Entendi o erro
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

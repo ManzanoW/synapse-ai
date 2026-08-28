@@ -4,9 +4,11 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   useOptimistic,
   useTransition,
 } from "react";
+import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion";
 import {
   X,
   HelpCircle,
@@ -25,6 +27,7 @@ import Link from "next/link";
 import confetti from "canvas-confetti";
 import { useGamification } from "@/context/GamificationContext";
 import { useAchievement } from "@/context/AchievementContext";
+import { useSound } from "@/hooks/useSound";
 import { checkNewAchievements } from "@/lib/check-achievements";
 import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 
@@ -61,8 +64,30 @@ export default function StudyFlashcard({
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
+  const isDraggingRef = useRef(false);
+
+  const x = useMotionValue(0);
+  const cardRotate = useTransform(x, [-250, 250], [-12, 12]);
+
+  // Opacidades e escalas dinâmicas das badges baseadas no deslocamento X
+  // 1. ERREI (Vermelho): < 0px (arrasto para a esquerda -> Grade 0)
+  const erreiOpacity = useTransform(x, [-140, -40, 0, 10], [1, 0.6, 0, 0]);
+  const erreiScale = useTransform(x, [-140, -40, 0], [1.05, 0.9, 0.75]);
+
+  // 2. BOM (Verde): 0px a 150px (arrasto leve para a direita -> Grade 4)
+  const bomOpacity = useTransform(
+    x,
+    [-10, 0, 40, 110, 150, 175],
+    [0, 0, 0.7, 1, 0.7, 0]
+  );
+  const bomScale = useTransform(x, [0, 80, 150], [0.75, 1.05, 0.9]);
+
+  // 3. FÁCIL (Azul): > 150px (arrasto longo para a direita -> Grade 5)
+  const facilOpacity = useTransform(x, [130, 160, 220], [0, 0.6, 1]);
+  const facilScale = useTransform(x, [130, 170, 240], [0.8, 1, 1.1]);
 
   const [, startTransition] = useTransition();
+  const { playCorrect, playError, playFlip } = useSound();
 
   const [performanceStats, setPerformanceStats] = useState({
     erros: 0,
@@ -110,9 +135,21 @@ export default function StudyFlashcard({
       "Sem resposta"
     : "";
 
+  const toggleFlip = useCallback(() => {
+    playFlip();
+    setIsFlipped((prev) => !prev);
+  }, [playFlip]);
+
   const handleAnswer = useCallback(
     async (grade: number) => {
       if (!currentCard) return;
+
+      // Efeito sonoro imediato de acerto ou erro
+      if (grade >= 3) {
+        playCorrect();
+      } else {
+        playError();
+      }
 
       setSelectedGrade(grade);
       setIsFlipped(false);
@@ -223,27 +260,89 @@ export default function StudyFlashcard({
       notifyAchievement,
       setOptimisticState,
       userId,
+      playCorrect,
+      playError,
     ],
   );
 
+  // Reseta a posição do card para o centro ao avançar ou reiniciar
+  useEffect(() => {
+    x.set(0);
+  }, [currentIndex, x]);
+
+  const handleDragStart = () => {
+    isDraggingRef.current = true;
+  };
+
+  const handleDragEnd = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo
+  ) => {
+    const offsetX = info.offset.x;
+    const velocityX = info.velocity.x;
+
+    // Reseta a flag com leve delay para prevenir trigger acidental de click/flip
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 80);
+
+    // 1. Arrasto para a esquerda (< 0px): Grade 0 ("ERREI")
+    if (offsetX < -70 || (offsetX < -30 && velocityX < -300)) {
+      handleAnswer(0);
+    }
+    // 2. Arrasto longo para a direita (> 150px): Grade 5 ("FÁCIL")
+    else if (offsetX > 150 || (offsetX > 110 && velocityX > 400)) {
+      handleAnswer(5);
+    }
+    // 3. Arrasto leve para a direita (0px a 150px): Grade 4 ("BOM")
+    else if (offsetX > 55 || (offsetX > 25 && velocityX > 250)) {
+      handleAnswer(4);
+    }
+  };
+
+  const handleCardClick = () => {
+    if (isDraggingRef.current) return;
+    toggleFlip();
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Evita acionar atalhos caso o foco esteja em algum input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
       if (isFinished || !currentCard) return;
 
       if (e.code === "Space") {
         e.preventDefault();
-        setIsFlipped((prev) => !prev);
+        toggleFlip();
       } else if (isFlipped) {
-        if (e.key === "1") handleAnswer(0);
-        if (e.key === "2") handleAnswer(3);
-        if (e.key === "3") handleAnswer(4);
-        if (e.key === "4") handleAnswer(5);
+        if (e.key === "1") {
+          e.preventDefault();
+          handleAnswer(0);
+        }
+        if (e.key === "2") {
+          e.preventDefault();
+          handleAnswer(3);
+        }
+        if (e.key === "3") {
+          e.preventDefault();
+          handleAnswer(4);
+        }
+        if (e.key === "4") {
+          e.preventDefault();
+          handleAnswer(5);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFlipped, isFinished, currentCard, handleAnswer]);
+  }, [isFlipped, isFinished, currentCard, handleAnswer, toggleFlip]);
 
   if (!cards || cards.length === 0) {
     return (
@@ -410,22 +509,59 @@ export default function StudyFlashcard({
               </div>
             </div>
 
-            {/* Flashcard 3D Container com Glassmorphism Refinado */}
-            <div
-              className="relative w-full min-h-[360px] sm:min-h-[420px] mb-4 cursor-pointer group flex flex-col"
-              style={{ perspective: "1200px" }}
-              onClick={() => setIsFlipped(!isFlipped)}
+            {/* Flashcard 3D Container com Framer Motion Swipe & Badges Dinâmicas */}
+            <motion.div
+              style={{ x, rotate: cardRotate, perspective: 1200 }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.75}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onClick={handleCardClick}
+              className="relative w-full min-h-[360px] sm:min-h-[420px] mb-4 cursor-grab active:cursor-grabbing group flex flex-col select-none touch-none"
             >
+              {/* BADGE ERREI: Arrasto para a esquerda (< 0px) -> Grade 0 */}
+              <motion.div
+                style={{ opacity: erreiOpacity, scale: erreiScale }}
+                className="pointer-events-none absolute top-4 right-4 sm:top-6 sm:right-6 z-30 flex items-center gap-2 rounded-2xl border-2 border-rose-500/90 bg-rose-950/90 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-black tracking-widest text-rose-200 shadow-[0_0_30px_rgba(244,63,94,0.6)] backdrop-blur-md rotate-6"
+              >
+                <X size={18} strokeWidth={3} className="text-rose-400" />
+                <span>ERREI</span>
+              </motion.div>
+
+              {/* BADGE BOM: Arrasto leve para a direita (0px a 150px) -> Grade 4 */}
+              <motion.div
+                style={{ opacity: bomOpacity, scale: bomScale }}
+                className="pointer-events-none absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 rounded-2xl border-2 border-emerald-500/90 bg-emerald-950/90 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-black tracking-widest text-emerald-200 shadow-[0_0_30px_rgba(16,185,129,0.6)] backdrop-blur-md -rotate-6"
+              >
+                <Check size={18} strokeWidth={3} className="text-emerald-400" />
+                <span>BOM</span>
+              </motion.div>
+
+              {/* BADGE FÁCIL: Arrasto longo para a direita (> 150px) -> Grade 5 */}
+              <motion.div
+                style={{ opacity: facilOpacity, scale: facilScale }}
+                className="pointer-events-none absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 rounded-2xl border-2 border-blue-400/90 bg-blue-950/90 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-black tracking-widest text-blue-200 shadow-[0_0_30px_rgba(59,130,246,0.7)] backdrop-blur-md -rotate-12"
+              >
+                <Zap size={18} strokeWidth={3} className="text-blue-400 fill-blue-400" />
+                <span>FÁCIL</span>
+              </motion.div>
+
               <div
-                className={`w-full flex-1 relative transition-transform duration-700 ease-out ${
-                  isFlipped ? "transform-[rotateY(180deg)]" : ""
-                }`}
-                style={{ transformStyle: "preserve-3d" }}
+                className="w-full flex-1 relative will-change-transform"
+                style={{
+                  transformStyle: "preserve-3d",
+                  transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+                  transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
               >
                 {/* FRENTE DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-300 border-t-indigo-400/40"
-                  style={{ backfaceVisibility: "hidden" }}
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors duration-300 border-t-indigo-400/40"
+                  style={{
+                    backfaceVisibility: "hidden",
+                    WebkitBackfaceVisibility: "hidden",
+                  }}
                 >
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -455,12 +591,12 @@ export default function StudyFlashcard({
                         size={12}
                         className="animate-pulse text-indigo-400"
                       />
-                      <span>Toque no card para virar</span>
+                      <span>Toque para virar • Deslize para avaliar</span>
                     </div>
 
                     {/* Exclusivo Desktop */}
                     <div className="hidden sm:inline-flex items-center gap-1.5 text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
-                      <span className="text-slate-500">Pressione</span>
+                      <span className="text-slate-500">Arraste para avaliar ou</span>
                       <kbd className="px-2.5 py-1 rounded-md bg-slate-900 text-slate-200 border border-slate-700/80 text-[10px] font-mono shadow-md flex items-center gap-1">
                         <Command size={10} /> Espaço
                       </kbd>
@@ -474,6 +610,7 @@ export default function StudyFlashcard({
                   className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
                   style={{
                     backfaceVisibility: "hidden",
+                    WebkitBackfaceVisibility: "hidden",
                     transform: "rotateY(180deg)",
                   }}
                 >
@@ -503,9 +640,9 @@ export default function StudyFlashcard({
                   </span>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            {/* BOTÕES DE SM-2 COM VISUAL RENOVADO */}
+            {/* BOTÕES DE SM-2 COM VISUAL RENOVADO E ATALHOS DE SOM */}
             <div
               className={`grid grid-cols-2 sm:grid-cols-4 gap-2.5 transition-all duration-300 ${
                 isFlipped
