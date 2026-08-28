@@ -70,21 +70,21 @@ export default function StudyFlashcard({
   const cardRotate = useTransform(x, [-250, 250], [-12, 12]);
 
   // Opacidades e escalas dinâmicas das badges baseadas no deslocamento X
-  // 1. ERREI (Vermelho): < 0px (arrasto para a esquerda -> Grade 0)
-  const erreiOpacity = useTransform(x, [-140, -40, 0, 10], [1, 0.6, 0, 0]);
-  const erreiScale = useTransform(x, [-140, -40, 0], [1.05, 0.9, 0.75]);
+  // 1. ERREI (Vermelho): < -40px (arrasto para a esquerda -> Grade 0)
+  const erreiOpacity = useTransform(x, [-100, -40, 0, 10], [1, 0.6, 0, 0]);
+  const erreiScale = useTransform(x, [-100, -40, 0], [1.05, 0.9, 0.75]);
 
-  // 2. BOM (Verde): 0px a 150px (arrasto leve para a direita -> Grade 4)
+  // 2. BOM (Verde): 30px a 90px (arrasto leve para a direita -> Grade 4)
   const bomOpacity = useTransform(
     x,
-    [-10, 0, 40, 110, 150, 175],
-    [0, 0, 0.7, 1, 0.7, 0]
+    [0, 30, 50, 75, 90, 110],
+    [0, 0.7, 1, 1, 0.7, 0]
   );
-  const bomScale = useTransform(x, [0, 80, 150], [0.75, 1.05, 0.9]);
+  const bomScale = useTransform(x, [0, 30, 60, 90], [0.75, 0.9, 1.05, 0.9]);
 
-  // 3. FÁCIL (Azul): > 150px (arrasto longo para a direita -> Grade 5)
-  const facilOpacity = useTransform(x, [130, 160, 220], [0, 0.6, 1]);
-  const facilScale = useTransform(x, [130, 170, 240], [0.8, 1, 1.1]);
+  // 3. FÁCIL (Azul): > 90px (arrasto para a direita -> Grade 5)
+  const facilOpacity = useTransform(x, [75, 90, 140], [0, 0.6, 1]);
+  const facilScale = useTransform(x, [75, 90, 140], [0.8, 1, 1.1]);
 
   const [, startTransition] = useTransition();
   const { playCorrect, playError, playFlip } = useSound();
@@ -286,16 +286,16 @@ export default function StudyFlashcard({
       isDraggingRef.current = false;
     }, 80);
 
-    // 1. Arrasto para a esquerda (< 0px): Grade 0 ("ERREI")
-    if (offsetX < -70 || (offsetX < -30 && velocityX < -300)) {
+    // 1. Arrasto para a esquerda (< -40px ou velocidade rápida para a esquerda): Grade 0 ("ERREI")
+    if (offsetX < -40 || (offsetX < -20 && velocityX < -250)) {
       handleAnswer(0);
     }
-    // 2. Arrasto longo para a direita (> 150px): Grade 5 ("FÁCIL")
-    else if (offsetX > 150 || (offsetX > 110 && velocityX > 400)) {
+    // 2. Arrasto para a direita (> 90px ou velocidade rápida para a direita): Grade 5 ("FÁCIL")
+    else if (offsetX > 90 || (offsetX > 70 && velocityX > 350)) {
       handleAnswer(5);
     }
-    // 3. Arrasto leve para a direita (0px a 150px): Grade 4 ("BOM")
-    else if (offsetX > 55 || (offsetX > 25 && velocityX > 250)) {
+    // 3. Arrasto leve para a direita (entre 30px e 90px): Grade 4 ("BOM")
+    else if (offsetX >= 30 && offsetX <= 90) {
       handleAnswer(4);
     }
   };
