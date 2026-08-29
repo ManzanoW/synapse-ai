@@ -135,3 +135,21 @@ body {
 .synapse-logo-glow:hover {
   filter: drop-shadow(0 0 30px rgba(99, 102, 241, 0.7));
 }
+
+/* Shimmer sweep used in StreakFreezeModal purchase button */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.animate-shimmer {
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* Slow spin used for the snowflake icon */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 6s linear infinite;
+}

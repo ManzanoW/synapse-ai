@@ -38,9 +38,11 @@ import {
   Lock,
   ChevronDown,
   ChevronUp,
+  Snowflake,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
+import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
 
 interface JourneyData {
   hasObjective: boolean;
@@ -130,6 +132,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
   const [missedDayName, setMissedDayName] = useState<string | null>(null);
 
+  // Streak Freeze Modal
+  const [isStreakFreezeModalOpen, setIsStreakFreezeModalOpen] = useState(false);
+  const [streakFreezeCount, setStreakFreezeCount] = useState(0);
+
   const getSuggestionUrl = (item: Suggestion): string => {
     if (item.actionUrl) return item.actionUrl;
 
@@ -169,11 +175,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     try {
       setIsLoading(true);
 
-      const [resSubjects, resStats, resWeek, resSuggestions] = await Promise.all([
+      const [resSubjects, resStats, resWeek, resSuggestions, resFreezes] = await Promise.all([
         fetch("/api/edital?mode=subjects", { cache: "no-store" }),
         fetch("/api/dashboard/stats", { cache: "no-store" }),
         fetch("/api/week", { cache: "no-store" }),
         fetch("/api/ai/suggestions", { cache: "no-store" }).catch(() => null),
+        fetch("/api/gamification/streak-freeze", { cache: "no-store" }).catch(() => null),
       ]);
 
       if (resSuggestions && resSuggestions.ok) {
@@ -181,6 +188,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         if (jsonSuggestions.data?.length) {
           setSuggestions(jsonSuggestions.data);
         }
+      }
+
+      if (resFreezes && resFreezes.ok) {
+        const jsonFreezes = await resFreezes.json();
+        setStreakFreezeCount(jsonFreezes.streakFreezes ?? 0);
       }
 
       if (resSubjects.status === 401 || resStats.status === 401) {
@@ -857,17 +869,25 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
                 <div className="my-2 border-t border-white/5" />
 
-                <Link href="/performance" className="block space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase text-slate-400">
-                      Constância
-                    </span>
-                    <span className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
+                <div className="flex items-center justify-between">
+                  <Link href="/performance" className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors">
+                    Constância
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsStreakFreezeModalOpen(true)}
+                      title="Trava de Sequência"
+                      className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 transition-all hover:border-cyan-500/50 hover:bg-cyan-500/20"
+                    >
+                      <Snowflake size={11} className="animate-spin-slow" />
+                      {streakFreezeCount}
+                    </button>
+                    <Link href="/performance" className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
                       <Flame size={14} className="fill-amber-400 text-amber-400" />
                       {Number(gStats.streakDays ?? globalGamification?.streak?.currentDays ?? 0)} Dias
-                    </span>
+                    </Link>
                   </div>
-                </Link>
+                </div>
               </div>
             </div>
           )}
@@ -1236,17 +1256,25 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div className="my-2 border-t border-white/5" />
 
-              <Link href="/performance" className="block space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase text-slate-400">
-                    Constância
-                  </span>
-                  <span className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
+              <div className="flex items-center justify-between">
+                <Link href="/performance" className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors">
+                  Constância
+                </Link>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsStreakFreezeModalOpen(true)}
+                    title="Trava de Sequência"
+                    className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 transition-all hover:border-cyan-500/50 hover:bg-cyan-500/20"
+                  >
+                    <Snowflake size={11} className="animate-spin-slow" />
+                    {streakFreezeCount}
+                  </button>
+                  <Link href="/performance" className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
                     <Flame size={14} className="fill-amber-400 text-amber-400" />
                     {Number(gStats.streakDays ?? globalGamification?.streak?.currentDays ?? 0)} Dias
-                  </span>
+                  </Link>
                 </div>
-              </Link>
+              </div>
             </div>
 
             {/* POMODORO TIMER */}
@@ -1296,6 +1324,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         newLevel={levelUpData.level}
         newTitle={levelUpData.title}
         onClose={() => setLevelUpData((prev) => ({ ...prev, isOpen: false }))}
+      />
+
+      <StreakFreezeModal
+        isOpen={isStreakFreezeModalOpen}
+        onClose={() => setIsStreakFreezeModalOpen(false)}
+        currentXp={currentXp}
+        streakFreezes={streakFreezeCount}
+        onPurchaseSuccess={(newXp, newFreezes) => {
+          setStreakFreezeCount(newFreezes);
+        }}
       />
     </div>
   );

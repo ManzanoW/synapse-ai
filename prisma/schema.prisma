@@ -34,7 +34,8 @@ model User {
   decks         Deck[]
 
   // 🏆 Gamificação
-  userStats UserStats?
+  userStats     UserStats?
+  streakFreezes Int        @default(0) // Congelamentos de ofensiva comprados com XP
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -46,6 +47,7 @@ model UserStats {
   userId              String    @unique
   totalXp             Int       @default(0)
   streakDays          Int       @default(0)
+  streakFreezes       Int       @default(0)
   claimedAchievements String    @default("")
   lastStudyDate       DateTime?
   createdAt           DateTime  @default(now())
