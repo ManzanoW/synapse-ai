@@ -40,7 +40,12 @@ import { QuestionMinimap } from "./_components/QuestionMinimap";
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { RegisterQuestionsModal } from "@/components/questions/register-questions-modal";
 
+import { submitQuizAttemptAction } from "@/actions/quiz-actions";
+import { generateTargetedDeckAction } from "@/actions/deck-actions";
+import { ErrorClassification, QuestionAnswerSubmission } from "@/types/quiz";
+
 export interface QuestaoIA {
+  id?: string;
   enunciado: string;
   formato: string;
   justificativa: string;
@@ -50,6 +55,8 @@ export interface QuestaoIA {
   gabaritoCorreto: string;
   flashcardFrente: string;
   flashcardVerso: string;
+  subjectId?: string;
+  topicId?: string;
 }
 
 interface QuizHistoryItem {
@@ -152,6 +159,9 @@ export default function QuestoesPage() {
   >({});
   const [currentQuizId, setCurrentQuizId] = useState<string | null>(null);
   const [savedErrors, setSavedErrors] = useState<Record<number, boolean>>({});
+  const [errorClassifications, setErrorClassifications] = useState<
+    Record<number, ErrorClassification>
+  >({});
   const [creatingFlashcardIndex, setCreatingFlashcardIndex] = useState<
     number | null
   >(null);
@@ -258,6 +268,7 @@ export default function QuestoesPage() {
             setSelectedAnswers({});
             setCheckedQuestions({});
             setFlaggedQuestions({});
+            setErrorClassifications({});
             setTimerSeconds(0);
             setIsTimerRunning(true);
             setActiveTab("create");
@@ -429,6 +440,7 @@ export default function QuestoesPage() {
       setSelectedAnswers({});
       setCheckedQuestions({});
       setFlaggedQuestions({});
+      setErrorClassifications({});
       setSavedErrors({});
       setCreatedFlashcards({});
       setShowCompletionModal(false);
@@ -484,6 +496,30 @@ export default function QuestoesPage() {
         await syncQuizWithSM2(finalAcc);
 
         try {
+          // 1. Grava no banco e atualiza estatísticas atômicas com a Server Action oficial
+          const submissions: QuestionAnswerSubmission[] = questions.map(
+            (q, idx) => ({
+              questionId: q.id || `q-${idx}`,
+              subjectId: q.subjectId || currentSubjectObj?.id || "",
+              topicId: q.topicId || selectedTopicId || undefined,
+              selectedOption: selectedAnswers[idx] || "",
+              isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
+              timeSpentSeconds: Math.round(timerSeconds / totalQuestions),
+              errorReason: errorClassifications[idx] || "UNCLASSIFIED",
+            }),
+          );
+
+          const attemptResult = await submitQuizAttemptAction({
+            title: `Simulado ${banca} - ${materia || "Geral"}`,
+            topicId: selectedTopicId || undefined,
+            subjectId: currentSubjectObj?.id || undefined,
+            totalQuestions,
+            correctAnswers: finalCorrect,
+            timeSpentSeconds: timerSeconds,
+            answers: submissions,
+          });
+
+          // 2. Persiste histórico local no endpoint legado para visualização da aba de histórico
           const response = await fetch("/api/questions/save", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -497,18 +533,23 @@ export default function QuestoesPage() {
                 ...q,
                 userAnswer: selectedAnswers[idx],
                 isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
+                errorReason: errorClassifications[idx] || null,
               })),
             }),
           });
 
           const data = await response.json();
-          if (data.earnedXp !== undefined) setLastEarnedXp(data.earnedXp);
+          const earnedXp = attemptResult.success
+            ? attemptResult.data?.earnedXp || data.earnedXp || 0
+            : data.earnedXp || 0;
+
+          setLastEarnedXp(earnedXp);
 
           window.dispatchEvent(
             new CustomEvent("xp-updated", {
               detail: {
                 totalXp: data.totalXp,
-                earnedXp: data.earnedXp,
+                earnedXp,
                 levelInfo: data.levelInfo,
               },
             }),
@@ -526,7 +567,7 @@ export default function QuestoesPage() {
           }
           if (refreshStats) await refreshStats();
         } catch (error) {
-          console.error("Erro ao creditar XP:", error);
+          console.error("Erro ao registrar simulado e creditar XP:", error);
         } finally {
           setShowCompletionModal(true);
         }
@@ -542,7 +583,10 @@ export default function QuestoesPage() {
       banca,
       materia,
       selectedTopicId,
+      currentSubjectObj,
       dificuldade,
+      timerSeconds,
+      errorClassifications,
       gamificationStats,
       refreshStats,
     ],
@@ -554,22 +598,38 @@ export default function QuestoesPage() {
 
     setCreatingFlashcardIndex(index);
     try {
-      const res = await fetch("/api/flashcards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: q.flashcardFrente || q.enunciado.replace(/\*\*/g, ""),
-          answer:
-            q.flashcardVerso ||
-            `Gabarito: ${q.gabaritoCorreto}\n\n${q.justificativa}`,
-          details: q.justificativa,
-          subject: materia || "Banco de Provas",
-          topicId: selectedTopicId || undefined,
-        }),
+      // Criação cirúrgica com IA integrando a justificativa e o motivo diagnosticado
+      const reason = errorClassifications[index] || "THEORY_GAP";
+
+      const res = await generateTargetedDeckAction({
+        topicId: q.topicId || selectedTopicId || undefined,
+        subjectId: q.subjectId || currentSubjectObj?.id || undefined,
+        questionEnunciado: q.enunciado,
+        gabarito: q.gabaritoCorreto,
+        justificativa: q.justificativa,
+        errorReason: reason,
       });
 
-      if (res.ok) {
+      if (res.success) {
         setCreatedFlashcards((prev) => ({ ...prev, [index]: true }));
+      } else {
+        // Fallback para rota local caso a IA falhe
+        const fallbackRes = await fetch("/api/flashcards", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: q.flashcardFrente || q.enunciado.replace(/\*\*/g, ""),
+            answer:
+              q.flashcardVerso ||
+              `Gabarito: ${q.gabaritoCorreto}\n\n${q.justificativa}`,
+            details: q.justificativa,
+            subject: materia || "Banco de Provas",
+            topicId: selectedTopicId || undefined,
+          }),
+        });
+        if (fallbackRes.ok) {
+          setCreatedFlashcards((prev) => ({ ...prev, [index]: true }));
+        }
       }
     } catch (err) {
       console.error("Erro ao gerar flashcard:", err);
@@ -639,6 +699,7 @@ export default function QuestoesPage() {
       setSelectedAnswers({});
       setCheckedQuestions({});
       setFlaggedQuestions({});
+      setErrorClassifications({});
       setSavedErrors({});
       setCreatedFlashcards({});
       setTimerSeconds(0);
@@ -917,7 +978,7 @@ export default function QuestoesPage() {
         {/* CONTEÚDO PRINCIPAL */}
         {subjects.length > 0 && (
           <>
-            {/* HUD REORGANIZADO PARA MODO RESOLUÇÃO (MOBILE & DESKTOP) */}
+            {/* HUD REORGANIZADO PARA MODO RESOLUÇÃO */}
             {questions.length > 0 && activeTab === "create" && (
               <div className="bg-[#090d16] border border-white/10 rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
                 {/* LINHA 1: MENU + INFO MATÉRIA + TEMPO */}
@@ -940,7 +1001,7 @@ export default function QuestoesPage() {
                     </span>
                   </div>
 
-                  {/* CRONÔMETRO COMPACTO DO MOBILE */}
+                  {/* CRONÔMETRO */}
                   <div className="flex items-center gap-1.5 bg-indigo-950/60 border border-indigo-500/40 px-2.5 py-1 rounded-xl text-xs font-mono text-indigo-300 shrink-0">
                     <Clock
                       size={12}
@@ -1003,6 +1064,7 @@ export default function QuestoesPage() {
                         setSelectedAnswers({});
                         setCheckedQuestions({});
                         setFlaggedQuestions({});
+                        setErrorClassifications({});
                         localStorage.removeItem(STORAGE_KEY);
                         setPausedSession(null);
                         setCurrentQuizId(null);
@@ -1017,7 +1079,7 @@ export default function QuestoesPage() {
                   </div>
                 </div>
 
-                {/* BARRA DE CARREGAMENTO INTEGRA */}
+                {/* BARRA DE PROGRESSO */}
                 <div className="w-full bg-slate-950/80 rounded-full h-1.5 overflow-hidden border border-white/5">
                   <div
                     className="bg-linear-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-300 rounded-full"
@@ -1029,7 +1091,7 @@ export default function QuestoesPage() {
               </div>
             )}
 
-            {/* 3. NAVEGAÇÃO DE ABAS (HUB) */}
+            {/* 3. NAVEGAÇÃO DE ABAS */}
             {!isZenMode && questions.length === 0 && (
               <div className="flex border-b border-white/10 gap-2">
                 <button
@@ -1227,6 +1289,12 @@ export default function QuestoesPage() {
                             [index]: !prev[index],
                           }))
                         }
+                        onClassifyError={(reason: ErrorClassification) =>
+                          setErrorClassifications((prev) => ({
+                            ...prev,
+                            [index]: reason,
+                          }))
+                        }
                       />
                     ))}
                   </div>
@@ -1253,6 +1321,7 @@ export default function QuestoesPage() {
                     setSelectedAnswers({});
                     setCheckedQuestions({});
                     setFlaggedQuestions({});
+                    setErrorClassifications({});
                     setSavedErrors({});
                     setCreatedFlashcards({});
                     setShowCompletionModal(false);
@@ -1284,6 +1353,7 @@ export default function QuestoesPage() {
                   setSelectedAnswers({});
                   setCheckedQuestions({});
                   setFlaggedQuestions({});
+                  setErrorClassifications({});
                   setCurrentQuizId(null);
                   handleTabChange("create");
                   setIsZenMode(false);
@@ -1294,7 +1364,7 @@ export default function QuestoesPage() {
         )}
       </div>
 
-      {/* FLOATING MINIMAP FIXADO ABAIXO DAS QUESTÕES */}
+      {/* MINIMAP FLUTUANTE */}
       {questions.length > 0 && activeTab === "create" && (
         <QuestionMinimap
           questions={questions}
@@ -1367,6 +1437,7 @@ export default function QuestoesPage() {
             setSelectedAnswers({});
             setCheckedQuestions({});
             setFlaggedQuestions({});
+            setErrorClassifications({});
             setTimerSeconds(0);
             setFocusedQuestionIndex(0);
             setIsTimerRunning(true);
