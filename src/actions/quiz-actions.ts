@@ -32,7 +32,7 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
           userId,
           score: input.correctAnswers,
           totalQuestions: input.totalQuestions,
-          topicId: input.topicId || null,
+          ...(input.topicId ? { topicId: input.topicId } : {}),
         },
       }),
       prisma.userStats.upsert({
