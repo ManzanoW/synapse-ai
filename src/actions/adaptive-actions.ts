@@ -56,13 +56,10 @@ export async function rebalanceScheduleAction(
       // Atualiza o tempo/prioridade das matérias rebalanceadas no banco
       for (const adj of adjustments) {
         if (adj.subjectId) {
-          // Casting duplo para evitar o erro de sobreposição de tipos do TS
-          const adjRecord = adj as unknown as Record<string, unknown>;
           const targetMinutes =
-            adjRecord.targetWeeklyMinutes ??
-            adjRecord.adjustedWeeklyMinutes ??
-            adjRecord.suggestedMinutes ??
-            adjRecord.targetMinutes ??
+            adj.targetWeeklyMinutes ??
+            adj.adjustedWeeklyMinutes ??
+            adj.adjustedMinutes ??
             120;
 
           await prisma.subject.updateMany({
@@ -77,9 +74,7 @@ export async function rebalanceScheduleAction(
 
     // 3. Revalida o cache das rotas afetadas
     try {
-      (revalidateTag as unknown as (tag: string) => void)(
-        `user-schedule-${userId}`,
-      );
+      (revalidateTag as (tag: string) => void)(`user-schedule-${userId}`);
       revalidatePath("/week");
       revalidatePath("/performance");
     } catch {
