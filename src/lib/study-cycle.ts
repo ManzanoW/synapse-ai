@@ -1,3 +1,5 @@
+import { calculateSM2 } from "@/lib/sm2";
+
 export interface Topic {
   id: string;
   title: string;
@@ -65,25 +67,17 @@ export function calculateSM2Interval(
   grade: number,
   subjectPriority: number,
 ): { newInterval: number; newEasiness: number } {
-  let newEasiness =
-    easinessFactor + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
-  if (newEasiness < 1.3) newEasiness = 1.3;
-
-  let baseInterval: number;
-  if (grade < 3) {
-    baseInterval = 1;
-  } else if (currentInterval === 0) {
-    baseInterval = 1;
-  } else if (currentInterval === 1) {
-    baseInterval = 6;
-  } else {
-    baseInterval = Math.round(currentInterval * newEasiness);
-  }
+  const result = calculateSM2({
+    interval: currentInterval,
+    easiness: easinessFactor,
+    repetitions: currentInterval > 0 ? 1 : 0,
+    grade,
+  });
 
   const priorityFactor = Math.max(0.4, 2.0 / Math.max(subjectPriority, 0.5));
-  const newInterval = Math.max(1, Math.round(baseInterval * priorityFactor));
+  const newInterval = Math.max(1, Math.round(result.nextInterval * priorityFactor));
 
-  return { newInterval, newEasiness: Number(newEasiness.toFixed(2)) };
+  return { newInterval, newEasiness: result.nextEasiness };
 }
 
 export function processSM2Review(
@@ -93,43 +87,29 @@ export function processSM2Review(
   grade: number,
   subjectPriority: number = 6.3,
 ): SM2UpdateResult {
-  let newEasiness =
-    currentEasiness + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
-  if (newEasiness < 1.3) newEasiness = 1.3;
-
-  let newInterval: number;
-  let newRepetitions: number;
-
-  if (grade < 3) {
-    newRepetitions = 0;
-    newInterval = 1;
-  } else {
-    newRepetitions = currentRepetitions + 1;
-    if (newRepetitions === 1) {
-      newInterval = 1;
-    } else if (newRepetitions === 2) {
-      newInterval = 6;
-    } else {
-      newInterval = Math.round(currentInterval * newEasiness);
-    }
-  }
+  const result = calculateSM2({
+    interval: currentInterval,
+    easiness: currentEasiness,
+    repetitions: currentRepetitions,
+    grade,
+  });
 
   const priorityFactor = Math.max(0.4, 2.0 / Math.max(subjectPriority, 0.5));
-  const finalInterval = Math.max(1, Math.round(newInterval * priorityFactor));
+  const finalInterval = Math.max(1, Math.round(result.nextInterval * priorityFactor));
 
   const nextReviewDate = new Date();
   nextReviewDate.setDate(nextReviewDate.getDate() + finalInterval);
 
   return {
     newInterval: finalInterval,
-    newEasiness: Number(newEasiness.toFixed(2)),
-    newRepetitions,
+    newEasiness: result.nextEasiness,
+    newRepetitions: result.nextRepetitions,
     nextReviewDate,
   };
 }
 
 /**
- * Função Auxiliar de Calculo do Score de Urgência SM-2
+ * Função Auxiliar de Cálculo do Score de Urgência SM-2
  */
 function getSM2UrgencyScore(
   subject: SubjectInput,
@@ -139,17 +119,14 @@ function getSM2UrgencyScore(
     ? new Date(subject.nextReview).getTime()
     : 0;
 
-  // Fator de atraso (Overdue)
   const overdueDays =
     nextTime > 0
       ? Math.max(0, (nowTimestamp - nextTime) / (1000 * 60 * 60 * 24))
       : 0;
 
-  // Dificuldade calculada pelo Easiness Factor do SM-2
   const easiness = subject.easiness || 2.5;
   const difficultyMultiplier = 2.5 / Math.max(1.3, easiness);
 
-  // Score = (Prioridade base + Peso de atraso em dias) * Multiplicador de retenção
   return ((subject.priority || 1) + overdueDays * 1.5) * difficultyMultiplier;
 }
 
@@ -192,7 +169,6 @@ export function buildWeeklySchedule(
     };
   });
 
-  // SANITIZAÇÃO: Se mais de 50% das matérias têm o mesmo assignedDay, consideramos erro no banco e resetamos localmente
   const assignedDaysCount: Record<number, number> = {};
   subjects.forEach((s) => {
     if (s.assignedDay !== null && s.assignedDay !== undefined) {
@@ -212,7 +188,6 @@ export function buildWeeklySchedule(
 
   const now = new Date().getTime();
 
-  // Ordenação Dinâmica Unificada baseada no SM-2
   const sortedSubjects = [...sanitizedSubjects].sort((a, b) => {
     const scoreA = getSM2UrgencyScore(a, now);
     const scoreB = getSM2UrgencyScore(b, now);
@@ -224,13 +199,11 @@ export function buildWeeklySchedule(
     () => [],
   );
 
-  // Define limite rígido por dia
   const maxSubjectsPerDay = Math.min(
     3,
     Math.max(2, Math.ceil(sanitizedSubjects.length / activeDaysPerWeek)),
   );
 
-  // Distribuição Round-Robin entre os dias
   let subjectPointer = 0;
 
   for (let pass = 0; pass < maxSubjectsPerDay; pass++) {
@@ -252,7 +225,6 @@ export function buildWeeklySchedule(
     }
   }
 
-  // 🟢 MONTAGEM FINAL DO CRONOGRAMA COM PONTEIROS DE TÓPICOS GLOBAIS
   const topicPointers: Record<string, number> = {};
   sanitizedSubjects.forEach((s) => (topicPointers[s.id] = 0));
 
@@ -281,7 +253,6 @@ export function buildWeeklySchedule(
       );
       const overview = subjectOverview.find((s) => s.id === subject.id);
 
-      // --- DISTRIBUIÇÃO SEQUENCIAL SEM DUPLICAR NA SEMANA ---
       const allTopics = subject.topics || [];
       const assignedTopics: Topic[] = [];
 
@@ -289,7 +260,6 @@ export function buildWeeklySchedule(
         const targetTopicCount =
           dailyMinutes >= 90 ? 3 : dailyMinutes >= 45 ? 2 : 1;
 
-        // Pega os tópicos em ordem sequencial usando o ponteiro global da matéria
         const currentPointer = topicPointers[subject.id] || 0;
 
         for (let t = 0; t < targetTopicCount; t++) {
@@ -297,7 +267,6 @@ export function buildWeeklySchedule(
           assignedTopics.push(allTopics[topicIndex]);
         }
 
-        // Avança o ponteiro global da matéria para o próximo dia em que ela for estudada
         topicPointers[subject.id] = currentPointer + assignedTopics.length;
       }
 
@@ -343,7 +312,6 @@ export function buildStudyCycleBlocks(
 
   const now = new Date().getTime();
 
-  // Sincroniza a ordem dos blocos do ciclo com o mesmo algoritmo SM-2 da Visão Semanal
   const sortedSubjects = [...subjects].sort((a, b) => {
     const scoreA = getSM2UrgencyScore(a, now);
     const scoreB = getSM2UrgencyScore(b, now);
