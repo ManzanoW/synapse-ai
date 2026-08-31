@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { calculateEarnedXp, calculateLevel } from "@/lib/gamification";
+import {
+  calculateEarnedXp,
+  calculateLevel,
+} from "@/lib/gamification/gamification";
 import { calculateSM2, convertLabelToGrade, PerformanceLabel } from "@/lib/sm2";
 
 export async function POST(request: Request) {

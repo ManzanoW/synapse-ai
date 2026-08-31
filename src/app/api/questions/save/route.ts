@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { updateSubjectSRS } from "@/lib/srs-service";
 import { auth } from "@/auth";
-import { XP_REWARDS, calculateLevel } from "@/lib/gamification";
+import { XP_REWARDS, calculateLevel } from "@/lib/gamification/gamification";
 import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
 
 export async function POST(request: Request) {

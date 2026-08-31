@@ -35,7 +35,7 @@ model User {
 
   // 🏆 Gamificação
   userStats     UserStats?
-  streakFreezes Int        @default(0) // Congelamentos de ofensiva comprados com XP
+  streakFreezes Int          @default(0) // Congelamentos de ofensiva comprados com XP
   dailyQuests   DailyQuest[]
 
   createdAt DateTime @default(now())
@@ -49,6 +49,7 @@ model UserStats {
   totalXp             Int       @default(0)
   streakDays          Int       @default(0)
   streakFreezes       Int       @default(0)
+  prestige            Int       @default(0)
   claimedAchievements String    @default("")
   lastStudyDate       DateTime?
   createdAt           DateTime  @default(now())

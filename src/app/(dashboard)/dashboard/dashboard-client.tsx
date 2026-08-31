@@ -7,7 +7,7 @@ import React, {
   startTransition,
 } from "react";
 import Link from "next/link";
-import { motion, Variants, AnimatePresence } from "framer-motion";
+import { Variants } from "framer-motion";
 import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
 import { NewContentModal } from "@/components/create-subject-modal";
@@ -16,21 +16,18 @@ import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { DashboardSubject } from "@/types";
 import { LevelUpModal } from "@/components/gamification/level-up-modal";
+import { DailyQuestsWidget } from "@/components/dashboard/DailyQuestsWidget";
+import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
 import { useGamification } from "@/context/GamificationContext";
 import {
   Menu,
   BookOpen,
   Flame,
   Sparkles,
-  CheckCircle2,
-  ClipboardList,
   BrainCircuit,
   Target,
-  RefreshCw,
-  X,
   Zap,
   TrendingUp,
-  ArrowRight,
   Layers,
   HelpCircle,
   Trophy,
@@ -39,6 +36,7 @@ import {
   ChevronDown,
   ChevronUp,
   Snowflake,
+  Maximize2,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
@@ -121,8 +119,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [subjects, setSubjects] = useState<DashboardSubject[]>([]);
 
   // Estado para Abas em Dispositivos Móveis
-  const [mobileTab, setMobileTab] = useState<"missions" | "stats" | "gamification">("missions");
+  const [mobileTab, setMobileTab] = useState<
+    "missions" | "stats" | "gamification"
+  >("missions");
   const [isPomodoroOpenMobile, setIsPomodoroOpenMobile] = useState(false);
+
+  // Modo Zen / Imersivo
+  const [isZenModeOpen, setIsZenModeOpen] = useState(false);
 
   const [levelUpData, setLevelUpData] = useState<{
     isOpen: boolean;
@@ -175,13 +178,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     try {
       setIsLoading(true);
 
-      const [resSubjects, resStats, resWeek, resSuggestions, resFreezes] = await Promise.all([
-        fetch("/api/edital?mode=subjects", { cache: "no-store" }),
-        fetch("/api/dashboard/stats", { cache: "no-store" }),
-        fetch("/api/week", { cache: "no-store" }),
-        fetch("/api/ai/suggestions", { cache: "no-store" }).catch(() => null),
-        fetch("/api/gamification/streak-freeze", { cache: "no-store" }).catch(() => null),
-      ]);
+      const [resSubjects, resStats, resWeek, resSuggestions, resFreezes] =
+        await Promise.all([
+          fetch("/api/edital?mode=subjects", { cache: "no-store" }),
+          fetch("/api/dashboard/stats", { cache: "no-store" }),
+          fetch("/api/week", { cache: "no-store" }),
+          fetch("/api/ai/suggestions", { cache: "no-store" }).catch(() => null),
+          fetch("/api/gamification/streak-freeze", { cache: "no-store" }).catch(
+            () => null,
+          ),
+        ]);
 
       if (resSuggestions && resSuggestions.ok) {
         const jsonSuggestions = await resSuggestions.json();
@@ -337,7 +343,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   return (
     <div className="min-h-screen w-full bg-[#02050e] p-3 sm:p-4 md:p-8 font-sans text-slate-100 selection:bg-indigo-500/30">
       <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
-        
         {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -361,19 +366,29 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
-          <Link
-            href={!isLoading && hasEditalSubjects ? "/flashcards" : "/edital"}
-            className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-500 hover:to-purple-500 active:scale-95"
-          >
-            <Zap size={14} className="fill-white" />
-            <span>
-              {isLoading
-                ? "Carregando..."
-                : hasEditalSubjects
-                  ? "Iniciar Estudos do Dia"
-                  : "Configurar Edital"}
-            </span>
-          </Link>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setIsZenModeOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-2.5 text-xs font-bold text-violet-300 backdrop-blur-xl transition-all hover:bg-violet-500/20 active:scale-95"
+            >
+              <Maximize2 size={14} className="text-violet-400" />
+              <span>Modo Zen</span>
+            </button>
+
+            <Link
+              href={!isLoading && hasEditalSubjects ? "/flashcards" : "/edital"}
+              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-500 hover:to-purple-500 active:scale-95"
+            >
+              <Zap size={14} className="fill-white" />
+              <span>
+                {isLoading
+                  ? "Carregando..."
+                  : hasEditalSubjects
+                    ? "Iniciar Estudos do Dia"
+                    : "Configurar Edital"}
+              </span>
+            </Link>
+          </div>
         </div>
 
         {/* ================= ATALHOS RÁPIDOS (APENAS DESKTOP) ================= */}
@@ -450,7 +465,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
         <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] p-4 sm:p-6 shadow-2xl backdrop-blur-2xl">
-          
           {/* LAYOUT MOBILE */}
           <div className="grid grid-cols-3 gap-2 text-center divide-x divide-white/10 md:hidden">
             <div className="px-1">
@@ -470,7 +484,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <span className="font-mono text-xl font-black text-amber-300">
                 {stats?.journey?.topicsPerWeek ?? 0}
               </span>
-              <span className="text-[9px] text-slate-500 block">tópicos/sem</span>
+              <span className="text-[9px] text-slate-500 block">
+                tópicos/sem
+              </span>
             </div>
 
             <div className="px-1">
@@ -530,7 +546,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div>
                 <div className="flex items-baseline gap-2">
                   <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
-                    {hasEditalSubjects ? (stats?.journey?.topicsPerWeek ?? 0) : "—"}
+                    {hasEditalSubjects
+                      ? (stats?.journey?.topicsPerWeek ?? 0)
+                      : "—"}
                   </span>
                   <span className="text-xs font-medium text-slate-400">
                     {hasEditalSubjects ? "tópicos / sem" : "Aguardando Edital"}
@@ -541,7 +559,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
                 <span className="font-medium">Ritmo atual:</span>
                 <strong className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 font-mono font-bold text-amber-300">
-                  {hasEditalSubjects ? `${stats?.journey?.currentPace ?? 0.0} / sem` : "—"}
+                  {hasEditalSubjects
+                    ? `${stats?.journey?.currentPace ?? 0.0} / sem`
+                    : "—"}
                 </strong>
               </div>
             </div>
@@ -635,179 +655,77 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
 
           {/* CONTEÚDO DA ABA SELECIONADA */}
-          {mobileTab === "missions" && (
-            <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
-                    <Target size={16} />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                      Missões de Hoje
-                    </h3>
-                    <p className="text-[10px] text-slate-400">
-                      Garanta seu bônus de XP diário
-                    </p>
-                  </div>
-                </div>
-                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300">
-                  +50 XP
-                </span>
-              </div>
-
-              <div className="space-y-2.5 pt-4">
-                {[
-                  {
-                    id: "q1",
-                    title: "Responder Questões",
-                    target: 10,
-                    current: stats?.metrics?.questionsCount ?? 0,
-                    actionUrl: "/questions",
-                    completed: (stats?.metrics?.questionsCount ?? 0) >= 10,
-                  },
-                  {
-                    id: "q2",
-                    title: "Revisar Flashcards",
-                    target: 15,
-                    current: stats?.metrics?.totalFlashcards ?? 0,
-                    actionUrl: "/flashcards",
-                    completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
-                  },
-                  {
-                    id: "q3",
-                    title: "Avançar no Edital",
-                    target: 1,
-                    current: (stats?.metrics?.sessionsCount ?? 0) > 0 ? 1 : 0,
-                    actionUrl: "/edital",
-                    completed: (stats?.metrics?.sessionsCount ?? 0) > 0,
-                  },
-                ].map((quest) => {
-                  const progress = Math.min(
-                    100,
-                    Math.round((quest.current / quest.target) * 100),
-                  );
-
-                  return (
-                    <div
-                      key={quest.id}
-                      className={`flex items-center justify-between gap-3 rounded-2xl border p-3 transition-all ${
-                        quest.completed
-                          ? "border-emerald-500/20 bg-emerald-500/5"
-                          : "border-white/5 bg-slate-950/40"
-                      }`}
-                    >
-                      <div className="flex flex-1 items-center gap-3">
-                        <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
-                            quest.completed
-                              ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
-                              : "border-white/10 bg-slate-900 text-slate-500"
-                          }`}
-                        >
-                          {quest.completed ? (
-                            <CheckCircle2 size={16} />
-                          ) : (
-                            <Zap size={14} className="text-amber-400" />
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-1 flex items-center justify-between">
-                            <h4 className="truncate text-xs font-bold text-slate-200">
-                              {quest.title}
-                            </h4>
-                            <span className="shrink-0 font-mono text-[10px] text-slate-400">
-                              {quest.current}/{quest.target}
-                            </span>
-                          </div>
-
-                          <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950">
-                            <div
-                              className={`h-full rounded-full ${
-                                quest.completed ? "bg-emerald-400" : "bg-indigo-500"
-                              }`}
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {!quest.completed && (
-                        <Link
-                          href={quest.actionUrl}
-                          className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300"
-                        >
-                          Ir
-                        </Link>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {mobileTab === "missions" && <DailyQuestsWidget />}
 
           {mobileTab === "stats" && (
             <div className="space-y-4">
               <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
-              <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                  Estatísticas Chave
-                </span>
-                <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
-                  <Zap size={11} /> Tempo Real
-                </span>
-              </div>
-
-              <div className="mb-6 flex gap-6">
-                <div>
-                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Tempo Total
+                <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                    Estatísticas Chave
                   </span>
-                  <span className="font-mono text-2xl font-black text-white">
-                    {stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
+                    <Zap size={11} /> Tempo Real
                   </span>
                 </div>
 
-                <div className="flex-1">
-                  <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <span>Precisão</span>
-                    <span className="font-mono font-bold text-emerald-400">
-                      {stats?.metrics?.precision || "0%"}
+                <div className="mb-6 flex gap-6">
+                  <div>
+                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Tempo Total
+                    </span>
+                    <span className="font-mono text-2xl font-black text-white">
+                      {stats?.metrics?.totalTimeFormatted || "0h 0m"}
                     </span>
                   </div>
-                  <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
-                    <div
-                      className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
-                      style={{ width: stats?.metrics?.precision || "0%" }}
-                    />
+
+                  <div className="flex-1">
+                    <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span>Precisão</span>
+                      <span className="font-mono font-bold text-emerald-400">
+                        {stats?.metrics?.precision || "0%"}
+                      </span>
+                    </div>
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
+                      <div
+                        className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
+                        style={{ width: stats?.metrics?.precision || "0%" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
+                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Sessões
+                    </span>
+                    <span className="font-mono text-sm font-extrabold text-white">
+                      {stats?.metrics?.sessionsCount ?? 0}
+                    </span>
+                  </div>
+                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Questões
+                    </span>
+                    <span className="font-mono text-sm font-extrabold text-white">
+                      {stats?.metrics?.questionsCount ?? 0}
+                    </span>
+                  </div>
+                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Méd/Dia
+                    </span>
+                    <span className="font-mono text-sm font-extrabold text-white">
+                      {stats?.metrics?.averageTimePerSession || "0min"}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                  <span className="block text-[9px] font-bold uppercase text-slate-400">Sessões</span>
-                  <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.sessionsCount ?? 0}</span>
-                </div>
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                  <span className="block text-[9px] font-bold uppercase text-slate-400">Questões</span>
-                  <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.questionsCount ?? 0}</span>
-                </div>
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                  <span className="block text-[9px] font-bold uppercase text-slate-400">Méd/Dia</span>
-                  <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.averageTimePerSession || "0min"}</span>
-                </div>
-              </div>
+              <DomainRadarChart subjects={subjects} isLoading={isLoading} />
             </div>
-
-            <DomainRadarChart
-              subjects={subjects}
-              isLoading={isLoading}
-            />
-          </div>
-        )}
+          )}
 
           {mobileTab === "gamification" && (
             <div className="space-y-4">
@@ -837,7 +755,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <span className="text-slate-400">
                       XP: <strong className="text-white">{currentXp}</strong>
                     </span>
-                    <span className="font-bold text-amber-400">{levelProgressPercent}%</span>
+                    <span className="font-bold text-amber-400">
+                      {levelProgressPercent}%
+                    </span>
                   </div>
 
                   <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
@@ -862,7 +782,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
                     <div
                       className="h-full rounded-full bg-indigo-500"
-                      style={{ width: `${stats?.weeklyGoal?.percentage ?? 0}%` }}
+                      style={{
+                        width: `${stats?.weeklyGoal?.percentage ?? 0}%`,
+                      }}
                     />
                   </div>
                 </Link>
@@ -870,7 +792,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <div className="my-2 border-t border-white/5" />
 
                 <div className="flex items-center justify-between">
-                  <Link href="/performance" className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors">
+                  <Link
+                    href="/performance"
+                    className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
+                  >
                     Constância
                   </Link>
                   <div className="flex items-center gap-2">
@@ -882,9 +807,20 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       <Snowflake size={11} className="animate-spin-slow" />
                       {streakFreezeCount}
                     </button>
-                    <Link href="/performance" className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
-                      <Flame size={14} className="fill-amber-400 text-amber-400" />
-                      {Number(gStats.streakDays ?? globalGamification?.streak?.currentDays ?? 0)} Dias
+                    <Link
+                      href="/performance"
+                      className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
+                    >
+                      <Flame
+                        size={14}
+                        className="fill-amber-400 text-amber-400"
+                      />
+                      {Number(
+                        gStats.streakDays ??
+                          globalGamification?.streak?.currentDays ??
+                          0,
+                      )}{" "}
+                      Dias
                     </Link>
                   </div>
                 </div>
@@ -895,10 +831,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
         {/* ================= 4. LAYOUT DESKTOP & DEMAIS COMPONENTES ================= */}
         <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-12">
-          
           {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
           <div className="space-y-6 lg:col-span-8">
-            
             {/* ONBOARDING BANNER */}
             {!isLoading && !hasEditalSubjects && (
               <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl">
@@ -924,121 +858,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             {/* PAINEL DUPLO APENAS NO DESKTOP */}
             <div className="hidden md:grid grid-cols-2 gap-6">
-              
               {/* CARD 1: Missões do Dia */}
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
-                <div className="flex h-full flex-col justify-between space-y-4">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
-                        <Target size={16} />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                          Missões de Hoje
-                        </h3>
-                        <p className="text-[10px] text-slate-400">
-                          Garanta seu bônus de XP diário
-                        </p>
-                      </div>
-                    </div>
-
-                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300">
-                      +50 XP
-                    </span>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {[
-                      {
-                        id: "q1",
-                        title: "Responder Questões",
-                        target: 10,
-                        current: stats?.metrics?.questionsCount ?? 0,
-                        actionUrl: "/questions",
-                        completed: (stats?.metrics?.questionsCount ?? 0) >= 10,
-                      },
-                      {
-                        id: "q2",
-                        title: "Revisar Flashcards",
-                        target: 15,
-                        current: stats?.metrics?.totalFlashcards ?? 0,
-                        actionUrl: "/flashcards",
-                        completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
-                      },
-                      {
-                        id: "q3",
-                        title: "Avançar no Edital",
-                        target: 1,
-                        current: (stats?.metrics?.sessionsCount ?? 0) > 0 ? 1 : 0,
-                        actionUrl: "/edital",
-                        completed: (stats?.metrics?.sessionsCount ?? 0) > 0,
-                      },
-                    ].map((quest) => {
-                      const progress = Math.min(
-                        100,
-                        Math.round((quest.current / quest.target) * 100),
-                      );
-
-                      return (
-                        <div
-                          key={quest.id}
-                          className={`flex items-center justify-between gap-3 rounded-2xl border p-3 transition-all ${
-                            quest.completed
-                              ? "border-emerald-500/20 bg-emerald-500/5"
-                              : "border-white/5 bg-slate-950/40"
-                          }`}
-                        >
-                          <div className="flex flex-1 items-center gap-3">
-                            <div
-                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
-                                quest.completed
-                                  ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
-                                  : "border-white/10 bg-slate-900 text-slate-500"
-                              }`}
-                            >
-                              {quest.completed ? (
-                                <CheckCircle2 size={16} />
-                              ) : (
-                                <Zap size={14} className="text-amber-400" />
-                              )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="mb-1 flex items-center justify-between">
-                                <h4 className="truncate text-xs font-bold text-slate-200">
-                                  {quest.title}
-                                </h4>
-                                <span className="shrink-0 font-mono text-[10px] text-slate-400">
-                                  {quest.current}/{quest.target}
-                                </span>
-                              </div>
-
-                              <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950">
-                                <div
-                                  className={`h-full rounded-full ${
-                                    quest.completed ? "bg-emerald-400" : "bg-indigo-500"
-                                  }`}
-                                  style={{ width: `${progress}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {!quest.completed && (
-                            <Link
-                              href={quest.actionUrl}
-                              className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300"
-                            >
-                              Ir
-                            </Link>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+              <DailyQuestsWidget />
 
               {/* CARD 2: Métricas de Desempenho */}
               <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
@@ -1079,26 +900,35 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
                 <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
                   <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">Sessões</span>
-                    <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.sessionsCount ?? 0}</span>
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Sessões
+                    </span>
+                    <span className="font-mono text-sm font-extrabold text-white">
+                      {stats?.metrics?.sessionsCount ?? 0}
+                    </span>
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">Questões</span>
-                    <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.questionsCount ?? 0}</span>
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Questões
+                    </span>
+                    <span className="font-mono text-sm font-extrabold text-white">
+                      {stats?.metrics?.questionsCount ?? 0}
+                    </span>
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">Méd/Dia</span>
-                    <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.averageTimePerSession || "0min"}</span>
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Méd/Dia
+                    </span>
+                    <span className="font-mono text-sm font-extrabold text-white">
+                      {stats?.metrics?.averageTimePerSession || "0min"}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
-            <DomainRadarChart
-              subjects={subjects}
-              isLoading={isLoading}
-            />
+            <DomainRadarChart subjects={subjects} isLoading={isLoading} />
 
             {/* CARD 3: Sugestões com IA */}
             {!isLoading && hasEditalSubjects && (
@@ -1130,13 +960,20 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         key={item.id}
                         className="flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-slate-950/60 p-3"
                       >
-                        <Link href={getSuggestionUrl(item)} className="flex items-center gap-3 flex-1 min-w-0">
+                        <Link
+                          href={getSuggestionUrl(item)}
+                          className="flex items-center gap-3 flex-1 min-w-0"
+                        >
                           <div className="shrink-0 rounded-xl p-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                             <BrainCircuit size={16} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h4 className="text-xs font-bold text-slate-200 truncate">{item.title}</h4>
-                            <p className="text-[11px] text-slate-400 truncate">{item.description}</p>
+                            <h4 className="text-xs font-bold text-slate-200 truncate">
+                              {item.title}
+                            </h4>
+                            <p className="text-[11px] text-slate-400 truncate">
+                              {item.description}
+                            </p>
                           </div>
                         </Link>
                       </div>
@@ -1149,7 +986,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   disabled={isOptimizing}
                   className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 py-2.5 text-xs font-bold text-cyan-300"
                 >
-                  {isOptimizing ? "Otimizando..." : "Otimizar Cronograma com IA"}
+                  {isOptimizing
+                    ? "Otimizando..."
+                    : "Otimizar Cronograma com IA"}
                 </button>
               </div>
             )}
@@ -1163,7 +1002,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     Minhas Matérias
                   </h3>
                 </div>
-                <Link href="/edital" className="text-xs font-semibold text-indigo-400">
+                <Link
+                  href="/edital"
+                  className="text-xs font-semibold text-indigo-400"
+                >
                   Ver todas ({subjects.length})
                 </Link>
               </div>
@@ -1195,7 +1037,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           {/* BARRA LATERAL DIREITA (`lg:col-span-4` - APENAS DESKTOP) */}
           <div className="hidden md:block space-y-6 lg:col-span-4">
-            
             {/* GAMIFICAÇÃO & NÍVEL */}
             <Link
               href="/achievements"
@@ -1223,7 +1064,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <span className="text-slate-400">
                     XP: <strong className="text-white">{currentXp}</strong>
                   </span>
-                  <span className="font-bold text-amber-400">{levelProgressPercent}%</span>
+                  <span className="font-bold text-amber-400">
+                    {levelProgressPercent}%
+                  </span>
                 </div>
 
                 <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
@@ -1257,7 +1100,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div className="my-2 border-t border-white/5" />
 
               <div className="flex items-center justify-between">
-                <Link href="/performance" className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors">
+                <Link
+                  href="/performance"
+                  className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
+                >
                   Constância
                 </Link>
                 <div className="flex items-center gap-2">
@@ -1269,16 +1115,39 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <Snowflake size={11} className="animate-spin-slow" />
                     {streakFreezeCount}
                   </button>
-                  <Link href="/performance" className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
-                    <Flame size={14} className="fill-amber-400 text-amber-400" />
-                    {Number(gStats.streakDays ?? globalGamification?.streak?.currentDays ?? 0)} Dias
+                  <Link
+                    href="/performance"
+                    className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
+                  >
+                    <Flame
+                      size={14}
+                      className="fill-amber-400 text-amber-400"
+                    />
+                    {Number(
+                      gStats.streakDays ??
+                        globalGamification?.streak?.currentDays ??
+                        0,
+                    )}{" "}
+                    Dias
                   </Link>
                 </div>
               </div>
             </div>
 
-            {/* POMODORO TIMER */}
-            <div id="pomodoro" className="rounded-3xl border border-white/10 bg-[#090d16] p-4">
+            {/* POMODORO TIMER COM GATILHO MODO ZEN */}
+            <div
+              id="pomodoro"
+              className="rounded-3xl border border-white/10 bg-[#090d16] p-4 relative"
+            >
+              <div className="flex justify-end pb-2">
+                <button
+                  onClick={() => setIsZenModeOpen(true)}
+                  className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 text-[11px] font-mono font-bold text-violet-300 hover:bg-violet-500/20 transition-all active:scale-95"
+                >
+                  <Maximize2 size={12} className="text-violet-400" />
+                  <span>Modo Zen</span>
+                </button>
+              </div>
               <PomodoroTimer />
             </div>
 
@@ -1286,19 +1155,35 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
               <Heatmap />
             </div>
-
           </div>
         </div>
 
         {/* POMODORO DOBRÁVEL APENAS NO MOBILE */}
-        <div id="pomodoro-mobile" className="block md:hidden rounded-3xl border border-white/10 bg-[#090d16] p-2 sm:p-4">
-          <button
-            onClick={() => setIsPomodoroOpenMobile((prev) => !prev)}
-            className="w-full flex items-center justify-between p-2 text-xs font-bold text-slate-300"
-          >
-            <span>Pomodoro Timer</span>
-            {isPomodoroOpenMobile ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
+        <div
+          id="pomodoro-mobile"
+          className="block md:hidden rounded-3xl border border-white/10 bg-[#090d16] p-2 sm:p-4"
+        >
+          <div className="flex items-center justify-between p-2">
+            <button
+              onClick={() => setIsPomodoroOpenMobile((prev) => !prev)}
+              className="flex items-center gap-2 text-xs font-bold text-slate-300"
+            >
+              <span>Pomodoro Timer</span>
+              {isPomodoroOpenMobile ? (
+                <ChevronUp size={16} />
+              ) : (
+                <ChevronDown size={16} />
+              )}
+            </button>
+
+            <button
+              onClick={() => setIsZenModeOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-violet-300"
+            >
+              <Maximize2 size={10} />
+              <span>Zen</span>
+            </button>
+          </div>
 
           <div className={`${isPomodoroOpenMobile ? "block" : "hidden"}`}>
             <PomodoroTimer />
@@ -1309,8 +1194,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div className="block md:hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
           <Heatmap />
         </div>
-
       </div>
+
+      {/* MODAL MODO ZEN */}
+      <ZenModeOverlay
+        isOpen={isZenModeOpen}
+        onClose={() => setIsZenModeOpen(false)}
+        defaultMinutes={25}
+      />
 
       <NewContentModal
         isOpen={isModalOpen}

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PRESET_HEX_COLORS } from "@/constants/subjects";
 import { auth } from "@/auth";
-import { calculateEarnedXp, calculateLevel } from "@/lib/gamification";
+import {
+  calculateEarnedXp,
+  calculateLevel,
+} from "@/lib/gamification/gamification";
 
 export const dynamic = "force-dynamic";
 
@@ -152,10 +155,11 @@ export async function GET(request: Request) {
               ? Math.round(subjectProgressSum / formattedTopics.length)
               : 0;
 
-          const allReviews = rawTopics.flatMap((t: any) => t.reviewHistories || []);
+          const allReviews = rawTopics.flatMap(
+            (t: any) => t.reviewHistories || [],
+          );
           const correctReviews = allReviews.filter((r: any) => {
-            const gradeStr =
-              r && r.grade ? String(r.grade).toUpperCase() : "";
+            const gradeStr = r && r.grade ? String(r.grade).toUpperCase() : "";
             return ["BOM", "FACIL", "3", "4", "5"].includes(gradeStr);
           }).length;
           const subjectAccuracy =

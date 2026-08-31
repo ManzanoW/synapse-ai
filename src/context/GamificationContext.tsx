@@ -22,6 +22,13 @@ export interface StatsData {
     nextLevelXp: number;
     progressPercentage: number;
     title: string;
+    prestige?: number;
+    prestigeTier?: {
+      name: string;
+      badgeColor: string;
+      borderGlow: string;
+      iconColor: string;
+    };
   };
   streak: {
     currentDays: number;
@@ -33,6 +40,7 @@ export interface GamificationContextType {
   stats: StatsData | null;
   isLoading: boolean;
   refreshStats: (targetUserId?: string) => Promise<void>;
+  updateStats?: (partial: Partial<StatsData["gamification"]>) => void;
 }
 
 const GamificationContext = createContext<GamificationContextType | undefined>(
@@ -66,6 +74,22 @@ export function GamificationProvider({
     [userId],
   );
 
+  const updateStats = useCallback(
+    (partial: Partial<StatsData["gamification"]>) => {
+      setStats((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          gamification: {
+            ...prev.gamification,
+            ...partial,
+          },
+        };
+      });
+    },
+    [],
+  );
+
   useEffect(() => {
     let isMounted = true;
 
@@ -81,10 +105,7 @@ export function GamificationProvider({
           setStats(response.data);
         }
       } catch (error) {
-        console.error(
-          "Erro ao carregar estatísticas via Server Action:",
-          error,
-        );
+        console.error("Erro ao carregar estatísticas:", error);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -103,6 +124,7 @@ export function GamificationProvider({
         stats,
         isLoading,
         refreshStats,
+        updateStats,
       }}
     >
       {children}

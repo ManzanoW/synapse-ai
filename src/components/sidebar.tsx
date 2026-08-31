@@ -8,6 +8,7 @@ import { signOut } from "next-auth/react";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
 import LogoutModal from "@/components/logout/logout-modal";
+import { PrestigeModal } from "@/components/gamification/prestige-modal";
 import { useAudioContext } from "@/contexts/AudioContext";
 import {
   Sparkles,
@@ -28,6 +29,7 @@ import {
   Search,
   Volume2,
   VolumeX,
+  Crown,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -80,6 +82,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isPrestigeModalOpen, setIsPrestigeModalOpen] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -87,8 +90,23 @@ export default function Sidebar({ user }: SidebarProps) {
     }
   }, [user?.id, refreshStats]);
 
+  useEffect(() => {
+    const handleXpUpdate = () => {
+      if (user?.id) {
+        refreshStats(user.id);
+      }
+    };
+
+    window.addEventListener("xp-updated", handleXpUpdate);
+    return () => window.removeEventListener("xp-updated", handleXpUpdate);
+  }, [user?.id, refreshStats]);
+
   const gamification = stats?.gamification;
   const streak = stats?.streak;
+
+  const currentLevel = gamification?.level || 1;
+  const currentPrestige = gamification?.prestige || 0;
+  const canAscendPrestige = currentLevel >= 50;
 
   const getInitials = (name?: string | null) => {
     if (!name) return "US";
@@ -109,22 +127,6 @@ export default function Sidebar({ user }: SidebarProps) {
     }
   };
 
-  useEffect(() => {
-    if (user?.id) {
-      refreshStats(user.id);
-    }
-
-    // 🟢 Escuta revisões de flashcards/questões para recarregar os dados na Sidebar
-    const handleXpUpdate = () => {
-      if (user?.id) {
-        refreshStats(user.id);
-      }
-    };
-
-    window.addEventListener("xp-updated", handleXpUpdate);
-    return () => window.removeEventListener("xp-updated", handleXpUpdate);
-  }, [user?.id, refreshStats]);
-
   return (
     <>
       <LogoutModal
@@ -133,6 +135,15 @@ export default function Sidebar({ user }: SidebarProps) {
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={handleConfirmLogout}
       />
+
+      {user?.id && (
+        <PrestigeModal
+          isOpen={isPrestigeModalOpen}
+          onClose={() => setIsPrestigeModalOpen(false)}
+          userId={user.id}
+          currentPrestige={currentPrestige}
+        />
+      )}
 
       {isOpen && (
         <div
@@ -177,7 +188,7 @@ export default function Sidebar({ user }: SidebarProps) {
             <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-3 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
           </div>
 
-          {/* Botão de Busca / Command Palette & Botão Mute/Unmute */}
+          {/* Busca rápida & Volume */}
           <div className="px-1 flex items-center gap-1.5">
             <button
               type="button"
@@ -188,7 +199,10 @@ export default function Sidebar({ user }: SidebarProps) {
               className="flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-slate-200 transition-all text-xs cursor-pointer group"
             >
               <div className="flex items-center gap-2">
-                <Search size={14} className="text-slate-400 group-hover:text-indigo-400 transition-colors" />
+                <Search
+                  size={14}
+                  className="text-slate-400 group-hover:text-indigo-400 transition-colors"
+                />
                 <span className="font-medium">Busca rápida...</span>
               </div>
               <kbd className="font-mono text-[10px] text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
@@ -208,9 +222,15 @@ export default function Sidebar({ user }: SidebarProps) {
               }`}
             >
               {isMuted ? (
-                <VolumeX size={15} className="transition-transform active:scale-95" />
+                <VolumeX
+                  size={15}
+                  className="transition-transform active:scale-95"
+                />
               ) : (
-                <Volume2 size={15} className="transition-transform active:scale-95" />
+                <Volume2
+                  size={15}
+                  className="transition-transform active:scale-95"
+                />
               )}
             </button>
           </div>
@@ -279,7 +299,7 @@ export default function Sidebar({ user }: SidebarProps) {
           </nav>
         </div>
 
-        {/* Rodapé Premium Ultra-Refinado */}
+        {/* Rodapé de Gamificação, Nível e Prestígio */}
         <div className="pt-2">
           <div className="group relative overflow-hidden rounded-2xl bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl transition-all duration-300 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.2)]">
             <div className="absolute -top-12 -left-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
@@ -293,26 +313,59 @@ export default function Sidebar({ user }: SidebarProps) {
               ) : (
                 <>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-transform duration-300">
-                        <Award size={16} strokeWidth={2.2} />
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 ${
+                          gamification?.prestigeTier?.badgeColor ||
+                          "bg-indigo-500/10 border-indigo-500/30 text-indigo-300"
+                        }`}
+                      >
+                        <Award
+                          size={16}
+                          strokeWidth={2.2}
+                          className={
+                            gamification?.prestigeTier?.iconColor ||
+                            "text-indigo-400"
+                          }
+                        />
                       </div>
-                      <div className="flex flex-col justify-center">
-                        <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-indigo-300/60 leading-none mb-0.5">
-                          Sua Patente
-                        </span>
-                        <span className="text-xs font-black text-white tracking-tight leading-none">
-                          Nível {gamification?.level || 1}
+                      <div className="flex flex-col justify-center min-w-0 pr-1">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-indigo-300/70 leading-none truncate block">
+                            {gamification?.title || "Sua Patente"}
+                          </span>
+                          {currentPrestige > 0 && (
+                            <span className="text-[7.5px] font-mono font-black px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
+                              P{currentPrestige}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-black text-white tracking-tight leading-none mt-0.5">
+                          Nível {currentLevel}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold font-mono shadow-[0_0_12px_rgba(244,63,94,0.18)]">
-                      <Flame
-                        size={13}
-                        className="fill-rose-500 text-rose-500 animate-pulse"
-                      />
-                      <span>{streak?.currentDays || 0}d</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {canAscendPrestige && (
+                        <button
+                          type="button"
+                          onClick={() => setIsPrestigeModalOpen(true)}
+                          title="Ascender Prestígio!"
+                          className="cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[10px] font-black font-mono animate-bounce"
+                        >
+                          <Crown size={11} />
+                          <span>ASCENDER</span>
+                        </button>
+                      )}
+
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold font-mono shadow-[0_0_12px_rgba(244,63,94,0.18)]">
+                        <Flame
+                          size={13}
+                          className="fill-rose-500 text-rose-500 animate-pulse"
+                        />
+                        <span>{streak?.currentDays || 0}d</span>
+                      </div>
                     </div>
                   </div>
 
@@ -327,13 +380,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         <span className="text-slate-500 font-normal">XP</span>
                       </span>
                       <span className="text-slate-400 font-bold">
-                        {Math.round(
-                          gamification?.progressPercentage ??
-                            ((gamification?.currentLevelXp || 0) /
-                              (gamification?.nextLevelXp || 500)) *
-                              100,
-                        )}
-                        %
+                        {gamification?.progressPercentage ?? 0}%
                       </span>
                     </div>
 
@@ -342,10 +389,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         className="h-full bg-linear-to-r from-amber-400 via-indigo-500 to-indigo-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(129,140,248,0.8)] relative"
                         style={{
                           width: `${Math.max(
-                            gamification?.progressPercentage ??
-                              ((gamification?.currentLevelXp || 0) /
-                                (gamification?.nextLevelXp || 500)) *
-                                100,
+                            gamification?.progressPercentage ?? 0,
                             4,
                           )}%`,
                         }}

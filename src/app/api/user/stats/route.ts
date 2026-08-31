@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { calculateLevel } from "@/lib/gamification";
+import { calculateLevel } from "@/lib/gamification/gamification";
 
 export async function GET() {
   try {
