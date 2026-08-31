@@ -343,7 +343,7 @@ export function QuestionCard({
             })}
       </div>
 
-      {/* RODAPÉ E BOTÃO DE SUBMISSÃO */}
+      {/* RODAPÉ / BOTÃO DE SUBMISSÃO */}
       <div className="flex flex-col gap-4">
         {!respondida ? (
           <div className="flex items-center justify-between border-t border-slate-800/60 pt-4 gap-4">
