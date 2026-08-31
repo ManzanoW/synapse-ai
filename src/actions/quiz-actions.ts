@@ -17,6 +17,26 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
       return { success: false, error: "Usuário não autenticado." };
     }
 
+    // Garante que haja um topicId válido (busca o primeiro tópico disponível caso não informado)
+    let targetTopicId = input.topicId;
+
+    if (!targetTopicId) {
+      const fallbackTopic = await prisma.topic.findFirst({
+        where: input.subjectId
+          ? { subjectId: input.subjectId, subject: { userId } }
+          : { subject: { userId } },
+        select: { id: true },
+      });
+      targetTopicId = fallbackTopic?.id;
+    }
+
+    if (!targetTopicId) {
+      return {
+        success: false,
+        error: "Nenhum tópico cadastrado no edital para vincular a esta tentativa.",
+      };
+    }
+
     const accuracyPercentage = Math.round(
       (input.correctAnswers / Math.max(1, input.totalQuestions)) * 100
     );
@@ -30,9 +50,9 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
       prisma.quizAttempt.create({
         data: {
           userId,
-          score: input.correctAnswers,
-          totalQuestions: input.totalQuestions,
-          ...(input.topicId ? { topicId: input.topicId } : {}),
+          topicId: targetTopicId,
+          totalCount: input.totalQuestions,
+          correctCount: input.correctAnswers,
         },
       }),
       prisma.userStats.upsert({
@@ -49,7 +69,16 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
       }),
     ]);
 
-    // 2. Revalida caches
+    // 2. Atualiza a performance e última data no tópico
+    await prisma.topic.update({
+      where: { id: targetTopicId },
+      data: {
+        performance: accuracyPercentage,
+        lastQuizAt: new Date(),
+      },
+    });
+
+    // 3. Revalida caches
     await invalidateUserCacheAction(userId);
 
     return {
@@ -98,8 +127,8 @@ export async function getSubjectDomainStatsAction(userIdParam?: string) {
 
       subject.topics.forEach((topic) => {
         topic.quizAttempts.forEach((attempt) => {
-          totalQuestions += attempt.totalQuestions;
-          totalCorrect += attempt.score;
+          totalQuestions += attempt.totalCount;
+          totalCorrect += attempt.correctCount;
         });
       });
 
