@@ -27,6 +27,7 @@ import {
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
 import { RescheduleBanner } from "@/components/week/reschedule-banner";
+import { AdaptiveRebalanceBanner } from "@/components/week/AdaptiveRebalanceBanner";
 import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
 import { EditalEmptyState } from "@/components/edital-empty-state";
 
@@ -500,7 +501,6 @@ export default function WeekPage() {
         });
       } catch (err) {
         console.error("Erro ao salvar progresso do tópico:", err);
-        // Force refresh / restore previous state in case optimistic state desyncs
         setData((prev) => (prev ? { ...prev } : null));
       }
     });
@@ -687,6 +687,11 @@ export default function WeekPage() {
             Rebalanceador Adaptativo Ativo
           </span>
         </div>
+
+        {/* ================= BANNER PREDITIVO DE REBALANCEAMENTO ================= */}
+        {!loading && hasSubjects && (
+          <AdaptiveRebalanceBanner onRebalanceApplied={() => loadWeekData()} />
+        )}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
