@@ -1,25 +1,27 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Radar,
   AlertTriangle,
   Sparkles,
-  Target,
   ShieldCheck,
   TrendingDown,
-  Info,
   Layers,
+  RefreshCw,
 } from "lucide-react";
+import { getSubjectDomainStatsAction } from "@/actions/quiz-actions";
+import { SubjectDomainMetric } from "@/types/quiz";
+import { DashboardSubject } from "@/types";
 
 export interface DomainRadarSubject {
   id?: string;
   name: string;
-  domain?: number; // Domínio Real % (acertos em questões / flashcards)
+  domain?: number;
   accuracy?: number;
   progress?: number;
-  weight?: number; // Peso Ideal % no edital
+  weight?: number;
   priority?: number | string;
   importance?: string;
   color?: string | null;
@@ -29,7 +31,7 @@ export interface DomainRadarSubject {
 }
 
 export interface DomainRadarChartProps {
-  subjects: DomainRadarSubject[];
+  subjects?: DomainRadarSubject[] | DashboardSubject[];
   isLoading?: boolean;
   className?: string;
   title?: string;
@@ -39,16 +41,18 @@ export interface DomainRadarChartProps {
 interface ProcessedSubject {
   id: string;
   name: string;
-  domain: number; // 0 to 100
-  weight: number; // 0 to 100
-  gap: number; // domain - weight (negative = blind spot)
+  domain: number;
+  weight: number;
+  gap: number;
   color: string;
   status: "blind_spot" | "mastered" | "balanced";
+  totalAnswered: number;
+  correctCount: number;
 }
 
 export default function DomainRadarChart({
-  subjects = [],
-  isLoading = false,
+  subjects: propSubjects = [],
+  isLoading: propLoading = false,
   className = "",
   title = "Radar de Domínio vs. Peso do Edital",
   subtitle = "Identificação preditiva de pontos cegos e calibração de foco",
@@ -56,51 +60,80 @@ export default function DomainRadarChart({
   const [hoveredSubject, setHoveredSubject] = useState<ProcessedSubject | null>(
     null,
   );
-  const [filterMode, setFilterMode] = useState<"all" | "blind_spots">("all");
+  const [serverMetrics, setMetrics] = useState<SubjectDomainMetric[]>([]);
+  const [isServerLoading, setIsServerLoading] = useState(true);
 
-  // Normaliza e processa os dados de cada disciplina
-  const processedData: ProcessedSubject[] = useMemo(() => {
-    if (!subjects || subjects.length === 0) return [];
-
-    return subjects.map((sub, idx) => {
-      // 1. Cálculo do Domínio Real (0 - 100%)
-      let realDomain = 0;
-      if (typeof sub.domain === "number") {
-        realDomain = sub.domain;
-      } else if (typeof sub.accuracy === "number" && sub.accuracy > 0) {
-        realDomain = sub.accuracy;
-      } else if (typeof sub.progress === "number") {
-        realDomain = sub.progress;
-      } else {
-        realDomain = 0;
+  const fetchMetrics = useCallback(async () => {
+    setIsServerLoading(true);
+    try {
+      const res = await getSubjectDomainStatsAction();
+      if (res.success && res.data) {
+        setMetrics(res.data);
       }
+    } catch (err) {
+      console.error("Erro ao carregar métricas de domínio:", err);
+    } finally {
+      setIsServerLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]);
+
+  const isLoading = propLoading || isServerLoading;
+
+  // Cruza dados do servidor (QuizAttempt) com as props de Subject (se existirem)
+  const processedData: ProcessedSubject[] = useMemo(() => {
+    // 1. Prioriza dados reais de QuizAttempt retornados pela Server Action
+    if (serverMetrics.length > 0) {
+      return serverMetrics.map((m) => {
+        const realDomain = Math.max(0, Math.min(100, m.domainPercentage));
+        const idealWeight = Math.max(10, Math.min(100, Math.round(m.weight * 10)));
+        const gap = realDomain - idealWeight;
+
+        let status: "blind_spot" | "mastered" | "balanced" = "balanced";
+        if (gap <= -15 && m.totalAnswered >= 3) {
+          status = "blind_spot";
+        } else if (gap >= 15 || realDomain >= 85) {
+          status = "mastered";
+        }
+
+        return {
+          id: m.subjectId,
+          name: m.subjectName,
+          domain: realDomain,
+          weight: idealWeight,
+          gap,
+          color: m.color || "#818cf8",
+          status,
+          totalAnswered: m.totalAnswered,
+          correctCount: m.correctCount,
+        };
+      });
+    }
+
+    // 2. Fallback para as props de Subject passadas pelo DashboardClient
+    if (!propSubjects || propSubjects.length === 0) return [];
+
+    return (propSubjects as DomainRadarSubject[]).map((sub, idx) => {
+      let realDomain = 0;
+      if (typeof sub.domain === "number") realDomain = sub.domain;
+      else if (typeof sub.accuracy === "number") realDomain = sub.accuracy;
+      else if (typeof sub.progress === "number") realDomain = sub.progress;
       realDomain = Math.max(0, Math.min(100, Math.round(realDomain)));
 
-      // 2. Cálculo do Peso Ideal no Edital (0 - 100%)
-      let idealWeight = 70; // fallback padrão
-      if (typeof sub.weight === "number") {
-        idealWeight = sub.weight;
-      } else if (typeof sub.priority === "number" && sub.priority > 0) {
-        // Se a prioridade for em escala 1 a 10
-        idealWeight = Math.min(100, Math.round(sub.priority * 10));
-      } else if (typeof sub.priority === "string" && !isNaN(Number(sub.priority))) {
-        idealWeight = Math.min(100, Math.round(Number(sub.priority) * 10));
-      } else if (sub.importance) {
-        const imp = sub.importance.toUpperCase();
-        if (imp.includes("ALT") || imp === "HIGH" || imp === "1") idealWeight = 90;
-        else if (imp.includes("MED") || imp === "MEDIUM" || imp === "2") idealWeight = 65;
-        else if (imp.includes("BAIX") || imp === "LOW" || imp === "3") idealWeight = 40;
-      }
+      let idealWeight = 70;
+      if (typeof sub.weight === "number") idealWeight = sub.weight;
+      else if (typeof sub.priority === "number") idealWeight = Math.min(100, Math.round(sub.priority * 10));
+      else if (typeof sub.priority === "string" && !isNaN(Number(sub.priority))) idealWeight = Math.min(100, Math.round(Number(sub.priority) * 10));
 
       idealWeight = Math.max(10, Math.min(100, Math.round(idealWeight)));
-
       const gap = realDomain - idealWeight;
+
       let status: "blind_spot" | "mastered" | "balanced" = "balanced";
-      if (gap <= -15) {
-        status = "blind_spot";
-      } else if (gap >= 15 || realDomain >= 85) {
-        status = "mastered";
-      }
+      if (gap <= -15) status = "blind_spot";
+      else if (gap >= 15 || realDomain >= 85) status = "mastered";
 
       return {
         id: sub.id || `sub-${idx}`,
@@ -110,11 +143,12 @@ export default function DomainRadarChart({
         gap,
         color: sub.color || "#818cf8",
         status,
+        totalAnswered: 0,
+        correctCount: 0,
       };
     });
-  }, [subjects]);
+  }, [serverMetrics, propSubjects]);
 
-  // Identifica o maior Ponto Cego (onde o peso é alto e o domínio é baixo)
   const blindSpots = useMemo(() => {
     return processedData
       .filter((s) => s.gap < 0)
@@ -128,11 +162,10 @@ export default function DomainRadarChart({
   const cx = size / 2;
   const cy = size / 2;
   const radius = 130;
-  const levels = [0.2, 0.4, 0.6, 0.8, 1.0]; // 20%, 40%, 60%, 80%, 100%
+  const levels = [0.2, 0.4, 0.6, 0.8, 1.0];
 
   const totalAxes = processedData.length;
 
-  // Função auxiliar para converter ângulo polar em coordenadas cartesianas
   const getCoordinates = (index: number, ratio: number) => {
     if (totalAxes === 0) return { x: cx, y: cy };
     const angle = (Math.PI * 2 * index) / totalAxes - Math.PI / 2;
@@ -143,7 +176,6 @@ export default function DomainRadarChart({
     };
   };
 
-  // Coordenadas dos polígonos
   const domainPolygonPoints = useMemo(() => {
     if (totalAxes < 3) return "";
     return processedData
@@ -189,7 +221,7 @@ export default function DomainRadarChart({
     <div
       className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] via-[#070b14] to-[#04060c] p-5 sm:p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30 ${className}`}
     >
-      {/* GLOW DECORATIVO DE FUNDO */}
+      {/* Glow de fundo */}
       <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-violet-600/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-emerald-600/10 blur-3xl" />
 
@@ -212,8 +244,8 @@ export default function DomainRadarChart({
           </div>
         </div>
 
-        {/* LEGENDA INTERATIVA */}
-        <div className="flex items-center gap-3 self-start sm:self-center">
+        {/* CONTROLES E LEGENDA */}
+        <div className="flex items-center gap-2.5 self-start sm:self-center">
           <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[11px] font-bold text-emerald-300">
             <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
             <span>Domínio Real %</span>
@@ -223,6 +255,15 @@ export default function DomainRadarChart({
             <span className="h-2 w-2 rounded-full border border-dashed border-indigo-400 bg-indigo-500/60 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
             <span>Peso Ideal %</span>
           </div>
+
+          <button
+            onClick={fetchMetrics}
+            disabled={isLoading}
+            className="p-1.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20 transition-all cursor-pointer"
+            title="Recarregar Métricas do Banco"
+          >
+            <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
+          </button>
         </div>
       </div>
 
@@ -241,7 +282,6 @@ export default function DomainRadarChart({
           </p>
         </div>
       ) : processedData.length < 3 ? (
-        // FALLBACK PARA 1 OU 2 DISCIPLINAS
         <div className="relative z-10 my-6 space-y-4">
           <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 text-center">
             <p className="text-xs text-amber-300">
@@ -311,7 +351,6 @@ export default function DomainRadarChart({
           </div>
         </div>
       ) : (
-        // RADAR CHART SVG COMPLETO
         <div className="relative z-10 flex flex-col items-center justify-center py-3">
           <div className="relative w-full max-w-[420px] aspect-square flex items-center justify-center">
             <svg
@@ -319,7 +358,6 @@ export default function DomainRadarChart({
               className="w-full h-full overflow-visible drop-shadow-2xl select-none"
             >
               <defs>
-                {/* Gradiente Domínio Real (Esmeralda / Ciano / Violeta) */}
                 <linearGradient
                   id="radarEmeraldGrad"
                   x1="0%"
@@ -332,7 +370,6 @@ export default function DomainRadarChart({
                   <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.25" />
                 </linearGradient>
 
-                {/* Gradiente Peso Ideal (Índigo / Violeta) */}
                 <linearGradient
                   id="radarIndigoGrad"
                   x1="0%"
@@ -344,7 +381,6 @@ export default function DomainRadarChart({
                   <stop offset="100%" stopColor="#a855f7" stopOpacity="0.10" />
                 </linearGradient>
 
-                {/* Filtro de Glow Neon */}
                 <filter
                   id="radarGlow"
                   x="-20%"
@@ -357,7 +393,7 @@ export default function DomainRadarChart({
                 </filter>
               </defs>
 
-              {/* 1. NÍVEIS CONCÊNTRICOS POLIGONAIS (TEIA DE ARANHA) */}
+              {/* 1. NÍVEIS CONCÊNTRICOS POLIGONAIS */}
               {levels.map((levelRatio, lvlIdx) => {
                 const ringPoints = processedData
                   .map((_, i) => {
@@ -375,7 +411,6 @@ export default function DomainRadarChart({
                       strokeWidth={lvlIdx === levels.length - 1 ? "1.5" : "0.8"}
                       strokeDasharray={lvlIdx === levels.length - 1 ? "" : "3 3"}
                     />
-                    {/* Indicador numérico de percentual */}
                     <text
                       x={cx + 4}
                       y={cy - radius * levelRatio - 2}
@@ -407,7 +442,7 @@ export default function DomainRadarChart({
                 );
               })}
 
-              {/* 3. POLÍGONO DO PESO IDEAL (ÍNDIGO/VIOLETA) */}
+              {/* 3. POLÍGONO DO PESO IDEAL */}
               {weightPolygonPoints && (
                 <polygon
                   points={weightPolygonPoints}
@@ -419,7 +454,7 @@ export default function DomainRadarChart({
                 />
               )}
 
-              {/* 4. POLÍGONO DO DOMÍNIO REAL (ESMERALDA/NEON) */}
+              {/* 4. POLÍGONO DO DOMÍNIO REAL */}
               {domainPolygonPoints && (
                 <polygon
                   points={domainPolygonPoints}
@@ -431,7 +466,7 @@ export default function DomainRadarChart({
                 />
               )}
 
-              {/* 5. PONTOS INTERATIVOS DOS VÉRTICES (DOMÍNIO REAL & PESO) */}
+              {/* 5. VÉRTICES INTERATIVOS */}
               {processedData.map((item, i) => {
                 const domCoord = getCoordinates(i, item.domain / 100);
                 const wtCoord = getCoordinates(i, item.weight / 100);
@@ -449,7 +484,6 @@ export default function DomainRadarChart({
                       )
                     }
                   >
-                    {/* Linha vertical conectando os 2 pontos para destacar o GAP */}
                     <line
                       x1={domCoord.x}
                       y1={domCoord.y}
@@ -461,7 +495,6 @@ export default function DomainRadarChart({
                       opacity={isHovered ? 1 : 0.6}
                     />
 
-                    {/* Vértice do Peso Ideal */}
                     <circle
                       cx={wtCoord.x}
                       cy={wtCoord.y}
@@ -472,7 +505,6 @@ export default function DomainRadarChart({
                       className="transition-all duration-200"
                     />
 
-                    {/* Vértice do Domínio Real */}
                     <circle
                       cx={domCoord.x}
                       cy={domCoord.y}
@@ -489,7 +521,7 @@ export default function DomainRadarChart({
                 );
               })}
 
-              {/* 6. RÓTULOS DAS DISCIPLINAS NO PERÍMETRO */}
+              {/* 6. RÓTULOS NO PERÍMETRO */}
               {processedData.map((item, i) => {
                 const angle = (Math.PI * 2 * i) / totalAxes - Math.PI / 2;
                 const labelRadius = radius + 26;
@@ -504,7 +536,6 @@ export default function DomainRadarChart({
                 const isHovered = hoveredSubject?.id === item.id;
                 const isBlindSpot = item.status === "blind_spot";
 
-                // Truncar nome se muito longo
                 const displayName =
                   item.name.length > 14
                     ? `${item.name.substring(0, 12)}...`
@@ -563,7 +594,7 @@ export default function DomainRadarChart({
               })}
             </svg>
 
-            {/* FLOATING TOOLTIP DE DETALHES AO PASSAR O MOUSE */}
+            {/* FLOATING TOOLTIP */}
             <AnimatePresence>
               {hoveredSubject && (
                 <motion.div
@@ -613,14 +644,23 @@ export default function DomainRadarChart({
                     </div>
                   </div>
 
-                  <div className="mt-2 text-[10px] text-slate-400 flex items-center gap-1.5">
+                  {hoveredSubject.totalAnswered > 0 && (
+                    <div className="mt-2 text-[10px] text-slate-400 border-t border-white/5 pt-1.5 flex justify-between">
+                      <span>Tentativas:</span>
+                      <strong className="text-slate-200">
+                        {hoveredSubject.correctCount}/{hoveredSubject.totalAnswered} acertos
+                      </strong>
+                    </div>
+                  )}
+
+                  <div className="mt-1.5 text-[10px] text-slate-400 flex items-center gap-1.5">
                     {hoveredSubject.gap < 0 ? (
                       <>
                         <TrendingDown size={13} className="text-rose-400 shrink-0" />
                         <span className="text-rose-300">
                           Déficit de{" "}
                           <strong>{Math.abs(hoveredSubject.gap)}%</strong> em
-                          relação ao peso cobrado.
+                          relação ao peso.
                         </span>
                       </>
                     ) : (
@@ -640,7 +680,7 @@ export default function DomainRadarChart({
         </div>
       )}
 
-      {/* ================= BANNER INFORMATIVO DE PONTO CEGO / INSIGHT ================= */}
+      {/* ================= BANNER INFORMATIVO ================= */}
       {criticalBlindSpot && (
         <div className="relative z-10 mt-2 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3.5 transition-all">
           <div className="rounded-xl border border-rose-500/30 bg-rose-500/20 p-2 text-rose-400 shrink-0">
