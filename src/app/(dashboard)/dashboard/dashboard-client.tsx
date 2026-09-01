@@ -16,7 +16,7 @@ import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { DashboardSubject } from "@/types";
 import { LevelUpModal } from "@/components/gamification/level-up-modal";
-import { DailyQuestsWidget } from "@/components/dashboard/DailyQuestsWidget";
+import { DailyQuestsPanel } from "@/components/dashboard/DailyQuestsPanel";
 import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
 import { useGamification } from "@/context/GamificationContext";
 import {
@@ -295,23 +295,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     } catch (error) {
       console.error("Erro ao salvar tópico:", error);
     }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.06 },
-    },
-  };
-
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.3, ease: "easeOut" },
-    },
   };
 
   const gStats = (globalGamification?.gamification ||
@@ -678,7 +661,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
 
           {/* CONTEÚDO DA ABA SELECIONADA */}
-          {mobileTab === "missions" && <DailyQuestsWidget />}
+          {mobileTab === "missions" && <DailyQuestsPanel />}
 
           {mobileTab === "stats" && (
             <div className="space-y-4">
@@ -863,7 +846,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* PAINEL DUPLO APENAS NO DESKTOP */}
             <div className="hidden md:grid grid-cols-2 gap-6">
               {/* CARD 1: Missões do Dia */}
-              <DailyQuestsWidget />
+              <DailyQuestsPanel />
 
               {/* CARD 2: Métricas de Desempenho */}
               <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl">
