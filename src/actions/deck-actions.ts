@@ -8,6 +8,9 @@ import {
   generatedDeckResponseSchema,
 } from "@/lib/ai-validator";
 import { ErrorClassification } from "@/types/quiz";
+import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { trackQuestProgressAction } from "@/actions/quest-actions";
+import { Type } from "@google/genai";
 
 export interface GenerateTargetedDeckInput {
   topicId?: string;
@@ -76,35 +79,36 @@ Retorne APENAS um JSON no seguinte formato:
   ]
 }`;
 
-    // 3. Chamada ao endpoint da IA com fallback seguro
-    const apiKey = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return { success: false, error: "Chave de IA não configurada no servidor." };
-    }
-
-    const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GROQ_API_KEY || apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
+    // 3. Chamada via Motor de Fallback Centralizado do Gemini
+    const aiResult = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
         temperature: 0.3,
-        response_format: { type: "json_object" },
-      }),
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            cards: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  front: { type: Type.STRING },
+                  back: { type: Type.STRING },
+                  details: { type: Type.STRING },
+                },
+                required: ["front", "back"],
+              },
+            },
+          },
+          required: ["title", "cards"],
+        },
+      },
     });
 
-    if (!aiRes.ok) {
-      throw new Error(`Erro na API de IA: ${aiRes.statusText}`);
-    }
-
-    const aiJson = await aiRes.json();
-    const rawContent = aiJson.choices?.[0]?.message?.content || "";
-
     const validation = await parseAndValidateAIResponse(
-      rawContent,
+      aiResult.text,
       generatedDeckResponseSchema,
     );
 
@@ -136,7 +140,10 @@ Retorne APENAS um JSON no seguinte formato:
       },
     });
 
-    // 5. Revalida caches
+    // 5. Atualiza progresso da Missão Diária
+    await trackQuestProgressAction("AI_DECK_CREATED", 1);
+
+    // 6. Revalida caches
     try {
       (revalidateTag as (tag: string) => void)(`user-decks-${userId}`);
       revalidatePath("/flashcards");
