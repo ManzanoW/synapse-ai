@@ -6,6 +6,7 @@ import {
   calculateLevel,
 } from "@/lib/gamification/gamification";
 import { calculateSM2, convertLabelToGrade, PerformanceLabel } from "@/lib/sm2";
+import { trackQuestProgressAction } from "@/actions/quest-actions";
 
 export async function POST(request: Request) {
   try {
@@ -47,7 +48,6 @@ export async function POST(request: Request) {
         : convertLabelToGrade(String(grade) as PerformanceLabel);
 
     // 2. Calcula e atualiza a Gamificação (XP + Nível)
-    // Passamos String(grade) para corresponder ao parâmetro string esperado
     const earnedXp = calculateEarnedXp(String(grade), streakDays);
 
     const updatedStats = await prisma.userStats.upsert({
@@ -112,6 +112,9 @@ export async function POST(request: Request) {
       where: { id: card.id },
       data: { updatedAt: new Date() },
     });
+
+    // 6. Atualiza o progresso das Missões Diárias
+    await trackQuestProgressAction("FLASHCARDS_REVIEWED", 1);
 
     return NextResponse.json(
       {
