@@ -1,13 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ACHIEVEMENTS } from "@/lib/achievements";
-
-export function calculateLevel(xp: number): number {
-  if (xp < 100) return 1;
-  if (xp < 300) return 2;
-  if (xp < 600) return 3;
-  if (xp < 1000) return 4;
-  return Math.floor((xp - 1000) / 500) + 5;
-}
+import { calculateLevelData } from "@/lib/gamification/levels";
 
 export async function getUserAchievementsProgress(userId: string) {
   try {
@@ -15,23 +8,26 @@ export async function getUserAchievementsProgress(userId: string) {
       where: { userId },
     });
 
-    const reviewCount = await prisma.reviewHistory.count({
-      where: {
-        topic: {
-          subject: {
-            userId,
+    const [reviewCount, quizCount] = await Promise.all([
+      prisma.reviewHistory.count({
+        where: {
+          topic: {
+            subject: {
+              userId,
+            },
           },
         },
-      },
-    });
-
-    const quizCount = await prisma.quizAttempt.count({
-      where: { userId },
-    });
+      }),
+      prisma.quizAttempt.count({
+        where: { userId },
+      }),
+    ]);
 
     const currentStreak = userStats?.streakDays ?? 0;
     const totalXp = userStats?.totalXp ?? 0;
-    const currentLevel = calculateLevel(totalXp);
+    const prestige = (userStats as { prestige?: number })?.prestige ?? 0;
+    const levelInfo = calculateLevelData(totalXp, prestige);
+    const currentLevel = levelInfo.level;
 
     // Converte a string salva no banco em uma lista de IDs resgatados
     const claimedIds = userStats?.claimedAchievements

@@ -22,6 +22,8 @@ export interface AdaptiveAdjustment {
   subjectName: string;
   originalMinutes: number;
   adjustedMinutes: number;
+  targetWeeklyMinutes?: number;
+  adjustedWeeklyMinutes?: number;
   reason: string;
   type: "REINFORCEMENT" | "REDUCTION" | "REBALANCE";
 }

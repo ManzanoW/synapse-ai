@@ -15,8 +15,12 @@ import {
   AlertTriangle,
   Target,
   X,
+  Clock,
+  AlertCircle,
+  Check,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
+import { ErrorClassification } from "@/types/quiz";
 
 interface QuestionCardProps {
   questao: QuestaoIA;
@@ -33,7 +37,50 @@ interface QuestionCardProps {
   onToggleSaveError: () => void;
   onCreateFlashcard: () => void;
   onToggleFlag?: () => void;
+  onClassifyError?: (reason: ErrorClassification) => void;
 }
+
+const ERROR_TAXONOMY: {
+  key: ErrorClassification;
+  label: string;
+  desc: string;
+  icon: React.ElementType;
+  color: string;
+  bgActive: string;
+}[] = [
+  {
+    key: "THEORY_GAP",
+    label: "Lacuna Teórica",
+    desc: "Não conhecia ou esqueci o conceito teórico da matéria.",
+    icon: Brain,
+    color: "text-violet-400 border-violet-500/30 bg-violet-500/10",
+    bgActive: "border-violet-500 bg-violet-500/20 text-violet-200",
+  },
+  {
+    key: "ATTENTION_LAPSE",
+    label: "Falta de Atenção",
+    desc: "Sabia a teoria, mas caí em pegadinha ou li com pressa.",
+    icon: Eye,
+    color: "text-amber-400 border-amber-500/30 bg-amber-500/10",
+    bgActive: "border-amber-500 bg-amber-500/20 text-amber-200",
+  },
+  {
+    key: "MISINTERPRETATION",
+    label: "Erro de Interpretação",
+    desc: "Interpretei errado o enunciado ou o comando da questão.",
+    icon: AlertCircle,
+    color: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10",
+    bgActive: "border-cyan-500 bg-cyan-500/20 text-cyan-200",
+  },
+  {
+    key: "TIME_PRESSURE",
+    label: "Pressão de Tempo",
+    desc: "Faltou tempo para calcular ou analisar as opções com calma.",
+    icon: Clock,
+    color: "text-rose-400 border-rose-500/30 bg-rose-500/10",
+    bgActive: "border-rose-500 bg-rose-500/20 text-rose-200",
+  },
+];
 
 const renderEnunciado = (texto: string) => {
   if (!texto) return null;
@@ -67,11 +114,11 @@ export function QuestionCard({
   onAnswerQuestion,
   onCreateFlashcard,
   onToggleFlag,
+  onClassifyError,
 }: QuestionCardProps) {
-  const [eliminatedAlts, setEliminatedAlts] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [eliminatedAlts, setEliminatedAlts] = useState<Record<string, boolean>>({});
   const [showErrorDiagnosis, setShowErrorDiagnosis] = useState(false);
+  const [selectedReason, setSelectedReason] = useState<ErrorClassification | null>(null);
 
   const toggleEliminate = (e: React.MouseEvent, altId: string) => {
     e.stopPropagation();
@@ -80,8 +127,13 @@ export function QuestionCard({
   };
 
   const acertou = alternativaSelecionada === questao.gabaritoCorreto;
-  const qtdOpcoes =
-    questao.formato === "multipla" ? questao.alternativas?.length || 4 : 2;
+
+  const handleSelectReason = (reason: ErrorClassification) => {
+    setSelectedReason(reason);
+    if (onClassifyError) {
+      onClassifyError(reason);
+    }
+  };
 
   const getCardStyle = () => {
     if (isFocused) {
@@ -175,7 +227,7 @@ export function QuestionCard({
         {renderEnunciado(questao.enunciado)}
       </p>
 
-      {/* ALTERNATIVAS COM ÁREA DE TOQUE OTIMIZADA */}
+      {/* ALTERNATIVAS */}
       <div className="space-y-2.5 mb-6">
         {questao.formato === "multipla"
           ? questao.alternativas?.map((alt, altIdx) => {
@@ -291,7 +343,7 @@ export function QuestionCard({
             })}
       </div>
 
-      {/* RODAPÉ E BOTÃO DE SUBMISSÃO */}
+      {/* RODAPÉ / BOTÃO DE SUBMISSÃO */}
       <div className="flex flex-col gap-4">
         {!respondida ? (
           <div className="flex items-center justify-between border-t border-slate-800/60 pt-4 gap-4">
@@ -352,11 +404,15 @@ export function QuestionCard({
                   <button
                     type="button"
                     onClick={() => setShowErrorDiagnosis(true)}
-                    className="w-full sm:w-auto px-3 py-2 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shadow-xs"
-                    title="Ver pegadinha da banca e diagnóstico de erro"
+                    className={`w-full sm:w-auto px-3 py-2 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shadow-xs ${
+                      selectedReason
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                        : "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300"
+                    }`}
+                    title="Ver pegadinha da banca e diagnosticar motivo do erro"
                   >
-                    <Brain size={13} className="text-amber-400" />
-                    <span>Por que errei? 🧠</span>
+                    <Brain size={13} className={selectedReason ? "text-emerald-400" : "text-amber-400"} />
+                    <span>{selectedReason ? "Diagnóstico Salvo ✓" : "Por que errei? 🧠"}</span>
                   </button>
 
                   <button
@@ -404,7 +460,7 @@ export function QuestionCard({
       <AnimatePresence>
         {showErrorDiagnosis && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
             onClick={() => setShowErrorDiagnosis(false)}
           >
             <motion.div
@@ -426,7 +482,7 @@ export function QuestionCard({
                       Diagnóstico de Erro & Ponto Cego 🧠
                     </h3>
                     <p className="text-[11px] text-slate-400 font-medium">
-                      Questão {index + 1} • Análise cognitiva imediata
+                      Questão {index + 1} • Classifique seu motivo para calibrar a IA
                     </p>
                   </div>
                 </div>
@@ -456,6 +512,46 @@ export function QuestionCard({
                     <span className="font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
                       {questao.gabaritoCorreto}
                     </span>
+                  </div>
+                </div>
+
+                {/* Bloco: Seleção do Motivo do Erro */}
+                <div className="space-y-2">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 block">
+                    Qual foi a causa principal do erro?
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {ERROR_TAXONOMY.map((reason) => {
+                      const Icon = reason.icon;
+                      const isChosen = selectedReason === reason.key;
+                      return (
+                        <button
+                          key={reason.key}
+                          type="button"
+                          onClick={() => handleSelectReason(reason.key)}
+                          className={`cursor-pointer p-3 rounded-xl border text-left transition-all flex items-start gap-2.5 ${
+                            isChosen
+                              ? reason.bgActive
+                              : "border-white/5 bg-slate-950/60 hover:bg-slate-900/60 hover:border-white/15"
+                          }`}
+                        >
+                          <div className={`p-1.5 rounded-lg border shrink-0 ${reason.color}`}>
+                            <Icon size={14} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-100 leading-tight">
+                                {reason.label}
+                              </span>
+                              {isChosen && <Check size={13} className="text-emerald-400 shrink-0" />}
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">
+                              {reason.desc}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -493,7 +589,7 @@ export function QuestionCard({
                 <button
                   type="button"
                   onClick={() => setShowErrorDiagnosis(false)}
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-950/40"
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-950/40 active:scale-95"
                 >
                   Entendi o erro
                 </button>

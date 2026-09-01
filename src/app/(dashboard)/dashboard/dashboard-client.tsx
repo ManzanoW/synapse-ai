@@ -341,14 +341,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const displayedSubjects = subjects.slice(0, 4);
 
   return (
-    <div className="min-h-screen w-full bg-[#02050e] p-3 sm:p-4 md:p-8 font-sans text-slate-100 selection:bg-indigo-500/30">
-      <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+    <div className="min-h-screen w-full bg-transparent p-4 sm:p-6 md:p-8 font-sans text-slate-100 selection:bg-indigo-500/30">
+      <div className="mx-auto max-w-7xl space-y-6">
+        
         {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               onClick={openSidebar}
-              className="cursor-pointer rounded-xl border border-white/10 bg-slate-900/80 p-2.5 text-slate-400 transition-colors hover:text-white md:hidden"
+              className="cursor-pointer rounded-xl border border-white/10 bg-slate-900/60 p-2.5 text-slate-400 transition-colors hover:text-white md:hidden"
             >
               <Menu size={18} />
             </button>
@@ -357,9 +358,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-white">
                 Dashboard
               </h1>
-              <p className="mt-0.5 text-xs text-slate-300">
+              <p className="mt-0.5 text-xs text-slate-400">
                 Bem-vindo de volta,{" "}
-                <strong className="font-bold text-indigo-400">
+                <strong className="font-bold text-slate-200">
                   {user.name || "Estudante"}
                 </strong>
               </p>
@@ -369,7 +370,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsZenModeOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-2.5 text-xs font-bold text-violet-300 backdrop-blur-xl transition-all hover:bg-violet-500/20 active:scale-95"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:bg-white/[0.08] hover:border-white/20 active:scale-95"
             >
               <Maximize2 size={14} className="text-violet-400" />
               <span>Modo Zen</span>
@@ -377,7 +378,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             <Link
               href={!isLoading && hasEditalSubjects ? "/flashcards" : "/edital"}
-              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-500 hover:to-purple-500 active:scale-95"
+              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/20 transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-95"
             >
               <Zap size={14} className="fill-white" />
               <span>
@@ -391,28 +392,25 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </div>
 
-        {/* ================= ATALHOS RÁPIDOS (APENAS DESKTOP) ================= */}
+        {/* ================= ATALHOS RÁPIDOS ================= */}
         <div className="hidden md:grid grid-cols-4 gap-3">
           {[
             {
               title: "Resolver Questões",
               icon: HelpCircle,
               color: "text-amber-400",
-              bg: "bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40",
               href: "/questions",
             },
             {
               title: "Praticar Cards",
               icon: Layers,
               color: "text-indigo-400",
-              bg: "bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/40",
               href: "/flashcards",
             },
             {
               title: "Edital Verticalizado",
               icon: BookOpen,
               color: "text-cyan-400",
-              bg: "bg-cyan-500/10 border-cyan-500/20 hover:border-cyan-500/40",
               href: "/edital",
               badge: !isLoading && !hasEditalSubjects ? "Passo 1" : undefined,
             },
@@ -420,7 +418,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               title: "Hall de Conquistas",
               icon: Trophy,
               color: "text-emerald-400",
-              bg: "bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40",
               href: "/achievements",
             },
           ].map((item, idx) => {
@@ -429,18 +426,18 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <Link
                 key={idx}
                 href={item.href}
-                className={`relative flex items-center justify-between gap-2 rounded-2xl border p-3 backdrop-blur-xl transition-all duration-200 active:scale-95 ${item.bg}`}
+                className="relative flex items-center justify-between gap-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 p-3.5 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-slate-900/40 active:scale-[0.98]"
               >
-                <div className="flex min-w-0 items-center gap-2">
-                  <div className={`shrink-0 rounded-xl p-2 ${item.color}`}>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className={`shrink-0 rounded-xl p-2 bg-white/[0.03] border border-white/5 ${item.color}`}>
                     <Icon size={16} />
                   </div>
-                  <span className="text-xs font-bold text-slate-200 leading-tight">
+                  <span className="text-xs font-bold text-slate-200 truncate">
                     {item.title}
                   </span>
                 </div>
                 {item.badge && (
-                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
+                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
                     {item.badge}
                   </span>
                 )}
@@ -464,9 +461,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           )}
 
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
-        <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] p-4 sm:p-6 shadow-2xl backdrop-blur-2xl">
+        <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+          <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+
           {/* LAYOUT MOBILE */}
-          <div className="grid grid-cols-3 gap-2 text-center divide-x divide-white/10 md:hidden">
+          <div className="grid grid-cols-3 gap-2 text-center divide-x divide-white/5 md:hidden">
             <div className="px-1">
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">
                 Dias
@@ -507,7 +506,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                   Tempo Restante
                 </span>
-                <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
+                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-2 text-indigo-400">
                   <Target size={18} />
                 </div>
               </div>
@@ -523,9 +522,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
-                <span className="font-medium">Semanas até a prova:</span>
-                <strong className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono font-bold text-slate-200">
+              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+                <span>Semanas até a prova:</span>
+                <strong className="font-mono text-slate-200">
                   {stats?.journey?.weeksRemaining ?? 0} sem
                 </strong>
               </div>
@@ -535,10 +534,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             <div className="flex flex-col justify-between space-y-4 px-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400/90">
                   Ritmo Sugerido
                 </span>
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 text-amber-400">
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2 text-amber-400">
                   <Zap size={18} className="fill-amber-400/20" />
                 </div>
               </div>
@@ -556,9 +555,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
-                <span className="font-medium">Ritmo atual:</span>
-                <strong className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 font-mono font-bold text-amber-300">
+              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+                <span>Ritmo atual:</span>
+                <strong className="font-mono text-amber-300/90">
                   {hasEditalSubjects
                     ? `${stats?.journey?.currentPace ?? 0.0} / sem`
                     : "—"}
@@ -573,7 +572,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                   Progresso do Edital
                 </span>
-                <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400">
+                <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400">
                   <TrendingUp size={18} />
                 </div>
               </div>
@@ -591,9 +590,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </span>
                 </div>
 
-                <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/80 p-0.5">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
                   <div
-                    className="h-full rounded-full bg-linear-to-r from-cyan-500 to-emerald-400 shadow-[0_0_12px_rgba(34,211,238,0.6)]"
+                    className="h-full rounded-full bg-linear-to-r from-cyan-500 to-emerald-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"
                     style={{
                       width: `${Math.max(3, stats?.journey?.percentage ?? 0)}%`,
                     }}
@@ -601,9 +600,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
-                <span className="font-medium">Status:</span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 text-[11px] font-bold text-indigo-300">
+              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+                <span>Status:</span>
+                <span className="inline-flex items-center gap-1.5 font-bold text-indigo-300">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
                   {!hasEditalSubjects
                     ? "Não Iniciado"
@@ -616,9 +615,33 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         </section>
 
-        {/* ================= 3. SELETOR DE ABAS E CONTEÚDO EXCLUSIVO MOBILE ================= */}
+        {/* ================= 3. ONBOARDING DISCRETO ================= */}
+        {!isLoading && !hasEditalSubjects && (
+          <div className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl">
+            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-500/40 to-transparent" />
+            <div className="relative z-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="max-w-lg space-y-1.5">
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-amber-300">
+                  <Lock size={12} /> Onboarding Requerido
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-white">
+                  Configure seu Edital para Ativar a IA
+                </h3>
+              </div>
+              <Link
+                href="/edital"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-500/20 shrink-0 hover:bg-amber-400 transition-all"
+              >
+                <BookOpen size={15} />
+                <span>Cadastrar Edital</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ================= 4. SELETOR DE ABAS E CONTEÚDO EXCLUSIVO MOBILE ================= */}
         <div className="block md:hidden space-y-4">
-          <div className="flex items-center p-1 bg-[#090d16] border border-white/10 rounded-2xl">
+          <div className="flex items-center p-1 bg-slate-950/60 border border-white/[0.08] rounded-2xl">
             <button
               type="button"
               onClick={() => setMobileTab("missions")}
@@ -659,12 +682,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           {mobileTab === "stats" && (
             <div className="space-y-4">
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
                 <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
                     Estatísticas Chave
                   </span>
-                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
+                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
                     <Zap size={11} /> Tempo Real
                   </span>
                 </div>
@@ -686,7 +709,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         {stats?.metrics?.precision || "0%"}
                       </span>
                     </div>
-                    <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
                       <div
                         className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
                         style={{ width: stats?.metrics?.precision || "0%" }}
@@ -695,8 +718,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4 text-center">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Sessões
                     </span>
@@ -704,7 +727,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       {stats?.metrics?.sessionsCount ?? 0}
                     </span>
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Questões
                     </span>
@@ -712,7 +735,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       {stats?.metrics?.questionsCount ?? 0}
                     </span>
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Méd/Dia
                     </span>
@@ -723,7 +746,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <DomainRadarChart subjects={subjects} isLoading={isLoading} />
+              <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">
+                <DomainRadarChart subjects={subjects} isLoading={isLoading} />
+              </div>
             </div>
           )}
 
@@ -731,9 +756,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <div className="space-y-4">
               <Link
                 href="/achievements"
-                className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl"
+                className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
               >
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400">
                       {level}
@@ -760,16 +785,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     </span>
                   </div>
 
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
                     <div
                       style={{ width: `${levelProgressPercent}%` }}
-                      className="h-full rounded-full bg-amber-500"
+                      className="h-full rounded-full bg-linear-to-r from-amber-500 to-amber-400"
                     />
                   </div>
                 </div>
               </Link>
 
-              <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
+              <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
                 <Link href="/performance" className="block space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase text-slate-400">
@@ -779,7 +804,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       {stats?.weeklyGoal?.percentage ?? 0}%
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
                     <div
                       className="h-full rounded-full bg-indigo-500"
                       style={{
@@ -802,7 +827,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <button
                       onClick={() => setIsStreakFreezeModalOpen(true)}
                       title="Trava de Sequência"
-                      className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 transition-all hover:border-cyan-500/50 hover:bg-cyan-500/20"
+                      className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 transition-all hover:bg-cyan-500/20"
                     >
                       <Snowflake size={11} className="animate-spin-slow" />
                       {streakFreezeCount}
@@ -829,45 +854,26 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           )}
         </div>
 
-        {/* ================= 4. LAYOUT DESKTOP & DEMAIS COMPONENTES ================= */}
+        {/* ================= 5. GRID PRINCIPAL (DESKTOP) ================= */}
         <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-12">
+          
           {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
           <div className="space-y-6 lg:col-span-8">
-            {/* ONBOARDING BANNER */}
-            {!isLoading && !hasEditalSubjects && (
-              <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl">
-                <div className="relative z-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                  <div className="max-w-lg space-y-1.5">
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-amber-300">
-                      <Lock size={12} /> Onboarding Requerido
-                    </div>
-                    <h3 className="text-base sm:text-lg font-black text-white">
-                      Configure seu Edital para Ativar a IA
-                    </h3>
-                  </div>
-                  <Link
-                    href="/edital"
-                    className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-extrabold text-slate-950 shadow-lg shrink-0"
-                  >
-                    <BookOpen size={15} />
-                    <span>Cadastrar Edital</span>
-                  </Link>
-                </div>
-              </div>
-            )}
-
+            
             {/* PAINEL DUPLO APENAS NO DESKTOP */}
             <div className="hidden md:grid grid-cols-2 gap-6">
               {/* CARD 1: Missões do Dia */}
               <DailyQuestsWidget />
 
               {/* CARD 2: Métricas de Desempenho */}
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                
                 <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
                     Estatísticas Chave
                   </span>
-                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
+                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
                     <Zap size={11} /> Tempo Real
                   </span>
                 </div>
@@ -889,7 +895,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         {stats?.metrics?.precision || "0%"}
                       </span>
                     </div>
-                    <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
                       <div
                         className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
                         style={{ width: stats?.metrics?.precision || "0%" }}
@@ -898,8 +904,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4 text-center">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Sessões
                     </span>
@@ -907,7 +913,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       {stats?.metrics?.sessionsCount ?? 0}
                     </span>
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Questões
                     </span>
@@ -915,7 +921,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       {stats?.metrics?.questionsCount ?? 0}
                     </span>
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Méd/Dia
                     </span>
@@ -928,37 +934,39 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
 
             {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
-            <DomainRadarChart subjects={subjects} isLoading={isLoading} />
+            <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+              <DomainRadarChart subjects={subjects} isLoading={isLoading} />
+            </div>
 
             {/* CARD 3: Sugestões com IA */}
             {!isLoading && hasEditalSubjects && (
-              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl">
+              <div className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400">
-                      <Sparkles size={18} className="animate-pulse" />
+                    <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400">
+                      <Sparkles size={18} />
                     </div>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
                       Sugestões Inteligentes da IA
                     </h3>
                   </div>
-                  <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[9px] font-bold text-cyan-300">
+                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[9px] font-bold text-cyan-300">
                     Synapse Neural
                   </span>
                 </div>
 
                 <div className="space-y-3">
                   {suggestions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 py-4 text-center">
-                      <p className="text-xs text-slate-400">
-                        Seu cronograma está 100% otimizado!
-                      </p>
+                    <div className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-xs text-slate-400">
+                      Seu cronograma está 100% otimizado!
                     </div>
                   ) : (
                     suggestions.map((item: Suggestion) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-slate-950/60 p-3"
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3 hover:border-white/10 transition-colors"
                       >
                         <Link
                           href={getSuggestionUrl(item)}
@@ -984,7 +992,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <button
                   onClick={handleOptimizeSchedule}
                   disabled={isOptimizing}
-                  className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 py-2.5 text-xs font-bold text-cyan-300"
+                  className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 py-2.5 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20 transition-all"
                 >
                   {isOptimizing
                     ? "Otimizando..."
@@ -994,7 +1002,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             )}
 
             {/* CARD 4: Minhas Matérias */}
-            <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl">
+            <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl relative">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+              
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <BookOpen size={18} className="text-indigo-400" />
@@ -1004,7 +1014,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
                 <Link
                   href="/edital"
-                  className="text-xs font-semibold text-indigo-400"
+                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
                 >
                   Ver todas ({subjects.length})
                 </Link>
@@ -1037,18 +1047,21 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           {/* BARRA LATERAL DIREITA (`lg:col-span-4` - APENAS DESKTOP) */}
           <div className="hidden md:block space-y-6 lg:col-span-4">
+            
             {/* GAMIFICAÇÃO & NÍVEL */}
             <Link
               href="/achievements"
-              className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl"
+              className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-400/50 to-transparent" />
+              
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
                     {level}
                   </div>
                   <div>
-                    <span className="block text-[9px] font-bold uppercase text-amber-400">
+                    <span className="block text-[9px] font-bold uppercase text-amber-400/90">
                       Nível Atual
                     </span>
                     <h3 className="text-xs font-bold text-white">
@@ -1069,17 +1082,19 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </span>
                 </div>
 
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
                   <div
                     style={{ width: `${levelProgressPercent}%` }}
-                    className="h-full rounded-full bg-amber-500"
+                    className="h-full rounded-full bg-linear-to-r from-amber-500 to-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
                   />
                 </div>
               </div>
             </Link>
 
             {/* META SEMANAL & CONSTÂNCIA */}
-            <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
+            <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+              
               <Link href="/performance" className="block space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase text-slate-400">
@@ -1089,7 +1104,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     {stats?.weeklyGoal?.percentage ?? 0}%
                   </span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
                   <div
                     className="h-full rounded-full bg-indigo-500"
                     style={{ width: `${stats?.weeklyGoal?.percentage ?? 0}%` }}
@@ -1110,7 +1125,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <button
                     onClick={() => setIsStreakFreezeModalOpen(true)}
                     title="Trava de Sequência"
-                    className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 transition-all hover:border-cyan-500/50 hover:bg-cyan-500/20"
+                    className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/20 transition-all"
                   >
                     <Snowflake size={11} className="animate-spin-slow" />
                     {streakFreezeCount}
@@ -1137,12 +1152,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* POMODORO TIMER COM GATILHO MODO ZEN */}
             <div
               id="pomodoro"
-              className="rounded-3xl border border-white/10 bg-[#090d16] p-4 relative"
+              className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-4 shadow-2xl backdrop-blur-2xl relative"
             >
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+              
               <div className="flex justify-end pb-2">
                 <button
                   onClick={() => setIsZenModeOpen(true)}
-                  className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 text-[11px] font-mono font-bold text-violet-300 hover:bg-violet-500/20 transition-all active:scale-95"
+                  className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-mono font-bold text-slate-300 hover:bg-white/[0.08] transition-all active:scale-95"
                 >
                   <Maximize2 size={12} className="text-violet-400" />
                   <span>Modo Zen</span>
@@ -1152,7 +1169,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
 
             {/* HEATMAP */}
-            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
+            <div className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
               <Heatmap />
             </div>
           </div>
@@ -1161,7 +1179,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         {/* POMODORO DOBRÁVEL APENAS NO MOBILE */}
         <div
           id="pomodoro-mobile"
-          className="block md:hidden rounded-3xl border border-white/10 bg-[#090d16] p-2 sm:p-4"
+          className="block md:hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-3 shadow-2xl backdrop-blur-2xl"
         >
           <div className="flex items-center justify-between p-2">
             <button
@@ -1191,7 +1209,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         </div>
 
         {/* HEATMAP NO MOBILE */}
-        <div className="block md:hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
+        <div className="block md:hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
           <Heatmap />
         </div>
       </div>
