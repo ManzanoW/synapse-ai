@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { invalidateUserCacheAction } from "@/actions/gamification-actions";
+import { trackQuestProgressAction } from "@/actions/quest-actions";
 import {
   SubmitQuizAttemptInput,
   SubjectDomainMetric,
@@ -78,7 +79,10 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
       },
     });
 
-    // 3. Revalida caches
+    // 3. Atualiza progresso das Missões Diárias
+    await trackQuestProgressAction("QUESTIONS_SOLVED", input.totalQuestions);
+
+    // 4. Revalida caches
     await invalidateUserCacheAction(userId);
 
     return {
