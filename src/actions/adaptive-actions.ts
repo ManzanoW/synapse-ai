@@ -237,3 +237,80 @@ export async function autoRebalanceFromPerformanceAction(
     };
   }
 }
+
+export interface RebalanceAlertStatus {
+  needsRebalance: boolean;
+  criticalSubjects: {
+    id: string;
+    name: string;
+    accuracy: number;
+    totalQuestions: number;
+  }[];
+}
+
+/**
+ * Consulta se o usuário possui matérias com acurácia crítica (< 65%)
+ * para sugerir rebalanceamento preventivo
+ */
+export async function checkRebalanceNeedsAction(): Promise<{
+  success: boolean;
+  data?: RebalanceAlertStatus;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const subjects = await prisma.subject.findMany({
+      where: { userId },
+      include: {
+        topics: {
+          include: {
+            quizAttempts: true,
+          },
+        },
+      },
+    });
+
+    const criticalList: RebalanceAlertStatus["criticalSubjects"] = [];
+
+    for (const subject of subjects) {
+      let total = 0;
+      let correct = 0;
+
+      subject.topics.forEach((t) => {
+        t.quizAttempts.forEach((a) => {
+          total += a.totalCount;
+          correct += a.correctCount;
+        });
+      });
+
+      if (total >= 5) {
+        const accuracy = Math.round((correct / total) * 100);
+        if (accuracy < 65) {
+          criticalList.push({
+            id: subject.id,
+            name: subject.name,
+            accuracy,
+            totalQuestions: total,
+          });
+        }
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        needsRebalance: criticalList.length > 0,
+        criticalSubjects: criticalList,
+      },
+    };
+  } catch (err) {
+    console.error("Erro em checkRebalanceNeedsAction:", err);
+    return { success: false, error: "Falha ao verificar rebalanceamento." };
+  }
+}
