@@ -8,7 +8,6 @@ const ai = new GoogleGenAI({ apiKey });
 // 🔗 Lista completa ordenada por prioridade estratégica (Cota alta primeiro, modelos menores depois)
 const MODELS_CASCADE = [
   // Camada 1: Grande Volume (1.000 requisições/dia somadas)
-  "gemini-3.7-flash-lite", // 500 RPD | 15 RPM
   "gemini-3.5-flash-lite", // 500 RPD | 15 RPM
   "gemini-3.1-flash-lite", // 500 RPD | 15 RPM
 
