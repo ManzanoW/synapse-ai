@@ -10,9 +10,20 @@ import {
 } from "@/types/adaptive";
 import { revalidateTag, revalidatePath } from "next/cache";
 
+export interface RebalanceComparisonItem {
+  subjectId: string;
+  subjectName: string;
+  accuracyPercentage: number;
+  previousWeeklyMinutes: number;
+  newWeeklyMinutes: number;
+  diffMinutes: number;
+}
+
 export interface RebalanceActionResult {
   success: boolean;
   data?: AdaptiveAdjustment[];
+  comparison?: RebalanceComparisonItem[];
+  totalWeeklyHours?: number;
   error?: string;
 }
 
@@ -106,7 +117,8 @@ export async function rebalanceScheduleAction(
 
 /**
  * Rebalanceamento Preditivo Automático:
- * Analisa as tentativas reais (QuizAttempts) no banco de dados e recalibra a semana
+ * Analisa as tentativas reais (QuizAttempts) no banco de dados,
+ * recalibra a semana e gera o comparativo "Antes vs. Depois"
  */
 export async function autoRebalanceFromPerformanceAction(
   userIdParam?: string,
@@ -199,10 +211,25 @@ export async function autoRebalanceFromPerformanceAction(
 
     const adjustments = calculateAdaptiveRebalance(rebalanceParams);
 
-    // 4. Grava os novos tempos calibrados no banco
+    // 4. Monta a lista comparativa Antes vs. Depois e grava os novos tempos calibrados no banco
+    const comparison: RebalanceComparisonItem[] = [];
+
     for (const adj of adjustments) {
       if (adj.subjectId) {
         const newMinutes = adj.adjustedMinutes;
+        const originalPerf = performances.find((p) => p.subjectId === adj.subjectId);
+        const previousMinutes = originalPerf?.targetWeeklyMinutes ?? 120;
+        const diff = newMinutes - previousMinutes;
+
+        comparison.push({
+          subjectId: adj.subjectId,
+          subjectName: adj.subjectName,
+          accuracyPercentage: originalPerf?.accuracyPercentage ?? 70,
+          previousWeeklyMinutes: previousMinutes,
+          newWeeklyMinutes: newMinutes,
+          diffMinutes: diff,
+        });
+
         await prisma.subject.updateMany({
           where: { id: adj.subjectId, userId },
           data: {
@@ -211,6 +238,9 @@ export async function autoRebalanceFromPerformanceAction(
         });
       }
     }
+
+    // Ordena o comparativo priorizando as matérias que ganharam reforço (+ minutos)
+    comparison.sort((a, b) => b.diffMinutes - a.diffMinutes);
 
     // 5. Revalida caches
     try {
@@ -225,6 +255,8 @@ export async function autoRebalanceFromPerformanceAction(
     return {
       success: true,
       data: adjustments,
+      comparison,
+      totalWeeklyHours,
     };
   } catch (err) {
     console.error("Erro em autoRebalanceFromPerformanceAction:", err);
