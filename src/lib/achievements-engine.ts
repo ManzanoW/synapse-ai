@@ -8,7 +8,7 @@ export async function getUserAchievementsProgress(userId: string) {
       where: { userId },
     });
 
-    const [reviewCount, quizCount] = await Promise.all([
+    const [reviewCount, quizCount, claimedQuestsCount] = await Promise.all([
       prisma.reviewHistory.count({
         where: {
           topic: {
@@ -20,6 +20,9 @@ export async function getUserAchievementsProgress(userId: string) {
       }),
       prisma.quizAttempt.count({
         where: { userId },
+      }),
+      prisma.dailyQuest.count({
+        where: { userId, claimed: true },
       }),
     ]);
 
@@ -37,7 +40,24 @@ export async function getUserAchievementsProgress(userId: string) {
     const progressList = ACHIEVEMENTS.map((badge) => {
       let currentValue = 0;
 
-      if (
+      if (badge.id === "quest_master_10") {
+        currentValue = claimedQuestsCount;
+      } else if (
+        badge.id === "adaptive_pioneer" ||
+        badge.category === "ADAPTIVE"
+      ) {
+        // Marcado como desbloqueado se o evento 'adaptive_pioneer_unlocked' ou a badge já foi resgatada
+        currentValue =
+          claimedIds.includes("adaptive_pioneer_unlocked") ||
+          claimedIds.includes(badge.id)
+            ? 1
+            : 0;
+      } else if (
+        badge.id === "quiz_sharpshooter" ||
+        badge.category === "SIMULADO"
+      ) {
+        currentValue = quizCount;
+      } else if (
         badge.id === "level_5" ||
         badge.id.startsWith("level_") ||
         badge.category === "MASTERY"
@@ -49,8 +69,6 @@ export async function getUserAchievementsProgress(userId: string) {
         currentValue = currentStreak;
       } else if (badge.category === "REVIEWS") {
         currentValue = reviewCount;
-      } else if (badge.id.includes("quiz") || badge.id.includes("simulado")) {
-        currentValue = quizCount;
       }
 
       const isUnlocked = currentValue >= badge.targetValue;

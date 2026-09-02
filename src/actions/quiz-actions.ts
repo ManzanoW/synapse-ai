@@ -4,10 +4,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
-import {
-  SubmitQuizAttemptInput,
-  SubjectDomainMetric,
-} from "@/types/quiz";
+import { revalidatePath } from "next/cache";
+import { SubmitQuizAttemptInput, SubjectDomainMetric } from "@/types/quiz";
 
 export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
   try {
@@ -34,12 +32,13 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
     if (!targetTopicId) {
       return {
         success: false,
-        error: "Nenhum tópico cadastrado no edital para vincular a esta tentativa.",
+        error:
+          "Nenhum tópico cadastrado no edital para vincular a esta tentativa.",
       };
     }
 
     const accuracyPercentage = Math.round(
-      (input.correctAnswers / Math.max(1, input.totalQuestions)) * 100
+      (input.correctAnswers / Math.max(1, input.totalQuestions)) * 100,
     );
 
     // XP: 20 XP por acerto + bônus de 50 XP para precisão >= 80%
@@ -82,8 +81,13 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
     // 3. Atualiza progresso das Missões Diárias
     await trackQuestProgressAction("QUESTIONS_SOLVED", input.totalQuestions);
 
-    // 4. Revalida caches
+    // 4. Revalida caches e rota de conquistas
     await invalidateUserCacheAction(userId);
+    try {
+      revalidatePath("/achievements");
+    } catch {
+      // Ignora erro fora de contexto HTTP
+    }
 
     return {
       success: true,

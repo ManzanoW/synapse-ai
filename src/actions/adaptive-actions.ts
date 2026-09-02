@@ -118,7 +118,7 @@ export async function rebalanceScheduleAction(
 /**
  * Rebalanceamento Preditivo Automático:
  * Analisa as tentativas reais (QuizAttempts) no banco de dados,
- * recalibra a semana e gera o comparativo "Antes vs. Depois"
+ * recalibra a semana, gera o comparativo "Antes vs. Depois" e registra conquista
  */
 export async function autoRebalanceFromPerformanceAction(
   userIdParam?: string,
@@ -183,7 +183,7 @@ export async function autoRebalanceFromPerformanceAction(
       const accuracyPercentage =
         totalQuestions > 0
           ? Math.round((totalCorrect / totalQuestions) * 100)
-          : 70; // 70% neutro se ainda não tiver questões resolvidas
+          : 70;
 
       const targetWeeklyMinutes = Math.round(
         (totalWeeklyMinutes * (subject.priority || 1)) /
@@ -217,7 +217,9 @@ export async function autoRebalanceFromPerformanceAction(
     for (const adj of adjustments) {
       if (adj.subjectId) {
         const newMinutes = adj.adjustedMinutes;
-        const originalPerf = performances.find((p) => p.subjectId === adj.subjectId);
+        const originalPerf = performances.find(
+          (p) => p.subjectId === adj.subjectId,
+        );
         const previousMinutes = originalPerf?.targetWeeklyMinutes ?? 120;
         const diff = newMinutes - previousMinutes;
 
@@ -239,15 +241,42 @@ export async function autoRebalanceFromPerformanceAction(
       }
     }
 
-    // Ordena o comparativo priorizando as matérias que ganharam reforço (+ minutos)
     comparison.sort((a, b) => b.diffMinutes - a.diffMinutes);
 
-    // 5. Revalida caches
+    // 5. Registra o evento para desbloqueio da conquista "Estrategista Adaptativo"
+    try {
+      const userStats = await prisma.userStats.findUnique({
+        where: { userId },
+        select: { claimedAchievements: true },
+      });
+
+      const claimedList = (userStats?.claimedAchievements || "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+
+      if (!claimedList.includes("adaptive_pioneer_unlocked")) {
+        claimedList.push("adaptive_pioneer_unlocked");
+        await prisma.userStats.upsert({
+          where: { userId },
+          update: { claimedAchievements: claimedList.join(",") },
+          create: { userId, claimedAchievements: claimedList.join(",") },
+        });
+      }
+    } catch (achieveErr) {
+      console.warn(
+        "Aviso ao registrar conquista de rebalanceamento:",
+        achieveErr,
+      );
+    }
+
+    // 6. Revalida caches
     try {
       (revalidateTag as (tag: string) => void)(`user-schedule-${userId}`);
       revalidatePath("/week");
       revalidatePath("/performance");
       revalidatePath("/dashboard");
+      revalidatePath("/achievements");
     } catch {
       // Ignora erro fora de contexto HTTP
     }
