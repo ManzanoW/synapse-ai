@@ -1,10 +1,11 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
 import {
   AchievementToast,
   ToastAchievement,
-} from "@/components/achievements/achievement-toast";
+} from "@/components/gamification/AchievementToast";
+import { GamificationContext } from "@/context/GamificationContext";
 
 interface AchievementContextType {
   notifyAchievement: (achievement: ToastAchievement) => void;
@@ -19,20 +20,31 @@ export function AchievementProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [activeAchievement, setActiveAchievement] =
+  const gamification = useContext(GamificationContext);
+  const [fallbackAchievement, setFallbackAchievement] =
     useState<ToastAchievement | null>(null);
 
-  const notifyAchievement = (achievement: ToastAchievement) => {
-    setActiveAchievement(achievement);
-  };
+  const notifyAchievement = useCallback(
+    (achievement: ToastAchievement) => {
+      if (gamification?.triggerAchievementNotification) {
+        gamification.triggerAchievementNotification(achievement);
+      } else {
+        setFallbackAchievement(achievement);
+      }
+    },
+    [gamification],
+  );
 
   return (
     <AchievementContext.Provider value={{ notifyAchievement }}>
       {children}
-      <AchievementToast
-        achievement={activeAchievement}
-        onClose={() => setActiveAchievement(null)}
-      />
+      {/* Se não estiver envolto por GamificationProvider, renderiza o toast localmente */}
+      {!gamification && (
+        <AchievementToast
+          achievement={fallbackAchievement}
+          onClose={() => setFallbackAchievement(null)}
+        />
+      )}
     </AchievementContext.Provider>
   );
 }

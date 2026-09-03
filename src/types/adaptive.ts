@@ -27,3 +27,12 @@ export interface AdaptiveAdjustment {
   reason: string;
   type: "REINFORCEMENT" | "REDUCTION" | "REBALANCE";
 }
+
+export interface SubjectDeficitMetrics {
+  subjectId: string;
+  subjectName: string;
+  deficitScore: number; // 0.0 a 1.0
+  isCritical: boolean; // acurácia < 65% ou déficit >= 0.35
+  urgencyMultiplier: number;
+}
+

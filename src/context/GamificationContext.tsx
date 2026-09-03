@@ -6,8 +6,14 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import { getUserStatsAction } from "@/actions/gamification-actions";
+import { Achievement } from "@/lib/achievements";
+import {
+  AchievementToast,
+  ToastAchievement,
+} from "@/components/gamification/AchievementToast";
 
 export interface WeekDay {
   dayLabel: string;
@@ -41,9 +47,10 @@ export interface GamificationContextType {
   isLoading: boolean;
   refreshStats: (targetUserId?: string) => Promise<void>;
   updateStats?: (partial: Partial<StatsData["gamification"]>) => void;
+  triggerAchievementNotification: (badge: Achievement | ToastAchievement) => void;
 }
 
-const GamificationContext = createContext<GamificationContextType | undefined>(
+export const GamificationContext = createContext<GamificationContextType | undefined>(
   undefined,
 );
 
@@ -56,6 +63,43 @@ export function GamificationProvider({
 }) {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeAchievement, setActiveAchievement] =
+    useState<ToastAchievement | null>(null);
+  const achievementQueueRef = useRef<ToastAchievement[]>([]);
+
+  const triggerAchievementNotification = useCallback(
+    (badge: Achievement | ToastAchievement) => {
+      const item: ToastAchievement = {
+        id: badge.id,
+        title: badge.title,
+        description: badge.description,
+        icon: badge.icon,
+        xpReward: badge.xpReward,
+      };
+
+      setActiveAchievement((current) => {
+        if (!current) {
+          return item;
+        }
+        // Enfileira se já houver uma notificação em andamento
+        achievementQueueRef.current.push(item);
+        return current;
+      });
+    },
+    [],
+  );
+
+  const handleCloseToast = useCallback(() => {
+    setActiveAchievement(null);
+    if (achievementQueueRef.current.length > 0) {
+      const next = achievementQueueRef.current.shift();
+      if (next) {
+        setTimeout(() => {
+          setActiveAchievement(next);
+        }, 200);
+      }
+    }
+  }, []);
 
   const refreshStats = useCallback(
     async (targetUserId?: string) => {
@@ -125,9 +169,14 @@ export function GamificationProvider({
         isLoading,
         refreshStats,
         updateStats,
+        triggerAchievementNotification,
       }}
     >
       {children}
+      <AchievementToast
+        achievement={activeAchievement}
+        onClose={handleCloseToast}
+      />
     </GamificationContext.Provider>
   );
 }

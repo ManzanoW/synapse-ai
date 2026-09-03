@@ -19,6 +19,11 @@ export interface SubjectInput {
   interval?: number;
   easiness?: number;
   topics?: Topic[];
+  allocatedMinutes?: number;
+  targetWeeklyMinutes?: number;
+  accuracyPercentage?: number;
+  performance?: number;
+  deficit?: number;
 }
 
 export interface ScheduledSubject extends SubjectInput {
@@ -291,13 +296,259 @@ export function buildWeeklySchedule(
 }
 
 /**
- * MÓDULO 2: Ciclo de Estudos (Sincronizado com Priorização do SM-2)
+ * MÓDULO 2: Ciclo de Estudos (Sincronizado com Priorização e Calibragem Adaptativa)
+ */
+
+interface BlockDraft {
+  subjectId: string;
+  subjectName: string;
+  color: string;
+  durationMinutes: number;
+  assignedTopics: Topic[];
+}
+
+/**
+ * Calcula o score de déficit de desempenho da matéria (0.0 a 1.0).
+ * Avalia:
+ * 1. Déficit explícito no objeto (se informado)
+ * 2. Acurácia ou desempenho histórico (< 70% padrão de corte do Synapse AI)
+ * 3. Média dos desempenhos dos tópicos vinculados
+ * 4. Fator de facilidade SM-2 (easiness < 2.5)
+ */
+export function calculateSubjectDeficit(subject: SubjectInput): number {
+  if (typeof subject.deficit === "number") {
+    return Math.max(0, Math.min(1, subject.deficit));
+  }
+
+  let accuracy: number | null = null;
+  if (typeof subject.accuracyPercentage === "number") {
+    accuracy = subject.accuracyPercentage;
+  } else if (typeof subject.performance === "number") {
+    accuracy = subject.performance;
+  } else if (subject.topics && subject.topics.length > 0) {
+    const scoredTopics = subject.topics.filter(
+      (t) => typeof t.performance === "number" && !isNaN(t.performance),
+    );
+    if (scoredTopics.length > 0) {
+      accuracy =
+        scoredTopics.reduce((sum, t) => sum + (t.performance || 0), 0) /
+        scoredTopics.length;
+    }
+  }
+
+  let deficit = 0;
+  if (accuracy !== null) {
+    if (accuracy < 70) {
+      deficit = Math.min(1, (70 - accuracy) / 70);
+    }
+  }
+
+  const easiness = subject.easiness || 2.5;
+  if (easiness < 2.5) {
+    deficit += ((2.5 - Math.max(1.3, easiness)) / 2.5) * 0.25;
+  }
+
+  return Math.min(1, Math.max(0, deficit));
+}
+
+/**
+ * Garante que nenhuma matéria tenha mais blocos do que a capacidade matemática de intercalação.
+ * Para N blocos totais com >= 2 matérias, nenhuma matéria pode ter mais que ceil(N / 2) blocos.
+ */
+function balanceBlockDrafts(blocksBySubject: Map<string, BlockDraft[]>): void {
+  if (blocksBySubject.size <= 1) return;
+
+  let maxIterations = 25;
+  while (maxIterations-- > 0) {
+    const totalBlocks = Array.from(blocksBySubject.values()).reduce(
+      (sum, list) => sum + list.length,
+      0,
+    );
+    const maxAllowed = Math.ceil(totalBlocks / 2);
+
+    let dominantEntry: [string, BlockDraft[]] | null = null;
+    for (const entry of blocksBySubject.entries()) {
+      if (entry[1].length > maxAllowed) {
+        dominantEntry = entry;
+        break;
+      }
+    }
+
+    if (!dominantEntry) break;
+
+    const [domId, domList] = dominantEntry;
+
+    // 1. Tenta desmembrar bloco de outra matéria se alguma tiver bloco >= 60m
+    let splitDone = false;
+    for (const [otherId, otherList] of blocksBySubject.entries()) {
+      if (otherId === domId) continue;
+      const splittableIdx = otherList.findIndex((b) => b.durationMinutes >= 60);
+      if (splittableIdx !== -1) {
+        const blk = otherList[splittableIdx];
+        const half1 = Math.floor(blk.durationMinutes / 2);
+        const half2 = blk.durationMinutes - half1;
+        const topMid = Math.ceil(blk.assignedTopics.length / 2);
+
+        const newB1: BlockDraft = {
+          ...blk,
+          durationMinutes: half1,
+          assignedTopics: blk.assignedTopics.slice(0, topMid),
+        };
+        const newB2: BlockDraft = {
+          ...blk,
+          durationMinutes: half2,
+          assignedTopics: blk.assignedTopics.slice(topMid),
+        };
+
+        otherList.splice(splittableIdx, 1, newB1, newB2);
+        splitDone = true;
+        break;
+      }
+    }
+
+    if (splitDone) continue;
+
+    // 2. Se nenhuma outra puder ser desmembrada, mescla os 2 últimos blocos da dominante
+    if (domList.length >= 2) {
+      const b2 = domList.pop()!;
+      const b1 = domList[domList.length - 1];
+      b1.durationMinutes += b2.durationMinutes;
+      b1.assignedTopics = [...b1.assignedTopics, ...b2.assignedTopics];
+    } else {
+      break;
+    }
+  }
+}
+
+/**
+ * Algoritmo de Intercalação Inteligente (Interleaving).
+ * Garante que matérias consecutivas nunca se repitam: blocks[i].subjectId !== blocks[i+1].subjectId.
+ */
+function interleaveBlocks(
+  blocksBySubject: Map<string, BlockDraft[]>,
+  prevSubjectId: string | null = null,
+): BlockDraft[] {
+  balanceBlockDrafts(blocksBySubject);
+  const result: BlockDraft[] = [];
+  let currentPrev = prevSubjectId;
+
+  const totalBlocksToPlace = Array.from(blocksBySubject.values()).reduce(
+    (sum, list) => sum + list.length,
+    0,
+  );
+
+  for (let i = 0; i < totalBlocksToPlace; i++) {
+    const candidateSubjects = Array.from(blocksBySubject.entries()).filter(
+      ([subId, list]) => list.length > 0 && subId !== currentPrev,
+    );
+
+    let chosenSubjectId: string | null = null;
+
+    if (candidateSubjects.length > 0) {
+      candidateSubjects.sort((a, b) => {
+        if (b[1].length !== a[1].length) {
+          return b[1].length - a[1].length;
+        }
+        const sumDurationA = a[1].reduce((acc, blk) => acc + blk.durationMinutes, 0);
+        const sumDurationB = b[1].reduce((acc, blk) => acc + blk.durationMinutes, 0);
+        return sumDurationB - sumDurationA;
+      });
+
+      chosenSubjectId = candidateSubjects[0][0];
+    } else {
+      const remainingWithBlocks = Array.from(blocksBySubject.entries()).find(
+        ([, list]) => list.length > 0,
+      );
+
+      if (!remainingWithBlocks) break;
+      chosenSubjectId = remainingWithBlocks[0];
+
+      if (chosenSubjectId === currentPrev && result.length > 0) {
+        const block = blocksBySubject.get(chosenSubjectId)!.shift()!;
+        let inserted = false;
+
+        for (let j = result.length - 1; j >= 0; j--) {
+          const prevMatch = j > 0 && result[j - 1].subjectId === chosenSubjectId;
+          const currMatch = result[j].subjectId === chosenSubjectId;
+          const nextMatch = j < result.length - 1 && result[j + 1]?.subjectId === chosenSubjectId;
+
+          if (!prevMatch && !currMatch && !nextMatch) {
+            result.splice(j, 0, block);
+            inserted = true;
+            break;
+          }
+        }
+
+        if (inserted) {
+          currentPrev = result[result.length - 1].subjectId;
+          continue;
+        } else {
+          result.push(block);
+          currentPrev = chosenSubjectId;
+          continue;
+        }
+      }
+    }
+
+    if (!chosenSubjectId) break;
+
+    const blockList = blocksBySubject.get(chosenSubjectId);
+    if (blockList && blockList.length > 0) {
+      const block = blockList.shift()!;
+      result.push(block);
+      currentPrev = block.subjectId;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Cria esboços de blocos para uma matéria específica com distribuição de tópicos.
+ */
+function createSubjectBlockDrafts(
+  subject: SubjectInput,
+  color: string,
+  count: number,
+  totalMinutes: number,
+  startTopicIdx: number = 0,
+): BlockDraft[] {
+  const drafts: BlockDraft[] = [];
+  const blockDuration = Math.max(30, Math.round(totalMinutes / Math.max(1, count)));
+  const allTopics = [...(subject.topics || [])].sort((a, b) => {
+    const perfA = typeof a.performance === "number" ? a.performance : 50;
+    const perfB = typeof b.performance === "number" ? b.performance : 50;
+    return perfA - perfB;
+  });
+
+  for (let b = 0; b < count; b++) {
+    let assignedTopics: Topic[] = [];
+    if (allTopics.length > 0) {
+      const idx = (startTopicIdx + b * 2) % allTopics.length;
+      assignedTopics = allTopics.slice(idx, idx + 2);
+    }
+
+    drafts.push({
+      subjectId: subject.id,
+      subjectName: subject.name,
+      color,
+      durationMinutes: blockDuration,
+      assignedTopics,
+    });
+  }
+
+  return drafts;
+}
+
+/**
+ * MÓDULO 2: Ciclo de Estudos (Sincronizado com Priorização e Calibragem Adaptativa)
  */
 export function buildStudyCycleBlocks(
   subjects: SubjectInput[],
   weeklyGoalHours: number,
   currentIndex: number = 0,
   palette: string[],
+  existingBlocks?: CycleBlock[],
 ) {
   if (!subjects || !subjects.length) {
     return {
@@ -312,24 +563,73 @@ export function buildStudyCycleBlocks(
 
   const now = new Date().getTime();
 
-  const sortedSubjects = [...subjects].sort((a, b) => {
-    const scoreA = getSM2UrgencyScore(a, now);
-    const scoreB = getSM2UrgencyScore(b, now);
+  // 1. Mapeia métricas de urgência SM-2, déficit e cor resolvida
+  const subjectsWithMetrics = subjects.map((subject, idx) => {
+    const deficit = calculateSubjectDeficit(subject);
+    const urgencyScore = getSM2UrgencyScore(subject, now);
+    const subjectColor =
+      subject.color && subject.color.startsWith("#") && subject.color.length >= 4
+        ? subject.color
+        : palette[idx % palette.length];
+
+    return {
+      ...subject,
+      deficit,
+      urgencyScore,
+      resolvedColor: subjectColor,
+    };
+  });
+
+  // Ordena por urgência ponderada pelo déficit
+  const sortedSubjects = [...subjectsWithMetrics].sort((a, b) => {
+    const scoreA = a.urgencyScore * (1 + a.deficit * 0.5);
+    const scoreB = b.urgencyScore * (1 + b.deficit * 0.5);
     return scoreB - scoreA;
   });
 
-  const totalPriority = sortedSubjects.reduce(
-    (acc, s) => acc + (s.priority || 1),
+  const totalWeeklyMinutes = Math.max(1, weeklyGoalHours * 60);
+
+  // 2. Cálculo dos minutos alocados por matéria
+  // Verifica se as prioridades já contêm minutos semanais (vindos do autoRebalanceFromPerformanceAction)
+  const isAlreadyWeeklyMinutes = sortedSubjects.every((s) => (s.priority || 0) >= 15);
+  const subjectAllocatedMinutesMap = new Map<string, number>();
+
+  if (isAlreadyWeeklyMinutes) {
+    const totalPriority = sortedSubjects.reduce(
+      (acc, s) => acc + (s.priority || 1),
+      0,
+    );
+    sortedSubjects.forEach((s) => {
+      let mins = Math.round(
+        (totalWeeklyMinutes * (s.priority || 1)) / Math.max(1, totalPriority),
+      );
+      if (typeof s.allocatedMinutes === "number" && s.allocatedMinutes > 0) {
+        mins = Math.round(s.allocatedMinutes);
+      }
+      subjectAllocatedMinutesMap.set(s.id, Math.max(30, mins));
+    });
+  } else {
+    const totalWeightedPriority = sortedSubjects.reduce(
+      (acc, s) => acc + (s.priority || 1) * (1 + s.deficit * 0.5),
+      0,
+    );
+    sortedSubjects.forEach((s) => {
+      let mins = Math.round(
+        (totalWeeklyMinutes * (s.priority || 1) * (1 + s.deficit * 0.5)) /
+          Math.max(1, totalWeightedPriority),
+      );
+      if (typeof s.allocatedMinutes === "number" && s.allocatedMinutes > 0) {
+        mins = Math.round(s.allocatedMinutes);
+      }
+      subjectAllocatedMinutesMap.set(s.id, Math.max(30, mins));
+    });
+  }
+
+  // Monta subjectBreakdown compatível com o CycleView
+  const sumAllocated = Array.from(subjectAllocatedMinutesMap.values()).reduce(
+    (a, b) => a + b,
     0,
   );
-  const totalWeeklyMinutes = Math.max(1, weeklyGoalHours * 60);
-  const BLOCK_SIZE_MINUTES = 90;
-
-  const blocks: CycleBlock[] = [];
-  let blockCounter = 1;
-
-  const topicPointers: Record<string, number> = {};
-  sortedSubjects.forEach((s) => (topicPointers[s.id] = 0));
 
   const subjectBreakdown: {
     id: string;
@@ -337,76 +637,180 @@ export function buildStudyCycleBlocks(
     color: string;
     allocatedMinutes: number;
     percentage: number;
-  }[] = [];
-
-  sortedSubjects.forEach((subject, idx) => {
-    const priority = subject.priority || 1;
-    const allocatedMinutes = Math.round(
-      (totalWeeklyMinutes * priority) / Math.max(1, totalPriority),
-    );
+    subjectId?: string;
+  }[] = sortedSubjects.map((s) => {
+    const allocatedMinutes = subjectAllocatedMinutesMap.get(s.id) || 60;
     const percentage = Math.round(
-      (priority / Math.max(1, totalPriority)) * 100,
+      (allocatedMinutes / Math.max(1, sumAllocated)) * 100,
     );
 
-    const subjectColor =
-      subject.color && subject.color.startsWith("#")
-        ? subject.color
-        : palette[idx % palette.length];
-
-    subjectBreakdown.push({
-      id: subject.id,
-      name: subject.name,
-      color: subjectColor,
+    return {
+      id: s.id,
+      name: s.name,
+      color: s.resolvedColor,
       allocatedMinutes,
       percentage,
-    });
-
-    const numberOfBlocks = Math.max(
-      1,
-      Math.round(allocatedMinutes / BLOCK_SIZE_MINUTES),
-    );
-    const blockDuration = Math.round(allocatedMinutes / numberOfBlocks);
-
-    const allTopics = subject.topics || [];
-
-    for (let b = 0; b < numberOfBlocks; b++) {
-      let assignedTopics: Topic[] = [];
-
-      if (allTopics.length > 0) {
-        const startIdx = topicPointers[subject.id] % allTopics.length;
-        assignedTopics = allTopics.slice(startIdx, startIdx + 2);
-        topicPointers[subject.id] += assignedTopics.length;
-      }
-
-      let status: "COMPLETED" | "CURRENT" | "PENDING" = "PENDING";
-      if (blockCounter - 1 < currentIndex) status = "COMPLETED";
-      else if (blockCounter - 1 === currentIndex) status = "CURRENT";
-
-      blocks.push({
-        blockNumber: blockCounter,
-        subjectId: subject.id,
-        subjectName: subject.name,
-        color: subjectColor,
-        durationMinutes: blockDuration,
-        assignedTopics,
-        status,
-      });
-
-      blockCounter++;
-    }
+      subjectId: s.id,
+    };
   });
 
+  // 3. Define quantidade alvo de blocos por matéria
+  const BLOCK_SIZE_MINUTES = 90;
+  const targetBlocksPerSubject = new Map<string, number>();
+
+  sortedSubjects.forEach((s) => {
+    const allocated = subjectAllocatedMinutesMap.get(s.id) || 60;
+    let numBlocks = Math.max(1, Math.round(allocated / BLOCK_SIZE_MINUTES));
+
+    // Se matéria estiver em déficit crítico (>= 0.35) e tiver carga suficiente, garante reforço proporcional
+    if (s.deficit >= 0.35 && allocated >= 90 && numBlocks < Math.round(allocated / 60)) {
+      numBlocks = Math.max(numBlocks, Math.round(allocated / 60));
+    }
+
+    targetBlocksPerSubject.set(s.id, numBlocks);
+  });
+
+  const completedCount = Math.max(0, currentIndex);
+
+  // 4. Se o usuário já estiver com ciclo em andamento (completedBlocks > 0)
+  if (completedCount > 0) {
+    let completedBlocks: CycleBlock[] = [];
+
+    if (existingBlocks && existingBlocks.length >= completedCount) {
+      completedBlocks = existingBlocks.slice(0, completedCount).map((b, i) => ({
+        ...b,
+        blockNumber: i + 1,
+        status: "COMPLETED" as const,
+      }));
+    } else {
+      // Reconstrói a base determinística para obter os blocos concluídos
+      const baseDraftsMap = new Map<string, BlockDraft[]>();
+      sortedSubjects.forEach((s) => {
+        const count = targetBlocksPerSubject.get(s.id) || 1;
+        const minutes = subjectAllocatedMinutesMap.get(s.id) || 60;
+        baseDraftsMap.set(
+          s.id,
+          createSubjectBlockDrafts(s, s.resolvedColor, count, minutes, 0),
+        );
+      });
+      const baseInterleaved = interleaveBlocks(baseDraftsMap, null);
+      completedBlocks = baseInterleaved.slice(0, completedCount).map((b, i) => ({
+        ...b,
+        blockNumber: i + 1,
+        status: "COMPLETED" as const,
+      }));
+    }
+
+    const lastCompletedBlock = completedBlocks[completedBlocks.length - 1];
+    const prevSubjectId = lastCompletedBlock ? lastCompletedBlock.subjectId : null;
+
+    // Contabiliza o que já foi concluído
+    const completedCountsBySub = new Map<string, number>();
+    const completedMinutesBySub = new Map<string, number>();
+    completedBlocks.forEach((b) => {
+      completedCountsBySub.set(
+        b.subjectId,
+        (completedCountsBySub.get(b.subjectId) || 0) + 1,
+      );
+      completedMinutesBySub.set(
+        b.subjectId,
+        (completedMinutesBySub.get(b.subjectId) || 0) + b.durationMinutes,
+      );
+    });
+
+    // Calcula os blocos restantes para a volta atual
+    const remainingDraftsMap = new Map<string, BlockDraft[]>();
+    sortedSubjects.forEach((s) => {
+      const targetCount = targetBlocksPerSubject.get(s.id) || 1;
+      const doneCount = completedCountsBySub.get(s.id) || 0;
+      const remainingCount = Math.max(0, targetCount - doneCount);
+
+      const targetMinutes = subjectAllocatedMinutesMap.get(s.id) || 60;
+      const doneMinutes = completedMinutesBySub.get(s.id) || 0;
+      const remainingMinutes = Math.max(
+        30 * remainingCount,
+        targetMinutes - doneMinutes,
+      );
+
+      if (remainingCount > 0) {
+        const drafts = createSubjectBlockDrafts(
+          s,
+          s.resolvedColor,
+          remainingCount,
+          remainingMinutes,
+          doneCount * 2,
+        );
+        remainingDraftsMap.set(s.id, drafts);
+      }
+    });
+
+    const totalRemaining = Array.from(remainingDraftsMap.values()).reduce(
+      (sum, list) => sum + list.length,
+      0,
+    );
+
+    let finalRemainingBlocks: CycleBlock[] = [];
+
+    if (totalRemaining > 0) {
+      // Intercala os blocos restantes assegurando que o primeiro != prevSubjectId
+      const interleavedRemaining = interleaveBlocks(
+        remainingDraftsMap,
+        prevSubjectId,
+      );
+
+      finalRemainingBlocks = interleavedRemaining.map((draft, idx) => ({
+        ...draft,
+        blockNumber: completedCount + idx + 1,
+        status: idx === 0 ? ("CURRENT" as const) : ("PENDING" as const),
+      }));
+    }
+
+    const allBlocks = [...completedBlocks, ...finalRemainingBlocks];
+    const totalMinutes = allBlocks.reduce((acc, b) => acc + b.durationMinutes, 0);
+    const completedBlocksCount = completedBlocks.length;
+    const currentProgress = allBlocks.length
+      ? Math.round((completedBlocksCount / allBlocks.length) * 100)
+      : 0;
+
+    return {
+      blocks: allBlocks,
+      totalBlocks: allBlocks.length,
+      totalMinutes,
+      completedBlocks: completedBlocksCount,
+      currentProgress,
+      subjectBreakdown,
+    };
+  }
+
+  // 5. Caso inicial: currentIndex === 0
+  const draftsMap = new Map<string, BlockDraft[]>();
+  sortedSubjects.forEach((s) => {
+    const count = targetBlocksPerSubject.get(s.id) || 1;
+    const minutes = subjectAllocatedMinutesMap.get(s.id) || 60;
+    draftsMap.set(
+      s.id,
+      createSubjectBlockDrafts(s, s.resolvedColor, count, minutes, 0),
+    );
+  });
+
+  const interleaved = interleaveBlocks(draftsMap, null);
+  const blocks: CycleBlock[] = interleaved.map((draft, idx) => ({
+    ...draft,
+    blockNumber: idx + 1,
+    status: idx === 0 ? ("CURRENT" as const) : ("PENDING" as const),
+  }));
+
   const totalMinutes = blocks.reduce((acc, b) => acc + b.durationMinutes, 0);
-  const completedBlocks = blocks.filter((b) => b.status === "COMPLETED").length;
+  const completedBlocksCount = blocks.filter((b) => b.status === "COMPLETED").length;
   const currentProgress = blocks.length
-    ? Math.round((completedBlocks / blocks.length) * 100)
+    ? Math.round((completedBlocksCount / blocks.length) * 100)
     : 0;
 
   return {
     blocks,
     totalBlocks: blocks.length,
     totalMinutes,
-    completedBlocks,
+    completedBlocks: completedBlocksCount,
     currentProgress,
     subjectBreakdown,
   };
