@@ -48,6 +48,7 @@ export interface CycleBlock {
   durationMinutes: number;
   assignedTopics: Topic[];
   status: "COMPLETED" | "CURRENT" | "PENDING";
+  isReinforcement?: boolean;
 }
 
 export interface SM2UpdateResult {
@@ -305,6 +306,7 @@ interface BlockDraft {
   color: string;
   durationMinutes: number;
   assignedTopics: Topic[];
+  isReinforcement?: boolean;
 }
 
 /**
@@ -393,11 +395,13 @@ function balanceBlockDrafts(blocksBySubject: Map<string, BlockDraft[]>): void {
           ...blk,
           durationMinutes: half1,
           assignedTopics: blk.assignedTopics.slice(0, topMid),
+          isReinforcement: blk.isReinforcement,
         };
         const newB2: BlockDraft = {
           ...blk,
           durationMinutes: half2,
           assignedTopics: blk.assignedTopics.slice(topMid),
+          isReinforcement: blk.isReinforcement,
         };
 
         otherList.splice(splittableIdx, 1, newB1, newB2);
@@ -512,6 +516,7 @@ function createSubjectBlockDrafts(
   count: number,
   totalMinutes: number,
   startTopicIdx: number = 0,
+  baseCount: number = count,
 ): BlockDraft[] {
   const drafts: BlockDraft[] = [];
   const blockDuration = Math.max(30, Math.round(totalMinutes / Math.max(1, count)));
@@ -528,12 +533,17 @@ function createSubjectBlockDrafts(
       assignedTopics = allTopics.slice(idx, idx + 2);
     }
 
+    const isReinforcement =
+      b >= baseCount ||
+      (typeof subject.deficit === "number" && subject.deficit >= 0.35 && count > 1 && b > 0);
+
     drafts.push({
       subjectId: subject.id,
       subjectName: subject.name,
       color,
       durationMinutes: blockDuration,
       assignedTopics,
+      isReinforcement,
     });
   }
 
@@ -657,10 +667,12 @@ export function buildStudyCycleBlocks(
   // 3. Define quantidade alvo de blocos por matéria
   const BLOCK_SIZE_MINUTES = 90;
   const targetBlocksPerSubject = new Map<string, number>();
+  const baseBlocksPerSubject = new Map<string, number>();
 
   sortedSubjects.forEach((s) => {
     const allocated = subjectAllocatedMinutesMap.get(s.id) || 60;
     let numBlocks = Math.max(1, Math.round(allocated / BLOCK_SIZE_MINUTES));
+    baseBlocksPerSubject.set(s.id, numBlocks);
 
     // Se matéria estiver em déficit crítico (>= 0.35) e tiver carga suficiente, garante reforço proporcional
     if (s.deficit >= 0.35 && allocated >= 90 && numBlocks < Math.round(allocated / 60)) {
@@ -687,10 +699,11 @@ export function buildStudyCycleBlocks(
       const baseDraftsMap = new Map<string, BlockDraft[]>();
       sortedSubjects.forEach((s) => {
         const count = targetBlocksPerSubject.get(s.id) || 1;
+        const baseCount = baseBlocksPerSubject.get(s.id) || count;
         const minutes = subjectAllocatedMinutesMap.get(s.id) || 60;
         baseDraftsMap.set(
           s.id,
-          createSubjectBlockDrafts(s, s.resolvedColor, count, minutes, 0),
+          createSubjectBlockDrafts(s, s.resolvedColor, count, minutes, 0, baseCount),
         );
       });
       const baseInterleaved = interleaveBlocks(baseDraftsMap, null);
@@ -722,6 +735,7 @@ export function buildStudyCycleBlocks(
     const remainingDraftsMap = new Map<string, BlockDraft[]>();
     sortedSubjects.forEach((s) => {
       const targetCount = targetBlocksPerSubject.get(s.id) || 1;
+      const baseCount = baseBlocksPerSubject.get(s.id) || targetCount;
       const doneCount = completedCountsBySub.get(s.id) || 0;
       const remainingCount = Math.max(0, targetCount - doneCount);
 
@@ -739,6 +753,7 @@ export function buildStudyCycleBlocks(
           remainingCount,
           remainingMinutes,
           doneCount * 2,
+          Math.max(0, baseCount - doneCount),
         );
         remainingDraftsMap.set(s.id, drafts);
       }
@@ -762,6 +777,7 @@ export function buildStudyCycleBlocks(
         ...draft,
         blockNumber: completedCount + idx + 1,
         status: idx === 0 ? ("CURRENT" as const) : ("PENDING" as const),
+        isReinforcement: draft.isReinforcement,
       }));
     }
 
@@ -786,10 +802,11 @@ export function buildStudyCycleBlocks(
   const draftsMap = new Map<string, BlockDraft[]>();
   sortedSubjects.forEach((s) => {
     const count = targetBlocksPerSubject.get(s.id) || 1;
+    const baseCount = baseBlocksPerSubject.get(s.id) || count;
     const minutes = subjectAllocatedMinutesMap.get(s.id) || 60;
     draftsMap.set(
       s.id,
-      createSubjectBlockDrafts(s, s.resolvedColor, count, minutes, 0),
+      createSubjectBlockDrafts(s, s.resolvedColor, count, minutes, 0, baseCount),
     );
   });
 
@@ -798,6 +815,7 @@ export function buildStudyCycleBlocks(
     ...draft,
     blockNumber: idx + 1,
     status: idx === 0 ? ("CURRENT" as const) : ("PENDING" as const),
+    isReinforcement: draft.isReinforcement,
   }));
 
   const totalMinutes = blocks.reduce((acc, b) => acc + b.durationMinutes, 0);

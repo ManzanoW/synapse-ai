@@ -141,18 +141,9 @@ export function CycleView({
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>("");
 
-  if (subjectBreakdown.length === 0) {
-    return (
-      <EditalEmptyState
-        title="Ciclo de Estudos sem Matérias"
-        description="O algoritmo de ciclo alternado exige o cadastro de disciplinas no seu edital para gerar blocos de estudo sequenciais."
-      />
-    );
-  }
-
-  const optimisticCompletedBlocks = optimisticBlocks.filter(
-    (b) => b.status === "COMPLETED",
-  ).length;
+  const optimisticCompletedBlocks =
+    optimisticBlocks.filter((b) => b.status === "COMPLETED").length ||
+    completedBlocks;
 
   const effectiveTotalBlocks = totalBlocks || optimisticBlocks.length;
 
@@ -304,20 +295,28 @@ export function CycleView({
     });
   };
 
-  const donutSegments = (() => {
-    let accumulated = 0;
-    return subjectBreakdown.map((sub, idx) => {
-      const strokeDasharray = `${sub.percentage} ${100 - sub.percentage}`;
-      const strokeDashoffset = -accumulated;
-      accumulated += sub.percentage;
-      return {
-        ...sub,
-        idKey: sub.id || sub.subjectId || `donut-seg-${sub.name}-${idx}`,
-        strokeDasharray,
-        strokeDashoffset,
-      };
-    });
-  })();
+  if (subjectBreakdown.length === 0) {
+    return (
+      <EditalEmptyState
+        title="Ciclo de Estudos sem Matérias"
+        description="O algoritmo de ciclo alternado exige o cadastro de disciplinas no seu edital para gerar blocos de estudo sequenciais."
+      />
+    );
+  }
+
+  const donutSegments = subjectBreakdown.map((sub, idx) => {
+    const prevSum = subjectBreakdown
+      .slice(0, idx)
+      .reduce((sum, item) => sum + item.percentage, 0);
+    const strokeDasharray = `${sub.percentage} ${100 - sub.percentage}`;
+    const strokeDashoffset = -prevSum;
+    return {
+      ...sub,
+      idKey: sub.id || sub.subjectId || `donut-seg-${sub.name}-${idx}`,
+      strokeDasharray,
+      strokeDashoffset,
+    };
+  });
 
   return (
     <div className="space-y-10 animate-in fade-in duration-300">
@@ -328,7 +327,7 @@ export function CycleView({
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[11px] uppercase tracking-widest px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
                   <Flame size={13} className="text-indigo-400 animate-pulse" />
                   Volta #{cycleLap}
@@ -336,6 +335,36 @@ export function CycleView({
                 <span className="text-xs text-slate-400 font-medium">
                   Ciclo Ativo
                 </span>
+
+                {/* Microbadge Calibrado por IA com Tooltip Hover */}
+                <div className="relative group inline-flex items-center">
+                  <div
+                    tabIndex={0}
+                    role="note"
+                    aria-label="Informações sobre calibração por IA do ciclo"
+                    className="cursor-help inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 text-[10px] font-mono font-bold tracking-wide text-violet-300 backdrop-blur-md transition-all hover:bg-violet-500/20 hover:border-violet-500/50 hover:text-violet-200 shadow-[0_0_12px_rgba(139,92,246,0.15)] focus:outline-none focus:ring-1 focus:ring-violet-400"
+                  >
+                    <Sparkles size={11} className="text-cyan-400 animate-pulse" />
+                    <span>Ciclo Calibrado por IA</span>
+                  </div>
+
+                  {/* Tooltip Hover Simples e Elegante */}
+                  <div className="pointer-events-none absolute left-0 sm:left-1/2 sm:-translate-x-1/2 top-full mt-2 w-72 sm:w-80 rounded-2xl border border-violet-500/30 bg-[#0c1020]/95 p-3.5 text-xs text-slate-300 shadow-2xl shadow-violet-950/80 backdrop-blur-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 z-50 transform scale-95 group-hover:scale-100 group-focus-within:scale-100">
+                    <div className="flex items-start gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-violet-500/15 text-violet-300 shrink-0 border border-violet-500/30">
+                        <Sparkles size={14} className="text-cyan-400" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-semibold text-white text-[11px] flex items-center gap-1">
+                          Intercalação & Reforço Adaptativo
+                        </p>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          A ordem dos blocos foi calculada com algoritmo de intercalação para evitar fadiga cognitiva e priorizar suas matérias com maior necessidade de retenção.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
                 <Compass className="text-indigo-400" size={26} />
@@ -527,6 +556,16 @@ export function CycleView({
                     EM FOCO AGORA
                   </span>
 
+                  {currentBlock.isReinforcement && (
+                    <span
+                      title="Bloco adicional de reforço adaptativo gerado para compensar déficit de retenção"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-violet-500/15 border border-violet-500/30 text-violet-300 shadow-[0_0_12px_rgba(139,92,246,0.25)] backdrop-blur-md"
+                    >
+                      <Zap size={13} className="text-cyan-400 fill-cyan-400 animate-pulse" />
+                      Reforço IA
+                    </span>
+                  )}
+
                   <span className="text-xs font-mono font-bold text-slate-300 bg-slate-950/90 border border-slate-800 px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
                     <Clock size={13} className="text-slate-400" />
                     {formatMinutes(currentBlock.durationMinutes)}
@@ -626,9 +665,16 @@ export function CycleView({
                 className={`border rounded-2xl p-5 space-y-4 transition-all duration-300 relative overflow-hidden shadow-lg ${
                   isDone
                     ? "bg-slate-950/40 border-slate-800/50 opacity-60"
+                    : block.isReinforcement
+                    ? "bg-slate-900/70 border-violet-500/35 hover:border-violet-500/60 hover:bg-slate-900/90 shadow-[0_0_20px_rgba(139,92,246,0.12)]"
                     : "bg-slate-900/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/90"
                 }`}
               >
+                {/* Linha brilhante sutil no topo para blocos de reforço adaptativo */}
+                {block.isReinforcement && !isDone && (
+                  <div className="absolute top-0 inset-x-0 h-[1px] bg-linear-to-r from-transparent via-violet-400/60 to-transparent" />
+                )}
+
                 <div
                   className="absolute left-0 top-0 bottom-0 w-2 rounded-l-2xl"
                   style={{
@@ -638,13 +684,22 @@ export function CycleView({
                 />
 
                 <div className="flex items-center justify-between pl-2">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-slate-400">
                       #{block.blockNumber}
                     </span>
-                    <span className="text-sm font-bold text-white truncate max-w-[180px]">
+                    <span className="text-sm font-bold text-white truncate max-w-[150px]">
                       {block.subjectName}
                     </span>
+                    {block.isReinforcement && (
+                      <span
+                        title="Bloco adicional de reforço adaptativo gerado por déficit de retenção"
+                        className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider text-violet-300 bg-violet-500/15 border border-violet-500/30 px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(139,92,246,0.2)] shrink-0"
+                      >
+                        <Zap size={10} className="text-cyan-400 fill-cyan-400" />
+                        Reforço
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">

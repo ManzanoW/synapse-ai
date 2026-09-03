@@ -7,7 +7,6 @@ import React, {
   startTransition,
 } from "react";
 import Link from "next/link";
-import { Variants } from "framer-motion";
 import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
 import { NewContentModal } from "@/components/create-subject-modal";
@@ -41,6 +40,7 @@ import {
 import Heatmap from "@/components/analytics/Heatmap";
 import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
 import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
+import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
 
 interface JourneyData {
   hasObjective: boolean;
@@ -665,6 +665,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           {mobileTab === "stats" && (
             <div className="space-y-4">
+              {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
+              <ApprovalOddsCard />
+
               <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
                 <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
@@ -1030,7 +1033,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           {/* BARRA LATERAL DIREITA (`lg:col-span-4` - APENAS DESKTOP) */}
           <div className="hidden md:block space-y-6 lg:col-span-4">
-            
+            {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
+            <ApprovalOddsCard />
+
             {/* GAMIFICAÇÃO & NÍVEL */}
             <Link
               href="/achievements"

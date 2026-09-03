@@ -122,3 +122,5 @@ export interface Deck {
     flashcards: number;
   };
 }
+
+export type { ApprovalOddsData } from "@/actions/analytics-actions";
