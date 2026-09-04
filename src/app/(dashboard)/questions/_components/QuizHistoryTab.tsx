@@ -1,7 +1,6 @@
-"use client";
-
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   ChevronDown,
@@ -15,10 +14,16 @@ import {
   RotateCcw,
   Bookmark,
   BookOpen,
+  Timer,
+  Trash2,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
+import {
+  TimedPacingModal,
+  TimedPacingConfig,
+} from "./TimedPacingModal";
 
-interface QuizHistoryItem {
+export interface QuizHistoryItem {
   id: string;
   banca: string;
   subject: string;
@@ -57,7 +62,10 @@ export function QuizHistoryTab({
   onDeleteSimulado,
   onCreateNewQuiz,
 }: QuizHistoryTabProps) {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<"all" | "errors">("all");
+  const [pacingQuizTarget, setPacingQuizTarget] =
+    useState<QuizHistoryItem | null>(null);
 
   // Filtra todas as questões erradas salvas no histórico
   const getErrorQuestions = (): (QuestaoIA & {
@@ -103,6 +111,19 @@ export function QuizHistoryTab({
       }
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
+
+  const handleConfirmPacing = (config: TimedPacingConfig) => {
+    if (!pacingQuizTarget) return;
+    const params = new URLSearchParams({
+      examId: pacingQuizTarget.id,
+      pacing: config.pacingMode,
+      pace: String(config.minutesPerQuestion),
+      block: String(config.totalBlockMinutes),
+      focus: config.strictAntiDistraction ? "true" : "false",
+    });
+    router.push(`/quiz/timed?${params.toString()}`);
+    setPacingQuizTarget(null);
+  };
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -222,16 +243,34 @@ export function QuizHistoryTab({
                     revisão.
                   </p>
                 </div>
-                <button
-                  onClick={() =>
-                    onLoadSavedQuiz(errorList, "Recuperação", "errors_session")
-                  }
-                  type="button"
-                  className="w-full sm:w-auto justify-center px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-950/50 transition-all flex items-center gap-2 active:scale-[0.98] cursor-pointer"
-                >
-                  <RotateCcw size={14} />
-                  <span>Refazer Apenas os Erros</span>
-                </button>
+                <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                  <button
+                    onClick={() =>
+                      onLoadSavedQuiz(errorList, "Recuperação", "errors_session")
+                    }
+                    type="button"
+                    className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-950/50 transition-all flex items-center gap-2 active:scale-[0.98] cursor-pointer"
+                  >
+                    <RotateCcw size={14} />
+                    <span>Modo Estudo</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const params = new URLSearchParams({
+                        source: "errors",
+                        pacing: "per_question",
+                        pace: "3",
+                        block: "30",
+                      });
+                      router.push(`/quiz/timed?${params.toString()}`);
+                    }}
+                    type="button"
+                    className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-violet-950/50 transition-all flex items-center gap-2 active:scale-[0.98] cursor-pointer"
+                  >
+                    <Timer size={14} />
+                    <span>⚡ Cronometrado</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
@@ -315,14 +354,28 @@ export function QuizHistoryTab({
                 <div className="absolute top-0 right-0 -mt-6 -mr-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
 
                 <div className="space-y-3 relative z-10">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-inner">
-                      {item.banca}
-                    </span>
-                    <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
-                      <Calendar size={12} className="text-slate-600" />
-                      {formattedDate}
-                    </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-inner">
+                        {item.banca}
+                      </span>
+                      <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
+                        <Calendar size={12} className="text-slate-600" />
+                        {formattedDate}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onConfirmDelete(item.id);
+                      }}
+                      type="button"
+                      className="text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                      title="Excluir simulado"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
 
                   <div className="space-y-2">
@@ -364,9 +417,9 @@ export function QuizHistoryTab({
 
                 <div className="mt-4 sm:mt-5 relative z-10 pt-3 border-t border-slate-800/60">
                   {confirmingDeleteId === item.id ? (
-                    <div className="bg-rose-950/20 border border-rose-500/30 p-2 rounded-xl flex items-center justify-between gap-2 animate-in fade-in duration-200">
+                    <div className="bg-rose-950/20 border border-rose-500/30 p-2.5 rounded-xl flex items-center justify-between gap-2 animate-in fade-in duration-200">
                       <span className="text-[11px] text-rose-300 font-medium pl-1">
-                        Excluir simulado?
+                        Excluir este simulado?
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
@@ -384,27 +437,26 @@ export function QuizHistoryTab({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 gap-2 mt-4">
                       <button
                         onClick={() =>
                           onLoadSavedQuiz(questionsArray, item.banca, item.id)
                         }
                         disabled={loadingQuizId === item.id}
-                        className="flex-1 flex items-center justify-center gap-1.5 text-center py-2.5 bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/35 hover:border-indigo-500/60 text-indigo-200 text-xs font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group/btn cursor-pointer min-h-10"
+                        className="flex items-center justify-center gap-1.5 text-center py-2.5 px-2 bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/35 hover:border-indigo-500/60 text-indigo-200 text-xs font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group/btn cursor-pointer min-h-10 w-full"
+                        title="Modo Livre de Estudo"
                       >
                         {loadingQuizId === item.id ? (
                           <>
                             <Loader2
                               size={14}
-                              className="animate-spin text-indigo-400"
+                              className="animate-spin text-indigo-400 shrink-0"
                             />
-                            <span>Carregando...</span>
+                            <span className="truncate">Carregando...</span>
                           </>
                         ) : (
                           <>
-                            <span className="text-amber-400 group-hover/btn:scale-110 transition-transform">
-                              ⚡
-                            </span>
+                            <BookOpen size={14} className="text-indigo-400 shrink-0" />
                             <span className="truncate">
                               Refazer Caderno (Grátis)
                             </span>
@@ -413,11 +465,18 @@ export function QuizHistoryTab({
                       </button>
 
                       <button
-                        onClick={() => onConfirmDelete(item.id)}
-                        className="p-2.5 bg-slate-900/80 hover:bg-rose-950/30 border border-slate-800 hover:border-rose-900/50 text-slate-500 hover:text-rose-400 rounded-xl transition-all shrink-0 cursor-pointer"
-                        title="Excluir simulado"
+                        onClick={() => setPacingQuizTarget(item)}
+                        type="button"
+                        className="flex items-center justify-center gap-1.5 text-center py-2.5 px-2 bg-violet-600/20 hover:bg-violet-600/35 border border-violet-500/40 hover:border-violet-500/70 text-violet-200 text-xs font-bold rounded-xl transition-all active:scale-[0.98] shadow-md shadow-violet-950/40 cursor-pointer min-h-10 group/timed w-full"
+                        title="Iniciar Simulado Cronometrado Sob Pressão de Tempo"
                       >
-                        <X size={15} />
+                        <Timer
+                          size={14}
+                          className="text-violet-400 group-hover/timed:scale-110 transition-transform shrink-0"
+                        />
+                        <span className="truncate">
+                          ⚡ Simulado Cronometrado
+                        </span>
                       </button>
                     </div>
                   )}
@@ -426,6 +485,22 @@ export function QuizHistoryTab({
             );
           })}
         </div>
+      )}
+
+      {/* MODAL DE RITMO PARA O SIMULADO SELECIONADO */}
+      {pacingQuizTarget && (
+        <TimedPacingModal
+          isOpen={Boolean(pacingQuizTarget)}
+          onClose={() => setPacingQuizTarget(null)}
+          title={pacingQuizTarget.subject}
+          subtitle={`Banca ${pacingQuizTarget.banca} • ${pacingQuizTarget.topic?.title || "Tópicos Gerais"}`}
+          totalQuestions={
+            Array.isArray(pacingQuizTarget.questions)
+              ? pacingQuizTarget.questions.length
+              : 10
+          }
+          onConfirm={handleConfirmPacing}
+        />
       )}
     </div>
   );

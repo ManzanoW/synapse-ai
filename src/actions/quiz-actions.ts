@@ -41,9 +41,27 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
       (input.correctAnswers / Math.max(1, input.totalQuestions)) * 100,
     );
 
-    // XP: 20 XP por acerto + bônus de 50 XP para precisão >= 80%
-    const earnedXp =
-      input.correctAnswers * 20 + (accuracyPercentage >= 80 ? 50 : 0);
+    // XP Base: 20 XP por acerto + bônus de 50 XP para precisão >= 80%
+    const baseEarnedXp = input.correctAnswers * 20;
+    const accuracyBonusXp = accuracyPercentage >= 80 ? 50 : 0;
+
+    // Bônus de Prova Real / Simulado Cronometrado
+    let timedBonusXp = 0;
+    const completedWithinTime = input.totalAllocatedSeconds
+      ? input.timeSpentSeconds <= input.totalAllocatedSeconds + 5
+      : true;
+
+    if (input.isTimedSimulation && completedWithinTime) {
+      if (accuracyPercentage >= 80) {
+        timedBonusXp = 100; // Alta performance sob pressão
+      } else if (accuracyPercentage >= 70) {
+        timedBonusXp = 75;  // Rendimento consistente dentro do tempo
+      } else if (accuracyPercentage >= 50) {
+        timedBonusXp = 40;  // Gestão de tempo completada com êxito
+      }
+    }
+
+    const earnedXp = baseEarnedXp + accuracyBonusXp + timedBonusXp;
 
     // 1. Grava a tentativa no banco e atualiza XP atômico
     const [attempt] = await prisma.$transaction([
@@ -81,10 +99,50 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
     // 3. Atualiza progresso das Missões Diárias
     await trackQuestProgressAction("QUESTIONS_SOLVED", input.totalQuestions);
 
-    // 4. Revalida caches e rota de conquistas
+    // 3.1 📓 Registra os erros das respostas no Caderno de Erros (se detalhadas)
+    if (Array.isArray(input.answers)) {
+      const incorrectAnswers = input.answers.filter(
+        (a) => !a.isCorrect && Boolean(a.questionText)
+      );
+
+      const fallbackErrorReason =
+        input.isTimedSimulation && !completedWithinTime
+          ? "TIME_PRESSURE"
+          : "UNCLASSIFIED";
+
+      for (const item of incorrectAnswers) {
+        const errorReasonToSave =
+          item.errorReason && item.errorReason !== "UNCLASSIFIED"
+            ? String(item.errorReason)
+            : fallbackErrorReason;
+
+        await prisma.questionError
+          .create({
+            data: {
+              userId,
+              subjectId: item.subjectId || input.subjectId || null,
+              topicId: item.topicId || targetTopicId || null,
+              questionText: item.questionText!,
+              options: (item.options as any) || [],
+              userAnswer: String(item.selectedOption || "Não informada"),
+              correctAnswer: String(item.correctAnswer || "A"),
+              explanation: item.explanation || null,
+              errorReason: errorReasonToSave,
+              status: "PENDING",
+            },
+          })
+          .catch((e) =>
+            console.warn("Erro ao registrar questionError em submitQuizAttemptAction:", e)
+          );
+      }
+    }
+
+    // 4. Revalida caches e rotas
     await invalidateUserCacheAction(userId);
     try {
       revalidatePath("/achievements");
+      revalidatePath("/notebook");
+      revalidatePath("/performance");
     } catch {
       // Ignora erro fora de contexto HTTP
     }
@@ -95,6 +153,10 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
         attemptId: attempt.id,
         accuracyPercentage,
         earnedXp,
+        baseEarnedXp,
+        accuracyBonusXp,
+        timedBonusXp,
+        completedWithinTime,
       },
     };
   } catch (err) {
@@ -162,6 +224,123 @@ export async function getSubjectDomainStatsAction(userIdParam?: string) {
     return {
       success: false,
       error: "Falha ao calcular métricas de domínio.",
+    };
+  }
+}
+
+/**
+ * Busca todos os simulados/cadernos salvos estritamente pertencentes ao usuário logado
+ */
+export async function getSavedQuizzesAction() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const quizzes = await prisma.quiz.findMany({
+      where: { userId },
+      include: {
+        topic: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return { success: true, data: quizzes };
+  } catch (err) {
+    console.error("Erro em getSavedQuizzesAction:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao carregar simulados salvos.",
+    };
+  }
+}
+
+/**
+ * Obtém um simulado específico pelo ID, garantindo que pertença ao usuário logado
+ */
+export async function getSavedQuizByIdAction(quizId: string) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const quiz = await prisma.quiz.findFirst({
+      where: {
+        id: quizId,
+        userId,
+      },
+      include: {
+        topic: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    if (!quiz) {
+      return {
+        success: false,
+        error: "Simulado não encontrado ou não pertence a este usuário.",
+      };
+    }
+
+    return { success: true, data: quiz };
+  } catch (err) {
+    console.error("Erro em getSavedQuizByIdAction:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao buscar simulado.",
+    };
+  }
+}
+
+/**
+ * Exclui um simulado salvo garantindo validação estrita de posse pelo userId
+ */
+export async function deleteSavedQuizAction(quizId: string) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const deleted = await prisma.quiz.deleteMany({
+      where: {
+        id: quizId,
+        userId,
+      },
+    });
+
+    if (deleted.count === 0) {
+      return {
+        success: false,
+        error: "Simulado não encontrado ou sem permissão para exclusão.",
+      };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Erro em deleteSavedQuizAction:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao excluir simulado.",
     };
   }
 }

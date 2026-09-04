@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import {
-  calculateEarnedXp,
-  calculateLevel,
-} from "@/lib/gamification/gamification";
+import { calculateLevel } from "@/lib/gamification/gamification";
 import { calculateSM2, convertLabelToGrade, PerformanceLabel } from "@/lib/sm2";
+import {
+  calculateNextReview,
+  normalizeGrade,
+} from "@/lib/spaced-repetition";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
+import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 
 export async function POST(request: Request) {
   try {
@@ -17,20 +19,53 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { cardId, grade, streakDays = 0 } = await request.json();
+    const body = await request.json();
+    const { cardId, grade, rating, responseTimeMs } = body;
+    const rawRating = rating ?? grade;
 
-    if (!cardId || grade === undefined) {
+    if (!cardId || rawRating === undefined) {
       return NextResponse.json(
-        { error: "Campos obrigatórios ausentes (cardId, grade)" },
+        { error: "Campos obrigatórios ausentes (cardId, grade/rating)" },
         { status: 400 },
       );
     }
 
-    // 1. Busca o Flashcard e o seu Tópico associado
+    const normalizedGrade = normalizeGrade(rawRating);
+
+    // 1. Busca o Flashcard e as relações de Tópico, Deck e Matéria
     const card = await prisma.flashcard.findUnique({
       where: { id: String(cardId) },
       include: {
-        topic: true,
+        topic: {
+          include: {
+            subject: {
+              include: {
+                topics: {
+                  include: {
+                    quizAttempts: {
+                      select: { totalCount: true, correctCount: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        deck: {
+          include: {
+            subject: {
+              include: {
+                topics: {
+                  include: {
+                    quizAttempts: {
+                      select: { totalCount: true, correctCount: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -41,14 +76,48 @@ export async function POST(request: Request) {
       );
     }
 
-    // Convertemos o valor recebido para o padrão numérico SM-2 (0 a 5)
-    const numericGrade =
-      typeof grade === "number"
-        ? grade
-        : convertLabelToGrade(String(grade) as PerformanceLabel);
+    // Calcula retenção da matéria para ajuste de proteção
+    const subject = card.topic?.subject || card.deck?.subject;
+    let subjectAccuracy: number | null = null;
+    if (subject && subject.topics) {
+      let totalQ = 0;
+      let totalC = 0;
+      for (const t of subject.topics) {
+        if (t.quizAttempts) {
+          for (const a of t.quizAttempts) {
+            totalQ += a.totalCount;
+            totalC += a.correctCount;
+          }
+        }
+      }
+      if (totalQ > 0) {
+        subjectAccuracy = (totalC / totalQ) * 100;
+      }
+    }
 
-    // 2. Calcula e atualiza a Gamificação (XP + Nível)
-    const earnedXp = calculateEarnedXp(String(grade), streakDays);
+    // 2. Processa FSRS / SM-2 calibrado no Flashcard
+    const srsResult = calculateNextReview({
+      grade: normalizedGrade,
+      repetitions: card.repetitions ?? 0,
+      previousInterval: card.interval ?? 1,
+      stability: card.stability ?? 1.0,
+      difficulty: card.difficulty ?? 5.0,
+      subjectAccuracy,
+      responseTimeMs,
+    });
+
+    const currentLapses = card.lapses ?? 0;
+    const nextLapses = normalizedGrade === 1 ? currentLapses + 1 : currentLapses;
+
+    // Convertemos o valor recebido para o padrão numérico SM-2 (0 a 5) caso afete o Tópico
+    const numericGrade =
+      typeof rawRating === "number"
+        ? rawRating
+        : convertLabelToGrade(String(rawRating) as PerformanceLabel);
+
+    // 3. Calcula e atualiza a Gamificação com XP escalonado (+5 XP por revisão, +8 XP se acertado)
+    const isCorrect = normalizedGrade >= 3;
+    const earnedXp = 5 + (isCorrect ? 8 : 0);
 
     const updatedStats = await prisma.userStats.upsert({
       where: { userId },
@@ -65,7 +134,7 @@ export async function POST(request: Request) {
 
     const levelInfo = calculateLevel(updatedStats.totalXp);
 
-    // 3. Atualiza o algoritmo SM-2 no Tópico do Edital (se vinculado)
+    // 4. Atualiza o algoritmo SM-2 no Tópico do Edital (se vinculado)
     if (card.topicId && card.topic) {
       const topicSm2 = calculateSM2({
         interval: card.topic.interval || 0,
@@ -91,14 +160,14 @@ export async function POST(request: Request) {
         prisma.reviewHistory.create({
           data: {
             topicId: card.topicId,
-            grade: String(grade),
-            durationSeconds: 30,
+            grade: String(rawRating),
+            durationSeconds: responseTimeMs ? Math.round(responseTimeMs / 1000) : 30,
           },
         }),
       ]);
     }
 
-    // 4. Registra a StudySession para o painel semanal
+    // 5. Registra a StudySession para o painel semanal
     await prisma.studySession.create({
       data: {
         userId,
@@ -107,14 +176,33 @@ export async function POST(request: Request) {
       },
     });
 
-    // 5. Atualiza o timestamp do flashcard
-    await prisma.flashcard.update({
+    // 6. Atualiza o flashcard com os valores FSRS / SM-2 persistidos
+    const updatedCard = await prisma.flashcard.update({
       where: { id: card.id },
-      data: { updatedAt: new Date() },
+      data: {
+        interval: srsResult.interval,
+        easeFactor: srsResult.easeFactor,
+        stability: srsResult.stability,
+        difficulty: srsResult.difficulty,
+        repetitions: srsResult.repetitions,
+        lapses: nextLapses,
+        nextReviewDate: srsResult.nextReviewDate,
+        lastReviewed: new Date(),
+      },
     });
 
-    // 6. Atualiza o progresso das Missões Diárias
-    await trackQuestProgressAction("FLASHCARDS_REVIEWED", 1);
+    // 7. Atualiza o progresso das Missões Diárias e invalida cache
+    try {
+      await trackQuestProgressAction("FLASHCARDS_REVIEWED", 1);
+    } catch (qErr) {
+      console.warn("Aviso na missão diária:", qErr);
+    }
+
+    try {
+      await invalidateUserCacheAction(userId);
+    } catch (cErr) {
+      console.warn("Aviso no cache:", cErr);
+    }
 
     return NextResponse.json(
       {
@@ -122,13 +210,22 @@ export async function POST(request: Request) {
         earnedXp,
         totalXp: updatedStats.totalXp,
         levelInfo,
+        data: {
+          cardId: updatedCard.id,
+          nextReviewDate: updatedCard.nextReviewDate,
+          interval: updatedCard.interval,
+          stability: updatedCard.stability,
+          difficulty: updatedCard.difficulty,
+          repetitions: updatedCard.repetitions,
+          lapses: updatedCard.lapses,
+        },
       },
       { status: 200 },
     );
   } catch (error) {
     console.error("❌ Erro ao registrar revisão de flashcard:", error);
     return NextResponse.json(
-      { error: "Erro interno do servidor ao processar XP do flashcard" },
+      { error: "Erro interno do servidor ao processar revisão do flashcard" },
       { status: 500 },
     );
   }

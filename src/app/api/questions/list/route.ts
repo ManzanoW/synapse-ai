@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 export async function GET() {
   try {
-    // Busca os dados incluindo o relacionamento com o tópico específico
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Não autorizado." },
+        { status: 401 }
+      );
+    }
+
+    // Busca os dados incluindo o relacionamento com o tópico específico, filtrando estritamente pelo usuário logado
     const quizzes = await prisma.quiz.findMany({
+      where: {
+        userId,
+      },
       include: {
         topic: {
           select: {

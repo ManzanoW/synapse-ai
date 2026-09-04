@@ -32,6 +32,7 @@ model User {
   studySessions StudySession[]
   quizzes       Quiz[]
   decks         Deck[]
+  questionErrors QuestionError[]
 
   // 🏆 Gamificação
   userStats     UserStats?
@@ -113,6 +114,7 @@ model Subject {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   topics    Topic[]
   decks     Deck[]
+  questionErrors QuestionError[]
 }
 
 model Topic {
@@ -127,6 +129,7 @@ model Topic {
   questions       Quiz[]
   reviewHistories ReviewHistory[]
   quizAttempts    QuizAttempt[]
+  questionErrors  QuestionError[]
 
   // Estado do Estudo
   firstStudy  String    @default("Pendente") // "Pendente", "Em Estudo", "Concluido"
@@ -177,6 +180,16 @@ model Flashcard {
   details   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  // --- FSRS / Repetição Espaçada ---
+  interval       Int       @default(1)
+  easeFactor     Float     @default(2.5)
+  stability      Float     @default(1.0)
+  difficulty     Float     @default(5.0)
+  repetitions    Int       @default(0)
+  lapses         Int       @default(0)
+  nextReviewDate DateTime  @default(now())
+  lastReviewed   DateTime?
 
   deckId String
   deck   Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
@@ -258,4 +271,39 @@ model DailyQuest {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, questDate])
+}
+
+// 📓 Modelo para o Caderno de Erros Inteligente
+model QuestionError {
+  id            String    @id @default(cuid())
+  userId        String
+  subjectId     String?
+  topicId       String?
+  quizId        String?
+
+  questionText  String    @db.Text
+  options       Json?     // Array de alternativas: [{ id, texto }]
+  userAnswer    String
+  correctAnswer String
+  explanation   String?   @db.Text
+
+  errorReason   String    @default("UNCLASSIFIED") // INTERPRETATION, CONTENT_GAP, TRICK_QUESTION, TIME_PRESSURE, etc.
+  status        String    @default("PENDING") // PENDING | MASTERED
+  masteredAt    DateTime?
+
+  // Remediação gerada por IA
+  aiExplanation String?   @db.Text
+  mnemonic      String?   @db.Text
+  drillQuestion Json?     // { question, options: [{id, texto}], answer, explanation }
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject       Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  topic         Topic?    @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([userId, errorReason])
+  @@index([userId, subjectId])
 }

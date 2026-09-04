@@ -24,6 +24,9 @@ import {
   Pause,
   Play,
   CheckCircle2,
+  Timer,
+  BookOpenCheck,
+  Loader2,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -36,13 +39,25 @@ import { CompletionModal } from "./_components/CompletionModal";
 import { QuizHistoryTab } from "./_components/QuizHistoryTab";
 import { GenerateAIModal } from "./_components/GenerateAIModal";
 import { QuestionMinimap } from "./_components/QuestionMinimap";
+import { TimedLaunchModal } from "./_components/TimedLaunchModal";
+import { TimedPacingModal } from "./_components/TimedPacingModal";
+import { ErrorNotebookView } from "../notebook/components/ErrorNotebookView";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { RegisterQuestionsModal } from "@/components/questions/register-questions-modal";
 
 import { submitQuizAttemptAction } from "@/actions/quiz-actions";
 import { generateTargetedDeckAction } from "@/actions/deck-actions";
-import { ErrorClassification, QuestionAnswerSubmission } from "@/types/quiz";
+import {
+  getErrorNotebookItemsAction,
+  getErrorMetricsAction,
+} from "@/actions/error-notebook-actions";
+import {
+  ErrorClassification,
+  QuestionAnswerSubmission,
+  ErrorNotebookItem,
+  ErrorNotebookMetrics,
+} from "@/types/quiz";
 
 export interface QuestaoIA {
   id?: string;
@@ -140,10 +155,33 @@ export default function QuestoesPage() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
     null,
   );
-  const [activeTab, setActiveTab] = useState<"create" | "history">("create");
-  const [pendingTab, setPendingTab] = useState<"create" | "history" | null>(
-    null,
+  const [activeTab, setActiveTab] = useState<"create" | "history" | "notebook">(
+    "create",
   );
+  const [pendingTab, setPendingTab] = useState<
+    "create" | "history" | "notebook" | null
+  >(null);
+
+  // Caderno de Erros Integrado
+  const [errorNotebookItems, setErrorNotebookItems] = useState<
+    ErrorNotebookItem[]
+  >([]);
+  const [errorNotebookMetrics, setErrorNotebookMetrics] =
+    useState<ErrorNotebookMetrics>({
+      totalErrors: 0,
+      pendingErrors: 0,
+      masteredErrors: 0,
+      masteryRate: 0,
+      taxonomyDistribution: [],
+    });
+  const [isLoadingNotebook, setIsLoadingNotebook] = useState(false);
+  const [isNotebookLoaded, setIsNotebookLoaded] = useState(false);
+
+  // Modais de Simulado Cronometrado Integrado
+  const [isTimedLaunchModalOpen, setIsTimedLaunchModalOpen] = useState(false);
+  const [timedModalPacingTarget, setTimedModalPacingTarget] =
+    useState<QuizHistoryItem | null>(null);
+  const [isErrorsPacingModalOpen, setIsErrorsPacingModalOpen] = useState(false);
 
   // Estados do caderno / questões
   const [banca, setBanca] = useState("FGV");
@@ -248,7 +286,68 @@ export default function QuestoesPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  const fetchQuizHistory = useCallback(async () => {
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch("/api/questions/list");
+      const json = await response.json();
+      setQuizHistory(json.data || []);
+    } catch (error) {
+      console.error("Erro ao carregar histórico:", error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, []);
+
+  const loadErrorNotebookData = useCallback(async () => {
+    setIsLoadingNotebook(true);
+    try {
+      const [itemsRes, metricsRes] = await Promise.all([
+        getErrorNotebookItemsAction({}),
+        getErrorMetricsAction(),
+      ]);
+      if (itemsRes.success && itemsRes.data) {
+        setErrorNotebookItems(itemsRes.data);
+      }
+      if (metricsRes.success && metricsRes.data) {
+        setErrorNotebookMetrics(metricsRes.data);
+      }
+      setIsNotebookLoaded(true);
+    } catch (err) {
+      console.error("Erro ao carregar caderno de erros:", err);
+    } finally {
+      setIsLoadingNotebook(false);
+    }
+  }, []);
+
   useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "history") {
+      setActiveTab("history");
+      fetchQuizHistory();
+    } else if (tabParam === "notebook") {
+      setActiveTab("notebook");
+      loadErrorNotebookData();
+    } else if (tabParam === "create") {
+      setActiveTab("create");
+    }
+
+    const openTimed = searchParams.get("openTimed");
+    if (openTimed === "true") {
+      fetchQuizHistory();
+      loadErrorNotebookData();
+      setIsTimedLaunchModalOpen(true);
+    }
+
+    // Carrega estatísticas resumidas de erros para badge do tab
+    getErrorMetricsAction()
+      .then((res) => {
+        if (res.success && res.data) {
+          setErrorNotebookMetrics(res.data);
+        }
+      })
+      .catch(() => {});
+
     const paramTopicId = searchParams.get("topicId");
     const paramSubjectId = searchParams.get("subjectId");
     const paramQuizId = searchParams.get("quizId");
@@ -283,7 +382,7 @@ export default function QuestoesPage() {
         setIsAIModalOpen(true);
       });
     }
-  }, [searchParams]);
+  }, [searchParams, fetchQuizHistory, loadErrorNotebookData]);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -421,21 +520,34 @@ export default function QuestoesPage() {
   const percentageAcc =
     answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
-  const handleTabChange = (newTab: "create" | "history") => {
+  const handleTabChange = (newTab: "create" | "history" | "notebook") => {
     if (
       activeTab === "create" &&
-      newTab === "history" &&
+      newTab !== "create" &&
+      questions.length > 0 &&
       Object.keys(selectedAnswers).length > 0
     ) {
       setPendingTab(newTab);
       return;
     }
     setActiveTab(newTab);
+    router.replace(`/questions?tab=${newTab}`, { scroll: false });
+    if (newTab === "history") {
+      fetchQuizHistory();
+    } else if (newTab === "notebook") {
+      loadErrorNotebookData();
+    }
   };
 
   const confirmNavigation = () => {
     if (pendingTab) {
       setActiveTab(pendingTab);
+      router.replace(`/questions?tab=${pendingTab}`, { scroll: false });
+      if (pendingTab === "history") {
+        fetchQuizHistory();
+      } else if (pendingTab === "notebook") {
+        loadErrorNotebookData();
+      }
       setQuestions([]);
       setSelectedAnswers({});
       setCheckedQuestions({});
@@ -506,6 +618,10 @@ export default function QuestoesPage() {
               isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
               timeSpentSeconds: Math.round(timerSeconds / totalQuestions),
               errorReason: errorClassifications[idx] || "UNCLASSIFIED",
+              questionText: q.enunciado,
+              options: q.alternativas,
+              correctAnswer: q.gabaritoCorreto,
+              explanation: q.justificativa,
             }),
           );
 
@@ -635,19 +751,6 @@ export default function QuestoesPage() {
       console.error("Erro ao gerar flashcard:", err);
     } finally {
       setCreatingFlashcardIndex(null);
-    }
-  };
-
-  const fetchQuizHistory = async () => {
-    setIsLoadingHistory(true);
-    try {
-      const response = await fetch("/api/questions/list");
-      const json = await response.json();
-      setQuizHistory(json.data || []);
-    } catch (error) {
-      console.error("Erro ao carregar histórico:", error);
-    } finally {
-      setIsLoadingHistory(false);
     }
   };
 
@@ -927,7 +1030,20 @@ export default function QuestoesPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  fetchQuizHistory();
+                  loadErrorNotebookData();
+                  setIsTimedLaunchModalOpen(true);
+                }}
+                className="w-full sm:w-auto justify-center bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-violet-600/10 active:scale-95"
+              >
+                <Timer size={15} className="text-violet-400" />
+                <span>Modo Cronometrado</span>
+              </button>
+
               <button
                 onClick={() => setIsRegisterModalOpen(true)}
                 type="button"
@@ -1093,18 +1209,18 @@ export default function QuestoesPage() {
 
             {/* 3. NAVEGAÇÃO DE ABAS */}
             {!isZenMode && questions.length === 0 && (
-              <div className="flex border-b border-white/10 gap-2">
+              <div className="flex border-b border-white/10 gap-2 overflow-x-auto pb-px scrollbar-none">
                 <button
                   onClick={() => handleTabChange("create")}
                   type="button"
-                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
+                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
                     activeTab === "create"
                       ? "border-indigo-500 text-indigo-400 bg-white/5"
                       : "border-transparent text-slate-400 hover:text-white"
                   }`}
                 >
                   <Home size={14} />
-                  <span>Início</span>
+                  <span>Início / Gerador</span>
                 </button>
                 <button
                   onClick={() => {
@@ -1112,7 +1228,7 @@ export default function QuestoesPage() {
                     fetchQuizHistory();
                   }}
                   type="button"
-                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer ${
+                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
                     activeTab === "history"
                       ? "border-indigo-500 text-indigo-400 bg-white/5"
                       : "border-transparent text-slate-400 hover:text-white"
@@ -1120,6 +1236,26 @@ export default function QuestoesPage() {
                 >
                   <History size={14} />
                   <span>Simulados Salvos</span>
+                </button>
+                <button
+                  onClick={() => {
+                    handleTabChange("notebook");
+                    loadErrorNotebookData();
+                  }}
+                  type="button"
+                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
+                    activeTab === "notebook"
+                      ? "border-rose-500 text-rose-400 bg-white/5"
+                      : "border-transparent text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <BookOpenCheck size={14} />
+                  <span>Caderno de Erros</span>
+                  {errorNotebookMetrics.pendingErrors > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold border border-rose-500/30">
+                      {errorNotebookMetrics.pendingErrors}
+                    </span>
+                  )}
                 </button>
               </div>
             )}
@@ -1360,6 +1496,24 @@ export default function QuestoesPage() {
                 }}
               />
             )}
+
+            {/* 5. ABA 3: CADERNO DE ERROS COMPLETO */}
+            {activeTab === "notebook" && questions.length === 0 && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {!isNotebookLoaded || isLoadingNotebook ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3 text-xs">
+                    <Loader2 size={24} className="animate-spin text-rose-400" />
+                    <span>Carregando diagnóstico do Caderno de Erros...</span>
+                  </div>
+                ) : (
+                  <ErrorNotebookView
+                    initialItems={errorNotebookItems}
+                    initialMetrics={errorNotebookMetrics}
+                    subjects={subjects}
+                  />
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -1421,6 +1575,68 @@ export default function QuestoesPage() {
         topics={allModalTopics}
         onSuccess={() => {
           if (refreshStats) refreshStats();
+        }}
+      />
+
+      {/* MODAIS DO MODO CRONOMETRADO INTEGRADO */}
+      <TimedLaunchModal
+        isOpen={isTimedLaunchModalOpen}
+        onClose={() => setIsTimedLaunchModalOpen(false)}
+        savedQuizzes={quizHistory}
+        pendingErrorsCount={errorNotebookMetrics.pendingErrors}
+        onSelectQuiz={(quiz) => {
+          setIsTimedLaunchModalOpen(false);
+          setTimedModalPacingTarget(quiz);
+        }}
+        onSelectErrors={() => {
+          setIsTimedLaunchModalOpen(false);
+          setIsErrorsPacingModalOpen(true);
+        }}
+      />
+
+      {/* MODAL DE RITMO PARA SIMULADO ESPECÍFICO INICIADO PELO TOPO */}
+      {timedModalPacingTarget && (
+        <TimedPacingModal
+          isOpen={Boolean(timedModalPacingTarget)}
+          onClose={() => setTimedModalPacingTarget(null)}
+          title={timedModalPacingTarget.subject}
+          subtitle={`Banca ${timedModalPacingTarget.banca} • ${timedModalPacingTarget.topic?.title || "Tópicos Gerais"}`}
+          totalQuestions={
+            Array.isArray(timedModalPacingTarget.questions)
+              ? timedModalPacingTarget.questions.length
+              : 10
+          }
+          onConfirm={(config) => {
+            const params = new URLSearchParams({
+              examId: timedModalPacingTarget.id,
+              pacing: config.pacingMode,
+              pace: String(config.minutesPerQuestion),
+              block: String(config.totalBlockMinutes),
+              focus: config.strictAntiDistraction ? "true" : "false",
+            });
+            router.push(`/quiz/timed?${params.toString()}`);
+            setTimedModalPacingTarget(null);
+          }}
+        />
+      )}
+
+      {/* MODAL DE RITMO PARA BATERIA DE ERROS */}
+      <TimedPacingModal
+        isOpen={isErrorsPacingModalOpen}
+        onClose={() => setIsErrorsPacingModalOpen(false)}
+        title="Bateria de Erros Pendentes"
+        subtitle="Questões diagnosticadas no seu Caderno de Erros"
+        totalQuestions={Math.max(1, errorNotebookMetrics.pendingErrors)}
+        onConfirm={(config) => {
+          const params = new URLSearchParams({
+            source: "errors",
+            pacing: config.pacingMode,
+            pace: String(config.minutesPerQuestion),
+            block: String(config.totalBlockMinutes),
+            focus: config.strictAntiDistraction ? "true" : "false",
+          });
+          router.push(`/quiz/timed?${params.toString()}`);
+          setIsErrorsPacingModalOpen(false);
         }}
       />
 

@@ -144,16 +144,33 @@ export async function POST(request: Request) {
     let quizRecord;
 
     if (quizId) {
-      // Caso 1: ID do Quiz explícito fornecido
-      quizRecord = await prisma.quiz.update({
-        where: { id: quizId },
-        data: {
-          questions,
-          difficulty: difficulty || "Média",
-          banca: banca || "Geral",
-          topicId: resolvedTopicId,
-        },
+      // Caso 1: ID do Quiz explícito fornecido (garante estritamente que pertence ao usuário)
+      const existingUserQuiz = await prisma.quiz.findFirst({
+        where: { id: quizId, userId },
       });
+
+      if (existingUserQuiz) {
+        quizRecord = await prisma.quiz.update({
+          where: { id: existingUserQuiz.id },
+          data: {
+            questions,
+            difficulty: difficulty || "Média",
+            banca: banca || "Geral",
+            topicId: resolvedTopicId,
+          },
+        });
+      } else {
+        quizRecord = await prisma.quiz.create({
+          data: {
+            banca: banca || "Geral",
+            subject,
+            difficulty: difficulty || "Média",
+            questions,
+            userId: userId,
+            topicId: resolvedTopicId,
+          },
+        });
+      }
     } else {
       // Caso 2: Sem ID explícito -> Verifica se um quiz idêntico foi criado nos últimos 30 segundos
       const recentDuplicate = await prisma.quiz.findFirst({
@@ -206,6 +223,48 @@ export async function POST(request: Request) {
         where: { id: resolvedTopicId },
         data: { lastQuizAt: new Date() },
       });
+    }
+
+    // 6.1 📓 Registra os erros no Caderno de Erros (QuestionError)
+    try {
+      const incorrectItems = (questions as any[]).filter((q: any) => {
+        return (
+          q.isCorrect === false ||
+          q.correct === false ||
+          (q.userAnswer &&
+            (q.gabaritoCorreto || q.correctAnswer) &&
+            String(q.userAnswer).trim().toUpperCase() !==
+              String(q.gabaritoCorreto || q.correctAnswer).trim().toUpperCase())
+        );
+      });
+
+      for (const item of incorrectItems) {
+        const text = item.enunciado || item.question || item.questionText;
+        if (!text) continue;
+        const userAns = String(item.userAnswer || "Não informada").trim();
+        const correctAns = String(
+          item.gabaritoCorreto || item.correctAnswer || item.answer || "A",
+        ).trim();
+        const reason = item.errorReason || "UNCLASSIFIED";
+
+        await prisma.questionError.create({
+          data: {
+            userId: userId,
+            subjectId: subjectRecord?.id || null,
+            topicId: resolvedTopicId || null,
+            quizId: quizRecord?.id || null,
+            questionText: text,
+            options: item.alternativas || item.options || [],
+            userAnswer: userAns,
+            correctAnswer: correctAns,
+            explanation: item.justificativa || item.explanation || null,
+            errorReason: String(reason),
+            status: "PENDING",
+          },
+        });
+      }
+    } catch (errErr) {
+      console.warn("Aviso ao salvar erros no Caderno de Erros:", errErr);
     }
 
     // 7. Atualiza o SRS da matéria se aplicável

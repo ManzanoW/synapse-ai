@@ -30,6 +30,8 @@ import {
   Volume2,
   VolumeX,
   Crown,
+  BookOpenCheck,
+  Timer,
 } from "lucide-react";
 
 interface SidebarProps {

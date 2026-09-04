@@ -45,15 +45,10 @@ export default async function FlashcardsPage() {
     where: {
       deck: { userId },
       OR: [
-        { topicId: null },
+        { nextReviewDate: { lte: new Date() } },
         {
           topic: {
             nextRev: { lte: new Date() },
-          },
-        },
-        {
-          topic: {
-            nextRev: null,
           },
         },
       ],
