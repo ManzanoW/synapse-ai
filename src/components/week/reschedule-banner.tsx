@@ -25,7 +25,7 @@ export function RescheduleBanner({
   const currentUserId = propUserId; // Ou a variável que contém o userId logado
 
   const handleReschedule = async (
-    actionType: "OFF_DAY" | "PUSH_TODAY" | "SKIP_CYCLE",
+    actionType: "OFF_DAY" | "PUSH_TODAY" | "SKIP_CYCLE" | "MARK_REST",
   ) => {
     try {
       setLoadingAction(actionType);

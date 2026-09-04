@@ -559,6 +559,7 @@ export function buildStudyCycleBlocks(
   currentIndex: number = 0,
   palette: string[],
   existingBlocks?: CycleBlock[],
+  missedSubjectIds?: string[],
 ) {
   if (!subjects || !subjects.length) {
     return {
@@ -781,9 +782,14 @@ export function buildStudyCycleBlocks(
       }));
     }
 
-    const allBlocks = [...completedBlocks, ...finalRemainingBlocks];
+    let allBlocks = [...completedBlocks, ...finalRemainingBlocks];
+
+    if (missedSubjectIds && missedSubjectIds.length > 0) {
+      allBlocks = injectMissedSubjectsIntoCycle(allBlocks, missedSubjectIds);
+    }
+
     const totalMinutes = allBlocks.reduce((acc, b) => acc + b.durationMinutes, 0);
-    const completedBlocksCount = completedBlocks.length;
+    const completedBlocksCount = allBlocks.filter((b) => b.status === "COMPLETED").length;
     const currentProgress = allBlocks.length
       ? Math.round((completedBlocksCount / allBlocks.length) * 100)
       : 0;
@@ -811,12 +817,16 @@ export function buildStudyCycleBlocks(
   });
 
   const interleaved = interleaveBlocks(draftsMap, null);
-  const blocks: CycleBlock[] = interleaved.map((draft, idx) => ({
+  let blocks: CycleBlock[] = interleaved.map((draft, idx) => ({
     ...draft,
     blockNumber: idx + 1,
     status: idx === 0 ? ("CURRENT" as const) : ("PENDING" as const),
     isReinforcement: draft.isReinforcement,
   }));
+
+  if (missedSubjectIds && missedSubjectIds.length > 0) {
+    blocks = injectMissedSubjectsIntoCycle(blocks, missedSubjectIds);
+  }
 
   const totalMinutes = blocks.reduce((acc, b) => acc + b.durationMinutes, 0);
   const completedBlocksCount = blocks.filter((b) => b.status === "COMPLETED").length;
@@ -832,4 +842,109 @@ export function buildStudyCycleBlocks(
     currentProgress,
     subjectBreakdown,
   };
+}
+
+/**
+ * Injeta matérias pendentes de um dia perdido na fila atual do ciclo de estudos,
+ * posicionando-as imediatamente após o bloco CURRENT, sem duplicar blocos CURRENT.
+ */
+export function injectMissedSubjectsIntoCycle(
+  blocks: CycleBlock[],
+  missedSubjectIds: string[],
+): CycleBlock[] {
+  if (
+    !blocks ||
+    blocks.length === 0 ||
+    !missedSubjectIds ||
+    missedSubjectIds.length === 0
+  ) {
+    return blocks;
+  }
+
+  const currentBlockIndex = blocks.findIndex((b) => b.status === "CURRENT");
+  if (currentBlockIndex === -1) {
+    return blocks;
+  }
+
+  const currentBlock = blocks[currentBlockIndex];
+  // Matérias que devem ser injetadas, excluindo a matéria que já está como CURRENT para evitar duplicação
+  const subjectIdsToInject = Array.from(
+    new Set(missedSubjectIds.filter((id) => id !== currentBlock.subjectId)),
+  );
+
+  if (subjectIdsToInject.length === 0) {
+    return blocks;
+  }
+
+  const completedBlocks = blocks.slice(0, currentBlockIndex);
+  const remainingBlocks = blocks.slice(currentBlockIndex + 1);
+
+  // Separa os blocos pendentes que pertencem às matérias perdidas dos demais blocos pendentes
+  const priorityPendingBlocks: CycleBlock[] = [];
+  const otherPendingBlocks: CycleBlock[] = [];
+
+  for (const block of remainingBlocks) {
+    if (subjectIdsToInject.includes(block.subjectId)) {
+      priorityPendingBlocks.push(block);
+    } else {
+      otherPendingBlocks.push(block);
+    }
+  }
+
+  // Se alguma matéria perdida não tinha bloco pendente na volta atual, localiza modelo de bloco da matéria
+  for (const subId of subjectIdsToInject) {
+    const hasPending = priorityPendingBlocks.some((b) => b.subjectId === subId);
+    if (!hasPending) {
+      // Procura em qualquer bloco existente para clonar metadados
+      const templateBlock = blocks.find((b) => b.subjectId === subId);
+      if (templateBlock) {
+        priorityPendingBlocks.push({
+          ...templateBlock,
+          blockNumber: 0,
+          status: "PENDING",
+          isReinforcement: true,
+        });
+      }
+    }
+  }
+
+  // Intercala os blocos prioritários para que não fiquem matérias repetidas consecutivas caso haja mais de um
+  const orderedInjectedBlocks: CycleBlock[] = [];
+  let lastSubId = currentBlock.subjectId;
+
+  // Cópia para consumo
+  const pool = [...priorityPendingBlocks];
+  while (pool.length > 0) {
+    const nextIdx = pool.findIndex((b) => b.subjectId !== lastSubId);
+    if (nextIdx !== -1) {
+      const [chosen] = pool.splice(nextIdx, 1);
+      orderedInjectedBlocks.push(chosen);
+      lastSubId = chosen.subjectId;
+    } else {
+      // Se só sobraram blocos da mesma matéria
+      const [chosen] = pool.splice(0, 1);
+      orderedInjectedBlocks.push(chosen);
+      lastSubId = chosen.subjectId;
+    }
+  }
+
+  // Junta todos os blocos: Concluídos + CURRENT + Injetados (PENDING) + Demais (PENDING)
+  const combinedBlocks = [
+    ...completedBlocks,
+    currentBlock,
+    ...orderedInjectedBlocks,
+    ...otherPendingBlocks,
+  ];
+
+  // Renumera os blocos e garante integridade dos status (apenas 1 CURRENT)
+  return combinedBlocks.map((b, idx) => ({
+    ...b,
+    blockNumber: idx + 1,
+    status:
+      idx < currentBlockIndex
+        ? ("COMPLETED" as const)
+        : idx === currentBlockIndex
+          ? ("CURRENT" as const)
+          : ("PENDING" as const),
+  }));
 }
