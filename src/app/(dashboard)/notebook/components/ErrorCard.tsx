@@ -29,6 +29,7 @@ import {
   DrillQuestion,
 } from "@/types/quiz";
 import {
+  analyzeSingleErrorAction,
   generateErrorRemediationAction,
   markErrorAsMasteredAction,
   markErrorAsPendingAction,
@@ -122,7 +123,7 @@ export function ErrorCard({
 
     setIsGeneratingAi(true);
     try {
-      const res = await generateErrorRemediationAction({
+      const res = await analyzeSingleErrorAction({
         errorId: errorItem.id,
         questionText: errorItem.questionText,
         userAnswer: errorItem.userAnswer,

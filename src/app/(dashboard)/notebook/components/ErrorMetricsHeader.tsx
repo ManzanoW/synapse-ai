@@ -12,6 +12,7 @@ import {
   Sparkles,
   Layers,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { ErrorNotebookMetrics, ErrorTaxonomyMetric } from "@/types/quiz";
 
@@ -19,6 +20,7 @@ interface ErrorMetricsHeaderProps {
   metrics: ErrorNotebookMetrics;
   selectedReason?: string;
   onSelectReason?: (reason: string) => void;
+  onBatchClassify?: () => Promise<void> | void;
   onAutoClassify?: () => Promise<void> | void;
   isClassifying?: boolean;
 }
@@ -35,9 +37,11 @@ export function ErrorMetricsHeader({
   metrics,
   selectedReason = "ALL",
   onSelectReason,
+  onBatchClassify,
   onAutoClassify,
   isClassifying = false,
 }: ErrorMetricsHeaderProps) {
+  const classifyHandler = onBatchClassify || onAutoClassify;
   const { totalErrors, pendingErrors, masteredErrors, masteryRate, taxonomyDistribution } =
     metrics;
 
@@ -183,32 +187,26 @@ export function ErrorMetricsHeader({
               </p>
             </div>
 
-            {onAutoClassify && (
+            {classifyHandler && unclassifiedCount > 0 && (
               <button
                 type="button"
-                onClick={onAutoClassify}
-                disabled={isClassifying || unclassifiedCount === 0}
-                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600/30 via-indigo-600/30 to-violet-600/30 hover:from-violet-600/50 hover:to-indigo-600/50 border border-violet-500/40 hover:border-violet-500/70 text-violet-200 hover:text-white text-xs font-bold transition-all shadow-lg shadow-violet-950/40 active:scale-[0.98] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                title={
-                  unclassifiedCount === 0
-                    ? "Todas as falhas pendentes já foram diagnosticadas"
-                    : `Diagnosticar ${unclassifiedCount} questão(ões) não classificadas com IA`
-                }
+                onClick={classifyHandler}
+                disabled={isClassifying}
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-violet-600/30 to-rose-500/20 hover:from-amber-500/30 hover:via-violet-600/40 hover:to-rose-500/30 border border-violet-500/50 hover:border-violet-400 text-violet-100 hover:text-white text-xs font-bold transition-all shadow-lg shadow-violet-950/40 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0 group"
+                title={`Classificar lote de até 20 questões pendentes (${unclassifiedCount} não classificados)`}
               >
                 {isClassifying ? (
                   <>
-                    <Loader2 size={14} className="animate-spin text-violet-300 shrink-0" />
-                    <span>Diagnosticando falhas com IA...</span>
+                    <Loader2 size={14} className="animate-spin text-amber-300 shrink-0" />
+                    <span>Classificando lote com IA...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles size={14} className="text-violet-300 animate-pulse shrink-0" />
-                    <span>✨ Diagnosticar Falhas Pendentes com IA</span>
-                    {unclassifiedCount > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-violet-500/30 text-violet-200 border border-violet-500/30">
-                        {unclassifiedCount}
-                      </span>
-                    )}
+                    <Zap size={14} className="text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform shrink-0" />
+                    <span>⚡ Classificar {Math.min(20, unclassifiedCount)} Erros em Lote com IA</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {unclassifiedCount} não classificados
+                    </span>
                   </>
                 )}
               </button>

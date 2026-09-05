@@ -804,12 +804,49 @@ Responda ESTRITAMENTE no formato JSON com os campos solicitados.
 }
 
 /**
- * Diagnostica automaticamente a causa-raiz taxonômica de questões não classificadas
- * via Gemini AI em lote com fallback heurístico.
+ * Análise aprofundada individual sob demanda com cache permanente no banco
  */
-export async function autoClassifyPendingErrorsAction(): Promise<{
+export async function analyzeSingleErrorAction(
+  inputOrErrorId: GenerateRemediationInput | string,
+): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
+  if (typeof inputOrErrorId === "string") {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const errorRecord = await prisma.questionError.findUnique({
+      where: { id: inputOrErrorId, userId },
+      include: { subject: true, topic: true },
+    });
+
+    if (!errorRecord) {
+      return { success: false, error: "Registro de erro não encontrado." };
+    }
+
+    return generateErrorRemediationAction({
+      errorId: errorRecord.id,
+      questionText: errorRecord.questionText,
+      userAnswer: errorRecord.userAnswer,
+      correctAnswer: errorRecord.correctAnswer,
+      explanation: errorRecord.explanation || undefined,
+      errorReason: errorRecord.errorReason,
+      subjectName: errorRecord.subject?.name,
+      topicTitle: errorRecord.topic?.title,
+    });
+  }
+
+  return generateErrorRemediationAction(inputOrErrorId);
+}
+
+/**
+ * Classificação taxonômica ultrarrápida e econômica em lote (apenas rootCause)
+ * Processa 15 a 20 questões por execução com custo mínimo de tokens.
+ */
+export async function batchClassifyTaxonomyOnlyAction(batchSize: number = 20): Promise<{
   success: boolean;
-  classifiedCount?: number;
+  processed?: number;
   message?: string;
   error?: string;
 }> {
@@ -821,15 +858,17 @@ export async function autoClassifyPendingErrorsAction(): Promise<{
       return { success: false, error: "Usuário não autenticado." };
     }
 
-    // Busca registros onde a causa-raiz não está classificada
+    // 1. Busca registros pendentes de classificação taxonômica pertencentes ao usuário logado
     const unclassifiedRecords = await prisma.questionError.findMany({
       where: {
         userId,
         OR: [
           { errorReason: "UNCLASSIFIED" },
+          { errorReason: "GENERAL" },
+          { errorReason: "NOT_CLASSIFIED" },
           { errorReason: "NAO_CLASSIFICADO" },
-          { errorReason: "" },
           { errorReason: "Geral" },
+          { errorReason: "" },
         ],
       },
       select: {
@@ -839,146 +878,144 @@ export async function autoClassifyPendingErrorsAction(): Promise<{
         correctAnswer: true,
         explanation: true,
       },
-      take: 60,
+      take: batchSize,
     });
 
     if (unclassifiedRecords.length === 0) {
       return {
         success: true,
-        classifiedCount: 0,
-        message: "Todas as falhas pendentes já estão diagnosticadas.",
+        processed: 0,
+        message: "Todos os erros já estão categorizados!",
       };
     }
 
-    const BATCH_SIZE = 15;
-    let totalClassified = 0;
+    // 2. Monta payload ultracompacto para o Gemini (zero desperdício de tokens)
+    const promptData = unclassifiedRecords.map((item) => ({
+      id: item.id,
+      enunciado: (item.questionText || "").slice(0, 150),
+      respostaMarcada: item.userAnswer || "N/A",
+      gabaritoOficial: item.correctAnswer || "N/A",
+    }));
 
-    for (let i = 0; i < unclassifiedRecords.length; i += BATCH_SIZE) {
-      const batch = unclassifiedRecords.slice(i, i + BATCH_SIZE);
+    // 3. Prompt estrito de sistema: nenhuma justificativa ou texto adicional
+    const prompt = `Classifique cada erro cometido pelo candidato na questão em exatamente UMA das 4 chaves taxonômicas:
+- THEORY_GAP: Lacuna Teórica (desconhecimento da lei, doutrina ou conceito técnico).
+- TRICK_QUESTION: Falta de Atenção / Pegadinha (distratores sutis ou palavras restritivas).
+- INTERPRETATION: Erro de Interpretação (compreensão equivocada do comando ou texto).
+- TIME_PRESSURE: Pressão de Tempo / Chute (pressa ou resolução precipitada).
 
-      const promptData = batch.map((item, idx) => ({
-        index: idx + 1,
-        id: item.id,
-        enunciado: item.questionText.slice(0, 300),
-        respostaMarcada: item.userAnswer,
-        gabaritoOficial: item.correctAnswer,
-        justificativa: (item.explanation || "").slice(0, 250),
-      }));
+Questões a classificar:
+${JSON.stringify(promptData)}
 
-      const prompt = `
-Você é um Auditor e Pedagogo Especialista em Taxonomia de Erros em Concursos Públicos e Exames.
-Analise cada uma das questões abaixo e infira a causa-raiz mais provável para o erro cometido pelo candidato.
+Retorne ESTRITAMENTE um array JSON no formato mínimo:
+[{"id": "id_da_questao", "rootCause": "THEORY_GAP"}]
+Sem qualquer texto introdutório, justificativa ou explicação.`;
 
-Taxonomias permitidas (escolha exatamente uma por questão):
-- CONTENT_GAP: Lacuna Teórica (desconhecimento da lei, doutrina, jurisprudência, teoria ou conceito técnico).
-- TRICK_QUESTION: Falta de Atenção / Pegadinha (a banca usou distratores sutis, pegadinhas, palavras restritivas como "apenas/salvo/vedado" ou detalhes ardilosos).
-- INTERPRETATION: Erro de Interpretação (o estudante compreendeu equivocadamente o comando da questão, contexto ou assertivas).
-- TIME_PRESSURE: Pressão de Tempo (questão com cálculo longo ou texto excessivo sujeita a resolução precipitada).
+    let classifiedList: { id: string; rootCause: string }[] = [];
 
-Questões a diagnosticar:
-${JSON.stringify(promptData, null, 2)}
-
-Retorne um JSON com a lista de classificações contendo o id e a categoria taxonômica inferida ("errorReason").
-`;
-
-      let batchClassified = false;
-
-      try {
-        const result = await generateContentWithFallback({
-          prompt,
-          config: {
-            responseMimeType: "application/json",
-            temperature: 0.2,
-            responseSchema: {
+    try {
+      const result = await generateContentWithFallback({
+        prompt,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
               type: Type.OBJECT,
               properties: {
-                classifications: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      id: { type: Type.STRING },
-                      errorReason: {
-                        type: Type.STRING,
-                        enum: [
-                          "CONTENT_GAP",
-                          "TRICK_QUESTION",
-                          "INTERPRETATION",
-                          "TIME_PRESSURE",
-                        ],
-                      },
-                    },
-                    required: ["id", "errorReason"],
-                  },
+                id: { type: Type.STRING },
+                rootCause: {
+                  type: Type.STRING,
+                  enum: [
+                    "THEORY_GAP",
+                    "TRICK_QUESTION",
+                    "INTERPRETATION",
+                    "TIME_PRESSURE",
+                  ],
                 },
               },
-              required: ["classifications"],
+              required: ["id", "rootCause"],
             },
           },
-        });
+        },
+      });
 
-        const parsed = JSON.parse(result.text);
-        if (parsed.classifications && Array.isArray(parsed.classifications)) {
-          for (const c of parsed.classifications) {
-            const valid = normalizeTaxonomy(c.errorReason);
-            if (valid !== "UNCLASSIFIED") {
-              await prisma.questionError.update({
-                where: { id: c.id, userId },
-                data: { errorReason: valid },
-              });
-              totalClassified++;
-            }
-          }
-          batchClassified = true;
-        }
-      } catch (geminiErr) {
-        console.warn(
-          "[autoClassifyPendingErrorsAction] Erro no Gemini, acionando heurística pedagógica:",
-          geminiErr,
-        );
+      const parsed = JSON.parse(result.text);
+      if (Array.isArray(parsed)) {
+        classifiedList = parsed;
       }
+    } catch (geminiErr) {
+      console.warn(
+        "[batchClassifyTaxonomyOnlyAction] Falha na chamada da IA, acionando heurística rápida:",
+        geminiErr,
+      );
+    }
 
-      // Fallback heurístico caso o Gemini não tenha retornado este batch
-      if (!batchClassified) {
-        for (const item of batch) {
-          const combined = `${item.questionText} ${item.explanation || ""}`.toLowerCase();
-          let inferred = "CONTENT_GAP";
-
-          if (
-            combined.includes("pegadinha") ||
-            combined.includes("atenção") ||
-            combined.includes("cuidado") ||
-            combined.includes("exceto") ||
-            combined.includes("distrator") ||
-            combined.includes("vedado")
-          ) {
-            inferred = "TRICK_QUESTION";
-          } else if (
-            combined.includes("interpreta") ||
-            combined.includes("infere") ||
-            combined.includes("compreens") ||
-            combined.includes("texto") ||
-            combined.includes("conclui") ||
-            combined.includes("sentido")
-          ) {
-            inferred = "INTERPRETATION";
-          } else if (
-            combined.includes("cálculo") ||
-            combined.includes("tempo") ||
-            combined.includes("pressa")
-          ) {
-            inferred = "TIME_PRESSURE";
-          }
-
-          await prisma.questionError.update({
-            where: { id: item.id, userId },
-            data: { errorReason: inferred },
-          });
-          totalClassified++;
-        }
+    // 4. Mapeia resultados da IA ou aplica heurística de resiliência
+    const classifiedMap = new Map<string, string>();
+    for (const c of classifiedList) {
+      if (c && c.id && c.rootCause) {
+        classifiedMap.set(c.id, c.rootCause);
       }
     }
 
+    const updatesToPersist: { id: string; errorReason: string }[] = [];
+
+    for (const item of unclassifiedRecords) {
+      const rootCause = classifiedMap.get(item.id);
+      let resolvedReason: string;
+
+      if (rootCause) {
+        resolvedReason = normalizeTaxonomy(rootCause);
+      } else {
+        // Heurística rápida de contingência
+        const combined = `${item.questionText} ${item.explanation || ""}`.toLowerCase();
+        if (
+          combined.includes("pegadinha") ||
+          combined.includes("atenção") ||
+          combined.includes("cuidado") ||
+          combined.includes("exceto") ||
+          combined.includes("distrator") ||
+          combined.includes("vedado")
+        ) {
+          resolvedReason = "TRICK_QUESTION";
+        } else if (
+          combined.includes("interpreta") ||
+          combined.includes("infere") ||
+          combined.includes("compreens") ||
+          combined.includes("texto") ||
+          combined.includes("conclui")
+        ) {
+          resolvedReason = "INTERPRETATION";
+        } else if (
+          combined.includes("tempo") ||
+          combined.includes("pressa") ||
+          combined.includes("cálculo")
+        ) {
+          resolvedReason = "TIME_PRESSURE";
+        } else {
+          resolvedReason = "CONTENT_GAP";
+        }
+      }
+
+      updatesToPersist.push({ id: item.id, errorReason: resolvedReason });
+    }
+
+    // 5. Atualização atômica no banco via transação do Prisma
+    if (updatesToPersist.length > 0) {
+      await prisma.$transaction(
+        updatesToPersist.map((u) =>
+          prisma.questionError.update({
+            where: { id: u.id, userId },
+            data: { errorReason: u.errorReason },
+          }),
+        ),
+      );
+    }
+
+    // 6. Revalidação das rotas envolvidas
     try {
       revalidatePath("/notebook");
       revalidatePath("/questions");
@@ -986,16 +1023,37 @@ Retorne um JSON com a lista de classificações contendo o id e a categoria taxo
 
     return {
       success: true,
-      classifiedCount: totalClassified,
+      processed: updatesToPersist.length,
+      message: `${updatesToPersist.length} erros categorizados com sucesso!`,
     };
   } catch (err) {
-    console.error("[autoClassifyPendingErrorsAction] Erro:", err);
+    console.error("[batchClassifyTaxonomyOnlyAction] Erro:", err);
     return {
       success: false,
       error:
         err instanceof Error
           ? err.message
-          : "Falha ao classificar falhas pendentes.",
+          : "Falha ao classificar lote de erros.",
     };
   }
 }
+
+/**
+ * Diagnostica automaticamente a causa-raiz taxonômica de questões não classificadas
+ * Mantido para compatibilidade, delegando para batchClassifyTaxonomyOnlyAction.
+ */
+export async function autoClassifyPendingErrorsAction(): Promise<{
+  success: boolean;
+  classifiedCount?: number;
+  message?: string;
+  error?: string;
+}> {
+  const res = await batchClassifyTaxonomyOnlyAction(20);
+  return {
+    success: res.success,
+    classifiedCount: res.processed,
+    message: res.message,
+    error: res.error,
+  };
+}
+

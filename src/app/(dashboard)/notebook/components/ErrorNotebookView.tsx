@@ -13,15 +13,18 @@ import { ErrorCard } from "./ErrorCard";
 import {
   getErrorNotebookItemsAction,
   getErrorMetricsAction,
+  batchClassifyTaxonomyOnlyAction,
   autoClassifyPendingErrorsAction,
 } from "@/actions/error-notebook-actions";
 import {
+  AlertCircle,
   BookOpenCheck,
   CheckCircle2,
   FileStack,
   Loader2,
   Sparkles,
   ArrowRight,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -54,6 +57,28 @@ export function ErrorNotebookView({
   const [isFiltering, setIsFiltering] = useState(false);
   const [isClassifying, setIsClassifying] = useState(false);
   const filterRequestIdRef = useRef(0);
+  const [toastMessage, setToastMessage] = useState<{
+    text: string;
+    type: "success" | "info" | "error";
+  } | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = useCallback(
+    (text: string, type: "success" | "info" | "error" = "success") => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToastMessage({ text, type });
+      toastTimeoutRef.current = setTimeout(() => {
+        setToastMessage(null);
+      }, 4000);
+    },
+    []
+  );
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
 
   // Sincroniza dados caso initialItems ou initialMetrics sejam carregados ou atualizados externamente
   useEffect(() => {
@@ -126,20 +151,27 @@ export function ErrorNotebookView({
     }
   }, []);
 
-  // Diagnóstico em lote de erros pendentes via IA
-  const handleAutoClassify = async () => {
+  // Classificação taxonômica em lote (20 questões por clique)
+  const handleBatchClassify = async () => {
     setIsClassifying(true);
     try {
-      const res = await autoClassifyPendingErrorsAction();
+      const res = await batchClassifyTaxonomyOnlyAction(20);
       if (res.success) {
+        showToast(
+          res.message || `${res.processed || 0} erros categorizados com sucesso!`,
+          "success"
+        );
         await refreshMetrics();
         const itemsRes = await getErrorNotebookItemsAction(filters);
         if (itemsRes.success && itemsRes.data) {
           setItems(itemsRes.data);
         }
+      } else {
+        showToast(res.error || "Falha ao classificar lote de erros.", "error");
       }
     } catch (err) {
       console.error("Erro ao classificar com IA:", err);
+      showToast("Erro inesperado ao classificar lote de erros.", "error");
     } finally {
       setIsClassifying(false);
     }
@@ -166,7 +198,7 @@ export function ErrorNotebookView({
         metrics={metrics}
         selectedReason={filters.errorReason || "ALL"}
         onSelectReason={(reason) => handleFilterChange({ errorReason: reason })}
-        onAutoClassify={handleAutoClassify}
+        onBatchClassify={handleBatchClassify}
         isClassifying={isClassifying}
       />
 
@@ -248,6 +280,42 @@ export function ErrorNotebookView({
           )}
         </div>
       )}
+
+      {/* Toast Flutuante de Feedback */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 25, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl border pointer-events-auto ${
+              toastMessage.type === "success"
+                ? "bg-emerald-950/90 border-emerald-500/40 text-emerald-100 shadow-emerald-950/50"
+                : toastMessage.type === "error"
+                ? "bg-rose-950/90 border-rose-500/40 text-rose-100 shadow-rose-950/50"
+                : "bg-slate-900/90 border-slate-700 text-slate-100 shadow-slate-950/50"
+            }`}
+          >
+            {toastMessage.type === "success" ? (
+              <div className="p-1.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                <CheckCircle2 size={16} />
+              </div>
+            ) : toastMessage.type === "error" ? (
+              <div className="p-1.5 rounded-full bg-rose-500/20 text-rose-400">
+                <AlertCircle size={16} />
+              </div>
+            ) : (
+              <div className="p-1.5 rounded-full bg-violet-500/20 text-violet-400">
+                <Zap size={16} />
+              </div>
+            )}
+            <span className="text-xs md:text-sm font-semibold pr-1">
+              {toastMessage.text}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
