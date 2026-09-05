@@ -42,6 +42,7 @@ import { QuestionMinimap } from "./_components/QuestionMinimap";
 import { TimedLaunchModal } from "./_components/TimedLaunchModal";
 import { TimedPacingModal } from "./_components/TimedPacingModal";
 import { ErrorNotebookView } from "../notebook/components/ErrorNotebookView";
+import { ErrorNotebookSkeleton } from "../notebook/components/ErrorNotebookSkeleton";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { RegisterQuestionsModal } from "@/components/questions/register-questions-modal";
@@ -51,6 +52,7 @@ import { generateTargetedDeckAction } from "@/actions/deck-actions";
 import {
   getErrorNotebookItemsAction,
   getErrorMetricsAction,
+  getUnifiedErrorNotebookDataAction,
 } from "@/actions/error-notebook-actions";
 import {
   ErrorClassification,
@@ -155,8 +157,9 @@ export default function QuestoesPage() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
     null,
   );
+  const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<"create" | "history" | "notebook">(
-    "create",
+    tabParam === "history" || tabParam === "notebook" ? tabParam : "create",
   );
   const [pendingTab, setPendingTab] = useState<
     "create" | "history" | "notebook" | null
@@ -302,15 +305,10 @@ export default function QuestoesPage() {
   const loadErrorNotebookData = useCallback(async () => {
     setIsLoadingNotebook(true);
     try {
-      const [itemsRes, metricsRes] = await Promise.all([
-        getErrorNotebookItemsAction({}),
-        getErrorMetricsAction(),
-      ]);
-      if (itemsRes.success && itemsRes.data) {
-        setErrorNotebookItems(itemsRes.data);
-      }
-      if (metricsRes.success && metricsRes.data) {
-        setErrorNotebookMetrics(metricsRes.data);
+      const res = await getUnifiedErrorNotebookDataAction({});
+      if (res.success && res.data) {
+        setErrorNotebookItems(res.data.items);
+        setErrorNotebookMetrics(res.data.metrics);
       }
       setIsNotebookLoaded(true);
     } catch (err) {
@@ -321,32 +319,38 @@ export default function QuestoesPage() {
   }, []);
 
   useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    if (tabParam === "history") {
+    const currentTab = searchParams.get("tab");
+    if (currentTab === "history") {
       setActiveTab("history");
-      fetchQuizHistory();
-    } else if (tabParam === "notebook") {
+      if (quizHistory.length === 0) {
+        fetchQuizHistory();
+      }
+    } else if (currentTab === "notebook") {
       setActiveTab("notebook");
-      loadErrorNotebookData();
-    } else if (tabParam === "create") {
+      if (!isNotebookLoaded) {
+        loadErrorNotebookData();
+      }
+    } else if (currentTab === "create") {
       setActiveTab("create");
     }
 
     const openTimed = searchParams.get("openTimed");
     if (openTimed === "true") {
-      fetchQuizHistory();
-      loadErrorNotebookData();
+      if (quizHistory.length === 0) fetchQuizHistory();
+      if (!isNotebookLoaded) loadErrorNotebookData();
       setIsTimedLaunchModalOpen(true);
     }
 
-    // Carrega estatísticas resumidas de erros para badge do tab
-    getErrorMetricsAction()
-      .then((res) => {
-        if (res.success && res.data) {
-          setErrorNotebookMetrics(res.data);
-        }
-      })
-      .catch(() => {});
+    // Carrega estatísticas resumidas de erros para badge do tab (apenas se não estiver na aba notebook, onde já vem no pacote unificado)
+    if (currentTab !== "notebook") {
+      getErrorMetricsAction()
+        .then((res) => {
+          if (res.success && res.data) {
+            setErrorNotebookMetrics(res.data);
+          }
+        })
+        .catch(() => {});
+    }
 
     const paramTopicId = searchParams.get("topicId");
     const paramSubjectId = searchParams.get("subjectId");
@@ -382,7 +386,7 @@ export default function QuestoesPage() {
         setIsAIModalOpen(true);
       });
     }
-  }, [searchParams, fetchQuizHistory, loadErrorNotebookData]);
+  }, [searchParams, fetchQuizHistory, loadErrorNotebookData, isNotebookLoaded, quizHistory.length]);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -421,11 +425,10 @@ export default function QuestoesPage() {
     return () => clearInterval(interval);
   }, [isTimerRunning, questions.length]);
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      setIsInitialLoading(true);
-    });
+  const paramSubjectId = searchParams.get("subjectId");
+  const paramTopicId = searchParams.get("topicId");
 
+  useEffect(() => {
     fetch("/api/edital?mode=subjects")
       .then((res) => res.json())
       .then((json) => {
@@ -455,9 +458,6 @@ export default function QuestoesPage() {
 
         const loadedSubjects = Array.from(uniqueSubjectsMap.values());
         setSubjects(loadedSubjects);
-
-        const paramSubjectId = searchParams.get("subjectId");
-        const paramTopicId = searchParams.get("topicId");
 
         if (paramSubjectId) {
           const decodedSubject = decodeURIComponent(paramSubjectId);
@@ -492,7 +492,7 @@ export default function QuestoesPage() {
       .finally(() => {
         setIsInitialLoading(false);
       });
-  }, [searchParams]);
+  }, [paramSubjectId, paramTopicId]);
 
   const currentSubjectObj = subjects.find(
     (s) =>
@@ -532,9 +532,9 @@ export default function QuestoesPage() {
     }
     setActiveTab(newTab);
     router.replace(`/questions?tab=${newTab}`, { scroll: false });
-    if (newTab === "history") {
+    if (newTab === "history" && quizHistory.length === 0) {
       fetchQuizHistory();
-    } else if (newTab === "notebook") {
+    } else if (newTab === "notebook" && !isNotebookLoaded) {
       loadErrorNotebookData();
     }
   };
@@ -543,9 +543,9 @@ export default function QuestoesPage() {
     if (pendingTab) {
       setActiveTab(pendingTab);
       router.replace(`/questions?tab=${pendingTab}`, { scroll: false });
-      if (pendingTab === "history") {
+      if (pendingTab === "history" && quizHistory.length === 0) {
         fetchQuizHistory();
-      } else if (pendingTab === "notebook") {
+      } else if (pendingTab === "notebook" && !isNotebookLoaded) {
         loadErrorNotebookData();
       }
       setQuestions([]);
@@ -964,15 +964,6 @@ export default function QuestoesPage() {
     );
   }
 
-  if (isInitialLoading) {
-    return (
-      <div className="min-h-screen bg-[#02050e] text-slate-400 flex flex-col items-center justify-center gap-3 text-xs">
-        <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-        <span>Sincronizando banco de dados cognitivo...</span>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#02050e] text-slate-100 p-3 sm:p-8 font-sans antialiased relative selection:bg-indigo-500/30">
       {isZenMode && (
@@ -1223,10 +1214,7 @@ export default function QuestoesPage() {
                   <span>Início / Gerador</span>
                 </button>
                 <button
-                  onClick={() => {
-                    handleTabChange("history");
-                    fetchQuizHistory();
-                  }}
+                  onClick={() => handleTabChange("history")}
                   type="button"
                   className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
                     activeTab === "history"
@@ -1238,10 +1226,7 @@ export default function QuestoesPage() {
                   <span>Simulados Salvos</span>
                 </button>
                 <button
-                  onClick={() => {
-                    handleTabChange("notebook");
-                    loadErrorNotebookData();
-                  }}
+                  onClick={() => handleTabChange("notebook")}
                   type="button"
                   className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
                     activeTab === "notebook"
@@ -1501,10 +1486,7 @@ export default function QuestoesPage() {
             {activeTab === "notebook" && questions.length === 0 && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 {!isNotebookLoaded || isLoadingNotebook ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3 text-xs">
-                    <Loader2 size={24} className="animate-spin text-rose-400" />
-                    <span>Carregando diagnóstico do Caderno de Erros...</span>
-                  </div>
+                  <ErrorNotebookSkeleton />
                 ) : (
                   <ErrorNotebookView
                     initialItems={errorNotebookItems}

@@ -264,6 +264,223 @@ async function syncLegacyErrorsIfEmpty(userId: string) {
 }
 
 /**
+ * Busca interna dos itens com filtros e deduplicação
+ */
+async function fetchErrorNotebookItemsInternal(
+  userId: string,
+  filters: ErrorNotebookFilters = {},
+): Promise<ErrorNotebookItem[]> {
+  const where: any = { userId };
+
+  if (filters.subjectId && filters.subjectId !== "ALL") {
+    where.subjectId = filters.subjectId;
+  }
+
+  if (filters.status && filters.status !== "ALL") {
+    where.status = filters.status;
+  }
+
+  if (filters.errorReason && filters.errorReason !== "ALL") {
+    const normalized = normalizeTaxonomy(filters.errorReason);
+    where.errorReason = normalized;
+  }
+
+  if (filters.period && filters.period !== "all") {
+    const now = new Date();
+    let days = 7;
+    if (filters.period === "30d") days = 30;
+    if (filters.period === "90d") days = 90;
+    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    where.createdAt = { gte: startDate };
+  }
+
+  if (filters.search && filters.search.trim() !== "") {
+    const term = filters.search.trim();
+    where.OR = [
+      { questionText: { contains: term, mode: "insensitive" } },
+      { explanation: { contains: term, mode: "insensitive" } },
+    ];
+  }
+
+  const records = await prisma.questionError.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: {
+      subject: {
+        select: { id: true, name: true, color: true },
+      },
+      topic: {
+        select: { id: true, title: true },
+      },
+    },
+  });
+
+  // Deduplicação na memória para garantir que nenhuma duplicata residual seja entregue à UI
+  const grouped = new Map<string, (typeof records)[number]>();
+  for (const r of records) {
+    const key = normalizeQuestionKey(r.questionText);
+    const existing = grouped.get(key);
+    if (!existing) {
+      grouped.set(key, r);
+    } else {
+      // Elege o registro com melhor qualidade
+      const existingScore =
+        (existing.status === "MASTERED" ? 10 : 0) +
+        (existing.aiExplanation || existing.drillQuestion ? 5 : 0);
+      const newScore =
+        (r.status === "MASTERED" ? 10 : 0) +
+        (r.aiExplanation || r.drillQuestion ? 5 : 0);
+      if (newScore > existingScore) {
+        grouped.set(key, r);
+      }
+    }
+  }
+
+  const deduplicatedRecords = Array.from(grouped.values()).sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+  );
+
+  return deduplicatedRecords.map((r) => ({
+    id: r.id,
+    userId: r.userId,
+    subjectId: r.subjectId,
+    topicId: r.topicId,
+    quizId: r.quizId,
+    questionText: r.questionText,
+    options: (r.options as any) || [],
+    userAnswer: r.userAnswer,
+    correctAnswer: r.correctAnswer,
+    explanation: r.explanation,
+    errorReason: r.errorReason,
+    status: r.status as "PENDING" | "MASTERED",
+    masteredAt: r.masteredAt,
+    aiExplanation: r.aiExplanation,
+    mnemonic: r.mnemonic,
+    drillQuestion: (r.drillQuestion as any) || null,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    subject: r.subject,
+    topic: r.topic,
+  }));
+}
+
+/**
+ * Busca interna das métricas globais e distribuição taxonômica
+ */
+async function fetchErrorMetricsInternal(
+  userId: string,
+): Promise<ErrorNotebookMetrics> {
+  const allErrors = await prisma.questionError.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      questionText: true,
+      status: true,
+      errorReason: true,
+    },
+  });
+
+  // Deduplicação defensiva por questão única para métricas 100% alinhadas com a listagem
+  const seenMetricsKeys = new Set<string>();
+  const uniqueErrors = allErrors.filter((e) => {
+    const key = normalizeQuestionKey(e.questionText);
+    if (!key || seenMetricsKeys.has(key)) return false;
+    seenMetricsKeys.add(key);
+    return true;
+  });
+
+  const totalErrors = uniqueErrors.length;
+  const pendingErrors = uniqueErrors.filter(
+    (e) => e.status === "PENDING",
+  ).length;
+  const masteredErrors = uniqueErrors.filter(
+    (e) => e.status === "MASTERED",
+  ).length;
+  const masteryRate =
+    totalErrors > 0 ? Math.round((masteredErrors / totalErrors) * 100) : 0;
+
+  // Contagem por taxonomia
+  const counts: Record<string, number> = {
+    CONTENT_GAP: 0,
+    TRICK_QUESTION: 0,
+    INTERPRETATION: 0,
+    TIME_PRESSURE: 0,
+    UNCLASSIFIED: 0,
+  };
+
+  uniqueErrors.forEach((e) => {
+    const norm = normalizeTaxonomy(e.errorReason);
+    counts[norm] = (counts[norm] || 0) + 1;
+  });
+
+  const taxonomyDistribution: ErrorTaxonomyMetric[] = Object.keys(
+    TAXONOMY_METADATA,
+  ).map((key) => {
+    const count = counts[key] || 0;
+    const meta = TAXONOMY_METADATA[key];
+    return {
+      reason: key,
+      label: meta.label,
+      count,
+      percentage:
+        totalErrors > 0 ? Math.round((count / totalErrors) * 100) : 0,
+      color: meta.color,
+    };
+  });
+
+  return {
+    totalErrors,
+    pendingErrors,
+    masteredErrors,
+    masteryRate,
+    taxonomyDistribution,
+  };
+}
+
+/**
+ * Ação unificada que executa sincronização, busca de itens e cálculo de métricas
+ * em uma única viagem ao servidor e com execução paralela (Promise.all).
+ */
+export async function getUnifiedErrorNotebookDataAction(
+  filters: ErrorNotebookFilters = {},
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    // Auto-popula com histórico se vazio e sanitiza duplicatas uma única vez
+    await syncLegacyErrorsIfEmpty(userId);
+
+    // Executa em paralelo a busca de itens e métricas
+    const [items, metrics] = await Promise.all([
+      fetchErrorNotebookItemsInternal(userId, filters),
+      fetchErrorMetricsInternal(userId),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        items,
+        metrics,
+      },
+    };
+  } catch (err) {
+    console.error("[getUnifiedErrorNotebookDataAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao carregar dados unificados do caderno de erros.",
+    };
+  }
+}
+
+/**
  * Lista os itens do Caderno de Erros com filtros dinâmicos
  */
 export async function getErrorNotebookItemsAction(
@@ -280,99 +497,7 @@ export async function getErrorNotebookItemsAction(
     // Auto-popula com histórico se vazio e sanitiza duplicatas
     await syncLegacyErrorsIfEmpty(userId);
 
-    const where: any = { userId };
-
-    if (filters.subjectId && filters.subjectId !== "ALL") {
-      where.subjectId = filters.subjectId;
-    }
-
-    if (filters.status && filters.status !== "ALL") {
-      where.status = filters.status;
-    }
-
-    if (filters.errorReason && filters.errorReason !== "ALL") {
-      const normalized = normalizeTaxonomy(filters.errorReason);
-      where.errorReason = normalized;
-    }
-
-    if (filters.period && filters.period !== "all") {
-      const now = new Date();
-      let days = 7;
-      if (filters.period === "30d") days = 30;
-      if (filters.period === "90d") days = 90;
-      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-      where.createdAt = { gte: startDate };
-    }
-
-    if (filters.search && filters.search.trim() !== "") {
-      const term = filters.search.trim();
-      where.OR = [
-        { questionText: { contains: term, mode: "insensitive" } },
-        { explanation: { contains: term, mode: "insensitive" } },
-      ];
-    }
-
-    const records = await prisma.questionError.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: {
-        subject: {
-          select: { id: true, name: true, color: true },
-        },
-        topic: {
-          select: { id: true, title: true },
-        },
-      },
-    });
-
-    // Deduplicação na memória para garantir que nenhuma duplicata residual seja entregue à UI
-    const grouped = new Map<string, (typeof records)[number]>();
-    for (const r of records) {
-      const key = normalizeQuestionKey(r.questionText);
-      const existing = grouped.get(key);
-      if (!existing) {
-        grouped.set(key, r);
-      } else {
-        // Elege o registro com melhor qualidade
-        const existingScore =
-          (existing.status === "MASTERED" ? 10 : 0) +
-          (existing.aiExplanation || existing.drillQuestion ? 5 : 0);
-        const newScore =
-          (r.status === "MASTERED" ? 10 : 0) +
-          (r.aiExplanation || r.drillQuestion ? 5 : 0);
-        if (newScore > existingScore) {
-          grouped.set(key, r);
-        }
-      }
-    }
-
-    const deduplicatedRecords = Array.from(grouped.values()).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-    );
-
-    const items: ErrorNotebookItem[] = deduplicatedRecords.map((r) => ({
-      id: r.id,
-      userId: r.userId,
-      subjectId: r.subjectId,
-      topicId: r.topicId,
-      quizId: r.quizId,
-      questionText: r.questionText,
-      options: (r.options as any) || [],
-      userAnswer: r.userAnswer,
-      correctAnswer: r.correctAnswer,
-      explanation: r.explanation,
-      errorReason: r.errorReason,
-      status: r.status as "PENDING" | "MASTERED",
-      masteredAt: r.masteredAt,
-      aiExplanation: r.aiExplanation,
-      mnemonic: r.mnemonic,
-      drillQuestion: (r.drillQuestion as any) || null,
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
-      subject: r.subject,
-      topic: r.topic,
-    }));
-
+    const items = await fetchErrorNotebookItemsInternal(userId, filters);
     return { success: true, data: items };
   } catch (err) {
     console.error("[getErrorNotebookItemsAction] Erro:", err);
@@ -400,72 +525,7 @@ export async function getErrorMetricsAction() {
 
     await syncLegacyErrorsIfEmpty(userId);
 
-    const allErrors = await prisma.questionError.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        questionText: true,
-        status: true,
-        errorReason: true,
-      },
-    });
-
-    // Deduplicação defensiva por questão única para métricas 100% alinhadas com a listagem
-    const seenMetricsKeys = new Set<string>();
-    const uniqueErrors = allErrors.filter((e) => {
-      const key = normalizeQuestionKey(e.questionText);
-      if (!key || seenMetricsKeys.has(key)) return false;
-      seenMetricsKeys.add(key);
-      return true;
-    });
-
-    const totalErrors = uniqueErrors.length;
-    const pendingErrors = uniqueErrors.filter(
-      (e) => e.status === "PENDING",
-    ).length;
-    const masteredErrors = uniqueErrors.filter(
-      (e) => e.status === "MASTERED",
-    ).length;
-    const masteryRate =
-      totalErrors > 0 ? Math.round((masteredErrors / totalErrors) * 100) : 0;
-
-    // Contagem por taxonomia
-    const counts: Record<string, number> = {
-      CONTENT_GAP: 0,
-      TRICK_QUESTION: 0,
-      INTERPRETATION: 0,
-      TIME_PRESSURE: 0,
-      UNCLASSIFIED: 0,
-    };
-
-    uniqueErrors.forEach((e) => {
-      const norm = normalizeTaxonomy(e.errorReason);
-      counts[norm] = (counts[norm] || 0) + 1;
-    });
-
-    const taxonomyDistribution: ErrorTaxonomyMetric[] = Object.keys(
-      TAXONOMY_METADATA,
-    ).map((key) => {
-      const count = counts[key] || 0;
-      const meta = TAXONOMY_METADATA[key];
-      return {
-        reason: key,
-        label: meta.label,
-        count,
-        percentage:
-          totalErrors > 0 ? Math.round((count / totalErrors) * 100) : 0,
-        color: meta.color,
-      };
-    });
-
-    const metrics: ErrorNotebookMetrics = {
-      totalErrors,
-      pendingErrors,
-      masteredErrors,
-      masteryRate,
-      taxonomyDistribution,
-    };
-
+    const metrics = await fetchErrorMetricsInternal(userId);
     return { success: true, data: metrics };
   } catch (err) {
     console.error("[getErrorMetricsAction] Erro:", err);
