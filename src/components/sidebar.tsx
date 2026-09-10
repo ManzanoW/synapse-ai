@@ -1,0 +1,459 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { useSidebar } from "@/lib/sidebar-context";
+import { useGamification } from "@/context/GamificationContext";
+import LogoutModal from "@/components/logout/logout-modal";
+import { PrestigeModal } from "@/components/gamification/prestige-modal";
+import { useAudioContext } from "@/contexts/AudioContext";
+import {
+  Sparkles,
+  Layers,
+  LogOut,
+  CalendarDays,
+  LayoutDashboard,
+  TrendingUp,
+  FileStack,
+  UserCircle2,
+  Info,
+  FileSpreadsheet,
+  Award,
+  Flame,
+  Trophy,
+  Zap,
+  Loader2,
+  Search,
+  Volume2,
+  VolumeX,
+  Crown,
+  BookOpenCheck,
+  Timer,
+} from "lucide-react";
+
+interface SidebarProps {
+  user?: {
+    id?: string;
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+}
+
+const NAV_GROUPS = [
+  {
+    label: "Estudos",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Edital", href: "/edital", icon: FileSpreadsheet },
+      { label: "Cronograma", href: "/week", icon: Sparkles },
+    ],
+  },
+  {
+    label: "Prática & Performance",
+    items: [
+      { label: "Banco de Provas", href: "/questions", icon: FileStack },
+      { label: "Cards", href: "/flashcards", icon: Layers },
+      { label: "Performance", href: "/performance", icon: TrendingUp },
+      {
+        label: "Conquistas",
+        href: "/achievements",
+        icon: Trophy,
+        isSpecial: true,
+      },
+      { label: "Calendário", href: "/calendar", icon: CalendarDays },
+    ],
+  },
+  {
+    label: "Conta",
+    items: [
+      { label: "Perfil", href: "/profile", icon: UserCircle2 },
+      { label: "Ajuda", href: "/help", icon: Info },
+    ],
+  },
+];
+
+export default function Sidebar({ user }: SidebarProps) {
+  const pathname = usePathname();
+  const { isOpen, closeSidebar } = useSidebar();
+  const { stats, isLoading, refreshStats } = useGamification();
+  const { isMuted, toggleMute } = useAudioContext();
+
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isPrestigeModalOpen, setIsPrestigeModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      refreshStats(user.id);
+    }
+  }, [user?.id, refreshStats]);
+
+  useEffect(() => {
+    const handleXpUpdate = () => {
+      if (user?.id) {
+        refreshStats(user.id);
+      }
+    };
+
+    window.addEventListener("xp-updated", handleXpUpdate);
+    return () => window.removeEventListener("xp-updated", handleXpUpdate);
+  }, [user?.id, refreshStats]);
+
+  const gamification = stats?.gamification;
+  const streak = stats?.streak;
+
+  const currentLevel = gamification?.level || 1;
+  const currentPrestige = gamification?.prestige || 0;
+  const canAscendPrestige = currentLevel >= 50;
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return "US";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const handleConfirmLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await signOut({ callbackUrl: "/login" });
+    } catch (error) {
+      console.error("Erro ao encerrar sessão:", error);
+      setIsLoggingOut(false);
+    }
+  };
+
+  return (
+    <>
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        isLoading={isLoggingOut}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleConfirmLogout}
+      />
+
+      {user?.id && (
+        <PrestigeModal
+          isOpen={isPrestigeModalOpen}
+          onClose={() => setIsPrestigeModalOpen(false)}
+          userId={user.id}
+          currentPrestige={currentPrestige}
+        />
+      )}
+
+      {isOpen && (
+        <div
+          onClick={closeSidebar}
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden animate-fade-in"
+        />
+      )}
+
+      <aside
+        className={`
+          w-64 h-screen bg-[#07090e] border-r border-white/6 
+          text-slate-200 flex flex-col justify-between p-4 font-sans antialiased shrink-0 select-none
+          fixed md:sticky top-0 left-0 z-50 transition-transform duration-300 ease-in-out 
+          ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+        `}
+      >
+        <div className="space-y-6">
+          {/* Cabeçalho */}
+          <div className="flex flex-col items-center pt-2 px-2 text-center select-none">
+            <div className="inline-flex items-center justify-center gap-2">
+              <h1 className="font-extrabold text-slate-50 text-[1.85rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
+                Synapse
+              </h1>
+
+              <div className="inline-flex items-center gap-1">
+                <span className="font-black text-[1.85rem] tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
+                  AI
+                </span>
+
+                <div className="relative flex items-center justify-center w-2 h-2 mt-1.5">
+                  <span className="absolute w-2 h-2 rounded-full bg-indigo-400/40 animate-ping" />
+                  <svg
+                    viewBox="0 0 8 8"
+                    className="w-1.5 h-1.5 drop-shadow-[0_0_6px_#818cf8]"
+                  >
+                    <circle cx="4" cy="4" r="3.5" className="fill-indigo-200" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-3 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+          </div>
+
+          {/* Busca rápida & Volume */}
+          <div className="px-1 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                closeSidebar();
+                window.dispatchEvent(new CustomEvent("open-command-palette"));
+              }}
+              className="flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-slate-200 transition-all text-xs cursor-pointer group"
+            >
+              <div className="flex items-center gap-2">
+                <Search
+                  size={14}
+                  className="text-slate-400 group-hover:text-indigo-400 transition-colors"
+                />
+                <span className="font-medium">Busca rápida...</span>
+              </div>
+              <kbd className="font-mono text-[10px] text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+                ⌘K
+              </kbd>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleMute}
+              title={isMuted ? "Ativar som" : "Silenciar som"}
+              aria-label={isMuted ? "Ativar som" : "Silenciar som"}
+              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                isMuted
+                  ? "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/30"
+                  : "bg-white/5 border-white/10 text-slate-400 hover:text-indigo-300 hover:bg-white/10 hover:border-indigo-500/30"
+              }`}
+            >
+              {isMuted ? (
+                <VolumeX
+                  size={15}
+                  className="transition-transform active:scale-95"
+                />
+              ) : (
+                <Volume2
+                  size={15}
+                  className="transition-transform active:scale-95"
+                />
+              )}
+            </button>
+          </div>
+
+          {/* Navegação */}
+          <nav className="space-y-5">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label} className="space-y-1">
+                <span className="px-2.5 text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500/80">
+                  {group.label}
+                </span>
+
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive =
+                      item.href === "/"
+                        ? pathname === "/"
+                        : pathname === item.href ||
+                          pathname.startsWith(`${item.href}/`);
+
+                    const isSpecial = item.isSpecial;
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={closeSidebar}
+                        className={`relative group flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] font-medium transition-all duration-200 ${
+                          isActive
+                            ? isSpecial
+                              ? "text-amber-200 bg-amber-500/10 font-semibold border border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                              : "text-indigo-200 bg-indigo-500/10 font-semibold"
+                            : "text-slate-400 hover:text-slate-200 hover:bg-white/3"
+                        }`}
+                      >
+                        {isActive && (
+                          <div
+                            className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full ${
+                              isSpecial
+                                ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
+                                : "bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
+                            }`}
+                          />
+                        )}
+
+                        <Icon
+                          size={16}
+                          strokeWidth={isActive ? 2 : 1.5}
+                          className={`transition-all duration-200 ${
+                            isActive
+                              ? isSpecial
+                                ? "text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                                : "text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]"
+                              : "text-slate-500 group-hover:text-slate-300"
+                          }`}
+                        />
+
+                        <span className="tracking-wide">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
+        </div>
+
+        {/* Rodapé de Gamificação, Nível e Prestígio */}
+        <div className="pt-2">
+          <div className="group relative overflow-hidden rounded-2xl bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl transition-all duration-300 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.2)]">
+            <div className="absolute -top-12 -left-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
+            <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent shadow-[0_0_8px_#818cf8]" />
+
+            <div className="p-3.5 space-y-3 relative z-10">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 size={16} className="animate-spin text-indigo-400" />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 ${
+                          gamification?.prestigeTier?.badgeColor ||
+                          "bg-indigo-500/10 border-indigo-500/30 text-indigo-300"
+                        }`}
+                      >
+                        <Award
+                          size={16}
+                          strokeWidth={2.2}
+                          className={
+                            gamification?.prestigeTier?.iconColor ||
+                            "text-indigo-400"
+                          }
+                        />
+                      </div>
+                      <div className="flex flex-col justify-center min-w-0 pr-1">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-indigo-300/70 leading-none truncate block">
+                            {gamification?.title || "Sua Patente"}
+                          </span>
+                          {currentPrestige > 0 && (
+                            <span className="text-[7.5px] font-mono font-black px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
+                              P{currentPrestige}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-black text-white tracking-tight leading-none mt-0.5">
+                          Nível {currentLevel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {canAscendPrestige && (
+                        <button
+                          type="button"
+                          onClick={() => setIsPrestigeModalOpen(true)}
+                          title="Ascender Prestígio!"
+                          className="cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[10px] font-black font-mono animate-bounce"
+                        >
+                          <Crown size={11} />
+                          <span>ASCENDER</span>
+                        </button>
+                      )}
+
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold font-mono shadow-[0_0_12px_rgba(244,63,94,0.18)]">
+                        <Flame
+                          size={13}
+                          className="fill-rose-500 text-rose-500 animate-pulse"
+                        />
+                        <span>{streak?.currentDays || 0}d</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-0.5">
+                    <div className="flex items-center justify-between text-[10px] font-mono">
+                      <span className="flex items-center gap-1.5 font-bold text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]">
+                        <Zap
+                          size={11}
+                          className="fill-amber-400 text-amber-400"
+                        />
+                        {gamification?.totalXp || 0}{" "}
+                        <span className="text-slate-500 font-normal">XP</span>
+                      </span>
+                      <span className="text-slate-400 font-bold">
+                        {gamification?.progressPercentage ?? 0}%
+                      </span>
+                    </div>
+
+                    <div className="h-2 w-full bg-slate-950/90 rounded-full border border-white/10 p-px shadow-inner overflow-hidden">
+                      <div
+                        className="h-full bg-linear-to-r from-amber-400 via-indigo-500 to-indigo-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(129,140,248,0.8)] relative"
+                        style={{
+                          width: `${Math.max(
+                            gamification?.progressPercentage ?? 0,
+                            4,
+                          )}%`,
+                        }}
+                      >
+                        <div className="absolute inset-0 bg-white/25 animate-pulse rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="h-px w-full bg-linear-to-r from-transparent via-slate-800 to-transparent my-1" />
+
+              <div className="flex items-center justify-between pt-0.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {user?.image ? (
+                    <Image
+                      src={user.image}
+                      alt={user.name || "Avatar"}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-xl object-cover border border-indigo-400/30 shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.3)]"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-xl bg-indigo-950/90 flex items-center justify-center border border-indigo-400/30 text-indigo-300 text-[10px] font-bold shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.3)]">
+                      {getInitials(user?.name)}
+                    </div>
+                  )}
+
+                  <div className="truncate min-w-0 pr-1">
+                    <p className="text-[11px] font-bold text-slate-100 truncate leading-snug">
+                      {user?.name || "Estudante Synapse"}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="relative flex h-1.5 w-1.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-400" />
+                      </span>
+                      <span className="text-[8.5px] font-mono font-bold text-indigo-300 uppercase tracking-wider leading-none">
+                        PRO MEMBER
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeSidebar();
+                    setIsLogoutModalOpen(true);
+                  }}
+                  aria-label="Sair"
+                  title="Sair da conta"
+                  className="p-1.5 rounded-lg hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 transition-all shrink-0 cursor-pointer"
+                >
+                  <LogOut size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}

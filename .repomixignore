@@ -1,0 +1,17 @@
+# Ignora componentes de UI base (Shadcn/Tailwind primitives)
+src/components/ui/**
+
+# Ignora Skeletons de carregamento (ex: subject-card-skeleton.tsx)
+**/*skeleton*.tsx
+**/*Skeleton*.tsx
+
+# Ignora ícones embutidos em código, SVGs e imagens
+**/*.svg
+**/*.icon.tsx
+public/**
+
+# Ignora arquivos de teste, mocks e histórias
+**/*.test.ts
+**/*.spec.ts
+**/*.stories.tsx
+**/mocks/**

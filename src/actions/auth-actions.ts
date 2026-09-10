@@ -1,0 +1,22 @@
+"use server";
+
+import { signIn, signOut } from "@/auth";
+
+export async function loginWithGoogle() {
+  await signIn("google", { redirectTo: "/dashboard" });
+}
+
+export async function loginWithGithub() {
+  await signIn("github", { redirectTo: "/dashboard" });
+}
+
+export async function loginAsGuest() {
+  await signIn("credentials", {
+    email: "estudante@synapse.ai",
+    redirectTo: "/dashboard",
+  });
+}
+
+export async function logoutAction() {
+  await signOut({ redirectTo: "/login" });
+}
