@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
     "build": "npx prisma generate && next build",
-    "start": "next start",
+    "start": "next start -p 3000 -H 0.0.0.0",
     "lint": "eslint .",
     "context:study": "npx repomix --include \"src/app/(dashboard)/study/**/*,src/components/flashcards/**/*,src/components/decks/**/*,src/components/questions/**/*,src/components/questions/**/*,src/app/(dashboard)/questions/**/*\" --ignore \"src/components/ui/**,**/*.skeleton.tsx\" -o context-study.txt",
     "context:core": "npx repomix --include \"src/actions/**/*,src/types/**/*,src/context/**/*,src/lib/**/*\" -o context-core.txt",

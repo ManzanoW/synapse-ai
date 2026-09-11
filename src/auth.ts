@@ -5,10 +5,11 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
+import { cookies } from "next/headers";
 
 const hasRealDb = !!process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("mock");
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const nextAuthInstance = NextAuth({
   ...authConfig,
   adapter: hasRealDb ? PrismaAdapter(prisma) : undefined,
   session: { strategy: "jwt" },
@@ -60,3 +61,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+export const handlers = nextAuthInstance.handlers;
+export const signIn = nextAuthInstance.signIn;
+export const signOut = nextAuthInstance.signOut;
+
+export async function auth(...args: any[]) {
+  const session = await (nextAuthInstance.auth as any)(...args);
+  if (session?.user) {
+    return session;
+  }
+
+  // Fallback demo session if guest cookie is present (handles iframe 3rd-party cookie issues)
+  try {
+    const cookieStore = await cookies();
+    if (cookieStore.get("synapse_demo_active")?.value === "true") {
+      return {
+        user: {
+          id: "demo-user-id",
+          name: "Estudante Synapse",
+          email: "estudante@synapse.ai",
+          image: null,
+        },
+        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+    }
+  } catch {
+    // In contexts where cookies() is not available
+  }
+
+  return null;
+}

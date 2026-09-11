@@ -14,21 +14,19 @@ export const authConfig = {
   // -------------------------------------------------------------
   cookies: {
     sessionToken: {
-      name:
-        process.env.NODE_ENV === "production"
-          ? "__Secure-authjs.session-token"
-          : "authjs.session-token",
+      name: "authjs.session-token",
       options: {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: "none",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
       },
     },
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
+    authorized({ auth, request: { nextUrl, cookies } }) {
+      const isDemoCookie = cookies.get("synapse_demo_active")?.value === "true";
+      const isLoggedIn = !!auth?.user || isDemoCookie;
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
 
       if (isOnDashboard) {
