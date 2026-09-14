@@ -32,7 +32,9 @@ const syncLockMap = new Map<string, Promise<void>>();
  * para um mesmo userId e questionText.
  * Preserva o registro mais qualificado (MASTERED > com remediação IA gerada > mais recente).
  */
-export async function cleanupDuplicateQuestionErrors(userId: string): Promise<number> {
+export async function cleanupDuplicateQuestionErrors(
+  userId: string,
+): Promise<number> {
   try {
     const records = await prisma.questionError.findMany({
       where: { userId },
@@ -78,10 +80,8 @@ export async function cleanupDuplicateQuestionErrors(userId: string): Promise<nu
         if (aMastered !== bMastered) return bMastered - aMastered;
 
         // Prioridade 2: Já possui análise ou remediação por IA gerada
-        const aHasAi =
-          a.aiExplanation || a.drillQuestion || a.mnemonic ? 1 : 0;
-        const bHasAi =
-          b.aiExplanation || b.drillQuestion || b.mnemonic ? 1 : 0;
+        const aHasAi = a.aiExplanation || a.drillQuestion || a.mnemonic ? 1 : 0;
+        const bHasAi = b.aiExplanation || b.drillQuestion || b.mnemonic ? 1 : 0;
         if (aHasAi !== bHasAi) return bHasAi - aHasAi;
 
         // Prioridade 3: Mais recente (updatedAt ou createdAt)
@@ -110,7 +110,10 @@ export async function cleanupDuplicateQuestionErrors(userId: string): Promise<nu
 
     return idsToDelete.length;
   } catch (err) {
-    console.error("[cleanupDuplicateQuestionErrors] Erro ao limpar duplicatas:", err);
+    console.error(
+      "[cleanupDuplicateQuestionErrors] Erro ao limpar duplicatas:",
+      err,
+    );
     return 0;
   }
 }
@@ -253,7 +256,10 @@ async function syncLegacyErrorsIfEmpty(userId: string) {
         });
       }
     } catch (err) {
-      console.error("[syncLegacyErrorsIfEmpty] Erro ao sincronizar legado:", err);
+      console.error(
+        "[syncLegacyErrorsIfEmpty] Erro ao sincronizar legado:",
+        err,
+      );
     } finally {
       syncLockMap.delete(userId);
     }
@@ -844,7 +850,9 @@ export async function analyzeSingleErrorAction(
  * Classificação taxonômica ultrarrápida e econômica em lote (apenas rootCause)
  * Processa 15 a 20 questões por execução com custo mínimo de tokens.
  */
-export async function batchClassifyTaxonomyOnlyAction(batchSize: number = 20): Promise<{
+export async function batchClassifyTaxonomyOnlyAction(
+  batchSize: number = 20,
+): Promise<{
   success: boolean;
   processed?: number;
   message?: string;
@@ -971,7 +979,8 @@ Sem qualquer texto introdutório, justificativa ou explicação.`;
         resolvedReason = normalizeTaxonomy(rootCause);
       } else {
         // Heurística rápida de contingência
-        const combined = `${item.questionText} ${item.explanation || ""}`.toLowerCase();
+        const combined =
+          `${item.questionText} ${item.explanation || ""}`.toLowerCase();
         if (
           combined.includes("pegadinha") ||
           combined.includes("atenção") ||
@@ -1056,4 +1065,3 @@ export async function autoClassifyPendingErrorsAction(): Promise<{
     error: res.error,
   };
 }
-
