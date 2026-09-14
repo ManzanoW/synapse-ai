@@ -17,7 +17,7 @@ export async function unlockAchievementEventAction(achievementId: string) {
 
     const currentClaimed = (userStats?.claimedAchievements || "")
       .split(",")
-      .map((id) => id.trim())
+      .map((id: string) => id.trim())
       .filter(Boolean);
 
     const unlockFlag = `${achievementId}_unlocked`;

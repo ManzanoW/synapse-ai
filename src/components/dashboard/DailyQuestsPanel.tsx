@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useTransition } from "react";
-import { Sparkles, CheckCircle2, Gift, Flame, Trophy } from "lucide-react";
+import { CheckCircle2, Gift, Flame, Trophy } from "lucide-react";
 import {
   getDailyQuestsAction,
   claimQuestRewardAction,
@@ -15,17 +15,24 @@ export function DailyQuestsPanel() {
   const [isPending, startTransition] = useTransition();
   const { refreshStats } = useGamification();
 
-  const loadQuests = async () => {
-    setLoading(true);
-    const res = await getDailyQuestsAction();
-    if (res.success && res.data) {
-      setQuests(res.data);
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
-    loadQuests();
+    let isMounted = true;
+    getDailyQuestsAction()
+      .then((res) => {
+        if (isMounted && res.success && res.data) {
+          setQuests(res.data);
+        }
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar missões diárias:", err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleClaim = (questId: string) => {

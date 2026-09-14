@@ -61,9 +61,26 @@ export default function DomainRadarChart({
     null,
   );
   const [serverMetrics, setMetrics] = useState<SubjectDomainMetric[]>([]);
-  const [isServerLoading, setIsServerLoading] = useState(true);
+  const [isServerLoading, setIsServerLoading] = useState(false);
 
-  const fetchMetrics = useCallback(async () => {
+  useEffect(() => {
+    let isMounted = true;
+    getSubjectDomainStatsAction()
+      .then((res) => {
+        if (isMounted && res.success && res.data) {
+          setMetrics(res.data);
+        }
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar métricas de domínio:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
     setIsServerLoading(true);
     try {
       const res = await getSubjectDomainStatsAction();
@@ -76,10 +93,6 @@ export default function DomainRadarChart({
       setIsServerLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    fetchMetrics();
-  }, [fetchMetrics]);
 
   const isLoading = propLoading || isServerLoading;
 
@@ -257,7 +270,7 @@ export default function DomainRadarChart({
           </div>
 
           <button
-            onClick={fetchMetrics}
+            onClick={handleRefresh}
             disabled={isLoading}
             className="p-1.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20 transition-all cursor-pointer"
             title="Recarregar Métricas do Banco"

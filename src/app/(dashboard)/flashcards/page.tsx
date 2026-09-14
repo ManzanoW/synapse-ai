@@ -326,7 +326,7 @@ export default async function FlashcardsPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {recentDecks.map((deck) => {
+                {recentDecks.map((deck: any) => {
                   const count = deck._count.flashcards;
                   const subjectName = deck.subject?.name || "Geral";
 

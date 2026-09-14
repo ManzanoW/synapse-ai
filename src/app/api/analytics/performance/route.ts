@@ -65,10 +65,8 @@ export async function GET() {
     // Tentativa de busca dos logs de questões adaptada ao schema
     let questionLogs: QuestionLogData[] = [];
     try {
-      // @ts-expect-error - Fallback dinamico para model de log de questoes se existir no schema
-      if (prisma.questionHistory) {
-        // @ts-expect-error - query dinamica
-        questionLogs = await prisma.questionHistory.findMany({
+      if ((prisma as any).questionHistory) {
+        questionLogs = await (prisma as any).questionHistory.findMany({
           where: { userId },
           select: { isCorrect: true, topicId: true, createdAt: true },
         });

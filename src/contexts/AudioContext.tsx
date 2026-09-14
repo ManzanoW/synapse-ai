@@ -28,6 +28,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored !== null) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsMutedState(JSON.parse(stored));
       }
     } catch (error) {

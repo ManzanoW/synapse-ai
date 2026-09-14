@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
@@ -30,8 +30,6 @@ import {
   Volume2,
   VolumeX,
   Crown,
-  BookOpenCheck,
-  Timer,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -78,9 +76,22 @@ const NAV_GROUPS = [
 
 export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isOpen, closeSidebar } = useSidebar();
   const { stats, isLoading, refreshStats } = useGamification();
   const { isMuted, toggleMute } = useAudioContext();
+
+  const isDemo =
+    searchParams?.get("demo") === "true" ||
+    (typeof window !== "undefined" &&
+      (window.location.search.includes("demo=true") ||
+        localStorage.getItem("synapse_demo_active") === "true"));
+
+  const getHref = (href: string) => {
+    if (!isDemo) return href;
+    const sep = href.includes("?") ? "&" : "?";
+    return `${href}${sep}demo=true`;
+  };
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -259,7 +270,7 @@ export default function Sidebar({ user }: SidebarProps) {
                     return (
                       <Link
                         key={item.href}
-                        href={item.href}
+                        href={getHref(item.href)}
                         onClick={closeSidebar}
                         className={`relative group flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] font-medium transition-all duration-200 ${
                           isActive

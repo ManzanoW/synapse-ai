@@ -5,6 +5,7 @@ import { AchievementProvider } from "@/context/AchievementContext";
 import { AudioProvider } from "@/contexts/AudioContext";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { CommandPalette } from "@/components/ui/command-palette";
+import { DemoSessionSync } from "@/components/auth/demo-session-sync";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
@@ -21,6 +22,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider>
+      <DemoSessionSync />
       <GamificationProvider userId={session?.user?.id}>
         <AchievementProvider>
           <AudioProvider>

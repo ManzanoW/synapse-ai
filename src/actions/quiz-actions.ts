@@ -131,7 +131,7 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
               status: "PENDING",
             },
           })
-          .catch((e) =>
+          .catch((e: unknown) =>
             console.warn("Erro ao registrar questionError em submitQuizAttemptAction:", e)
           );
       }
@@ -191,12 +191,12 @@ export async function getSubjectDomainStatsAction(userIdParam?: string) {
       },
     });
 
-    const metrics: SubjectDomainMetric[] = subjects.map((subject) => {
+    const metrics: SubjectDomainMetric[] = subjects.map((subject: any) => {
       let totalQuestions = 0;
       let totalCorrect = 0;
 
-      subject.topics.forEach((topic) => {
-        topic.quizAttempts.forEach((attempt) => {
+      subject.topics.forEach((topic: any) => {
+        topic.quizAttempts.forEach((attempt: any) => {
           totalQuestions += attempt.totalCount;
           totalCorrect += attempt.correctCount;
         });

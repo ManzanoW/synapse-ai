@@ -2,24 +2,26 @@
 
 import { GoogleGenAI, GenerateContentConfig } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY || "";
-const ai = new GoogleGenAI({ apiKey });
+let aiClient: GoogleGenAI | null = null;
 
-// 🔗 Lista completa ordenada por prioridade estratégica (Cota alta primeiro, modelos menores depois)
+function getAIClient(): GoogleGenAI {
+  if (!aiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        "Chave GEMINI_API_KEY não configurada. Configure a variável no ambiente ou em .env.",
+      );
+    }
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+  return aiClient;
+}
+
+// Modelos Gemini suportados pelo SDK @google/genai
 const MODELS_CASCADE = [
-  // Camada 1: Grande Volume (1.000 requisições/dia somadas)
-  "gemini-3.5-flash-lite", // 500 RPD | 15 RPM
-  "gemini-3.1-flash-lite", // 500 RPD | 15 RPM
-
-  // Camada 2: Modelos Flash Modernos (+60 requisições/dia)
-  "gemini-3.7-flash", // 20 RPD  | 5 RPM
-  "gemini-3.6-flash", // 20 RPD  | 5 RPM
-  "gemini-3.5-flash", // 20 RPD  | 5 RPM
-
-  // Camada 3: Modelos de Suporte e Emergência (+40 requisições/dia)
-  "gemini-3-flash", // 20 RPD  | 5 RPM
-  "gemini-2.5-flash-lite", // 20 RPD  | 10 RPM
-  "gemini-2.5-flash", // 20 RPD  | 5 RPM
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-2.5-pro",
 ];
 
 export interface GeminiFallbackOptions {
@@ -37,6 +39,8 @@ export async function generateContentWithFallback(
 ): Promise<{ text: string; usedModel: string }> {
   const { prompt, config, timeoutMs = 90000 } = options;
   let lastError: unknown;
+
+  const ai = getAIClient();
 
   for (const modelName of MODELS_CASCADE) {
     try {

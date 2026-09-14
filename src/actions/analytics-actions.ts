@@ -91,8 +91,8 @@ export async function getApprovalOddsAction(
     let totalTopics = 0;
     let completedTopics = 0;
 
-    subjects.forEach((s) => {
-      s.topics.forEach((t) => {
+    subjects.forEach((s: any) => {
+      s.topics.forEach((t: any) => {
         totalTopics++;
         if (["Concluido", "Em Revisão"].includes(t.firstStudy)) {
           completedTopics++;
@@ -109,13 +109,13 @@ export async function getApprovalOddsAction(
     let totalQuestionsAnswered = 0;
     let totalQuestionsCorrect = 0;
 
-    subjects.forEach((subject) => {
+    subjects.forEach((subject: any) => {
       const weight = Math.max(1, Number(subject.priority || 1));
       let subTotal = 0;
       let subCorrect = 0;
 
-      subject.topics.forEach((topic) => {
-        topic.quizAttempts.forEach((attempt) => {
+      subject.topics.forEach((topic: any) => {
+        topic.quizAttempts.forEach((attempt: any) => {
           subTotal += attempt.totalCount;
           subCorrect += attempt.correctCount;
         });
@@ -130,10 +130,10 @@ export async function getApprovalOddsAction(
         totalWeights += weight;
       } else {
         // Fallback para tópicos com performance anotada
-        const scoredTopics = subject.topics.filter((t) => t.performance > 0);
+        const scoredTopics = subject.topics.filter((t: any) => t.performance > 0);
         if (scoredTopics.length > 0) {
           const avgPerf =
-            scoredTopics.reduce((sum, t) => sum + t.performance, 0) /
+            scoredTopics.reduce((sum: number, t: any) => sum + t.performance, 0) /
             scoredTopics.length;
           totalWeightedSum += avgPerf * weight;
           totalWeights += weight;
@@ -158,7 +158,7 @@ export async function getApprovalOddsAction(
       (user?.weeklyGoalHours || 10) * 60,
     );
     const weeklyMinutes = weeklySessions.reduce(
-      (acc, s) => acc + (s.durationMinutes || 0),
+      (acc: number, s: any) => acc + (s.durationMinutes || 0),
       0,
     );
     const weeklyProgressFactor = Math.min(

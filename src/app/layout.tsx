@@ -3,8 +3,12 @@ import "./globals.css";
 import { AudioProvider } from "@/contexts/AudioContext";
 
 export const metadata: Metadata = {
-  title: "Synapse AI - Seu Copiloto de Estudos",
-  description: "Plataforma inteligente de memorização e cronogramas.",
+  title: "Synapse AI",
+  description: "Plataforma inteligente de estudos, memorização espaçada, cronogramas e simulados com IA.",
+  openGraph: {
+    title: "Synapse AI",
+    description: "Plataforma inteligente de estudos, memorização espaçada, cronogramas e simulados com IA.",
+  },
 };
 
 export default function RootLayout({
