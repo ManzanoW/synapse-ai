@@ -230,6 +230,11 @@ export async function getAbsoluteRedirectUrl(path: string): Promise<string> {
     // headers() might fail in some contexts, fall back to environment variables
   }
 
+  // Em ambiente Vercel Preview, prioriza SEMPRE a URL dinâmica da branch (VERCEL_URL)
+  if (process.env.VERCEL_URL && (process.env.VERCEL_ENV === "preview" || !process.env.AUTH_URL)) {
+    return `https://${process.env.VERCEL_URL}${cleanPath}`;
+  }
+
   const envBase =
     process.env.AUTH_URL ||
     process.env.NEXTAUTH_URL ||

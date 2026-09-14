@@ -1,0 +1,25 @@
+name: Sync AI Studio to Synapse Dev
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Studio Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN }}
+
+      - name: Push to Synapse-AI Dev Branch
+        run: |
+          # Adiciona o repositório principal usando o token com permissão de escrita
+          git remote add target https://x-access-token:${{ secrets.SYNC_TOKEN }}@github.com/ManzanoW/synapse-ai.git
+          
+          # Envia a branch main do Studio para a branch dev do repositório principal
+          git push target main:dev --force
+          
