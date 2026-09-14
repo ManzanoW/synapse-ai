@@ -22,3 +22,4 @@ jobs:
           
           # Envia a branch main do Studio para a branch dev do repositório principal
           git push target main:dev --force
+          
