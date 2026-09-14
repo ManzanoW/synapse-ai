@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   BrainCircuit,
@@ -26,11 +27,24 @@ export function ApprovalOddsCard({
   initialData,
   className = "",
 }: ApprovalOddsCardProps) {
+  const searchParams = useSearchParams();
   const [data, setData] = useState<ApprovalOddsData | null>(
     initialData ?? null,
   );
   const [loading, setLoading] = useState<boolean>(!initialData);
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
+
+  const isDemo =
+    searchParams?.get("demo") === "true" ||
+    (typeof window !== "undefined" &&
+      (window.location.search.includes("demo=true") ||
+        localStorage.getItem("synapse_demo_active") === "true"));
+
+  const getHref = (href: string) => {
+    if (!isDemo) return href;
+    const sep = href.includes("?") ? "&" : "?";
+    return `${href}${sep}demo=true`;
+  };
 
   useEffect(() => {
     if (initialData) return;
@@ -119,14 +133,14 @@ export function ApprovalOddsCard({
 
           <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
             <Link
-              href="/questions"
+              href={getHref("/questions")}
               className="inline-flex items-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-500/15 px-3.5 py-2 text-xs font-bold text-violet-200 hover:bg-violet-500/25 hover:text-white transition-all shadow-sm"
             >
               <Sparkles size={12} className="text-cyan-400" />
               <span>Fazer Simulado</span>
             </Link>
             <Link
-              href="/edital"
+              href={getHref("/edital")}
               className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all"
             >
               <span>Ver Edital</span>

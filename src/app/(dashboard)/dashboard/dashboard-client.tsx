@@ -960,7 +960,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           {mobileTab === "gamification" && (
             <div className="space-y-4">
               <Link
-                href="/achievements"
+                href={getHref("/achievements")}
                 className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
               >
                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -1000,7 +1000,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </Link>
 
               <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
-                <Link href="/performance" className="block space-y-2">
+                <Link href={getHref("/performance")} className="block space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase text-slate-400">
                       Meta Semanal
@@ -1027,7 +1027,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
                 <div className="flex items-center justify-between">
                   <Link
-                    href="/performance"
+                    href={getHref("/performance")}
                     className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
                   >
                     Constância
@@ -1042,7 +1042,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       {streakFreezeCount}
                     </button>
                     <Link
-                      href="/performance"
+                      href={getHref("/performance")}
                       className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
                     >
                       <Flame
@@ -1242,7 +1242,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </h3>
                 </div>
                 <Link
-                  href="/edital"
+                  href={getHref("/edital")}
                   className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
                 >
                   Ver todas ({subjects.length})
@@ -1258,7 +1258,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               ) : (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   {displayedSubjects.map((sub) => (
-                    <Link key={sub.id} href={`/edital?subjectId=${sub.id}`}>
+                    <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
                       <SubjectCard
                         title={sub.name}
                         colorClass={sub.color || "#3B82F6"}
@@ -1281,7 +1281,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             {/* GAMIFICAÇÃO & NÍVEL */}
             <Link
-              href="/achievements"
+              href={getHref("/achievements")}
               className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
             >
               <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-400/50 to-transparent" />
@@ -1326,7 +1326,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
               <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
               
-              <Link href="/performance" className="block space-y-2">
+              <Link href={getHref("/performance")} className="block space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase text-slate-400">
                     Meta Semanal
@@ -1351,7 +1351,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div className="flex items-center justify-between">
                 <Link
-                  href="/performance"
+                  href={getHref("/performance")}
                   className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
                 >
                   Constância
@@ -1366,7 +1366,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     {streakFreezeCount}
                   </button>
                   <Link
-                    href="/performance"
+                    href={getHref("/performance")}
                     className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
                   >
                     <Flame

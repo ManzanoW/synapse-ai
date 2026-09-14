@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Target,
@@ -25,9 +26,16 @@ interface Quest {
 }
 
 export function DailyQuestsWidget() {
+  const searchParams = useSearchParams();
   const [quests, setQuests] = useState<Quest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [claimingId, setClaimingId] = useState<string | null>(null);
+
+  const isDemo =
+    searchParams?.get("demo") === "true" ||
+    (typeof window !== "undefined" &&
+      (window.location.search.includes("demo=true") ||
+        localStorage.getItem("synapse_demo_active") === "true"));
 
   const gamificationContext = useGamification() as unknown as Record<
     string,
@@ -96,9 +104,10 @@ export function DailyQuestsWidget() {
   };
 
   const getActionUrl = (title: string) => {
-    if (title.includes("Questões")) return "/questions";
-    if (title.includes("Flashcards")) return "/flashcards";
-    return "/edital";
+    let path = "/edital";
+    if (title.includes("Questões")) path = "/questions";
+    if (title.includes("Flashcards")) path = "/flashcards";
+    return isDemo ? `${path}?demo=true` : path;
   };
 
   const totalPossibleXp = quests.reduce((acc, q) => acc + q.xpReward, 0);

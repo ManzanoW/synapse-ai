@@ -5,6 +5,18 @@ import { NextResponse } from "next/server";
 const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
+  const pathname = req.nextUrl.pathname;
+
+  // Ignora assets estáticos e rotas públicas
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/auth") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/icon.svg"
+  ) {
+    return NextResponse.next();
+  }
+
   const isDemoParam = req.nextUrl.searchParams.get("demo") === "true";
   const isDemoCookie = req.cookies.get("synapse_demo_active")?.value === "true";
   const referer = req.headers.get("referer") || "";
@@ -13,24 +25,8 @@ export default auth((req) => {
   const isDemo = isDemoParam || isDemoCookie || isDemoReferer || isDemoHeader;
 
   if (isDemo) {
-    const isApi = req.nextUrl.pathname.startsWith("/api");
-    const isStatic = req.nextUrl.pathname.startsWith("/_next");
-    const isLogin = req.nextUrl.pathname === "/login";
-
-    // Se é uma navegação de página protegida e o parâmetro demo=true se perdeu, redireciona para mantê-lo
-    if (!isApi && !isStatic && !isLogin && !isDemoParam) {
-      const redirectUrl = req.nextUrl.clone();
-      redirectUrl.searchParams.set("demo", "true");
-      const redirectResponse = NextResponse.redirect(redirectUrl);
-      redirectResponse.cookies.set("synapse_demo_active", "true", {
-        path: "/",
-        sameSite: "none",
-        secure: true,
-        maxAge: 60 * 60 * 24 * 30,
-      });
-      return redirectResponse;
-    }
-
+    // NUNCA emite redirect em navegações internas ou prefetchs (_rsc)
+    // O cookie synapse_demo_active=true já garante autenticação de demo em toda a aplicação
     const requestHeaders = new Headers(req.headers);
     requestHeaders.set("x-synapse-demo", "true");
 
@@ -42,13 +38,15 @@ export default auth((req) => {
 
     response.cookies.set("synapse_demo_active", "true", {
       path: "/",
-      sameSite: "none",
-      secure: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
 
     return response;
   }
+
+  return NextResponse.next();
 });
 
 export const config = {
