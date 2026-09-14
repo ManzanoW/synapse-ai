@@ -340,7 +340,17 @@ export function CommandPalette() {
       if (item.action) {
         item.action();
       } else if (item.href) {
-        router.push(item.href);
+        const isDemo =
+          typeof window !== "undefined" &&
+          (window.location.search.includes("demo=true") ||
+            localStorage.getItem("synapse_demo_active") === "true");
+
+        const targetHref =
+          isDemo && !item.href.includes("demo=true")
+            ? `${item.href}${item.href.includes("?") ? "&" : "?"}demo=true`
+            : item.href;
+
+        router.push(targetHref);
       }
     },
     [router],

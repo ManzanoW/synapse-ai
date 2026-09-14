@@ -24,18 +24,33 @@ export const authConfig = {
     },
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl, cookies } }) {
+    authorized({ auth, request }) {
+      const { nextUrl, cookies, headers } = request;
       const isDemoCookie = cookies.get("synapse_demo_active")?.value === "true";
-      const isLoggedIn = !!auth?.user || isDemoCookie;
-      const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
+      const isDemoParam = nextUrl.searchParams.get("demo") === "true";
+      const referer = headers.get("referer") || "";
+      const isDemoReferer = referer.includes("demo=true");
+      const isDemoHeader = headers.get("x-synapse-demo") === "true";
+      const isDemo = isDemoCookie || isDemoParam || isDemoReferer || isDemoHeader;
+      const isLoggedIn = !!auth?.user || isDemo;
 
-      if (isOnDashboard) {
+      const isProtectedRoute =
+        nextUrl.pathname.startsWith("/dashboard") ||
+        nextUrl.pathname.startsWith("/flashcards") ||
+        nextUrl.pathname.startsWith("/quiz") ||
+        nextUrl.pathname.startsWith("/questions") ||
+        nextUrl.pathname.startsWith("/week") ||
+        nextUrl.pathname.startsWith("/performance") ||
+        nextUrl.pathname.startsWith("/edital") ||
+        nextUrl.pathname.startsWith("/profile");
+
+      if (isProtectedRoute) {
         if (isLoggedIn) return true;
         return false;
       }
 
       if (isLoggedIn && nextUrl.pathname === "/login") {
-        return Response.redirect(new URL("/dashboard", nextUrl));
+        return Response.redirect(new URL("/dashboard?demo=true", nextUrl));
       }
 
       return true;

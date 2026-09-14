@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import DashboardClient from "./dashboard-client";
+import DashboardLoading from "./loading";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -10,5 +12,9 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  return <DashboardClient user={session.user} />;
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardClient user={session.user} />
+    </Suspense>
+  );
 }

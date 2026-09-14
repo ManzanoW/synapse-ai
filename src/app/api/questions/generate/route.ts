@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 

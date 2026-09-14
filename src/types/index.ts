@@ -1,4 +1,4 @@
-import { Quiz } from "@prisma/client";
+import type { Quiz } from "@prisma/client";
 
 export interface Subject {
   id: string;

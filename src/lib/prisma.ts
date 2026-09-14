@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
+import type { PrismaClient } from "@prisma/client";
 import { createMockPrismaClient } from "./mock-prisma";
 
 const globalForPrisma = globalThis as unknown as { prisma?: any };
@@ -22,6 +20,13 @@ if (isMockOrLocal) {
 } else {
   if (!globalForPrisma.prisma) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { Pool } = require("pg");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { PrismaPg } = require("@prisma/adapter-pg");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { PrismaClient } = require("@prisma/client");
+
       const pool = new Pool({
         connectionString,
         ssl: {

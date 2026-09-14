@@ -2,16 +2,27 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 const hasRealDb = !!process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("mock");
 
+function getAdapter() {
+  if (!hasRealDb) return undefined;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PrismaAdapter } = require("@auth/prisma-adapter");
+    return PrismaAdapter(prisma);
+  } catch (err) {
+    console.warn("Could not load PrismaAdapter:", err);
+    return undefined;
+  }
+}
+
 const nextAuthInstance = NextAuth({
   ...authConfig,
-  adapter: hasRealDb ? PrismaAdapter(prisma) : undefined,
+  adapter: getAdapter(),
   session: { strategy: "jwt" },
   providers: [
     Credentials({
@@ -30,13 +41,13 @@ const nextAuthInstance = NextAuth({
       },
     }),
     Google({
-      clientId: process.env.AUTH_GOOGLE_CLIENT_ID || "placeholder-google-id",
-      clientSecret: process.env.AUTH_GOOGLE_CLIENT_SECRET || "placeholder-google-secret",
+      clientId: process.env.AUTH_GOOGLE_ID || process.env.AUTH_GOOGLE_CLIENT_ID || "placeholder-google-id",
+      clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.AUTH_GOOGLE_CLIENT_SECRET || "placeholder-google-secret",
       allowDangerousEmailAccountLinking: true,
     }),
     GitHub({
-      clientId: process.env.AUTH_GITHUB_CLIENT_ID || "placeholder-github-id",
-      clientSecret: process.env.AUTH_GITHUB_CLIENT_SECRET || "placeholder-github-secret",
+      clientId: process.env.AUTH_GITHUB_ID || process.env.AUTH_GITHUB_CLIENT_ID || "placeholder-github-id",
+      clientSecret: process.env.AUTH_GITHUB_SECRET || process.env.AUTH_GITHUB_CLIENT_SECRET || "placeholder-github-secret",
       allowDangerousEmailAccountLinking: true,
     }),
   ],
@@ -72,10 +83,30 @@ export async function auth(...args: any[]) {
     return session;
   }
 
-  // Fallback demo session if guest cookie is present (handles iframe 3rd-party cookie issues)
+  // Fallback demo session if guest cookie or demo header/referer is present
   try {
+    const headersList = await headers();
+    const hasDemoHeader = headersList.get("x-synapse-demo") === "true";
+    const referer = headersList.get("referer") || "";
+    const hasDemoReferer = referer.includes("demo=true");
+    const nextUrl = headersList.get("next-url") || headersList.get("x-url") || "";
+    const hasDemoUrl = nextUrl.includes("demo=true");
+
     const cookieStore = await cookies();
-    if (cookieStore.get("synapse_demo_active")?.value === "true") {
+    const hasDemoCookie = cookieStore.get("synapse_demo_active")?.value === "true";
+
+    let hasReqDemo = false;
+    if (args.length > 0 && args[0]) {
+      const firstArg = args[0];
+      if (typeof firstArg?.url === "string" && firstArg.url.includes("demo=true")) {
+        hasReqDemo = true;
+      }
+      if (typeof firstArg?.headers?.get === "function" && firstArg.headers.get("x-synapse-demo") === "true") {
+        hasReqDemo = true;
+      }
+    }
+
+    if (hasDemoHeader || hasDemoCookie || hasDemoReferer || hasDemoUrl || hasReqDemo) {
       return {
         user: {
           id: "demo-user-id",
@@ -87,7 +118,7 @@ export async function auth(...args: any[]) {
       };
     }
   } catch {
-    // In contexts where cookies() is not available
+    // In contexts where cookies() or headers() is not available
   }
 
   return null;
