@@ -42,11 +42,15 @@ export const authConfig = {
         headers.get("next-router-prefetch") === "1" ||
         nextUrl.searchParams.has("_rsc");
 
-      const isDemoCookie = cookies.get("synapse_demo_active")?.value === "true";
+      const isLoginPage = nextUrl.pathname === "/login";
+      const isDemoCookie =
+        cookies.get("synapse_demo_active")?.value === "true" ||
+        cookies.get("synapse-demo-session")?.value === "true";
       const isDemoParam = nextUrl.searchParams.get("demo") === "true";
       const referer = headers.get("referer") || "";
-      const isDemoReferer = referer.includes("demo=true");
-      const isDemoHeader = headers.get("x-synapse-demo") === "true";
+      // Em /login nunca considerar referer ou header residual como demo
+      const isDemoReferer = !isLoginPage && referer.includes("demo=true");
+      const isDemoHeader = !isLoginPage && headers.get("x-synapse-demo") === "true";
       const isDemo = isDemoCookie || isDemoParam || isDemoReferer || isDemoHeader;
       const isLoggedIn = !!auth?.user || isDemo;
 

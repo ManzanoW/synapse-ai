@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { logoutAction } from "@/actions/auth-actions";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
 import LogoutModal from "@/components/logout/logout-modal";
@@ -77,6 +78,7 @@ const NAV_GROUPS = [
 export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { isOpen, closeSidebar } = useSidebar();
   const { stats, isLoading, refreshStats } = useGamification();
   const { isMuted, toggleMute } = useAudioContext();
@@ -133,7 +135,60 @@ export default function Sidebar({ user }: SidebarProps) {
   const handleConfirmLogout = async () => {
     try {
       setIsLoggingOut(true);
-      await signOut({ callbackUrl: "/login" });
+
+      // 1. Invoca a Server Action para limpar todos os cookies no servidor
+      try {
+        await logoutAction();
+      } catch (err) {
+        console.warn("Aviso ao executar logoutAction no servidor:", err);
+      }
+
+      // 2. Limpar localStorage e sessionStorage no cliente
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem("synapse_demo_active");
+          localStorage.removeItem("synapse-demo-session");
+          localStorage.removeItem("auth_token");
+          sessionStorage.removeItem("synapse_demo_active");
+          sessionStorage.removeItem("synapse-demo-session");
+          sessionStorage.removeItem("auth_token");
+
+          // Remove explicitamente os cookies no cliente via document.cookie
+          const cookiesToClear = [
+            "synapse_demo_active",
+            "synapse-demo-session",
+            "auth_token",
+            "authjs.session-token",
+            "__Secure-authjs.session-token",
+            "authjs.csrf-token",
+            "__Host-authjs.csrf-token",
+            "authjs.callback-url",
+            "__Secure-authjs.callback-url",
+            "next-auth.session-token",
+            "__Secure-next-auth.session-token",
+            "next-auth.csrf-token",
+            "next-auth.callback-url",
+          ];
+          cookiesToClear.forEach((name) => {
+            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax`;
+            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=None; Secure`;
+          });
+        } catch (storageErr) {
+          console.error("Erro ao limpar dados locais de autenticação:", storageErr);
+        }
+      }
+
+      // 3. Encerrar sessão no cliente via next-auth
+      try {
+        await signOut({ redirect: false });
+      } catch (signOutErr) {
+        console.warn("Aviso ao executar signOut no cliente:", signOutErr);
+      }
+
+      // 4. Fechar modal, atualizar árvore de rotas e navegar para /login
+      setIsLogoutModalOpen(false);
+      router.refresh();
+      router.push("/login");
     } catch (error) {
       console.error("Erro ao encerrar sessão:", error);
       setIsLoggingOut(false);

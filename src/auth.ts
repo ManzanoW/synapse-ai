@@ -86,14 +86,18 @@ export async function auth(...args: any[]) {
   // Fallback demo session if guest cookie or demo header/referer is present
   try {
     const headersList = await headers();
-    const hasDemoHeader = headersList.get("x-synapse-demo") === "true";
-    const referer = headersList.get("referer") || "";
-    const hasDemoReferer = referer.includes("demo=true");
     const nextUrl = headersList.get("next-url") || headersList.get("x-url") || "";
-    const hasDemoUrl = nextUrl.includes("demo=true");
+    const isLoginPage = nextUrl.includes("/login");
+
+    const hasDemoHeader = !isLoginPage && headersList.get("x-synapse-demo") === "true";
+    const referer = headersList.get("referer") || "";
+    const hasDemoReferer = !isLoginPage && referer.includes("demo=true");
+    const hasDemoUrl = !isLoginPage && nextUrl.includes("demo=true");
 
     const cookieStore = await cookies();
-    const hasDemoCookie = cookieStore.get("synapse_demo_active")?.value === "true";
+    const hasDemoCookie =
+      cookieStore.get("synapse_demo_active")?.value === "true" ||
+      cookieStore.get("synapse-demo-session")?.value === "true";
 
     let hasReqDemo = false;
     if (args.length > 0 && args[0]) {
