@@ -18,7 +18,8 @@ import {
   BookOpen,
   Lock,
   Printer,
-  PlusCircle,
+  Target,
+  Flame,
   Maximize2,
   Minimize2,
   Clock,
@@ -48,9 +49,11 @@ import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationMo
 import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
-import { RegisterQuestionsModal } from "@/components/questions/register-questions-modal";
 
-import { submitQuizAttemptAction } from "@/actions/quiz-actions";
+import {
+  submitQuizAttemptAction,
+  getSubjectDomainStatsAction,
+} from "@/actions/quiz-actions";
 import { generateTargetedDeckAction } from "@/actions/deck-actions";
 import {
   getErrorMetricsAction,
@@ -146,29 +149,34 @@ function formatTimer(totalSeconds: number): string {
 function TabCreateSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="relative overflow-hidden bg-linear-to-br from-[#0d1326]/60 via-[#090d18]/60 to-[#04060c]/60 border border-white/10 rounded-2xl sm:rounded-3xl p-6 sm:p-8 backdrop-blur-xl">
+      <div className="relative overflow-hidden backdrop-blur-xl bg-gradient-to-br from-violet-950/30 via-zinc-900/60 to-black/80 border border-violet-500/20 rounded-2xl p-6 sm:p-7">
         <div className="space-y-4 max-w-xl">
-          <div className="h-5 w-36 rounded-full bg-indigo-500/15 border border-indigo-500/20" />
+          <div className="h-5 w-44 rounded-full bg-violet-500/15 border border-violet-500/30" />
           <div className="h-8 w-4/5 rounded-xl bg-white/5" />
           <div className="h-4 w-3/5 rounded-lg bg-white/5" />
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-5">
-        <div className="h-44 rounded-2xl sm:rounded-3xl bg-white/[0.03] border border-white/10 backdrop-blur-xl p-6 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20" />
-            <div className="h-5 w-40 rounded-lg bg-white/5" />
-            <div className="h-3 w-56 rounded bg-white/5" />
-          </div>
-          <div className="h-4 w-28 rounded bg-white/5" />
+        <div className="mt-6 pt-3 flex gap-3 border-t border-white/5">
+          <div className="h-7 w-32 rounded-xl bg-white/5" />
+          <div className="h-7 w-36 rounded-xl bg-white/5" />
+          <div className="h-7 w-32 rounded-xl bg-white/5" />
         </div>
-        <div className="h-44 rounded-2xl sm:rounded-3xl bg-white/[0.03] border border-white/10 backdrop-blur-xl p-6 flex flex-col justify-between">
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="h-52 rounded-2xl bg-zinc-900/50 border border-violet-500/20 backdrop-blur-xl p-6 flex flex-col justify-between">
           <div className="space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10" />
-            <div className="h-5 w-40 rounded-lg bg-white/5" />
+            <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/30" />
+            <div className="h-5 w-44 rounded-lg bg-white/5" />
             <div className="h-3 w-56 rounded bg-white/5" />
           </div>
-          <div className="h-4 w-28 rounded bg-white/5" />
+          <div className="h-9 w-full rounded-xl bg-white/5" />
+        </div>
+        <div className="h-52 rounded-2xl bg-zinc-900/50 border border-indigo-500/20 backdrop-blur-xl p-6 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30" />
+            <div className="h-5 w-44 rounded-lg bg-white/5" />
+            <div className="h-3 w-56 rounded bg-white/5" />
+          </div>
+          <div className="h-9 w-full rounded-xl bg-white/5" />
         </div>
       </div>
     </div>
@@ -263,7 +271,10 @@ export default function QuestoesPage() {
 
   // Estados gerais
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [practiceMetrics, setPracticeMetrics] = useState<{
+    totalAnswered: number;
+    averageAccuracy: number;
+  }>({ totalAnswered: 0, averageAccuracy: 0 });
 
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -443,10 +454,33 @@ export default function QuestoesPage() {
   }, []);
 
   useEffect(() => {
+    // Carrega histórico para contagem de cadernos salvos e pré-carregamento
+    fetchQuizHistory();
+
+    // Carrega métricas agregadas de treino (precisão e total de questões)
+    getSubjectDomainStatsAction()
+      .then((res) => {
+        if (res.success && res.data) {
+          const totalAnswered = res.data.reduce(
+            (acc, curr) => acc + curr.totalAnswered,
+            0,
+          );
+          const totalCorrect = res.data.reduce(
+            (acc, curr) => acc + curr.correctCount,
+            0,
+          );
+          const averageAccuracy =
+            totalAnswered > 0
+              ? Math.round((totalCorrect / totalAnswered) * 100)
+              : 0;
+          setPracticeMetrics({ totalAnswered, averageAccuracy });
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar métricas de domínio:", err));
+
     const tabParam = searchParams.get("tab");
     if (tabParam === "history") {
       setActiveTab("history");
-      fetchQuizHistory();
     } else if (tabParam === "notebook" || tabParam === "errors") {
       setActiveTab("errors");
       loadErrorNotebookData();
@@ -456,7 +490,6 @@ export default function QuestoesPage() {
 
     const openTimed = searchParams.get("openTimed");
     if (openTimed === "true") {
-      fetchQuizHistory();
       loadErrorNotebookData();
       setIsTimedLaunchModalOpen(true);
     }
@@ -646,15 +679,6 @@ export default function QuestoesPage() {
       s.name.trim().toLowerCase() === materia.trim().toLowerCase(),
   );
   const availableTopics = currentSubjectObj?.topics || [];
-
-  const allModalTopics = subjects.flatMap(
-    (s) =>
-      s.topics?.map((t) => ({
-        id: t.id,
-        title: t.title,
-        subjectName: s.name,
-      })) || [],
-  );
 
   const totalQuestions = questions.length;
   const answeredCount = Object.keys(checkedQuestions).length;
@@ -1378,30 +1402,38 @@ export default function QuestoesPage() {
         {/* ================= 1. CABEÇALHO PRINCIPAL (SEM QUESTÕES ATIVAS) ================= */}
         {!isZenMode && questions.length === 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 sm:pb-6 transition-all duration-300">
-            <div className="flex items-start sm:items-center gap-3">
+            <div className="flex items-start sm:items-center gap-3.5">
               <button
                 onClick={openSidebar}
                 type="button"
                 className="p-2 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors cursor-pointer shrink-0 mt-0.5 sm:mt-0"
+                aria-label="Abrir navegação lateral"
               >
                 <Menu size={18} />
               </button>
 
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2 sm:gap-2.5">
-                  <div className="p-1.5 sm:p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-xs shrink-0">
-                    <HelpCircle size={18} className="sm:w-5 sm:h-5" />
-                  </div>
-                  <span className="truncate">Banco de Provas & Simulados</span>
-                </h1>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.2)] shrink-0">
+                      <HelpCircle size={20} />
+                    </div>
+                    <span className="truncate">Banco de Provas & Simulados</span>
+                  </h1>
 
-                <p className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2 leading-tight">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-semibold tracking-wide shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>SISTEMA ATIVO</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-zinc-400 mt-1.5 flex flex-wrap items-center gap-1.5 sm:gap-2 leading-tight">
                   Crie cadernos adaptativos com IA e acompanhe sua evolução.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0 flex-wrap">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -1409,19 +1441,10 @@ export default function QuestoesPage() {
                   if (!isNotebookLoaded) loadErrorNotebookData();
                   setIsTimedLaunchModalOpen(true);
                 }}
-                className="w-full sm:w-auto justify-center bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-violet-600/10 active:scale-95"
+                className="w-full sm:w-auto justify-center bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-violet-600/10 active:scale-95 hover:shadow-violet-600/20"
               >
                 <Timer size={15} className="text-violet-400" />
                 <span>Modo Cronometrado</span>
-              </button>
-
-              <button
-                onClick={() => setIsRegisterModalOpen(true)}
-                type="button"
-                className="w-full sm:w-auto justify-center bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
-              >
-                <PlusCircle size={15} />
-                <span>Registrar Externo</span>
               </button>
             </div>
           </div>
@@ -1429,14 +1452,14 @@ export default function QuestoesPage() {
 
         {/* 2. NAVEGAÇÃO DE ABAS */}
         {!isZenMode && (
-          <div className="flex border-b border-white/10 gap-2 overflow-x-auto pb-px scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             <button
               onClick={() => handleTabChange("create")}
               type="button"
-              className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
+              className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
                 activeTab === "create"
-                  ? "border-indigo-500 text-indigo-400 bg-white/5"
-                  : "border-transparent text-slate-400 hover:text-white"
+                  ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
               }`}
             >
               <Home size={14} />
@@ -1445,10 +1468,10 @@ export default function QuestoesPage() {
             <button
               onClick={() => handleTabChange("history")}
               type="button"
-              className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
+              className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
                 activeTab === "history"
-                  ? "border-indigo-500 text-indigo-400 bg-white/5"
-                  : "border-transparent text-slate-400 hover:text-white"
+                  ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
               }`}
             >
               <History size={14} />
@@ -1457,10 +1480,10 @@ export default function QuestoesPage() {
             <button
               onClick={() => handleTabChange("errors")}
               type="button"
-              className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
+              className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
                 activeTab === "errors"
-                  ? "border-rose-500 text-rose-400 bg-white/5"
-                  : "border-transparent text-slate-400 hover:text-white"
+                  ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
               }`}
             >
               <BookOpenCheck size={14} />
@@ -1554,98 +1577,160 @@ export default function QuestoesPage() {
                           />
                         )}
 
-                      {/* HERO SPOTLIGHT */}
-                      <div className="relative overflow-hidden bg-linear-to-br from-[#0d1326] via-[#090d18] to-[#04060c] border border-indigo-500/20 sm:border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl backdrop-blur-2xl">
-                        <div className="pointer-events-none absolute -top-12 -right-12 h-40 w-40 sm:h-72 sm:w-72 rounded-full bg-indigo-500/20 blur-[60px] sm:blur-[100px]" />
+                      {/* HERO SPOTLIGHT - BANNER PRINCIPAL */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="backdrop-blur-xl bg-gradient-to-br from-violet-950/30 via-zinc-900/60 to-black/80 border border-violet-500/20 rounded-2xl p-7 relative overflow-hidden shadow-2xl hover:border-violet-500/30 transition-all duration-300"
+                      >
+                        {/* Luz radial ambiente em degradê violeta no canto superior direito */}
+                        <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 bg-violet-600/15 rounded-full blur-3xl" />
 
-                        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-8">
-                          <div className="space-y-2.5 sm:space-y-4 max-w-xl">
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 backdrop-blur-md">
-                              <Sparkles
-                                size={11}
-                                className="text-indigo-400 animate-pulse"
-                              />
-                              <span className="text-[9px] sm:text-[10px] font-black tracking-widest text-indigo-300 uppercase">
-                                Central de Treinamento
+                        <div className="relative z-10 space-y-5">
+                          {/* Badge futurista */}
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 backdrop-blur-md shadow-[0_0_12px_rgba(139,92,246,0.15)]">
+                            <Sparkles
+                              size={12}
+                              className="text-violet-400 animate-pulse"
+                            />
+                            <span className="text-[10px] font-mono font-bold tracking-widest text-violet-300 uppercase">
+                              CORE ENGINE V2.0 • IA GENERATIVA
+                            </span>
+                          </div>
+
+                          {/* Título & Descrição */}
+                          <div className="space-y-2 max-w-2xl">
+                            <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent leading-tight">
+                              Pratique com questões inéditas e simulados direcionados
+                            </h2>
+                            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl">
+                              Gere cadernos adaptativos configurados pela IA ou retome seus testes anteriores com feedback e correção comentada em tempo real.
+                            </p>
+                          </div>
+
+                          {/* Métricas integradas no rodapé do banner */}
+                          <div className="pt-3 flex flex-wrap items-center gap-2.5 sm:gap-3 border-t border-white/5">
+                            {/* 1. Precisão Média */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
+                              <Target size={14} className="text-violet-400 shrink-0" />
+                              <span className="text-zinc-400 text-[11px]">Precisão Média:</span>
+                              <span className="text-white font-bold font-mono">
+                                {practiceMetrics.averageAccuracy}%
                               </span>
                             </div>
 
-                            <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-snug sm:leading-tight">
-                              Pratique com questões inéditas e simulados
-                              direcionados
-                            </h2>
+                            {/* 2. Total de Questões Praticadas */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
+                              <Zap size={14} className="text-violet-400 shrink-0" />
+                              <span className="text-zinc-400 text-[11px]">Questões Praticadas:</span>
+                              <span className="text-white font-bold font-mono">
+                                {practiceMetrics.totalAnswered}
+                              </span>
+                            </div>
 
-                            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                              Gere cadernos adaptativos configurados pela IA ou
-                              retome seus testes anteriores com feedback em tempo
-                              real.
-                            </p>
+                            {/* 3. Sequência Ativa */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
+                              <Flame size={14} className="text-amber-400 shrink-0" />
+                              <span className="text-zinc-400 text-[11px]">Sequência Ativa:</span>
+                              <span className="text-white font-bold font-mono">
+                                {gamificationStats?.streak?.currentDays ?? 0}{" "}
+                                {gamificationStats?.streak?.currentDays === 1 ? "dia" : "dias"}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
 
                       {/* CARDS DE AÇÃO */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-5">
-                        <div
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {/* Card 1 - Gerar Simulado por IA */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.05 }}
                           onClick={() => setIsAIModalOpen(true)}
-                          className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] active:scale-[0.98] sm:active:scale-[0.99] hover:border-indigo-500/50 border border-indigo-500/20 sm:border-white/10 p-5 sm:p-7 rounded-2xl sm:rounded-3xl cursor-pointer transition-all duration-200 shadow-xl flex flex-col justify-between overflow-hidden"
+                          className="group relative backdrop-blur-xl bg-gradient-to-br from-violet-950/20 via-zinc-900/50 to-black/70 border border-violet-500/20 hover:border-violet-500/40 hover:-translate-y-0.5 rounded-2xl p-6 sm:p-7 cursor-pointer transition-all duration-300 shadow-xl overflow-hidden flex flex-col justify-between"
                         >
-                          <div className="pointer-events-none absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all" />
+                          {/* Glow ambiente no hover */}
+                          <div className="pointer-events-none absolute top-0 right-0 w-36 h-36 bg-violet-600/10 rounded-full blur-2xl group-hover:bg-violet-600/20 transition-all duration-300" />
 
-                          <div className="space-y-3 sm:space-y-4 relative z-10">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)]">
-                              <Sparkles size={20} className="sm:w-5 sm:h-5" />
+                          <div className="space-y-4 relative z-10">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="bg-violet-500/10 border border-violet-500/30 text-violet-400 p-3 rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+                                <Sparkles size={20} />
+                              </div>
+                              <span className="text-[10px] font-mono font-medium text-violet-300 bg-violet-500/15 border border-violet-500/30 px-2.5 py-1 rounded-full">
+                                Motor Ultrarrápido (&lt;5s)
+                              </span>
                             </div>
 
                             <div>
-                              <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-indigo-300 transition-colors flex items-center justify-between">
-                                <span>Gerar Simulado por IA</span>
-                                <span className="text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full sm:hidden">
-                                  Recomendado
-                                </span>
+                              <h3 className="text-lg font-bold text-white group-hover:text-violet-200 transition-colors">
+                                Gerar Simulado por IA
                               </h3>
-
-                              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                                Filtre por banca, disciplina e dificuldade para
-                                montar cadernos sob medida.
+                              <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+                                Filtre por banca, disciplina e dificuldade para montar cadernos sob medida com questões inéditas e análise de pegadinhas.
                               </p>
                             </div>
                           </div>
 
-                          <div className="mt-5 sm:mt-8 flex items-center gap-2 text-xs font-extrabold text-indigo-400 group-hover:translate-x-1 transition-transform">
-                            <span>Configurar Parâmetros</span>
-                            <ArrowRight size={14} />
+                          <div className="mt-6 pt-4 border-t border-white/5 relative z-10">
+                            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-violet-600/20 group-hover:shadow-violet-600/35 transition-all">
+                              <span>Configurar e Gerar</span>
+                              <ArrowRight
+                                size={14}
+                                className="group-hover:translate-x-1 transition-transform duration-200"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        </motion.div>
 
-                        <div
+                        {/* Card 2 - Cadernos Salvos */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.1 }}
                           onClick={() => {
                             handleTabChange("history");
                           }}
-                          className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] active:scale-[0.98] sm:active:scale-[0.99] hover:border-white/30 border border-white/10 p-5 sm:p-7 rounded-2xl sm:rounded-3xl cursor-pointer transition-all duration-200 shadow-xl flex flex-col justify-between overflow-hidden"
+                          className="group relative backdrop-blur-xl bg-gradient-to-br from-indigo-950/20 via-zinc-900/50 to-black/70 border border-indigo-500/20 hover:border-indigo-500/40 hover:-translate-y-0.5 rounded-2xl p-6 sm:p-7 cursor-pointer transition-all duration-300 shadow-xl overflow-hidden flex flex-col justify-between"
                         >
-                          <div className="space-y-3 sm:space-y-4 relative z-10">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 shadow-inner">
-                              <History size={20} className="sm:w-5 sm:h-5" />
+                          {/* Glow ambiente no hover */}
+                          <div className="pointer-events-none absolute top-0 right-0 w-36 h-36 bg-indigo-600/10 rounded-full blur-2xl group-hover:bg-indigo-600/20 transition-all duration-300" />
+
+                          <div className="space-y-4 relative z-10">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 p-3 rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                                <History size={20} />
+                              </div>
+                              <span className="text-[10px] font-mono font-medium text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 rounded-full">
+                                {quizHistory.length} {quizHistory.length === 1 ? "caderno" : "cadernos"}
+                              </span>
                             </div>
 
                             <div>
-                              <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-slate-200 transition-colors">
-                                Meus Simulados Salvos
+                              <h3 className="text-lg font-bold text-white group-hover:text-indigo-200 transition-colors">
+                                Cadernos Salvos
                               </h3>
-
-                              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                                Acesse e refaça cadernos salvos no seu histórico a
-                                qualquer momento.
+                              <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+                                {quizHistory.length > 0
+                                  ? `${quizHistory.length} ${quizHistory.length === 1 ? "simulado arquivado pronto" : "simulados arquivados prontos"} para refazer com gabarito comentado.`
+                                  : "Acesse e refaça cadernos salvos no seu histórico a qualquer momento com resolução detalhada."}
                               </p>
                             </div>
                           </div>
 
-                          <div className="mt-5 sm:mt-8 flex items-center gap-2 text-xs font-extrabold text-slate-400 group-hover:text-slate-200 group-hover:translate-x-1 transition-transform">
-                            <span>Ver Cadernos Salvos</span>
-                            <ArrowRight size={14} />
+                          <div className="mt-6 pt-4 border-t border-white/5 relative z-10">
+                            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-zinc-200 text-xs font-bold transition-all">
+                              <span>Ver Cadernos Salvos</span>
+                              <ArrowRight
+                                size={14}
+                                className="group-hover:translate-x-1 transition-transform duration-200 text-zinc-400 group-hover:text-zinc-200"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        </motion.div>
                       </div>
                     </div>
                   ) : (
@@ -1854,15 +1939,6 @@ export default function QuestoesPage() {
         onClose={() => {
           setIsSimuladoModalOpen(false);
           setSimuladoGenerationError(null);
-        }}
-      />
-
-      <RegisterQuestionsModal
-        isOpen={isRegisterModalOpen}
-        onClose={() => setIsRegisterModalOpen(false)}
-        topics={allModalTopics}
-        onSuccess={() => {
-          if (refreshStats) refreshStats();
         }}
       />
 
