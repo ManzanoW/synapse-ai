@@ -78,7 +78,11 @@ export default function StudyFlashcard({
   const [isFinished, setIsFinished] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState<ReviewGrade | null>(null);
   const isDraggingRef = useRef(false);
-  const cardStartTimeRef = useRef(Date.now());
+  const cardStartTimeRef = useRef(0);
+
+  useEffect(() => {
+    cardStartTimeRef.current = Date.now();
+  }, []);
 
   const x = useMotionValue(0);
   const cardRotate = useTransform(x, [-250, 250], [-12, 12]);

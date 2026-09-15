@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { getUserAchievementsProgress } from "@/lib/achievements-engine";
 import { prisma } from "@/lib/prisma";
 import { ACHIEVEMENTS } from "@/lib/achievements";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 interface UserStatsWithAchievements {
   claimedAchievements?: string;

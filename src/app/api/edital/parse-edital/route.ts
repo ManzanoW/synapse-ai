@@ -2,7 +2,18 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
 import { PRESET_HEX_COLORS } from "@/constants/subjects"; // 1. Import da paleta de cores
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiClient: GoogleGenAI | null = null;
+
+function getAIClient(): GoogleGenAI {
+  if (!aiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY não configurada.");
+    }
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+  return aiClient;
+}
 
 interface AIResponse {
   text: string | null;
@@ -23,13 +34,14 @@ async function generateContentWithRetry(
   prompt: string,
   retries = 3,
 ): Promise<AIResponse> {
+  const ai = getAIClient();
   for (let i = 0; i < retries; i++) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 25000);
 
       const result = await ai.models.generateContent({
-        model: "gemini-3.5-flash-lite",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",

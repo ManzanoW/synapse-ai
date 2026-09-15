@@ -47,106 +47,98 @@ src/
     (dashboard)/
       dashboard/
         dashboard-client.tsx
+        loading.tsx
         page.tsx
   components/
     analytics/
       Heatmap.tsx
     dashboard/
+      ApprovalOddsCard.tsx
+      DailyQuestsPanel.tsx
+      DailyQuestsWidget.tsx
+      DomainRadarChart.tsx
       gamification-card.tsx
+      StreakFreezeModal.tsx
+      ZenModeOverlay.tsx
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
 
-<file path="src/app/(dashboard)/dashboard/page.tsx">
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import DashboardClient from "./dashboard-client";
-
-export default async function DashboardPage() {
-  const session = await auth();
-
-  // Garante validação de sessão rigorosa no servidor
-  if (!session?.user) {
-    redirect("/login");
-  }
-
-  return <DashboardClient user={session.user} />;
-}
-</file>
-
-<file path="src/components/dashboard/gamification-card.tsx">
-"use client";
-
+<file path="src/app/(dashboard)/dashboard/loading.tsx">
 import React from "react";
-import { Zap, Flame } from "lucide-react";
 
-interface GamificationCardProps {
-  totalXp: number;
-  level: number;
-  levelTitle: string;
-  nextLevelXp: number;
-  currentLevelXp: number;
-  streakDays: number;
-}
-
-export function GamificationCard({
-  totalXp = 0,
-  level = 1,
-  levelTitle = "Novato",
-  nextLevelXp = 1000,
-  currentLevelXp = 0,
-  streakDays = 0,
-}: GamificationCardProps) {
-  const xpInCurrentLevel = totalXp - currentLevelXp;
-  const xpNeededForNext = nextLevelXp - currentLevelXp;
-  const progressPercent = Math.min(
-    Math.round((xpInCurrentLevel / (xpNeededForNext || 1)) * 100),
-    100,
-  );
-
+export default function DashboardLoading() {
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#090d16] via-[#0b1021] to-[#05070e] border border-amber-500/20 p-6 shadow-2xl backdrop-blur-2xl">
-      <div className="flex items-center justify-between border-b border-white/10 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-black text-lg shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-            {level}
+    <div className="min-h-screen bg-slate-950 px-4 py-8 text-slate-100 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        {/* Top welcome & action skeleton */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <div className="h-8 w-64 rounded-xl bg-slate-900/80 animate-pulse border border-white/5" />
+            <div className="h-4 w-96 max-w-full rounded-lg bg-slate-900/50 animate-pulse border border-white/5" />
           </div>
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">
-              Nível Atual
-            </span>
-            <h3 className="text-base font-bold text-white tracking-tight">
-              {levelTitle}
-            </h3>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-28 rounded-2xl bg-slate-900/80 animate-pulse border border-white/5" />
+            <div className="h-10 w-32 rounded-2xl bg-indigo-950/50 animate-pulse border border-indigo-500/20" />
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-mono text-xs font-bold shadow-sm">
-          <Flame size={16} className="animate-bounce" />
-          <span>{streakDays} dias seguidos</span>
-        </div>
-      </div>
-
-      <div className="pt-4 space-y-2">
-        <div className="flex justify-between items-center text-xs font-mono">
-          <span className="text-slate-400 flex items-center gap-1">
-            <Zap size={13} className="text-amber-400" /> XP Total:{" "}
-            <strong className="text-white">{totalXp}</strong>
-          </span>
-          <span className="text-amber-400 font-bold">{progressPercent}%</span>
-        </div>
-
-        <div className="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5 p-0.5">
-          <div
-            style={{ width: `${progressPercent}%` }}
-            className="h-full bg-linear-to-r from-amber-500 to-amber-300 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-          />
+        {/* Quick action cards skeleton */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="h-20 rounded-2xl border border-white/5 bg-slate-900/40 p-4 animate-pulse flex items-center gap-3"
+            >
+              <div className="h-10 w-10 shrink-0 rounded-xl bg-slate-800/80" />
+              <div className="space-y-2 flex-1">
+                <div className="h-3 w-16 bg-slate-800/70 rounded" />
+                <div className="h-2.5 w-24 bg-slate-800/50 rounded" />
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-          <span>{currentLevelXp} XP</span>
-          <span>Próximo Nível: {nextLevelXp} XP</span>
+        {/* Journey Hero Banner Skeleton */}
+        <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:divide-x md:divide-white/5">
+            <div className="space-y-4 pr-0 md:pr-6">
+              <div className="h-3 w-28 rounded bg-slate-800/80 animate-pulse" />
+              <div className="h-10 w-36 rounded-lg bg-slate-800/60 animate-pulse" />
+              <div className="h-3 w-40 rounded bg-slate-800/40 animate-pulse" />
+            </div>
+            <div className="space-y-4 px-0 md:px-6">
+              <div className="h-3 w-28 rounded bg-slate-800/80 animate-pulse" />
+              <div className="h-10 w-36 rounded-lg bg-slate-800/60 animate-pulse" />
+              <div className="h-3 w-40 rounded bg-slate-800/40 animate-pulse" />
+            </div>
+            <div className="space-y-4 pl-0 md:pl-6">
+              <div className="h-3 w-28 rounded bg-slate-800/80 animate-pulse" />
+              <div className="h-10 w-36 rounded-lg bg-slate-800/60 animate-pulse" />
+              <div className="h-2 w-full rounded-full bg-slate-900 border border-white/5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Main Grid Skeleton */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          {/* Left Column */}
+          <div className="space-y-6 lg:col-span-8">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="h-64 rounded-3xl border border-white/[0.08] bg-slate-900/40 p-6 animate-pulse" />
+              <div className="h-64 rounded-3xl border border-white/[0.08] bg-slate-900/40 p-6 animate-pulse" />
+            </div>
+            <div className="h-72 rounded-3xl border border-white/[0.08] bg-slate-900/40 p-6 animate-pulse" />
+            <div className="h-56 rounded-3xl border border-white/[0.08] bg-slate-900/40 p-6 animate-pulse" />
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6 lg:col-span-4">
+            <div className="h-52 rounded-3xl border border-white/[0.08] bg-slate-900/40 p-6 animate-pulse" />
+            <div className="h-44 rounded-3xl border border-white/[0.08] bg-slate-900/40 p-6 animate-pulse" />
+            <div className="h-44 rounded-3xl border border-white/[0.08] bg-slate-900/40 p-6 animate-pulse" />
+          </div>
         </div>
       </div>
     </div>
@@ -281,6 +273,2393 @@ export default function Heatmap() {
 }
 </file>
 
+<file path="src/components/dashboard/gamification-card.tsx">
+"use client";
+
+import React from "react";
+import { Zap, Flame } from "lucide-react";
+
+interface GamificationCardProps {
+  totalXp: number;
+  level: number;
+  levelTitle: string;
+  nextLevelXp: number;
+  currentLevelXp: number;
+  streakDays: number;
+}
+
+export function GamificationCard({
+  totalXp = 0,
+  level = 1,
+  levelTitle = "Novato",
+  nextLevelXp = 1000,
+  currentLevelXp = 0,
+  streakDays = 0,
+}: GamificationCardProps) {
+  const xpInCurrentLevel = totalXp - currentLevelXp;
+  const xpNeededForNext = nextLevelXp - currentLevelXp;
+  const progressPercent = Math.min(
+    Math.round((xpInCurrentLevel / (xpNeededForNext || 1)) * 100),
+    100,
+  );
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#090d16] via-[#0b1021] to-[#05070e] border border-amber-500/20 p-6 shadow-2xl backdrop-blur-2xl">
+      <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-black text-lg shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+            {level}
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">
+              Nível Atual
+            </span>
+            <h3 className="text-base font-bold text-white tracking-tight">
+              {levelTitle}
+            </h3>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-mono text-xs font-bold shadow-sm">
+          <Flame size={16} className="animate-bounce" />
+          <span>{streakDays} dias seguidos</span>
+        </div>
+      </div>
+
+      <div className="pt-4 space-y-2">
+        <div className="flex justify-between items-center text-xs font-mono">
+          <span className="text-slate-400 flex items-center gap-1">
+            <Zap size={13} className="text-amber-400" /> XP Total:{" "}
+            <strong className="text-white">{totalXp}</strong>
+          </span>
+          <span className="text-amber-400 font-bold">{progressPercent}%</span>
+        </div>
+
+        <div className="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5 p-0.5">
+          <div
+            style={{ width: `${progressPercent}%` }}
+            className="h-full bg-linear-to-r from-amber-500 to-amber-300 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+          />
+        </div>
+
+        <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+          <span>{currentLevelXp} XP</span>
+          <span>Próximo Nível: {nextLevelXp} XP</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/app/(dashboard)/dashboard/page.tsx">
+import { Suspense } from "react";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import DashboardClient from "./dashboard-client";
+import DashboardLoading from "./loading";
+
+export default async function DashboardPage() {
+  const session = await auth();
+
+  // Garante validação de sessão rigorosa no servidor
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardClient user={session.user} />
+    </Suspense>
+  );
+}
+</file>
+
+<file path="src/components/dashboard/StreakFreezeModal.tsx">
+"use client";
+
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  X,
+  Snowflake,
+  Zap,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+
+const FREEZE_COST_XP = 300;
+const MAX_FREEZES = 5;
+
+interface StreakFreezeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentXp: number;
+  streakFreezes: number;
+  /** Called after a successful purchase with the updated values */
+  onPurchaseSuccess?: (newXp: number, newFreezes: number) => void;
+}
+
+type PurchaseState = "idle" | "loading" | "success" | "error";
+
+export function StreakFreezeModal({
+  isOpen,
+  onClose,
+  currentXp,
+  streakFreezes,
+  onPurchaseSuccess,
+}: StreakFreezeModalProps) {
+  const [purchaseState, setPurchaseState] = useState<PurchaseState>("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [localFreezes, setLocalFreezes] = useState<number | null>(null);
+  const [localXp, setLocalXp] = useState<number | null>(null);
+
+  const displayedFreezes = localFreezes ?? streakFreezes;
+  const displayedXp = localXp ?? currentXp;
+  const canAfford = displayedXp >= FREEZE_COST_XP;
+  const isCapped = displayedFreezes >= MAX_FREEZES;
+  const canPurchase = canAfford && !isCapped && purchaseState === "idle";
+
+  const handlePurchase = async () => {
+    if (!canPurchase) return;
+
+    setPurchaseState("loading");
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/gamification/streak-freeze", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(
+          data.error || "Erro ao comprar a Trava de Gelo. Tente novamente.",
+        );
+        setPurchaseState("error");
+
+        // Auto-reset error state after 4s
+        setTimeout(() => setPurchaseState("idle"), 4000);
+        return;
+      }
+
+      // Update local state optimistically
+      setLocalFreezes(data.streakFreezes);
+      setLocalXp(data.remainingXp);
+      setPurchaseState("success");
+      onPurchaseSuccess?.(data.remainingXp, data.streakFreezes);
+
+      // Auto-reset success state to allow further purchases (up to cap)
+      setTimeout(() => setPurchaseState("idle"), 3000);
+    } catch {
+      setErrorMessage("Erro de conexão. Verifique sua internet.");
+      setPurchaseState("error");
+      setTimeout(() => setPurchaseState("idle"), 4000);
+    }
+  };
+
+  const handleClose = () => {
+    // Reset local overrides when closing so next open shows fresh props
+    setLocalFreezes(null);
+    setLocalXp(null);
+    setPurchaseState("idle");
+    setErrorMessage("");
+    onClose();
+  };
+
+  const freezeSlots = Array.from({ length: MAX_FREEZES }, (_, i) => i);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleClose}
+            className="absolute inset-0 bg-slate-950/85 backdrop-blur-md"
+          />
+
+          {/* Modal Card */}
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0, y: 24 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.85, opacity: 0, y: 24 }}
+            transition={{ type: "spring", stiffness: 380, damping: 28 }}
+            className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-cyan-500/25 bg-[#070b14] shadow-[0_0_60px_rgba(6,182,212,0.15)] backdrop-blur-2xl"
+          >
+            {/* Ambient Lighting */}
+            <div className="pointer-events-none absolute -top-24 -left-24 h-48 w-48 rounded-full bg-cyan-500/10 blur-[80px]" />
+            <div className="pointer-events-none absolute -bottom-24 -right-24 h-48 w-48 rounded-full bg-blue-600/10 blur-[80px]" />
+
+            {/* Header */}
+            <div className="relative flex items-center justify-between border-b border-white/5 px-6 pt-5 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                  <Snowflake size={18} className="animate-spin-slow" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black tracking-tight text-white">
+                    Trava de Sequência
+                  </h2>
+                  <p className="text-[10px] font-medium text-slate-400">
+                    Proteja sua ofensiva de estudos
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleClose}
+                className="cursor-pointer rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="relative space-y-5 px-6 py-5">
+              {/* Freeze Slots Indicator */}
+              <div className="rounded-2xl border border-white/5 bg-slate-950/50 p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Travas Ativas
+                  </span>
+                  <span className="font-mono text-[10px] font-bold text-cyan-400">
+                    {displayedFreezes}/{MAX_FREEZES}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {freezeSlots.map((i) => {
+                    const isActive = i < displayedFreezes;
+                    return (
+                      <motion.div
+                        key={i}
+                        initial={false}
+                        animate={
+                          isActive ? { scale: [1, 1.15, 1] } : { scale: 1 }
+                        }
+                        transition={{ duration: 0.4, delay: i * 0.05 }}
+                        className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all ${
+                          isActive
+                            ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.25)]"
+                            : "border-white/5 bg-slate-950/60 text-slate-700"
+                        }`}
+                      >
+                        <Snowflake size={14} />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {isCapped && (
+                  <p className="mt-2 text-[10px] font-semibold text-cyan-400">
+                    ✓ Capacidade máxima atingida
+                  </p>
+                )}
+              </div>
+
+              {/* Info Box: cost + XP */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-white/5 bg-slate-950/50 p-3 text-center">
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                    Custo
+                  </span>
+                  <div className="mt-1 flex items-center justify-center gap-1">
+                    <Zap size={12} className="text-amber-400" />
+                    <span className="font-mono text-lg font-black text-amber-300">
+                      {FREEZE_COST_XP}
+                    </span>
+                    <span className="text-[10px] text-slate-400">XP</span>
+                  </div>
+                </div>
+
+                <div
+                  className={`rounded-2xl border p-3 text-center transition-colors ${
+                    canAfford
+                      ? "border-emerald-500/20 bg-emerald-500/5"
+                      : "border-rose-500/20 bg-rose-500/5"
+                  }`}
+                >
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                    Saldo
+                  </span>
+                  <div className="mt-1 flex items-center justify-center gap-1">
+                    <Zap
+                      size={12}
+                      className={
+                        canAfford ? "text-emerald-400" : "text-rose-400"
+                      }
+                    />
+                    <span
+                      className={`font-mono text-lg font-black ${
+                        canAfford ? "text-emerald-300" : "text-rose-300"
+                      }`}
+                    >
+                      {displayedXp.toLocaleString("pt-BR")}
+                    </span>
+                    <span className="text-[10px] text-slate-400">XP</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <p className="text-center text-[11px] leading-relaxed text-slate-400">
+                Uma Trava de Gelo protege sua sequência por{" "}
+                <strong className="text-cyan-300">1 dia</strong> caso você não
+                estude. Ela é usada automaticamente.
+              </p>
+
+              {/* Error Message */}
+              <AnimatePresence>
+                {purchaseState === "error" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="flex items-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5"
+                  >
+                    <AlertCircle size={14} className="shrink-0 text-rose-400" />
+                    <p className="text-[11px] font-medium text-rose-300">
+                      {errorMessage}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Purchase Button */}
+              <button
+                onClick={handlePurchase}
+                disabled={!canPurchase}
+                className={`relative flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-2xl py-3 text-xs font-black tracking-wide transition-all active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 ${
+                  purchaseState === "success"
+                    ? "border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                    : isCapped
+                      ? "border border-white/10 bg-slate-900 text-slate-500"
+                      : !canAfford
+                        ? "border border-rose-500/20 bg-rose-500/5 text-rose-400"
+                        : "border border-cyan-500/40 bg-linear-to-r from-cyan-600/90 to-blue-600/90 text-white shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:shadow-[0_0_30px_rgba(6,182,212,0.35)]"
+                }`}
+              >
+                {/* Shimmer on hover (idle+affordable) */}
+                {canPurchase && (
+                  <div className="pointer-events-none absolute inset-0 -translate-x-full animate-shimmer bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                )}
+
+                {purchaseState === "loading" ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Processando...</span>
+                  </>
+                ) : purchaseState === "success" ? (
+                  <>
+                    <CheckCircle2 size={14} />
+                    <span>Trava Resgatada! ❄️</span>
+                  </>
+                ) : isCapped ? (
+                  <>
+                    <Snowflake size={14} />
+                    <span>Máximo de travas atingido</span>
+                  </>
+                ) : !canAfford ? (
+                  <>
+                    <Zap size={14} />
+                    <span>
+                      XP insuficiente ({FREEZE_COST_XP} XP necessário)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Snowflake size={14} />
+                    <span>Resgatar Trava de Gelo ({FREEZE_COST_XP} XP)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+</file>
+
+<file path="src/components/dashboard/ZenModeOverlay.tsx">
+"use client";
+
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Minimize2,
+  Play,
+  Pause,
+  RotateCcw,
+  Sparkles,
+  Zap,
+  Volume2,
+  VolumeX,
+  ShieldCheck,
+  CheckCircle2,
+} from "lucide-react";
+import { useGamification } from "@/context/GamificationContext";
+
+interface ZenModeOverlayProps {
+  isOpen: boolean;
+  onClose: () => void;
+  defaultMinutes?: number;
+}
+
+const PRESET_MINUTES = [
+  { label: "25m", minutes: 25, desc: "Pomodoro" },
+  { label: "50m", minutes: 50, desc: "Foco Profundo" },
+  { label: "90m", minutes: 90, desc: "Sprint de Prova" },
+];
+
+export function ZenModeOverlay({
+  isOpen,
+  onClose,
+  defaultMinutes = 25,
+}: ZenModeOverlayProps) {
+  const [selectedMinutes, setSelectedMinutes] = useState(defaultMinutes);
+  const [totalSeconds, setTotalSeconds] = useState(defaultMinutes * 60);
+  const [timeLeft, setTimeLeft] = useState(defaultMinutes * 60);
+  const [isActive, setIsActive] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+  const [gainedXp, setGainedXp] = useState(0);
+
+  const { refreshStats } = useGamification();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Inicializa o áudio ambiente
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      audioRef.current = new Audio("/sounds/zen-ambient.mp3");
+      audioRef.current.loop = true;
+    }
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  const finalizeSession = useCallback(
+    async (elapsedSeconds: number) => {
+      const minutesSpent = Math.floor(elapsedSeconds / 60);
+      if (minutesSpent < 1) return;
+
+      try {
+        setIsSaving(true);
+        const res = await fetch("/api/gamification/focus", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            durationMinutes: minutesSpent,
+            notes: `Sessão Zen (${selectedMinutes}m)`,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setGainedXp(data.xpGained);
+          setSessionCompleted(true);
+          await refreshStats();
+          window.dispatchEvent(new Event("xp-updated"));
+        }
+      } catch (err) {
+        console.error("Erro ao salvar sessão de foco:", err);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [refreshStats, selectedMinutes],
+  );
+
+  const toggleTimer = useCallback(() => {
+    setIsActive((prev) => !prev);
+  }, []);
+
+  const handleManualExit = useCallback(() => {
+    const elapsed = totalSeconds - timeLeft;
+    if (elapsed >= 60 && !sessionCompleted) {
+      finalizeSession(elapsed);
+    }
+    onClose();
+  }, [totalSeconds, timeLeft, sessionCompleted, finalizeSession, onClose]);
+
+  // Handler de Atalhos de Teclado (Espaço e Esc)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (!sessionCompleted) {
+          toggleTimer();
+        }
+      } else if (e.code === "Escape") {
+        e.preventDefault();
+        handleManualExit();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, sessionCompleted, toggleTimer, handleManualExit]);
+
+  // Handle session completion
+  useEffect(() => {
+    if (timeLeft === 0 && isActive) {
+      if (audioRef.current) audioRef.current.pause();
+    }
+  }, [timeLeft]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && !isActive && !sessionCompleted) {
+      const timer = setTimeout(() => {
+        finalizeSession(totalSeconds);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [timeLeft, isActive, sessionCompleted, totalSeconds, finalizeSession]);
+
+  // Timer Tick
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+
+      if (audioRef.current && !isMuted) {
+        audioRef.current.play().catch(() => {});
+      }
+    } else if (timeLeft > 0) {
+      if (audioRef.current) audioRef.current.pause();
+    }
+
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft, isMuted]);
+
+  const selectPreset = (minutes: number) => {
+    if (isActive) return;
+    setSelectedMinutes(minutes);
+    setTotalSeconds(minutes * 60);
+    setTimeLeft(minutes * 60);
+    setSessionCompleted(false);
+  };
+
+  const resetTimer = () => {
+    setIsActive(false);
+    setTimeLeft(totalSeconds);
+    setSessionCompleted(false);
+  };
+
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  const progressPercent = ((totalSeconds - timeLeft) / totalSeconds) * 100;
+  const realtimeXp = Math.floor((totalSeconds - timeLeft) / 60) * 2;
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex flex-col justify-between bg-[#020409] p-6 sm:p-12 text-slate-100 font-sans selection:bg-indigo-500 select-none"
+      >
+        {/* Breathing Glow Central (Respiração Guiada 4s) */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <motion.div
+            animate={{
+              scale: isActive ? [1, 1.25, 1] : 1,
+              opacity: isActive ? [0.15, 0.3, 0.15] : 0.15,
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="h-[450px] w-[450px] rounded-full bg-violet-600 blur-[150px]"
+          />
+        </div>
+
+        {/* Topo: Controles & Presets */}
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-2 rounded-2xl border border-violet-500/30 bg-violet-500/10 px-3.5 py-1.5 text-xs font-mono font-bold text-violet-300 backdrop-blur-xl">
+              <ShieldCheck size={14} className="text-violet-400" />
+              Trava de Foco Ativa
+            </span>
+
+            {/* Seletores de Tempo Pré-configurados */}
+            {!isActive && !sessionCompleted && (
+              <div className="hidden sm:flex items-center gap-1.5 p-1 rounded-2xl bg-slate-900/60 border border-white/10 backdrop-blur-xl">
+                {PRESET_MINUTES.map((preset) => (
+                  <button
+                    key={preset.minutes}
+                    onClick={() => selectPreset(preset.minutes)}
+                    className={`cursor-pointer px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all ${
+                      selectedMinutes === preset.minutes
+                        ? "bg-violet-600 text-white shadow-lg shadow-violet-600/30"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsMuted((prev) => !prev)}
+              className="cursor-pointer rounded-xl border border-white/10 bg-slate-900/60 p-2.5 text-slate-400 hover:text-white transition-all backdrop-blur-xl"
+              title={isMuted ? "Ativar som ambiente" : "Mutar som ambiente"}
+            >
+              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </button>
+            <button
+              onClick={handleManualExit}
+              className="cursor-pointer flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-xs font-bold text-slate-300 hover:text-white transition-all backdrop-blur-xl group"
+            >
+              <Minimize2 size={16} />
+              <span>Sair</span>
+              <kbd className="hidden sm:inline-block font-mono text-[9px] text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+                Esc
+              </kbd>
+            </button>
+          </div>
+        </div>
+
+        {/* Centro: Display do Timer */}
+        <div className="relative z-10 my-auto flex flex-col items-center justify-center text-center">
+          {sessionCompleted ? (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="space-y-4 max-w-sm rounded-3xl border border-emerald-500/30 bg-slate-950/80 p-8 shadow-[0_0_50px_rgba(16,185,129,0.2)] backdrop-blur-2xl"
+            >
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                <CheckCircle2 size={32} />
+              </div>
+              <h3 className="text-2xl font-black text-white">
+                Sessão Concluída!
+              </h3>
+              <p className="text-xs text-slate-400">
+                Foco ininterrupto finalizado com sucesso. O XP foi creditado na
+                sua conta.
+              </p>
+              <div className="inline-flex items-center gap-2 rounded-2xl bg-amber-500/15 border border-amber-500/30 px-4 py-2 text-amber-300 font-mono font-bold text-sm">
+                <Zap size={16} className="fill-amber-400 text-amber-400" />+
+                {gainedXp} XP Adquirido
+              </div>
+              <button
+                onClick={resetTimer}
+                className="cursor-pointer w-full mt-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 py-3 text-xs font-bold text-white shadow-lg shadow-indigo-600/25"
+              >
+                Iniciar Novo Ciclo
+              </button>
+            </motion.div>
+          ) : (
+            <div className="relative flex flex-col items-center">
+              {/* Anel SVG */}
+              <div className="relative flex items-center justify-center">
+                <svg className="h-72 w-72 sm:h-96 sm:w-96 -rotate-90">
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="42%"
+                    className="stroke-slate-900 fill-none"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="42%"
+                    className="stroke-violet-500 fill-none transition-all duration-1000 ease-linear shadow-[0_0_20px_rgba(168,85,247,0.8)]"
+                    strokeWidth="8"
+                    strokeDasharray="264%"
+                    strokeDashoffset={`${264 - (264 * progressPercent) / 100}%`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+
+                <div className="absolute flex flex-col items-center justify-center">
+                  <span className="font-mono text-5xl sm:text-7xl font-black tracking-tight text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
+                    {String(minutes).padStart(2, "0")}:
+                    {String(seconds).padStart(2, "0")}
+                  </span>
+                  <span className="mt-2 text-xs font-mono uppercase tracking-widest text-slate-400">
+                    {isActive ? "Foco Profundo em Andamento" : "Pausado"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tag de Rendimento */}
+              <div className="mt-6 flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 font-mono text-xs font-bold text-amber-300">
+                <Sparkles
+                  size={14}
+                  className="text-amber-400 animate-spin-slow"
+                />
+                <span>+2 XP / min</span>
+                <span className="text-slate-500">•</span>
+                <span>Rendimento: +{realtimeXp} XP</span>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="mt-8 flex items-center gap-4">
+                <button
+                  onClick={toggleTimer}
+                  className={`cursor-pointer flex items-center gap-2.5 rounded-2xl px-8 py-4 text-sm font-black uppercase tracking-wider text-white shadow-2xl transition-all duration-200 active:scale-95 ${
+                    isActive
+                      ? "bg-amber-600 hover:bg-amber-500 shadow-amber-600/25"
+                      : "bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-600/30"
+                  }`}
+                >
+                  {isActive ? (
+                    <Pause size={18} />
+                  ) : (
+                    <Play size={18} className="fill-white" />
+                  )}
+                  <span>{isActive ? "Pausar" : "Iniciar Foco"}</span>
+                </button>
+
+                <button
+                  onClick={resetTimer}
+                  className="cursor-pointer rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-slate-400 hover:text-white transition-all backdrop-blur-xl"
+                  title="Reiniciar Timer"
+                >
+                  <RotateCcw size={18} />
+                </button>
+              </div>
+
+              {/* Dica de Teclado Discreta */}
+              <p className="mt-4 text-[10px] font-mono text-slate-500">
+                Pressione{" "}
+                <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-400">
+                  Espaço
+                </kbd>{" "}
+                para alternar
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Rodapé */}
+        <div className="relative z-10 flex items-center justify-between text-xs font-mono text-slate-500">
+          <span>Synapse AI • NeuroFocus Engine</span>
+          <span>
+            {isSaving ? "Sincronizando XP..." : "Gamificação Sincronizada"}
+          </span>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+</file>
+
+<file path="src/components/dashboard/DailyQuestsPanel.tsx">
+"use client";
+
+import React, { useEffect, useState, useTransition } from "react";
+import { CheckCircle2, Gift, Flame, Trophy } from "lucide-react";
+import {
+  getDailyQuestsAction,
+  claimQuestRewardAction,
+  QuestItem,
+} from "@/actions/quest-actions";
+import { useGamification } from "@/context/GamificationContext";
+
+export function DailyQuestsPanel() {
+  const [quests, setQuests] = useState<QuestItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
+  const { refreshStats } = useGamification();
+
+  useEffect(() => {
+    let isMounted = true;
+    getDailyQuestsAction()
+      .then((res) => {
+        if (isMounted && res.success && res.data) {
+          setQuests(res.data);
+        }
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar missões diárias:", err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleClaim = (questId: string) => {
+    startTransition(async () => {
+      const res = await claimQuestRewardAction(questId);
+      if (res.success) {
+        setQuests((prev) =>
+          prev.map((q) => (q.id === questId ? { ...q, claimed: true } : q))
+        );
+        if (refreshStats) await refreshStats();
+      }
+    });
+  };
+
+  const completedCount = quests.filter((q) => q.completed).length;
+
+  return (
+    <div className="bg-[#090d16] border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400">
+            <Trophy size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+              Missões Diárias
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                {completedCount}/{quests.length} Concluídas
+              </span>
+            </h3>
+            <p className="text-[11px] text-slate-400">
+              Complete os objetivos do dia para acelerar seus ganhos de XP.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quest List */}
+      {loading ? (
+        <div className="py-6 flex justify-center text-xs text-slate-500">
+          <div className="w-5 h-5 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {quests.map((quest) => {
+            const progress = Math.min(
+              100,
+              Math.round((quest.currentCount / Math.max(1, quest.targetCount)) * 100)
+            );
+
+            return (
+              <div
+                key={quest.id}
+                className={`p-3.5 rounded-xl border transition-all ${
+                  quest.claimed
+                    ? "bg-white/[0.02] border-white/5 opacity-60"
+                    : quest.completed
+                    ? "bg-violet-950/20 border-violet-500/40 shadow-[0_0_15px_rgba(139,92,246,0.1)]"
+                    : "bg-[#060911] border-white/5"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-200">
+                        {quest.title}
+                      </span>
+                      <span className="text-[10px] font-mono font-extrabold text-amber-400 flex items-center gap-0.5">
+                        <Flame size={11} /> +{quest.xpReward} XP
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                      {quest.description}
+                    </p>
+                  </div>
+
+                  {/* Botão de Resgate / Status */}
+                  <div className="shrink-0 pt-0.5">
+                    {quest.claimed ? (
+                      <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-lg">
+                        <CheckCircle2 size={12} /> Resgatado
+                      </span>
+                    ) : quest.completed ? (
+                      <button
+                        onClick={() => handleClaim(quest.id)}
+                        disabled={isPending}
+                        className="px-3 py-1.5 bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-[11px] rounded-lg shadow-lg shadow-violet-500/25 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Gift size={12} /> Resgatar
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-mono text-slate-400 bg-white/5 px-2 py-1 rounded-md">
+                        {quest.currentCount}/{quest.targetCount}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                {!quest.claimed && (
+                  <div className="mt-2.5 w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-white/5">
+                    <div
+                      className={`h-full transition-all duration-500 rounded-full ${
+                        quest.completed
+                          ? "bg-linear-to-r from-violet-500 to-emerald-400"
+                          : "bg-linear-to-r from-indigo-500 to-violet-500"
+                      }`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/dashboard/ApprovalOddsCard.tsx">
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
+import {
+  BrainCircuit,
+  Sparkles,
+  Layers,
+  Target,
+  Flame,
+  ArrowUpRight,
+  HelpCircle,
+} from "lucide-react";
+import {
+  ApprovalOddsData,
+  getApprovalOddsAction,
+} from "@/actions/analytics-actions";
+
+interface ApprovalOddsCardProps {
+  initialData?: ApprovalOddsData | null;
+  className?: string;
+}
+
+export function ApprovalOddsCard({
+  initialData,
+  className = "",
+}: ApprovalOddsCardProps) {
+  const searchParams = useSearchParams();
+  const [data, setData] = useState<ApprovalOddsData | null>(
+    initialData ?? null,
+  );
+  const [loading, setLoading] = useState<boolean>(!initialData);
+  const [showTooltip, setShowTooltip] = useState<boolean>(false);
+
+  const isDemo =
+    searchParams?.get("demo") === "true" ||
+    (typeof window !== "undefined" &&
+      (window.location.search.includes("demo=true") ||
+        localStorage.getItem("synapse_demo_active") === "true"));
+
+  const getHref = (href: string) => {
+    if (!isDemo) return href;
+    const sep = href.includes("?") ? "&" : "?";
+    return `${href}${sep}demo=true`;
+  };
+
+  useEffect(() => {
+    if (initialData) return;
+
+    let isMounted = true;
+    async function fetchApprovalOdds() {
+      try {
+        const res = await getApprovalOddsAction();
+        if (isMounted && res.success && res.data) {
+          setData(res.data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar chance de aprovação:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    fetchApprovalOdds();
+    return () => {
+      isMounted = false;
+    };
+  }, [initialData]);
+
+  if (loading) {
+    return (
+      <div
+        className={`relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl animate-pulse ${className}`}
+      >
+        <div className="h-4 w-36 bg-white/5 rounded-full mb-6" />
+        <div className="flex items-center gap-6">
+          <div className="h-28 w-28 rounded-full bg-white/5 shrink-0" />
+          <div className="flex-1 space-y-3">
+            <div className="h-3 w-3/4 bg-white/5 rounded-full" />
+            <div className="h-3 w-1/2 bg-white/5 rounded-full" />
+            <div className="h-3 w-2/3 bg-white/5 rounded-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Se não há dados suficientes para projeção matemática
+  if (!data || !data.hasEnoughData) {
+    return (
+      <div
+        className={`group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl ${className}`}
+      >
+        {/* Linha Neon Superior Violeta */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/40 to-transparent" />
+        <div className="pointer-events-none absolute -top-12 -left-12 h-32 w-32 rounded-full bg-violet-600/10 blur-3xl" />
+
+        <div className="flex items-center justify-between pb-3 border-b border-white/5">
+          <div className="flex items-center gap-2.5">
+            <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-2 text-violet-400">
+              <BrainCircuit size={18} />
+            </div>
+            <div>
+              <span className="block text-[9px] font-extrabold uppercase tracking-widest text-violet-400">
+                Predição Neural
+              </span>
+              <h3 className="text-xs font-bold text-white tracking-wide">
+                Chance de Aprovação
+              </h3>
+            </div>
+          </div>
+          <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-0.5 font-mono text-[9px] font-bold text-violet-300 flex items-center gap-1">
+            <Sparkles size={10} className="text-cyan-400" />
+            Calibragem
+          </span>
+        </div>
+
+        <div className="py-5 text-center space-y-3">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-500/20 bg-violet-500/5 text-violet-300">
+            <Target size={26} className="text-cyan-400 animate-pulse" />
+          </div>
+          <div className="space-y-1 max-w-sm mx-auto">
+            <h4 className="text-sm font-extrabold text-white">
+              Índice em Calibração
+            </h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Resolva simulados e avance no edital para calibrar sua projeção
+              matemática de aprovação.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+            <Link
+              href={getHref("/questions")}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-500/15 px-3.5 py-2 text-xs font-bold text-violet-200 hover:bg-violet-500/25 hover:text-white transition-all shadow-sm"
+            >
+              <Sparkles size={12} className="text-cyan-400" />
+              <span>Fazer Simulado</span>
+            </Link>
+            <Link
+              href={getHref("/edital")}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all"
+            >
+              <span>Ver Edital</span>
+              <ArrowUpRight size={13} />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Cores dinâmicas baseadas no status
+  const statusTheme = {
+    ZONA_DE_APROVACAO: {
+      neon: "via-emerald-400",
+      ambient: "bg-emerald-500/15",
+      badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+      gaugeGradient: ["#10b981", "#34d399", "#06b6d4"],
+      glowShadow: "shadow-[0_0_30px_rgba(16,185,129,0.2)]",
+    },
+    COMPETITIVO: {
+      neon: "via-cyan-400",
+      ambient: "bg-cyan-500/15",
+      badge: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+      gaugeGradient: ["#06b6d4", "#38bdf8", "#818cf8"],
+      glowShadow: "shadow-[0_0_30px_rgba(6,182,212,0.2)]",
+    },
+    EM_CONSTRUCAO: {
+      neon: "via-violet-400",
+      ambient: "bg-violet-500/15",
+      badge: "border-violet-500/30 bg-violet-500/10 text-violet-300",
+      gaugeGradient: ["#8b5cf6", "#a855f7", "#ec4899"],
+      glowShadow: "shadow-[0_0_30px_rgba(139,92,246,0.2)]",
+    },
+    FASE_INICIAL: {
+      neon: "via-slate-400",
+      ambient: "bg-slate-500/10",
+      badge: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+      gaugeGradient: ["#64748b", "#94a3b8", "#a855f7"],
+      glowShadow: "shadow-[0_0_30px_rgba(148,163,184,0.1)]",
+    },
+  }[data.status];
+
+  // Cálculo SVG do Gauge circular (raio 40, circunferência ~ 251.33)
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset =
+    circumference - (data.overallOdds / 100) * circumference;
+
+  return (
+    <div
+      className={`group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl transition-all ${className}`}
+    >
+      {/* Luz Neon no topo adaptada ao status */}
+      <div
+        className={`absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent ${statusTheme.neon} to-transparent`}
+      />
+
+      {/* Glow Cósmico de Fundo */}
+      <div
+        className={`pointer-events-none absolute -top-16 -right-16 h-36 w-36 rounded-full ${statusTheme.ambient} blur-3xl`}
+      />
+
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between border-b border-white/5 pb-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-2 text-violet-400 shadow-sm shadow-violet-500/20">
+            <BrainCircuit size={18} />
+          </div>
+          <div>
+            <span className="block text-[9px] font-black uppercase tracking-widest text-violet-400">
+              Projeção Preditiva
+            </span>
+            <h3 className="text-xs font-bold text-white tracking-wide">
+              Chance de Aprovação
+            </h3>
+          </div>
+        </div>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowTooltip((prev) => !prev)}
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            className="cursor-pointer text-slate-500 hover:text-slate-300 transition-colors p-1 rounded-lg"
+            aria-label="Como é calculado o índice"
+          >
+            <HelpCircle size={15} />
+          </button>
+
+          {showTooltip && (
+            <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-violet-500/30 bg-[#0B0A16]/95 p-3.5 text-[11px] text-slate-300 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95 duration-150">
+              <span className="block font-bold text-white mb-1 flex items-center gap-1.5">
+                <Sparkles size={12} className="text-cyan-400" />
+                Fórmula Preditiva IA:
+              </span>
+              <ul className="space-y-1 text-slate-300 text-[10px]">
+                <li>• 40% Cobertura do Edital</li>
+                <li>• 40% Retenção Ponderada (por peso)</li>
+                <li>• 20% Constância Semanal (Streak/Meta)</li>
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bloco Central: Medidor Circular & Diagnóstico */}
+      <div className="my-5 flex flex-col sm:flex-row items-center justify-between gap-5">
+        {/* Medidor Circular SVG */}
+        <div className="relative flex h-28 w-28 shrink-0 items-center justify-center">
+          <svg className="h-full w-full transform -rotate-90" viewBox="0 0 100 100">
+            {/* Gradiente do traço */}
+            <defs>
+              <linearGradient
+                id={`odds-gradient-${data.status}`}
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" stopColor={statusTheme.gaugeGradient[0]} />
+                <stop offset="50%" stopColor={statusTheme.gaugeGradient[1]} />
+                <stop offset="100%" stopColor={statusTheme.gaugeGradient[2]} />
+              </linearGradient>
+            </defs>
+
+            {/* Trilha de fundo */}
+            <circle
+              cx="50"
+              cy="50"
+              r={radius}
+              stroke="currentColor"
+              strokeWidth="7"
+              fill="transparent"
+              className="text-white/5"
+            />
+
+            {/* Arco de progresso */}
+            <circle
+              cx="50"
+              cy="50"
+              r={radius}
+              stroke={`url(#odds-gradient-${data.status})`}
+              strokeWidth="7"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              fill="transparent"
+              className="transition-all duration-1000 ease-out"
+            />
+          </svg>
+
+          {/* Valor Central */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span className="font-mono text-2xl sm:text-3xl font-black text-white tracking-tight leading-none drop-shadow-sm">
+              {data.overallOdds}%
+            </span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
+              Score
+            </span>
+          </div>
+        </div>
+
+        {/* Diagnóstico Qualitativo */}
+        <div className="flex-1 space-y-2 text-center sm:text-left">
+          <div className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-mono font-extrabold uppercase tracking-widest shadow-xs">
+            <span
+              className={`inline-block h-2 w-2 rounded-full animate-pulse ${
+                data.status === "ZONA_DE_APROVACAO"
+                  ? "bg-emerald-400"
+                  : data.status === "COMPETITIVO"
+                    ? "bg-cyan-400"
+                    : "bg-violet-400"
+              }`}
+            />
+            <span className={statusTheme.badge}>{data.statusLabel}</span>
+          </div>
+
+          <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">
+            {data.statusDescription}
+          </p>
+        </div>
+      </div>
+
+      {/* 3 Mini-Indicadores dos Pilares */}
+      <div className="space-y-2.5 border-t border-white/5 pt-4">
+        {/* 1. Cobertura do Edital */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="flex items-center gap-1.5 text-slate-300 font-semibold">
+              <Layers size={12} className="text-violet-400" />
+              Cobertura do Edital
+            </span>
+            <div className="flex items-center gap-2 font-mono">
+              <span className="text-[10px] text-slate-500">
+                {data.pillars.coverage.completedTopics}/
+                {data.pillars.coverage.totalTopics} tópicos
+              </span>
+              <strong className="text-xs font-bold text-violet-300">
+                {data.pillars.coverage.score}%
+              </strong>
+            </div>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${data.pillars.coverage.score}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="h-full rounded-full bg-linear-to-r from-violet-600 to-purple-400"
+            />
+          </div>
+        </div>
+
+        {/* 2. Retenção Ponderada em Simulados */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="flex items-center gap-1.5 text-slate-300 font-semibold">
+              <Target size={12} className="text-cyan-400" />
+              Retenção em Simulados
+            </span>
+            <div className="flex items-center gap-2 font-mono">
+              <span className="text-[10px] text-slate-500">
+                {data.pillars.domain.totalQuestions > 0
+                  ? `${data.pillars.domain.correctQuestions}/${data.pillars.domain.totalQuestions} acertos`
+                  : "Por peso"}
+              </span>
+              <strong className="text-xs font-bold text-cyan-300">
+                {data.pillars.domain.score}%
+              </strong>
+            </div>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${data.pillars.domain.score}%` }}
+              transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+              className="h-full rounded-full bg-linear-to-r from-cyan-500 to-emerald-400"
+            />
+          </div>
+        </div>
+
+        {/* 3. Constância Semanal */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="flex items-center gap-1.5 text-slate-300 font-semibold">
+              <Flame size={12} className="text-amber-400" />
+              Constância Semanal
+            </span>
+            <div className="flex items-center gap-2 font-mono">
+              <span className="text-[10px] text-slate-500">
+                {data.pillars.constancy.streakDays}d streak
+              </span>
+              <strong className="text-xs font-bold text-amber-300">
+                {data.pillars.constancy.score}%
+              </strong>
+            </div>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${data.pillars.constancy.score}%` }}
+              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              className="h-full rounded-full bg-linear-to-r from-amber-500 to-orange-400"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ApprovalOddsCard;
+</file>
+
+<file path="src/components/dashboard/DailyQuestsWidget.tsx">
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
+import {
+  Target,
+  CheckCircle2,
+  Zap,
+  Gift,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
+import { useGamification } from "@/context/GamificationContext";
+
+interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  xpReward: number;
+  targetCount: number;
+  currentCount: number;
+  completed: boolean;
+  claimed: boolean;
+}
+
+export function DailyQuestsWidget() {
+  const searchParams = useSearchParams();
+  const [quests, setQuests] = useState<Quest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+
+  const isDemo =
+    searchParams?.get("demo") === "true" ||
+    (typeof window !== "undefined" &&
+      (window.location.search.includes("demo=true") ||
+        localStorage.getItem("synapse_demo_active") === "true"));
+
+  const gamificationContext = useGamification() as unknown as Record<
+    string,
+    unknown
+  >;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadQuests() {
+      try {
+        const res = await fetch("/api/gamification/quests", {
+          cache: "no-store",
+        });
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          setQuests(data.quests || []);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar quests:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadQuests();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleClaim = async (questId: string) => {
+    try {
+      setClaimingId(questId);
+      const res = await fetch("/api/gamification/quests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questId }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setQuests((prev) =>
+          prev.map((q) => (q.id === questId ? { ...q, claimed: true } : q)),
+        );
+
+        // Dispara atualização no contexto global caso algum método de recarregamento exista
+        if (typeof gamificationContext.refreshStats === "function") {
+          (gamificationContext.refreshStats as () => void)();
+        } else if (typeof gamificationContext.loadStats === "function") {
+          (gamificationContext.loadStats as () => void)();
+        } else if (typeof gamificationContext.updateStats === "function") {
+          (gamificationContext.updateStats as (val: unknown) => void)({
+            totalXp: data.totalXp,
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao resgatar quest:", err);
+    } finally {
+      setClaimingId(null);
+    }
+  };
+
+  const getActionUrl = (title: string) => {
+    let path = "/edital";
+    if (title.includes("Questões")) path = "/questions";
+    if (title.includes("Flashcards")) path = "/flashcards";
+    return isDemo ? `${path}?demo=true` : path;
+  };
+
+  const totalPossibleXp = quests.reduce((acc, q) => acc + q.xpReward, 0);
+  const allClaimed = quests.length > 0 && quests.every((q) => q.claimed);
+
+  return (
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+      {/* Header do Widget */}
+      <div className="flex items-center justify-between border-b border-white/5 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
+            <Target size={16} />
+          </div>
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              Missões de Hoje
+            </h3>
+            <p className="text-[10px] text-slate-400">
+              Garanta seu bônus diário de retenção
+            </p>
+          </div>
+        </div>
+
+        <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300">
+          <Sparkles size={11} className="text-amber-400" />+{totalPossibleXp} XP
+        </span>
+      </div>
+
+      {/* Lista de Missões */}
+      <div className="space-y-3 pt-4">
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-16 w-full animate-pulse rounded-2xl border border-white/5 bg-slate-900/40"
+              />
+            ))}
+          </div>
+        ) : quests.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-xs text-slate-400">
+            Nenhuma missão disponível no momento.
+          </div>
+        ) : (
+          quests.map((quest) => {
+            const progress = Math.min(
+              100,
+              Math.round((quest.currentCount / quest.targetCount) * 100),
+            );
+
+            return (
+              <div
+                key={quest.id}
+                className={`relative flex items-center justify-between gap-3 overflow-hidden rounded-2xl border p-3.5 transition-all duration-300 ${
+                  quest.claimed
+                    ? "border-white/5 bg-slate-950/30 opacity-60"
+                    : quest.completed
+                      ? "border-emerald-500/30 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                      : "border-white/5 bg-slate-950/40 hover:border-white/10"
+                }`}
+              >
+                <div className="flex flex-1 items-center gap-3 min-w-0">
+                  <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors ${
+                      quest.claimed
+                        ? "border-slate-800 bg-slate-900 text-slate-500"
+                        : quest.completed
+                          ? "border-emerald-500/40 bg-emerald-500/20 text-emerald-400"
+                          : "border-white/10 bg-slate-900 text-amber-400"
+                    }`}
+                  >
+                    {quest.claimed ? (
+                      <CheckCircle2 size={16} className="text-slate-500" />
+                    ) : quest.completed ? (
+                      <Gift
+                        size={16}
+                        className="text-emerald-400 animate-bounce"
+                      />
+                    ) : (
+                      <Zap
+                        size={14}
+                        className="fill-amber-400/20 text-amber-400"
+                      />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex items-center justify-between">
+                      <h4
+                        className={`truncate text-xs font-bold ${
+                          quest.claimed
+                            ? "text-slate-400 line-through"
+                            : "text-slate-200"
+                        }`}
+                      >
+                        {quest.title}
+                      </h4>
+                      <span className="shrink-0 font-mono text-[10px] text-slate-400 pl-2">
+                        {Math.min(quest.currentCount, quest.targetCount)}/
+                        {quest.targetCount}
+                      </span>
+                    </div>
+
+                    <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950">
+                      <motion.div
+                        className={`h-full rounded-full transition-all ${
+                          quest.claimed
+                            ? "bg-slate-700"
+                            : quest.completed
+                              ? "bg-linear-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                              : "bg-linear-to-r from-indigo-500 to-purple-500"
+                        }`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botões de Ação / Resgate */}
+                <div className="shrink-0">
+                  {quest.claimed ? (
+                    <span className="font-mono text-[10px] font-bold text-slate-500">
+                      Resgatado
+                    </span>
+                  ) : quest.completed ? (
+                    <button
+                      onClick={() => handleClaim(quest.id)}
+                      disabled={claimingId === quest.id}
+                      className="cursor-pointer inline-flex items-center gap-1 rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 px-3 py-1.5 font-mono text-[10px] font-black uppercase text-slate-950 shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                    >
+                      {claimingId === quest.id ? "..." : "Resgatar"}
+                    </button>
+                  ) : (
+                    <Link
+                      href={getActionUrl(quest.title)}
+                      className="inline-flex items-center gap-1 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1.5 text-[10px] font-bold text-indigo-300 transition-all hover:bg-indigo-500/20"
+                    >
+                      Ir <ArrowRight size={11} />
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {allClaimed && (
+        <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2 text-center text-[11px] font-bold text-emerald-400">
+          ✨ Todas as missões do dia foram concluídas e resgatadas!
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/dashboard/DomainRadarChart.tsx">
+"use client";
+
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Radar,
+  AlertTriangle,
+  Sparkles,
+  ShieldCheck,
+  TrendingDown,
+  Layers,
+  RefreshCw,
+} from "lucide-react";
+import { getSubjectDomainStatsAction } from "@/actions/quiz-actions";
+import { SubjectDomainMetric } from "@/types/quiz";
+import { DashboardSubject } from "@/types";
+
+export interface DomainRadarSubject {
+  id?: string;
+  name: string;
+  domain?: number;
+  accuracy?: number;
+  progress?: number;
+  weight?: number;
+  priority?: number | string;
+  importance?: string;
+  color?: string | null;
+  _count?: {
+    topics: number;
+  };
+}
+
+export interface DomainRadarChartProps {
+  subjects?: DomainRadarSubject[] | DashboardSubject[];
+  isLoading?: boolean;
+  className?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+interface ProcessedSubject {
+  id: string;
+  name: string;
+  domain: number;
+  weight: number;
+  gap: number;
+  color: string;
+  status: "blind_spot" | "mastered" | "balanced";
+  totalAnswered: number;
+  correctCount: number;
+}
+
+export default function DomainRadarChart({
+  subjects: propSubjects = [],
+  isLoading: propLoading = false,
+  className = "",
+  title = "Radar de Domínio vs. Peso do Edital",
+  subtitle = "Identificação preditiva de pontos cegos e calibração de foco",
+}: DomainRadarChartProps) {
+  const [hoveredSubject, setHoveredSubject] = useState<ProcessedSubject | null>(
+    null,
+  );
+  const [serverMetrics, setMetrics] = useState<SubjectDomainMetric[]>([]);
+  const [isServerLoading, setIsServerLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    getSubjectDomainStatsAction()
+      .then((res) => {
+        if (isMounted && res.success && res.data) {
+          setMetrics(res.data);
+        }
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar métricas de domínio:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setIsServerLoading(true);
+    try {
+      const res = await getSubjectDomainStatsAction();
+      if (res.success && res.data) {
+        setMetrics(res.data);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar métricas de domínio:", err);
+    } finally {
+      setIsServerLoading(false);
+    }
+  }, []);
+
+  const isLoading = propLoading || isServerLoading;
+
+  // Cruza dados do servidor (QuizAttempt) com as props de Subject (se existirem)
+  const processedData: ProcessedSubject[] = useMemo(() => {
+    // 1. Prioriza dados reais de QuizAttempt retornados pela Server Action
+    if (serverMetrics.length > 0) {
+      return serverMetrics.map((m) => {
+        const realDomain = Math.max(0, Math.min(100, m.domainPercentage));
+        const idealWeight = Math.max(10, Math.min(100, Math.round(m.weight * 10)));
+        const gap = realDomain - idealWeight;
+
+        let status: "blind_spot" | "mastered" | "balanced" = "balanced";
+        if (gap <= -15 && m.totalAnswered >= 3) {
+          status = "blind_spot";
+        } else if (gap >= 15 || realDomain >= 85) {
+          status = "mastered";
+        }
+
+        return {
+          id: m.subjectId,
+          name: m.subjectName,
+          domain: realDomain,
+          weight: idealWeight,
+          gap,
+          color: m.color || "#818cf8",
+          status,
+          totalAnswered: m.totalAnswered,
+          correctCount: m.correctCount,
+        };
+      });
+    }
+
+    // 2. Fallback para as props de Subject passadas pelo DashboardClient
+    if (!propSubjects || propSubjects.length === 0) return [];
+
+    return (propSubjects as DomainRadarSubject[]).map((sub, idx) => {
+      let realDomain = 0;
+      if (typeof sub.domain === "number") realDomain = sub.domain;
+      else if (typeof sub.accuracy === "number") realDomain = sub.accuracy;
+      else if (typeof sub.progress === "number") realDomain = sub.progress;
+      realDomain = Math.max(0, Math.min(100, Math.round(realDomain)));
+
+      let idealWeight = 70;
+      if (typeof sub.weight === "number") idealWeight = sub.weight;
+      else if (typeof sub.priority === "number") idealWeight = Math.min(100, Math.round(sub.priority * 10));
+      else if (typeof sub.priority === "string" && !isNaN(Number(sub.priority))) idealWeight = Math.min(100, Math.round(Number(sub.priority) * 10));
+
+      idealWeight = Math.max(10, Math.min(100, Math.round(idealWeight)));
+      const gap = realDomain - idealWeight;
+
+      let status: "blind_spot" | "mastered" | "balanced" = "balanced";
+      if (gap <= -15) status = "blind_spot";
+      else if (gap >= 15 || realDomain >= 85) status = "mastered";
+
+      return {
+        id: sub.id || `sub-${idx}`,
+        name: sub.name || `Disciplina ${idx + 1}`,
+        domain: realDomain,
+        weight: idealWeight,
+        gap,
+        color: sub.color || "#818cf8",
+        status,
+        totalAnswered: 0,
+        correctCount: 0,
+      };
+    });
+  }, [serverMetrics, propSubjects]);
+
+  const blindSpots = useMemo(() => {
+    return processedData
+      .filter((s) => s.gap < 0)
+      .sort((a, b) => a.gap - b.gap);
+  }, [processedData]);
+
+  const criticalBlindSpot = blindSpots.length > 0 ? blindSpots[0] : null;
+
+  // Configurações do SVG Radar
+  const size = 380;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = 130;
+  const levels = [0.2, 0.4, 0.6, 0.8, 1.0];
+
+  const totalAxes = processedData.length;
+
+  const getCoordinates = (index: number, ratio: number) => {
+    if (totalAxes === 0) return { x: cx, y: cy };
+    const angle = (Math.PI * 2 * index) / totalAxes - Math.PI / 2;
+    const r = radius * Math.max(0.05, Math.min(1, ratio));
+    return {
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
+    };
+  };
+
+  const domainPolygonPoints = useMemo(() => {
+    if (totalAxes < 3) return "";
+    return processedData
+      .map((item, i) => {
+        const { x, y } = getCoordinates(i, item.domain / 100);
+        return `${x},${y}`;
+      })
+      .join(" ");
+  }, [processedData, totalAxes]);
+
+  const weightPolygonPoints = useMemo(() => {
+    if (totalAxes < 3) return "";
+    return processedData
+      .map((item, i) => {
+        const { x, y } = getCoordinates(i, item.weight / 100);
+        return `${x},${y}`;
+      })
+      .join(" ");
+  }, [processedData, totalAxes]);
+
+  if (isLoading) {
+    return (
+      <div
+        className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl ${className}`}
+      >
+        <div className="flex items-center justify-between border-b border-white/5 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 animate-pulse rounded-xl bg-white/5" />
+            <div className="space-y-1.5">
+              <div className="h-3 w-32 animate-pulse rounded bg-white/5" />
+              <div className="h-2 w-48 animate-pulse rounded bg-white/5" />
+            </div>
+          </div>
+        </div>
+        <div className="flex h-72 items-center justify-center">
+          <div className="h-44 w-44 animate-pulse rounded-full border border-indigo-500/20 bg-indigo-500/5" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] via-[#070b14] to-[#04060c] p-5 sm:p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30 ${className}`}
+    >
+      {/* Glow de fundo */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-violet-600/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-emerald-600/10 blur-3xl" />
+
+      {/* ================= CABEÇALHO DO COMPONENTE ================= */}
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 shadow-inner shadow-indigo-500/20">
+            <Radar size={20} className="animate-pulse text-indigo-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-100">
+                {title}
+              </h3>
+              <span className="rounded-full border border-indigo-500/30 bg-indigo-500/15 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase text-indigo-300">
+                Neural Radar
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400">{subtitle}</p>
+          </div>
+        </div>
+
+        {/* CONTROLES E LEGENDA */}
+        <div className="flex items-center gap-2.5 self-start sm:self-center">
+          <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[11px] font-bold text-emerald-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+            <span>Domínio Real %</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-2.5 py-1 text-[11px] font-bold text-indigo-300">
+            <span className="h-2 w-2 rounded-full border border-dashed border-indigo-400 bg-indigo-500/60 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
+            <span>Peso Ideal %</span>
+          </div>
+
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="p-1.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20 transition-all cursor-pointer"
+            title="Recarregar Métricas do Banco"
+          >
+            <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
+          </button>
+        </div>
+      </div>
+
+      {/* ================= CORPO DO GRÁFICO ================= */}
+      {processedData.length === 0 ? (
+        <div className="relative z-10 my-8 flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-slate-950/40 p-8 text-center">
+          <div className="mb-3 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-3 text-indigo-400">
+            <Layers size={24} />
+          </div>
+          <h4 className="text-sm font-bold text-slate-200">
+            Nenhuma disciplina cadastrada
+          </h4>
+          <p className="mt-1 max-w-sm text-xs text-slate-400">
+            Adicione matérias ao seu edital verticalizado para visualizar a teia
+            neural de domínio versus peso ideal.
+          </p>
+        </div>
+      ) : processedData.length < 3 ? (
+        <div className="relative z-10 my-6 space-y-4">
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 text-center">
+            <p className="text-xs text-amber-300">
+              💡 Cadastre <strong>3 ou mais disciplinas</strong> para renderizar
+              o radar poligonal completo. Abaixo está a calibragem atual:
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {processedData.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-2xl border border-white/5 bg-slate-950/60 p-4 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">
+                    {item.name}
+                  </span>
+                  <span
+                    className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                      item.status === "blind_spot"
+                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                        : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    }`}
+                  >
+                    {item.status === "blind_spot"
+                      ? "Ponto Cego"
+                      : "Sob Controle"}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-emerald-400 font-bold">
+                      Domínio Real
+                    </span>
+                    <span className="font-mono text-slate-200">
+                      {item.domain}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-slate-900 overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-400 rounded-full"
+                      style={{ width: `${item.domain}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-indigo-400 font-bold">
+                      Peso Ideal
+                    </span>
+                    <span className="font-mono text-slate-200">
+                      {item.weight}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-slate-900 overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 rounded-full"
+                      style={{ width: `${item.weight}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="relative z-10 flex flex-col items-center justify-center py-3">
+          <div className="relative w-full max-w-[420px] aspect-square flex items-center justify-center">
+            <svg
+              viewBox={`0 0 ${size} ${size}`}
+              className="w-full h-full overflow-visible drop-shadow-2xl select-none"
+            >
+              <defs>
+                <linearGradient
+                  id="radarEmeraldGrad"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
+                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.45" />
+                  <stop offset="50%" stopColor="#06b6d4" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.25" />
+                </linearGradient>
+
+                <linearGradient
+                  id="radarIndigoGrad"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
+                  <stop offset="0%" stopColor="#6366f1" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#a855f7" stopOpacity="0.10" />
+                </linearGradient>
+
+                <filter
+                  id="radarGlow"
+                  x="-20%"
+                  y="-20%"
+                  width="140%"
+                  height="140%"
+                >
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+
+              {/* 1. NÍVEIS CONCÊNTRICOS POLIGONAIS */}
+              {levels.map((levelRatio, lvlIdx) => {
+                const ringPoints = processedData
+                  .map((_, i) => {
+                    const { x, y } = getCoordinates(i, levelRatio);
+                    return `${x},${y}`;
+                  })
+                  .join(" ");
+
+                return (
+                  <g key={`ring-${lvlIdx}`}>
+                    <polygon
+                      points={ringPoints}
+                      fill={lvlIdx % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent"}
+                      stroke="rgba(148, 163, 184, 0.15)"
+                      strokeWidth={lvlIdx === levels.length - 1 ? "1.5" : "0.8"}
+                      strokeDasharray={lvlIdx === levels.length - 1 ? "" : "3 3"}
+                    />
+                    <text
+                      x={cx + 4}
+                      y={cy - radius * levelRatio - 2}
+                      fill="rgba(148, 163, 184, 0.4)"
+                      fontSize="8"
+                      fontFamily="monospace"
+                      fontWeight="bold"
+                    >
+                      {Math.round(levelRatio * 100)}%
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* 2. EIXOS RADIAIS */}
+              {processedData.map((_, i) => {
+                const { x, y } = getCoordinates(i, 1.0);
+                return (
+                  <line
+                    key={`axis-${i}`}
+                    x1={cx}
+                    y1={cy}
+                    x2={x}
+                    y2={y}
+                    stroke="rgba(148, 163, 184, 0.18)"
+                    strokeWidth="1"
+                    strokeDasharray="2 2"
+                  />
+                );
+              })}
+
+              {/* 3. POLÍGONO DO PESO IDEAL */}
+              {weightPolygonPoints && (
+                <polygon
+                  points={weightPolygonPoints}
+                  fill="url(#radarIndigoGrad)"
+                  stroke="#818cf8"
+                  strokeWidth="2"
+                  strokeDasharray="4 4"
+                  className="transition-all duration-500 opacity-80"
+                />
+              )}
+
+              {/* 4. POLÍGONO DO DOMÍNIO REAL */}
+              {domainPolygonPoints && (
+                <polygon
+                  points={domainPolygonPoints}
+                  fill="url(#radarEmeraldGrad)"
+                  stroke="#10b981"
+                  strokeWidth="2.5"
+                  filter="url(#radarGlow)"
+                  className="transition-all duration-500 opacity-90 hover:opacity-100"
+                />
+              )}
+
+              {/* 5. VÉRTICES INTERATIVOS */}
+              {processedData.map((item, i) => {
+                const domCoord = getCoordinates(i, item.domain / 100);
+                const wtCoord = getCoordinates(i, item.weight / 100);
+                const isHovered = hoveredSubject?.id === item.id;
+
+                return (
+                  <g
+                    key={`points-${item.id}`}
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredSubject(item)}
+                    onMouseLeave={() => setHoveredSubject(null)}
+                    onClick={() =>
+                      setHoveredSubject((prev) =>
+                        prev?.id === item.id ? null : item,
+                      )
+                    }
+                  >
+                    <line
+                      x1={domCoord.x}
+                      y1={domCoord.y}
+                      x2={wtCoord.x}
+                      y2={wtCoord.y}
+                      stroke={item.gap < 0 ? "#f43f5e" : "#10b981"}
+                      strokeWidth={isHovered ? "2.5" : "1.5"}
+                      strokeDasharray="2 2"
+                      opacity={isHovered ? 1 : 0.6}
+                    />
+
+                    <circle
+                      cx={wtCoord.x}
+                      cy={wtCoord.y}
+                      r={isHovered ? 5 : 3.5}
+                      fill="#090d16"
+                      stroke="#818cf8"
+                      strokeWidth="2"
+                      className="transition-all duration-200"
+                    />
+
+                    <circle
+                      cx={domCoord.x}
+                      cy={domCoord.y}
+                      r={isHovered ? 7 : 4.5}
+                      fill={
+                        item.status === "blind_spot" ? "#f43f5e" : "#10b981"
+                      }
+                      stroke="#ffffff"
+                      strokeWidth={isHovered ? "2.5" : "1.5"}
+                      filter="url(#radarGlow)"
+                      className="transition-all duration-200"
+                    />
+                  </g>
+                );
+              })}
+
+              {/* 6. RÓTULOS NO PERÍMETRO */}
+              {processedData.map((item, i) => {
+                const angle = (Math.PI * 2 * i) / totalAxes - Math.PI / 2;
+                const labelRadius = radius + 26;
+                const lx = cx + labelRadius * Math.cos(angle);
+                const ly = cy + labelRadius * Math.sin(angle);
+
+                const cosA = Math.cos(angle);
+                let textAnchor: "start" | "end" | "middle" = "middle";
+                if (cosA > 0.35) textAnchor = "start";
+                else if (cosA < -0.35) textAnchor = "end";
+
+                const isHovered = hoveredSubject?.id === item.id;
+                const isBlindSpot = item.status === "blind_spot";
+
+                const displayName =
+                  item.name.length > 14
+                    ? `${item.name.substring(0, 12)}...`
+                    : item.name;
+
+                return (
+                  <g
+                    key={`label-${item.id}`}
+                    className="cursor-pointer transition-all duration-200"
+                    onMouseEnter={() => setHoveredSubject(item)}
+                    onMouseLeave={() => setHoveredSubject(null)}
+                    onClick={() =>
+                      setHoveredSubject((prev) =>
+                        prev?.id === item.id ? null : item,
+                      )
+                    }
+                  >
+                    <text
+                      x={lx}
+                      y={ly}
+                      textAnchor={textAnchor}
+                      dominantBaseline="central"
+                      fill={
+                        isHovered
+                          ? "#ffffff"
+                          : isBlindSpot
+                            ? "#fda4af"
+                            : "#cbd5e1"
+                      }
+                      fontSize={isHovered ? "11" : "10"}
+                      fontWeight={isHovered || isBlindSpot ? "bold" : "600"}
+                      className="transition-all duration-200"
+                    >
+                      {displayName}
+                    </text>
+                    <text
+                      x={lx}
+                      y={ly + 11}
+                      textAnchor={textAnchor}
+                      dominantBaseline="central"
+                      fill={
+                        isBlindSpot
+                          ? "#f43f5e"
+                          : isHovered
+                            ? "#10b981"
+                            : "rgba(148, 163, 184, 0.7)"
+                      }
+                      fontSize="8.5"
+                      fontFamily="monospace"
+                      fontWeight="bold"
+                    >
+                      {item.domain}% / {item.weight}%
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* FLOATING TOOLTIP */}
+            <AnimatePresence>
+              {hoveredSubject && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 5 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 5 }}
+                  className="pointer-events-none absolute bottom-2 rounded-2xl border border-indigo-500/40 bg-slate-950/95 p-3.5 shadow-2xl backdrop-blur-xl max-w-xs z-30"
+                >
+                  <div className="flex items-center justify-between gap-3 mb-2 pb-1.5 border-b border-white/10">
+                    <span className="text-xs font-black text-white truncate">
+                      {hoveredSubject.name}
+                    </span>
+                    <span
+                      className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                        hoveredSubject.status === "blind_spot"
+                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                          : hoveredSubject.status === "mastered"
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                      }`}
+                    >
+                      {hoveredSubject.status === "blind_spot"
+                        ? "Ponto Cego"
+                        : hoveredSubject.status === "mastered"
+                          ? "Dominado"
+                          : "Equilibrado"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2">
+                      <span className="block text-[9px] uppercase font-bold text-emerald-400">
+                        Domínio Real
+                      </span>
+                      <strong className="font-mono text-sm text-emerald-300">
+                        {hoveredSubject.domain}%
+                      </strong>
+                    </div>
+
+                    <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-2">
+                      <span className="block text-[9px] uppercase font-bold text-indigo-400">
+                        Peso Ideal
+                      </span>
+                      <strong className="font-mono text-sm text-indigo-300">
+                        {hoveredSubject.weight}%
+                      </strong>
+                    </div>
+                  </div>
+
+                  {hoveredSubject.totalAnswered > 0 && (
+                    <div className="mt-2 text-[10px] text-slate-400 border-t border-white/5 pt-1.5 flex justify-between">
+                      <span>Tentativas:</span>
+                      <strong className="text-slate-200">
+                        {hoveredSubject.correctCount}/{hoveredSubject.totalAnswered} acertos
+                      </strong>
+                    </div>
+                  )}
+
+                  <div className="mt-1.5 text-[10px] text-slate-400 flex items-center gap-1.5">
+                    {hoveredSubject.gap < 0 ? (
+                      <>
+                        <TrendingDown size={13} className="text-rose-400 shrink-0" />
+                        <span className="text-rose-300">
+                          Déficit de{" "}
+                          <strong>{Math.abs(hoveredSubject.gap)}%</strong> em
+                          relação ao peso.
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck size={13} className="text-emerald-400 shrink-0" />
+                        <span className="text-emerald-300">
+                          Domínio superior ao peso em +
+                          <strong>{hoveredSubject.gap}%</strong>.
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
+
+      {/* ================= BANNER INFORMATIVO ================= */}
+      {criticalBlindSpot && (
+        <div className="relative z-10 mt-2 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3.5 transition-all">
+          <div className="rounded-xl border border-rose-500/30 bg-rose-500/20 p-2 text-rose-400 shrink-0">
+            <AlertTriangle size={16} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-black uppercase tracking-wider text-rose-200">
+                Ponto Cego Crítico Detectado
+              </h4>
+              <span className="rounded-full border border-rose-500/40 bg-rose-500/20 px-2 py-0.5 font-mono text-[9px] font-bold text-rose-300">
+                Prioridade Máxima
+              </span>
+            </div>
+            <p className="mt-0.5 text-[11px] text-rose-200/80 leading-relaxed">
+              <strong>{criticalBlindSpot.name}</strong> possui peso elevado no
+              edital (<strong>{criticalBlindSpot.weight}%</strong>), porém seu
+              domínio real está em apenas{" "}
+              <strong>{criticalBlindSpot.domain}%</strong> (déficit de{" "}
+              {Math.abs(criticalBlindSpot.gap)}%).
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!criticalBlindSpot && processedData.length >= 3 && (
+        <div className="relative z-10 mt-2 flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-2 text-emerald-400 shrink-0">
+            <Sparkles size={16} />
+          </div>
+          <p className="text-xs text-emerald-200/90">
+            <strong>Excelente Alinhamento:</strong> Seu domínio real acompanha ou
+            supera o peso exigido pelo edital em todas as matérias cadastradas.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
 <file path="src/app/(dashboard)/dashboard/dashboard-client.tsx">
 "use client";
 
@@ -288,10 +2667,10 @@ import React, {
   useState,
   useEffect,
   useCallback,
-  startTransition,
+  useRef,
 } from "react";
 import Link from "next/link";
-import { motion, Variants, AnimatePresence } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
 import { NewContentModal } from "@/components/create-subject-modal";
@@ -300,21 +2679,18 @@ import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { DashboardSubject } from "@/types";
 import { LevelUpModal } from "@/components/gamification/level-up-modal";
+import { DailyQuestsPanel } from "@/components/dashboard/DailyQuestsPanel";
+import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
 import { useGamification } from "@/context/GamificationContext";
 import {
   Menu,
   BookOpen,
   Flame,
   Sparkles,
-  CheckCircle2,
-  ClipboardList,
   BrainCircuit,
   Target,
-  RefreshCw,
-  X,
   Zap,
   TrendingUp,
-  ArrowRight,
   Layers,
   HelpCircle,
   Trophy,
@@ -322,8 +2698,14 @@ import {
   Lock,
   ChevronDown,
   ChevronUp,
+  Snowflake,
+  Maximize2,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
+import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
+import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
+import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
+import { TutorialModal } from "@/components/tutorial/TutorialModal";
 
 interface JourneyData {
   hasObjective: boolean;
@@ -333,6 +2715,7 @@ interface JourneyData {
   percentage: number;
   totalTopics: number;
   completedTopics: number;
+  remainingTopics?: number;
   topicsPerWeek?: number;
   currentPace?: number;
 }
@@ -389,8 +2772,38 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ user }: DashboardClientProps) {
   const { openSidebar } = useSidebar();
+  const searchParams = useSearchParams();
+
+  const isDemo =
+    searchParams?.get("demo") === "true" ||
+    (typeof window !== "undefined" &&
+      (window.location.search.includes("demo=true") ||
+        localStorage.getItem("synapse_demo_active") === "true"));
+
+  const getHref = useCallback(
+    (href: string) => {
+      if (!isDemo) return href;
+      const sep = href.includes("?") ? "&" : "?";
+      return `${href}${sep}demo=true`;
+    },
+    [isDemo],
+  );
+
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Exibe tutorial automaticamente para novos usuários no modo demo
+  useEffect(() => {
+    if (isDemo) {
+      try {
+        const seen = localStorage.getItem("synapse_tutorial_seen");
+        if (!seen) {
+          setIsTutorialOpen(true);
+        }
+      } catch {}
+    }
+  }, [isDemo]);
 
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
@@ -402,8 +2815,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [subjects, setSubjects] = useState<DashboardSubject[]>([]);
 
   // Estado para Abas em Dispositivos Móveis
-  const [mobileTab, setMobileTab] = useState<"missions" | "stats" | "gamification">("missions");
+  const [mobileTab, setMobileTab] = useState<
+    "missions" | "stats" | "gamification"
+  >("missions");
   const [isPomodoroOpenMobile, setIsPomodoroOpenMobile] = useState(false);
+
+  // Modo Zen / Imersivo
+  const [isZenModeOpen, setIsZenModeOpen] = useState(false);
 
   const [levelUpData, setLevelUpData] = useState<{
     isOpen: boolean;
@@ -413,89 +2831,204 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
   const [missedDayName, setMissedDayName] = useState<string | null>(null);
 
+  // Streak Freeze Modal
+  const [isStreakFreezeModalOpen, setIsStreakFreezeModalOpen] = useState(false);
+  const [streakFreezeCount, setStreakFreezeCount] = useState(0);
+
   const getSuggestionUrl = (item: Suggestion): string => {
-    if (item.actionUrl) return item.actionUrl;
-
-    if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
-      return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
-    }
-    if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
-      return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
-    }
-    if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
-      return "/cards";
-    }
-
-    const titleLower = item.title?.toLowerCase() || "";
-    if (
-      titleLower.includes("simulado") ||
-      titleLower.includes("quiz") ||
-      titleLower.includes("questõ")
-    ) {
-      return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
-    }
-    if (
-      titleLower.includes("edital") ||
-      titleLower.includes("avançar") ||
-      titleLower.includes("estudo")
-    ) {
-      return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
-    }
-    if (titleLower.includes("card") || titleLower.includes("flashcard")) {
-      return "/cards";
+    let url = "/edital";
+    if (item.actionUrl) {
+      url = item.actionUrl;
+    } else if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
+      url = item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+    } else if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
+      url = item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
+    } else if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
+      url = "/flashcards";
+    } else {
+      const titleLower = item.title?.toLowerCase() || "";
+      if (
+        titleLower.includes("simulado") ||
+        titleLower.includes("quiz") ||
+        titleLower.includes("questõ")
+      ) {
+        url = item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+      } else if (
+        titleLower.includes("edital") ||
+        titleLower.includes("avançar") ||
+        titleLower.includes("estudo")
+      ) {
+        url = item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
+      } else if (titleLower.includes("card") || titleLower.includes("flashcard")) {
+        url = "/flashcards";
+      }
     }
 
-    return "/edital";
+    return getHref(url);
   };
 
-  const loadDashboardData = useCallback(async () => {
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const loadDashboardData = useCallback(async (isMountedCheck: () => boolean = () => true) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setIsLoading(true);
 
-      const [resSubjects, resStats, resWeek, resSuggestions] = await Promise.all([
-        fetch("/api/edital?mode=subjects", { cache: "no-store" }),
-        fetch("/api/dashboard/stats", { cache: "no-store" }),
-        fetch("/api/week", { cache: "no-store" }),
-        fetch("/api/ai/suggestions", { cache: "no-store" }).catch(() => null),
-      ]);
+      const isDemoMode =
+        typeof window !== "undefined" &&
+        (window.location.search.includes("demo=true") ||
+          localStorage.getItem("synapse_demo_active") === "true");
+
+      const authHeaders: Record<string, string> = isDemoMode
+        ? { "x-synapse-demo": "true" }
+        : {};
+
+      const appendDemoParam = (endpoint: string) => {
+        if (!isDemoMode) return endpoint;
+        const sep = endpoint.includes("?") ? "&" : "?";
+        return `${endpoint}${sep}demo=true`;
+      };
+
+      const [resSubjects, resStats, resWeek, resSuggestions, resFreezes] =
+        await Promise.all([
+          fetch(appendDemoParam("/api/edital?mode=subjects"), {
+            cache: "no-store",
+            headers: authHeaders,
+            signal: controller.signal,
+          }).catch(() => null),
+          fetch(appendDemoParam("/api/dashboard/stats"), {
+            cache: "no-store",
+            headers: authHeaders,
+            signal: controller.signal,
+          }).catch(() => null),
+          fetch(appendDemoParam("/api/week"), {
+            cache: "no-store",
+            headers: authHeaders,
+            signal: controller.signal,
+          }).catch(() => null),
+          fetch(appendDemoParam("/api/ai/suggestions"), {
+            cache: "no-store",
+            headers: authHeaders,
+            signal: controller.signal,
+          }).catch(() => null),
+          fetch(appendDemoParam("/api/gamification/streak-freeze"), {
+            cache: "no-store",
+            headers: authHeaders,
+            signal: controller.signal,
+          }).catch(() => null),
+        ]);
+
+      if (controller.signal.aborted || !isMountedCheck()) return;
 
       if (resSuggestions && resSuggestions.ok) {
         const jsonSuggestions = await resSuggestions.json();
-        if (jsonSuggestions.data?.length) {
+        if (jsonSuggestions.data?.length && isMountedCheck()) {
           setSuggestions(jsonSuggestions.data);
         }
       }
 
-      if (resSubjects.status === 401 || resStats.status === 401) {
-        window.location.href = "/login";
+      if (resFreezes && resFreezes.ok) {
+        const jsonFreezes = await resFreezes.json();
+        if (isMountedCheck()) {
+          setStreakFreezeCount(jsonFreezes.streakFreezes ?? 0);
+        }
+      }
+
+      if (
+        !isDemoMode &&
+        ((resSubjects && resSubjects.status === 401) ||
+          (resStats && resStats.status === 401))
+      ) {
+        if (isMountedCheck()) {
+          window.location.href = "/login";
+        }
         return;
       }
 
-      if (resSubjects.ok) {
+      if (resSubjects && resSubjects.ok) {
         const jsonSubjects = await resSubjects.json();
-        setSubjects(Array.isArray(jsonSubjects.data) ? jsonSubjects.data : []);
+        if (isMountedCheck()) {
+          setSubjects(Array.isArray(jsonSubjects.data) ? jsonSubjects.data : []);
+        }
+      } else if (isMountedCheck()) {
+        setSubjects([]);
       }
 
-      if (resStats.ok) {
+      if (resStats && resStats.ok) {
         const jsonStats = await resStats.json();
-        setStats(jsonStats);
+        if (isMountedCheck()) {
+          setStats(jsonStats);
+        }
+      } else if (isMountedCheck()) {
+        setStats({
+          journey: {
+            hasObjective: false,
+            daysRemaining: 0,
+            weeksRemaining: 0,
+            daysLeftInWeek: 0,
+            percentage: 0,
+            totalTopics: 0,
+            completedTopics: 0,
+            remainingTopics: 0,
+            topicsPerWeek: 0,
+          },
+          metrics: {
+            totalTimeFormatted: "0h 0m",
+            precision: "0%",
+            sessionsCount: 0,
+            questionsCount: 0,
+            totalFlashcards: 0,
+            averageTimePerSession: "0min",
+          },
+          streak: {
+            currentDays: 0,
+            weekDays: [
+              { dayLabel: "S", active: false },
+              { dayLabel: "T", active: false },
+              { dayLabel: "Q", active: false },
+              { dayLabel: "Q", active: false },
+              { dayLabel: "S", active: false },
+              { dayLabel: "S", active: false },
+              { dayLabel: "D", active: false },
+            ],
+          },
+          weeklyGoal: { percentage: 0, target: 50, current: 0 },
+          heatmap: [],
+        });
       }
 
-      if (resWeek.ok) {
+      if (resWeek && resWeek.ok) {
         const jsonWeek = await resWeek.json();
-        setMissedDayName(jsonWeek.data?.missedDayName || null);
+        if (isMountedCheck()) {
+          setMissedDayName(jsonWeek.data?.missedDayName || null);
+        }
       }
-    } catch (err) {
-      console.error("Erro ao carregar dados do Dashboard:", err);
+    } catch (err: unknown) {
+      if ((err as Error)?.name !== "AbortError") {
+        console.error("Erro ao carregar dados do Dashboard:", err);
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedCheck()) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    startTransition(() => {
-      loadDashboardData();
-    });
+    let isMounted = true;
+    loadDashboardData(() => isMounted);
+
+    return () => {
+      isMounted = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [loadDashboardData]);
 
   useEffect(() => {
@@ -562,23 +3095,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.06 },
-    },
-  };
-
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.3, ease: "easeOut" },
-    },
-  };
-
   const gStats = (globalGamification?.gamification ||
     globalGamification ||
     {}) as Record<string, unknown>;
@@ -606,15 +3122,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const displayedSubjects = subjects.slice(0, 4);
 
   return (
-    <div className="min-h-screen w-full bg-[#02050e] p-3 sm:p-4 md:p-8 font-sans text-slate-100 selection:bg-indigo-500/30">
-      <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+    <div className="min-h-screen w-full bg-transparent p-4 sm:p-6 md:p-8 font-sans text-slate-100 selection:bg-indigo-500/30">
+      <div className="mx-auto max-w-7xl space-y-6">
         
         {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               onClick={openSidebar}
-              className="cursor-pointer rounded-xl border border-white/10 bg-slate-900/80 p-2.5 text-slate-400 transition-colors hover:text-white md:hidden"
+              className="cursor-pointer rounded-xl border border-white/10 bg-slate-900/60 p-2.5 text-slate-400 transition-colors hover:text-white md:hidden"
             >
               <Menu size={18} />
             </button>
@@ -623,52 +3139,68 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-white">
                 Dashboard
               </h1>
-              <p className="mt-0.5 text-xs text-slate-300">
+              <p className="mt-0.5 text-xs text-slate-400">
                 Bem-vindo de volta,{" "}
-                <strong className="font-bold text-indigo-400">
+                <strong className="font-bold text-slate-200">
                   {user.name || "Estudante"}
                 </strong>
               </p>
             </div>
           </div>
 
-          <Link
-            href={!isLoading && hasEditalSubjects ? "/cards" : "/edital"}
-            className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-500 hover:to-purple-500 active:scale-95"
-          >
-            <Zap size={14} className="fill-white" />
-            <span>
-              {isLoading
-                ? "Carregando..."
-                : hasEditalSubjects
-                  ? "Iniciar Estudos do Dia"
-                  : "Configurar Edital"}
-            </span>
-          </Link>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setIsTutorialOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-2.5 text-xs font-bold text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.15)] transition-all hover:bg-indigo-500/20 hover:border-indigo-500/50 active:scale-95"
+            >
+              <Sparkles size={14} className="text-indigo-400" />
+              <span>Modo Tutorial</span>
+            </button>
+
+            <button
+              onClick={() => setIsZenModeOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:bg-white/[0.08] hover:border-white/20 active:scale-95"
+            >
+              <Maximize2 size={14} className="text-violet-400" />
+              <span>Modo Zen</span>
+            </button>
+
+            <Link
+              href={getHref(!isLoading && hasEditalSubjects ? "/flashcards" : "/edital")}
+              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/20 transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-95"
+            >
+              <Zap size={14} className="fill-white" />
+              <span>
+                {isLoading
+                  ? "Carregando..."
+                  : hasEditalSubjects
+                    ? "Iniciar Estudos do Dia"
+                    : "Configurar Edital"}
+              </span>
+            </Link>
+          </div>
         </div>
 
-        {/* ================= ATALHOS RÁPIDOS (APENAS DESKTOP) ================= */}
+        {/* ================= ATALHOS RÁPIDOS ================= */}
         <div className="hidden md:grid grid-cols-4 gap-3">
           {[
             {
               title: "Resolver Questões",
               icon: HelpCircle,
               color: "text-amber-400",
-              bg: "bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40",
               href: "/questions",
             },
             {
               title: "Praticar Cards",
               icon: Layers,
               color: "text-indigo-400",
-              bg: "bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/40",
-              href: "/cards",
+              href: "/flashcards",
             },
             {
               title: "Edital Verticalizado",
               icon: BookOpen,
               color: "text-cyan-400",
-              bg: "bg-cyan-500/10 border-cyan-500/20 hover:border-cyan-500/40",
               href: "/edital",
               badge: !isLoading && !hasEditalSubjects ? "Passo 1" : undefined,
             },
@@ -676,7 +3208,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               title: "Hall de Conquistas",
               icon: Trophy,
               color: "text-emerald-400",
-              bg: "bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40",
               href: "/achievements",
             },
           ].map((item, idx) => {
@@ -684,19 +3215,19 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             return (
               <Link
                 key={idx}
-                href={item.href}
-                className={`relative flex items-center justify-between gap-2 rounded-2xl border p-3 backdrop-blur-xl transition-all duration-200 active:scale-95 ${item.bg}`}
+                href={getHref(item.href)}
+                className="relative flex items-center justify-between gap-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 p-3.5 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-slate-900/40 active:scale-[0.98]"
               >
-                <div className="flex min-w-0 items-center gap-2">
-                  <div className={`shrink-0 rounded-xl p-2 ${item.color}`}>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className={`shrink-0 rounded-xl p-2 bg-white/[0.03] border border-white/5 ${item.color}`}>
                     <Icon size={16} />
                   </div>
-                  <span className="text-xs font-bold text-slate-200 leading-tight">
+                  <span className="text-xs font-bold text-slate-200 truncate">
                     {item.title}
                   </span>
                 </div>
                 {item.badge && (
-                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
+                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
                     {item.badge}
                   </span>
                 )}
@@ -720,37 +3251,52 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           )}
 
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
-        <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-linear-to-br from-[#0a0f1d] via-[#070b16] to-[#04060c] p-4 sm:p-6 shadow-2xl backdrop-blur-2xl">
-          
+        <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+          <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+
           {/* LAYOUT MOBILE */}
-          <div className="grid grid-cols-3 gap-2 text-center divide-x divide-white/10 md:hidden">
-            <div className="px-1">
+          <div className="grid grid-cols-3 gap-2 text-center divide-x divide-white/5 md:hidden">
+            <div className="px-1 flex flex-col items-center justify-center">
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">
                 Dias
               </span>
-              <span className="font-mono text-xl font-black text-white">
-                {stats?.journey?.daysRemaining ?? 0}
-              </span>
+              {isLoading ? (
+                <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
+              ) : (
+                <span className="font-mono text-xl font-black text-white">
+                  {stats?.journey?.daysRemaining ?? 0}
+                </span>
+              )}
               <span className="text-[9px] text-slate-500 block">restantes</span>
             </div>
 
-            <div className="px-1">
+            <div className="px-1 flex flex-col items-center justify-center">
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-400 block">
                 Ritmo
               </span>
-              <span className="font-mono text-xl font-black text-amber-300">
-                {stats?.journey?.topicsPerWeek ?? 0}
+              {isLoading ? (
+                <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
+              ) : (
+                <span className="font-mono text-xl font-black text-amber-300">
+                  {stats?.journey?.topicsPerWeek ?? 0}
+                </span>
+              )}
+              <span className="text-[9px] text-slate-500 block">
+                tópicos/sem
               </span>
-              <span className="text-[9px] text-slate-500 block">tópicos/sem</span>
             </div>
 
-            <div className="px-1">
+            <div className="px-1 flex flex-col items-center justify-center">
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-cyan-400 block">
                 Progresso
               </span>
-              <span className="font-mono text-xl font-black text-cyan-300">
-                {stats?.journey?.percentage ?? 0}%
-              </span>
+              {isLoading ? (
+                <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
+              ) : (
+                <span className="font-mono text-xl font-black text-cyan-300">
+                  {stats?.journey?.percentage ?? 0}%
+                </span>
+              )}
               <span className="text-[9px] text-slate-500 block">do edital</span>
             </div>
           </div>
@@ -762,27 +3308,37 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                   Tempo Restante
                 </span>
-                <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
+                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-2 text-indigo-400">
                   <Target size={18} />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-4xl font-black tracking-tight text-white">
-                    {stats?.journey?.daysRemaining ?? 0}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-400">
-                    dias restantes
-                  </span>
+                  {isLoading ? (
+                    <div className="h-10 w-24 rounded-lg bg-white/10 animate-pulse" />
+                  ) : (
+                    <>
+                      <span className="font-mono text-4xl font-black tracking-tight text-white">
+                        {stats?.journey?.daysRemaining ?? 0}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-400">
+                        dias restantes
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
-                <span className="font-medium">Semanas até a prova:</span>
-                <strong className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono font-bold text-slate-200">
-                  {stats?.journey?.weeksRemaining ?? 0} sem
-                </strong>
+              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+                <span>Semanas até a prova:</span>
+                {isLoading ? (
+                  <div className="h-4 w-12 rounded bg-white/10 animate-pulse" />
+                ) : (
+                  <strong className="font-mono text-slate-200">
+                    {stats?.journey?.weeksRemaining ?? 0} sem
+                  </strong>
+                )}
               </div>
             </div>
 
@@ -790,30 +3346,44 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             <div className="flex flex-col justify-between space-y-4 px-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400/90">
                   Ritmo Sugerido
                 </span>
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 text-amber-400">
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2 text-amber-400">
                   <Zap size={18} className="fill-amber-400/20" />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
-                    {hasEditalSubjects ? (stats?.journey?.topicsPerWeek ?? 0) : "—"}
-                  </span>
-                  <span className="text-xs font-medium text-slate-400">
-                    {hasEditalSubjects ? "tópicos / sem" : "Aguardando Edital"}
-                  </span>
+                  {isLoading ? (
+                    <div className="h-10 w-24 rounded-lg bg-amber-400/10 animate-pulse" />
+                  ) : (
+                    <>
+                      <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
+                        {hasEditalSubjects
+                          ? (stats?.journey?.topicsPerWeek ?? 0)
+                          : "—"}
+                      </span>
+                      <span className="text-xs font-medium text-slate-400">
+                        {hasEditalSubjects ? "tópicos / sem" : "Aguardando Edital"}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
-                <span className="font-medium">Ritmo atual:</span>
-                <strong className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 font-mono font-bold text-amber-300">
-                  {hasEditalSubjects ? `${stats?.journey?.currentPace ?? 0.0} / sem` : "—"}
-                </strong>
+              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+                <span>Ritmo atual:</span>
+                {isLoading ? (
+                  <div className="h-4 w-16 rounded bg-white/10 animate-pulse" />
+                ) : (
+                  <strong className="font-mono text-amber-300/90">
+                    {hasEditalSubjects
+                      ? `${stats?.journey?.currentPace ?? 0.0} / sem`
+                      : "—"}
+                  </strong>
+                )}
               </div>
             </div>
 
@@ -824,27 +3394,35 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                   Progresso do Edital
                 </span>
-                <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400">
+                <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400">
                   <TrendingUp size={18} />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between">
-                  <span className="font-mono text-4xl font-black tracking-tight text-white">
-                    {stats?.journey?.percentage ?? 0}%
-                  </span>
-                  <span className="font-mono text-[11px] text-slate-400">
-                    <strong className="font-bold text-slate-100">
-                      {stats?.journey?.completedTopics ?? 0}
-                    </strong>
-                    /{stats?.journey?.totalTopics ?? 0} tópicos
-                  </span>
+                  {isLoading ? (
+                    <div className="h-10 w-20 rounded-lg bg-cyan-400/10 animate-pulse" />
+                  ) : (
+                    <span className="font-mono text-4xl font-black tracking-tight text-white">
+                      {stats?.journey?.percentage ?? 0}%
+                    </span>
+                  )}
+                  {isLoading ? (
+                    <div className="h-4 w-24 rounded bg-white/10 animate-pulse" />
+                  ) : (
+                    <span className="font-mono text-[11px] text-slate-400">
+                      <strong className="font-bold text-slate-100">
+                        {stats?.journey?.completedTopics ?? 0}
+                      </strong>
+                      /{stats?.journey?.totalTopics ?? 0} tópicos
+                    </span>
+                  )}
                 </div>
 
-                <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/80 p-0.5">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
                   <div
-                    className="h-full rounded-full bg-linear-to-r from-cyan-500 to-emerald-400 shadow-[0_0_12px_rgba(34,211,238,0.6)]"
+                    className="h-full rounded-full bg-linear-to-r from-cyan-500 to-emerald-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"
                     style={{
                       width: `${Math.max(3, stats?.journey?.percentage ?? 0)}%`,
                     }}
@@ -852,24 +3430,63 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
-                <span className="font-medium">Status:</span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 text-[11px] font-bold text-indigo-300">
+              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+                <span>Status:</span>
+                <span className="inline-flex items-center gap-1.5 font-bold text-indigo-300">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-                  {!hasEditalSubjects
-                    ? "Não Iniciado"
-                    : stats?.journey?.percentage === 100
-                      ? "Edital Completo"
-                      : "Em Andamento"}
+                  {isLoading
+                    ? "Carregando..."
+                    : !hasEditalSubjects
+                      ? "Não Iniciado"
+                      : stats?.journey?.percentage === 100
+                        ? "Edital Completo"
+                        : "Em Andamento"}
                 </span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ================= 3. SELETOR DE ABAS E CONTEÚDO EXCLUSIVO MOBILE ================= */}
+        {/* ================= 3. ONBOARDING DISCRETO ================= */}
+        {!isLoading && !hasEditalSubjects && (
+          <div className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl">
+            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-500/40 to-transparent" />
+            <div className="relative z-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="max-w-lg space-y-1.5">
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-amber-300">
+                  <Lock size={12} /> Onboarding Requerido
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-white">
+                  Configure seu Edital para Ativar a IA
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Cadastre suas matérias para destravar o cronograma semanal, simulados adaptativos e predição neural de aprovação.
+                </p>
+              </div>
+              <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setIsTutorialOpen(true)}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/15 px-4 py-2.5 text-xs font-black text-indigo-300 shadow-md transition-all hover:bg-indigo-500/25 active:scale-95"
+                >
+                  <Sparkles size={14} className="text-indigo-400" />
+                  <span>Modo Tutorial</span>
+                </button>
+                <Link
+                  href={getHref("/edital")}
+                  className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-500/20 shrink-0 hover:bg-amber-400 transition-all"
+                >
+                  <BookOpen size={15} />
+                  <span>Cadastrar Edital</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= 4. SELETOR DE ABAS E CONTEÚDO EXCLUSIVO MOBILE ================= */}
         <div className="block md:hidden space-y-4">
-          <div className="flex items-center p-1 bg-[#090d16] border border-white/10 rounded-2xl">
+          <div className="flex items-center p-1 bg-slate-950/60 border border-white/[0.08] rounded-2xl">
             <button
               type="button"
               onClick={() => setMobileTab("missions")}
@@ -906,169 +3523,99 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
 
           {/* CONTEÚDO DA ABA SELECIONADA */}
-          {mobileTab === "missions" && (
-            <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
-                    <Target size={16} />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                      Missões de Hoje
-                    </h3>
-                    <p className="text-[10px] text-slate-400">
-                      Garanta seu bônus de XP diário
-                    </p>
-                  </div>
-                </div>
-                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300">
-                  +50 XP
-                </span>
-              </div>
-
-              <div className="space-y-2.5 pt-4">
-                {[
-                  {
-                    id: "q1",
-                    title: "Responder Questões",
-                    target: 10,
-                    current: stats?.metrics?.questionsCount ?? 0,
-                    actionUrl: "/questions",
-                    completed: (stats?.metrics?.questionsCount ?? 0) >= 10,
-                  },
-                  {
-                    id: "q2",
-                    title: "Revisar Flashcards",
-                    target: 15,
-                    current: stats?.metrics?.totalFlashcards ?? 0,
-                    actionUrl: "/cards",
-                    completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
-                  },
-                  {
-                    id: "q3",
-                    title: "Avançar no Edital",
-                    target: 1,
-                    current: (stats?.metrics?.sessionsCount ?? 0) > 0 ? 1 : 0,
-                    actionUrl: "/edital",
-                    completed: (stats?.metrics?.sessionsCount ?? 0) > 0,
-                  },
-                ].map((quest) => {
-                  const progress = Math.min(
-                    100,
-                    Math.round((quest.current / quest.target) * 100),
-                  );
-
-                  return (
-                    <div
-                      key={quest.id}
-                      className={`flex items-center justify-between gap-3 rounded-2xl border p-3 transition-all ${
-                        quest.completed
-                          ? "border-emerald-500/20 bg-emerald-500/5"
-                          : "border-white/5 bg-slate-950/40"
-                      }`}
-                    >
-                      <div className="flex flex-1 items-center gap-3">
-                        <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
-                            quest.completed
-                              ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
-                              : "border-white/10 bg-slate-900 text-slate-500"
-                          }`}
-                        >
-                          {quest.completed ? (
-                            <CheckCircle2 size={16} />
-                          ) : (
-                            <Zap size={14} className="text-amber-400" />
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-1 flex items-center justify-between">
-                            <h4 className="truncate text-xs font-bold text-slate-200">
-                              {quest.title}
-                            </h4>
-                            <span className="shrink-0 font-mono text-[10px] text-slate-400">
-                              {quest.current}/{quest.target}
-                            </span>
-                          </div>
-
-                          <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950">
-                            <div
-                              className={`h-full rounded-full ${
-                                quest.completed ? "bg-emerald-400" : "bg-indigo-500"
-                              }`}
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {!quest.completed && (
-                        <Link
-                          href={quest.actionUrl}
-                          className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300"
-                        >
-                          Ir
-                        </Link>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {mobileTab === "missions" && <DailyQuestsPanel />}
 
           {mobileTab === "stats" && (
-            <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
-              <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                  Estatísticas Chave
-                </span>
-                <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
-                  <Zap size={11} /> Tempo Real
-                </span>
-              </div>
+            <div className="space-y-4">
+              {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
+              <ApprovalOddsCard />
 
-              <div className="mb-6 flex gap-6">
-                <div>
-                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Tempo Total
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
+                <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                    Estatísticas Chave
                   </span>
-                  <span className="font-mono text-2xl font-black text-white">
-                    {stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
+                    <Zap size={11} /> Tempo Real
                   </span>
                 </div>
 
-                <div className="flex-1">
-                  <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <span>Precisão</span>
-                    <span className="font-mono font-bold text-emerald-400">
-                      {stats?.metrics?.precision || "0%"}
+                <div className="mb-6 flex gap-6">
+                  <div>
+                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Tempo Total
                     </span>
+                    {isLoading ? (
+                      <div className="h-8 w-20 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-2xl font-black text-white">
+                        {stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
-                    <div
-                      className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
-                      style={{ width: stats?.metrics?.precision || "0%" }}
-                    />
+
+                  <div className="flex-1">
+                    <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span>Precisão</span>
+                      {isLoading ? (
+                        <div className="h-3 w-8 rounded bg-emerald-400/20 animate-pulse" />
+                      ) : (
+                        <span className="font-mono font-bold text-emerald-400">
+                          {stats?.metrics?.precision || "0%"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
+                      <div
+                        className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
+                        style={{ width: stats?.metrics?.precision || "0%" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4 text-center">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Sessões
+                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.sessionsCount ?? 0}
+                      </span>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Questões
+                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.questionsCount ?? 0}
+                      </span>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Méd/Dia
+                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-12 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.averageTimePerSession || "0min"}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                  <span className="block text-[9px] font-bold uppercase text-slate-400">Sessões</span>
-                  <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.sessionsCount ?? 0}</span>
-                </div>
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                  <span className="block text-[9px] font-bold uppercase text-slate-400">Questões</span>
-                  <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.questionsCount ?? 0}</span>
-                </div>
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                  <span className="block text-[9px] font-bold uppercase text-slate-400">Méd/Dia</span>
-                  <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.averageTimePerSession || "0min"}</span>
-                </div>
+              <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">
+                <DomainRadarChart subjects={subjects} isLoading={isLoading} />
               </div>
             </div>
           )}
@@ -1076,10 +3623,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           {mobileTab === "gamification" && (
             <div className="space-y-4">
               <Link
-                href="/achievements"
-                className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl"
+                href={getHref("/achievements")}
+                className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
               >
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400">
                       {level}
@@ -1101,208 +3648,104 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <span className="text-slate-400">
                       XP: <strong className="text-white">{currentXp}</strong>
                     </span>
-                    <span className="font-bold text-amber-400">{levelProgressPercent}%</span>
+                    <span className="font-bold text-amber-400">
+                      {levelProgressPercent}%
+                    </span>
                   </div>
 
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
                     <div
                       style={{ width: `${levelProgressPercent}%` }}
-                      className="h-full rounded-full bg-amber-500"
+                      className="h-full rounded-full bg-linear-to-r from-amber-500 to-amber-400"
                     />
                   </div>
                 </div>
               </Link>
 
-              <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
-                <Link href="/performance" className="block space-y-2">
+              <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
+                <Link href={getHref("/performance")} className="block space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase text-slate-400">
                       Meta Semanal
                     </span>
-                    <span className="font-mono text-xs font-black text-indigo-400">
-                      {stats?.weeklyGoal?.percentage ?? 0}%
-                    </span>
+                    {isLoading ? (
+                      <div className="h-3 w-8 rounded bg-indigo-400/20 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-xs font-black text-indigo-400">
+                        {stats?.weeklyGoal?.percentage ?? 0}%
+                      </span>
+                    )}
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
                     <div
                       className="h-full rounded-full bg-indigo-500"
-                      style={{ width: `${stats?.weeklyGoal?.percentage ?? 0}%` }}
+                      style={{
+                        width: `${stats?.weeklyGoal?.percentage ?? 0}%`,
+                      }}
                     />
                   </div>
                 </Link>
 
                 <div className="my-2 border-t border-white/5" />
 
-                <Link href="/performance" className="block space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase text-slate-400">
-                      Constância
-                    </span>
-                    <span className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
-                      <Flame size={14} className="fill-amber-400 text-amber-400" />
-                      {Number(gStats.streakDays ?? globalGamification?.streak?.currentDays ?? 0)} Dias
-                    </span>
+                <div className="flex items-center justify-between">
+                  <Link
+                    href={getHref("/performance")}
+                    className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    Constância
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsStreakFreezeModalOpen(true)}
+                      title="Trava de Sequência"
+                      className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 transition-all hover:bg-cyan-500/20"
+                    >
+                      <Snowflake size={11} className="animate-spin-slow" />
+                      {streakFreezeCount}
+                    </button>
+                    <Link
+                      href={getHref("/performance")}
+                      className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
+                    >
+                      <Flame
+                        size={14}
+                        className="fill-amber-400 text-amber-400"
+                      />
+                      {Number(
+                        gStats.streakDays ??
+                          globalGamification?.streak?.currentDays ??
+                          0,
+                      )}{" "}
+                      Dias
+                    </Link>
                   </div>
-                </Link>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* ================= 4. LAYOUT DESKTOP & DEMAIS COMPONENTES ================= */}
+        {/* ================= 5. GRID PRINCIPAL (DESKTOP) ================= */}
         <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-12">
           
           {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
           <div className="space-y-6 lg:col-span-8">
             
-            {/* ONBOARDING BANNER */}
-            {!isLoading && !hasEditalSubjects && (
-              <div className="group relative overflow-hidden rounded-3xl border border-amber-500/30 bg-linear-to-br from-[#0c101d] via-[#080b14] to-[#04060c] p-6 shadow-2xl backdrop-blur-2xl">
-                <div className="relative z-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                  <div className="max-w-lg space-y-1.5">
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-amber-300">
-                      <Lock size={12} /> Onboarding Requerido
-                    </div>
-                    <h3 className="text-base sm:text-lg font-black text-white">
-                      Configure seu Edital para Ativar a IA
-                    </h3>
-                  </div>
-                  <Link
-                    href="/edital"
-                    className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-extrabold text-slate-950 shadow-lg shrink-0"
-                  >
-                    <BookOpen size={15} />
-                    <span>Cadastrar Edital</span>
-                  </Link>
-                </div>
-              </div>
-            )}
-
             {/* PAINEL DUPLO APENAS NO DESKTOP */}
             <div className="hidden md:grid grid-cols-2 gap-6">
-              
               {/* CARD 1: Missões do Dia */}
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
-                <div className="flex h-full flex-col justify-between space-y-4">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
-                        <Target size={16} />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                          Missões de Hoje
-                        </h3>
-                        <p className="text-[10px] text-slate-400">
-                          Garanta seu bônus de XP diário
-                        </p>
-                      </div>
-                    </div>
-
-                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-300">
-                      +50 XP
-                    </span>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {[
-                      {
-                        id: "q1",
-                        title: "Responder Questões",
-                        target: 10,
-                        current: stats?.metrics?.questionsCount ?? 0,
-                        actionUrl: "/questions",
-                        completed: (stats?.metrics?.questionsCount ?? 0) >= 10,
-                      },
-                      {
-                        id: "q2",
-                        title: "Revisar Flashcards",
-                        target: 15,
-                        current: stats?.metrics?.totalFlashcards ?? 0,
-                        actionUrl: "/cards",
-                        completed: (stats?.metrics?.totalFlashcards ?? 0) >= 15,
-                      },
-                      {
-                        id: "q3",
-                        title: "Avançar no Edital",
-                        target: 1,
-                        current: (stats?.metrics?.sessionsCount ?? 0) > 0 ? 1 : 0,
-                        actionUrl: "/edital",
-                        completed: (stats?.metrics?.sessionsCount ?? 0) > 0,
-                      },
-                    ].map((quest) => {
-                      const progress = Math.min(
-                        100,
-                        Math.round((quest.current / quest.target) * 100),
-                      );
-
-                      return (
-                        <div
-                          key={quest.id}
-                          className={`flex items-center justify-between gap-3 rounded-2xl border p-3 transition-all ${
-                            quest.completed
-                              ? "border-emerald-500/20 bg-emerald-500/5"
-                              : "border-white/5 bg-slate-950/40"
-                          }`}
-                        >
-                          <div className="flex flex-1 items-center gap-3">
-                            <div
-                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
-                                quest.completed
-                                  ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
-                                  : "border-white/10 bg-slate-900 text-slate-500"
-                              }`}
-                            >
-                              {quest.completed ? (
-                                <CheckCircle2 size={16} />
-                              ) : (
-                                <Zap size={14} className="text-amber-400" />
-                              )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="mb-1 flex items-center justify-between">
-                                <h4 className="truncate text-xs font-bold text-slate-200">
-                                  {quest.title}
-                                </h4>
-                                <span className="shrink-0 font-mono text-[10px] text-slate-400">
-                                  {quest.current}/{quest.target}
-                                </span>
-                              </div>
-
-                              <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/5 bg-slate-950">
-                                <div
-                                  className={`h-full rounded-full ${
-                                    quest.completed ? "bg-emerald-400" : "bg-indigo-500"
-                                  }`}
-                                  style={{ width: `${progress}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {!quest.completed && (
-                            <Link
-                              href={quest.actionUrl}
-                              className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold text-indigo-300"
-                            >
-                              Ir
-                            </Link>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+              <DailyQuestsPanel />
 
               {/* CARD 2: Métricas de Desempenho */}
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                
                 <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
                     Estatísticas Chave
                   </span>
-                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
+                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
                     <Zap size={11} /> Tempo Real
                   </span>
                 </div>
@@ -1312,19 +3755,27 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Tempo Total
                     </span>
-                    <span className="font-mono text-2xl font-black text-white">
-                      {stats?.metrics?.totalTimeFormatted || "0h 0m"}
-                    </span>
+                    {isLoading ? (
+                      <div className="h-8 w-20 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-2xl font-black text-white">
+                        {stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex-1">
                     <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       <span>Precisão</span>
-                      <span className="font-mono font-bold text-emerald-400">
-                        {stats?.metrics?.precision || "0%"}
-                      </span>
+                      {isLoading ? (
+                        <div className="h-3 w-8 rounded bg-emerald-400/20 animate-pulse" />
+                      ) : (
+                        <span className="font-mono font-bold text-emerald-400">
+                          {stats?.metrics?.precision || "0%"}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950 p-0.5">
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
                       <div
                         className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
                         style={{ width: stats?.metrics?.precision || "0%" }}
@@ -1333,60 +3784,96 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">Sessões</span>
-                    <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.sessionsCount ?? 0}</span>
+                <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4 text-center">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Sessões
+                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.sessionsCount ?? 0}
+                      </span>
+                    )}
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">Questões</span>
-                    <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.questionsCount ?? 0}</span>
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Questões
+                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.questionsCount ?? 0}
+                      </span>
+                    )}
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-2">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">Méd/Dia</span>
-                    <span className="font-mono text-sm font-extrabold text-white">{stats?.metrics?.averageTimePerSession || "0min"}</span>
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
+                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                      Méd/Dia
+                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-12 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.averageTimePerSession || "0min"}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
+            <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+              <DomainRadarChart subjects={subjects} isLoading={isLoading} />
+            </div>
+
             {/* CARD 3: Sugestões com IA */}
             {!isLoading && hasEditalSubjects && (
-              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl">
+              <div className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400">
-                      <Sparkles size={18} className="animate-pulse" />
+                    <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400">
+                      <Sparkles size={18} />
                     </div>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
                       Sugestões Inteligentes da IA
                     </h3>
                   </div>
-                  <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[9px] font-bold text-cyan-300">
+                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[9px] font-bold text-cyan-300">
                     Synapse Neural
                   </span>
                 </div>
 
                 <div className="space-y-3">
                   {suggestions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 py-4 text-center">
-                      <p className="text-xs text-slate-400">
-                        Seu cronograma está 100% otimizado!
-                      </p>
+                    <div className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-xs text-slate-400">
+                      Seu cronograma está 100% otimizado!
                     </div>
                   ) : (
                     suggestions.map((item: Suggestion) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-slate-950/60 p-3"
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3 hover:border-white/10 transition-colors"
                       >
-                        <Link href={getSuggestionUrl(item)} className="flex items-center gap-3 flex-1 min-w-0">
+                        <Link
+                          href={getSuggestionUrl(item)}
+                          className="flex items-center gap-3 flex-1 min-w-0"
+                        >
                           <div className="shrink-0 rounded-xl p-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                             <BrainCircuit size={16} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h4 className="text-xs font-bold text-slate-200 truncate">{item.title}</h4>
-                            <p className="text-[11px] text-slate-400 truncate">{item.description}</p>
+                            <h4 className="text-xs font-bold text-slate-200 truncate">
+                              {item.title}
+                            </h4>
+                            <p className="text-[11px] text-slate-400 truncate">
+                              {item.description}
+                            </p>
                           </div>
                         </Link>
                       </div>
@@ -1397,15 +3884,19 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <button
                   onClick={handleOptimizeSchedule}
                   disabled={isOptimizing}
-                  className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 py-2.5 text-xs font-bold text-cyan-300"
+                  className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 py-2.5 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20 transition-all"
                 >
-                  {isOptimizing ? "Otimizando..." : "Otimizar Cronograma com IA"}
+                  {isOptimizing
+                    ? "Otimizando..."
+                    : "Otimizar Cronograma com IA"}
                 </button>
               </div>
             )}
 
             {/* CARD 4: Minhas Matérias */}
-            <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 sm:p-6 shadow-2xl">
+            <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl relative">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+              
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <BookOpen size={18} className="text-indigo-400" />
@@ -1413,7 +3904,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     Minhas Matérias
                   </h3>
                 </div>
-                <Link href="/edital" className="text-xs font-semibold text-indigo-400">
+                <Link
+                  href={getHref("/edital")}
+                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
                   Ver todas ({subjects.length})
                 </Link>
               </div>
@@ -1427,7 +3921,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               ) : (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   {displayedSubjects.map((sub) => (
-                    <Link key={sub.id} href={`/edital?subjectId=${sub.id}`}>
+                    <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
                       <SubjectCard
                         title={sub.name}
                         colorClass={sub.color || "#3B82F6"}
@@ -1445,19 +3939,23 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           {/* BARRA LATERAL DIREITA (`lg:col-span-4` - APENAS DESKTOP) */}
           <div className="hidden md:block space-y-6 lg:col-span-4">
-            
+            {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
+            <ApprovalOddsCard />
+
             {/* GAMIFICAÇÃO & NÍVEL */}
             <Link
-              href="/achievements"
-              className="group relative block overflow-hidden rounded-3xl border border-amber-500/20 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl"
+              href={getHref("/achievements")}
+              className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-400/50 to-transparent" />
+              
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
                     {level}
                   </div>
                   <div>
-                    <span className="block text-[9px] font-bold uppercase text-amber-400">
+                    <span className="block text-[9px] font-bold uppercase text-amber-400/90">
                       Nível Atual
                     </span>
                     <h3 className="text-xs font-bold text-white">
@@ -1473,30 +3971,38 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <span className="text-slate-400">
                     XP: <strong className="text-white">{currentXp}</strong>
                   </span>
-                  <span className="font-bold text-amber-400">{levelProgressPercent}%</span>
+                  <span className="font-bold text-amber-400">
+                    {levelProgressPercent}%
+                  </span>
                 </div>
 
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
                   <div
                     style={{ width: `${levelProgressPercent}%` }}
-                    className="h-full rounded-full bg-amber-500"
+                    className="h-full rounded-full bg-linear-to-r from-amber-500 to-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
                   />
                 </div>
               </div>
             </Link>
 
             {/* META SEMANAL & CONSTÂNCIA */}
-            <div className="space-y-4 rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
-              <Link href="/performance" className="block space-y-2">
+            <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+              
+              <Link href={getHref("/performance")} className="block space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase text-slate-400">
                     Meta Semanal
                   </span>
-                  <span className="font-mono text-xs font-black text-indigo-400">
-                    {stats?.weeklyGoal?.percentage ?? 0}%
-                  </span>
+                  {isLoading ? (
+                    <div className="h-3 w-8 rounded bg-indigo-400/20 animate-pulse" />
+                  ) : (
+                    <span className="font-mono text-xs font-black text-indigo-400">
+                      {stats?.weeklyGoal?.percentage ?? 0}%
+                    </span>
+                  )}
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
                   <div
                     className="h-full rounded-full bg-indigo-500"
                     style={{ width: `${stats?.weeklyGoal?.percentage ?? 0}%` }}
@@ -1506,41 +4012,94 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div className="my-2 border-t border-white/5" />
 
-              <Link href="/performance" className="block space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase text-slate-400">
-                    Constância
-                  </span>
-                  <span className="flex items-center gap-1 font-mono text-xs font-black text-amber-400">
-                    <Flame size={14} className="fill-amber-400 text-amber-400" />
-                    {Number(gStats.streakDays ?? globalGamification?.streak?.currentDays ?? 0)} Dias
-                  </span>
+              <div className="flex items-center justify-between">
+                <Link
+                  href={getHref("/performance")}
+                  className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  Constância
+                </Link>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsStreakFreezeModalOpen(true)}
+                    title="Trava de Sequência"
+                    className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/20 transition-all"
+                  >
+                    <Snowflake size={11} className="animate-spin-slow" />
+                    {streakFreezeCount}
+                  </button>
+                  <Link
+                    href={getHref("/performance")}
+                    className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
+                  >
+                    <Flame
+                      size={14}
+                      className="fill-amber-400 text-amber-400"
+                    />
+                    {Number(
+                      gStats.streakDays ??
+                        globalGamification?.streak?.currentDays ??
+                        0,
+                    )}{" "}
+                    Dias
+                  </Link>
                 </div>
-              </Link>
+              </div>
             </div>
 
-            {/* POMODORO TIMER */}
-            <div id="pomodoro" className="rounded-3xl border border-white/10 bg-[#090d16] p-4">
+            {/* POMODORO TIMER COM GATILHO MODO ZEN */}
+            <div
+              id="pomodoro"
+              className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-4 shadow-2xl backdrop-blur-2xl relative"
+            >
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+              
+              <div className="flex justify-end pb-2">
+                <button
+                  onClick={() => setIsZenModeOpen(true)}
+                  className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-mono font-bold text-slate-300 hover:bg-white/[0.08] transition-all active:scale-95"
+                >
+                  <Maximize2 size={12} className="text-violet-400" />
+                  <span>Modo Zen</span>
+                </button>
+              </div>
               <PomodoroTimer />
             </div>
 
             {/* HEATMAP */}
-            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl">
+            <div className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
               <Heatmap />
             </div>
-
           </div>
         </div>
 
         {/* POMODORO DOBRÁVEL APENAS NO MOBILE */}
-        <div id="pomodoro-mobile" className="block md:hidden rounded-3xl border border-white/10 bg-[#090d16] p-2 sm:p-4">
-          <button
-            onClick={() => setIsPomodoroOpenMobile((prev) => !prev)}
-            className="w-full flex items-center justify-between p-2 text-xs font-bold text-slate-300"
-          >
-            <span>Pomodoro Timer</span>
-            {isPomodoroOpenMobile ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
+        <div
+          id="pomodoro-mobile"
+          className="block md:hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-3 shadow-2xl backdrop-blur-2xl"
+        >
+          <div className="flex items-center justify-between p-2">
+            <button
+              onClick={() => setIsPomodoroOpenMobile((prev) => !prev)}
+              className="flex items-center gap-2 text-xs font-bold text-slate-300"
+            >
+              <span>Pomodoro Timer</span>
+              {isPomodoroOpenMobile ? (
+                <ChevronUp size={16} />
+              ) : (
+                <ChevronDown size={16} />
+              )}
+            </button>
+
+            <button
+              onClick={() => setIsZenModeOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-violet-300"
+            >
+              <Maximize2 size={10} />
+              <span>Zen</span>
+            </button>
+          </div>
 
           <div className={`${isPomodoroOpenMobile ? "block" : "hidden"}`}>
             <PomodoroTimer />
@@ -1548,11 +4107,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         </div>
 
         {/* HEATMAP NO MOBILE */}
-        <div className="block md:hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 shadow-2xl">
+        <div className="block md:hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
           <Heatmap />
         </div>
-
       </div>
+
+      {/* MODAL MODO ZEN */}
+      <ZenModeOverlay
+        isOpen={isZenModeOpen}
+        onClose={() => setIsZenModeOpen(false)}
+        defaultMinutes={25}
+      />
 
       <NewContentModal
         isOpen={isModalOpen}
@@ -1566,6 +4131,23 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         newLevel={levelUpData.level}
         newTitle={levelUpData.title}
         onClose={() => setLevelUpData((prev) => ({ ...prev, isOpen: false }))}
+      />
+
+      <StreakFreezeModal
+        isOpen={isStreakFreezeModalOpen}
+        onClose={() => setIsStreakFreezeModalOpen(false)}
+        currentXp={currentXp}
+        streakFreezes={streakFreezeCount}
+        onPurchaseSuccess={(newXp, newFreezes) => {
+          setStreakFreezeCount(newFreezes);
+        }}
+      />
+
+      {/* MODAL MODO TUTORIAL */}
+      <TutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+        isDemo={isDemo}
       />
     </div>
   );

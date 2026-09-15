@@ -25,6 +25,7 @@ interface GenerateAIModalProps {
   banca: string;
   materia: string;
   selectedTopicId: string;
+  specificTopic: string;
   qtdQuestoes: string;
   fonteConteudo: "banca" | "texto" | "pdf";
   dificuldade: string;
@@ -35,6 +36,7 @@ interface GenerateAIModalProps {
   onBancaChange: (value: string) => void;
   onMateriaChange: (value: string) => void;
   onTopicChange: (value: string) => void;
+  onSpecificTopicChange: (value: string) => void;
   onFonteChange: (value: "banca" | "texto" | "pdf") => void;
   onTextoBaseChange: (value: string) => void;
   onDificuldadeChange: (value: string) => void;
@@ -48,6 +50,7 @@ export function GenerateAIModal({
   banca,
   materia,
   selectedTopicId,
+  specificTopic,
   qtdQuestoes,
   fonteConteudo,
   dificuldade,
@@ -57,6 +60,7 @@ export function GenerateAIModal({
   onBancaChange,
   onMateriaChange,
   onTopicChange,
+  onSpecificTopicChange,
   onFonteChange,
   onDificuldadeChange,
   onQtdQuestoesChange,
@@ -192,6 +196,23 @@ export function GenerateAIModal({
             </div>
 
             <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                <Sparkles size={12} className="text-violet-400" /> Foco Específico ou Legislação (Opcional)
+              </label>
+              <input
+                type="text"
+                value={specificTopic}
+                onChange={(e) => onSpecificTopicChange(e.target.value)}
+                disabled={isGenerating}
+                placeholder="Ex: Lei 5.777, Lei 8.112/90, Acentuação Gráfica..."
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 outline-none transition-all"
+              />
+              <p className="text-[11px] text-zinc-500">
+                A IA concentrará todas as questões exclusivamente neste microtema.
+              </p>
+            </div>
+
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
               <label className="text-slate-400 font-semibold uppercase tracking-wider block">
                 Origem do Conteúdo
               </label>
@@ -284,17 +305,17 @@ export function GenerateAIModal({
             <button
               type="submit"
               disabled={isGenerating}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-lg shadow-indigo-950/40 cursor-pointer min-h-11"
+              className="w-full bg-linear-to-r from-violet-600 via-indigo-600 to-violet-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-lg shadow-violet-950/40 cursor-pointer min-h-11 border border-violet-500/30"
             >
               {isGenerating ? (
                 <>
-                  <Loader2 size={15} className="animate-spin" />
-                  <span>Sincronizando sinapses...</span>
+                  <Loader2 size={15} className="animate-spin text-violet-300" />
+                  <span>Preparando matriz de questões...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles size={15} />
-                  <span>Gerar Simulado Inédito</span>
+                  <Sparkles size={15} className="text-violet-300" />
+                  <span>Iniciar Simulado</span>
                 </>
               )}
             </button>

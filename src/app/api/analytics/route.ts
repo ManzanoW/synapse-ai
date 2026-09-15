@@ -64,7 +64,7 @@ export async function GET() {
       subjects.length > 0
         ? Number(
             (
-              subjects.reduce((acc, s) => acc + (s.easiness ?? 2.5), 0) /
+              subjects.reduce((acc: number, s: any) => acc + (s.easiness ?? 2.5), 0) /
               subjects.length
             ).toFixed(2),
           )

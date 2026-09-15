@@ -97,8 +97,8 @@ export async function GET() {
 
     // 6. Cálculos de Tempo e Desempenho Combinados
     const totalQuestions = reviews.length;
-    const correctQuestions = reviews.filter((r) => {
-      const g = r.grade.toUpperCase();
+    const correctQuestions = reviews.filter((r: any) => {
+      const g = (r.grade || "").toUpperCase();
       return ["FACIL", "BOM", "3", "4", "5"].includes(g);
     }).length;
 
@@ -108,7 +108,7 @@ export async function GET() {
         : 0;
 
     const reviewSeconds = reviews.reduce(
-      (acc, r) => acc + (r.durationSeconds || 60),
+      (acc: number, r: any) => acc + (r.durationSeconds || 60),
       0
     );
     const totalMinutes = Math.floor(reviewSeconds / 60) + sessionMinutesTotal;
@@ -117,7 +117,7 @@ export async function GET() {
 
     // 7. Meta Semanal
     const weeklyLogs = reviews.filter(
-      (r) => r.reviewedAt >= weekStart && r.reviewedAt <= weekEnd
+      (r: any) => r.reviewedAt >= weekStart && r.reviewedAt <= weekEnd
     );
     const weeklyGoalTarget = 50;
     const weeklyProgress = Math.min(
@@ -127,8 +127,8 @@ export async function GET() {
 
     // 8. Streak
     const studyDays = new Set<string>([
-      ...reviews.map((r) => format(r.reviewedAt, "yyyy-MM-dd")),
-      ...studySessions.map((s) =>
+      ...reviews.map((r: any) => format(r.reviewedAt, "yyyy-MM-dd")),
+      ...studySessions.map((s: any) =>
         format(s.date || s.createdAt || new Date(), "yyyy-MM-dd")
       ),
     ]);
@@ -152,10 +152,10 @@ export async function GET() {
       const day = subDays(now, i);
       const dayStr = format(day, "yyyy-MM-dd");
       const count =
-        reviews.filter((r) => format(r.reviewedAt, "yyyy-MM-dd") === dayStr)
+        reviews.filter((r: any) => format(r.reviewedAt, "yyyy-MM-dd") === dayStr)
           .length +
         studySessions.filter(
-          (s) =>
+          (s: any) =>
             format(s.date || s.createdAt, "yyyy-MM-dd") === dayStr
         ).length;
 

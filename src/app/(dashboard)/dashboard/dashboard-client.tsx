@@ -4,9 +4,10 @@ import React, {
   useState,
   useEffect,
   useCallback,
-  startTransition,
+  useRef,
 } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
 import { NewContentModal } from "@/components/create-subject-modal";
@@ -41,6 +42,7 @@ import Heatmap from "@/components/analytics/Heatmap";
 import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
 import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
 import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
+import { TutorialModal } from "@/components/tutorial/TutorialModal";
 
 interface JourneyData {
   hasObjective: boolean;
@@ -50,6 +52,7 @@ interface JourneyData {
   percentage: number;
   totalTopics: number;
   completedTopics: number;
+  remainingTopics?: number;
   topicsPerWeek?: number;
   currentPace?: number;
 }
@@ -106,8 +109,38 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ user }: DashboardClientProps) {
   const { openSidebar } = useSidebar();
+  const searchParams = useSearchParams();
+
+  const isDemo =
+    searchParams?.get("demo") === "true" ||
+    (typeof window !== "undefined" &&
+      (window.location.search.includes("demo=true") ||
+        localStorage.getItem("synapse_demo_active") === "true"));
+
+  const getHref = useCallback(
+    (href: string) => {
+      if (!isDemo) return href;
+      const sep = href.includes("?") ? "&" : "?";
+      return `${href}${sep}demo=true`;
+    },
+    [isDemo],
+  );
+
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Exibe tutorial automaticamente para novos usuários no modo demo
+  useEffect(() => {
+    if (isDemo) {
+      try {
+        const seen = localStorage.getItem("synapse_tutorial_seen");
+        if (!seen) {
+          setIsTutorialOpen(true);
+        }
+      } catch {}
+    }
+  }, [isDemo]);
 
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
@@ -140,97 +173,199 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [streakFreezeCount, setStreakFreezeCount] = useState(0);
 
   const getSuggestionUrl = (item: Suggestion): string => {
-    if (item.actionUrl) return item.actionUrl;
-
-    if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
-      return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
-    }
-    if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
-      return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
-    }
-    if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
-      return "/flashcards";
-    }
-
-    const titleLower = item.title?.toLowerCase() || "";
-    if (
-      titleLower.includes("simulado") ||
-      titleLower.includes("quiz") ||
-      titleLower.includes("questõ")
-    ) {
-      return item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
-    }
-    if (
-      titleLower.includes("edital") ||
-      titleLower.includes("avançar") ||
-      titleLower.includes("estudo")
-    ) {
-      return item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
-    }
-    if (titleLower.includes("card") || titleLower.includes("flashcard")) {
-      return "/flashcards";
+    let url = "/edital";
+    if (item.actionUrl) {
+      url = item.actionUrl;
+    } else if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
+      url = item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+    } else if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
+      url = item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
+    } else if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
+      url = "/flashcards";
+    } else {
+      const titleLower = item.title?.toLowerCase() || "";
+      if (
+        titleLower.includes("simulado") ||
+        titleLower.includes("quiz") ||
+        titleLower.includes("questõ")
+      ) {
+        url = item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+      } else if (
+        titleLower.includes("edital") ||
+        titleLower.includes("avançar") ||
+        titleLower.includes("estudo")
+      ) {
+        url = item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
+      } else if (titleLower.includes("card") || titleLower.includes("flashcard")) {
+        url = "/flashcards";
+      }
     }
 
-    return "/edital";
+    return getHref(url);
   };
 
-  const loadDashboardData = useCallback(async () => {
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const loadDashboardData = useCallback(async (isMountedCheck: () => boolean = () => true) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setIsLoading(true);
 
+      const isDemoMode =
+        typeof window !== "undefined" &&
+        (window.location.search.includes("demo=true") ||
+          localStorage.getItem("synapse_demo_active") === "true");
+
+      const authHeaders: Record<string, string> = isDemoMode
+        ? { "x-synapse-demo": "true" }
+        : {};
+
+      const appendDemoParam = (endpoint: string) => {
+        if (!isDemoMode) return endpoint;
+        const sep = endpoint.includes("?") ? "&" : "?";
+        return `${endpoint}${sep}demo=true`;
+      };
+
       const [resSubjects, resStats, resWeek, resSuggestions, resFreezes] =
         await Promise.all([
-          fetch("/api/edital?mode=subjects", { cache: "no-store" }),
-          fetch("/api/dashboard/stats", { cache: "no-store" }),
-          fetch("/api/week", { cache: "no-store" }),
-          fetch("/api/ai/suggestions", { cache: "no-store" }).catch(() => null),
-          fetch("/api/gamification/streak-freeze", { cache: "no-store" }).catch(
-            () => null,
-          ),
+          fetch(appendDemoParam("/api/edital?mode=subjects"), {
+            cache: "no-store",
+            headers: authHeaders,
+            signal: controller.signal,
+          }).catch(() => null),
+          fetch(appendDemoParam("/api/dashboard/stats"), {
+            cache: "no-store",
+            headers: authHeaders,
+            signal: controller.signal,
+          }).catch(() => null),
+          fetch(appendDemoParam("/api/week"), {
+            cache: "no-store",
+            headers: authHeaders,
+            signal: controller.signal,
+          }).catch(() => null),
+          fetch(appendDemoParam("/api/ai/suggestions"), {
+            cache: "no-store",
+            headers: authHeaders,
+            signal: controller.signal,
+          }).catch(() => null),
+          fetch(appendDemoParam("/api/gamification/streak-freeze"), {
+            cache: "no-store",
+            headers: authHeaders,
+            signal: controller.signal,
+          }).catch(() => null),
         ]);
+
+      if (controller.signal.aborted || !isMountedCheck()) return;
 
       if (resSuggestions && resSuggestions.ok) {
         const jsonSuggestions = await resSuggestions.json();
-        if (jsonSuggestions.data?.length) {
+        if (jsonSuggestions.data?.length && isMountedCheck()) {
           setSuggestions(jsonSuggestions.data);
         }
       }
 
       if (resFreezes && resFreezes.ok) {
         const jsonFreezes = await resFreezes.json();
-        setStreakFreezeCount(jsonFreezes.streakFreezes ?? 0);
+        if (isMountedCheck()) {
+          setStreakFreezeCount(jsonFreezes.streakFreezes ?? 0);
+        }
       }
 
-      if (resSubjects.status === 401 || resStats.status === 401) {
-        window.location.href = "/login";
+      if (
+        !isDemoMode &&
+        ((resSubjects && resSubjects.status === 401) ||
+          (resStats && resStats.status === 401))
+      ) {
+        if (isMountedCheck()) {
+          window.location.href = "/login";
+        }
         return;
       }
 
-      if (resSubjects.ok) {
+      if (resSubjects && resSubjects.ok) {
         const jsonSubjects = await resSubjects.json();
-        setSubjects(Array.isArray(jsonSubjects.data) ? jsonSubjects.data : []);
+        if (isMountedCheck()) {
+          setSubjects(Array.isArray(jsonSubjects.data) ? jsonSubjects.data : []);
+        }
+      } else if (isMountedCheck()) {
+        setSubjects([]);
       }
 
-      if (resStats.ok) {
+      if (resStats && resStats.ok) {
         const jsonStats = await resStats.json();
-        setStats(jsonStats);
+        if (isMountedCheck()) {
+          setStats(jsonStats);
+        }
+      } else if (isMountedCheck()) {
+        setStats({
+          journey: {
+            hasObjective: false,
+            daysRemaining: 0,
+            weeksRemaining: 0,
+            daysLeftInWeek: 0,
+            percentage: 0,
+            totalTopics: 0,
+            completedTopics: 0,
+            remainingTopics: 0,
+            topicsPerWeek: 0,
+          },
+          metrics: {
+            totalTimeFormatted: "0h 0m",
+            precision: "0%",
+            sessionsCount: 0,
+            questionsCount: 0,
+            totalFlashcards: 0,
+            averageTimePerSession: "0min",
+          },
+          streak: {
+            currentDays: 0,
+            weekDays: [
+              { dayLabel: "S", active: false },
+              { dayLabel: "T", active: false },
+              { dayLabel: "Q", active: false },
+              { dayLabel: "Q", active: false },
+              { dayLabel: "S", active: false },
+              { dayLabel: "S", active: false },
+              { dayLabel: "D", active: false },
+            ],
+          },
+          weeklyGoal: { percentage: 0, target: 50, current: 0 },
+          heatmap: [],
+        });
       }
 
-      if (resWeek.ok) {
+      if (resWeek && resWeek.ok) {
         const jsonWeek = await resWeek.json();
-        setMissedDayName(jsonWeek.data?.missedDayName || null);
+        if (isMountedCheck()) {
+          setMissedDayName(jsonWeek.data?.missedDayName || null);
+        }
       }
-    } catch (err) {
-      console.error("Erro ao carregar dados do Dashboard:", err);
+    } catch (err: unknown) {
+      if ((err as Error)?.name !== "AbortError") {
+        console.error("Erro ao carregar dados do Dashboard:", err);
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedCheck()) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    startTransition(() => {
-      loadDashboardData();
-    });
+    let isMounted = true;
+    loadDashboardData(() => isMounted);
+
+    return () => {
+      isMounted = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [loadDashboardData]);
 
   useEffect(() => {
@@ -350,7 +485,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setIsTutorialOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-2.5 text-xs font-bold text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.15)] transition-all hover:bg-indigo-500/20 hover:border-indigo-500/50 active:scale-95"
+            >
+              <Sparkles size={14} className="text-indigo-400" />
+              <span>Modo Tutorial</span>
+            </button>
+
             <button
               onClick={() => setIsZenModeOpen(true)}
               className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:bg-white/[0.08] hover:border-white/20 active:scale-95"
@@ -360,7 +504,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </button>
 
             <Link
-              href={!isLoading && hasEditalSubjects ? "/flashcards" : "/edital"}
+              href={getHref(!isLoading && hasEditalSubjects ? "/flashcards" : "/edital")}
               className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/20 transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-95"
             >
               <Zap size={14} className="fill-white" />
@@ -408,7 +552,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             return (
               <Link
                 key={idx}
-                href={item.href}
+                href={getHref(item.href)}
                 className="relative flex items-center justify-between gap-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 p-3.5 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-slate-900/40 active:scale-[0.98]"
               >
                 <div className="flex min-w-0 items-center gap-2.5">
@@ -449,35 +593,47 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           {/* LAYOUT MOBILE */}
           <div className="grid grid-cols-3 gap-2 text-center divide-x divide-white/5 md:hidden">
-            <div className="px-1">
+            <div className="px-1 flex flex-col items-center justify-center">
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">
                 Dias
               </span>
-              <span className="font-mono text-xl font-black text-white">
-                {stats?.journey?.daysRemaining ?? 0}
-              </span>
+              {isLoading ? (
+                <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
+              ) : (
+                <span className="font-mono text-xl font-black text-white">
+                  {stats?.journey?.daysRemaining ?? 0}
+                </span>
+              )}
               <span className="text-[9px] text-slate-500 block">restantes</span>
             </div>
 
-            <div className="px-1">
+            <div className="px-1 flex flex-col items-center justify-center">
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-400 block">
                 Ritmo
               </span>
-              <span className="font-mono text-xl font-black text-amber-300">
-                {stats?.journey?.topicsPerWeek ?? 0}
-              </span>
+              {isLoading ? (
+                <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
+              ) : (
+                <span className="font-mono text-xl font-black text-amber-300">
+                  {stats?.journey?.topicsPerWeek ?? 0}
+                </span>
+              )}
               <span className="text-[9px] text-slate-500 block">
                 tópicos/sem
               </span>
             </div>
 
-            <div className="px-1">
+            <div className="px-1 flex flex-col items-center justify-center">
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-cyan-400 block">
                 Progresso
               </span>
-              <span className="font-mono text-xl font-black text-cyan-300">
-                {stats?.journey?.percentage ?? 0}%
-              </span>
+              {isLoading ? (
+                <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
+              ) : (
+                <span className="font-mono text-xl font-black text-cyan-300">
+                  {stats?.journey?.percentage ?? 0}%
+                </span>
+              )}
               <span className="text-[9px] text-slate-500 block">do edital</span>
             </div>
           </div>
@@ -496,20 +652,30 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-4xl font-black tracking-tight text-white">
-                    {stats?.journey?.daysRemaining ?? 0}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-400">
-                    dias restantes
-                  </span>
+                  {isLoading ? (
+                    <div className="h-10 w-24 rounded-lg bg-white/10 animate-pulse" />
+                  ) : (
+                    <>
+                      <span className="font-mono text-4xl font-black tracking-tight text-white">
+                        {stats?.journey?.daysRemaining ?? 0}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-400">
+                        dias restantes
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
                 <span>Semanas até a prova:</span>
-                <strong className="font-mono text-slate-200">
-                  {stats?.journey?.weeksRemaining ?? 0} sem
-                </strong>
+                {isLoading ? (
+                  <div className="h-4 w-12 rounded bg-white/10 animate-pulse" />
+                ) : (
+                  <strong className="font-mono text-slate-200">
+                    {stats?.journey?.weeksRemaining ?? 0} sem
+                  </strong>
+                )}
               </div>
             </div>
 
@@ -527,24 +693,34 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
-                    {hasEditalSubjects
-                      ? (stats?.journey?.topicsPerWeek ?? 0)
-                      : "—"}
-                  </span>
-                  <span className="text-xs font-medium text-slate-400">
-                    {hasEditalSubjects ? "tópicos / sem" : "Aguardando Edital"}
-                  </span>
+                  {isLoading ? (
+                    <div className="h-10 w-24 rounded-lg bg-amber-400/10 animate-pulse" />
+                  ) : (
+                    <>
+                      <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
+                        {hasEditalSubjects
+                          ? (stats?.journey?.topicsPerWeek ?? 0)
+                          : "—"}
+                      </span>
+                      <span className="text-xs font-medium text-slate-400">
+                        {hasEditalSubjects ? "tópicos / sem" : "Aguardando Edital"}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
                 <span>Ritmo atual:</span>
-                <strong className="font-mono text-amber-300/90">
-                  {hasEditalSubjects
-                    ? `${stats?.journey?.currentPace ?? 0.0} / sem`
-                    : "—"}
-                </strong>
+                {isLoading ? (
+                  <div className="h-4 w-16 rounded bg-white/10 animate-pulse" />
+                ) : (
+                  <strong className="font-mono text-amber-300/90">
+                    {hasEditalSubjects
+                      ? `${stats?.journey?.currentPace ?? 0.0} / sem`
+                      : "—"}
+                  </strong>
+                )}
               </div>
             </div>
 
@@ -562,15 +738,23 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between">
-                  <span className="font-mono text-4xl font-black tracking-tight text-white">
-                    {stats?.journey?.percentage ?? 0}%
-                  </span>
-                  <span className="font-mono text-[11px] text-slate-400">
-                    <strong className="font-bold text-slate-100">
-                      {stats?.journey?.completedTopics ?? 0}
-                    </strong>
-                    /{stats?.journey?.totalTopics ?? 0} tópicos
-                  </span>
+                  {isLoading ? (
+                    <div className="h-10 w-20 rounded-lg bg-cyan-400/10 animate-pulse" />
+                  ) : (
+                    <span className="font-mono text-4xl font-black tracking-tight text-white">
+                      {stats?.journey?.percentage ?? 0}%
+                    </span>
+                  )}
+                  {isLoading ? (
+                    <div className="h-4 w-24 rounded bg-white/10 animate-pulse" />
+                  ) : (
+                    <span className="font-mono text-[11px] text-slate-400">
+                      <strong className="font-bold text-slate-100">
+                        {stats?.journey?.completedTopics ?? 0}
+                      </strong>
+                      /{stats?.journey?.totalTopics ?? 0} tópicos
+                    </span>
+                  )}
                 </div>
 
                 <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
@@ -587,11 +771,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <span>Status:</span>
                 <span className="inline-flex items-center gap-1.5 font-bold text-indigo-300">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-                  {!hasEditalSubjects
-                    ? "Não Iniciado"
-                    : stats?.journey?.percentage === 100
-                      ? "Edital Completo"
-                      : "Em Andamento"}
+                  {isLoading
+                    ? "Carregando..."
+                    : !hasEditalSubjects
+                      ? "Não Iniciado"
+                      : stats?.journey?.percentage === 100
+                        ? "Edital Completo"
+                        : "Em Andamento"}
                 </span>
               </div>
             </div>
@@ -610,14 +796,27 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <h3 className="text-base sm:text-lg font-black text-white">
                   Configure seu Edital para Ativar a IA
                 </h3>
+                <p className="text-xs text-slate-400">
+                  Cadastre suas matérias para destravar o cronograma semanal, simulados adaptativos e predição neural de aprovação.
+                </p>
               </div>
-              <Link
-                href="/edital"
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-500/20 shrink-0 hover:bg-amber-400 transition-all"
-              >
-                <BookOpen size={15} />
-                <span>Cadastrar Edital</span>
-              </Link>
+              <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setIsTutorialOpen(true)}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/15 px-4 py-2.5 text-xs font-black text-indigo-300 shadow-md transition-all hover:bg-indigo-500/25 active:scale-95"
+                >
+                  <Sparkles size={14} className="text-indigo-400" />
+                  <span>Modo Tutorial</span>
+                </button>
+                <Link
+                  href={getHref("/edital")}
+                  className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-500/20 shrink-0 hover:bg-amber-400 transition-all"
+                >
+                  <BookOpen size={15} />
+                  <span>Cadastrar Edital</span>
+                </Link>
+              </div>
             </div>
           </div>
         )}
@@ -683,17 +882,25 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Tempo Total
                     </span>
-                    <span className="font-mono text-2xl font-black text-white">
-                      {stats?.metrics?.totalTimeFormatted || "0h 0m"}
-                    </span>
+                    {isLoading ? (
+                      <div className="h-8 w-20 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-2xl font-black text-white">
+                        {stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex-1">
                     <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       <span>Precisão</span>
-                      <span className="font-mono font-bold text-emerald-400">
-                        {stats?.metrics?.precision || "0%"}
-                      </span>
+                      {isLoading ? (
+                        <div className="h-3 w-8 rounded bg-emerald-400/20 animate-pulse" />
+                      ) : (
+                        <span className="font-mono font-bold text-emerald-400">
+                          {stats?.metrics?.precision || "0%"}
+                        </span>
+                      )}
                     </div>
                     <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
                       <div
@@ -709,25 +916,37 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Sessões
                     </span>
-                    <span className="font-mono text-sm font-extrabold text-white">
-                      {stats?.metrics?.sessionsCount ?? 0}
-                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.sessionsCount ?? 0}
+                      </span>
+                    )}
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Questões
                     </span>
-                    <span className="font-mono text-sm font-extrabold text-white">
-                      {stats?.metrics?.questionsCount ?? 0}
-                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.questionsCount ?? 0}
+                      </span>
+                    )}
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Méd/Dia
                     </span>
-                    <span className="font-mono text-sm font-extrabold text-white">
-                      {stats?.metrics?.averageTimePerSession || "0min"}
-                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-12 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.averageTimePerSession || "0min"}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -741,7 +960,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           {mobileTab === "gamification" && (
             <div className="space-y-4">
               <Link
-                href="/achievements"
+                href={getHref("/achievements")}
                 className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
               >
                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -781,14 +1000,18 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </Link>
 
               <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
-                <Link href="/performance" className="block space-y-2">
+                <Link href={getHref("/performance")} className="block space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase text-slate-400">
                       Meta Semanal
                     </span>
-                    <span className="font-mono text-xs font-black text-indigo-400">
-                      {stats?.weeklyGoal?.percentage ?? 0}%
-                    </span>
+                    {isLoading ? (
+                      <div className="h-3 w-8 rounded bg-indigo-400/20 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-xs font-black text-indigo-400">
+                        {stats?.weeklyGoal?.percentage ?? 0}%
+                      </span>
+                    )}
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
                     <div
@@ -804,7 +1027,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
                 <div className="flex items-center justify-between">
                   <Link
-                    href="/performance"
+                    href={getHref("/performance")}
                     className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
                   >
                     Constância
@@ -819,7 +1042,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       {streakFreezeCount}
                     </button>
                     <Link
-                      href="/performance"
+                      href={getHref("/performance")}
                       className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
                     >
                       <Flame
@@ -869,17 +1092,25 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Tempo Total
                     </span>
-                    <span className="font-mono text-2xl font-black text-white">
-                      {stats?.metrics?.totalTimeFormatted || "0h 0m"}
-                    </span>
+                    {isLoading ? (
+                      <div className="h-8 w-20 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-2xl font-black text-white">
+                        {stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex-1">
                     <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       <span>Precisão</span>
-                      <span className="font-mono font-bold text-emerald-400">
-                        {stats?.metrics?.precision || "0%"}
-                      </span>
+                      {isLoading ? (
+                        <div className="h-3 w-8 rounded bg-emerald-400/20 animate-pulse" />
+                      ) : (
+                        <span className="font-mono font-bold text-emerald-400">
+                          {stats?.metrics?.precision || "0%"}
+                        </span>
+                      )}
                     </div>
                     <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
                       <div
@@ -895,25 +1126,37 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Sessões
                     </span>
-                    <span className="font-mono text-sm font-extrabold text-white">
-                      {stats?.metrics?.sessionsCount ?? 0}
-                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.sessionsCount ?? 0}
+                      </span>
+                    )}
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Questões
                     </span>
-                    <span className="font-mono text-sm font-extrabold text-white">
-                      {stats?.metrics?.questionsCount ?? 0}
-                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.questionsCount ?? 0}
+                      </span>
+                    )}
                   </div>
                   <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
                     <span className="block text-[9px] font-bold uppercase text-slate-400">
                       Méd/Dia
                     </span>
-                    <span className="font-mono text-sm font-extrabold text-white">
-                      {stats?.metrics?.averageTimePerSession || "0min"}
-                    </span>
+                    {isLoading ? (
+                      <div className="mx-auto my-0.5 h-5 w-12 rounded bg-white/10 animate-pulse" />
+                    ) : (
+                      <span className="font-mono text-sm font-extrabold text-white">
+                        {stats?.metrics?.averageTimePerSession || "0min"}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -999,7 +1242,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </h3>
                 </div>
                 <Link
-                  href="/edital"
+                  href={getHref("/edital")}
                   className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
                 >
                   Ver todas ({subjects.length})
@@ -1015,7 +1258,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               ) : (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   {displayedSubjects.map((sub) => (
-                    <Link key={sub.id} href={`/edital?subjectId=${sub.id}`}>
+                    <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
                       <SubjectCard
                         title={sub.name}
                         colorClass={sub.color || "#3B82F6"}
@@ -1038,7 +1281,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
             {/* GAMIFICAÇÃO & NÍVEL */}
             <Link
-              href="/achievements"
+              href={getHref("/achievements")}
               className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
             >
               <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-400/50 to-transparent" />
@@ -1083,14 +1326,18 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
               <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
               
-              <Link href="/performance" className="block space-y-2">
+              <Link href={getHref("/performance")} className="block space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase text-slate-400">
                     Meta Semanal
                   </span>
-                  <span className="font-mono text-xs font-black text-indigo-400">
-                    {stats?.weeklyGoal?.percentage ?? 0}%
-                  </span>
+                  {isLoading ? (
+                    <div className="h-3 w-8 rounded bg-indigo-400/20 animate-pulse" />
+                  ) : (
+                    <span className="font-mono text-xs font-black text-indigo-400">
+                      {stats?.weeklyGoal?.percentage ?? 0}%
+                    </span>
+                  )}
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
                   <div
@@ -1104,7 +1351,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div className="flex items-center justify-between">
                 <Link
-                  href="/performance"
+                  href={getHref("/performance")}
                   className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
                 >
                   Constância
@@ -1119,7 +1366,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     {streakFreezeCount}
                   </button>
                   <Link
-                    href="/performance"
+                    href={getHref("/performance")}
                     className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
                   >
                     <Flame
@@ -1231,6 +1478,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         onPurchaseSuccess={(newXp, newFreezes) => {
           setStreakFreezeCount(newFreezes);
         }}
+      />
+
+      {/* MODAL MODO TUTORIAL */}
+      <TutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+        isDemo={isDemo}
       />
     </div>
   );

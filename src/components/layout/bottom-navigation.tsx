@@ -2,11 +2,24 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { LayoutDashboard, BookOpen, HelpCircle, Layers } from "lucide-react";
 
 export function BottomNavigation() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const isDemo =
+    searchParams?.get("demo") === "true" ||
+    (typeof window !== "undefined" &&
+      (window.location.search.includes("demo=true") ||
+        localStorage.getItem("synapse_demo_active") === "true"));
+
+  const getHref = (href: string) => {
+    if (!isDemo) return href;
+    const sep = href.includes("?") ? "&" : "?";
+    return `${href}${sep}demo=true`;
+  };
 
   const navItems = [
     { href: "/dashboard", label: "Início", icon: LayoutDashboard },
@@ -25,7 +38,7 @@ export function BottomNavigation() {
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={getHref(item.href)}
               className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all ${
                 isActive
                   ? "text-indigo-400 font-bold"
@@ -41,3 +54,4 @@ export function BottomNavigation() {
     </div>
   );
 }
+

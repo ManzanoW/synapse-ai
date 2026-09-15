@@ -129,10 +129,10 @@ export async function reviewFlashcardAction(
         subjectAccuracy = (totalCorrect / totalQuestions) * 100;
       } else {
         // Fallback: média de aproveitamento anotado nos tópicos
-        const scoredTopics = subject.topics.filter((t) => t.performance > 0);
+        const scoredTopics = subject.topics.filter((t: any) => t.performance > 0);
         if (scoredTopics.length > 0) {
           subjectAccuracy =
-            scoredTopics.reduce((sum, t) => sum + t.performance, 0) / scoredTopics.length;
+            scoredTopics.reduce((sum: number, t: any) => sum + t.performance, 0) / scoredTopics.length;
         }
       }
     }

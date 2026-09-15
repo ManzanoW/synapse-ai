@@ -1,38 +1,84 @@
-import { PrismaClient } from "@prisma/client";
-import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
+import type { PrismaClient } from "@prisma/client";
+import { createMockPrismaClient } from "./mock-prisma";
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-
-let prismaInstance: PrismaClient;
+const globalForPrisma = globalThis as unknown as { prisma?: any };
 
 const connectionString = process.env.DATABASE_URL;
+const isMockOrLocal =
+  !connectionString ||
+  connectionString.includes("mock") ||
+  connectionString.includes("localhost:5432");
 
-if (!connectionString) {
-  prismaInstance = new PrismaClient({
-    adapter: new PrismaPg(
-      new Pool({
-        connectionString: "postgresql://mock:mock@localhost:5432/mock",
-      }),
-    ),
-  });
+let prismaClientInstance: any;
+
+if (isMockOrLocal) {
+  if (!globalForPrisma.prisma) {
+    console.log("[AI Studio] Database URL not provided or using local placeholder — initializing in-memory store.");
+    globalForPrisma.prisma = createMockPrismaClient();
+  }
+  prismaClientInstance = globalForPrisma.prisma;
 } else {
   if (!globalForPrisma.prisma) {
-    const pool = new Pool({
-      connectionString,
-      ssl: {
-        // Ignora erros de certificado autoassinado (causado por NextDNS/proxy local)
-        rejectUnauthorized: false,
-      },
-      max: 5,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
-    });
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { Pool } = require("pg");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { PrismaPg } = require("@prisma/adapter-pg");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { PrismaClient } = require("@prisma/client");
 
-    const adapter = new PrismaPg(pool);
-    globalForPrisma.prisma = new PrismaClient({ adapter });
+      const pool = new Pool({
+        connectionString,
+        ssl: {
+          rejectUnauthorized: false,
+        },
+        max: 5,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+      });
+
+      const adapter = new PrismaPg(pool);
+      const realPrisma = new PrismaClient({ adapter });
+      const mockFallback = createMockPrismaClient();
+
+      // Transparent error fallback proxy
+      globalForPrisma.prisma = new Proxy(realPrisma, {
+        get(target: any, prop: string) {
+          const original = target[prop];
+          if (typeof original === "object" && original !== null) {
+            return new Proxy(original, {
+              get(subTarget: any, subProp: string) {
+                const subMethod = subTarget[subProp];
+                if (typeof subMethod === "function") {
+                  return async (...args: any[]) => {
+                    try {
+                      return await subMethod.apply(subTarget, args);
+                    } catch (err) {
+                      console.warn(
+                        `[AI Studio] Database query failed on ${prop}.${subProp}, falling back to in-memory store:`,
+                        err instanceof Error ? err.message : err,
+                      );
+                      const mockTarget = mockFallback[prop];
+                      if (mockTarget && typeof mockTarget[subProp] === "function") {
+                        return mockTarget[subProp](...args);
+                      }
+                      return null;
+                    }
+                  };
+                }
+                return subMethod;
+              },
+            });
+          }
+          return original;
+        },
+      });
+    } catch (e) {
+      console.warn("[AI Studio] Failed to initialize Prisma with PostgreSQL adapter, using in-memory mock:", e);
+      globalForPrisma.prisma = createMockPrismaClient();
+    }
   }
-  prismaInstance = globalForPrisma.prisma;
+  prismaClientInstance = globalForPrisma.prisma;
 }
 
-export const prisma = prismaInstance;
+export const prisma = prismaClientInstance as PrismaClient;

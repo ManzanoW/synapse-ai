@@ -98,7 +98,7 @@ export async function getDailyQuestsAction(): Promise<{
       ];
 
       await prisma.$transaction(
-        selectedTemplates.map((t) =>
+        selectedTemplates.map((t: any) =>
           prisma.dailyQuest.create({
             data: {
               userId,

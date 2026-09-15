@@ -32,7 +32,9 @@ const syncLockMap = new Map<string, Promise<void>>();
  * para um mesmo userId e questionText.
  * Preserva o registro mais qualificado (MASTERED > com remediação IA gerada > mais recente).
  */
-export async function cleanupDuplicateQuestionErrors(userId: string): Promise<number> {
+export async function cleanupDuplicateQuestionErrors(
+  userId: string,
+): Promise<number> {
   try {
     const records = await prisma.questionError.findMany({
       where: { userId },
@@ -71,17 +73,15 @@ export async function cleanupDuplicateQuestionErrors(userId: string): Promise<nu
       if (group.length <= 1) continue;
 
       // Ordena o grupo elegendo o melhor registro para o índice 0
-      group.sort((a, b) => {
+      group.sort((a: any, b: any) => {
         // Prioridade 1: Status MASTERED
         const aMastered = a.status === "MASTERED" ? 1 : 0;
         const bMastered = b.status === "MASTERED" ? 1 : 0;
         if (aMastered !== bMastered) return bMastered - aMastered;
 
         // Prioridade 2: Já possui análise ou remediação por IA gerada
-        const aHasAi =
-          a.aiExplanation || a.drillQuestion || a.mnemonic ? 1 : 0;
-        const bHasAi =
-          b.aiExplanation || b.drillQuestion || b.mnemonic ? 1 : 0;
+        const aHasAi = a.aiExplanation || a.drillQuestion || a.mnemonic ? 1 : 0;
+        const bHasAi = b.aiExplanation || b.drillQuestion || b.mnemonic ? 1 : 0;
         if (aHasAi !== bHasAi) return bHasAi - aHasAi;
 
         // Prioridade 3: Mais recente (updatedAt ou createdAt)
@@ -110,7 +110,10 @@ export async function cleanupDuplicateQuestionErrors(userId: string): Promise<nu
 
     return idsToDelete.length;
   } catch (err) {
-    console.error("[cleanupDuplicateQuestionErrors] Erro ao limpar duplicatas:", err);
+    console.error(
+      "[cleanupDuplicateQuestionErrors] Erro ao limpar duplicatas:",
+      err,
+    );
     return 0;
   }
 }
@@ -170,7 +173,7 @@ async function syncLegacyErrorsIfEmpty(userId: string) {
       }
 
       const existingKeys = new Set(
-        existingErrors.map((r) => normalizeQuestionKey(r.questionText)),
+        existingErrors.map((r: any) => normalizeQuestionKey(r.questionText)),
       );
 
       // 3. Busca quizzes anteriores salvos com questions JSON
@@ -253,7 +256,10 @@ async function syncLegacyErrorsIfEmpty(userId: string) {
         });
       }
     } catch (err) {
-      console.error("[syncLegacyErrorsIfEmpty] Erro ao sincronizar legado:", err);
+      console.error(
+        "[syncLegacyErrorsIfEmpty] Erro ao sincronizar legado:",
+        err,
+      );
     } finally {
       syncLockMap.delete(userId);
     }
@@ -347,10 +353,10 @@ export async function getErrorNotebookItemsAction(
     }
 
     const deduplicatedRecords = Array.from(grouped.values()).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      (a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime(),
     );
 
-    const items: ErrorNotebookItem[] = deduplicatedRecords.map((r) => ({
+    const items: ErrorNotebookItem[] = deduplicatedRecords.map((r: any) => ({
       id: r.id,
       userId: r.userId,
       subjectId: r.subjectId,
@@ -412,7 +418,7 @@ export async function getErrorMetricsAction() {
 
     // Deduplicação defensiva por questão única para métricas 100% alinhadas com a listagem
     const seenMetricsKeys = new Set<string>();
-    const uniqueErrors = allErrors.filter((e) => {
+    const uniqueErrors = allErrors.filter((e: any) => {
       const key = normalizeQuestionKey(e.questionText);
       if (!key || seenMetricsKeys.has(key)) return false;
       seenMetricsKeys.add(key);
@@ -421,10 +427,10 @@ export async function getErrorMetricsAction() {
 
     const totalErrors = uniqueErrors.length;
     const pendingErrors = uniqueErrors.filter(
-      (e) => e.status === "PENDING",
+      (e: any) => e.status === "PENDING",
     ).length;
     const masteredErrors = uniqueErrors.filter(
-      (e) => e.status === "MASTERED",
+      (e: any) => e.status === "MASTERED",
     ).length;
     const masteryRate =
       totalErrors > 0 ? Math.round((masteredErrors / totalErrors) * 100) : 0;
@@ -438,7 +444,7 @@ export async function getErrorMetricsAction() {
       UNCLASSIFIED: 0,
     };
 
-    uniqueErrors.forEach((e) => {
+    uniqueErrors.forEach((e: any) => {
       const norm = normalizeTaxonomy(e.errorReason);
       counts[norm] = (counts[norm] || 0) + 1;
     });
@@ -844,7 +850,9 @@ export async function analyzeSingleErrorAction(
  * Classificação taxonômica ultrarrápida e econômica em lote (apenas rootCause)
  * Processa 15 a 20 questões por execução com custo mínimo de tokens.
  */
-export async function batchClassifyTaxonomyOnlyAction(batchSize: number = 20): Promise<{
+export async function batchClassifyTaxonomyOnlyAction(
+  batchSize: number = 20,
+): Promise<{
   success: boolean;
   processed?: number;
   message?: string;
@@ -890,7 +898,7 @@ export async function batchClassifyTaxonomyOnlyAction(batchSize: number = 20): P
     }
 
     // 2. Monta payload ultracompacto para o Gemini (zero desperdício de tokens)
-    const promptData = unclassifiedRecords.map((item) => ({
+    const promptData = unclassifiedRecords.map((item: any) => ({
       id: item.id,
       enunciado: (item.questionText || "").slice(0, 150),
       respostaMarcada: item.userAnswer || "N/A",
@@ -971,7 +979,8 @@ Sem qualquer texto introdutório, justificativa ou explicação.`;
         resolvedReason = normalizeTaxonomy(rootCause);
       } else {
         // Heurística rápida de contingência
-        const combined = `${item.questionText} ${item.explanation || ""}`.toLowerCase();
+        const combined =
+          `${item.questionText} ${item.explanation || ""}`.toLowerCase();
         if (
           combined.includes("pegadinha") ||
           combined.includes("atenção") ||
@@ -1006,7 +1015,7 @@ Sem qualquer texto introdutório, justificativa ou explicação.`;
     // 5. Atualização atômica no banco via transação do Prisma
     if (updatesToPersist.length > 0) {
       await prisma.$transaction(
-        updatesToPersist.map((u) =>
+        updatesToPersist.map((u: any) =>
           prisma.questionError.update({
             where: { id: u.id, userId },
             data: { errorReason: u.errorReason },
@@ -1056,4 +1065,3 @@ export async function autoClassifyPendingErrorsAction(): Promise<{
     error: res.error,
   };
 }
-

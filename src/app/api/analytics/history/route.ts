@@ -34,7 +34,7 @@ export async function GET() {
 
     // Agrupa por data no formato YYYY-MM-DD usando date-fns para preservar fuso local
     const counts: Record<string, number> = {};
-    history.forEach((h) => {
+    history.forEach((h: any) => {
       const dateKey = format(h.reviewedAt, "yyyy-MM-dd");
       counts[dateKey] = (counts[dateKey] || 0) + 1;
     });

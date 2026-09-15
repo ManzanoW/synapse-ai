@@ -160,18 +160,18 @@ export async function autoRebalanceFromPerformanceAction(
     const totalWeeklyHours = user.weeklyGoalHours || 10;
     const totalWeeklyMinutes = totalWeeklyHours * 60;
     const totalPriority = user.subjects.reduce(
-      (acc, s) => acc + (s.priority || 1),
+      (acc: number, s: { priority?: number | null }) => acc + (s.priority || 1),
       0,
     );
 
     // 2. Monta o vetor de SubjectPerformance com base nos QuizAttempts
-    const performances: SubjectPerformance[] = user.subjects.map((subject) => {
+    const performances: SubjectPerformance[] = user.subjects.map((subject: any) => {
       let totalQuestions = 0;
       let totalCorrect = 0;
       let latestQuizDate = subject.updatedAt;
 
-      subject.topics.forEach((topic) => {
-        topic.quizAttempts.forEach((attempt) => {
+      subject.topics.forEach((topic: any) => {
+        topic.quizAttempts.forEach((attempt: any) => {
           totalQuestions += attempt.totalCount;
           totalCorrect += attempt.correctCount;
           if (attempt.completedAt > latestQuizDate) {
@@ -252,7 +252,7 @@ export async function autoRebalanceFromPerformanceAction(
 
       const claimedList = (userStats?.claimedAchievements || "")
         .split(",")
-        .map((id) => id.trim())
+        .map((id: string) => id.trim())
         .filter(Boolean);
 
       if (!claimedList.includes("adaptive_pioneer_unlocked")) {
@@ -343,8 +343,8 @@ export async function checkRebalanceNeedsAction(): Promise<{
       let total = 0;
       let correct = 0;
 
-      subject.topics.forEach((t) => {
-        t.quizAttempts.forEach((a) => {
+      subject.topics.forEach((t: any) => {
+        t.quizAttempts.forEach((a: any) => {
           total += a.totalCount;
           correct += a.correctCount;
         });
