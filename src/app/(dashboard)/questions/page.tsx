@@ -53,13 +53,11 @@ import { RegisterQuestionsModal } from "@/components/questions/register-question
 import { submitQuizAttemptAction } from "@/actions/quiz-actions";
 import { generateTargetedDeckAction } from "@/actions/deck-actions";
 import {
-  getErrorNotebookItemsAction,
   getErrorMetricsAction,
 } from "@/actions/error-notebook-actions";
 import {
   ErrorClassification,
   QuestionAnswerSubmission,
-  ErrorNotebookItem,
   ErrorNotebookMetrics,
 } from "@/types/quiz";
 
@@ -285,9 +283,6 @@ export default function QuestoesPage() {
   >(null);
 
   // Caderno de Erros Integrado
-  const [errorNotebookItems, setErrorNotebookItems] = useState<
-    ErrorNotebookItem[]
-  >([]);
   const [errorNotebookMetrics, setErrorNotebookMetrics] =
     useState<ErrorNotebookMetrics>({
       totalErrors: 0,
@@ -435,13 +430,7 @@ export default function QuestoesPage() {
   const loadErrorNotebookData = useCallback(async () => {
     setIsLoadingNotebook(true);
     try {
-      const [itemsRes, metricsRes] = await Promise.all([
-        getErrorNotebookItemsAction({}),
-        getErrorMetricsAction(),
-      ]);
-      if (itemsRes.success && itemsRes.data) {
-        setErrorNotebookItems(itemsRes.data);
-      }
+      const metricsRes = await getErrorMetricsAction();
       if (metricsRes.success && metricsRes.data) {
         setErrorNotebookMetrics(metricsRes.data);
       }
@@ -1792,7 +1781,6 @@ export default function QuestoesPage() {
                 <TabErrorsSkeleton />
               ) : (
                 <ErrorNotebookView
-                  initialItems={errorNotebookItems}
                   initialMetrics={errorNotebookMetrics}
                   subjects={subjects}
                 />

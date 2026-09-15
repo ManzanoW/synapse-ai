@@ -13,6 +13,8 @@ import {
   ErrorRemediationData,
   ErrorTaxonomyMetric,
   GenerateRemediationInput,
+  GetErrorNotebookQuestionsParams,
+  Question,
 } from "@/types/quiz";
 import { TAXONOMY_METADATA, normalizeTaxonomy } from "@/lib/error-taxonomy";
 
@@ -267,6 +269,156 @@ async function syncLegacyErrorsIfEmpty(userId: string) {
 
   syncLockMap.set(userId, promise);
   return promise;
+}
+
+export interface GetErrorNotebookQuestionsResult {
+  questions: Question[];
+  total: number;
+  hasMore: boolean;
+  nextPage: number | null;
+  success: boolean;
+  error?: string;
+  data?: {
+    questions: Question[];
+    total: number;
+    hasMore: boolean;
+    nextPage: number | null;
+  };
+}
+
+/**
+ * Lista as questões do Caderno de Erros com paginação suave (Infinite Scroll) e filtros dinâmicos
+ */
+export async function getErrorNotebookQuestionsAction(
+  params: GetErrorNotebookQuestionsParams = {},
+): Promise<GetErrorNotebookQuestionsResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return {
+        questions: [],
+        total: 0,
+        hasMore: false,
+        nextPage: null,
+        success: false,
+        error: "Usuário não autenticado.",
+      };
+    }
+
+    const page = Math.max(1, params.page || 1);
+    const limit = Math.max(1, params.limit || 10);
+    const skip = (page - 1) * limit;
+
+    // Sincroniza e sanitiza apenas na primeira página para desempenho máximo
+    if (page === 1) {
+      await syncLegacyErrorsIfEmpty(userId);
+    }
+
+    const where: any = { userId };
+
+    if (params.subjectId && params.subjectId !== "ALL") {
+      where.subjectId = params.subjectId;
+    }
+
+    if (params.status && params.status !== "ALL") {
+      where.status = params.status;
+    }
+
+    if (params.errorReason && params.errorReason !== "ALL") {
+      const normalized = normalizeTaxonomy(params.errorReason);
+      where.errorReason = normalized;
+    }
+
+    if (params.period && params.period !== "all") {
+      const now = new Date();
+      let days = 7;
+      if (params.period === "30d") days = 30;
+      if (params.period === "90d") days = 90;
+      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      where.createdAt = { gte: startDate };
+    }
+
+    if (params.search && params.search.trim() !== "") {
+      const term = params.search.trim();
+      where.OR = [
+        { questionText: { contains: term, mode: "insensitive" } },
+        { explanation: { contains: term, mode: "insensitive" } },
+      ];
+    }
+
+    const [total, records] = await Promise.all([
+      prisma.questionError.count({ where }),
+      prisma.questionError.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        include: {
+          subject: {
+            select: { id: true, name: true, color: true },
+          },
+          topic: {
+            select: { id: true, title: true },
+          },
+        },
+      }),
+    ]);
+
+    const hasMore = skip + records.length < total;
+    const nextPage = hasMore ? page + 1 : null;
+
+    const questions: Question[] = records.map((r: any) => ({
+      id: r.id,
+      userId: r.userId,
+      subjectId: r.subjectId,
+      topicId: r.topicId,
+      quizId: r.quizId,
+      questionText: r.questionText,
+      options: (r.options as any) || [],
+      userAnswer: r.userAnswer,
+      correctAnswer: r.correctAnswer,
+      explanation: r.explanation,
+      errorReason: r.errorReason,
+      status: r.status as "PENDING" | "MASTERED",
+      masteredAt: r.masteredAt,
+      aiExplanation: r.aiExplanation,
+      mnemonic: r.mnemonic,
+      drillQuestion: (r.drillQuestion as any) || null,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      subject: r.subject,
+      topic: r.topic,
+    }));
+
+    return {
+      success: true,
+      questions,
+      total,
+      hasMore,
+      nextPage,
+      data: {
+        questions,
+        total,
+        hasMore,
+        nextPage,
+      },
+    };
+  } catch (err) {
+    console.error("[getErrorNotebookQuestionsAction] Erro:", err);
+    return {
+      questions: [],
+      total: 0,
+      hasMore: false,
+      nextPage: null,
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao buscar questões do caderno de erros.",
+    };
+  }
 }
 
 /**
