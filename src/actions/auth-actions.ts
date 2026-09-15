@@ -249,15 +249,15 @@ export async function getAbsoluteRedirectUrl(path: string): Promise<string> {
   return cleanPath;
 }
 
-export async function loginWithGoogle() {
-  const redirectTo = await getAbsoluteRedirectUrl("/dashboard");
+export async function loginWithGoogle(callbackUrl: string = "/dashboard") {
+  const redirectTo = await getAbsoluteRedirectUrl(callbackUrl);
   return executeAuthWithRetry("loginWithGoogle", async () => {
     await signIn("google", { redirectTo });
   });
 }
 
-export async function loginWithGithub() {
-  const redirectTo = await getAbsoluteRedirectUrl("/dashboard");
+export async function loginWithGithub(callbackUrl: string = "/dashboard") {
+  const redirectTo = await getAbsoluteRedirectUrl(callbackUrl);
   return executeAuthWithRetry("loginWithGithub", async () => {
     await signIn("github", { redirectTo });
   });
@@ -285,12 +285,49 @@ export async function loginAsGuest() {
 }
 
 export async function logoutAction() {
+  const sessionCookieNames = [
+    "synapse_demo_active",
+    "synapse-demo-session",
+    "auth_token",
+    "authjs.session-token",
+    "__Secure-authjs.session-token",
+    "authjs.csrf-token",
+    "__Host-authjs.csrf-token",
+    "authjs.callback-url",
+    "__Secure-authjs.callback-url",
+    "next-auth.session-token",
+    "__Secure-next-auth.session-token",
+    "next-auth.csrf-token",
+    "next-auth.callback-url",
+  ];
+
   try {
     const cookieStore = await cookies();
-    cookieStore.delete("synapse_demo_active");
+    for (const name of sessionCookieNames) {
+      try {
+        cookieStore.delete(name);
+        cookieStore.set(name, "", {
+          path: "/",
+          maxAge: 0,
+          expires: new Date(0),
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+        });
+      } catch (cookieErr) {
+        console.warn(`Could not clear cookie ${name}:`, cookieErr);
+      }
+    }
   } catch (err) {
-    console.warn("Could not clear demo cookie:", err);
+    console.warn("Could not access cookies in logoutAction:", err);
   }
-  const redirectTo = await getAbsoluteRedirectUrl("/login");
-  await signOut({ redirectTo });
+
+  try {
+    await signOut({ redirect: false });
+  } catch (err) {
+    if (!isRedirectError(err)) {
+      console.warn("signOut error in logoutAction:", err);
+    }
+  }
+
+  return { success: true };
 }

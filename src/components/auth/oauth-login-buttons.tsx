@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { loginWithGoogle, loginWithGithub } from "@/actions/auth-actions";
+import { signIn } from "next-auth/react";
 import {
   ExternalLink,
   ShieldAlert,
@@ -29,7 +29,7 @@ export function OAuthLoginButtons({
   const [modalProvider, setModalProvider] = useState<"google" | "github" | null>(null);
   const [copied, setCopied] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false);
-  const [isPending, setIsPending] = useState(false);
+  const [loadingProvider, setLoadingProvider] = useState<"google" | "github" | null>(null);
 
   const isInIframe = useSyncExternalStore(
     emptySubscribe,
@@ -54,18 +54,34 @@ export function OAuthLoginButtons({
     return `${base}/api/auth/callback/${provider}`;
   };
 
-  const handleOAuthClick = (provider: "google" | "github", e: React.MouseEvent) => {
+  const handleOAuthSignIn = async (provider: "google" | "github") => {
     const isConfigured = provider === "google" ? googleConfigured : githubConfigured;
 
     // Se estiver em iframe OU não configurado, intercepta para evitar tela de erro 403 / conexão recusada
     if (isInIframe || !isConfigured) {
-      e.preventDefault();
       setModalProvider(provider);
       return;
     }
 
-    // Se não estiver em iframe e estiver configurado, permite o submit normal
-    setIsPending(true);
+    if (loadingProvider) return;
+
+    try {
+      setLoadingProvider(provider);
+      const res = (await signIn(provider, {
+        callbackUrl: "/dashboard",
+      })) as { error?: string } | undefined;
+
+      if (res?.error) {
+        console.error(
+          `Falha reportada pela biblioteca de autenticação ao conectar com ${provider}:`,
+          res.error
+        );
+      }
+    } catch (error) {
+      console.error(`Erro ao disparar login social com ${provider}:`, error);
+    } finally {
+      setLoadingProvider(null);
+    }
   };
 
   const handleCopyCallback = (provider: "google" | "github") => {
@@ -109,22 +125,17 @@ export function OAuthLoginButtons({
   return (
     <div className="space-y-3.5">
       {/* Botão Google */}
-      <form
-        action={loginWithGoogle}
-        onSubmit={(e) => {
-          if (isInIframe || !googleConfigured) {
-            e.preventDefault();
-          }
-        }}
+      <button
+        id="btn-oauth-google"
+        type="button"
+        onClick={() => handleOAuthSignIn("google")}
+        disabled={loadingProvider !== null}
+        className="group relative w-full flex items-center justify-center gap-3.5 bg-slate-900/80 hover:bg-slate-800 text-slate-100 border border-white/10 hover:border-violet-500/40 font-bold py-3.5 px-4 rounded-2xl transition-all duration-200 cursor-pointer shadow-lg active:scale-[0.98] text-sm overflow-hidden disabled:opacity-60"
       >
-        <button
-          id="btn-oauth-google"
-          type="submit"
-          onClick={(e) => handleOAuthClick("google", e)}
-          disabled={isPending}
-          className="group relative w-full flex items-center justify-center gap-3.5 bg-slate-900/80 hover:bg-slate-800 text-slate-100 border border-white/10 hover:border-violet-500/40 font-bold py-3.5 px-4 rounded-2xl transition-all duration-200 cursor-pointer shadow-lg active:scale-[0.98] text-sm overflow-hidden disabled:opacity-60"
-        >
-          <div className="absolute inset-0 bg-linear-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute inset-0 bg-linear-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+        {loadingProvider === "google" ? (
+          <Loader2 className="w-4 h-4 text-violet-200 animate-spin shrink-0" />
+        ) : (
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
             <path
               fill="#EA4335"
@@ -143,46 +154,49 @@ export function OAuthLoginButtons({
               d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.2-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"
             />
           </svg>
-          <span className="relative z-10">Continuar com Google</span>
-          {!googleConfigured && (
-            <span className="ml-auto rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-300">
-              Configurar
-            </span>
-          )}
-        </button>
-      </form>
+        )}
+        <span className="relative z-10">
+          {loadingProvider === "google"
+            ? "Conectando ao Google..."
+            : "Continuar com Google"}
+        </span>
+        {!googleConfigured && (
+          <span className="ml-auto rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-300">
+            Configurar
+          </span>
+        )}
+      </button>
 
       {/* Botão GitHub */}
-      <form
-        action={loginWithGithub}
-        onSubmit={(e) => {
-          if (isInIframe || !githubConfigured) {
-            e.preventDefault();
-          }
-        }}
+      <button
+        id="btn-oauth-github"
+        type="button"
+        onClick={() => handleOAuthSignIn("github")}
+        disabled={loadingProvider !== null}
+        className="group relative w-full flex items-center justify-center gap-3.5 bg-slate-900/80 hover:bg-slate-800 text-slate-100 border border-white/10 hover:border-violet-500/40 font-bold py-3.5 px-4 rounded-2xl transition-all duration-200 cursor-pointer shadow-lg active:scale-[0.98] text-sm overflow-hidden disabled:opacity-60"
       >
-        <button
-          id="btn-oauth-github"
-          type="submit"
-          onClick={(e) => handleOAuthClick("github", e)}
-          disabled={isPending}
-          className="group relative w-full flex items-center justify-center gap-3.5 bg-slate-900/80 hover:bg-slate-800 text-slate-100 border border-white/10 hover:border-violet-500/40 font-bold py-3.5 px-4 rounded-2xl transition-all duration-200 cursor-pointer shadow-lg active:scale-[0.98] text-sm overflow-hidden disabled:opacity-60"
-        >
-          <div className="absolute inset-0 bg-linear-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute inset-0 bg-linear-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+        {loadingProvider === "github" ? (
+          <Loader2 className="w-4 h-4 text-violet-200 animate-spin shrink-0" />
+        ) : (
           <svg
             className="w-4 h-4 fill-current text-white shrink-0"
             viewBox="0 0 24 24"
           >
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
           </svg>
-          <span className="relative z-10">Continuar com GitHub</span>
-          {!githubConfigured && (
-            <span className="ml-auto rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-300">
-              Configurar
-            </span>
-          )}
-        </button>
-      </form>
+        )}
+        <span className="relative z-10">
+          {loadingProvider === "github"
+            ? "Conectando ao GitHub..."
+            : "Continuar com GitHub"}
+        </span>
+        {!githubConfigured && (
+          <span className="ml-auto rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-300">
+            Configurar
+          </span>
+        )}
+      </button>
 
       {/* Aviso Sutil de Contexto Iframe */}
       {isInIframe && (
