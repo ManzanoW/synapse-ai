@@ -42,6 +42,8 @@ import { QuestionMinimap } from "./_components/QuestionMinimap";
 import { TimedLaunchModal } from "./_components/TimedLaunchModal";
 import { TimedPacingModal } from "./_components/TimedPacingModal";
 import { ErrorNotebookView } from "../notebook/components/ErrorNotebookView";
+import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
+import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { RegisterQuestionsModal } from "@/components/questions/register-questions-modal";
@@ -216,9 +218,18 @@ export default function QuestoesPage() {
   const [isSyncingSM2, setIsSyncingSM2] = useState(false);
   const [lastEarnedXp, setLastEarnedXp] = useState(0);
 
+  // Modal de Feedback Visual Premium de Geração com IA
+  const [isSimuladoModalOpen, setIsSimuladoModalOpen] = useState(false);
+  const [simuladoGenerationError, setSimuladoGenerationError] = useState<string | null>(null);
+  const [pendingSimuladoData, setPendingSimuladoData] = useState<{
+    questions: QuestaoIA[];
+    quizId: string | null;
+  } | null>(null);
+
   // Modal IA / Edital
   const [materia, setMateria] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
+  const [specificTopic, setSpecificTopic] = useState("");
   const [qtdQuestoes, setQtdQuestoes] = useState("5");
   const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
     "banca",
@@ -353,12 +364,18 @@ export default function QuestoesPage() {
     const paramQuizId = searchParams.get("quizId");
 
     if (paramQuizId) {
-      fetch("/api/questions/list")
-        .then((res) => res.json())
-        .then((json) => {
-          const historyList: QuizHistoryItem[] = json.data || [];
-          const foundQuiz = historyList.find((q) => q.id === paramQuizId);
-
+      fetch(`/api/questions/${paramQuizId}`)
+        .then(async (res) => {
+          if (res.ok) {
+            const json = await res.json();
+            if (json.data) return json.data;
+          }
+          const listRes = await fetch("/api/questions/list");
+          const listJson = await listRes.json();
+          const list: QuizHistoryItem[] = listJson.data || [];
+          return list.find((q) => q.id === paramQuizId);
+        })
+        .then((foundQuiz) => {
           if (foundQuiz && foundQuiz.questions?.length > 0) {
             setCurrentQuizId(foundQuiz.id);
             setQuestions(foundQuiz.questions);
@@ -757,7 +774,13 @@ export default function QuestoesPage() {
   const handleGenerateSimulado = async (e: React.FormEvent) => {
     e.preventDefault();
     if (subjects.length === 0) return;
+
+    // Dispara imediatamente o modal futurista e fecha a tela de configuração
+    setIsAIModalOpen(false);
     setIsGenerating(true);
+    setSimuladoGenerationError(null);
+    setPendingSimuladoData(null);
+    setIsSimuladoModalOpen(true);
 
     try {
       const selectedTopicObj = availableTopics.find(
@@ -775,6 +798,7 @@ export default function QuestoesPage() {
           materia,
           topicoId: selectedTopicId || "ALL",
           topicoNome: topicoNome || "Todos os Tópicos da Matéria",
+          specificTopic: specificTopic.trim() || undefined,
           qtdQuestoes: parseInt(qtdQuestoes, 10),
           dificuldade,
           textoBase,
@@ -782,23 +806,57 @@ export default function QuestoesPage() {
         }),
       });
 
-      const json = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          json.error || json.details || "Falha ao gerar simulado com IA.",
+          data.error || data.details || "Falha ao gerar simulado com IA.",
         );
       }
 
-      if (!json.data || json.data.length === 0) {
-        throw new Error(
-          "A IA não retornou questões para o escopo selecionado.",
-        );
+      const targetId = data.id || data.simuladoId;
+
+      setIsGenerating(false);
+      setIsSimuladoModalOpen(false);
+
+      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+        setQuestions(data.data);
+        setCurrentQuizId(targetId || null);
+        setSelectedAnswers({});
+        setCheckedQuestions({});
+        setFlaggedQuestions({});
+        setErrorClassifications({});
+        setSavedErrors({});
+        setCreatedFlashcards({});
+        setTimerSeconds(0);
+        setFocusedQuestionIndex(0);
+        setIsTimerRunning(true);
       }
 
-      setQuestions(json.data);
-      setCurrentQuizId(json.quizId || null);
-      setIsAIModalOpen(false);
+      if (targetId) {
+        router.push(`/questions/${targetId}`);
+        // Se o projeto usar tabs na mesma página, descomente:
+        // setActiveTab("solve");
+      } else {
+        setActiveTab("history");
+      }
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Erro desconhecido ao gerar questões.";
+      console.error("Erro ao gerar simulado:", msg);
+      setSimuladoGenerationError(msg);
+      setIsSimuladoModalOpen(false);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSimuladoModalComplete = () => {
+    if (pendingSimuladoData) {
+      setQuestions(pendingSimuladoData.questions);
+      setCurrentQuizId(pendingSimuladoData.quizId);
       setSelectedAnswers({});
       setCheckedQuestions({});
       setFlaggedQuestions({});
@@ -806,16 +864,17 @@ export default function QuestoesPage() {
       setSavedErrors({});
       setCreatedFlashcards({});
       setTimerSeconds(0);
-      setFocusedQuestionIndex(0);
+      setFocusedQuestionIndex(0); // Transição direta para a 1ª questão
       setIsTimerRunning(true);
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Erro desconhecido ao gerar questões.";
-      console.error("Erro ao gerar simulado:", msg);
-    } finally {
-      setIsGenerating(false);
+      setIsSimuladoModalOpen(false);
+      setPendingSimuladoData(null);
+
+      // Rola suavemente até o primeiro card de questão
+      setTimeout(() => {
+        document
+          .getElementById("question-card-0")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
     }
   };
 
@@ -970,6 +1029,172 @@ export default function QuestoesPage() {
         <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
         <span>Sincronizando banco de dados cognitivo...</span>
       </div>
+    );
+  }
+
+  if (questions.length > 0 && activeTab === "create") {
+    return (
+      <>
+        <QuizResolutionView
+          quizId={currentQuizId}
+          banca={banca}
+          subject={materia || "Simulado"}
+          questions={questions}
+          initialSelectedAnswers={selectedAnswers}
+          initialCheckedQuestions={checkedQuestions}
+          initialFlaggedQuestions={flaggedQuestions}
+          initialErrorClassifications={errorClassifications}
+          initialTimerSeconds={timerSeconds}
+          isInitialTimerRunning={isTimerRunning && !showCompletionModal}
+          onAnswerQuestion={(index, altId, isCorrect) => {
+            setSelectedAnswers((prev) => ({ ...prev, [index]: altId }));
+            setCheckedQuestions((prev) => ({ ...prev, [index]: true }));
+          }}
+          onFinishQuiz={async (finalData) => {
+            setSelectedAnswers(finalData.selectedAnswers);
+            setCheckedQuestions(finalData.checkedQuestions);
+            setErrorClassifications(finalData.errorClassifications);
+            setTimerSeconds(finalData.timerSeconds);
+            setIsTimerRunning(false);
+
+            const finalCorrect = finalData.correctCount;
+            const finalTotal = finalData.totalQuestions || 1;
+            const finalAcc = Math.round((finalCorrect / finalTotal) * 100);
+
+            await syncQuizWithSM2(finalAcc);
+
+            try {
+              const submissions: QuestionAnswerSubmission[] = questions.map(
+                (q, idx) => ({
+                  questionId: q.id || `q-${idx}`,
+                  subjectId: q.subjectId || currentSubjectObj?.id || "",
+                  topicId: q.topicId || selectedTopicId || undefined,
+                  selectedOption: finalData.selectedAnswers[idx] || "",
+                  isCorrect:
+                    finalData.selectedAnswers[idx] === q.gabaritoCorreto,
+                  timeSpentSeconds: Math.round(
+                    finalData.timerSeconds / finalTotal,
+                  ),
+                  errorReason:
+                    finalData.errorClassifications[idx] || "UNCLASSIFIED",
+                  questionText: q.enunciado,
+                  options: q.alternativas,
+                  correctAnswer: q.gabaritoCorreto,
+                  explanation: q.justificativa,
+                }),
+              );
+
+              const attemptResult = await submitQuizAttemptAction({
+                title: `Simulado ${banca} - ${materia || "Geral"}`,
+                topicId: selectedTopicId || undefined,
+                subjectId: currentSubjectObj?.id || undefined,
+                totalQuestions: finalTotal,
+                correctAnswers: finalCorrect,
+                timeSpentSeconds: finalData.timerSeconds,
+                answers: submissions,
+              });
+
+              const response = await fetch("/api/questions/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  quizId: currentQuizId,
+                  banca: banca || "Geral",
+                  subject: materia?.trim() || "Geral",
+                  topicId: selectedTopicId || null,
+                  difficulty: dificuldade || "Média",
+                  questions: questions.map((q, idx) => ({
+                    ...q,
+                    userAnswer: finalData.selectedAnswers[idx],
+                    isCorrect:
+                      finalData.selectedAnswers[idx] === q.gabaritoCorreto,
+                    errorReason: finalData.errorClassifications[idx] || null,
+                  })),
+                }),
+              });
+
+              const data = await response.json();
+              const earnedXp = attemptResult.success
+                ? attemptResult.data?.earnedXp || data.earnedXp || 0
+                : data.earnedXp || 0;
+
+              setLastEarnedXp(earnedXp);
+
+              window.dispatchEvent(
+                new CustomEvent("xp-updated", {
+                  detail: {
+                    totalXp: data.totalXp,
+                    earnedXp,
+                    levelInfo: data.levelInfo,
+                  },
+                }),
+              );
+
+              const newLevel = data.levelInfo?.level;
+              const previousLevel =
+                gamificationStats?.gamification?.level ?? 1;
+
+              if (newLevel && newLevel > previousLevel) {
+                setLevelUpData({
+                  leveledUp: true,
+                  newLevel,
+                  title: data.levelInfo?.title || "Iniciante Consciente",
+                });
+              }
+              if (refreshStats) await refreshStats();
+            } catch (error) {
+              console.error(
+                "Erro ao registrar simulado e creditar XP:",
+                error,
+              );
+            } finally {
+              setShowCompletionModal(true);
+            }
+          }}
+          onExit={() => {
+            setQuestions([]);
+            setSelectedAnswers({});
+            setCheckedQuestions({});
+            setFlaggedQuestions({});
+            setErrorClassifications({});
+            localStorage.removeItem(STORAGE_KEY);
+            setPausedSession(null);
+            setCurrentQuizId(null);
+            setIsTimerRunning(false);
+            setIsZenMode(false);
+          }}
+          onCreateFlashcard={(index) => handleCreateFlashcard(index)}
+          isCreatingFlashcard={creatingFlashcardIndex !== null}
+          createdFlashcards={createdFlashcards}
+        />
+
+        {showCompletionModal && (
+          <CompletionModal
+            totalQuestions={questions.length}
+            correctCount={
+              Object.keys(checkedQuestions).filter(
+                (idxStr) =>
+                  selectedAnswers[Number(idxStr)] ===
+                  questions[Number(idxStr)]?.gabaritoCorreto,
+              ).length
+            }
+            percentageAcc={percentageAcc}
+            timerSeconds={timerSeconds}
+            lastEarnedXp={lastEarnedXp}
+            isSyncingSM2={isSyncingSM2}
+            levelUpData={levelUpData}
+            onRestart={() => {
+              setSelectedAnswers({});
+              setCheckedQuestions({});
+              setFlaggedQuestions({});
+              setErrorClassifications({});
+              setTimerSeconds(0);
+              setShowCompletionModal(false);
+            }}
+            onReview={() => setShowCompletionModal(false)}
+          />
+        )}
+      </>
     );
   }
 
@@ -1542,6 +1767,7 @@ export default function QuestoesPage() {
         banca={banca}
         materia={materia}
         selectedTopicId={selectedTopicId}
+        specificTopic={specificTopic}
         qtdQuestoes={qtdQuestoes}
         fonteConteudo={fonteConteudo}
         dificuldade={dificuldade}
@@ -1562,11 +1788,26 @@ export default function QuestoesPage() {
           }
         }}
         onTopicChange={setSelectedTopicId}
+        onSpecificTopicChange={setSpecificTopic}
         onFonteChange={setFonteConteudo}
         onTextoBaseChange={setTextoBase}
         onDificuldadeChange={setDificuldade}
         onQtdQuestoesChange={setQtdQuestoes}
         onSubmit={handleGenerateSimulado}
+      />
+
+      <SimuladoGenerationModal
+        isOpen={isSimuladoModalOpen}
+        isGenerating={isGenerating}
+        banca={banca}
+        materia={specificTopic.trim() ? `${materia} (${specificTopic.trim()})` : materia}
+        qtdQuestoes={qtdQuestoes}
+        error={simuladoGenerationError}
+        onComplete={handleSimuladoModalComplete}
+        onClose={() => {
+          setIsSimuladoModalOpen(false);
+          setSimuladoGenerationError(null);
+        }}
       />
 
       <RegisterQuestionsModal

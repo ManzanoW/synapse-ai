@@ -13,7 +13,6 @@ export async function POST(request: Request) {
       materia,
       topicoId,
       topicoNome,
-      specificTopic,
       qtdQuestoes,
       dificuldade,
       textoBase,
@@ -22,7 +21,7 @@ export async function POST(request: Request) {
 
     if (!banca || !materia || !qtdQuestoes) {
       return NextResponse.json(
-        { error: "Parâmetros ausentes." },
+        { error: "Parâmetros obrigatórios ausentes (banca, matéria e quantidade)." },
         { status: 400 },
       );
     }
@@ -33,8 +32,6 @@ export async function POST(request: Request) {
         materia,
         topicoId,
         topicoNome,
-        specificTopic:
-          typeof specificTopic === "string" ? specificTopic.trim() : undefined,
         qtdQuestoes,
         dificuldade,
         textoBase,
@@ -43,23 +40,20 @@ export async function POST(request: Request) {
       userId,
     );
 
-    const simuladoId = result.quizId || result.sessionId;
-    const questions = result.data || [];
-
-    return NextResponse.json({
-      success: true,
-      id: simuladoId,
-      simuladoId: simuladoId,
-      total: questions.length,
-      data: questions,
-      quizId: simuladoId,
-      sessionId: simuladoId,
-      usedModel: result.usedModel,
-      durationMs: result.durationMs,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: result.data,
+        quizId: result.quizId,
+        sessionId: result.sessionId,
+        usedModel: result.usedModel,
+        durationMs: result.durationMs,
+      },
+      { status: 200 },
+    );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Erro Gemini Fallback:", error);
+    console.error("Erro ao gerar simulado em /api/simulados/generate:", error);
 
     return NextResponse.json(
       { error: "Falha ao gerar simulado.", details: errorMessage },

@@ -19,9 +19,11 @@ function getAIClient(): GoogleGenAI {
 
 // Modelos Gemini suportados pelo SDK @google/genai
 const MODELS_CASCADE = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-2.5-pro",
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-3.6-flash",
+  "gemini-3.7-flash",
+  "gemini-3.8-flash",
 ];
 
 export interface GeminiFallbackOptions {
@@ -51,7 +53,9 @@ export async function generateContentWithFallback(
         model: modelName,
         contents: prompt,
         config: {
-          temperature: 0.3,
+          responseMimeType: "application/json",
+          maxOutputTokens: 2048,
+          temperature: 0.7,
           ...config,
         },
       });
@@ -95,6 +99,6 @@ export async function generateContentWithFallback(
   }
 
   throw new Error(
-    `Todos os 8 modelos Gemini da cadeia de fallback falharam ou atingiram o limite diário: ${lastError}`,
+    `Todos os ${MODELS_CASCADE.length} modelos Gemini da cadeia de fallback falharam ou atingiram o limite diário: ${lastError}`,
   );
 }

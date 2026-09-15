@@ -33,6 +33,7 @@ import { PacingBar } from "./_components/PacingBar";
 import { ExamSheetHUD } from "./_components/ExamSheetHUD";
 import { SubmitConfirmModal } from "./_components/SubmitConfirmModal";
 import { TimedExamResultView } from "./_components/TimedExamResultView";
+import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
 
 import {
   submitQuizAttemptAction,
@@ -78,6 +79,8 @@ export default function TimedQuizPage() {
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSimuladoModalOpen, setIsSimuladoModalOpen] = useState(false);
+  const [pendingTimedQuestions, setPendingTimedQuestions] = useState<TimedQuizQuestion[] | null>(null);
 
   // Estado do Exame Ativo
   const [questions, setQuestions] = useState<TimedQuizQuestion[]>([]);
@@ -390,6 +393,8 @@ export default function TimedQuizPage() {
     e.preventDefault();
     setErrorMessage(null);
     setIsGenerating(true);
+    setIsSimuladoModalOpen(true);
+    setPendingTimedQuestions(null);
 
     try {
       const count = parseInt(qtdQuestoes, 10) || 10;
@@ -417,35 +422,43 @@ export default function TimedQuizPage() {
         );
       }
 
-      const generatedQuestions: TimedQuizQuestion[] = json.data;
-      setQuestions(generatedQuestions);
-      setCurrentIndex(0);
-      setSelectedAnswers({});
-      setFlaggedQuestions({});
-      setTimeSpentPerQuestion({});
-
-      // Cálculo do tempo total alocado em segundos
-      let allocated = 1800; // 30 min padrão
-      if (pacingMode === "per_question") {
-        allocated = count * minutesPerQuestion * 60;
-      } else {
-        allocated = totalBlockMinutes * 60;
-      }
-
-      setTotalAllocatedSeconds(allocated);
-      setRemainingSeconds(allocated);
-      endTimeRef.current = Date.now() + allocated * 1000;
-      questionStartTimestampRef.current = Date.now();
-      setIsPaused(false);
-      setIsFocusMode(strictAntiDistraction);
-      setPhase("exam");
+      setPendingTimedQuestions(json.data);
+      setIsGenerating(false);
     } catch (err: unknown) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Falha ao iniciar simulado cronometrado."
-      );
-    } finally {
+      const msg =
+        err instanceof Error ? err.message : "Falha ao iniciar simulado cronometrado.";
+      setErrorMessage(msg);
       setIsGenerating(false);
     }
+  };
+
+  const handleSimuladoModalComplete = () => {
+    if (!pendingTimedQuestions) return;
+
+    const count = pendingTimedQuestions.length;
+    setQuestions(pendingTimedQuestions);
+    setCurrentIndex(0);
+    setSelectedAnswers({});
+    setFlaggedQuestions({});
+    setTimeSpentPerQuestion({});
+
+    // Cálculo do tempo total alocado em segundos
+    let allocated = 1800; // 30 min padrão
+    if (pacingMode === "per_question") {
+      allocated = count * minutesPerQuestion * 60;
+    } else {
+      allocated = totalBlockMinutes * 60;
+    }
+
+    setTotalAllocatedSeconds(allocated);
+    setRemainingSeconds(allocated);
+    endTimeRef.current = Date.now() + allocated * 1000;
+    questionStartTimestampRef.current = Date.now();
+    setIsPaused(false);
+    setIsFocusMode(strictAntiDistraction);
+    setPhase("exam");
+    setIsSimuladoModalOpen(false);
+    setPendingTimedQuestions(null);
   };
 
   // 5. SUBMISSÃO FINAL DO SIMULADO
@@ -1204,6 +1217,20 @@ export default function TimedQuizPage() {
           }}
         />
       )}
+
+      <SimuladoGenerationModal
+        isOpen={isSimuladoModalOpen}
+        isGenerating={isGenerating}
+        banca={banca}
+        materia={materia}
+        qtdQuestoes={qtdQuestoes}
+        error={errorMessage}
+        onComplete={handleSimuladoModalComplete}
+        onClose={() => {
+          setIsSimuladoModalOpen(false);
+          setErrorMessage(null);
+        }}
+      />
     </div>
   );
 }

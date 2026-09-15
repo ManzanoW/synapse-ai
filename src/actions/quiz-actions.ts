@@ -6,6 +6,7 @@ import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
 import { revalidatePath } from "next/cache";
 import { SubmitQuizAttemptInput, SubjectDomainMetric } from "@/types/quiz";
+import { generateContentWithFallback } from "@/lib/gemini-fallback";
 
 export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
   try {
@@ -344,3 +345,117 @@ export async function deleteSavedQuizAction(quizId: string) {
     };
   }
 }
+
+export interface DeepenExplanationInput {
+  enunciado: string;
+  alternativas?: { id: string; texto: string }[];
+  gabaritoCorreto: string;
+  selectedAnswer?: string;
+  justificativaOriginal?: string;
+  banca?: string;
+  subject?: string;
+}
+
+export interface DeepenExplanationResult {
+  overview: string;
+  alternativesAnalysis: {
+    letter: string;
+    isCorrect: boolean;
+    explanation: string;
+  }[];
+  legalBasis?: string;
+  mnemonicTip?: string;
+}
+
+/**
+ * Aprofunda a explicação pedagógica e jurídica de uma questão via IA sob demanda
+ */
+export async function deepenExplanationAction(input: DeepenExplanationInput) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const {
+      enunciado,
+      alternativas = [],
+      gabaritoCorreto,
+      selectedAnswer,
+      justificativaOriginal = "",
+      banca = "Geral",
+      subject = "Conhecimentos Gerais",
+    } = input;
+
+    const altsFormatted = alternativas.length > 0
+      ? alternativas.map((a) => `${a.id}) ${a.texto}`).join("\n")
+      : "Opções: Certo / Errado";
+
+    const prompt = `Você é o tutor cognitivo de elite do Synapse AI para concursos públicos e exames de alto rendimento.
+O candidato solicitou um Aprofundamento Explicativo Detalhado para a seguinte questão:
+
+[CONTEXTO]
+Banca: ${banca}
+Disciplina: ${subject}
+Resposta do candidato: ${selectedAnswer || "Não respondeu ainda"}
+Gabarito Oficial: ${gabaritoCorreto}
+
+[ENUNCIADO]
+${enunciado}
+
+[ALTERNATIVAS]
+${altsFormatted}
+
+[JUSTIFICATIVA BASE DISPONÍVEL]
+${justificativaOriginal}
+
+[SUA TAREFA]
+Retorne um JSON estrito contendo uma dissecação completa e pedagógica da questão, no seguinte formato exato:
+{
+  "overview": "Visão geral estratégica de alto nível sobre o tema cobrado, o raciocínio central que o examinador da banca exigiu e o cerne da controvérsia.",
+  "alternativesAnalysis": [
+    {
+      "letter": "Identificador da alternativa (ex: A, B, C, Certo ou Errado)",
+      "isCorrect": true ou false,
+      "explanation": "Por que esta alternativa está correta ou incorreta, detalhando a pegadinha ou a regra violada."
+    }
+  ],
+  "legalBasis": "Fundamento legal, constitucional, doutrinário, jurisprudencial ou regra normativa exata que fundamenta o tema.",
+  "mnemonicTip": "Mnemônico prático, regra de ouro ou gatilho mental para o candidato memorizar e nunca mais cair nessa pegadinha."
+}
+Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
+
+    const aiRes = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+      },
+    });
+
+    let parsed: DeepenExplanationResult;
+    try {
+      const cleaned = aiRes.text.replace(/```json/g, "").replace(/```/g, "").trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = {
+        overview: aiRes.text,
+        alternativesAnalysis: [],
+        legalBasis: "Fundamentação extraída via análise neural.",
+        mnemonicTip: "Revise com atenção as palavras restritivas do comando da questão.",
+      };
+    }
+
+    return {
+      success: true,
+      data: parsed,
+    };
+  } catch (err) {
+    console.error("Erro em deepenExplanationAction:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao aprofundar explicação com IA.",
+    };
+  }
+}
+
