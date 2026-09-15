@@ -1,6 +1,6 @@
 "use server";
 
-import { signIn, signOut } from "@/auth";
+import { getBaseUrl, signIn, signOut } from "@/auth";
 import { cookies, headers } from "next/headers";
 
 interface RetryOptions {
@@ -207,11 +207,17 @@ async function executeAuthWithRetry<T>(
 
 /**
  * Resolves an absolute URL for redirects in standalone output / container environments.
- * Uses x-forwarded-host, x-forwarded-proto, or AUTH_URL/NEXTAUTH_URL environment variables
- * to ensure redirects retain full host and protocol context behind reverse proxies.
+ * Prioritizes the stable base URL resolved by getBaseUrl() to avoid redirect_uri_mismatch
+ * errors caused by unique Vercel deployment hashes.
  */
 export async function getAbsoluteRedirectUrl(path: string): Promise<string> {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  // Se estiver na Vercel (Preview ou Produção), prioriza SEMPRE a URL estável do getBaseUrl()
+  if (process.env.VERCEL_BRANCH_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_ENV) {
+    const host = getBaseUrl();
+    return `${host}${cleanPath}`;
+  }
 
   try {
     const headersList = await headers();
@@ -227,26 +233,11 @@ export async function getAbsoluteRedirectUrl(path: string): Promise<string> {
       return `${forwardedProto}://${forwardedHost}${cleanPath}`;
     }
   } catch {
-    // headers() might fail in some contexts, fall back to environment variables
+    // headers() might fail in some contexts, fall back to getBaseUrl()
   }
 
-  // Em ambiente Vercel Preview, prioriza SEMPRE a URL dinâmica da branch (VERCEL_URL)
-  if (process.env.VERCEL_URL && (process.env.VERCEL_ENV === "preview" || !process.env.AUTH_URL)) {
-    return `https://${process.env.VERCEL_URL}${cleanPath}`;
-  }
-
-  const envBase =
-    process.env.AUTH_URL ||
-    process.env.NEXTAUTH_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
-
-  if (envBase) {
-    const base = envBase.endsWith("/") ? envBase.slice(0, -1) : envBase;
-    return `${base}${cleanPath}`;
-  }
-
-  // Fallback to clean path if host context cannot be resolved
-  return cleanPath;
+  const host = getBaseUrl();
+  return `${host}${cleanPath}`;
 }
 
 export async function loginWithGoogle(callbackUrl: string = "/dashboard") {

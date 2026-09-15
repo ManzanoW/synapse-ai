@@ -3,25 +3,10 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
-import { authConfig } from "./auth.config";
+import { authConfig, getBaseUrl, baseUrl } from "./auth.config";
 import { cookies, headers } from "next/headers";
 
-// Prioriza ambiente de preview da Vercel configurando variáveis dinâmicas se presentes
-if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL) {
-  const previewUrl = process.env.VERCEL_URL.startsWith("http")
-    ? process.env.VERCEL_URL
-    : `https://${process.env.VERCEL_URL}`;
-  process.env.AUTH_URL = previewUrl;
-  process.env.NEXTAUTH_URL = previewUrl;
-}
-
-process.env.AUTH_TRUST_HOST = "true";
-
-export const baseUrl =
-  (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL)
-    ? (process.env.VERCEL_URL.startsWith("http") ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
-    : (process.env.NEXTAUTH_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"));
+export { getBaseUrl, baseUrl };
 
 const hasRealDb = !!process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("mock");
 
@@ -71,37 +56,15 @@ export const authOptions: NextAuthConfig = {
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async redirect({ url, baseUrl: fallbackBaseUrl }) {
-      const currentBaseUrl =
-        (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL)
-          ? (process.env.VERCEL_URL.startsWith("http") ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
-          : (process.env.NEXTAUTH_URL ||
-            (process.env.VERCEL_URL
-              ? (process.env.VERCEL_URL.startsWith("http") ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
-              : fallbackBaseUrl || "http://localhost:3000"));
-
-      // URLs relativas: garantir retorno para a mesma origem do deploy atual
-      if (url.startsWith("/")) {
-        return `${currentBaseUrl}${url}`;
-      }
-
-      // Permite redirecionamento se a URL pertencer à mesma origem
+    async redirect({ url, baseUrl: _baseUrl }) {
+      const host = getBaseUrl();
+      if (url.startsWith("/")) return `${host}${url}`;
       try {
-        const candidateUrl = new URL(url);
-        const originUrl = new URL(currentBaseUrl);
-        if (candidateUrl.origin === originUrl.origin) {
-          return url;
-        }
-
-        // Se estiver em preview da Vercel e a URL redirecionar para a mesma aplicação com outro host
-        if (process.env.VERCEL_ENV === "preview" && candidateUrl.pathname) {
-          return `${currentBaseUrl}${candidateUrl.pathname}${candidateUrl.search}${candidateUrl.hash}`;
-        }
+        if (new URL(url).origin === new URL(host).origin) return url;
       } catch {
-        // Fallback seguro se a URL for inválida
+        // Fallback se a URL for inválida
       }
-
-      return currentBaseUrl;
+      return host;
     },
     async jwt({ token, user }) {
       if (user) {

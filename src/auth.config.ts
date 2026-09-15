@@ -2,22 +2,34 @@ import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 
-// Prioriza ambiente de preview da Vercel configurando variáveis dinâmicas se presentes
-if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL) {
-  const previewUrl = process.env.VERCEL_URL.startsWith("http")
-    ? process.env.VERCEL_URL
-    : `https://${process.env.VERCEL_URL}`;
-  process.env.AUTH_URL = previewUrl;
-  process.env.NEXTAUTH_URL = previewUrl;
+export function getBaseUrl(): string {
+  // 1. Se houver NEXTAUTH_URL explícita (e não for preview dinâmico)
+  if (
+    process.env.NEXTAUTH_URL &&
+    !process.env.NEXTAUTH_URL.includes("localhost") &&
+    process.env.NODE_ENV === "production" &&
+    process.env.VERCEL_ENV === "production"
+  ) {
+    return process.env.NEXTAUTH_URL;
+  }
+  // 2. URL estável da branch na Vercel (ex: git-dev)
+  if (process.env.VERCEL_BRANCH_URL) {
+    return `https://${process.env.VERCEL_BRANCH_URL}`;
+  }
+  // 3. Fallback para VERCEL_PROJECT_PRODUCTION_URL
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  // 4. Desenvolvimento local
+  return "http://localhost:3000";
 }
 
+const host = getBaseUrl();
+process.env.AUTH_URL = host;
+process.env.NEXTAUTH_URL = host;
 process.env.AUTH_TRUST_HOST = "true";
 
-export const baseUrl =
-  (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL)
-    ? (process.env.VERCEL_URL.startsWith("http") ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
-    : (process.env.NEXTAUTH_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"));
+export const baseUrl = host;
 
 function getRequestBaseUrl(request: { headers: Headers; nextUrl?: { host?: string; protocol?: string; origin?: string } }): string {
   const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
@@ -52,37 +64,15 @@ export const authConfig = {
     },
   },
   callbacks: {
-    async redirect({ url, baseUrl: fallbackBaseUrl }) {
-      const currentBaseUrl =
-        (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL)
-          ? (process.env.VERCEL_URL.startsWith("http") ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
-          : (process.env.NEXTAUTH_URL ||
-            (process.env.VERCEL_URL
-              ? (process.env.VERCEL_URL.startsWith("http") ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
-              : fallbackBaseUrl || "http://localhost:3000"));
-
-      // URLs relativas: garantir retorno para a mesma origem do deploy atual
-      if (url.startsWith("/")) {
-        return `${currentBaseUrl}${url}`;
-      }
-
-      // Permite redirecionamento se a URL pertencer à mesma origem
+    async redirect({ url, baseUrl: _baseUrl }) {
+      const host = getBaseUrl();
+      if (url.startsWith("/")) return `${host}${url}`;
       try {
-        const candidateUrl = new URL(url);
-        const originUrl = new URL(currentBaseUrl);
-        if (candidateUrl.origin === originUrl.origin) {
-          return url;
-        }
-
-        // Se estiver em preview da Vercel e a URL redirecionar para a mesma aplicação com outro host (ex: domínio de prod)
-        if (process.env.VERCEL_ENV === "preview" && candidateUrl.pathname) {
-          return `${currentBaseUrl}${candidateUrl.pathname}${candidateUrl.search}${candidateUrl.hash}`;
-        }
+        if (new URL(url).origin === new URL(host).origin) return url;
       } catch {
-        // Fallback seguro se a URL for inválida
+        // Fallback se a URL for inválida
       }
-
-      return currentBaseUrl;
+      return host;
     },
     authorized({ auth, request }) {
       const { nextUrl, cookies, headers } = request;
