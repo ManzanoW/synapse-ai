@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { QuizResolutionView } from "@/components/study/QuizResolutionView";
-import { CompletionModal } from "../_components/CompletionModal";
+import { QuizResultView } from "@/components/study/QuizResultView";
 import { QuestaoIA } from "../page";
 import { submitQuizAttemptAction } from "@/actions/quiz-actions";
 import { useGamification } from "@/context/GamificationContext";
@@ -24,6 +24,7 @@ export function QuestionIdClient({ quiz }: QuestionIdClientProps) {
   const router = useRouter();
   const { refreshStats } = useGamification();
 
+  const [viewMode, setViewMode] = useState<"quiz" | "results">("quiz");
   const [questions, setQuestions] = useState<QuestaoIA[]>(quiz.questions || []);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [checkedQuestions, setCheckedQuestions] = useState<Record<number, boolean>>({});
@@ -32,11 +33,8 @@ export function QuestionIdClient({ quiz }: QuestionIdClientProps) {
   >({});
   const [timerSeconds, setTimerSeconds] = useState(0);
 
-  // Completion modal state
-  const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const [finalCorrectCount, setFinalCorrectCount] = useState(0);
+  // Gamificação e resultados
   const [lastEarnedXp, setLastEarnedXp] = useState(0);
-  const [isSyncingSM2, setIsSyncingSM2] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{
     leveledUp: boolean;
     newLevel: number;
@@ -92,7 +90,6 @@ export function QuestionIdClient({ quiz }: QuestionIdClientProps) {
     checkedQuestions: Record<number, boolean>;
     errorClassifications: Record<number, ErrorClassification>;
   }) => {
-    setFinalCorrectCount(finalData.correctCount);
     setTimerSeconds(finalData.timerSeconds);
     setSelectedAnswers(finalData.selectedAnswers);
     setCheckedQuestions(finalData.checkedQuestions);
@@ -103,7 +100,6 @@ export function QuestionIdClient({ quiz }: QuestionIdClientProps) {
 
     // Sincronização SM-2
     if (quiz.topicId) {
-      setIsSyncingSM2(true);
       let grade = 1;
       if (accuracy >= 95) grade = 5;
       else if (accuracy >= 85) grade = 4;
@@ -122,8 +118,6 @@ export function QuestionIdClient({ quiz }: QuestionIdClientProps) {
         });
       } catch (err) {
         console.error("Erro SM-2:", err);
-      } finally {
-        setIsSyncingSM2(false);
       }
     }
 
@@ -162,7 +156,7 @@ export function QuestionIdClient({ quiz }: QuestionIdClientProps) {
       console.error("Erro ao registrar tentativa:", err);
     }
 
-    setShowCompletionModal(true);
+    setViewMode("results");
   };
 
   const handleRestart = () => {
@@ -170,46 +164,45 @@ export function QuestionIdClient({ quiz }: QuestionIdClientProps) {
     setCheckedQuestions({});
     setErrorClassifications({});
     setTimerSeconds(0);
-    setShowCompletionModal(false);
+    setViewMode("quiz");
   };
 
-  return (
-    <>
-      <QuizResolutionView
+  if (viewMode === "results") {
+    return (
+      <QuizResultView
         quizId={quiz.id}
         banca={quiz.banca}
         subject={quiz.subject}
+        topicId={quiz.topicId}
         questions={questions}
-        initialSelectedAnswers={selectedAnswers}
-        initialCheckedQuestions={checkedQuestions}
-        initialErrorClassifications={errorClassifications}
-        initialTimerSeconds={timerSeconds}
-        isInitialTimerRunning={!showCompletionModal}
-        onAnswerQuestion={handleAnswerQuestion}
-        onFinishQuiz={handleFinishQuiz}
+        selectedAnswers={selectedAnswers}
+        timerSeconds={timerSeconds}
+        earnedXp={lastEarnedXp}
+        levelUpData={levelUpData}
+        onRestart={handleRestart}
         onExit={() => router.push("/questions")}
-        onCreateFlashcard={handleCreateFlashcard}
-        isCreatingFlashcard={isCreatingFlashcard}
-        createdFlashcards={createdFlashcards}
       />
+    );
+  }
 
-      {showCompletionModal && (
-        <CompletionModal
-          totalQuestions={questions.length}
-          correctCount={finalCorrectCount}
-          percentageAcc={
-            questions.length > 0
-              ? Math.round((finalCorrectCount / questions.length) * 100)
-              : 0
-          }
-          timerSeconds={timerSeconds}
-          lastEarnedXp={lastEarnedXp}
-          isSyncingSM2={isSyncingSM2}
-          levelUpData={levelUpData}
-          onRestart={handleRestart}
-          onReview={() => setShowCompletionModal(false)}
-        />
-      )}
-    </>
+  return (
+    <QuizResolutionView
+      quizId={quiz.id}
+      banca={quiz.banca}
+      subject={quiz.subject}
+      questions={questions}
+      initialSelectedAnswers={selectedAnswers}
+      initialCheckedQuestions={checkedQuestions}
+      initialErrorClassifications={errorClassifications}
+      initialTimerSeconds={timerSeconds}
+      isInitialTimerRunning={viewMode === "quiz"}
+      onAnswerQuestion={handleAnswerQuestion}
+      onFinishQuiz={handleFinishQuiz}
+      onExit={() => router.push("/questions")}
+      onCreateFlashcard={handleCreateFlashcard}
+      isCreatingFlashcard={isCreatingFlashcard}
+      createdFlashcards={createdFlashcards}
+    />
   );
 }
+

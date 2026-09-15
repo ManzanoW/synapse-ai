@@ -1065,3 +1065,128 @@ export async function autoClassifyPendingErrorsAction(): Promise<{
     error: res.error,
   };
 }
+
+export interface WrongQuestionItem {
+  questionText: string;
+  options?: any;
+  userAnswer: string;
+  correctAnswer: string;
+  explanation?: string | null;
+  errorReason?: string;
+  subjectId?: string | null;
+  topicId?: string | null;
+}
+
+export interface SaveWrongQuestionsInput {
+  quizId?: string | null;
+  subjectId?: string | null;
+  topicId?: string | null;
+  questions: WrongQuestionItem[];
+}
+
+/**
+ * Persiste as questões incorretas diretamente no Caderno de Erros com validação de unicidade.
+ */
+export async function saveWrongQuestionsToNotebookAction(
+  input: SaveWrongQuestionsInput,
+): Promise<{
+  success: boolean;
+  countAdded?: number;
+  alreadyExisted?: number;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    if (!Array.isArray(input.questions) || input.questions.length === 0) {
+      return {
+        success: true,
+        countAdded: 0,
+        alreadyExisted: 0,
+        message: "Nenhuma questão incorreta para salvar.",
+      };
+    }
+
+    // Busca erros existentes do usuário para evitar duplicatas
+    const existingErrors = await prisma.questionError.findMany({
+      where: { userId },
+      select: { questionText: true },
+    });
+
+    const existingKeys = new Set(
+      existingErrors.map((r: any) => normalizeQuestionKey(r.questionText)),
+    );
+
+    const toInsert: any[] = [];
+    let alreadyExisted = 0;
+    const seenInBatch = new Set<string>();
+
+    for (const q of input.questions) {
+      if (!q.questionText || typeof q.questionText !== "string") continue;
+      const key = normalizeQuestionKey(q.questionText);
+      if (!key) continue;
+
+      if (existingKeys.has(key) || seenInBatch.has(key)) {
+        alreadyExisted++;
+        continue;
+      }
+
+      seenInBatch.add(key);
+
+      const normalizedReason = normalizeTaxonomy(q.errorReason || "UNCLASSIFIED");
+
+      toInsert.push({
+        userId,
+        subjectId: q.subjectId || input.subjectId || null,
+        topicId: q.topicId || input.topicId || null,
+        quizId: input.quizId || null,
+        questionText: q.questionText.trim(),
+        options: q.options || [],
+        userAnswer: String(q.userAnswer || "Não informada"),
+        correctAnswer: String(q.correctAnswer || "A"),
+        explanation: q.explanation || null,
+        errorReason: normalizedReason,
+        status: "PENDING",
+      });
+    }
+
+    if (toInsert.length > 0) {
+      await prisma.questionError.createMany({
+        data: toInsert,
+      });
+    }
+
+    try {
+      revalidatePath("/notebook");
+      revalidatePath("/questions");
+    } catch {}
+
+    return {
+      success: true,
+      countAdded: toInsert.length,
+      alreadyExisted,
+      message:
+        toInsert.length > 0
+          ? `${toInsert.length} questão(ões) adicionada(s) ao Caderno de Erros!`
+          : alreadyExisted > 0
+            ? "As questões incorretas já estão salvas no seu Caderno de Erros."
+            : "Nenhuma questão para salvar.",
+    };
+  } catch (err) {
+    console.error("[saveWrongQuestionsToNotebookAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao salvar questões no caderno de erros.",
+    };
+  }
+}
+

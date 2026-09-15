@@ -36,6 +36,7 @@ import {
 } from "./_components/ResumeSessionCard";
 import { QuestionCard } from "./_components/QuestionCard";
 import { CompletionModal } from "./_components/CompletionModal";
+import { QuizResultView } from "@/components/study/QuizResultView";
 import { QuizHistoryTab } from "./_components/QuizHistoryTab";
 import { GenerateAIModal } from "./_components/GenerateAIModal";
 import { QuestionMinimap } from "./_components/QuestionMinimap";
@@ -1169,30 +1170,38 @@ export default function QuestoesPage() {
         />
 
         {showCompletionModal && (
-          <CompletionModal
-            totalQuestions={questions.length}
-            correctCount={
-              Object.keys(checkedQuestions).filter(
-                (idxStr) =>
-                  selectedAnswers[Number(idxStr)] ===
-                  questions[Number(idxStr)]?.gabaritoCorreto,
-              ).length
-            }
-            percentageAcc={percentageAcc}
-            timerSeconds={timerSeconds}
-            lastEarnedXp={lastEarnedXp}
-            isSyncingSM2={isSyncingSM2}
-            levelUpData={levelUpData}
-            onRestart={() => {
-              setSelectedAnswers({});
-              setCheckedQuestions({});
-              setFlaggedQuestions({});
-              setErrorClassifications({});
-              setTimerSeconds(0);
-              setShowCompletionModal(false);
-            }}
-            onReview={() => setShowCompletionModal(false)}
-          />
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-[#030712] animate-in fade-in duration-300">
+            <QuizResultView
+              quizId={currentQuizId}
+              banca={banca}
+              subject={materia || "Simulado"}
+              topicId={selectedTopicId || null}
+              questions={questions}
+              selectedAnswers={selectedAnswers}
+              timerSeconds={timerSeconds}
+              earnedXp={lastEarnedXp}
+              levelUpData={levelUpData}
+              onRestart={() => {
+                setSelectedAnswers({});
+                setCheckedQuestions({});
+                setFlaggedQuestions({});
+                setErrorClassifications({});
+                setTimerSeconds(0);
+                setIsTimerRunning(true);
+                setShowCompletionModal(false);
+              }}
+              onExit={() => {
+                setQuestions([]);
+                setSelectedAnswers({});
+                setCheckedQuestions({});
+                setFlaggedQuestions({});
+                setErrorClassifications({});
+                setTimerSeconds(0);
+                setIsTimerRunning(false);
+                setShowCompletionModal(false);
+              }}
+            />
+          </div>
         )}
       </>
     );
