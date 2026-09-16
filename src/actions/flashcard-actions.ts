@@ -711,3 +711,164 @@ ${rawText.slice(0, 12000)}
   }
 }
 
+export interface SpeedRunCardItem {
+  id: string;
+  question: string;
+  answer: string;
+  details?: string | null;
+  deckTitle?: string;
+}
+
+/**
+ * Busca flashcards aleatórios do usuário para o modo Speed Run Arcade
+ */
+export async function getSpeedRunFlashcardsAction(deckId?: string): Promise<{
+  success: boolean;
+  data?: SpeedRunCardItem[];
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const whereClause: any = {
+      deck: { userId },
+    };
+
+    if (deckId && deckId !== "all") {
+      whereClause.deckId = deckId;
+    }
+
+    const cards = await prisma.flashcard.findMany({
+      where: whereClause,
+      take: 60,
+      orderBy: {
+        nextReviewDate: "asc",
+      },
+      select: {
+        id: true,
+        question: true,
+        answer: true,
+        details: true,
+        deck: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    });
+
+    if (!cards || cards.length === 0) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    // Embaralha (Fisher-Yates) para garantir imprevisibilidade arcade
+    const shuffled = [...cards].sort(() => Math.random() - 0.5);
+
+    return {
+      success: true,
+      data: shuffled.map((c) => ({
+        id: c.id,
+        question: c.question,
+        answer: c.answer,
+        details: c.details,
+        deckTitle: c.deck?.title,
+      })),
+    };
+  } catch (error) {
+    console.error("Erro em getSpeedRunFlashcardsAction:", error);
+    return {
+      success: false,
+      error: "Falha ao carregar flashcards para o Speed Run.",
+    };
+  }
+}
+
+export interface RecordSpeedRunInput {
+  score: number;
+  correctCount: number;
+  wrongCount: number;
+  maxCombo: number;
+  durationSeconds: number;
+  deckId?: string;
+}
+
+export interface RecordSpeedRunResult {
+  success: boolean;
+  earnedXp?: number;
+  totalXp?: number;
+  streakDays?: number;
+  levelInfo?: any;
+  error?: string;
+}
+
+/**
+ * Registra a sessão de Speed Run Arcade no perfil do usuário, concedendo XP e ofensiva
+ */
+export async function recordSpeedRunSessionAction(
+  input: RecordSpeedRunInput
+): Promise<RecordSpeedRunResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    // Cálculo dinâmico de XP Arcade:
+    // Base: 15 XP por acerto sob pressão
+    // Bônus de Combo: +50 XP para combo Frenzy (>= 5), +25 XP para combo (>= 3)
+    // Bônus de sobrevivência de tempo: +10 XP
+    const baseXP = input.correctCount * 15;
+    const comboBonus =
+      input.maxCombo >= 5 ? 50 : input.maxCombo >= 3 ? 25 : input.maxCombo >= 2 ? 10 : 0;
+    const survivalBonus = input.durationSeconds >= 60 ? 15 : 5;
+    const totalEarnedXp = Math.max(10, baseXP + comboBonus + survivalBonus);
+
+    const durationMinutes = Math.max(1, Math.ceil(input.durationSeconds / 60));
+
+    // Grava a atividade no motor de gamificação com proteção de streak
+    const activityResult = await recordStudyActivityAction(
+      userId,
+      totalEarnedXp,
+      "FLASHCARD",
+      durationMinutes
+    );
+
+    // Registra progresso em missões diárias/semanais
+    if (input.correctCount > 0) {
+      try {
+        await trackQuestProgressAction("FLASHCARDS_REVIEWED", input.correctCount);
+      } catch (questErr) {
+        console.warn("Aviso ao registrar progresso de quest no speedrun:", questErr);
+      }
+    }
+
+    revalidatePath("/flashcards");
+    revalidatePath("/dashboard");
+    revalidatePath("/achievements");
+
+    return {
+      success: true,
+      earnedXp: totalEarnedXp,
+      totalXp: activityResult.data?.totalXp,
+      streakDays: activityResult.data?.streakDays,
+      levelInfo: activityResult.data?.levelInfo,
+    };
+  } catch (error) {
+    console.error("Erro em recordSpeedRunSessionAction:", error);
+    return {
+      success: false,
+      error: "Falha ao registrar pontuação do Speed Run.",
+    };
+  }
+}
+

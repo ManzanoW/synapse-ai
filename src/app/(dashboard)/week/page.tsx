@@ -23,6 +23,7 @@ import {
   Play,
   Pause,
   RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
@@ -30,6 +31,7 @@ import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { AdaptiveRebalanceBanner } from "@/components/week/AdaptiveRebalanceBanner";
 import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
 import { EditalEmptyState } from "@/components/edital-empty-state";
+import { EmergencyRescheduleModal } from "@/components/week/EmergencyRescheduleModal";
 
 const HIGH_CONTRAST_PALETTE = [
   "#f43f5e",
@@ -118,6 +120,7 @@ export default function WeekPage() {
   const [studyMode, setStudyMode] = useState<"WEEKLY" | "CYCLE">("WEEKLY");
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
   const [isPending, startTransition] = useTransition();
 
@@ -574,6 +577,17 @@ export default function WeekPage() {
           </Link>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEmergencyModalOpen(true)}
+              disabled={!hasSubjects}
+              title="A rotina apertou? Reorganize a semana com IA"
+              className="flex items-center gap-1.5 text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <AlertTriangle size={14} className="text-rose-400" />
+              <span className="hidden sm:inline">SOS Emergência</span>
+              <span className="sm:hidden">SOS</span>
+            </button>
+
             <button
               onClick={handleTriggerRebalance}
               disabled={isPending || !hasSubjects}
@@ -1416,6 +1430,13 @@ export default function WeekPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Replanejamento Emergencial com IA */}
+      <EmergencyRescheduleModal
+        isOpen={isEmergencyModalOpen}
+        onClose={() => setIsEmergencyModalOpen(false)}
+        onApplied={() => loadWeekData()}
+      />
     </div>
   );
 }

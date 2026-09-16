@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { TurboFlashcardExtractorModal } from "./TurboFlashcardExtractorModal";
 import { AudioFlashcardPlayerModal } from "./AudioFlashcardPlayerModal";
+import { FlashcardSpeedRunModal } from "./FlashcardSpeedRunModal";
 import { AudioFlashcardItem } from "@/hooks/useAudioFlashcards";
 
 interface FlashcardsHeroActionsProps {
@@ -29,6 +30,7 @@ export function FlashcardsHeroActions({
 }: FlashcardsHeroActionsProps) {
   const [isExtractorOpen, setIsExtractorOpen] = useState(false);
   const [isAudioOpen, setIsAudioOpen] = useState(false);
+  const [isSpeedRunOpen, setIsSpeedRunOpen] = useState(false);
 
   return (
     <>
@@ -84,6 +86,21 @@ export function FlashcardsHeroActions({
             </button>
           )}
 
+          {/* Botão Speed Run Arcade (60s) */}
+          {totalCards > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsSpeedRunOpen(true)}
+              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 hover:from-amber-500/25 hover:to-orange-500/25 text-amber-300 border border-amber-500/30 hover:border-amber-400/60 text-xs font-bold px-4 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-sm"
+            >
+              <Zap size={14} className="text-amber-400 fill-amber-400/40" />
+              <span>Speed Run Arcade</span>
+              <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-200">
+                60s
+              </span>
+            </button>
+          )}
+
           {/* Gerenciar Coleções */}
           <Link
             href="/flashcards/decks"
@@ -108,6 +125,13 @@ export function FlashcardsHeroActions({
         onClose={() => setIsAudioOpen(false)}
         cards={audioCards}
         deckTitle="Revisão Rápida em Áudio"
+      />
+
+      {/* Modal Speed Run Arcade (60s) */}
+      <FlashcardSpeedRunModal
+        isOpen={isSpeedRunOpen}
+        onClose={() => setIsSpeedRunOpen(false)}
+        decks={decks}
       />
     </>
   );

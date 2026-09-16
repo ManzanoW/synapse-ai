@@ -375,3 +375,214 @@ export async function checkRebalanceNeedsAction(): Promise<{
     return { success: false, error: "Falha ao verificar rebalanceamento." };
   }
 }
+
+export type EmergencyScenario =
+  | "MISSED_TODAY"
+  | "SURVIVAL_MICRO"
+  | "REDUCE_LOAD"
+  | "CORE_FOCUS";
+
+export interface EmergencyRescheduleInput {
+  scenario: EmergencyScenario;
+  availableMinutesToday?: number;
+}
+
+export interface EmergencyRescheduleResult {
+  success: boolean;
+  scenario?: EmergencyScenario;
+  message?: string;
+  affectedSubjects?: string[];
+  recommendation?: string;
+  error?: string;
+}
+
+/**
+ * Replanejamento Emergencial com Inteligência Artificial
+ * Salva a rotina de estudos do concurseiro redistribuindo a carga de forma inteligente
+ */
+export async function emergencyRescheduleAction(
+  input: EmergencyRescheduleInput
+): Promise<EmergencyRescheduleResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        weeklyGoalHours: true,
+        activeDaysPerWeek: true,
+        studyMode: true,
+      },
+    });
+
+    const subjects = await prisma.subject.findMany({
+      where: { userId },
+      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+    });
+
+    if (!subjects || subjects.length === 0) {
+      return {
+        success: false,
+        error: "Nenhuma disciplina cadastrada para replanejamento.",
+      };
+    }
+
+    const todayIndex = new Date().getDay(); // 0 a 6
+    const remainingDays = [1, 2, 3, 4, 5, 6].filter((d) => d > todayIndex);
+    const fallbackDays = remainingDays.length > 0 ? remainingDays : [1, 2, 3, 4, 5];
+
+    let message = "";
+    let affectedSubjects: string[] = [];
+
+    // ================= CENÁRIO 1: PERDI O DIA DE HOJE =================
+    if (input.scenario === "MISSED_TODAY") {
+      const todaySubjects = subjects.filter((s) => s.assignedDay === todayIndex);
+      const targets = todaySubjects.length > 0 ? todaySubjects : subjects.slice(0, 2);
+
+      for (let i = 0; i < targets.length; i++) {
+        const sub = targets[i];
+        const nextDay = fallbackDays[i % fallbackDays.length];
+        await prisma.subject.update({
+          where: { id: sub.id },
+          data: {
+            assignedDay: nextDay,
+            priority: Math.max(10, (sub.priority || 50) + 10),
+            updatedAt: new Date(),
+          },
+        });
+        affectedSubjects.push(sub.name);
+      }
+
+      message =
+        "Replanejamento concluído com sucesso! Os estudos de hoje foram redistribuídos suavemente para os próximos dias da semana, protegendo o seu edital sem sobrecarga no fim de semana.";
+    }
+
+    // ================= CENÁRIO 2: MICRO-REVISÃO DE SOBREVIVÊNCIA =================
+    else if (input.scenario === "SURVIVAL_MICRO") {
+      const minutes = input.availableMinutesToday || 30;
+      const todaySubjects = subjects.filter((s) => s.assignedDay === todayIndex);
+      const primaryList = todaySubjects.length > 0 ? todaySubjects : subjects;
+
+      // Matéria mais importante fica hoje
+      const topSubject = primaryList[0];
+      const otherSubjects = primaryList.slice(1);
+
+      await prisma.subject.update({
+        where: { id: topSubject.id },
+        data: {
+          assignedDay: todayIndex,
+          priority: Math.max(10, (topSubject.priority || 50) + 15),
+          updatedAt: new Date(),
+        },
+      });
+      affectedSubjects.push(topSubject.name);
+
+      // As outras matérias vão para os próximos dias
+      for (let i = 0; i < otherSubjects.length; i++) {
+        const sub = otherSubjects[i];
+        const targetDay = fallbackDays[i % fallbackDays.length];
+        await prisma.subject.update({
+          where: { id: sub.id },
+          data: {
+            assignedDay: targetDay,
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      message = `Modo Sobrevivência ativado! Plano condensado para ${minutes} minutos hoje focando exclusivamente em ${topSubject.name}. O restante foi remanejado sem perder a ofensiva!`;
+    }
+
+    // ================= CENÁRIO 3: SEMANA CAÓTICA (REDUÇÃO DE 30%) =================
+    else if (input.scenario === "REDUCE_LOAD") {
+      const currentHours = user?.weeklyGoalHours || 10;
+      const newHours = Math.max(3, Math.round(currentHours * 0.7));
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          weeklyGoalHours: newHours,
+        },
+      });
+
+      // Suaviza as prioridades de todas as matérias
+      for (const sub of subjects) {
+        await prisma.subject.update({
+          where: { id: sub.id },
+          data: {
+            priority: Math.max(10, Math.round((sub.priority || 50) * 0.8)),
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      affectedSubjects = subjects.map((s) => s.name);
+      message = `Meta semanal reduzida temporariamente de ${currentHours}h para ${newHours}h (-30%). O foco desta semana é manter a constância e respirar sem culpa.`;
+    }
+
+    // ================= CENÁRIO 4: BLINDAGEM DE EDITAL (FOCO CORE) =================
+    else if (input.scenario === "CORE_FOCUS") {
+      const halfCount = Math.max(1, Math.ceil(subjects.length / 2));
+      const topSubjects = subjects.slice(0, halfCount);
+      const secondarySubjects = subjects.slice(halfCount);
+
+      // Eleva matérias principais
+      for (const sub of topSubjects) {
+        await prisma.subject.update({
+          where: { id: sub.id },
+          data: {
+            priority: Math.round((sub.priority || 50) * 1.4),
+            updatedAt: new Date(),
+          },
+        });
+        affectedSubjects.push(sub.name);
+      }
+
+      // Reduz matérias secundárias
+      for (const sub of secondarySubjects) {
+        await prisma.subject.update({
+          where: { id: sub.id },
+          data: {
+            priority: Math.max(5, Math.round((sub.priority || 50) * 0.5)),
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      message = `Blindagem ativada! Foco máximo direcionado para as matérias nucleares do seu edital: ${topSubjects
+        .map((s) => s.name)
+        .join(", ")}. Disciplinas secundárias foram colocadas em ritmo de manutenção leve.`;
+    }
+
+    // Invalidação de Cache
+    try {
+      (revalidateTag as (tag: string) => void)(`user-schedule-${userId}`);
+      revalidatePath("/week");
+      revalidatePath("/dashboard");
+      revalidatePath("/performance");
+    } catch {
+      // Ignora erro fora de contexto HTTP
+    }
+
+    return {
+      success: true,
+      scenario: input.scenario,
+      message,
+      affectedSubjects,
+    };
+  } catch (error) {
+    console.error("Erro em emergencyRescheduleAction:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Falha ao aplicar replanejamento emergencial.",
+    };
+  }
+}
