@@ -14,6 +14,17 @@ export interface QuestItem {
   currentCount: number;
   completed: boolean;
   claimed: boolean;
+  actionUrl?: string;
+  actionLabel?: string;
+  iconType?: "cards" | "questions" | "notebook" | "focus";
+}
+
+export interface DailyChestStatus {
+  unlocked: boolean;
+  claimed: boolean;
+  xpReward: number;
+  completedQuests: number;
+  totalQuests: number;
 }
 
 // Templates determinísticos de missões rotativas diárias
@@ -23,32 +34,70 @@ const QUEST_TEMPLATES = [
     description: "Resolva 10 questões em qualquer simulado hoje.",
     targetCount: 10,
     xpReward: 60,
+    actionUrl: "/questions",
+    actionLabel: "Fazer Simulado",
+    iconType: "questions" as const,
   },
   {
     title: "Memória Ativa",
     description: "Revise 15 flashcards pendentes no seu acervo.",
     targetCount: 15,
     xpReward: 50,
+    actionUrl: "/flashcards",
+    actionLabel: "Praticar Cards",
+    iconType: "cards" as const,
   },
   {
     title: "Precisão Cirúrgica",
     description: "Acerte pelo menos 8 questões no mesmo simulado.",
     targetCount: 8,
     xpReward: 80,
+    actionUrl: "/questions",
+    actionLabel: "Fazer Simulado",
+    iconType: "questions" as const,
   },
   {
     title: "Ritmo Ininterrupto",
     description: "Complete 1 sessão de estudo de no mínimo 30 minutos.",
     targetCount: 1,
     xpReward: 40,
+    actionUrl: "/study-room",
+    actionLabel: "Sala de Foco",
+    iconType: "focus" as const,
   },
   {
     title: "Diagnóstico de Pontos Cegos",
     description: "Gere 1 baralho de reforço com IA a partir de um erro.",
     targetCount: 1,
     xpReward: 70,
+    actionUrl: "/notebook",
+    actionLabel: "Caderno de Erros",
+    iconType: "notebook" as const,
   },
 ];
+
+function enrichQuest(q: any): QuestItem {
+  const match = QUEST_TEMPLATES.find(
+    (t) => q.title.includes(t.title) || t.title.includes(q.title),
+  );
+  return {
+    id: q.id,
+    title: q.title,
+    description: q.description,
+    xpReward: q.xpReward,
+    targetCount: q.targetCount,
+    currentCount: q.currentCount,
+    completed: q.completed,
+    claimed: q.claimed,
+    actionUrl:
+      match?.actionUrl ||
+      (q.title.includes("flashcard") || q.title.includes("Memória")
+        ? "/flashcards"
+        : "/questions"),
+    actionLabel: match?.actionLabel || "Acessar",
+    iconType: match?.iconType || "questions",
+  };
+}
 
 /**
  * Obtém as missões do dia para o usuário logado (gerando automaticamente se não existirem para hoje)
@@ -56,6 +105,7 @@ const QUEST_TEMPLATES = [
 export async function getDailyQuestsAction(): Promise<{
   success: boolean;
   data?: QuestItem[];
+  dailyChest?: DailyChestStatus;
   error?: string;
 }> {
   try {
@@ -72,7 +122,7 @@ export async function getDailyQuestsAction(): Promise<{
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    // 1. Busca missões existentes do dia
+    // 1. Busca missões existentes do dia (excluindo o baú)
     let quests = await prisma.dailyQuest.findMany({
       where: {
         userId,
@@ -80,6 +130,7 @@ export async function getDailyQuestsAction(): Promise<{
           gte: todayStart,
           lte: todayEnd,
         },
+        NOT: { title: "Baú de Maestria Diária" },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -87,8 +138,9 @@ export async function getDailyQuestsAction(): Promise<{
     // 2. Se não houver missões para hoje, seleciona 3 templates com base no dia do ano
     if (quests.length === 0) {
       const dayOfYear = Math.floor(
-        (todayStart.getTime() - new Date(todayStart.getFullYear(), 0, 0).getTime()) /
-          (1000 * 60 * 60 * 24)
+        (todayStart.getTime() -
+          new Date(todayStart.getFullYear(), 0, 0).getTime()) /
+          (1000 * 60 * 60 * 24),
       );
 
       const selectedTemplates = [
@@ -111,8 +163,8 @@ export async function getDailyQuestsAction(): Promise<{
               claimed: false,
               questDate: todayStart,
             },
-          })
-        )
+          }),
+        ),
       );
 
       quests = await prisma.dailyQuest.findMany({
@@ -122,12 +174,35 @@ export async function getDailyQuestsAction(): Promise<{
             gte: todayStart,
             lte: todayEnd,
           },
+          NOT: { title: "Baú de Maestria Diária" },
         },
         orderBy: { createdAt: "asc" },
       });
     }
 
-    return { success: true, data: quests };
+    // 3. Verifica status do Baú de Maestria Diária
+    const chestRecord = await prisma.dailyQuest.findFirst({
+      where: {
+        userId,
+        title: "Baú de Maestria Diária",
+        questDate: { gte: todayStart, lte: todayEnd },
+      },
+    });
+
+    const enrichedQuests = quests.map(enrichQuest);
+    const completedCount = enrichedQuests.filter((q) => q.completed).length;
+    const allCompleted =
+      enrichedQuests.length > 0 && completedCount === enrichedQuests.length;
+
+    const dailyChest: DailyChestStatus = {
+      unlocked: allCompleted,
+      claimed: Boolean(chestRecord?.claimed),
+      xpReward: 100,
+      completedQuests: completedCount,
+      totalQuests: enrichedQuests.length,
+    };
+
+    return { success: true, data: enrichedQuests, dailyChest };
   } catch (err) {
     console.error("Erro em getDailyQuestsAction:", err);
     return { success: false, error: "Falha ao carregar missões diárias." };
@@ -247,5 +322,103 @@ export async function claimQuestRewardAction(questId: string): Promise<{
   } catch (err) {
     console.error("Erro em claimQuestRewardAction:", err);
     return { success: false, error: "Falha ao resgatar recompensa." };
+  }
+}
+
+/**
+ * Resgata o Baú de Maestria Diária (Bônus por completar todas as missões de hoje)
+ */
+export async function claimDailyChestAction(): Promise<{
+  success: boolean;
+  earnedXp?: number;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Não autorizado." };
+    }
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // 1. Verifica se todas as missões regulares de hoje foram concluídas
+    const regularQuests = await prisma.dailyQuest.findMany({
+      where: {
+        userId,
+        questDate: { gte: todayStart, lte: todayEnd },
+        NOT: { title: "Baú de Maestria Diária" },
+      },
+    });
+
+    if (regularQuests.length === 0 || regularQuests.some((q) => !q.completed)) {
+      return {
+        success: false,
+        error: "Complete todas as 3 missões de hoje para desbloquear o Baú.",
+      };
+    }
+
+    // 2. Verifica se já foi resgatado hoje
+    const existingChest = await prisma.dailyQuest.findFirst({
+      where: {
+        userId,
+        title: "Baú de Maestria Diária",
+        questDate: { gte: todayStart, lte: todayEnd },
+      },
+    });
+
+    if (existingChest && existingChest.claimed) {
+      return {
+        success: false,
+        error: "O Baú Diário de hoje já foi resgatado.",
+      };
+    }
+
+    const CHEST_XP = 100;
+
+    await prisma.$transaction([
+      existingChest
+        ? prisma.dailyQuest.update({
+            where: { id: existingChest.id },
+            data: { claimed: true, completed: true },
+          })
+        : prisma.dailyQuest.create({
+            data: {
+              userId,
+              title: "Baú de Maestria Diária",
+              description:
+                "Bônus por completar todas as 3 missões diárias com maestria.",
+              xpReward: CHEST_XP,
+              targetCount: 1,
+              currentCount: 1,
+              completed: true,
+              claimed: true,
+              questDate: todayStart,
+            },
+          }),
+      prisma.userStats.upsert({
+        where: { userId },
+        create: {
+          userId,
+          totalXp: CHEST_XP,
+          lastStudyDate: new Date(),
+        },
+        update: {
+          totalXp: { increment: CHEST_XP },
+          lastStudyDate: new Date(),
+        },
+      }),
+    ]);
+
+    await invalidateUserCacheAction(userId);
+    revalidatePath("/dashboard");
+
+    return { success: true, earnedXp: CHEST_XP };
+  } catch (err) {
+    console.error("Erro em claimDailyChestAction:", err);
+    return { success: false, error: "Falha ao resgatar Baú Diário." };
   }
 }
