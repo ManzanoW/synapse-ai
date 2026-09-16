@@ -73,6 +73,9 @@ export default function TimedQuizPage() {
   const [minutesPerQuestion, setMinutesPerQuestion] = useState(3);
   const [totalBlockMinutes, setTotalBlockMinutes] = useState(30);
   const [strictAntiDistraction, setStrictAntiDistraction] = useState(false);
+  const [isAdaptiveMode, setIsAdaptiveMode] = useState(
+    searchParams.get("adaptive") === "true",
+  );
 
   // Dados do Edital / Matérias
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
@@ -202,7 +205,7 @@ export default function TimedQuizPage() {
       getErrorNotebookItemsAction({ status: "PENDING" })
         .then((res) => {
           if (!res.success || !res.data || res.data.length === 0) {
-            router.replace("/questions?tab=notebook");
+            router.replace("/notebook");
             return;
           }
 
@@ -242,7 +245,7 @@ export default function TimedQuizPage() {
         })
         .catch((err) => {
           console.error("Erro ao carregar erros pendentes:", err);
-          router.replace("/questions?tab=notebook");
+          router.replace("/notebook");
         })
         .finally(() => {
           setIsGenerating(false);
@@ -412,6 +415,7 @@ export default function TimedQuizPage() {
           qtdQuestoes: count,
           dificuldade,
           fonteConteudo: "banca",
+          adaptiveMode: isAdaptiveMode,
         }),
       });
 
@@ -931,6 +935,36 @@ export default function TimedQuizPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* MODO ADAPTATIVO INTELIGENTE */}
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <Target size={13} className="text-violet-400" />
+                  Modo Adaptativo (Anti-Falhas)
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                    IA Diagnóstica
+                  </span>
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Prioriza conceitos e pegadinhas onde você falhou no Caderno de Erros.
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAdaptiveMode((prev) => !prev)}
+                className={`w-12 h-6.5 rounded-full transition-colors relative cursor-pointer ${
+                  isAdaptiveMode ? "bg-violet-600" : "bg-white/10"
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full bg-white transition-transform absolute top-0.5 left-0.5 ${
+                    isAdaptiveMode ? "translate-x-5.5" : "translate-x-0"
+                  }`}
+                />
+              </button>
             </div>
 
             {/* MODO ANTI-DISTRAÇÃO AUTOMÁTICO */}

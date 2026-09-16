@@ -145,6 +145,14 @@ export interface ErrorNotebookFilters {
   search?: string;
 }
 
+export type Question = ErrorNotebookItem;
+
+export interface GetErrorNotebookQuestionsParams extends ErrorNotebookFilters {
+  page?: number;
+  limit?: number;
+}
+
+
 export interface ErrorTaxonomyMetric {
   reason: string;
   label: string;

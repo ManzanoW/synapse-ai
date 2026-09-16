@@ -99,7 +99,8 @@ model Subject {
   name        String
   importance  String
   color       String? @default("#3B82F6")
-  priority    Float   @default(6.3) // Peso da matéria no edital (ex: 1.0 a 10.0)
+  weight      Float   @default(5.0) // Peso Oficial da matéria no edital (ex: 1.0 a 10.0)
+  priority    Float   @default(6.3) // Prioridade interna de agendamento adaptativo
   assignedDay Int? // Overrided day index (0 = Segunda, 1 = Terça, ..., null = cálculo dinâmico)
 
   // --- CAMPOS PARA SRS / SM-2 PONDERADO ---

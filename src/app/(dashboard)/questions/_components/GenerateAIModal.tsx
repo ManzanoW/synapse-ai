@@ -41,6 +41,8 @@ interface GenerateAIModalProps {
   onTextoBaseChange: (value: string) => void;
   onDificuldadeChange: (value: string) => void;
   onQtdQuestoesChange: (value: string) => void;
+  isAdaptiveMode?: boolean;
+  onAdaptiveModeChange?: (val: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -64,6 +66,8 @@ export function GenerateAIModal({
   onFonteChange,
   onDificuldadeChange,
   onQtdQuestoesChange,
+  isAdaptiveMode = false,
+  onAdaptiveModeChange,
   onSubmit,
 }: GenerateAIModalProps) {
   if (!isOpen) return null;
@@ -210,6 +214,45 @@ export function GenerateAIModal({
               <p className="text-[11px] text-zinc-500">
                 A IA concentrará todas as questões exclusivamente neste microtema.
               </p>
+            </div>
+
+            {/* Modo Adaptativo IA */}
+            <div className="p-3 rounded-2xl bg-gradient-to-r from-violet-600/15 via-indigo-600/10 to-violet-600/5 border border-violet-500/30 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-violet-500/20 text-violet-300 shrink-0">
+                    <Target size={16} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-slate-100 text-xs">
+                        Modo Adaptativo Inteligente
+                      </span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                        IA Anti-Falhas
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                      A IA analisa seu Caderno de Erros e foca em desarmar suas pegadinhas e dificuldades recorrentes.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onAdaptiveModeChange?.(!isAdaptiveMode)}
+                  disabled={isGenerating}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    isAdaptiveMode ? "bg-violet-600 shadow-md shadow-violet-600/30" : "bg-slate-800"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      isAdaptiveMode ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-1.5 border-t border-slate-900 pt-3">

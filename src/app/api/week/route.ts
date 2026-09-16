@@ -29,8 +29,6 @@ async function getAuthenticatedUserId() {
 
 import { checkMissedDay } from "@/lib/missed-day";
 
-export { checkMissedDay };
-
 export async function GET() {
   try {
     const userId = await getAuthenticatedUserId();

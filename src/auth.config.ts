@@ -2,6 +2,35 @@ import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 
+export function getBaseUrl(): string {
+  // 1. Se houver NEXTAUTH_URL explícita (e não for preview dinâmico)
+  if (
+    process.env.NEXTAUTH_URL &&
+    !process.env.NEXTAUTH_URL.includes("localhost") &&
+    process.env.NODE_ENV === "production" &&
+    process.env.VERCEL_ENV === "production"
+  ) {
+    return process.env.NEXTAUTH_URL;
+  }
+  // 2. URL estável da branch na Vercel (ex: git-dev)
+  if (process.env.VERCEL_BRANCH_URL) {
+    return `https://${process.env.VERCEL_BRANCH_URL}`;
+  }
+  // 3. Fallback para VERCEL_PROJECT_PRODUCTION_URL
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  // 4. Desenvolvimento local
+  return "http://localhost:3000";
+}
+
+const host = getBaseUrl();
+process.env.AUTH_URL = host;
+process.env.NEXTAUTH_URL = host;
+process.env.AUTH_TRUST_HOST = "true";
+
+export const baseUrl = host;
+
 function getRequestBaseUrl(request: { headers: Headers; nextUrl?: { host?: string; protocol?: string; origin?: string } }): string {
   const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
   const forwardedProto =
@@ -10,7 +39,7 @@ function getRequestBaseUrl(request: { headers: Headers; nextUrl?: { host?: strin
   if (forwardedHost) {
     return `${forwardedProto}://${forwardedHost}`;
   }
-  return request.nextUrl?.origin || "http://localhost:3000";
+  return request.nextUrl?.origin || baseUrl;
 }
 
 export const authConfig = {
@@ -35,6 +64,16 @@ export const authConfig = {
     },
   },
   callbacks: {
+    async redirect({ url, baseUrl: _baseUrl }) {
+      const host = getBaseUrl();
+      if (url.startsWith("/")) return `${host}${url}`;
+      try {
+        if (new URL(url).origin === new URL(host).origin) return url;
+      } catch {
+        // Fallback se a URL for inválida
+      }
+      return host;
+    },
     authorized({ auth, request }) {
       const { nextUrl, cookies, headers } = request;
       const isRSC =
@@ -86,3 +125,5 @@ export const authConfig = {
   },
   providers: [Google, GitHub],
 } satisfies NextAuthConfig;
+
+export const authOptions = authConfig;

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   AlertCircle,
   CheckCircle2,
@@ -13,6 +14,8 @@ import {
   Layers,
   Loader2,
   Zap,
+  FileStack,
+  ArrowRight,
 } from "lucide-react";
 import { ErrorNotebookMetrics, ErrorTaxonomyMetric } from "@/types/quiz";
 
@@ -69,6 +72,17 @@ export function ErrorMetricsHeader({
             Converta falhas em aprovação: diagnostique a causa-raiz de cada erro em
             simulado, gere desarmamentos conceituais e resolva questões de fixação sob demanda via IA.
           </p>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <Link
+            href="/questions"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs md:text-sm font-semibold shadow-lg shadow-violet-600/25 border border-violet-400/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <FileStack size={16} />
+            <span>Treinar em Simulado</span>
+            <ArrowRight size={14} className="opacity-70" />
+          </Link>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { Type } from "@google/genai";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
+import { recordStudyActivityAction } from "@/actions/gamification-actions";
 import {
   ErrorNotebookFilters,
   ErrorNotebookItem,
@@ -13,6 +14,8 @@ import {
   ErrorRemediationData,
   ErrorTaxonomyMetric,
   GenerateRemediationInput,
+  GetErrorNotebookQuestionsParams,
+  Question,
 } from "@/types/quiz";
 import { TAXONOMY_METADATA, normalizeTaxonomy } from "@/lib/error-taxonomy";
 
@@ -269,6 +272,156 @@ async function syncLegacyErrorsIfEmpty(userId: string) {
   return promise;
 }
 
+export interface GetErrorNotebookQuestionsResult {
+  questions: Question[];
+  total: number;
+  hasMore: boolean;
+  nextPage: number | null;
+  success: boolean;
+  error?: string;
+  data?: {
+    questions: Question[];
+    total: number;
+    hasMore: boolean;
+    nextPage: number | null;
+  };
+}
+
+/**
+ * Lista as questões do Caderno de Erros com paginação suave (Infinite Scroll) e filtros dinâmicos
+ */
+export async function getErrorNotebookQuestionsAction(
+  params: GetErrorNotebookQuestionsParams = {},
+): Promise<GetErrorNotebookQuestionsResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return {
+        questions: [],
+        total: 0,
+        hasMore: false,
+        nextPage: null,
+        success: false,
+        error: "Usuário não autenticado.",
+      };
+    }
+
+    const page = Math.max(1, params.page || 1);
+    const limit = Math.max(1, params.limit || 10);
+    const skip = (page - 1) * limit;
+
+    // Sincroniza e sanitiza apenas na primeira página para desempenho máximo
+    if (page === 1) {
+      await syncLegacyErrorsIfEmpty(userId);
+    }
+
+    const where: any = { userId };
+
+    if (params.subjectId && params.subjectId !== "ALL") {
+      where.subjectId = params.subjectId;
+    }
+
+    if (params.status && params.status !== "ALL") {
+      where.status = params.status;
+    }
+
+    if (params.errorReason && params.errorReason !== "ALL") {
+      const normalized = normalizeTaxonomy(params.errorReason);
+      where.errorReason = normalized;
+    }
+
+    if (params.period && params.period !== "all") {
+      const now = new Date();
+      let days = 7;
+      if (params.period === "30d") days = 30;
+      if (params.period === "90d") days = 90;
+      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      where.createdAt = { gte: startDate };
+    }
+
+    if (params.search && params.search.trim() !== "") {
+      const term = params.search.trim();
+      where.OR = [
+        { questionText: { contains: term, mode: "insensitive" } },
+        { explanation: { contains: term, mode: "insensitive" } },
+      ];
+    }
+
+    const [total, records] = await Promise.all([
+      prisma.questionError.count({ where }),
+      prisma.questionError.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        include: {
+          subject: {
+            select: { id: true, name: true, color: true },
+          },
+          topic: {
+            select: { id: true, title: true },
+          },
+        },
+      }),
+    ]);
+
+    const hasMore = skip + records.length < total;
+    const nextPage = hasMore ? page + 1 : null;
+
+    const questions: Question[] = records.map((r: any) => ({
+      id: r.id,
+      userId: r.userId,
+      subjectId: r.subjectId,
+      topicId: r.topicId,
+      quizId: r.quizId,
+      questionText: r.questionText,
+      options: (r.options as any) || [],
+      userAnswer: r.userAnswer,
+      correctAnswer: r.correctAnswer,
+      explanation: r.explanation,
+      errorReason: r.errorReason,
+      status: r.status as "PENDING" | "MASTERED",
+      masteredAt: r.masteredAt,
+      aiExplanation: r.aiExplanation,
+      mnemonic: r.mnemonic,
+      drillQuestion: (r.drillQuestion as any) || null,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      subject: r.subject,
+      topic: r.topic,
+    }));
+
+    return {
+      success: true,
+      questions,
+      total,
+      hasMore,
+      nextPage,
+      data: {
+        questions,
+        total,
+        hasMore,
+        nextPage,
+      },
+    };
+  } catch (err) {
+    console.error("[getErrorNotebookQuestionsAction] Erro:", err);
+    return {
+      questions: [],
+      total: 0,
+      hasMore: false,
+      nextPage: null,
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao buscar questões do caderno de erros.",
+    };
+  }
+}
+
 /**
  * Lista os itens do Caderno de Erros com filtros dinâmicos
  */
@@ -516,18 +669,12 @@ export async function markErrorAsMasteredAction(
       await trackQuestProgressAction("QUESTIONS_SOLVED", 1);
     }
 
-    await prisma.userStats.upsert({
-      where: { userId },
-      create: {
-        userId,
-        totalXp: earnedXp,
-        lastStudyDate: new Date(),
-      },
-      update: {
-        totalXp: { increment: earnedXp },
-        lastStudyDate: new Date(),
-      },
-    });
+    // Atualização de XP, streak e proteção anti-frustração via motor centralizado
+    const activityResult = await recordStudyActivityAction(
+      userId,
+      earnedXp,
+      "ERROR_FIX",
+    );
 
     try {
       revalidatePath("/notebook");
@@ -542,6 +689,10 @@ export async function markErrorAsMasteredAction(
         id: updated.id,
         status: updated.status,
         earnedXp,
+        totalXp: activityResult.data?.totalXp,
+        streakDays: activityResult.data?.streakDays,
+        streakProtected: activityResult.data?.streakProtected,
+        levelInfo: activityResult.data?.levelInfo,
       },
     };
   } catch (err) {
@@ -1065,3 +1216,128 @@ export async function autoClassifyPendingErrorsAction(): Promise<{
     error: res.error,
   };
 }
+
+export interface WrongQuestionItem {
+  questionText: string;
+  options?: any;
+  userAnswer: string;
+  correctAnswer: string;
+  explanation?: string | null;
+  errorReason?: string;
+  subjectId?: string | null;
+  topicId?: string | null;
+}
+
+export interface SaveWrongQuestionsInput {
+  quizId?: string | null;
+  subjectId?: string | null;
+  topicId?: string | null;
+  questions: WrongQuestionItem[];
+}
+
+/**
+ * Persiste as questões incorretas diretamente no Caderno de Erros com validação de unicidade.
+ */
+export async function saveWrongQuestionsToNotebookAction(
+  input: SaveWrongQuestionsInput,
+): Promise<{
+  success: boolean;
+  countAdded?: number;
+  alreadyExisted?: number;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    if (!Array.isArray(input.questions) || input.questions.length === 0) {
+      return {
+        success: true,
+        countAdded: 0,
+        alreadyExisted: 0,
+        message: "Nenhuma questão incorreta para salvar.",
+      };
+    }
+
+    // Busca erros existentes do usuário para evitar duplicatas
+    const existingErrors = await prisma.questionError.findMany({
+      where: { userId },
+      select: { questionText: true },
+    });
+
+    const existingKeys = new Set(
+      existingErrors.map((r: any) => normalizeQuestionKey(r.questionText)),
+    );
+
+    const toInsert: any[] = [];
+    let alreadyExisted = 0;
+    const seenInBatch = new Set<string>();
+
+    for (const q of input.questions) {
+      if (!q.questionText || typeof q.questionText !== "string") continue;
+      const key = normalizeQuestionKey(q.questionText);
+      if (!key) continue;
+
+      if (existingKeys.has(key) || seenInBatch.has(key)) {
+        alreadyExisted++;
+        continue;
+      }
+
+      seenInBatch.add(key);
+
+      const normalizedReason = normalizeTaxonomy(q.errorReason || "UNCLASSIFIED");
+
+      toInsert.push({
+        userId,
+        subjectId: q.subjectId || input.subjectId || null,
+        topicId: q.topicId || input.topicId || null,
+        quizId: input.quizId || null,
+        questionText: q.questionText.trim(),
+        options: q.options || [],
+        userAnswer: String(q.userAnswer || "Não informada"),
+        correctAnswer: String(q.correctAnswer || "A"),
+        explanation: q.explanation || null,
+        errorReason: normalizedReason,
+        status: "PENDING",
+      });
+    }
+
+    if (toInsert.length > 0) {
+      await prisma.questionError.createMany({
+        data: toInsert,
+      });
+    }
+
+    try {
+      revalidatePath("/notebook");
+      revalidatePath("/questions");
+    } catch {}
+
+    return {
+      success: true,
+      countAdded: toInsert.length,
+      alreadyExisted,
+      message:
+        toInsert.length > 0
+          ? `${toInsert.length} questão(ões) adicionada(s) ao Caderno de Erros!`
+          : alreadyExisted > 0
+            ? "As questões incorretas já estão salvas no seu Caderno de Erros."
+            : "Nenhuma questão para salvar.",
+    };
+  } catch (err) {
+    console.error("[saveWrongQuestionsToNotebookAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao salvar questões no caderno de erros.",
+    };
+  }
+}
+

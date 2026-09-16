@@ -136,10 +136,14 @@ export default function DomainRadarChart({
       else if (typeof sub.progress === "number") realDomain = sub.progress;
       realDomain = Math.max(0, Math.min(100, Math.round(realDomain)));
 
-      let idealWeight = 70;
-      if (typeof sub.weight === "number") idealWeight = sub.weight;
-      else if (typeof sub.priority === "number") idealWeight = Math.min(100, Math.round(sub.priority * 10));
-      else if (typeof sub.priority === "string" && !isNaN(Number(sub.priority))) idealWeight = Math.min(100, Math.round(Number(sub.priority) * 10));
+      let idealWeight = 50;
+      if (typeof sub.weight === "number") {
+        idealWeight = sub.weight <= 10 ? Math.round(sub.weight * 10) : sub.weight;
+      } else if (typeof sub.priority === "number" && sub.priority <= 10) {
+        idealWeight = Math.round(sub.priority * 10);
+      } else if (typeof sub.priority === "string" && !isNaN(Number(sub.priority)) && Number(sub.priority) <= 10) {
+        idealWeight = Math.round(Number(sub.priority) * 10);
+      }
 
       idealWeight = Math.max(10, Math.min(100, Math.round(idealWeight)));
       const gap = realDomain - idealWeight;

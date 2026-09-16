@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
 
@@ -17,7 +18,8 @@ import {
   BookOpen,
   Lock,
   Printer,
-  PlusCircle,
+  Target,
+  Flame,
   Maximize2,
   Minimize2,
   Clock,
@@ -36,28 +38,28 @@ import {
 } from "./_components/ResumeSessionCard";
 import { QuestionCard } from "./_components/QuestionCard";
 import { CompletionModal } from "./_components/CompletionModal";
+import { QuizResultView } from "@/components/study/QuizResultView";
 import { QuizHistoryTab } from "./_components/QuizHistoryTab";
 import { GenerateAIModal } from "./_components/GenerateAIModal";
 import { QuestionMinimap } from "./_components/QuestionMinimap";
 import { TimedLaunchModal } from "./_components/TimedLaunchModal";
 import { TimedPacingModal } from "./_components/TimedPacingModal";
-import { ErrorNotebookView } from "../notebook/components/ErrorNotebookView";
 import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
 import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
-import { RegisterQuestionsModal } from "@/components/questions/register-questions-modal";
 
-import { submitQuizAttemptAction } from "@/actions/quiz-actions";
+import {
+  submitQuizAttemptAction,
+  getSubjectDomainStatsAction,
+} from "@/actions/quiz-actions";
 import { generateTargetedDeckAction } from "@/actions/deck-actions";
 import {
-  getErrorNotebookItemsAction,
   getErrorMetricsAction,
 } from "@/actions/error-notebook-actions";
 import {
   ErrorClassification,
   QuestionAnswerSubmission,
-  ErrorNotebookItem,
   ErrorNotebookMetrics,
 } from "@/types/quiz";
 
@@ -143,6 +145,84 @@ function formatTimer(totalSeconds: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function TabCreateSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="relative overflow-hidden backdrop-blur-xl bg-gradient-to-br from-violet-950/30 via-zinc-900/60 to-black/80 border border-violet-500/20 rounded-2xl p-6 sm:p-7">
+        <div className="space-y-4 max-w-xl">
+          <div className="h-5 w-44 rounded-full bg-violet-500/15 border border-violet-500/30" />
+          <div className="h-8 w-4/5 rounded-xl bg-white/5" />
+          <div className="h-4 w-3/5 rounded-lg bg-white/5" />
+        </div>
+        <div className="mt-6 pt-3 flex gap-3 border-t border-white/5">
+          <div className="h-7 w-32 rounded-xl bg-white/5" />
+          <div className="h-7 w-36 rounded-xl bg-white/5" />
+          <div className="h-7 w-32 rounded-xl bg-white/5" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="h-52 rounded-2xl bg-zinc-900/50 border border-violet-500/20 backdrop-blur-xl p-6 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/30" />
+            <div className="h-5 w-44 rounded-lg bg-white/5" />
+            <div className="h-3 w-56 rounded bg-white/5" />
+          </div>
+          <div className="h-9 w-full rounded-xl bg-white/5" />
+        </div>
+        <div className="h-52 rounded-2xl bg-zinc-900/50 border border-indigo-500/20 backdrop-blur-xl p-6 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30" />
+            <div className="h-5 w-44 rounded-lg bg-white/5" />
+            <div className="h-3 w-56 rounded bg-white/5" />
+          </div>
+          <div className="h-9 w-full rounded-xl bg-white/5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TabHistorySkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="bg-[#090d16]/60 border border-white/10 backdrop-blur-xl rounded-2xl p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="h-5 w-36 rounded bg-white/5" />
+          <div className="flex gap-2 w-full sm:w-auto">
+            <div className="h-8 w-28 rounded-lg bg-white/5" />
+            <div className="h-8 w-24 rounded-lg bg-white/5" />
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+          <div className="h-10 flex-1 rounded-xl bg-white/[0.03] border border-white/5" />
+          <div className="h-10 w-36 rounded-xl bg-white/[0.03] border border-white/5" />
+        </div>
+      </div>
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-40 rounded-2xl bg-[#090d16]/60 border border-white/10 backdrop-blur-xl p-5 flex flex-col justify-between space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <div className="h-5 w-16 rounded bg-indigo-500/10 border border-indigo-500/20" />
+              <div className="h-4 w-20 rounded bg-white/5" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 w-3/4 rounded bg-white/5" />
+              <div className="h-3 w-1/2 rounded bg-white/5" />
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-white/5">
+              <div className="h-4 w-24 rounded bg-white/5" />
+              <div className="h-7 w-20 rounded-lg bg-white/5" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function QuestoesPage() {
   const router = useRouter();
   const { openSidebar, closeSidebar } = useSidebar();
@@ -150,24 +230,28 @@ export default function QuestoesPage() {
 
   // Estados gerais
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [practiceMetrics, setPracticeMetrics] = useState<{
+    totalAnswered: number;
+    averageAccuracy: number;
+  }>({ totalAnswered: 0, averageAccuracy: 0 });
 
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
     null,
   );
-  const [activeTab, setActiveTab] = useState<"create" | "history" | "notebook">(
-    "create",
+  const [activeTab, setActiveTab] = useState<"create" | "history">(
+    () => {
+      const tabParam = searchParams.get("tab");
+      if (tabParam === "history") return "history";
+      return "create";
+    },
   );
   const [pendingTab, setPendingTab] = useState<
-    "create" | "history" | "notebook" | null
+    "create" | "history" | null
   >(null);
 
   // Caderno de Erros Integrado
-  const [errorNotebookItems, setErrorNotebookItems] = useState<
-    ErrorNotebookItem[]
-  >([]);
   const [errorNotebookMetrics, setErrorNotebookMetrics] =
     useState<ErrorNotebookMetrics>({
       totalErrors: 0,
@@ -176,8 +260,6 @@ export default function QuestoesPage() {
       masteryRate: 0,
       taxonomyDistribution: [],
     });
-  const [isLoadingNotebook, setIsLoadingNotebook] = useState(false);
-  const [isNotebookLoaded, setIsNotebookLoaded] = useState(false);
 
   // Modais de Simulado Cronometrado Integrado
   const [isTimedLaunchModalOpen, setIsTimedLaunchModalOpen] = useState(false);
@@ -211,8 +293,10 @@ export default function QuestoesPage() {
   const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
   const [isZenMode, setIsZenMode] = useState(false);
 
-  // Cronômetro e conclusão
+  // Cronômetro, Pacing Real-Time e conclusão
   const [timerSeconds, setTimerSeconds] = useState(0);
+  const [currentQuestionSeconds, setCurrentQuestionSeconds] = useState(0);
+  const [isAdaptiveMode, setIsAdaptiveMode] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [isSyncingSM2, setIsSyncingSM2] = useState(false);
@@ -242,6 +326,7 @@ export default function QuestoesPage() {
   // Histórico
   const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   const [loadingQuizId, setLoadingQuizId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -303,6 +388,7 @@ export default function QuestoesPage() {
       const response = await fetch("/api/questions/list");
       const json = await response.json();
       setQuizHistory(json.data || []);
+      setIsHistoryLoaded(true);
     } catch (error) {
       console.error("Erro ao carregar histórico:", error);
     } finally {
@@ -311,41 +397,52 @@ export default function QuestoesPage() {
   }, []);
 
   const loadErrorNotebookData = useCallback(async () => {
-    setIsLoadingNotebook(true);
     try {
-      const [itemsRes, metricsRes] = await Promise.all([
-        getErrorNotebookItemsAction({}),
-        getErrorMetricsAction(),
-      ]);
-      if (itemsRes.success && itemsRes.data) {
-        setErrorNotebookItems(itemsRes.data);
-      }
+      const metricsRes = await getErrorMetricsAction();
       if (metricsRes.success && metricsRes.data) {
         setErrorNotebookMetrics(metricsRes.data);
       }
-      setIsNotebookLoaded(true);
     } catch (err) {
       console.error("Erro ao carregar caderno de erros:", err);
-    } finally {
-      setIsLoadingNotebook(false);
     }
   }, []);
 
   useEffect(() => {
+    // Carrega histórico para contagem de cadernos salvos e pré-carregamento
+    fetchQuizHistory();
+
+    // Carrega métricas agregadas de treino (precisão e total de questões)
+    getSubjectDomainStatsAction()
+      .then((res) => {
+        if (res.success && res.data) {
+          const totalAnswered = res.data.reduce(
+            (acc, curr) => acc + curr.totalAnswered,
+            0,
+          );
+          const totalCorrect = res.data.reduce(
+            (acc, curr) => acc + curr.correctCount,
+            0,
+          );
+          const averageAccuracy =
+            totalAnswered > 0
+              ? Math.round((totalCorrect / totalAnswered) * 100)
+              : 0;
+          setPracticeMetrics({ totalAnswered, averageAccuracy });
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar métricas de domínio:", err));
+
     const tabParam = searchParams.get("tab");
     if (tabParam === "history") {
       setActiveTab("history");
-      fetchQuizHistory();
-    } else if (tabParam === "notebook") {
-      setActiveTab("notebook");
-      loadErrorNotebookData();
+    } else if (tabParam === "notebook" || tabParam === "errors") {
+      router.replace("/notebook");
     } else if (tabParam === "create") {
       setActiveTab("create");
     }
 
     const openTimed = searchParams.get("openTimed");
     if (openTimed === "true") {
-      fetchQuizHistory();
       loadErrorNotebookData();
       setIsTimedLaunchModalOpen(true);
     }
@@ -399,7 +496,24 @@ export default function QuestoesPage() {
         setIsAIModalOpen(true);
       });
     }
-  }, [searchParams, fetchQuizHistory, loadErrorNotebookData]);
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "history") {
+        setActiveTab("history");
+        if (!isHistoryLoaded) fetchQuizHistory();
+      } else if (tab === "errors" || tab === "notebook") {
+        router.replace("/notebook");
+      } else {
+        setActiveTab("create");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [isHistoryLoaded, fetchQuizHistory, router]);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -430,10 +544,18 @@ export default function QuestoesPage() {
     isMounted,
   ]);
 
+  // Reinicia o tempo da questão atual ao alternar a questão em foco
+  useEffect(() => {
+    setCurrentQuestionSeconds(0);
+  }, [focusedQuestionIndex]);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTimerRunning && questions.length > 0) {
-      interval = setInterval(() => setTimerSeconds((prev) => prev + 1), 1000);
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => prev + 1);
+        setCurrentQuestionSeconds((prev) => prev + 1);
+      }, 1000);
     }
     return () => clearInterval(interval);
   }, [isTimerRunning, questions.length]);
@@ -500,16 +622,41 @@ export default function QuestoesPage() {
             setMateria(decodedSubject);
             if (paramTopicId) setSelectedTopicId(paramTopicId);
           }
+        } else if (paramTopicId) {
+          const owningSubject = loadedSubjects.find((s) =>
+            s.topics?.some(
+              (t) =>
+                t.id === paramTopicId ||
+                t.title.trim().toLowerCase() ===
+                  paramTopicId.trim().toLowerCase(),
+            ),
+          );
+
+          if (owningSubject) {
+            setMateria(owningSubject.name);
+            const matchedTopic = owningSubject.topics?.find(
+              (t) =>
+                t.id === paramTopicId ||
+                t.title.trim().toLowerCase() ===
+                  paramTopicId.trim().toLowerCase(),
+            );
+            setSelectedTopicId(matchedTopic ? matchedTopic.id : paramTopicId);
+          } else {
+            setSelectedTopicId(paramTopicId);
+          }
         } else if (loadedSubjects.length > 0) {
           setMateria((prev) => prev || loadedSubjects[0].name);
-          if (paramTopicId) setSelectedTopicId(paramTopicId);
+        }
+
+        if (paramTopicId || paramSubjectId) {
+          setIsAIModalOpen(true);
         }
       })
       .catch(console.error)
       .finally(() => {
         setIsInitialLoading(false);
       });
-  }, [searchParams]);
+  }, []);
 
   const currentSubjectObj = subjects.find(
     (s) =>
@@ -517,15 +664,6 @@ export default function QuestoesPage() {
       s.name.trim().toLowerCase() === materia.trim().toLowerCase(),
   );
   const availableTopics = currentSubjectObj?.topics || [];
-
-  const allModalTopics = subjects.flatMap(
-    (s) =>
-      s.topics?.map((t) => ({
-        id: t.id,
-        title: t.title,
-        subjectName: s.name,
-      })) || [],
-  );
 
   const totalQuestions = questions.length;
   const answeredCount = Object.keys(checkedQuestions).length;
@@ -537,33 +675,45 @@ export default function QuestoesPage() {
   const percentageAcc =
     answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
-  const handleTabChange = (newTab: "create" | "history" | "notebook") => {
-    if (
-      activeTab === "create" &&
-      newTab !== "create" &&
-      questions.length > 0 &&
-      Object.keys(selectedAnswers).length > 0
-    ) {
-      setPendingTab(newTab);
-      return;
-    }
-    setActiveTab(newTab);
-    router.replace(`/questions?tab=${newTab}`, { scroll: false });
-    if (newTab === "history") {
-      fetchQuizHistory();
-    } else if (newTab === "notebook") {
-      loadErrorNotebookData();
-    }
-  };
+  const handleTabChange = useCallback(
+    (newTab: "create" | "history") => {
+      if (
+        activeTab === "create" &&
+        newTab !== "create" &&
+        questions.length > 0 &&
+        Object.keys(selectedAnswers).length > 0
+      ) {
+        setPendingTab(newTab);
+        return;
+      }
+      setActiveTab(newTab);
+      const newUrl =
+        newTab === "create" ? window.location.pathname : `?tab=${newTab}`;
+      window.history.replaceState(null, "", newUrl);
+
+      if (newTab === "history" && !isHistoryLoaded) {
+        fetchQuizHistory();
+      }
+    },
+    [
+      activeTab,
+      questions.length,
+      selectedAnswers,
+      isHistoryLoaded,
+      fetchQuizHistory,
+    ],
+  );
 
   const confirmNavigation = () => {
     if (pendingTab) {
       setActiveTab(pendingTab);
-      router.replace(`/questions?tab=${pendingTab}`, { scroll: false });
-      if (pendingTab === "history") {
+      const newUrl =
+        pendingTab === "create"
+          ? window.location.pathname
+          : `?tab=${pendingTab}`;
+      window.history.replaceState(null, "", newUrl);
+      if (pendingTab === "history" && !isHistoryLoaded) {
         fetchQuizHistory();
-      } else if (pendingTab === "notebook") {
-        loadErrorNotebookData();
       }
       setQuestions([]);
       setSelectedAnswers({});
@@ -667,6 +817,9 @@ export default function QuestoesPage() {
                 userAnswer: selectedAnswers[idx],
                 isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
                 errorReason: errorClassifications[idx] || null,
+                timeSpentSeconds: Math.round(
+                  timerSeconds / Math.max(1, totalQuestions),
+                ),
               })),
             }),
           });
@@ -803,6 +956,7 @@ export default function QuestoesPage() {
           dificuldade,
           textoBase,
           fonteConteudo,
+          adaptiveMode: isAdaptiveMode,
         }),
       });
 
@@ -838,7 +992,7 @@ export default function QuestoesPage() {
         // Se o projeto usar tabs na mesma página, descomente:
         // setActiveTab("solve");
       } else {
-        setActiveTab("history");
+        handleTabChange("history");
       }
     } catch (err: unknown) {
       const msg =
@@ -1023,15 +1177,6 @@ export default function QuestoesPage() {
     );
   }
 
-  if (isInitialLoading) {
-    return (
-      <div className="min-h-screen bg-[#02050e] text-slate-400 flex flex-col items-center justify-center gap-3 text-xs">
-        <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-        <span>Sincronizando banco de dados cognitivo...</span>
-      </div>
-    );
-  }
-
   if (questions.length > 0 && activeTab === "create") {
     return (
       <>
@@ -1109,6 +1254,9 @@ export default function QuestoesPage() {
                     isCorrect:
                       finalData.selectedAnswers[idx] === q.gabaritoCorreto,
                     errorReason: finalData.errorClassifications[idx] || null,
+                    timeSpentSeconds: Math.round(
+                      finalData.timerSeconds / Math.max(1, finalTotal),
+                    ),
                   })),
                 }),
               });
@@ -1169,30 +1317,38 @@ export default function QuestoesPage() {
         />
 
         {showCompletionModal && (
-          <CompletionModal
-            totalQuestions={questions.length}
-            correctCount={
-              Object.keys(checkedQuestions).filter(
-                (idxStr) =>
-                  selectedAnswers[Number(idxStr)] ===
-                  questions[Number(idxStr)]?.gabaritoCorreto,
-              ).length
-            }
-            percentageAcc={percentageAcc}
-            timerSeconds={timerSeconds}
-            lastEarnedXp={lastEarnedXp}
-            isSyncingSM2={isSyncingSM2}
-            levelUpData={levelUpData}
-            onRestart={() => {
-              setSelectedAnswers({});
-              setCheckedQuestions({});
-              setFlaggedQuestions({});
-              setErrorClassifications({});
-              setTimerSeconds(0);
-              setShowCompletionModal(false);
-            }}
-            onReview={() => setShowCompletionModal(false)}
-          />
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-[#030712] animate-in fade-in duration-300">
+            <QuizResultView
+              quizId={currentQuizId}
+              banca={banca}
+              subject={materia || "Simulado"}
+              topicId={selectedTopicId || null}
+              questions={questions}
+              selectedAnswers={selectedAnswers}
+              timerSeconds={timerSeconds}
+              earnedXp={lastEarnedXp}
+              levelUpData={levelUpData}
+              onRestart={() => {
+                setSelectedAnswers({});
+                setCheckedQuestions({});
+                setFlaggedQuestions({});
+                setErrorClassifications({});
+                setTimerSeconds(0);
+                setIsTimerRunning(true);
+                setShowCompletionModal(false);
+              }}
+              onExit={() => {
+                setQuestions([]);
+                setSelectedAnswers({});
+                setCheckedQuestions({});
+                setFlaggedQuestions({});
+                setErrorClassifications({});
+                setTimerSeconds(0);
+                setIsTimerRunning(false);
+                setShowCompletionModal(false);
+              }}
+            />
+          </div>
         )}
       </>
     );
@@ -1217,530 +1373,486 @@ export default function QuestoesPage() {
         `}</style>
       )}
 
-      {/* Timer Flutuante apenas em Telas Médias/Grandes */}
+      {/* Timer Flutuante com Pacing Real-Time */}
       {questions.length > 0 && activeTab === "create" && (
-        <div className="hidden sm:block">
-          <FloatingTimer
-            seconds={timerSeconds}
-            isRunning={isTimerRunning}
-            onToggleTimer={() => setIsTimerRunning((prev) => !prev)}
-          />
-        </div>
+        <FloatingTimer
+          seconds={timerSeconds}
+          currentQuestionSeconds={currentQuestionSeconds}
+          questionIndex={focusedQuestionIndex}
+          totalQuestions={questions.length}
+          isRunning={isTimerRunning}
+          onToggleTimer={() => setIsTimerRunning((prev) => !prev)}
+        />
       )}
 
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
         {/* ================= 1. CABEÇALHO PRINCIPAL (SEM QUESTÕES ATIVAS) ================= */}
         {!isZenMode && questions.length === 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 sm:pb-6 transition-all duration-300">
-            <div className="flex items-start sm:items-center gap-3">
+            <div className="flex items-start sm:items-center gap-3.5">
               <button
                 onClick={openSidebar}
                 type="button"
                 className="p-2 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors cursor-pointer shrink-0 mt-0.5 sm:mt-0"
+                aria-label="Abrir navegação lateral"
               >
                 <Menu size={18} />
               </button>
 
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2 sm:gap-2.5">
-                  <div className="p-1.5 sm:p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-xs shrink-0">
-                    <HelpCircle size={18} className="sm:w-5 sm:h-5" />
-                  </div>
-                  <span className="truncate">Banco de Provas & Simulados</span>
-                </h1>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.2)] shrink-0">
+                      <HelpCircle size={20} />
+                    </div>
+                    <span className="truncate">Banco de Provas & Simulados</span>
+                  </h1>
 
-                <p className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2 leading-tight">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-semibold tracking-wide shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>SISTEMA ATIVO</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-zinc-400 mt-1.5 flex flex-wrap items-center gap-1.5 sm:gap-2 leading-tight">
                   Crie cadernos adaptativos com IA e acompanhe sua evolução.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0 flex-wrap">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => {
-                  fetchQuizHistory();
+                  if (!isHistoryLoaded) fetchQuizHistory();
                   loadErrorNotebookData();
                   setIsTimedLaunchModalOpen(true);
                 }}
-                className="w-full sm:w-auto justify-center bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-violet-600/10 active:scale-95"
+                className="w-full sm:w-auto justify-center bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-violet-600/10 active:scale-95 hover:shadow-violet-600/20"
               >
                 <Timer size={15} className="text-violet-400" />
                 <span>Modo Cronometrado</span>
               </button>
+            </div>
+          </div>
+        )}
 
+        {/* 2. NAVEGAÇÃO DE ABAS */}
+        {!isZenMode && (
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() => setIsRegisterModalOpen(true)}
+                onClick={() => handleTabChange("create")}
                 type="button"
-                className="w-full sm:w-auto justify-center bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
+                className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
+                  activeTab === "create"
+                    ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+                }`}
               >
-                <PlusCircle size={15} />
-                <span>Registrar Externo</span>
+                <Home size={14} />
+                <span>Início / Gerador</span>
+              </button>
+              <button
+                onClick={() => handleTabChange("history")}
+                type="button"
+                className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
+                  activeTab === "history"
+                    ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+                }`}
+              >
+                <History size={14} />
+                <span>Simulados Salvos</span>
+                {quizHistory.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-mono font-bold border border-violet-500/30">
+                    {quizHistory.length}
+                  </span>
+                )}
               </button>
             </div>
+
+            {/* ATALHO DIRETO PARA O MÓDULO VIP CADERNO DE ERROS */}
+            <Link
+              href="/notebook"
+              className="py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 text-rose-300/90 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/30 group ml-auto"
+            >
+              <BookOpenCheck size={14} className="text-rose-400 group-hover:scale-110 transition-transform" />
+              <span className="hidden sm:inline">Caderno de Erros (Módulo VIP)</span>
+              <span className="sm:hidden">Caderno de Erros</span>
+              {errorNotebookMetrics.pendingErrors > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold border border-rose-500/30">
+                  {errorNotebookMetrics.pendingErrors}
+                </span>
+              )}
+              <ArrowRight size={13} className="text-rose-400 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
         )}
 
-        {/* ETAPA OBRIGATÓRIA EDITAL */}
-        {subjects.length === 0 && questions.length === 0 && (
-          <div className="min-h-[60vh] flex items-center justify-center py-4">
-            <div className="relative overflow-hidden max-w-xl w-full bg-linear-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl space-y-6">
-              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10 relative z-10">
-                <BookOpen size={28} />
-              </div>
-              <div className="space-y-2 relative z-10">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
-                  <Lock size={12} /> Etapa Obrigatória
-                </div>
-                <h2 className="text-xl font-black text-white tracking-tight">
-                  Cadastre seu Edital Primeiro
-                </h2>
-                <p className="text-slate-300 text-xs leading-relaxed max-w-sm mx-auto">
-                  Para gerar simulados ou flashcards adaptados com IA para o seu
-                  concurso, você precisa primeiro cadastrar matérias e tópicos
-                  na aba de Editais.
-                </p>
-              </div>
-              <div className="pt-2 relative z-10">
-                <Link
-                  href="/edital"
-                  className="inline-flex items-center gap-2 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-6 py-3.5 rounded-xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 cursor-pointer"
-                >
-                  <BookOpen size={15} />
-                  <span>Configurar Edital</span>
-                  <ArrowRight size={15} />
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* CONTEÚDO PRINCIPAL */}
-        {subjects.length > 0 && (
-          <>
-            {/* HUD REORGANIZADO PARA MODO RESOLUÇÃO */}
-            {questions.length > 0 && activeTab === "create" && (
-              <div className="bg-[#090d16] border border-white/10 rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
-                {/* LINHA 1: MENU + INFO MATÉRIA + TEMPO */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {!isZenMode && (
-                      <button
-                        onClick={openSidebar}
-                        type="button"
-                        className="p-1.5 bg-white/5 border border-white/10 rounded-lg text-slate-400 hover:text-white md:hidden shrink-0 cursor-pointer"
+        {/* 3. CONTEÚDO DA ABA ATIVA COM TRANSIÇÃO SUAVE */}
+        <AnimatePresence mode="wait">
+          {activeTab === "create" && (
+            <motion.div
+              key="tab-create"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="space-y-6"
+            >
+              {isInitialLoading && subjects.length === 0 ? (
+                <TabCreateSkeleton />
+              ) : subjects.length === 0 ? (
+                /* ETAPA OBRIGATÓRIA EDITAL */
+                <div className="min-h-[50vh] flex items-center justify-center py-4">
+                  <div className="relative overflow-hidden max-w-xl w-full bg-linear-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl space-y-6">
+                    <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10 relative z-10">
+                      <BookOpen size={28} />
+                    </div>
+                    <div className="space-y-2 relative z-10">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
+                        <Lock size={12} /> Etapa Obrigatória
+                      </div>
+                      <h2 className="text-xl font-black text-white tracking-tight">
+                        Cadastre seu Edital Primeiro
+                      </h2>
+                      <p className="text-slate-300 text-xs leading-relaxed max-w-sm mx-auto">
+                        Para gerar simulados ou flashcards adaptados com IA para o seu
+                        concurso, você precisa primeiro cadastrar matérias e tópicos
+                        na aba de Editais.
+                      </p>
+                    </div>
+                    <div className="pt-2 relative z-10">
+                      <Link
+                        href="/edital"
+                        className="inline-flex items-center gap-2 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-6 py-3.5 rounded-xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 cursor-pointer"
                       >
-                        <Menu size={16} />
-                      </button>
-                    )}
-                    <span className="px-2 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/30 font-bold text-indigo-300 text-[10px] shrink-0 uppercase">
-                      {banca}
-                    </span>
-                    <span className="text-xs text-slate-200 font-bold truncate">
-                      {materia || "Simulado"}
-                    </span>
-                  </div>
-
-                  {/* CRONÔMETRO */}
-                  <div className="flex items-center gap-1.5 bg-indigo-950/60 border border-indigo-500/40 px-2.5 py-1 rounded-xl text-xs font-mono text-indigo-300 shrink-0">
-                    <Clock
-                      size={12}
-                      className="text-emerald-400 animate-pulse"
-                    />
-                    <span>{formatTimer(timerSeconds)}</span>
-                    <button
-                      onClick={() => setIsTimerRunning((prev) => !prev)}
-                      className="p-0.5 hover:bg-white/10 rounded text-slate-400 hover:text-white cursor-pointer ml-0.5"
-                    >
-                      {isTimerRunning ? (
-                        <Pause size={11} />
-                      ) : (
-                        <Play size={11} />
-                      )}
-                    </button>
+                        <BookOpen size={15} />
+                        <span>Configurar Edital</span>
+                        <ArrowRight size={15} />
+                      </Link>
+                    </div>
                   </div>
                 </div>
+              ) : (
+                <>
+                  {questions.length === 0 ? (
+                    <div className="space-y-6">
+                      {pausedSession &&
+                        pausedSession.questions &&
+                        pausedSession.questions.length > 0 && (
+                          <ResumeSessionCard
+                            session={pausedSession}
+                            onResume={() => {
+                              setCurrentQuizId(pausedSession.quizId || null);
+                              setBanca(pausedSession.banca || "FGV");
+                              setQuestions(pausedSession.questions || []);
+                              setSelectedAnswers(
+                                pausedSession.selectedAnswers || {},
+                              );
+                              setCheckedQuestions(
+                                pausedSession.checkedQuestions || {},
+                              );
+                              setCreatedFlashcards(
+                                pausedSession.createdFlashcards || {},
+                              );
+                              setTimerSeconds(pausedSession.timerSeconds || 0);
+                              setFocusedQuestionIndex(0);
+                              setIsTimerRunning(true);
+                            }}
+                            onDiscard={(e) => {
+                              e.stopPropagation();
+                              localStorage.removeItem(STORAGE_KEY);
+                              setPausedSession(null);
+                            }}
+                          />
+                        )}
 
-                {/* LINHA 2: PROGRESSO + AÇÕES */}
-                <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-2 text-xs">
-                  <div className="flex items-center gap-2 font-mono text-slate-300 text-[11px]">
-                    <span className="font-bold text-emerald-400">
-                      {answeredCount}/{totalQuestions}
-                    </span>
-                    <span className="text-slate-600">•</span>
-                    <span>{percentageAcc}% Acerto</span>
-                  </div>
+                      {/* HERO SPOTLIGHT - BANNER PRINCIPAL */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="backdrop-blur-xl bg-gradient-to-br from-violet-950/30 via-zinc-900/60 to-black/80 border border-violet-500/20 rounded-2xl p-7 relative overflow-hidden shadow-2xl hover:border-violet-500/30 transition-all duration-300"
+                      >
+                        {/* Luz radial ambiente em degradê violeta no canto superior direito */}
+                        <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 bg-violet-600/15 rounded-full blur-3xl" />
 
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => setIsPrintMode(true)}
-                      type="button"
-                      className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-cyan-400 text-xs font-semibold cursor-pointer"
-                      title="Imprimir"
-                    >
-                      <Printer size={13} />
-                    </button>
-
-                    <button
-                      onClick={() => setIsZenMode((prev) => !prev)}
-                      type="button"
-                      className={`p-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
-                        isZenMode
-                          ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
-                          : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
-                      }`}
-                      title="Modo Zen"
-                    >
-                      {isZenMode ? (
-                        <Minimize2 size={13} />
-                      ) : (
-                        <Maximize2 size={13} />
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setQuestions([]);
-                        setSelectedAnswers({});
-                        setCheckedQuestions({});
-                        setFlaggedQuestions({});
-                        setErrorClassifications({});
-                        localStorage.removeItem(STORAGE_KEY);
-                        setPausedSession(null);
-                        setCurrentQuizId(null);
-                        setIsTimerRunning(false);
-                        setIsZenMode(false);
-                      }}
-                      type="button"
-                      className="text-[10px] font-bold text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-lg shrink-0 cursor-pointer"
-                    >
-                      Sair
-                    </button>
-                  </div>
-                </div>
-
-                {/* BARRA DE PROGRESSO */}
-                <div className="w-full bg-slate-950/80 rounded-full h-1.5 overflow-hidden border border-white/5">
-                  <div
-                    className="bg-linear-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-300 rounded-full"
-                    style={{
-                      width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* 3. NAVEGAÇÃO DE ABAS */}
-            {!isZenMode && questions.length === 0 && (
-              <div className="flex border-b border-white/10 gap-2 overflow-x-auto pb-px scrollbar-none">
-                <button
-                  onClick={() => handleTabChange("create")}
-                  type="button"
-                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
-                    activeTab === "create"
-                      ? "border-indigo-500 text-indigo-400 bg-white/5"
-                      : "border-transparent text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <Home size={14} />
-                  <span>Início / Gerador</span>
-                </button>
-                <button
-                  onClick={() => {
-                    handleTabChange("history");
-                    fetchQuizHistory();
-                  }}
-                  type="button"
-                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
-                    activeTab === "history"
-                      ? "border-indigo-500 text-indigo-400 bg-white/5"
-                      : "border-transparent text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <History size={14} />
-                  <span>Simulados Salvos</span>
-                </button>
-                <button
-                  onClick={() => {
-                    handleTabChange("notebook");
-                    loadErrorNotebookData();
-                  }}
-                  type="button"
-                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
-                    activeTab === "notebook"
-                      ? "border-rose-500 text-rose-400 bg-white/5"
-                      : "border-transparent text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <BookOpenCheck size={14} />
-                  <span>Caderno de Erros</span>
-                  {errorNotebookMetrics.pendingErrors > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold border border-rose-500/30">
-                      {errorNotebookMetrics.pendingErrors}
-                    </span>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {/* 4. ABA 1: HUB OU CADERNO ATIVO */}
-            {activeTab === "create" && (
-              <>
-                {questions.length === 0 ? (
-                  <div className="space-y-6">
-                    {pausedSession &&
-                      pausedSession.questions &&
-                      pausedSession.questions.length > 0 && (
-                        <ResumeSessionCard
-                          session={pausedSession}
-                          onResume={() => {
-                            setCurrentQuizId(pausedSession.quizId || null);
-                            setBanca(pausedSession.banca || "FGV");
-                            setQuestions(pausedSession.questions || []);
-                            setSelectedAnswers(
-                              pausedSession.selectedAnswers || {},
-                            );
-                            setCheckedQuestions(
-                              pausedSession.checkedQuestions || {},
-                            );
-                            setCreatedFlashcards(
-                              pausedSession.createdFlashcards || {},
-                            );
-                            setTimerSeconds(pausedSession.timerSeconds || 0);
-                            setFocusedQuestionIndex(0);
-                            setIsTimerRunning(true);
-                          }}
-                          onDiscard={(e) => {
-                            e.stopPropagation();
-                            localStorage.removeItem(STORAGE_KEY);
-                            setPausedSession(null);
-                          }}
-                        />
-                      )}
-
-                    {/* HERO SPOTLIGHT */}
-                    <div className="relative overflow-hidden bg-linear-to-br from-[#0d1326] via-[#090d18] to-[#04060c] border border-indigo-500/20 sm:border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl backdrop-blur-2xl">
-                      <div className="pointer-events-none absolute -top-12 -right-12 h-40 w-40 sm:h-72 sm:w-72 rounded-full bg-indigo-500/20 blur-[60px] sm:blur-[100px]" />
-
-                      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-8">
-                        <div className="space-y-2.5 sm:space-y-4 max-w-xl">
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 backdrop-blur-md">
+                        <div className="relative z-10 space-y-5">
+                          {/* Badge futurista */}
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 backdrop-blur-md shadow-[0_0_12px_rgba(139,92,246,0.15)]">
                             <Sparkles
-                              size={11}
-                              className="text-indigo-400 animate-pulse"
+                              size={12}
+                              className="text-violet-400 animate-pulse"
                             />
-                            <span className="text-[9px] sm:text-[10px] font-black tracking-widest text-indigo-300 uppercase">
-                              Central de Treinamento
+                            <span className="text-[10px] font-mono font-bold tracking-widest text-violet-300 uppercase">
+                              CORE ENGINE V2.0 • IA GENERATIVA
                             </span>
                           </div>
 
-                          <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-snug sm:leading-tight">
-                            Pratique com questões inéditas e simulados
-                            direcionados
-                          </h2>
-
-                          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                            Gere cadernos adaptativos configurados pela IA ou
-                            retome seus testes anteriores com feedback em tempo
-                            real.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* CARDS DE AÇÃO */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-5">
-                      <div
-                        onClick={() => setIsAIModalOpen(true)}
-                        className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] active:scale-[0.98] sm:active:scale-[0.99] hover:border-indigo-500/50 border border-indigo-500/20 sm:border-white/10 p-5 sm:p-7 rounded-2xl sm:rounded-3xl cursor-pointer transition-all duration-200 shadow-xl flex flex-col justify-between overflow-hidden"
-                      >
-                        <div className="pointer-events-none absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all" />
-
-                        <div className="space-y-3 sm:space-y-4 relative z-10">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)]">
-                            <Sparkles size={20} className="sm:w-5 sm:h-5" />
+                          {/* Título & Descrição */}
+                          <div className="space-y-2 max-w-2xl">
+                            <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent leading-tight">
+                              Pratique com questões inéditas e simulados direcionados
+                            </h2>
+                            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl">
+                              Gere cadernos adaptativos configurados pela IA ou retome seus testes anteriores com feedback e correção comentada em tempo real.
+                            </p>
                           </div>
 
-                          <div>
-                            <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-indigo-300 transition-colors flex items-center justify-between">
-                              <span>Gerar Simulado por IA</span>
-                              <span className="text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full sm:hidden">
-                                Recomendado
+                          {/* Métricas integradas no rodapé do banner */}
+                          <div className="pt-3 flex flex-wrap items-center gap-2.5 sm:gap-3 border-t border-white/5">
+                            {/* 1. Precisão Média */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
+                              <Target size={14} className="text-violet-400 shrink-0" />
+                              <span className="text-zinc-400 text-[11px]">Precisão Média:</span>
+                              <span className="text-white font-bold font-mono">
+                                {practiceMetrics.averageAccuracy}%
                               </span>
-                            </h3>
+                            </div>
 
-                            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                              Filtre por banca, disciplina e dificuldade para
-                              montar cadernos sob medida.
-                            </p>
+                            {/* 2. Total de Questões Praticadas */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
+                              <Zap size={14} className="text-violet-400 shrink-0" />
+                              <span className="text-zinc-400 text-[11px]">Questões Praticadas:</span>
+                              <span className="text-white font-bold font-mono">
+                                {practiceMetrics.totalAnswered}
+                              </span>
+                            </div>
+
+                            {/* 3. Sequência Ativa */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
+                              <Flame size={14} className="text-amber-400 shrink-0" />
+                              <span className="text-zinc-400 text-[11px]">Sequência Ativa:</span>
+                              <span className="text-white font-bold font-mono">
+                                {gamificationStats?.streak?.currentDays ?? 0}{" "}
+                                {gamificationStats?.streak?.currentDays === 1 ? "dia" : "dias"}
+                              </span>
+                            </div>
                           </div>
                         </div>
+                      </motion.div>
 
-                        <div className="mt-5 sm:mt-8 flex items-center gap-2 text-xs font-extrabold text-indigo-400 group-hover:translate-x-1 transition-transform">
-                          <span>Configurar Parâmetros</span>
-                          <ArrowRight size={14} />
-                        </div>
-                      </div>
+                      {/* CARDS DE AÇÃO */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {/* Card 1 - Gerar Simulado por IA */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.05 }}
+                          onClick={() => setIsAIModalOpen(true)}
+                          className="group relative backdrop-blur-xl bg-gradient-to-br from-violet-950/20 via-zinc-900/50 to-black/70 border border-violet-500/20 hover:border-violet-500/40 hover:-translate-y-0.5 rounded-2xl p-6 sm:p-7 cursor-pointer transition-all duration-300 shadow-xl overflow-hidden flex flex-col justify-between"
+                        >
+                          {/* Glow ambiente no hover */}
+                          <div className="pointer-events-none absolute top-0 right-0 w-36 h-36 bg-violet-600/10 rounded-full blur-2xl group-hover:bg-violet-600/20 transition-all duration-300" />
 
-                      <div
-                        onClick={() => {
-                          handleTabChange("history");
-                          fetchQuizHistory();
-                        }}
-                        className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] active:scale-[0.98] sm:active:scale-[0.99] hover:border-white/30 border border-white/10 p-5 sm:p-7 rounded-2xl sm:rounded-3xl cursor-pointer transition-all duration-200 shadow-xl flex flex-col justify-between overflow-hidden"
-                      >
-                        <div className="space-y-3 sm:space-y-4 relative z-10">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 shadow-inner">
-                            <History size={20} className="sm:w-5 sm:h-5" />
+                          <div className="space-y-4 relative z-10">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="bg-violet-500/10 border border-violet-500/30 text-violet-400 p-3 rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+                                <Sparkles size={20} />
+                              </div>
+                              <span className="text-[10px] font-mono font-medium text-violet-300 bg-violet-500/15 border border-violet-500/30 px-2.5 py-1 rounded-full">
+                                Motor Ultrarrápido (&lt;5s)
+                              </span>
+                            </div>
+
+                            <div>
+                              <h3 className="text-lg font-bold text-white group-hover:text-violet-200 transition-colors">
+                                Gerar Simulado por IA
+                              </h3>
+                              <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+                                Filtre por banca, disciplina e dificuldade para montar cadernos sob medida com questões inéditas e análise de pegadinhas.
+                              </p>
+                            </div>
                           </div>
 
-                          <div>
-                            <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-slate-200 transition-colors">
-                              Meus Simulados Salvos
-                            </h3>
-
-                            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                              Acesse e refaça cadernos salvos no seu histórico a
-                              qualquer momento.
-                            </p>
+                          <div className="mt-6 pt-4 border-t border-white/5 relative z-10">
+                            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-violet-600/20 group-hover:shadow-violet-600/35 transition-all">
+                              <span>Configurar e Gerar</span>
+                              <ArrowRight
+                                size={14}
+                                className="group-hover:translate-x-1 transition-transform duration-200"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        </motion.div>
 
-                        <div className="mt-5 sm:mt-8 flex items-center gap-2 text-xs font-extrabold text-slate-400 group-hover:text-slate-200 group-hover:translate-x-1 transition-transform">
-                          <span>Ver Cadernos Salvos</span>
-                          <ArrowRight size={14} />
-                        </div>
+                        {/* Card 2 - Cadernos Salvos */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.1 }}
+                          onClick={() => {
+                            handleTabChange("history");
+                          }}
+                          className="group relative backdrop-blur-xl bg-gradient-to-br from-indigo-950/20 via-zinc-900/50 to-black/70 border border-indigo-500/20 hover:border-indigo-500/40 hover:-translate-y-0.5 rounded-2xl p-6 sm:p-7 cursor-pointer transition-all duration-300 shadow-xl overflow-hidden flex flex-col justify-between"
+                        >
+                          {/* Glow ambiente no hover */}
+                          <div className="pointer-events-none absolute top-0 right-0 w-36 h-36 bg-indigo-600/10 rounded-full blur-2xl group-hover:bg-indigo-600/20 transition-all duration-300" />
+
+                          <div className="space-y-4 relative z-10">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 p-3 rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                                <History size={20} />
+                              </div>
+                              <span className="text-[10px] font-mono font-medium text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 rounded-full">
+                                {quizHistory.length} {quizHistory.length === 1 ? "caderno" : "cadernos"}
+                              </span>
+                            </div>
+
+                            <div>
+                              <h3 className="text-lg font-bold text-white group-hover:text-indigo-200 transition-colors">
+                                Cadernos Salvos
+                              </h3>
+                              <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+                                {quizHistory.length > 0
+                                  ? `${quizHistory.length} ${quizHistory.length === 1 ? "simulado arquivado pronto" : "simulados arquivados prontos"} para refazer com gabarito comentado.`
+                                  : "Acesse e refaça cadernos salvos no seu histórico a qualquer momento com resolução detalhada."}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-6 pt-4 border-t border-white/5 relative z-10">
+                            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-zinc-200 text-xs font-bold transition-all">
+                              <span>Ver Cadernos Salvos</span>
+                              <ArrowRight
+                                size={14}
+                                className="group-hover:translate-x-1 transition-transform duration-200 text-zinc-400 group-hover:text-zinc-200"
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  /* LISTA DE QUESTÕES COM PADDING INFERIOR ADEQUADO */
-                  <div className="space-y-6 pb-40">
-                    {questions.map((questao, index) => (
-                      <QuestionCard
-                        key={`questao-${index}`}
-                        questao={questao}
-                        index={index}
-                        isFocused={index === focusedQuestionIndex}
-                        respondida={Boolean(checkedQuestions[index])}
-                        alternativaSelecionada={selectedAnswers[index]}
-                        isSavedError={Boolean(savedErrors[index])}
-                        isFlashcardCreated={Boolean(createdFlashcards[index])}
-                        isCreatingFlashcard={creatingFlashcardIndex === index}
-                        isFlagged={Boolean(flaggedQuestions[index])}
-                        onSelectAnswer={(altId) =>
-                          setSelectedAnswers((prev) => ({
-                            ...prev,
-                            [index]: altId,
-                          }))
-                        }
-                        onAnswerQuestion={() => handleAnswerQuestion(index)}
-                        onToggleSaveError={() =>
-                          setSavedErrors((prev) => ({
-                            ...prev,
-                            [index]: !prev[index],
-                          }))
-                        }
-                        onCreateFlashcard={() => handleCreateFlashcard(index)}
-                        onToggleFlag={() =>
-                          setFlaggedQuestions((prev) => ({
-                            ...prev,
-                            [index]: !prev[index],
-                          }))
-                        }
-                        onClassifyError={(reason: ErrorClassification) =>
-                          setErrorClassifications((prev) => ({
-                            ...prev,
-                            [index]: reason,
-                          }))
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
+                  ) : (
+                    /* LISTA DE QUESTÕES COM PADDING INFERIOR ADEQUADO */
+                    <div className="space-y-6 pb-40">
+                      {questions.map((questao, index) => (
+                        <QuestionCard
+                          key={`questao-${index}`}
+                          questao={questao}
+                          index={index}
+                          isFocused={index === focusedQuestionIndex}
+                          respondida={Boolean(checkedQuestions[index])}
+                          alternativaSelecionada={selectedAnswers[index]}
+                          isSavedError={Boolean(savedErrors[index])}
+                          isFlashcardCreated={Boolean(createdFlashcards[index])}
+                          isCreatingFlashcard={creatingFlashcardIndex === index}
+                          isFlagged={Boolean(flaggedQuestions[index])}
+                          onSelectAnswer={(altId) =>
+                            setSelectedAnswers((prev) => ({
+                              ...prev,
+                              [index]: altId,
+                            }))
+                          }
+                          onAnswerQuestion={() => handleAnswerQuestion(index)}
+                          onToggleSaveError={() =>
+                            setSavedErrors((prev) => ({
+                              ...prev,
+                              [index]: !prev[index],
+                            }))
+                          }
+                          onCreateFlashcard={() => handleCreateFlashcard(index)}
+                          onToggleFlag={() =>
+                            setFlaggedQuestions((prev) => ({
+                              ...prev,
+                              [index]: !prev[index],
+                            }))
+                          }
+                          onClassifyError={(reason: ErrorClassification) =>
+                            setErrorClassifications((prev) => ({
+                              ...prev,
+                              [index]: reason,
+                            }))
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </motion.div>
+          )}
 
-            {/* 5. ABA 2: HISTÓRICO */}
-            {activeTab === "history" && (
-              <QuizHistoryTab
-                history={quizHistory}
-                isLoading={isLoadingHistory}
-                searchTerm={searchTerm}
-                sortBy={sortBy}
-                confirmingDeleteId={confirmingDeleteId}
-                loadingQuizId={loadingQuizId}
-                onSearchChange={setSearchTerm}
-                onSortChange={setSortBy}
-                onLoadSavedQuiz={(savedQ, savedBanca, id) => {
-                  setLoadingQuizId(id);
-                  setTimeout(() => {
-                    const randomized = randomizeQuizSession(savedQ);
-                    setCurrentQuizId(id);
+          {activeTab === "history" && (
+            <motion.div
+              key="tab-history"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {isLoadingHistory && !isHistoryLoaded ? (
+                <TabHistorySkeleton />
+              ) : (
+                <QuizHistoryTab
+                  history={quizHistory}
+                  isLoading={isLoadingHistory && !isHistoryLoaded}
+                  searchTerm={searchTerm}
+                  sortBy={sortBy}
+                  confirmingDeleteId={confirmingDeleteId}
+                  loadingQuizId={loadingQuizId}
+                  onSearchChange={setSearchTerm}
+                  onSortChange={setSortBy}
+                  onLoadSavedQuiz={(savedQ, savedBanca, id) => {
+                    setLoadingQuizId(id);
+                    setTimeout(() => {
+                      const randomized = randomizeQuizSession(savedQ);
+                      setCurrentQuizId(id);
+                      setSelectedAnswers({});
+                      setCheckedQuestions({});
+                      setFlaggedQuestions({});
+                      setErrorClassifications({});
+                      setSavedErrors({});
+                      setCreatedFlashcards({});
+                      setShowCompletionModal(false);
+                      setQuestions(randomized);
+                      setBanca(savedBanca);
+                      handleTabChange("create");
+                      setLoadingQuizId(null);
+                      setTimerSeconds(0);
+                      setFocusedQuestionIndex(0);
+                      setIsTimerRunning(true);
+                    }, 200);
+                  }}
+                  onConfirmDelete={setConfirmingDeleteId}
+                  onDeleteSimulado={async (id) => {
+                    try {
+                      const res = await fetch(`/api/questions/${id}`, {
+                        method: "DELETE",
+                      });
+                      if (res.ok) {
+                        setQuizHistory((prev) => prev.filter((i) => i.id !== id));
+                        setConfirmingDeleteId(null);
+                      }
+                    } catch (err) {
+                      console.error("Erro ao deletar:", err);
+                    }
+                  }}
+                  onBatchDeleteSuccess={(deletedIds) => {
+                    setQuizHistory((prev) =>
+                      prev.filter((i) => !deletedIds.includes(i.id)),
+                    );
+                  }}
+                  onCreateNewQuiz={() => {
+                    setQuestions([]);
                     setSelectedAnswers({});
                     setCheckedQuestions({});
                     setFlaggedQuestions({});
                     setErrorClassifications({});
-                    setSavedErrors({});
-                    setCreatedFlashcards({});
-                    setShowCompletionModal(false);
-                    setQuestions(randomized);
-                    setBanca(savedBanca);
+                    setCurrentQuizId(null);
                     handleTabChange("create");
-                    setLoadingQuizId(null);
-                    setTimerSeconds(0);
-                    setFocusedQuestionIndex(0);
-                    setIsTimerRunning(true);
-                  }, 200);
-                }}
-                onConfirmDelete={setConfirmingDeleteId}
-                onDeleteSimulado={async (id) => {
-                  try {
-                    const res = await fetch(`/api/questions/${id}`, {
-                      method: "DELETE",
-                    });
-                    if (res.ok) {
-                      setQuizHistory((prev) => prev.filter((i) => i.id !== id));
-                      setConfirmingDeleteId(null);
-                    }
-                  } catch (err) {
-                    console.error("Erro ao deletar:", err);
-                  }
-                }}
-                onCreateNewQuiz={() => {
-                  setQuestions([]);
-                  setSelectedAnswers({});
-                  setCheckedQuestions({});
-                  setFlaggedQuestions({});
-                  setErrorClassifications({});
-                  setCurrentQuizId(null);
-                  handleTabChange("create");
-                  setIsZenMode(false);
-                }}
-              />
-            )}
+                    setIsZenMode(false);
+                  }}
+                />
+              )}
+            </motion.div>
+          )}
 
-            {/* 5. ABA 3: CADERNO DE ERROS COMPLETO */}
-            {activeTab === "notebook" && questions.length === 0 && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                {!isNotebookLoaded || isLoadingNotebook ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3 text-xs">
-                    <Loader2 size={24} className="animate-spin text-rose-400" />
-                    <span>Carregando diagnóstico do Caderno de Erros...</span>
-                  </div>
-                ) : (
-                  <ErrorNotebookView
-                    initialItems={errorNotebookItems}
-                    initialMetrics={errorNotebookMetrics}
-                    subjects={subjects}
-                  />
-                )}
-              </div>
-            )}
-          </>
-        )}
+
+        </AnimatePresence>
       </div>
 
       {/* MINIMAP FLUTUANTE */}
@@ -1793,6 +1905,8 @@ export default function QuestoesPage() {
         onTextoBaseChange={setTextoBase}
         onDificuldadeChange={setDificuldade}
         onQtdQuestoesChange={setQtdQuestoes}
+        isAdaptiveMode={isAdaptiveMode}
+        onAdaptiveModeChange={setIsAdaptiveMode}
         onSubmit={handleGenerateSimulado}
       />
 
@@ -1807,15 +1921,6 @@ export default function QuestoesPage() {
         onClose={() => {
           setIsSimuladoModalOpen(false);
           setSimuladoGenerationError(null);
-        }}
-      />
-
-      <RegisterQuestionsModal
-        isOpen={isRegisterModalOpen}
-        onClose={() => setIsRegisterModalOpen(false)}
-        topics={allModalTopics}
-        onSuccess={() => {
-          if (refreshStats) refreshStats();
         }}
       />
 

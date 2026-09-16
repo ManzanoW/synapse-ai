@@ -31,6 +31,9 @@ import {
   Volume2,
   VolumeX,
   Crown,
+  BookOpenCheck,
+  Shield,
+  Headphones,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -55,6 +58,18 @@ const NAV_GROUPS = [
     label: "Prática & Performance",
     items: [
       { label: "Banco de Provas", href: "/questions", icon: FileStack },
+      {
+        label: "Caderno de Erros",
+        href: "/notebook",
+        icon: BookOpenCheck,
+        badge: "IA",
+      },
+      {
+        label: "Sala de Foco",
+        href: "/study-room",
+        icon: Headphones,
+        badge: "ZEN",
+      },
       { label: "Cards", href: "/flashcards", icon: Layers },
       { label: "Performance", href: "/performance", icon: TrendingUp },
       {
@@ -358,6 +373,12 @@ export default function Sidebar({ user }: SidebarProps) {
                         />
 
                         <span className="tracking-wide">{item.label}</span>
+
+                        {"badge" in item && Boolean((item as any).badge) && (
+                          <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-tight">
+                            {(item as any).badge}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}
@@ -425,6 +446,16 @@ export default function Sidebar({ user }: SidebarProps) {
                           <Crown size={11} />
                           <span>ASCENDER</span>
                         </button>
+                      )}
+
+                      {Boolean(streak?.streakFreezes && streak.streakFreezes > 0) && (
+                        <div
+                          className="flex items-center gap-1 px-2 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                          title={`${streak?.streakFreezes} Congelamento(s) de Ofensiva ativo(s) — seu streak está protegido contra faltas acidentais!`}
+                        >
+                          <Shield size={11} className="fill-cyan-400/30 text-cyan-400" />
+                          <span>{streak?.streakFreezes}</span>
+                        </div>
                       )}
 
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold font-mono shadow-[0_0_12px_rgba(244,63,94,0.18)]">

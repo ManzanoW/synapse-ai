@@ -6,15 +6,15 @@ import {
   ErrorNotebookFilters,
   ErrorNotebookItem,
   ErrorNotebookMetrics,
+  Question,
 } from "@/types/quiz";
 import { ErrorMetricsHeader } from "./ErrorMetricsHeader";
 import { ErrorFiltersBar } from "./ErrorFiltersBar";
 import { ErrorCard } from "./ErrorCard";
 import {
-  getErrorNotebookItemsAction,
+  getErrorNotebookQuestionsAction,
   getErrorMetricsAction,
   batchClassifyTaxonomyOnlyAction,
-  autoClassifyPendingErrorsAction,
 } from "@/actions/error-notebook-actions";
 import {
   AlertCircle,
@@ -22,20 +22,19 @@ import {
   CheckCircle2,
   FileStack,
   Loader2,
-  Sparkles,
   ArrowRight,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
 
-interface SubjectOption {
+export interface SubjectOption {
   id: string;
   name: string;
   color?: string | null;
 }
 
-interface ErrorNotebookViewProps {
-  initialItems: ErrorNotebookItem[];
+export interface ErrorNotebookViewProps {
+  initialItems?: ErrorNotebookItem[];
   initialMetrics: ErrorNotebookMetrics;
   subjects: SubjectOption[];
 }
@@ -45,7 +44,13 @@ export function ErrorNotebookView({
   initialMetrics,
   subjects,
 }: ErrorNotebookViewProps) {
-  const [items, setItems] = useState<ErrorNotebookItem[]>(initialItems);
+  // Estado de Paginação (lotes de 10 em 10)
+  const [questions, setQuestions] = useState<Question[]>(initialItems || []);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Estados de Métricas e Filtros
   const [metrics, setMetrics] = useState<ErrorNotebookMetrics>(initialMetrics);
   const [filters, setFilters] = useState<ErrorNotebookFilters>({
     subjectId: "ALL",
@@ -56,7 +61,12 @@ export function ErrorNotebookView({
   });
   const [isFiltering, setIsFiltering] = useState(false);
   const [isClassifying, setIsClassifying] = useState(false);
-  const filterRequestIdRef = useRef(0);
+
+  // Refs de controle de requisição e Sentinela de Rolagem
+  const requestIdRef = useRef(0);
+  const observerTarget = useRef<HTMLDivElement | null>(null);
+
+  // Notificações Toast
   const [toastMessage, setToastMessage] = useState<{
     text: string;
     type: "success" | "info" | "error";
@@ -80,40 +90,114 @@ export function ErrorNotebookView({
     };
   }, []);
 
-  // Sincroniza dados caso initialItems ou initialMetrics sejam carregados ou atualizados externamente
-  useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
-
+  // Sincroniza métricas se atualizadas pelo componente pai
   useEffect(() => {
     setMetrics(initialMetrics);
   }, [initialMetrics]);
 
-  // Executa busca com novos filtros
+  // Função centralizada para carregar páginas (inicial/filtro ou próximo lote do scroll)
+  const fetchQuestions = useCallback(
+    async (
+      targetPage: number,
+      activeFilters: ErrorNotebookFilters,
+      isReset: boolean = false
+    ) => {
+      if (isReset) {
+        setIsFiltering(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      const reqId = ++requestIdRef.current;
+
+      try {
+        const res = await getErrorNotebookQuestionsAction({
+          page: targetPage,
+          limit: 10,
+          ...activeFilters,
+        });
+
+        if (reqId === requestIdRef.current) {
+          if (res.success && res.questions) {
+            if (isReset) {
+              setQuestions(res.questions);
+            } else {
+              setQuestions((prev) => {
+                const existingIds = new Set(prev.map((q) => q.id));
+                const newItems = res.questions.filter((q) => !existingIds.has(q.id));
+                return [...prev, ...newItems];
+              });
+            }
+            setPage(targetPage);
+            setHasMore(res.hasMore);
+          } else {
+            if (isReset) {
+              setQuestions([]);
+            }
+            setHasMore(false);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar questões do caderno de erros:", err);
+        if (isReset) {
+          setQuestions([]);
+        }
+        setHasMore(false);
+      } finally {
+        if (reqId === requestIdRef.current) {
+          setIsFiltering(false);
+          setIsLoadingMore(false);
+        }
+      }
+    },
+    []
+  );
+
+  // Carga inicial se não houver itens prévios injetados
+  useEffect(() => {
+    if (!initialItems || initialItems.length === 0) {
+      fetchQuestions(1, filters, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Implementação da Sentinela de Rolagem com IntersectionObserver nativo
+  useEffect(() => {
+    if (!hasMore || isLoadingMore || isFiltering) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasMore && !isLoadingMore && !isFiltering) {
+          fetchQuestions(page + 1, filters, false);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+      observer.disconnect();
+    };
+  }, [hasMore, isLoadingMore, isFiltering, page, filters, fetchQuestions]);
+
+  // Alteração de filtros: resetar para page = 1, zerar questions e buscar do início
   const handleFilterChange = (newFilters: Partial<ErrorNotebookFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
     setFilters(updatedFilters);
-
-    const reqId = ++filterRequestIdRef.current;
-    setIsFiltering(true);
-
-    getErrorNotebookItemsAction(updatedFilters)
-      .then((res) => {
-        if (reqId === filterRequestIdRef.current && res.success && res.data) {
-          setItems(res.data);
-        }
-      })
-      .catch((err) => {
-        console.error("Erro ao filtrar caderno de erros:", err);
-      })
-      .finally(() => {
-        if (reqId === filterRequestIdRef.current) {
-          setIsFiltering(false);
-        }
-      });
+    setPage(1);
+    setQuestions([]);
+    setHasMore(true);
+    fetchQuestions(1, updatedFilters, true);
   };
 
-  // Reseta filtros
+  // Reset de todos os filtros para o padrão
   const handleResetFilters = () => {
     const resetFilters: ErrorNotebookFilters = {
       subjectId: "ALL",
@@ -123,24 +207,10 @@ export function ErrorNotebookView({
       search: "",
     };
     setFilters(resetFilters);
-
-    const reqId = ++filterRequestIdRef.current;
-    setIsFiltering(true);
-
-    getErrorNotebookItemsAction(resetFilters)
-      .then((res) => {
-        if (reqId === filterRequestIdRef.current && res.success && res.data) {
-          setItems(res.data);
-        }
-      })
-      .catch((err) => {
-        console.error("Erro ao resetar filtros:", err);
-      })
-      .finally(() => {
-        if (reqId === filterRequestIdRef.current) {
-          setIsFiltering(false);
-        }
-      });
+    setPage(1);
+    setQuestions([]);
+    setHasMore(true);
+    fetchQuestions(1, resetFilters, true);
   };
 
   // Recalcula métricas do header dinamicamente após atualização de item
@@ -162,10 +232,10 @@ export function ErrorNotebookView({
           "success"
         );
         await refreshMetrics();
-        const itemsRes = await getErrorNotebookItemsAction(filters);
-        if (itemsRes.success && itemsRes.data) {
-          setItems(itemsRes.data);
-        }
+        setPage(1);
+        setQuestions([]);
+        setHasMore(true);
+        fetchQuestions(1, filters, true);
       } else {
         showToast(res.error || "Falha ao classificar lote de erros.", "error");
       }
@@ -179,7 +249,7 @@ export function ErrorNotebookView({
 
   // Callback de atualização de item no card
   const handleItemUpdated = (updatedItem: ErrorNotebookItem) => {
-    setItems((prev) =>
+    setQuestions((prev) =>
       prev.map((item) => (item.id === updatedItem.id ? updatedItem : item))
     );
     refreshMetrics();
@@ -187,7 +257,7 @@ export function ErrorNotebookView({
 
   // Callback de exclusão de item no card
   const handleItemDeleted = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+    setQuestions((prev) => prev.filter((item) => item.id !== id));
     refreshMetrics();
   };
 
@@ -210,32 +280,58 @@ export function ErrorNotebookView({
         onResetFilters={handleResetFilters}
       />
 
-      {/* 3. Indicador de Carregamento nos Filtros */}
+      {/* 3. Indicador de Carregamento nos Filtros / Busca */}
       {isFiltering && (
-        <div className="flex items-center justify-center py-6 text-violet-400 gap-2 text-sm">
-          <Loader2 className="animate-spin" size={18} />
-          <span>Filtrando caderno de erros...</span>
+        <div className="flex flex-col items-center justify-center py-12 text-violet-400 gap-3 text-sm">
+          <Loader2 className="animate-spin text-violet-400" size={24} />
+          <span className="text-slate-400 text-xs font-medium">
+            Carregando erros...
+          </span>
         </div>
       )}
 
-      {/* 4. Lista de Cards de Erro com Framer Motion */}
-      {!isFiltering && items.length > 0 && (
-        <motion.div layout className="space-y-4">
-          <AnimatePresence mode="popLayout">
-            {items.map((item) => (
-              <ErrorCard
-                key={item.id}
-                errorItem={item}
-                onItemUpdated={handleItemUpdated}
-                onItemDeleted={handleItemDeleted}
-              />
-            ))}
-          </AnimatePresence>
-        </motion.div>
+      {/* 4. Lista de Cards de Erro com Infinite Scroll */}
+      {!isFiltering && questions.length > 0 && (
+        <div className="space-y-4">
+          <motion.div layout className="space-y-4">
+            <AnimatePresence mode="popLayout">
+              {questions.map((item) => (
+                <ErrorCard
+                  key={item.id}
+                  errorItem={item}
+                  onItemUpdated={handleItemUpdated}
+                  onItemDeleted={handleItemDeleted}
+                />
+              ))}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Sentinela de Rolagem para IntersectionObserver */}
+          <div ref={observerTarget} className="h-6 w-full pointer-events-none" />
+
+          {/* Loader compacto com glassmorphism no rodapé */}
+          {isLoadingMore && (
+            <div className="flex items-center justify-center py-6">
+              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-slate-900/80 border border-white/10 backdrop-blur-xl shadow-lg text-xs font-medium text-slate-300">
+                <Loader2 className="animate-spin text-violet-400" size={16} />
+                <span>Carregando mais erros...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Mensagem sutil quando todos os erros foram revisados */}
+          {!hasMore && (
+            <div className="text-center py-8">
+              <p className="text-xs text-slate-500 font-medium tracking-wide">
+                Você revisou todos os erros catalogados.
+              </p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* 5. Empty State: Nenhum erro registrado ou nenhum match com filtro */}
-      {!isFiltering && items.length === 0 && (
+      {!isFiltering && questions.length === 0 && (
         <div className="p-12 text-center rounded-3xl bg-slate-900/40 border border-white/10 backdrop-blur-xl space-y-4">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-xl shadow-violet-500/5">
             <BookOpenCheck size={32} />
@@ -319,3 +415,7 @@ export function ErrorNotebookView({
     </div>
   );
 }
+
+// Alias de exportação para compatibilidade com abas
+export { ErrorNotebookView as ErrorNotebookTab };
+

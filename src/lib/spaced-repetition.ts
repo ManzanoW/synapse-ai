@@ -498,3 +498,119 @@ export function calculateSubjectRetentionFactor(subjectAccuracy?: number | null)
     isCritical,
   };
 }
+
+/**
+ * 🧠 FÓRMULA OFICIAL DE RETENÇÃO DO FSRS / CURVA DO ESQUECIMENTO DE EBBINGHAUS:
+ * R(t, S) = 0.9^(t / S)
+ *
+ * Onde:
+ * - t = Dias decorridos desde a última revisão
+ * - S = Estabilidade da memória em dias (tempo para retenção cair a 90%)
+ *
+ * Retorna uma porcentagem inteira de 0 a 100%.
+ */
+export function calculateMemoryRetention(
+  stability: number,
+  lastReviewed?: Date | null,
+  currentDate?: Date,
+): number {
+  const safeStability = Math.max(0.5, stability || 1.0);
+
+  if (!lastReviewed) {
+    // Card novo ou recém-criado sem histórico anterior
+    return 100;
+  }
+
+  const now = currentDate ? new Date(currentDate).getTime() : Date.now();
+  const reviewedTime = new Date(lastReviewed).getTime();
+  const elapsedDays = Math.max(0, (now - reviewedTime) / (1000 * 60 * 60 * 24));
+
+  if (elapsedDays <= 0) return 100;
+
+  // Fórmula FSRS: R = 0.9^(t / S)
+  const retention = Math.pow(0.9, elapsedDays / safeStability);
+  const percentage = Math.round(Math.min(1.0, Math.max(0.05, retention)) * 100);
+
+  return percentage;
+}
+
+export type MemoryRetentionStatus = "OPTIMAL" | "REVIEW_IDEAL" | "CRITICAL";
+
+export interface MemoryStatusInfo {
+  status: MemoryRetentionStatus;
+  label: string;
+  description: string;
+  color: "emerald" | "amber" | "rose";
+  bgBadge: string;
+  textBadge: string;
+  borderBadge: string;
+}
+
+/**
+ * Classifica a saúde da memória baseada na probabilidade de retenção atual:
+ * - >= 85%: Memória Forte / Consolidada
+ * - 70% a 84%: Ponto Ótimo de Revisão (Desafio desejável antes do esquecimento)
+ * - < 70%: Zona Crítica de Esquecimento
+ */
+export function getMemoryStatus(retention: number): MemoryStatusInfo {
+  if (retention >= 85) {
+    return {
+      status: "OPTIMAL",
+      label: "Memória Estável",
+      description: "Conteúdo retido com alta fidelidade cognitiva.",
+      color: "emerald",
+      bgBadge: "bg-emerald-500/15",
+      textBadge: "text-emerald-300",
+      borderBadge: "border-emerald-500/30",
+    };
+  }
+
+  if (retention >= 70) {
+    return {
+      status: "REVIEW_IDEAL",
+      label: "Ponto de Revisão",
+      description: "Momento ideal da curva de Ebbinghaus para reconsolidação.",
+      color: "amber",
+      bgBadge: "bg-amber-500/15",
+      textBadge: "text-amber-300",
+      borderBadge: "border-amber-500/30",
+    };
+  }
+
+  return {
+    status: "CRITICAL",
+    label: "Risco de Esquecimento",
+    description: "Probabilidade de retenção abaixo do limiar de segurança.",
+    color: "rose",
+    bgBadge: "bg-rose-500/15",
+    textBadge: "text-rose-300",
+    borderBadge: "border-rose-500/30",
+  };
+}
+
+/**
+ * ⚠️ DETECÇÃO DE CARD SANGUESSUGA (LEECH / PONTO CEGO):
+ * Cards que sofreram 3 ou mais falhas (lapses >= 3) e ainda não estabilizaram
+ * consomem energia do concurseiro sem gerar fixação. Precisam de intervenção (mnemônico IA).
+ */
+export function isLeechCard(lapses: number, repetitions: number = 0): boolean {
+  return lapses >= 3 && repetitions <= 2;
+}
+
+export type CardMaturityStage = "NEW" | "LEARNING" | "MATURE";
+
+/**
+ * Classifica o estágio de maturidade do card no FSRS:
+ * - NEW: Card nunca revisado com sucesso (repetitions === 0)
+ * - LEARNING: Em fixação inicial/intermediária (estabilidade < 21 dias)
+ * - MATURE: Memória consolidada de longo prazo (estabilidade >= 21 dias)
+ */
+export function classifyCardMaturity(
+  repetitions: number,
+  stability: number,
+): CardMaturityStage {
+  if (repetitions === 0) return "NEW";
+  if (stability >= 21) return "MATURE";
+  return "LEARNING";
+}
+

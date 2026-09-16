@@ -2,7 +2,10 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { invalidateUserCacheAction } from "@/actions/gamification-actions";
+import {
+  invalidateUserCacheAction,
+  recordStudyActivityAction,
+} from "@/actions/gamification-actions";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
 import { revalidatePath } from "next/cache";
 import { SubmitQuizAttemptInput, SubjectDomainMetric } from "@/types/quiz";
@@ -64,29 +67,22 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
 
     const earnedXp = baseEarnedXp + accuracyBonusXp + timedBonusXp;
 
-    // 1. Grava a tentativa no banco e atualiza XP atômico
-    const [attempt] = await prisma.$transaction([
-      prisma.quizAttempt.create({
-        data: {
-          userId,
-          topicId: targetTopicId,
-          totalCount: input.totalQuestions,
-          correctCount: input.correctAnswers,
-        },
-      }),
-      prisma.userStats.upsert({
-        where: { userId },
-        create: {
-          userId,
-          totalXp: earnedXp,
-          lastStudyDate: new Date(),
-        },
-        update: {
-          totalXp: { increment: earnedXp },
-          lastStudyDate: new Date(),
-        },
-      }),
-    ]);
+    // 1. Grava a tentativa no banco
+    const attempt = await prisma.quizAttempt.create({
+      data: {
+        userId,
+        topicId: targetTopicId,
+        totalCount: input.totalQuestions,
+        correctCount: input.correctAnswers,
+      },
+    });
+
+    // 1.1 Atualiza XP, streak e proteção anti-frustração via motor centralizado
+    const activityResult = await recordStudyActivityAction(
+      userId,
+      earnedXp,
+      "QUIZ",
+    );
 
     // 2. Atualiza a performance e última data no tópico
     await prisma.topic.update({
@@ -158,6 +154,10 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
         accuracyBonusXp,
         timedBonusXp,
         completedWithinTime,
+        totalXp: activityResult.data?.totalXp,
+        streakDays: activityResult.data?.streakDays,
+        streakProtected: activityResult.data?.streakProtected,
+        levelInfo: activityResult.data?.levelInfo,
       },
     };
   } catch (err) {
@@ -208,6 +208,12 @@ export async function getSubjectDomainStatsAction(userIdParam?: string) {
           ? Math.round((totalCorrect / totalQuestions) * 100)
           : 0;
 
+      const rawWeight = Number(
+        subject.weight ??
+          (subject.priority && subject.priority <= 10 ? subject.priority : 5.0),
+      );
+      const safeWeight = Math.max(1, Math.min(10, isNaN(rawWeight) ? 5.0 : rawWeight));
+
       return {
         subjectId: subject.id,
         subjectName: subject.name,
@@ -215,7 +221,7 @@ export async function getSubjectDomainStatsAction(userIdParam?: string) {
         totalAnswered: totalQuestions,
         correctCount: totalCorrect,
         domainPercentage,
-        weight: Number(subject.priority || 1),
+        weight: safeWeight,
       };
     });
 

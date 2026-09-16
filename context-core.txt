@@ -53,6 +53,7 @@ src/
     gamification-actions.ts
     quest-actions.tsx
     quiz-actions.ts
+    simulado-actions.ts
   context/
     AchievementContext.tsx
     AudioContext.tsx
@@ -68,6 +69,7 @@ src/
     adaptive-rebalancer.ts
     ai-validator.ts
     analytics-utils.ts
+    auth.ts
     cache-service.ts
     check-achievements.ts
     error-taxonomy.ts
@@ -77,6 +79,7 @@ src/
     mock-prisma.ts
     prisma.ts
     sidebar-context.tsx
+    simulado-generator.ts
     sm2.ts
     spaced-repetition.ts
     srs-algorithm.ts
@@ -91,6 +94,54 @@ src/
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="src/actions/simulado-actions.ts">
+"use server";
+
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+
+export async function deleteBatchSimuladosAction(simuladoIds: string[]) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Não autorizado." };
+    }
+
+    if (!simuladoIds || !Array.isArray(simuladoIds) || simuladoIds.length === 0) {
+      return {
+        success: false,
+        error: "Nenhum simulado selecionado para exclusão.",
+      };
+    }
+
+    // Suporta tanto prisma.simulado (se definido/estendido) quanto prisma.quiz (modelo Prisma padrão)
+    const delegate = (prisma as any).simulado ?? prisma.quiz;
+
+    const result = await delegate.deleteMany({
+      where: {
+        id: { in: simuladoIds },
+        userId,
+      },
+    });
+
+    revalidatePath("/questions");
+
+    return { success: true, count: result.count };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Erro na Server Action deleteBatchSimuladosAction:", error);
+    return {
+      success: false,
+      error: "Falha ao excluir simulados.",
+      details: errorMessage,
+    };
+  }
+}
+</file>
 
 <file path="src/lib/utils/pace.ts">
 export function calculateIdealPace(
@@ -1123,6 +1174,464 @@ export function useSidebar() {
     throw new Error('useSidebar deve ser usado dentro de um SidebarProvider');
   }
   return context;
+}
+</file>
+
+<file path="src/lib/simulado-generator.ts">
+import { Type } from "@google/genai";
+import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
+import { generateContentWithFallback } from "@/lib/gemini-fallback";
+
+export interface Alternativa {
+  id: string;
+  texto: string;
+}
+
+export interface QuestaoGerada {
+  id?: string;
+  enunciado: string;
+  formato: string;
+  justificativa: string;
+  pegadinhaBanca?: string;
+  explicacaoErro?: string;
+  alternativas: Alternativa[];
+  gabaritoCorreto: string;
+  flashcardFrente: string;
+  flashcardVerso: string;
+  subjectId?: string;
+  topicId?: string;
+}
+
+export interface GenerateSimuladoParams {
+  banca: string;
+  materia: string;
+  topicoId?: string | null;
+  topicoNome?: string | null;
+  specificTopic?: string | null;
+  qtdQuestoes: number | string;
+  dificuldade?: string;
+  textoBase?: string | null;
+  fonteConteudo?: "banca" | "texto" | "pdf" | string;
+}
+
+export interface GenerateSimuladoResult {
+  success: boolean;
+  data: QuestaoGerada[];
+  quizId: string | null;
+  sessionId: string | null;
+  usedModel?: string;
+  durationMs?: number;
+}
+
+export function shuffleAlternatives(questoes: QuestaoGerada[]): QuestaoGerada[] {
+  return questoes.map((q) => {
+    if (
+      q.formato !== "multipla" ||
+      !Array.isArray(q.alternativas) ||
+      q.alternativas.length === 0
+    ) {
+      return q;
+    }
+
+    const alternativaCorretaObj = q.alternativas.find(
+      (alt) => alt.id === q.gabaritoCorreto,
+    );
+    const textoCorreto = alternativaCorretaObj
+      ? alternativaCorretaObj.texto
+      : null;
+
+    if (!textoCorreto) return q;
+
+    const textos = q.alternativas.map((a) => a.texto);
+    for (let i = textos.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [textos[i], textos[j]] = [textos[j], textos[i]];
+    }
+
+    const letras = ["A", "B", "C", "D", "E"];
+    let novoGabarito = q.gabaritoCorreto;
+
+    const novasAlternativas = textos.map((texto, index) => {
+      const letra = letras[index] || `ALT_${index}`;
+      if (texto === textoCorreto) {
+        novoGabarito = letra;
+      }
+      return { id: letra, texto };
+    });
+
+    return {
+      ...q,
+      alternativas: novasAlternativas,
+      gabaritoCorreto: novoGabarito,
+    };
+  });
+}
+
+function shuffleArray<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Calcula a divisão em lotes para execução paralela.
+ * Por exemplo: 20 questões -> [5, 5, 5, 5] (4 lotes de 5).
+ * 15 questões -> [5, 5, 5]
+ * 10 questões -> [5, 5]
+ * 5 questões -> [5]
+ */
+export function calculateBatchSizes(total: number, maxBatchSize = 5): number[] {
+  const boundedTotal = Math.min(Math.max(total, 1), 30);
+  const batches: number[] = [];
+  let remaining = boundedTotal;
+
+  while (remaining > 0) {
+    const size = Math.min(remaining, maxBatchSize);
+    batches.push(size);
+    remaining -= size;
+  }
+
+  return batches;
+}
+
+const geminiResponseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    questoes: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          enunciado: {
+            type: Type.STRING,
+            description: "Enunciado claro, conciso e direto ao ponto.",
+          },
+          formato: { type: Type.STRING },
+          justificativa: {
+            type: Type.STRING,
+            description: "Texto explicativo conciso (max 2 frases).",
+          },
+          pegadinhaBanca: { type: Type.STRING },
+          explicacaoErro: { type: Type.STRING },
+          alternativas: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                texto: { type: Type.STRING },
+              },
+              required: ["id", "texto"],
+            },
+          },
+          gabaritoCorreto: { type: Type.STRING },
+          flashcardFrente: {
+            type: Type.STRING,
+            description:
+              "Pergunta direta, conceitual e objetiva extraída do tema da questão, ideal para revisão por repetição espaçada.",
+          },
+          flashcardVerso: {
+            type: Type.STRING,
+            description:
+              "Resposta direta e sucinta com a explicação teórica essencial.",
+          },
+        },
+        required: [
+          "enunciado",
+          "formato",
+          "justificativa",
+          "alternativas",
+          "gabaritoCorreto",
+          "flashcardFrente",
+          "flashcardVerso",
+        ],
+      },
+    },
+  },
+  required: ["questoes"],
+};
+
+export async function generateSimuladoInParallel(
+  params: GenerateSimuladoParams,
+  userId?: string | null,
+): Promise<GenerateSimuladoResult> {
+  const startTime = Date.now();
+  const {
+    banca,
+    materia,
+    topicoId,
+    topicoNome,
+    specificTopic,
+    qtdQuestoes,
+    dificuldade = "Média",
+    textoBase,
+    fonteConteudo = "banca",
+  } = params;
+
+  if (!banca || !materia) {
+    throw new Error("Banca e matéria são obrigatórios.");
+  }
+
+  const quantidadeTotal = Math.min(
+    Math.max(parseInt(String(qtdQuestoes), 10) || 5, 1),
+    30,
+  );
+
+  const isAllTopics =
+    !topicoId ||
+    topicoId === "ALL" ||
+    topicoNome === "Todos os Tópicos da Matéria";
+
+  let targetTopicUuid: string | null = null;
+  let allSubjectTopics: { id: string; title: string }[] = [];
+
+  if (!isAllTopics) {
+    const dbTopic = await prisma.topic.findFirst({
+      where: {
+        OR: [{ id: topicoId || undefined }, { title: topicoNome || topicoId || undefined }],
+        subject: {
+          name: { equals: materia, mode: "insensitive" },
+          ...(userId ? { userId } : {}),
+        },
+      },
+      select: { id: true, title: true },
+    });
+
+    if (dbTopic) {
+      targetTopicUuid = dbTopic.id;
+    }
+  } else {
+    const subjectRecord = await prisma.subject.findFirst({
+      where: { name: materia, ...(userId ? { userId } : {}) },
+      include: { topics: { select: { id: true, title: true } } },
+    });
+
+    if (subjectRecord && subjectRecord.topics.length > 0) {
+      allSubjectTopics = subjectRecord.topics;
+    }
+  }
+
+  // Divisão em lotes paralelos (chunks de no máximo 5)
+  const batches = calculateBatchSizes(quantidadeTotal, 5);
+
+  // Mapeia cada lote com instrução focada e particionamento de tópicos
+  const batchPromises = batches.map(async (batchCount, batchIndex) => {
+    let batchContext = "";
+
+    if (specificTopic?.trim()) {
+      batchContext += `REQUISITO OBRIGATÓRIO DE ESCOPO: Todas as questões deste simulado DEVEM focar estritamente no seguinte recorte temático ou dispositivo legal: "${specificTopic.trim()}". Não gere questões genéricas fora desse assunto.\n`;
+    }
+
+    if (!isAllTopics) {
+      const topicLabel = topicoNome || topicoId || "Geral";
+      batchContext += `Atenção: Foque as questões estritamente no Tópico Específico: "${topicLabel}" pertencente à matéria "${materia}".\n`;
+      batchContext += `Lote ${batchIndex + 1} de ${batches.length}: crie questões com nuances e abordagens conceituais variadas dentro deste tema.\n`;
+    } else if (allSubjectTopics.length > 0) {
+      // Particiona tópicos de forma balanceada entre os lotes
+      const topicsPerBatch = Math.max(
+        1,
+        Math.ceil(allSubjectTopics.length / batches.length),
+      );
+      const startIdx = (batchIndex * topicsPerBatch) % allSubjectTopics.length;
+      const batchTopicSlice = allSubjectTopics.slice(
+        startIdx,
+        startIdx + topicsPerBatch,
+      );
+      const topicList = (batchTopicSlice.length > 0 ? batchTopicSlice : allSubjectTopics)
+        .map((t) => t.title)
+        .join("; ");
+      batchContext += `Priorize e distribua as questões deste lote entre os seguintes tópicos da matéria "${materia}": [${topicList}].\n`;
+    } else {
+      batchContext += `Abranga o conteúdo programático padrão da matéria "${materia}" sob a ótica da banca "${banca}". Lote ${batchIndex + 1}.\n`;
+    }
+
+    if (fonteConteudo === "texto" && textoBase) {
+      batchContext += `Obrigatório basear as questões estritamente neste texto/lei:\n"${textoBase}"\n`;
+    }
+
+    const batchPrompt = `
+      Você é um professor PhD e especialista elaborador de provas para a banca "${banca}".
+      ATENÇÃO CRÍTICA: Você DEVE gerar EXATAMENTE ${batchCount} questões distintas e completas dentro do array 'questoes'. Não gere menos que ${batchCount} itens.
+      
+      Matéria: "${materia}".
+      ${
+        specificTopic?.trim()
+          ? `REQUISITO OBRIGATÓRIO DE ESCOPO: Todas as questões deste simulado DEVEM focar estritamente no seguinte recorte temático ou dispositivo legal: "${specificTopic.trim()}". Não gere questões genéricas fora desse assunto.\n`
+          : ""
+      }Nível de Dificuldade: "${dificuldade}". 
+      Estilo da Banca: "${banca}".
+      
+      ${batchContext}
+      
+      ===================================================================
+      🔥 FLUXO OBRIGATÓRIO DE ELABORAÇÃO PARA CADA QUESTÃO:
+      ===================================================================
+      1. CÁLCULO E FUNDAMENTAÇÃO PRÉVIA:
+         - Antes de criar o enunciado final e as alternativas, defina a questão e RESOLVA-A por completo.
+         - Se for EXATAS/CÁLCULO: Calcule com precisão matemática absoluta até encontrar o resultado numérico exato.
+         - Se for DIREITO/TEORIA: Fundamente na legislação vigente, jurisprudência dominante ou regras teóricas consolidadas.
+
+      2. CRIAÇÃO DAS ALTERNATIVAS COM O VALOR EXATO:
+         - Pegue o RESULTADO EXATO obtido e coloque-o em UMA das opções (A, B, C ou D).
+         - Crie distratores plausíveis para as outras opções sem ambiguidades.
+         - É ESTRITAMENTE PROIBIDO criar alternativas em que o resultado exato calculado na justificativa não esteja presente.
+
+      3. DISTRIBUIÇÃO RANDÔMICA E IMPARCIAL DOS GABARITOS:
+         - NUNCA fixe ou repita o mesmo gabarito em várias questões seguidas.
+         - Distribua as respostas corretas de forma aleatória e equilibrada.
+
+      4. VALIDAÇÃO CRUZADA DE GABARITO (RIGOROSO):
+         - Identifique explicitamente em qual LETRA ("A", "B", "C" ou "D") está o resultado exato calculado.
+         - Atribua ESTREITAMENTE essa LETRA ao campo "gabaritoCorreto".
+
+      ===================================================================
+      ⚡ REGRAS DE CONCISÃO E ALTA VELOCIDADE (MÁXIMO THROUGHPUT):
+      ===================================================================
+      - Enunciado: Seja conciso, claro e direto ao ponto, evitando textos longos ou prolixos.
+      - explanation / justificativa: texto explicativo conciso (max 2 frases objetivas demonstrando a regra ou o cálculo).
+      - Flashcards: Pergunta no 'flashcardFrente' e resposta no 'flashcardVerso' com no máximo 1 frase concisa cada.
+      - Elimine explicações desnecessárias para garantir resposta rápida em lote.
+
+      ===================================================================
+      FORMATO DAS RESPOSTAS:
+      ===================================================================
+      - Se banca for "Cebraspe": formato "certo_errado" (gabaritoCorreto: "Certo" ou "Errado", alternativas: []).
+      - Outras bancas: formato "multipla" com exatamente 4 alternativas (ids: "A", "B", "C", "D").
+      - "gabaritoCorreto": deve conter APENAS a letra correspondente à opção correta ("A", "B", "C" ou "D") ou "Certo"/"Errado".
+    
+      Além da questão e das alternativas, gere uma versão em Flashcard (Active Recall) para cada item: no 'flashcardFrente', elabore uma pergunta conceitual e direta sobre o cerne do tema; no 'flashcardVerso', responda com a definição/regra essencial de forma clara e sintética.
+    `;
+
+    try {
+      const response = await generateContentWithFallback({
+        prompt: batchPrompt,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+          responseSchema: geminiResponseSchema,
+        },
+        timeoutMs: 30000,
+      });
+
+      let text = response.text?.trim() || "";
+      if (text.startsWith("```json")) text = text.replace(/^```json/, "").replace(/```$/, "").trim();
+      if (text.startsWith("```")) text = text.replace(/^```/, "").replace(/```$/, "").trim();
+
+      try {
+        const parsed = JSON.parse(text);
+        const batchQuestions: QuestaoGerada[] = Array.isArray(parsed.questoes)
+          ? parsed.questoes
+          : [];
+        return {
+          questions: batchQuestions,
+          usedModel: response.usedModel,
+        };
+      } catch (parseError) {
+        console.error(
+          `Erro ao analisar JSON do lote ${batchIndex}:`,
+          parseError,
+          "\nTexto bruto recebido:\n",
+          text,
+        );
+        return {
+          questions: [],
+          usedModel: response.usedModel,
+        };
+      }
+    } catch (batchError) {
+      console.error(`Erro ao gerar questões para o lote ${batchIndex}:`, batchError);
+      return {
+        questions: [],
+        usedModel: undefined,
+      };
+    }
+  });
+
+  // Execução 100% paralela com Promise.all
+  const results = await Promise.all(batchPromises);
+
+  // Consolidação dos arrays resultantes
+  const allRawQuestions: QuestaoGerada[] = [];
+  let dominantModel = "gemini-3.5-flash-lite";
+
+  results.forEach((r) => {
+    if (r.usedModel) dominantModel = r.usedModel;
+    if (Array.isArray(r.questions)) {
+      allRawQuestions.push(...r.questions);
+    }
+  });
+
+  if (allRawQuestions.length === 0) {
+    throw new Error("A IA não retornou nenhuma questão válida.");
+  }
+
+  // Se gerou a mais ou a menos devido à variação de cada lote, ajusta para a quantidade pedida
+  const slicedQuestions = allRawQuestions.slice(0, quantidadeTotal);
+
+  // Processa alternativas e embaralha a lista final para intercalar os lotes
+  const questoesProcessadas = shuffleArray(shuffleAlternatives(slicedQuestions));
+
+  // Persistência no Banco de Dados
+  let savedQuiz = null;
+  if (userId) {
+    if (targetTopicUuid) {
+      const topicExists = await prisma.topic.findUnique({
+        where: { id: targetTopicUuid },
+      });
+      if (!topicExists) targetTopicUuid = null;
+    }
+
+    const finalSubject = specificTopic?.trim()
+      ? (materia.toLowerCase().startsWith("simulado")
+          ? `${materia} - ${specificTopic.trim()}`
+          : `Simulado: ${materia} - ${specificTopic.trim()}`)
+      : materia;
+
+    savedQuiz = await prisma.quiz.create({
+      data: {
+        userId,
+        banca,
+        subject: finalSubject,
+        difficulty: dificuldade,
+        topicId: targetTopicUuid,
+        questions: questoesProcessadas as unknown as Prisma.InputJsonValue,
+      },
+      include: {
+        topic: {
+          select: { id: true, title: true },
+        },
+      },
+    });
+
+    if (targetTopicUuid) {
+      await prisma.quizAttempt
+        .create({
+          data: {
+            userId,
+            topicId: targetTopicUuid,
+            totalCount: questoesProcessadas.length,
+            correctCount: 0,
+          },
+        })
+        .catch((e) => console.error("Aviso ao registrar QuizAttempt:", e));
+    }
+  }
+
+  const durationMs = Date.now() - startTime;
+
+  return {
+    success: true,
+    data: questoesProcessadas,
+    quizId: savedQuiz?.id || null,
+    sessionId: savedQuiz?.id || null,
+    usedModel: dominantModel,
+    durationMs,
+  };
 }
 </file>
 
@@ -2670,6 +3179,11 @@ export function calculateAdaptiveRebalance(
 }
 </file>
 
+<file path="src/lib/auth.ts">
+export * from "@/auth";
+export { authOptions, getBaseUrl, baseUrl } from "@/auth";
+</file>
+
 <file path="src/lib/error-taxonomy.ts">
 // src/lib/error-taxonomy.ts
 
@@ -3957,109 +4471,6 @@ export async function getUserAchievementsProgress(userId: string) {
 }
 </file>
 
-<file path="src/lib/gemini-fallback.ts">
-// src/lib/gemini-fallback.ts
-
-import { GoogleGenAI, GenerateContentConfig } from "@google/genai";
-
-let aiClient: GoogleGenAI | null = null;
-
-function getAIClient(): GoogleGenAI {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        "Chave GEMINI_API_KEY não configurada. Configure a variável no ambiente ou em .env.",
-      );
-    }
-    aiClient = new GoogleGenAI({ apiKey });
-  }
-  return aiClient;
-}
-
-// Modelos Gemini suportados pelo SDK @google/genai
-const MODELS_CASCADE = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-2.5-pro",
-];
-
-export interface GeminiFallbackOptions {
-  prompt: string;
-  config?: GenerateContentConfig;
-  timeoutMs?: number;
-}
-
-/**
- * Executa chamadas com fallback transparente entre todos os modelos Gemini disponíveis.
- * Se o limite de cota diário (RPD) ou por minuto (RPM) for atingido, comuta no milissegundo seguinte.
- */
-export async function generateContentWithFallback(
-  options: GeminiFallbackOptions,
-): Promise<{ text: string; usedModel: string }> {
-  const { prompt, config, timeoutMs = 90000 } = options;
-  let lastError: unknown;
-
-  const ai = getAIClient();
-
-  for (const modelName of MODELS_CASCADE) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-      const result = await ai.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: {
-          temperature: 0.3,
-          ...config,
-        },
-      });
-
-      clearTimeout(timeoutId);
-
-      const responseText = result.text || "";
-      if (!responseText) {
-        throw new Error(`Modelo ${modelName} retornou conteúdo vazio.`);
-      }
-
-      return {
-        text: responseText,
-        usedModel: modelName,
-      };
-    } catch (err: unknown) {
-      lastError = err;
-      const errorString = String(err);
-
-      // Detecta erro 429, esgotamento de quota ou sobrecarga temporária 503
-      const isQuotaOrRateLimit =
-        errorString.includes("429") ||
-        errorString.includes("503") ||
-        errorString.includes("RESOURCE_EXHAUSTED") ||
-        errorString.includes("quota") ||
-        errorString.includes("rate limit") ||
-        errorString.includes("not found"); // Caso algum modelo específico não esteja ativado na conta
-
-      if (isQuotaOrRateLimit) {
-        console.warn(
-          `[Gemini Fallback] ${modelName} indisponível ou limite atingido. Tentando o próximo modelo...`,
-        );
-        // Pequena pausa para evitar rajada em conexões instáveis
-        await new Promise((res) => setTimeout(res, 300));
-        continue;
-      }
-
-      // Erros críticos de validação/segurança não relacionados à cota interrompem imediatamente
-      throw err;
-    }
-  }
-
-  throw new Error(
-    `Todos os 8 modelos Gemini da cadeia de fallback falharam ou atingiram o limite diário: ${lastError}`,
-  );
-}
-</file>
-
 <file path="src/lib/prisma.ts">
 import type { PrismaClient } from "@prisma/client";
 import { createMockPrismaClient } from "./mock-prisma";
@@ -4185,6 +4596,242 @@ export interface SubjectDeficitMetrics {
   isCritical: boolean; // acurácia < 65% ou déficit >= 0.35
   urgencyMultiplier: number;
 }
+</file>
+
+<file path="src/lib/gemini-fallback.ts">
+// src/lib/gemini-fallback.ts
+
+import { GoogleGenAI, GenerateContentConfig } from "@google/genai";
+
+let aiClient: GoogleGenAI | null = null;
+
+function getAIClient(): GoogleGenAI {
+  if (!aiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        "Chave GEMINI_API_KEY não configurada. Configure a variável no ambiente ou em .env.",
+      );
+    }
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+  return aiClient;
+}
+
+// Modelos Gemini suportados pelo SDK @google/genai
+const MODELS_CASCADE = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-3.6-flash",
+  "gemini-3.7-flash",
+  "gemini-3.8-flash",
+];
+
+export interface GeminiFallbackOptions {
+  prompt: string;
+  config?: GenerateContentConfig;
+  timeoutMs?: number;
+}
+
+/**
+ * Executa chamadas com fallback transparente entre todos os modelos Gemini disponíveis.
+ * Se o limite de cota diário (RPD) ou por minuto (RPM) for atingido, comuta no milissegundo seguinte.
+ */
+export async function generateContentWithFallback(
+  options: GeminiFallbackOptions,
+): Promise<{ text: string; usedModel: string }> {
+  const { prompt, config, timeoutMs = 90000 } = options;
+  let lastError: unknown;
+
+  const ai = getAIClient();
+
+  for (const modelName of MODELS_CASCADE) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      const result = await ai.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 2048,
+          temperature: 0.7,
+          ...config,
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      const responseText = result.text || "";
+      if (!responseText) {
+        throw new Error(`Modelo ${modelName} retornou conteúdo vazio.`);
+      }
+
+      return {
+        text: responseText,
+        usedModel: modelName,
+      };
+    } catch (err: unknown) {
+      lastError = err;
+      const errorString = String(err);
+
+      // Detecta erro 429, esgotamento de quota ou sobrecarga temporária 503
+      const isQuotaOrRateLimit =
+        errorString.includes("429") ||
+        errorString.includes("503") ||
+        errorString.includes("RESOURCE_EXHAUSTED") ||
+        errorString.includes("quota") ||
+        errorString.includes("rate limit") ||
+        errorString.includes("not found"); // Caso algum modelo específico não esteja ativado na conta
+
+      if (isQuotaOrRateLimit) {
+        console.warn(
+          `[Gemini Fallback] ${modelName} indisponível ou limite atingido. Tentando o próximo modelo...`,
+        );
+        // Pequena pausa para evitar rajada em conexões instáveis
+        await new Promise((res) => setTimeout(res, 300));
+        continue;
+      }
+
+      // Erros críticos de validação/segurança não relacionados à cota interrompem imediatamente
+      throw err;
+    }
+  }
+
+  throw new Error(
+    `Todos os ${MODELS_CASCADE.length} modelos Gemini da cadeia de fallback falharam ou atingiram o limite diário: ${lastError}`,
+  );
+}
+</file>
+
+<file path="src/types/index.ts">
+import type { Quiz } from "@prisma/client";
+
+export interface Subject {
+  id: string;
+  name: string;
+  importance?: string;
+  priority?: number | string;
+  color?: string | null;
+  userId: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  _count?: {
+    topics: number;
+  };
+  topics?: Topic[];
+}
+
+export interface DashboardSubject extends Subject {
+  progress?: number;
+  accuracy?: number;
+  domain?: number;
+  weight?: number;
+  timeSpent?: string;
+  _count?: {
+    topics: number;
+  };
+}
+
+// src/types/index.ts
+
+export interface BaseFlashcard {
+  id: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+export interface Flashcard extends BaseFlashcard {
+  // Suporte à estrutura por Decks / SM-2
+  front?: string;
+  back?: string;
+  deckId?: string | null;
+  interval?: number;
+  repetitions?: number;
+  easeFactor?: number;
+  dueDate?: string | Date;
+
+  // Suporte ao formato legado / baseado em Tópicos
+  question?: string;
+  answer?: string;
+  details?: string | null;
+  topicId?: string | null;
+  topicTitle?: string;
+  subjectName?: string;
+}
+
+export interface Topic {
+  id: string;
+  title: string;
+  firstStudy: string;
+  performance: number;
+  lastRev: string | null;
+  nextRev: string | null;
+  relevance?: string;
+  color?: string | null;
+  // ID do simulado gerado vinculando ao Planner
+  quizId?: string | null;
+  // Campos do motor SM-2
+  easiness?: number;
+  interval?: number;
+  repetitions?: number;
+  // RELACIONAMENTO ATUALIZADO:
+  subject?: {
+    id?: string;
+    name: string;
+    color?: string | null;
+  };
+  subjectId: string;
+  flashcards?: Flashcard[];
+  questions?: Quiz[];
+}
+
+export interface ReviewTopic {
+  id: string;
+  title: string;
+  firstStudy: string;
+  performance?: number;
+  subject?: {
+    name: string;
+    color?: string;
+  };
+}
+
+export interface ReviewHistory {
+  id: string;
+  topicId: string;
+  grade: string;
+  createdAt: Date;
+}
+
+export interface FlashcardRaw {
+  question: string;
+  answer: string;
+  details: string;
+}
+
+export interface Deck {
+  id: string;
+  title: string;
+  color?: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  subjectId?: string | null;
+
+  subject?: {
+    id?: string;
+    name: string;
+    color?: string | null;
+  } | null;
+
+  flashcards?: Flashcard[];
+  _count?: {
+    flashcards: number;
+  };
+}
+
+export type { ApprovalOddsData } from "@/actions/analytics-actions";
 </file>
 
 <file path="src/types/quiz.ts">
@@ -4335,6 +4982,14 @@ export interface ErrorNotebookFilters {
   search?: string;
 }
 
+export type Question = ErrorNotebookItem;
+
+export interface GetErrorNotebookQuestionsParams extends ErrorNotebookFilters {
+  page?: number;
+  limit?: number;
+}
+
+
 export interface ErrorTaxonomyMetric {
   reason: string;
   label: string;
@@ -4349,1504 +5004,6 @@ export interface ErrorNotebookMetrics {
   masteredErrors: number;
   masteryRate: number;
   taxonomyDistribution: ErrorTaxonomyMetric[];
-}
-</file>
-
-<file path="src/types/index.ts">
-import type { Quiz } from "@prisma/client";
-
-export interface Subject {
-  id: string;
-  name: string;
-  importance?: string;
-  priority?: number | string;
-  color?: string | null;
-  userId: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  _count?: {
-    topics: number;
-  };
-  topics?: Topic[];
-}
-
-export interface DashboardSubject extends Subject {
-  progress?: number;
-  accuracy?: number;
-  domain?: number;
-  weight?: number;
-  timeSpent?: string;
-  _count?: {
-    topics: number;
-  };
-}
-
-// src/types/index.ts
-
-export interface BaseFlashcard {
-  id: string;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
-}
-
-export interface Flashcard extends BaseFlashcard {
-  // Suporte à estrutura por Decks / SM-2
-  front?: string;
-  back?: string;
-  deckId?: string | null;
-  interval?: number;
-  repetitions?: number;
-  easeFactor?: number;
-  dueDate?: string | Date;
-
-  // Suporte ao formato legado / baseado em Tópicos
-  question?: string;
-  answer?: string;
-  details?: string | null;
-  topicId?: string | null;
-  topicTitle?: string;
-  subjectName?: string;
-}
-
-export interface Topic {
-  id: string;
-  title: string;
-  firstStudy: string;
-  performance: number;
-  lastRev: string | null;
-  nextRev: string | null;
-  relevance?: string;
-  color?: string | null;
-  // ID do simulado gerado vinculando ao Planner
-  quizId?: string | null;
-  // Campos do motor SM-2
-  easiness?: number;
-  interval?: number;
-  repetitions?: number;
-  // RELACIONAMENTO ATUALIZADO:
-  subject?: {
-    id?: string;
-    name: string;
-    color?: string | null;
-  };
-  subjectId: string;
-  flashcards?: Flashcard[];
-  questions?: Quiz[];
-}
-
-export interface ReviewTopic {
-  id: string;
-  title: string;
-  firstStudy: string;
-  performance?: number;
-  subject?: {
-    name: string;
-    color?: string;
-  };
-}
-
-export interface ReviewHistory {
-  id: string;
-  topicId: string;
-  grade: string;
-  createdAt: Date;
-}
-
-export interface FlashcardRaw {
-  question: string;
-  answer: string;
-  details: string;
-}
-
-export interface Deck {
-  id: string;
-  title: string;
-  color?: string | null;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
-  subjectId?: string | null;
-
-  subject?: {
-    id?: string;
-    name: string;
-    color?: string | null;
-  } | null;
-
-  flashcards?: Flashcard[];
-  _count?: {
-    flashcards: number;
-  };
-}
-
-export type { ApprovalOddsData } from "@/actions/analytics-actions";
-</file>
-
-<file path="src/actions/auth-actions.ts">
-"use server";
-
-import { signIn, signOut } from "@/auth";
-import { cookies, headers } from "next/headers";
-
-interface RetryOptions {
-  maxRetries?: number;
-  initialDelayMs?: number;
-  backoffFactor?: number;
-}
-
-/**
- * Structured details extracted from an authentication or server action error.
- */
-export interface AuthErrorInfo {
-  timestamp: string;
-  actionName: string;
-  category:
-    | "SERVER_ACTION_NOT_FOUND"
-    | "AUTH_PROVIDER_ERROR"
-    | "NETWORK_ERROR"
-    | "SESSION_ERROR"
-    | "UNKNOWN";
-  errorCode?: string;
-  errorDigest?: string;
-  actionId?: string;
-  message: string;
-  hint?: string;
-  context?: Record<string, unknown>;
-}
-
-/**
- * Checks if an error thrown by Next.js is a redirect exception.
- * In Next.js Server Actions, successful redirects (like signIn's redirectTo)
- * work by throwing a special error object with a NEXT_REDIRECT digest.
- */
-function isRedirectError(error: unknown): boolean {
-  if (typeof error === "object" && error !== null && "digest" in error) {
-    const digest = (error as { digest?: unknown }).digest;
-    return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT");
-  }
-  return false;
-}
-
-/**
- * Logging helper that captures specific authentication and Next.js server action errors.
- * Diagnoses 404 'Failed to find Server Action' errors, stale action hashes, and OAuth failures.
- */
-export async function logAuthActionError(
-  actionName: string,
-  error: unknown,
-  context: Record<string, unknown> = {}
-): Promise<AuthErrorInfo | null> {
-  // Ignore normal Next.js redirects (they throw NEXT_REDIRECT to navigate)
-  if (isRedirectError(error)) {
-    return null;
-  }
-
-  const timestamp = new Date().toISOString();
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  const errorObj =
-    typeof error === "object" && error !== null
-      ? (error as Record<string, unknown>)
-      : {};
-  const errorDigest =
-    typeof errorObj.digest === "string" ? errorObj.digest : undefined;
-  const errorCode =
-    typeof errorObj.code === "string"
-      ? errorObj.code
-      : typeof errorObj.name === "string"
-      ? errorObj.name
-      : undefined;
-
-  // Detect 404 "Failed to find Server Action" errors
-  const isActionNotFound =
-    errorMessage.includes("Failed to find Server Action") ||
-    errorDigest?.includes("NEXT_ACTION_NOT_FOUND") ||
-    errorCode === "NEXT_ACTION_NOT_FOUND";
-
-  let actionId: string | undefined;
-  if (isActionNotFound) {
-    const match = errorMessage.match(/Failed to find Server Action "([a-zA-Z0-9_-]+)"/i);
-    if (match?.[1]) {
-      actionId = match[1];
-    }
-  }
-
-  // Inspect headers if available to capture client state, origin, and next-action ID
-  const headerDetails: Record<string, string | null> = {};
-  try {
-    const reqHeaders = await headers();
-    headerDetails.nextAction = reqHeaders.get("next-action");
-    headerDetails.host = reqHeaders.get("host");
-    headerDetails.referer = reqHeaders.get("referer");
-    headerDetails.origin = reqHeaders.get("origin");
-    headerDetails.userAgent = reqHeaders.get("user-agent");
-
-    if (!actionId && headerDetails.nextAction) {
-      actionId = headerDetails.nextAction;
-    }
-  } catch {
-    // headers() might not be available in all runtime contexts
-  }
-
-  // Categorize and provide diagnostic hints
-  let category: AuthErrorInfo["category"] = "UNKNOWN";
-  let hint: string | undefined;
-
-  if (isActionNotFound) {
-    category = "SERVER_ACTION_NOT_FOUND";
-    hint =
-      "404 Server Action Not Found: The client invoked an action hash that does not match the active server build manifest. " +
-      "This commonly occurs when a browser tab was loaded prior to a new deployment or hot-rebuild. " +
-      "Resolution: The client should trigger a full page reload or use a direct route handler.";
-  } else if (
-    errorMessage.toLowerCase().includes("oauth") ||
-    errorMessage.toLowerCase().includes("jwks") ||
-    errorMessage.toLowerCase().includes("fetch failed") ||
-    errorCode?.startsWith("OAuth")
-  ) {
-    category = "AUTH_PROVIDER_ERROR";
-    hint = "OAuth Provider Error: Failed to communicate with the OAuth provider. Verify OAuth client ID/secret and network.";
-  } else if (
-    errorMessage.toLowerCase().includes("econnrefused") ||
-    errorMessage.toLowerCase().includes("timeout") ||
-    errorMessage.toLowerCase().includes("network")
-  ) {
-    category = "NETWORK_ERROR";
-    hint = "Network Error: Transient timeout or unreachable connection during authentication.";
-  } else if (
-    errorMessage.toLowerCase().includes("session") ||
-    errorMessage.toLowerCase().includes("jwt") ||
-    errorMessage.toLowerCase().includes("jwe")
-  ) {
-    category = "SESSION_ERROR";
-    hint = "Session Error: Session mismatch or unreadable token cookie.";
-  }
-
-  const errorInfo: AuthErrorInfo = {
-    timestamp,
-    actionName,
-    category,
-    errorCode,
-    errorDigest,
-    actionId,
-    message: errorMessage,
-    hint,
-    context: {
-      ...headerDetails,
-      ...context,
-    },
-  };
-
-  console.error(
-    `[Auth Error Diagnostic][${category}] ${actionName}: ${errorMessage} (ActionId: ${actionId || "N/A"})`,
-    JSON.stringify(errorInfo, null, 2)
-  );
-
-  return errorInfo;
-}
-
-/**
- * Executes an authentication operation with exponential backoff retry.
- * Handles transient network dropouts, provider timeout spikes, and session mismatches.
- */
-async function executeAuthWithRetry<T>(
-  actionName: string,
-  operation: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
-  const { maxRetries = 3, initialDelayMs = 200, backoffFactor = 2 } = options;
-  let attempt = 0;
-  let delay = initialDelayMs;
-
-  while (true) {
-    attempt++;
-    try {
-      return await operation();
-    } catch (error) {
-      // Successful Auth.js / Next.js redirection throws NEXT_REDIRECT - always rethrow immediately
-      if (isRedirectError(error)) {
-        throw error;
-      }
-
-      const isLastAttempt = attempt >= maxRetries;
-
-      // Log detailed error telemetry with diagnostics
-      await logAuthActionError(actionName, error, {
-        attempt,
-        maxRetries,
-        isLastAttempt,
-      });
-
-      if (isLastAttempt) {
-        console.error(
-          `[Auth Retry] ${actionName} failed permanently after ${maxRetries} attempts.`
-        );
-        throw error;
-      }
-
-      // Exponential backoff before next attempt
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      delay *= backoffFactor;
-    }
-  }
-}
-
-/**
- * Resolves an absolute URL for redirects in standalone output / container environments.
- * Uses x-forwarded-host, x-forwarded-proto, or AUTH_URL/NEXTAUTH_URL environment variables
- * to ensure redirects retain full host and protocol context behind reverse proxies.
- */
-export async function getAbsoluteRedirectUrl(path: string): Promise<string> {
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-
-  try {
-    const headersList = await headers();
-    const forwardedHost =
-      headersList.get("x-forwarded-host") || headersList.get("host");
-    const forwardedProto =
-      headersList.get("x-forwarded-proto") ||
-      (forwardedHost && !forwardedHost.includes("localhost")
-        ? "https"
-        : "http");
-
-    if (forwardedHost) {
-      return `${forwardedProto}://${forwardedHost}${cleanPath}`;
-    }
-  } catch {
-    // headers() might fail in some contexts, fall back to environment variables
-  }
-
-  // Em ambiente Vercel Preview, prioriza SEMPRE a URL dinâmica da branch (VERCEL_URL)
-  if (process.env.VERCEL_URL && (process.env.VERCEL_ENV === "preview" || !process.env.AUTH_URL)) {
-    return `https://${process.env.VERCEL_URL}${cleanPath}`;
-  }
-
-  const envBase =
-    process.env.AUTH_URL ||
-    process.env.NEXTAUTH_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
-
-  if (envBase) {
-    const base = envBase.endsWith("/") ? envBase.slice(0, -1) : envBase;
-    return `${base}${cleanPath}`;
-  }
-
-  // Fallback to clean path if host context cannot be resolved
-  return cleanPath;
-}
-
-export async function loginWithGoogle() {
-  const redirectTo = await getAbsoluteRedirectUrl("/dashboard");
-  return executeAuthWithRetry("loginWithGoogle", async () => {
-    await signIn("google", { redirectTo });
-  });
-}
-
-export async function loginWithGithub() {
-  const redirectTo = await getAbsoluteRedirectUrl("/dashboard");
-  return executeAuthWithRetry("loginWithGithub", async () => {
-    await signIn("github", { redirectTo });
-  });
-}
-
-export async function loginAsGuest() {
-  try {
-    const cookieStore = await cookies();
-    cookieStore.set("synapse_demo_active", "true", {
-      path: "/",
-      sameSite: "none",
-      secure: true,
-      httpOnly: false,
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
-  } catch (err) {
-    console.warn("Could not set demo cookie:", err);
-  }
-
-  const redirectTo = await getAbsoluteRedirectUrl("/dashboard?demo=true");
-  await signIn("credentials", {
-    email: "estudante@synapse.ai",
-    redirectTo,
-  });
-}
-
-export async function logoutAction() {
-  try {
-    const cookieStore = await cookies();
-    cookieStore.delete("synapse_demo_active");
-  } catch (err) {
-    console.warn("Could not clear demo cookie:", err);
-  }
-  const redirectTo = await getAbsoluteRedirectUrl("/login");
-  await signOut({ redirectTo });
-}
-</file>
-
-<file path="src/actions/error-notebook-actions.ts">
-"use server";
-
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
-import { generateContentWithFallback } from "@/lib/gemini-fallback";
-import { Type } from "@google/genai";
-import { trackQuestProgressAction } from "@/actions/quest-actions";
-import {
-  ErrorNotebookFilters,
-  ErrorNotebookItem,
-  ErrorNotebookMetrics,
-  ErrorRemediationData,
-  ErrorTaxonomyMetric,
-  GenerateRemediationInput,
-} from "@/types/quiz";
-import { TAXONOMY_METADATA, normalizeTaxonomy } from "@/lib/error-taxonomy";
-
-/**
- * Normaliza o texto de uma questão para comparação e deduplicação
- */
-function normalizeQuestionKey(text: string | null | undefined): string {
-  if (!text) return "";
-  return text.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-// Lock em memória por userId para evitar condições de corrida (ex: chamadas simultâneas de getErrorMetrics e getErrorNotebookItems)
-const syncLockMap = new Map<string, Promise<void>>();
-
-/**
- * Sanitiza o banco de dados identificando e deletando registros duplicados em QuestionError
- * para um mesmo userId e questionText.
- * Preserva o registro mais qualificado (MASTERED > com remediação IA gerada > mais recente).
- */
-export async function cleanupDuplicateQuestionErrors(
-  userId: string,
-): Promise<number> {
-  try {
-    const records = await prisma.questionError.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        questionText: true,
-        status: true,
-        aiExplanation: true,
-        mnemonic: true,
-        drillQuestion: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (records.length <= 1) return 0;
-
-    // Agrupa por questionText normalizado
-    const groups = new Map<string, typeof records>();
-
-    for (const r of records) {
-      const key = normalizeQuestionKey(r.questionText);
-      if (!key) continue;
-      const list = groups.get(key);
-      if (list) {
-        list.push(r);
-      } else {
-        groups.set(key, [r]);
-      }
-    }
-
-    const idsToDelete: string[] = [];
-
-    for (const [, group] of groups) {
-      if (group.length <= 1) continue;
-
-      // Ordena o grupo elegendo o melhor registro para o índice 0
-      group.sort((a: any, b: any) => {
-        // Prioridade 1: Status MASTERED
-        const aMastered = a.status === "MASTERED" ? 1 : 0;
-        const bMastered = b.status === "MASTERED" ? 1 : 0;
-        if (aMastered !== bMastered) return bMastered - aMastered;
-
-        // Prioridade 2: Já possui análise ou remediação por IA gerada
-        const aHasAi = a.aiExplanation || a.drillQuestion || a.mnemonic ? 1 : 0;
-        const bHasAi = b.aiExplanation || b.drillQuestion || b.mnemonic ? 1 : 0;
-        if (aHasAi !== bHasAi) return bHasAi - aHasAi;
-
-        // Prioridade 3: Mais recente (updatedAt ou createdAt)
-        const aTime = a.updatedAt?.getTime?.() || a.createdAt.getTime();
-        const bTime = b.updatedAt?.getTime?.() || b.createdAt.getTime();
-        return bTime - aTime;
-      });
-
-      // Mantém group[0] e marca os clones duplicados para exclusão
-      for (let i = 1; i < group.length; i++) {
-        idsToDelete.push(group[i].id);
-      }
-    }
-
-    if (idsToDelete.length > 0) {
-      await prisma.questionError.deleteMany({
-        where: {
-          id: { in: idsToDelete },
-          userId,
-        },
-      });
-      console.log(
-        `[cleanupDuplicateQuestionErrors] Removidas ${idsToDelete.length} duplicatas de QuestionError para o usuário ${userId}`,
-      );
-    }
-
-    return idsToDelete.length;
-  } catch (err) {
-    console.error(
-      "[cleanupDuplicateQuestionErrors] Erro ao limpar duplicatas:",
-      err,
-    );
-    return 0;
-  }
-}
-
-/**
- * Action exposta para sanitização manual ou sob demanda de erros duplicados
- */
-export async function cleanupDuplicateQuestionErrorsAction() {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return { success: false, error: "Usuário não autenticado." };
-    }
-
-    const deletedCount = await cleanupDuplicateQuestionErrors(userId);
-    return { success: true, deletedCount };
-  } catch (err) {
-    console.error("[cleanupDuplicateQuestionErrorsAction] Erro:", err);
-    return {
-      success: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Falha ao limpar erros duplicados.",
-    };
-  }
-}
-
-/**
- * Sincroniza retroativamente os erros encontrados nos quizzes já respondidos pelo usuário
- * se a tabela QuestionError ainda estiver zerada para ele.
- * Protegido por lock em memória por userId, sanitização prévia e checagem de unicidade.
- */
-async function syncLegacyErrorsIfEmpty(userId: string) {
-  // Se já houver sincronização em andamento para este userId, aguarda a mesma Promise
-  const ongoing = syncLockMap.get(userId);
-  if (ongoing) {
-    return ongoing;
-  }
-
-  const promise = (async () => {
-    try {
-      // 1. Sanitização prévia de duplicatas residuais no banco
-      await cleanupDuplicateQuestionErrors(userId);
-
-      // 2. Busca questões já existentes no banco para este usuário
-      const existingErrors = await prisma.questionError.findMany({
-        where: { userId },
-        select: { questionText: true },
-      });
-
-      // Se já existirem registros para o usuário, não é necessário importar histórico legado
-      if (existingErrors.length > 0) {
-        return;
-      }
-
-      const existingKeys = new Set(
-        existingErrors.map((r: any) => normalizeQuestionKey(r.questionText)),
-      );
-
-      // 3. Busca quizzes anteriores salvos com questions JSON
-      const quizzes = await prisma.quiz.findMany({
-        where: { userId },
-        take: 20,
-        orderBy: { createdAt: "desc" },
-      });
-
-      const errorsToInsert: {
-        userId: string;
-        subjectId: string | null;
-        topicId: string | null;
-        quizId: string;
-        questionText: string;
-        options: any;
-        userAnswer: string;
-        correctAnswer: string;
-        explanation: string | null;
-        errorReason: string;
-        status: string;
-        createdAt: Date;
-      }[] = [];
-
-      const seenKeysInBatch = new Set<string>();
-
-      for (const quiz of quizzes) {
-        if (!Array.isArray(quiz.questions)) continue;
-
-        for (const q of quiz.questions as any[]) {
-          const isCorrect =
-            q.isCorrect === true ||
-            q.correct === true ||
-            (q.userAnswer &&
-              (q.gabaritoCorreto || q.correctAnswer) &&
-              String(q.userAnswer).trim().toUpperCase() ===
-                String(q.gabaritoCorreto || q.correctAnswer)
-                  .trim()
-                  .toUpperCase());
-
-          if (isCorrect) continue;
-
-          const userAns = String(q.userAnswer || "").trim();
-          const correctAns = String(
-            q.gabaritoCorreto || q.correctAnswer || q.answer || "A",
-          ).trim();
-          const enunciado = q.enunciado || q.question || q.questionText;
-
-          if (!enunciado || typeof enunciado !== "string") continue;
-
-          const key = normalizeQuestionKey(enunciado);
-          if (!key || existingKeys.has(key) || seenKeysInBatch.has(key)) {
-            continue;
-          }
-          seenKeysInBatch.add(key);
-
-          const normalizedReason = normalizeTaxonomy(q.errorReason);
-
-          errorsToInsert.push({
-            userId,
-            subjectId: q.subjectId || null,
-            topicId: q.topicId || quiz.topicId || null,
-            quizId: quiz.id,
-            questionText: enunciado.trim(),
-            options: q.alternativas || q.options || [],
-            userAnswer: userAns || "Não informada",
-            correctAnswer: correctAns,
-            explanation: q.justificativa || q.explanation || null,
-            errorReason: normalizedReason,
-            status: "PENDING",
-            createdAt: quiz.createdAt,
-          });
-        }
-      }
-
-      if (errorsToInsert.length > 0) {
-        // Inserção em lote deduplicada
-        await prisma.questionError.createMany({
-          data: errorsToInsert,
-        });
-      }
-    } catch (err) {
-      console.error(
-        "[syncLegacyErrorsIfEmpty] Erro ao sincronizar legado:",
-        err,
-      );
-    } finally {
-      syncLockMap.delete(userId);
-    }
-  })();
-
-  syncLockMap.set(userId, promise);
-  return promise;
-}
-
-/**
- * Lista os itens do Caderno de Erros com filtros dinâmicos
- */
-export async function getErrorNotebookItemsAction(
-  filters: ErrorNotebookFilters = {},
-) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return { success: false, error: "Usuário não autenticado." };
-    }
-
-    // Auto-popula com histórico se vazio e sanitiza duplicatas
-    await syncLegacyErrorsIfEmpty(userId);
-
-    const where: any = { userId };
-
-    if (filters.subjectId && filters.subjectId !== "ALL") {
-      where.subjectId = filters.subjectId;
-    }
-
-    if (filters.status && filters.status !== "ALL") {
-      where.status = filters.status;
-    }
-
-    if (filters.errorReason && filters.errorReason !== "ALL") {
-      const normalized = normalizeTaxonomy(filters.errorReason);
-      where.errorReason = normalized;
-    }
-
-    if (filters.period && filters.period !== "all") {
-      const now = new Date();
-      let days = 7;
-      if (filters.period === "30d") days = 30;
-      if (filters.period === "90d") days = 90;
-      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-      where.createdAt = { gte: startDate };
-    }
-
-    if (filters.search && filters.search.trim() !== "") {
-      const term = filters.search.trim();
-      where.OR = [
-        { questionText: { contains: term, mode: "insensitive" } },
-        { explanation: { contains: term, mode: "insensitive" } },
-      ];
-    }
-
-    const records = await prisma.questionError.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: {
-        subject: {
-          select: { id: true, name: true, color: true },
-        },
-        topic: {
-          select: { id: true, title: true },
-        },
-      },
-    });
-
-    // Deduplicação na memória para garantir que nenhuma duplicata residual seja entregue à UI
-    const grouped = new Map<string, (typeof records)[number]>();
-    for (const r of records) {
-      const key = normalizeQuestionKey(r.questionText);
-      const existing = grouped.get(key);
-      if (!existing) {
-        grouped.set(key, r);
-      } else {
-        // Elege o registro com melhor qualidade
-        const existingScore =
-          (existing.status === "MASTERED" ? 10 : 0) +
-          (existing.aiExplanation || existing.drillQuestion ? 5 : 0);
-        const newScore =
-          (r.status === "MASTERED" ? 10 : 0) +
-          (r.aiExplanation || r.drillQuestion ? 5 : 0);
-        if (newScore > existingScore) {
-          grouped.set(key, r);
-        }
-      }
-    }
-
-    const deduplicatedRecords = Array.from(grouped.values()).sort(
-      (a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime(),
-    );
-
-    const items: ErrorNotebookItem[] = deduplicatedRecords.map((r: any) => ({
-      id: r.id,
-      userId: r.userId,
-      subjectId: r.subjectId,
-      topicId: r.topicId,
-      quizId: r.quizId,
-      questionText: r.questionText,
-      options: (r.options as any) || [],
-      userAnswer: r.userAnswer,
-      correctAnswer: r.correctAnswer,
-      explanation: r.explanation,
-      errorReason: r.errorReason,
-      status: r.status as "PENDING" | "MASTERED",
-      masteredAt: r.masteredAt,
-      aiExplanation: r.aiExplanation,
-      mnemonic: r.mnemonic,
-      drillQuestion: (r.drillQuestion as any) || null,
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
-      subject: r.subject,
-      topic: r.topic,
-    }));
-
-    return { success: true, data: items };
-  } catch (err) {
-    console.error("[getErrorNotebookItemsAction] Erro:", err);
-    return {
-      success: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Falha ao listar caderno de erros.",
-    };
-  }
-}
-
-/**
- * Obtém métricas globais e distribuição taxonômica para o header
- */
-export async function getErrorMetricsAction() {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return { success: false, error: "Usuário não autenticado." };
-    }
-
-    await syncLegacyErrorsIfEmpty(userId);
-
-    const allErrors = await prisma.questionError.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        questionText: true,
-        status: true,
-        errorReason: true,
-      },
-    });
-
-    // Deduplicação defensiva por questão única para métricas 100% alinhadas com a listagem
-    const seenMetricsKeys = new Set<string>();
-    const uniqueErrors = allErrors.filter((e: any) => {
-      const key = normalizeQuestionKey(e.questionText);
-      if (!key || seenMetricsKeys.has(key)) return false;
-      seenMetricsKeys.add(key);
-      return true;
-    });
-
-    const totalErrors = uniqueErrors.length;
-    const pendingErrors = uniqueErrors.filter(
-      (e: any) => e.status === "PENDING",
-    ).length;
-    const masteredErrors = uniqueErrors.filter(
-      (e: any) => e.status === "MASTERED",
-    ).length;
-    const masteryRate =
-      totalErrors > 0 ? Math.round((masteredErrors / totalErrors) * 100) : 0;
-
-    // Contagem por taxonomia
-    const counts: Record<string, number> = {
-      CONTENT_GAP: 0,
-      TRICK_QUESTION: 0,
-      INTERPRETATION: 0,
-      TIME_PRESSURE: 0,
-      UNCLASSIFIED: 0,
-    };
-
-    uniqueErrors.forEach((e: any) => {
-      const norm = normalizeTaxonomy(e.errorReason);
-      counts[norm] = (counts[norm] || 0) + 1;
-    });
-
-    const taxonomyDistribution: ErrorTaxonomyMetric[] = Object.keys(
-      TAXONOMY_METADATA,
-    ).map((key) => {
-      const count = counts[key] || 0;
-      const meta = TAXONOMY_METADATA[key];
-      return {
-        reason: key,
-        label: meta.label,
-        count,
-        percentage:
-          totalErrors > 0 ? Math.round((count / totalErrors) * 100) : 0,
-        color: meta.color,
-      };
-    });
-
-    const metrics: ErrorNotebookMetrics = {
-      totalErrors,
-      pendingErrors,
-      masteredErrors,
-      masteryRate,
-      taxonomyDistribution,
-    };
-
-    return { success: true, data: metrics };
-  } catch (err) {
-    console.error("[getErrorMetricsAction] Erro:", err);
-    return {
-      success: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Falha ao calcular métricas de erros.",
-    };
-  }
-}
-
-/**
- * Marca um erro como "Superado / Dominado", integrando com missões diárias e XP
- */
-export async function markErrorAsMasteredAction(
-  errorId: string,
-  solvedDrill: boolean = false,
-) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return { success: false, error: "Usuário não autenticado." };
-    }
-
-    const updated = await prisma.questionError.update({
-      where: { id: errorId, userId },
-      data: {
-        status: "MASTERED",
-        masteredAt: new Date(),
-      },
-    });
-
-    let earnedXp = 20;
-
-    // Se acertou a questão de fixação sob demanda, premia com mais XP e avança missão diária
-    if (solvedDrill) {
-      earnedXp += 30;
-      await trackQuestProgressAction("QUESTIONS_SOLVED", 1);
-    }
-
-    await prisma.userStats.upsert({
-      where: { userId },
-      create: {
-        userId,
-        totalXp: earnedXp,
-        lastStudyDate: new Date(),
-      },
-      update: {
-        totalXp: { increment: earnedXp },
-        lastStudyDate: new Date(),
-      },
-    });
-
-    try {
-      revalidatePath("/notebook");
-      revalidatePath("/questions");
-    } catch {
-      // Ignora erro fora de contexto HTTP
-    }
-
-    return {
-      success: true,
-      data: {
-        id: updated.id,
-        status: updated.status,
-        earnedXp,
-      },
-    };
-  } catch (err) {
-    console.error("[markErrorAsMasteredAction] Erro:", err);
-    return {
-      success: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Falha ao atualizar status do erro.",
-    };
-  }
-}
-
-/**
- * Reverte o status de um erro para PENDING para permitir novo treino
- */
-export async function markErrorAsPendingAction(errorId: string) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return { success: false, error: "Usuário não autenticado." };
-    }
-
-    const updated = await prisma.questionError.update({
-      where: { id: errorId, userId },
-      data: {
-        status: "PENDING",
-        masteredAt: null,
-      },
-    });
-
-    try {
-      revalidatePath("/notebook");
-      revalidatePath("/questions");
-    } catch {}
-
-    return { success: true, data: updated };
-  } catch (err) {
-    console.error("[markErrorAsPendingAction] Erro:", err);
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Falha ao reverter status.",
-    };
-  }
-}
-
-/**
- * Remove um item do caderno de erros
- */
-export async function deleteErrorNotebookItemAction(errorId: string) {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return { success: false, error: "Usuário não autenticado." };
-    }
-
-    await prisma.questionError.delete({
-      where: { id: errorId, userId },
-    });
-
-    try {
-      revalidatePath("/notebook");
-      revalidatePath("/questions");
-    } catch {}
-
-    return { success: true };
-  } catch (err) {
-    console.error("[deleteErrorNotebookItemAction] Erro:", err);
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Falha ao remover item.",
-    };
-  }
-}
-
-/**
- * Gera a micro-explicação, mnemônico e micro-questão de fixação via Gemini IA
- */
-export async function generateErrorRemediationAction(
-  input: GenerateRemediationInput,
-): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return { success: false, error: "Usuário não autenticado." };
-    }
-
-    // 1. Se existir errorId, verifica se já foi gerado e salvo em cache no banco
-    if (input.errorId) {
-      const existing = await prisma.questionError.findUnique({
-        where: { id: input.errorId, userId },
-        select: {
-          aiExplanation: true,
-          mnemonic: true,
-          drillQuestion: true,
-        },
-      });
-
-      if (
-        existing?.aiExplanation &&
-        existing?.mnemonic &&
-        existing?.drillQuestion
-      ) {
-        return {
-          success: true,
-          data: {
-            microExplanation: existing.aiExplanation,
-            mnemonicOrRule: existing.mnemonic,
-            drillQuestion: existing.drillQuestion as any,
-          },
-        };
-      }
-    }
-
-    const normalizedReason = normalizeTaxonomy(input.errorReason);
-    const reasonMeta =
-      TAXONOMY_METADATA[normalizedReason] || TAXONOMY_METADATA.UNCLASSIFIED;
-
-    // 2. Monta o prompt especializado de tutoria ativa para concursos
-    const prompt = `
-Você é um Tutor Pedagógico Especialista em Aprendizado Ativo e Desarmamento de Pegadinhas em Concursos Públicos e Exames de Alto Desempenho.
-
-O estudante errou a questão abaixo e o diagnóstico taxonômico apontou a causa-raiz: "${reasonMeta.label}" (${reasonMeta.desc}).
-
-DETALHES DO ERRO:
-- Matéria: ${input.subjectName || "Geral"}
-- Tópico: ${input.topicTitle || "Geral"}
-- Enunciado da Questão:
-"${input.questionText}"
-
-- Alternativa assinalada pelo aluno: "${input.userAnswer}"
-- Gabarito oficial correto: "${input.correctAnswer}"
-${input.explanation ? `- Justificativa original da banca: "${input.explanation}"` : ""}
-- Causa-raiz diagnosticada: ${reasonMeta.label}
-
-SUA MISSÃO:
-1. "microExplanation": Produza uma explicação concisa, direta e pedagógica (máximo de 2 a 3 parágrafos curtos). Foque exatamente em DESARMAR a confusão mental, a pegadinha da banca ou a lacuna conceitual que levou o aluno a marcar a alternativa errada.
-2. "mnemonicOrRule": Crie uma regra mnemônica elegante (acrônimo, rima, frase gatilho) ou uma regra prática infalível de apenas 1 a 2 linhas para que o estudante memorize o critério decisivo e nunca mais caia nesse erro.
-3. "drillQuestion": Elabore uma MICRO-QUESTÃO INÉDITA (estilo concurso, nível equivalente) para fixação imediata do MESMO conceito ou regra. Deve conter:
-   - "enunciado": O texto da questão inédita (curto e objetivo, sem pegadinhas inúteis).
-   - "alternativas": Exatamente 4 alternativas (com ids "A", "B", "C", "D" e o texto de cada uma).
-   - "gabaritoCorreto": Apenas a letra da alternativa correta ("A", "B", "C" ou "D").
-   - "justificativa": Uma explicação sucinta (1 parágrafo) do porquê o gabarito é o correto.
-
-Responda ESTRITAMENTE no formato JSON com os campos solicitados.
-`;
-
-    // 3. Executa com cascade fallback e structured output
-    const result = await generateContentWithFallback({
-      prompt,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.3,
-        maxOutputTokens: 4096,
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            microExplanation: { type: Type.STRING },
-            mnemonicOrRule: { type: Type.STRING },
-            drillQuestion: {
-              type: Type.OBJECT,
-              properties: {
-                enunciado: { type: Type.STRING },
-                alternativas: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      id: { type: Type.STRING },
-                      texto: { type: Type.STRING },
-                    },
-                    required: ["id", "texto"],
-                  },
-                },
-                gabaritoCorreto: { type: Type.STRING },
-                justificativa: { type: Type.STRING },
-              },
-              required: [
-                "enunciado",
-                "alternativas",
-                "gabaritoCorreto",
-                "justificativa",
-              ],
-            },
-          },
-          required: ["microExplanation", "mnemonicOrRule", "drillQuestion"],
-        },
-      },
-    });
-
-    const parsed: ErrorRemediationData = JSON.parse(result.text);
-
-    // Validação básica do retorno estruturado
-    if (
-      !parsed.microExplanation ||
-      !parsed.mnemonicOrRule ||
-      !parsed.drillQuestion?.enunciado ||
-      !Array.isArray(parsed.drillQuestion?.alternativas)
-    ) {
-      throw new Error("Estrutura de dados retornada pela IA inválida.");
-    }
-
-    // 4. Salva em cache no banco se o errorId existir
-    if (input.errorId) {
-      await prisma.questionError.update({
-        where: { id: input.errorId, userId },
-        data: {
-          aiExplanation: parsed.microExplanation,
-          mnemonic: parsed.mnemonicOrRule,
-          drillQuestion: parsed.drillQuestion as any,
-        },
-      });
-    }
-
-    return { success: true, data: parsed };
-  } catch (err) {
-    console.error("[generateErrorRemediationAction] Erro:", err);
-
-    // Fallback resiliente pedagógico caso a API de IA esteja indisponível
-    const fallbackData: ErrorRemediationData = {
-      microExplanation: `Análise pedagógica de emergência: O gabarito oficial é "${input.correctAnswer}". A opção marcada pelo aluno ("${input.userAnswer}") colidiu com a restrição central do conceito cobrado. Sempre atente para conectivos restritivos e o comando do enunciado.`,
-      mnemonicOrRule:
-        "Dica de Fixação: Sublinhe palavras-chave restritivas no enunciado ('exceto', 'sempre', 'vedado') antes de julgar as alternativas.",
-      drillQuestion: {
-        enunciado: `[Questão de Fixação] Em relação aos fundamentos de ${input.subjectName || "estudo"}, qual postura garante a correta identificação de pegadinhas relacionadas a ${TAXONOMY_METADATA[normalizeTaxonomy(input.errorReason)]?.label || "atenção"}?`,
-        alternativas: [
-          {
-            id: "A",
-            texto:
-              "Julgar as alternativas com pressa confiando exclusivamente na primeira impressão.",
-          },
-          {
-            id: "B",
-            texto:
-              "Validar sistematicamente cada palavra restritiva da alternativa contra a regra central.",
-          },
-          {
-            id: "C",
-            texto:
-              "Marcar a alternativa mais longa ignorando eventuais contradições conceituais.",
-          },
-          {
-            id: "D",
-            texto:
-              "Ignorar o comando do enunciado e focar apenas nas palavras familiares.",
-          },
-        ],
-        gabaritoCorreto: "B",
-        justificativa:
-          "A validação sistemática de cada termo restritivo assegura precisão absoluta e desmantela pegadinhas da banca.",
-      },
-    };
-
-    return {
-      success: true,
-      data: fallbackData,
-    };
-  }
-}
-
-/**
- * Análise aprofundada individual sob demanda com cache permanente no banco
- */
-export async function analyzeSingleErrorAction(
-  inputOrErrorId: GenerateRemediationInput | string,
-): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
-  if (typeof inputOrErrorId === "string") {
-    const session = await auth();
-    const userId = session?.user?.id;
-    if (!userId) {
-      return { success: false, error: "Usuário não autenticado." };
-    }
-
-    const errorRecord = await prisma.questionError.findUnique({
-      where: { id: inputOrErrorId, userId },
-      include: { subject: true, topic: true },
-    });
-
-    if (!errorRecord) {
-      return { success: false, error: "Registro de erro não encontrado." };
-    }
-
-    return generateErrorRemediationAction({
-      errorId: errorRecord.id,
-      questionText: errorRecord.questionText,
-      userAnswer: errorRecord.userAnswer,
-      correctAnswer: errorRecord.correctAnswer,
-      explanation: errorRecord.explanation || undefined,
-      errorReason: errorRecord.errorReason,
-      subjectName: errorRecord.subject?.name,
-      topicTitle: errorRecord.topic?.title,
-    });
-  }
-
-  return generateErrorRemediationAction(inputOrErrorId);
-}
-
-/**
- * Classificação taxonômica ultrarrápida e econômica em lote (apenas rootCause)
- * Processa 15 a 20 questões por execução com custo mínimo de tokens.
- */
-export async function batchClassifyTaxonomyOnlyAction(
-  batchSize: number = 20,
-): Promise<{
-  success: boolean;
-  processed?: number;
-  message?: string;
-  error?: string;
-}> {
-  try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return { success: false, error: "Usuário não autenticado." };
-    }
-
-    // 1. Busca registros pendentes de classificação taxonômica pertencentes ao usuário logado
-    const unclassifiedRecords = await prisma.questionError.findMany({
-      where: {
-        userId,
-        OR: [
-          { errorReason: "UNCLASSIFIED" },
-          { errorReason: "GENERAL" },
-          { errorReason: "NOT_CLASSIFIED" },
-          { errorReason: "NAO_CLASSIFICADO" },
-          { errorReason: "Geral" },
-          { errorReason: "" },
-        ],
-      },
-      select: {
-        id: true,
-        questionText: true,
-        userAnswer: true,
-        correctAnswer: true,
-        explanation: true,
-      },
-      take: batchSize,
-    });
-
-    if (unclassifiedRecords.length === 0) {
-      return {
-        success: true,
-        processed: 0,
-        message: "Todos os erros já estão categorizados!",
-      };
-    }
-
-    // 2. Monta payload ultracompacto para o Gemini (zero desperdício de tokens)
-    const promptData = unclassifiedRecords.map((item: any) => ({
-      id: item.id,
-      enunciado: (item.questionText || "").slice(0, 150),
-      respostaMarcada: item.userAnswer || "N/A",
-      gabaritoOficial: item.correctAnswer || "N/A",
-    }));
-
-    // 3. Prompt estrito de sistema: nenhuma justificativa ou texto adicional
-    const prompt = `Classifique cada erro cometido pelo candidato na questão em exatamente UMA das 4 chaves taxonômicas:
-- THEORY_GAP: Lacuna Teórica (desconhecimento da lei, doutrina ou conceito técnico).
-- TRICK_QUESTION: Falta de Atenção / Pegadinha (distratores sutis ou palavras restritivas).
-- INTERPRETATION: Erro de Interpretação (compreensão equivocada do comando ou texto).
-- TIME_PRESSURE: Pressão de Tempo / Chute (pressa ou resolução precipitada).
-
-Questões a classificar:
-${JSON.stringify(promptData)}
-
-Retorne ESTRITAMENTE um array JSON no formato mínimo:
-[{"id": "id_da_questao", "rootCause": "THEORY_GAP"}]
-Sem qualquer texto introdutório, justificativa ou explicação.`;
-
-    let classifiedList: { id: string; rootCause: string }[] = [];
-
-    try {
-      const result = await generateContentWithFallback({
-        prompt,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.1,
-          maxOutputTokens: 1024,
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                id: { type: Type.STRING },
-                rootCause: {
-                  type: Type.STRING,
-                  enum: [
-                    "THEORY_GAP",
-                    "TRICK_QUESTION",
-                    "INTERPRETATION",
-                    "TIME_PRESSURE",
-                  ],
-                },
-              },
-              required: ["id", "rootCause"],
-            },
-          },
-        },
-      });
-
-      const parsed = JSON.parse(result.text);
-      if (Array.isArray(parsed)) {
-        classifiedList = parsed;
-      }
-    } catch (geminiErr) {
-      console.warn(
-        "[batchClassifyTaxonomyOnlyAction] Falha na chamada da IA, acionando heurística rápida:",
-        geminiErr,
-      );
-    }
-
-    // 4. Mapeia resultados da IA ou aplica heurística de resiliência
-    const classifiedMap = new Map<string, string>();
-    for (const c of classifiedList) {
-      if (c && c.id && c.rootCause) {
-        classifiedMap.set(c.id, c.rootCause);
-      }
-    }
-
-    const updatesToPersist: { id: string; errorReason: string }[] = [];
-
-    for (const item of unclassifiedRecords) {
-      const rootCause = classifiedMap.get(item.id);
-      let resolvedReason: string;
-
-      if (rootCause) {
-        resolvedReason = normalizeTaxonomy(rootCause);
-      } else {
-        // Heurística rápida de contingência
-        const combined =
-          `${item.questionText} ${item.explanation || ""}`.toLowerCase();
-        if (
-          combined.includes("pegadinha") ||
-          combined.includes("atenção") ||
-          combined.includes("cuidado") ||
-          combined.includes("exceto") ||
-          combined.includes("distrator") ||
-          combined.includes("vedado")
-        ) {
-          resolvedReason = "TRICK_QUESTION";
-        } else if (
-          combined.includes("interpreta") ||
-          combined.includes("infere") ||
-          combined.includes("compreens") ||
-          combined.includes("texto") ||
-          combined.includes("conclui")
-        ) {
-          resolvedReason = "INTERPRETATION";
-        } else if (
-          combined.includes("tempo") ||
-          combined.includes("pressa") ||
-          combined.includes("cálculo")
-        ) {
-          resolvedReason = "TIME_PRESSURE";
-        } else {
-          resolvedReason = "CONTENT_GAP";
-        }
-      }
-
-      updatesToPersist.push({ id: item.id, errorReason: resolvedReason });
-    }
-
-    // 5. Atualização atômica no banco via transação do Prisma
-    if (updatesToPersist.length > 0) {
-      await prisma.$transaction(
-        updatesToPersist.map((u: any) =>
-          prisma.questionError.update({
-            where: { id: u.id, userId },
-            data: { errorReason: u.errorReason },
-          }),
-        ),
-      );
-    }
-
-    // 6. Revalidação das rotas envolvidas
-    try {
-      revalidatePath("/notebook");
-      revalidatePath("/questions");
-    } catch {}
-
-    return {
-      success: true,
-      processed: updatesToPersist.length,
-      message: `${updatesToPersist.length} erros categorizados com sucesso!`,
-    };
-  } catch (err) {
-    console.error("[batchClassifyTaxonomyOnlyAction] Erro:", err);
-    return {
-      success: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Falha ao classificar lote de erros.",
-    };
-  }
-}
-
-/**
- * Diagnostica automaticamente a causa-raiz taxonômica de questões não classificadas
- * Mantido para compatibilidade, delegando para batchClassifyTaxonomyOnlyAction.
- */
-export async function autoClassifyPendingErrorsAction(): Promise<{
-  success: boolean;
-  classifiedCount?: number;
-  message?: string;
-  error?: string;
-}> {
-  const res = await batchClassifyTaxonomyOnlyAction(20);
-  return {
-    success: res.success,
-    classifiedCount: res.processed,
-    message: res.message,
-    error: res.error,
-  };
 }
 </file>
 
@@ -7183,6 +6340,1679 @@ export async function checkRebalanceNeedsAction(): Promise<{
 }
 </file>
 
+<file path="src/actions/auth-actions.ts">
+"use server";
+
+import { getBaseUrl, signIn, signOut } from "@/auth";
+import { cookies, headers } from "next/headers";
+
+interface RetryOptions {
+  maxRetries?: number;
+  initialDelayMs?: number;
+  backoffFactor?: number;
+}
+
+/**
+ * Structured details extracted from an authentication or server action error.
+ */
+export interface AuthErrorInfo {
+  timestamp: string;
+  actionName: string;
+  category:
+    | "SERVER_ACTION_NOT_FOUND"
+    | "AUTH_PROVIDER_ERROR"
+    | "NETWORK_ERROR"
+    | "SESSION_ERROR"
+    | "UNKNOWN";
+  errorCode?: string;
+  errorDigest?: string;
+  actionId?: string;
+  message: string;
+  hint?: string;
+  context?: Record<string, unknown>;
+}
+
+/**
+ * Checks if an error thrown by Next.js is a redirect exception.
+ * In Next.js Server Actions, successful redirects (like signIn's redirectTo)
+ * work by throwing a special error object with a NEXT_REDIRECT digest.
+ */
+function isRedirectError(error: unknown): boolean {
+  if (typeof error === "object" && error !== null && "digest" in error) {
+    const digest = (error as { digest?: unknown }).digest;
+    return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT");
+  }
+  return false;
+}
+
+/**
+ * Logging helper that captures specific authentication and Next.js server action errors.
+ * Diagnoses 404 'Failed to find Server Action' errors, stale action hashes, and OAuth failures.
+ */
+export async function logAuthActionError(
+  actionName: string,
+  error: unknown,
+  context: Record<string, unknown> = {}
+): Promise<AuthErrorInfo | null> {
+  // Ignore normal Next.js redirects (they throw NEXT_REDIRECT to navigate)
+  if (isRedirectError(error)) {
+    return null;
+  }
+
+  const timestamp = new Date().toISOString();
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorObj =
+    typeof error === "object" && error !== null
+      ? (error as Record<string, unknown>)
+      : {};
+  const errorDigest =
+    typeof errorObj.digest === "string" ? errorObj.digest : undefined;
+  const errorCode =
+    typeof errorObj.code === "string"
+      ? errorObj.code
+      : typeof errorObj.name === "string"
+      ? errorObj.name
+      : undefined;
+
+  // Detect 404 "Failed to find Server Action" errors
+  const isActionNotFound =
+    errorMessage.includes("Failed to find Server Action") ||
+    errorDigest?.includes("NEXT_ACTION_NOT_FOUND") ||
+    errorCode === "NEXT_ACTION_NOT_FOUND";
+
+  let actionId: string | undefined;
+  if (isActionNotFound) {
+    const match = errorMessage.match(/Failed to find Server Action "([a-zA-Z0-9_-]+)"/i);
+    if (match?.[1]) {
+      actionId = match[1];
+    }
+  }
+
+  // Inspect headers if available to capture client state, origin, and next-action ID
+  const headerDetails: Record<string, string | null> = {};
+  try {
+    const reqHeaders = await headers();
+    headerDetails.nextAction = reqHeaders.get("next-action");
+    headerDetails.host = reqHeaders.get("host");
+    headerDetails.referer = reqHeaders.get("referer");
+    headerDetails.origin = reqHeaders.get("origin");
+    headerDetails.userAgent = reqHeaders.get("user-agent");
+
+    if (!actionId && headerDetails.nextAction) {
+      actionId = headerDetails.nextAction;
+    }
+  } catch {
+    // headers() might not be available in all runtime contexts
+  }
+
+  // Categorize and provide diagnostic hints
+  let category: AuthErrorInfo["category"] = "UNKNOWN";
+  let hint: string | undefined;
+
+  if (isActionNotFound) {
+    category = "SERVER_ACTION_NOT_FOUND";
+    hint =
+      "404 Server Action Not Found: The client invoked an action hash that does not match the active server build manifest. " +
+      "This commonly occurs when a browser tab was loaded prior to a new deployment or hot-rebuild. " +
+      "Resolution: The client should trigger a full page reload or use a direct route handler.";
+  } else if (
+    errorMessage.toLowerCase().includes("oauth") ||
+    errorMessage.toLowerCase().includes("jwks") ||
+    errorMessage.toLowerCase().includes("fetch failed") ||
+    errorCode?.startsWith("OAuth")
+  ) {
+    category = "AUTH_PROVIDER_ERROR";
+    hint = "OAuth Provider Error: Failed to communicate with the OAuth provider. Verify OAuth client ID/secret and network.";
+  } else if (
+    errorMessage.toLowerCase().includes("econnrefused") ||
+    errorMessage.toLowerCase().includes("timeout") ||
+    errorMessage.toLowerCase().includes("network")
+  ) {
+    category = "NETWORK_ERROR";
+    hint = "Network Error: Transient timeout or unreachable connection during authentication.";
+  } else if (
+    errorMessage.toLowerCase().includes("session") ||
+    errorMessage.toLowerCase().includes("jwt") ||
+    errorMessage.toLowerCase().includes("jwe")
+  ) {
+    category = "SESSION_ERROR";
+    hint = "Session Error: Session mismatch or unreadable token cookie.";
+  }
+
+  const errorInfo: AuthErrorInfo = {
+    timestamp,
+    actionName,
+    category,
+    errorCode,
+    errorDigest,
+    actionId,
+    message: errorMessage,
+    hint,
+    context: {
+      ...headerDetails,
+      ...context,
+    },
+  };
+
+  console.error(
+    `[Auth Error Diagnostic][${category}] ${actionName}: ${errorMessage} (ActionId: ${actionId || "N/A"})`,
+    JSON.stringify(errorInfo, null, 2)
+  );
+
+  return errorInfo;
+}
+
+/**
+ * Executes an authentication operation with exponential backoff retry.
+ * Handles transient network dropouts, provider timeout spikes, and session mismatches.
+ */
+async function executeAuthWithRetry<T>(
+  actionName: string,
+  operation: () => Promise<T>,
+  options: RetryOptions = {}
+): Promise<T> {
+  const { maxRetries = 3, initialDelayMs = 200, backoffFactor = 2 } = options;
+  let attempt = 0;
+  let delay = initialDelayMs;
+
+  while (true) {
+    attempt++;
+    try {
+      return await operation();
+    } catch (error) {
+      // Successful Auth.js / Next.js redirection throws NEXT_REDIRECT - always rethrow immediately
+      if (isRedirectError(error)) {
+        throw error;
+      }
+
+      const isLastAttempt = attempt >= maxRetries;
+
+      // Log detailed error telemetry with diagnostics
+      await logAuthActionError(actionName, error, {
+        attempt,
+        maxRetries,
+        isLastAttempt,
+      });
+
+      if (isLastAttempt) {
+        console.error(
+          `[Auth Retry] ${actionName} failed permanently after ${maxRetries} attempts.`
+        );
+        throw error;
+      }
+
+      // Exponential backoff before next attempt
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay *= backoffFactor;
+    }
+  }
+}
+
+/**
+ * Resolves an absolute URL for redirects in standalone output / container environments.
+ * Prioritizes the stable base URL resolved by getBaseUrl() to avoid redirect_uri_mismatch
+ * errors caused by unique Vercel deployment hashes.
+ */
+export async function getAbsoluteRedirectUrl(path: string): Promise<string> {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  // Se estiver na Vercel (Preview ou Produção), prioriza SEMPRE a URL estável do getBaseUrl()
+  if (process.env.VERCEL_BRANCH_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_ENV) {
+    const host = getBaseUrl();
+    return `${host}${cleanPath}`;
+  }
+
+  try {
+    const headersList = await headers();
+    const forwardedHost =
+      headersList.get("x-forwarded-host") || headersList.get("host");
+    const forwardedProto =
+      headersList.get("x-forwarded-proto") ||
+      (forwardedHost && !forwardedHost.includes("localhost")
+        ? "https"
+        : "http");
+
+    if (forwardedHost) {
+      return `${forwardedProto}://${forwardedHost}${cleanPath}`;
+    }
+  } catch {
+    // headers() might fail in some contexts, fall back to getBaseUrl()
+  }
+
+  const host = getBaseUrl();
+  return `${host}${cleanPath}`;
+}
+
+export async function loginWithGoogle(callbackUrl: string = "/dashboard") {
+  const redirectTo = await getAbsoluteRedirectUrl(callbackUrl);
+  return executeAuthWithRetry("loginWithGoogle", async () => {
+    await signIn("google", { redirectTo });
+  });
+}
+
+export async function loginWithGithub(callbackUrl: string = "/dashboard") {
+  const redirectTo = await getAbsoluteRedirectUrl(callbackUrl);
+  return executeAuthWithRetry("loginWithGithub", async () => {
+    await signIn("github", { redirectTo });
+  });
+}
+
+export async function loginAsGuest() {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set("synapse_demo_active", "true", {
+      path: "/",
+      sameSite: "none",
+      secure: true,
+      httpOnly: false,
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+  } catch (err) {
+    console.warn("Could not set demo cookie:", err);
+  }
+
+  const redirectTo = await getAbsoluteRedirectUrl("/dashboard?demo=true");
+  await signIn("credentials", {
+    email: "estudante@synapse.ai",
+    redirectTo,
+  });
+}
+
+export async function logoutAction() {
+  const sessionCookieNames = [
+    "synapse_demo_active",
+    "synapse-demo-session",
+    "auth_token",
+    "authjs.session-token",
+    "__Secure-authjs.session-token",
+    "authjs.csrf-token",
+    "__Host-authjs.csrf-token",
+    "authjs.callback-url",
+    "__Secure-authjs.callback-url",
+    "next-auth.session-token",
+    "__Secure-next-auth.session-token",
+    "next-auth.csrf-token",
+    "next-auth.callback-url",
+  ];
+
+  try {
+    const cookieStore = await cookies();
+    for (const name of sessionCookieNames) {
+      try {
+        cookieStore.delete(name);
+        cookieStore.set(name, "", {
+          path: "/",
+          maxAge: 0,
+          expires: new Date(0),
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+        });
+      } catch (cookieErr) {
+        console.warn(`Could not clear cookie ${name}:`, cookieErr);
+      }
+    }
+  } catch (err) {
+    console.warn("Could not access cookies in logoutAction:", err);
+  }
+
+  try {
+    await signOut({ redirect: false });
+  } catch (err) {
+    if (!isRedirectError(err)) {
+      console.warn("signOut error in logoutAction:", err);
+    }
+  }
+
+  return { success: true };
+}
+</file>
+
+<file path="src/actions/error-notebook-actions.ts">
+"use server";
+
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { Type } from "@google/genai";
+import { trackQuestProgressAction } from "@/actions/quest-actions";
+import {
+  ErrorNotebookFilters,
+  ErrorNotebookItem,
+  ErrorNotebookMetrics,
+  ErrorRemediationData,
+  ErrorTaxonomyMetric,
+  GenerateRemediationInput,
+  GetErrorNotebookQuestionsParams,
+  Question,
+} from "@/types/quiz";
+import { TAXONOMY_METADATA, normalizeTaxonomy } from "@/lib/error-taxonomy";
+
+/**
+ * Normaliza o texto de uma questão para comparação e deduplicação
+ */
+function normalizeQuestionKey(text: string | null | undefined): string {
+  if (!text) return "";
+  return text.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+// Lock em memória por userId para evitar condições de corrida (ex: chamadas simultâneas de getErrorMetrics e getErrorNotebookItems)
+const syncLockMap = new Map<string, Promise<void>>();
+
+/**
+ * Sanitiza o banco de dados identificando e deletando registros duplicados em QuestionError
+ * para um mesmo userId e questionText.
+ * Preserva o registro mais qualificado (MASTERED > com remediação IA gerada > mais recente).
+ */
+export async function cleanupDuplicateQuestionErrors(
+  userId: string,
+): Promise<number> {
+  try {
+    const records = await prisma.questionError.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        questionText: true,
+        status: true,
+        aiExplanation: true,
+        mnemonic: true,
+        drillQuestion: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (records.length <= 1) return 0;
+
+    // Agrupa por questionText normalizado
+    const groups = new Map<string, typeof records>();
+
+    for (const r of records) {
+      const key = normalizeQuestionKey(r.questionText);
+      if (!key) continue;
+      const list = groups.get(key);
+      if (list) {
+        list.push(r);
+      } else {
+        groups.set(key, [r]);
+      }
+    }
+
+    const idsToDelete: string[] = [];
+
+    for (const [, group] of groups) {
+      if (group.length <= 1) continue;
+
+      // Ordena o grupo elegendo o melhor registro para o índice 0
+      group.sort((a: any, b: any) => {
+        // Prioridade 1: Status MASTERED
+        const aMastered = a.status === "MASTERED" ? 1 : 0;
+        const bMastered = b.status === "MASTERED" ? 1 : 0;
+        if (aMastered !== bMastered) return bMastered - aMastered;
+
+        // Prioridade 2: Já possui análise ou remediação por IA gerada
+        const aHasAi = a.aiExplanation || a.drillQuestion || a.mnemonic ? 1 : 0;
+        const bHasAi = b.aiExplanation || b.drillQuestion || b.mnemonic ? 1 : 0;
+        if (aHasAi !== bHasAi) return bHasAi - aHasAi;
+
+        // Prioridade 3: Mais recente (updatedAt ou createdAt)
+        const aTime = a.updatedAt?.getTime?.() || a.createdAt.getTime();
+        const bTime = b.updatedAt?.getTime?.() || b.createdAt.getTime();
+        return bTime - aTime;
+      });
+
+      // Mantém group[0] e marca os clones duplicados para exclusão
+      for (let i = 1; i < group.length; i++) {
+        idsToDelete.push(group[i].id);
+      }
+    }
+
+    if (idsToDelete.length > 0) {
+      await prisma.questionError.deleteMany({
+        where: {
+          id: { in: idsToDelete },
+          userId,
+        },
+      });
+      console.log(
+        `[cleanupDuplicateQuestionErrors] Removidas ${idsToDelete.length} duplicatas de QuestionError para o usuário ${userId}`,
+      );
+    }
+
+    return idsToDelete.length;
+  } catch (err) {
+    console.error(
+      "[cleanupDuplicateQuestionErrors] Erro ao limpar duplicatas:",
+      err,
+    );
+    return 0;
+  }
+}
+
+/**
+ * Action exposta para sanitização manual ou sob demanda de erros duplicados
+ */
+export async function cleanupDuplicateQuestionErrorsAction() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const deletedCount = await cleanupDuplicateQuestionErrors(userId);
+    return { success: true, deletedCount };
+  } catch (err) {
+    console.error("[cleanupDuplicateQuestionErrorsAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao limpar erros duplicados.",
+    };
+  }
+}
+
+/**
+ * Sincroniza retroativamente os erros encontrados nos quizzes já respondidos pelo usuário
+ * se a tabela QuestionError ainda estiver zerada para ele.
+ * Protegido por lock em memória por userId, sanitização prévia e checagem de unicidade.
+ */
+async function syncLegacyErrorsIfEmpty(userId: string) {
+  // Se já houver sincronização em andamento para este userId, aguarda a mesma Promise
+  const ongoing = syncLockMap.get(userId);
+  if (ongoing) {
+    return ongoing;
+  }
+
+  const promise = (async () => {
+    try {
+      // 1. Sanitização prévia de duplicatas residuais no banco
+      await cleanupDuplicateQuestionErrors(userId);
+
+      // 2. Busca questões já existentes no banco para este usuário
+      const existingErrors = await prisma.questionError.findMany({
+        where: { userId },
+        select: { questionText: true },
+      });
+
+      // Se já existirem registros para o usuário, não é necessário importar histórico legado
+      if (existingErrors.length > 0) {
+        return;
+      }
+
+      const existingKeys = new Set(
+        existingErrors.map((r: any) => normalizeQuestionKey(r.questionText)),
+      );
+
+      // 3. Busca quizzes anteriores salvos com questions JSON
+      const quizzes = await prisma.quiz.findMany({
+        where: { userId },
+        take: 20,
+        orderBy: { createdAt: "desc" },
+      });
+
+      const errorsToInsert: {
+        userId: string;
+        subjectId: string | null;
+        topicId: string | null;
+        quizId: string;
+        questionText: string;
+        options: any;
+        userAnswer: string;
+        correctAnswer: string;
+        explanation: string | null;
+        errorReason: string;
+        status: string;
+        createdAt: Date;
+      }[] = [];
+
+      const seenKeysInBatch = new Set<string>();
+
+      for (const quiz of quizzes) {
+        if (!Array.isArray(quiz.questions)) continue;
+
+        for (const q of quiz.questions as any[]) {
+          const isCorrect =
+            q.isCorrect === true ||
+            q.correct === true ||
+            (q.userAnswer &&
+              (q.gabaritoCorreto || q.correctAnswer) &&
+              String(q.userAnswer).trim().toUpperCase() ===
+                String(q.gabaritoCorreto || q.correctAnswer)
+                  .trim()
+                  .toUpperCase());
+
+          if (isCorrect) continue;
+
+          const userAns = String(q.userAnswer || "").trim();
+          const correctAns = String(
+            q.gabaritoCorreto || q.correctAnswer || q.answer || "A",
+          ).trim();
+          const enunciado = q.enunciado || q.question || q.questionText;
+
+          if (!enunciado || typeof enunciado !== "string") continue;
+
+          const key = normalizeQuestionKey(enunciado);
+          if (!key || existingKeys.has(key) || seenKeysInBatch.has(key)) {
+            continue;
+          }
+          seenKeysInBatch.add(key);
+
+          const normalizedReason = normalizeTaxonomy(q.errorReason);
+
+          errorsToInsert.push({
+            userId,
+            subjectId: q.subjectId || null,
+            topicId: q.topicId || quiz.topicId || null,
+            quizId: quiz.id,
+            questionText: enunciado.trim(),
+            options: q.alternativas || q.options || [],
+            userAnswer: userAns || "Não informada",
+            correctAnswer: correctAns,
+            explanation: q.justificativa || q.explanation || null,
+            errorReason: normalizedReason,
+            status: "PENDING",
+            createdAt: quiz.createdAt,
+          });
+        }
+      }
+
+      if (errorsToInsert.length > 0) {
+        // Inserção em lote deduplicada
+        await prisma.questionError.createMany({
+          data: errorsToInsert,
+        });
+      }
+    } catch (err) {
+      console.error(
+        "[syncLegacyErrorsIfEmpty] Erro ao sincronizar legado:",
+        err,
+      );
+    } finally {
+      syncLockMap.delete(userId);
+    }
+  })();
+
+  syncLockMap.set(userId, promise);
+  return promise;
+}
+
+export interface GetErrorNotebookQuestionsResult {
+  questions: Question[];
+  total: number;
+  hasMore: boolean;
+  nextPage: number | null;
+  success: boolean;
+  error?: string;
+  data?: {
+    questions: Question[];
+    total: number;
+    hasMore: boolean;
+    nextPage: number | null;
+  };
+}
+
+/**
+ * Lista as questões do Caderno de Erros com paginação suave (Infinite Scroll) e filtros dinâmicos
+ */
+export async function getErrorNotebookQuestionsAction(
+  params: GetErrorNotebookQuestionsParams = {},
+): Promise<GetErrorNotebookQuestionsResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return {
+        questions: [],
+        total: 0,
+        hasMore: false,
+        nextPage: null,
+        success: false,
+        error: "Usuário não autenticado.",
+      };
+    }
+
+    const page = Math.max(1, params.page || 1);
+    const limit = Math.max(1, params.limit || 10);
+    const skip = (page - 1) * limit;
+
+    // Sincroniza e sanitiza apenas na primeira página para desempenho máximo
+    if (page === 1) {
+      await syncLegacyErrorsIfEmpty(userId);
+    }
+
+    const where: any = { userId };
+
+    if (params.subjectId && params.subjectId !== "ALL") {
+      where.subjectId = params.subjectId;
+    }
+
+    if (params.status && params.status !== "ALL") {
+      where.status = params.status;
+    }
+
+    if (params.errorReason && params.errorReason !== "ALL") {
+      const normalized = normalizeTaxonomy(params.errorReason);
+      where.errorReason = normalized;
+    }
+
+    if (params.period && params.period !== "all") {
+      const now = new Date();
+      let days = 7;
+      if (params.period === "30d") days = 30;
+      if (params.period === "90d") days = 90;
+      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      where.createdAt = { gte: startDate };
+    }
+
+    if (params.search && params.search.trim() !== "") {
+      const term = params.search.trim();
+      where.OR = [
+        { questionText: { contains: term, mode: "insensitive" } },
+        { explanation: { contains: term, mode: "insensitive" } },
+      ];
+    }
+
+    const [total, records] = await Promise.all([
+      prisma.questionError.count({ where }),
+      prisma.questionError.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        include: {
+          subject: {
+            select: { id: true, name: true, color: true },
+          },
+          topic: {
+            select: { id: true, title: true },
+          },
+        },
+      }),
+    ]);
+
+    const hasMore = skip + records.length < total;
+    const nextPage = hasMore ? page + 1 : null;
+
+    const questions: Question[] = records.map((r: any) => ({
+      id: r.id,
+      userId: r.userId,
+      subjectId: r.subjectId,
+      topicId: r.topicId,
+      quizId: r.quizId,
+      questionText: r.questionText,
+      options: (r.options as any) || [],
+      userAnswer: r.userAnswer,
+      correctAnswer: r.correctAnswer,
+      explanation: r.explanation,
+      errorReason: r.errorReason,
+      status: r.status as "PENDING" | "MASTERED",
+      masteredAt: r.masteredAt,
+      aiExplanation: r.aiExplanation,
+      mnemonic: r.mnemonic,
+      drillQuestion: (r.drillQuestion as any) || null,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      subject: r.subject,
+      topic: r.topic,
+    }));
+
+    return {
+      success: true,
+      questions,
+      total,
+      hasMore,
+      nextPage,
+      data: {
+        questions,
+        total,
+        hasMore,
+        nextPage,
+      },
+    };
+  } catch (err) {
+    console.error("[getErrorNotebookQuestionsAction] Erro:", err);
+    return {
+      questions: [],
+      total: 0,
+      hasMore: false,
+      nextPage: null,
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao buscar questões do caderno de erros.",
+    };
+  }
+}
+
+/**
+ * Lista os itens do Caderno de Erros com filtros dinâmicos
+ */
+export async function getErrorNotebookItemsAction(
+  filters: ErrorNotebookFilters = {},
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    // Auto-popula com histórico se vazio e sanitiza duplicatas
+    await syncLegacyErrorsIfEmpty(userId);
+
+    const where: any = { userId };
+
+    if (filters.subjectId && filters.subjectId !== "ALL") {
+      where.subjectId = filters.subjectId;
+    }
+
+    if (filters.status && filters.status !== "ALL") {
+      where.status = filters.status;
+    }
+
+    if (filters.errorReason && filters.errorReason !== "ALL") {
+      const normalized = normalizeTaxonomy(filters.errorReason);
+      where.errorReason = normalized;
+    }
+
+    if (filters.period && filters.period !== "all") {
+      const now = new Date();
+      let days = 7;
+      if (filters.period === "30d") days = 30;
+      if (filters.period === "90d") days = 90;
+      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      where.createdAt = { gte: startDate };
+    }
+
+    if (filters.search && filters.search.trim() !== "") {
+      const term = filters.search.trim();
+      where.OR = [
+        { questionText: { contains: term, mode: "insensitive" } },
+        { explanation: { contains: term, mode: "insensitive" } },
+      ];
+    }
+
+    const records = await prisma.questionError.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        subject: {
+          select: { id: true, name: true, color: true },
+        },
+        topic: {
+          select: { id: true, title: true },
+        },
+      },
+    });
+
+    // Deduplicação na memória para garantir que nenhuma duplicata residual seja entregue à UI
+    const grouped = new Map<string, (typeof records)[number]>();
+    for (const r of records) {
+      const key = normalizeQuestionKey(r.questionText);
+      const existing = grouped.get(key);
+      if (!existing) {
+        grouped.set(key, r);
+      } else {
+        // Elege o registro com melhor qualidade
+        const existingScore =
+          (existing.status === "MASTERED" ? 10 : 0) +
+          (existing.aiExplanation || existing.drillQuestion ? 5 : 0);
+        const newScore =
+          (r.status === "MASTERED" ? 10 : 0) +
+          (r.aiExplanation || r.drillQuestion ? 5 : 0);
+        if (newScore > existingScore) {
+          grouped.set(key, r);
+        }
+      }
+    }
+
+    const deduplicatedRecords = Array.from(grouped.values()).sort(
+      (a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
+
+    const items: ErrorNotebookItem[] = deduplicatedRecords.map((r: any) => ({
+      id: r.id,
+      userId: r.userId,
+      subjectId: r.subjectId,
+      topicId: r.topicId,
+      quizId: r.quizId,
+      questionText: r.questionText,
+      options: (r.options as any) || [],
+      userAnswer: r.userAnswer,
+      correctAnswer: r.correctAnswer,
+      explanation: r.explanation,
+      errorReason: r.errorReason,
+      status: r.status as "PENDING" | "MASTERED",
+      masteredAt: r.masteredAt,
+      aiExplanation: r.aiExplanation,
+      mnemonic: r.mnemonic,
+      drillQuestion: (r.drillQuestion as any) || null,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      subject: r.subject,
+      topic: r.topic,
+    }));
+
+    return { success: true, data: items };
+  } catch (err) {
+    console.error("[getErrorNotebookItemsAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao listar caderno de erros.",
+    };
+  }
+}
+
+/**
+ * Obtém métricas globais e distribuição taxonômica para o header
+ */
+export async function getErrorMetricsAction() {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    await syncLegacyErrorsIfEmpty(userId);
+
+    const allErrors = await prisma.questionError.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        questionText: true,
+        status: true,
+        errorReason: true,
+      },
+    });
+
+    // Deduplicação defensiva por questão única para métricas 100% alinhadas com a listagem
+    const seenMetricsKeys = new Set<string>();
+    const uniqueErrors = allErrors.filter((e: any) => {
+      const key = normalizeQuestionKey(e.questionText);
+      if (!key || seenMetricsKeys.has(key)) return false;
+      seenMetricsKeys.add(key);
+      return true;
+    });
+
+    const totalErrors = uniqueErrors.length;
+    const pendingErrors = uniqueErrors.filter(
+      (e: any) => e.status === "PENDING",
+    ).length;
+    const masteredErrors = uniqueErrors.filter(
+      (e: any) => e.status === "MASTERED",
+    ).length;
+    const masteryRate =
+      totalErrors > 0 ? Math.round((masteredErrors / totalErrors) * 100) : 0;
+
+    // Contagem por taxonomia
+    const counts: Record<string, number> = {
+      CONTENT_GAP: 0,
+      TRICK_QUESTION: 0,
+      INTERPRETATION: 0,
+      TIME_PRESSURE: 0,
+      UNCLASSIFIED: 0,
+    };
+
+    uniqueErrors.forEach((e: any) => {
+      const norm = normalizeTaxonomy(e.errorReason);
+      counts[norm] = (counts[norm] || 0) + 1;
+    });
+
+    const taxonomyDistribution: ErrorTaxonomyMetric[] = Object.keys(
+      TAXONOMY_METADATA,
+    ).map((key) => {
+      const count = counts[key] || 0;
+      const meta = TAXONOMY_METADATA[key];
+      return {
+        reason: key,
+        label: meta.label,
+        count,
+        percentage:
+          totalErrors > 0 ? Math.round((count / totalErrors) * 100) : 0,
+        color: meta.color,
+      };
+    });
+
+    const metrics: ErrorNotebookMetrics = {
+      totalErrors,
+      pendingErrors,
+      masteredErrors,
+      masteryRate,
+      taxonomyDistribution,
+    };
+
+    return { success: true, data: metrics };
+  } catch (err) {
+    console.error("[getErrorMetricsAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao calcular métricas de erros.",
+    };
+  }
+}
+
+/**
+ * Marca um erro como "Superado / Dominado", integrando com missões diárias e XP
+ */
+export async function markErrorAsMasteredAction(
+  errorId: string,
+  solvedDrill: boolean = false,
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const updated = await prisma.questionError.update({
+      where: { id: errorId, userId },
+      data: {
+        status: "MASTERED",
+        masteredAt: new Date(),
+      },
+    });
+
+    let earnedXp = 20;
+
+    // Se acertou a questão de fixação sob demanda, premia com mais XP e avança missão diária
+    if (solvedDrill) {
+      earnedXp += 30;
+      await trackQuestProgressAction("QUESTIONS_SOLVED", 1);
+    }
+
+    await prisma.userStats.upsert({
+      where: { userId },
+      create: {
+        userId,
+        totalXp: earnedXp,
+        lastStudyDate: new Date(),
+      },
+      update: {
+        totalXp: { increment: earnedXp },
+        lastStudyDate: new Date(),
+      },
+    });
+
+    try {
+      revalidatePath("/notebook");
+      revalidatePath("/questions");
+    } catch {
+      // Ignora erro fora de contexto HTTP
+    }
+
+    return {
+      success: true,
+      data: {
+        id: updated.id,
+        status: updated.status,
+        earnedXp,
+      },
+    };
+  } catch (err) {
+    console.error("[markErrorAsMasteredAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao atualizar status do erro.",
+    };
+  }
+}
+
+/**
+ * Reverte o status de um erro para PENDING para permitir novo treino
+ */
+export async function markErrorAsPendingAction(errorId: string) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const updated = await prisma.questionError.update({
+      where: { id: errorId, userId },
+      data: {
+        status: "PENDING",
+        masteredAt: null,
+      },
+    });
+
+    try {
+      revalidatePath("/notebook");
+      revalidatePath("/questions");
+    } catch {}
+
+    return { success: true, data: updated };
+  } catch (err) {
+    console.error("[markErrorAsPendingAction] Erro:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao reverter status.",
+    };
+  }
+}
+
+/**
+ * Remove um item do caderno de erros
+ */
+export async function deleteErrorNotebookItemAction(errorId: string) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    await prisma.questionError.delete({
+      where: { id: errorId, userId },
+    });
+
+    try {
+      revalidatePath("/notebook");
+      revalidatePath("/questions");
+    } catch {}
+
+    return { success: true };
+  } catch (err) {
+    console.error("[deleteErrorNotebookItemAction] Erro:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao remover item.",
+    };
+  }
+}
+
+/**
+ * Gera a micro-explicação, mnemônico e micro-questão de fixação via Gemini IA
+ */
+export async function generateErrorRemediationAction(
+  input: GenerateRemediationInput,
+): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    // 1. Se existir errorId, verifica se já foi gerado e salvo em cache no banco
+    if (input.errorId) {
+      const existing = await prisma.questionError.findUnique({
+        where: { id: input.errorId, userId },
+        select: {
+          aiExplanation: true,
+          mnemonic: true,
+          drillQuestion: true,
+        },
+      });
+
+      if (
+        existing?.aiExplanation &&
+        existing?.mnemonic &&
+        existing?.drillQuestion
+      ) {
+        return {
+          success: true,
+          data: {
+            microExplanation: existing.aiExplanation,
+            mnemonicOrRule: existing.mnemonic,
+            drillQuestion: existing.drillQuestion as any,
+          },
+        };
+      }
+    }
+
+    const normalizedReason = normalizeTaxonomy(input.errorReason);
+    const reasonMeta =
+      TAXONOMY_METADATA[normalizedReason] || TAXONOMY_METADATA.UNCLASSIFIED;
+
+    // 2. Monta o prompt especializado de tutoria ativa para concursos
+    const prompt = `
+Você é um Tutor Pedagógico Especialista em Aprendizado Ativo e Desarmamento de Pegadinhas em Concursos Públicos e Exames de Alto Desempenho.
+
+O estudante errou a questão abaixo e o diagnóstico taxonômico apontou a causa-raiz: "${reasonMeta.label}" (${reasonMeta.desc}).
+
+DETALHES DO ERRO:
+- Matéria: ${input.subjectName || "Geral"}
+- Tópico: ${input.topicTitle || "Geral"}
+- Enunciado da Questão:
+"${input.questionText}"
+
+- Alternativa assinalada pelo aluno: "${input.userAnswer}"
+- Gabarito oficial correto: "${input.correctAnswer}"
+${input.explanation ? `- Justificativa original da banca: "${input.explanation}"` : ""}
+- Causa-raiz diagnosticada: ${reasonMeta.label}
+
+SUA MISSÃO:
+1. "microExplanation": Produza uma explicação concisa, direta e pedagógica (máximo de 2 a 3 parágrafos curtos). Foque exatamente em DESARMAR a confusão mental, a pegadinha da banca ou a lacuna conceitual que levou o aluno a marcar a alternativa errada.
+2. "mnemonicOrRule": Crie uma regra mnemônica elegante (acrônimo, rima, frase gatilho) ou uma regra prática infalível de apenas 1 a 2 linhas para que o estudante memorize o critério decisivo e nunca mais caia nesse erro.
+3. "drillQuestion": Elabore uma MICRO-QUESTÃO INÉDITA (estilo concurso, nível equivalente) para fixação imediata do MESMO conceito ou regra. Deve conter:
+   - "enunciado": O texto da questão inédita (curto e objetivo, sem pegadinhas inúteis).
+   - "alternativas": Exatamente 4 alternativas (com ids "A", "B", "C", "D" e o texto de cada uma).
+   - "gabaritoCorreto": Apenas a letra da alternativa correta ("A", "B", "C" ou "D").
+   - "justificativa": Uma explicação sucinta (1 parágrafo) do porquê o gabarito é o correto.
+
+Responda ESTRITAMENTE no formato JSON com os campos solicitados.
+`;
+
+    // 3. Executa com cascade fallback e structured output
+    const result = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+        maxOutputTokens: 4096,
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            microExplanation: { type: Type.STRING },
+            mnemonicOrRule: { type: Type.STRING },
+            drillQuestion: {
+              type: Type.OBJECT,
+              properties: {
+                enunciado: { type: Type.STRING },
+                alternativas: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      id: { type: Type.STRING },
+                      texto: { type: Type.STRING },
+                    },
+                    required: ["id", "texto"],
+                  },
+                },
+                gabaritoCorreto: { type: Type.STRING },
+                justificativa: { type: Type.STRING },
+              },
+              required: [
+                "enunciado",
+                "alternativas",
+                "gabaritoCorreto",
+                "justificativa",
+              ],
+            },
+          },
+          required: ["microExplanation", "mnemonicOrRule", "drillQuestion"],
+        },
+      },
+    });
+
+    const parsed: ErrorRemediationData = JSON.parse(result.text);
+
+    // Validação básica do retorno estruturado
+    if (
+      !parsed.microExplanation ||
+      !parsed.mnemonicOrRule ||
+      !parsed.drillQuestion?.enunciado ||
+      !Array.isArray(parsed.drillQuestion?.alternativas)
+    ) {
+      throw new Error("Estrutura de dados retornada pela IA inválida.");
+    }
+
+    // 4. Salva em cache no banco se o errorId existir
+    if (input.errorId) {
+      await prisma.questionError.update({
+        where: { id: input.errorId, userId },
+        data: {
+          aiExplanation: parsed.microExplanation,
+          mnemonic: parsed.mnemonicOrRule,
+          drillQuestion: parsed.drillQuestion as any,
+        },
+      });
+    }
+
+    return { success: true, data: parsed };
+  } catch (err) {
+    console.error("[generateErrorRemediationAction] Erro:", err);
+
+    // Fallback resiliente pedagógico caso a API de IA esteja indisponível
+    const fallbackData: ErrorRemediationData = {
+      microExplanation: `Análise pedagógica de emergência: O gabarito oficial é "${input.correctAnswer}". A opção marcada pelo aluno ("${input.userAnswer}") colidiu com a restrição central do conceito cobrado. Sempre atente para conectivos restritivos e o comando do enunciado.`,
+      mnemonicOrRule:
+        "Dica de Fixação: Sublinhe palavras-chave restritivas no enunciado ('exceto', 'sempre', 'vedado') antes de julgar as alternativas.",
+      drillQuestion: {
+        enunciado: `[Questão de Fixação] Em relação aos fundamentos de ${input.subjectName || "estudo"}, qual postura garante a correta identificação de pegadinhas relacionadas a ${TAXONOMY_METADATA[normalizeTaxonomy(input.errorReason)]?.label || "atenção"}?`,
+        alternativas: [
+          {
+            id: "A",
+            texto:
+              "Julgar as alternativas com pressa confiando exclusivamente na primeira impressão.",
+          },
+          {
+            id: "B",
+            texto:
+              "Validar sistematicamente cada palavra restritiva da alternativa contra a regra central.",
+          },
+          {
+            id: "C",
+            texto:
+              "Marcar a alternativa mais longa ignorando eventuais contradições conceituais.",
+          },
+          {
+            id: "D",
+            texto:
+              "Ignorar o comando do enunciado e focar apenas nas palavras familiares.",
+          },
+        ],
+        gabaritoCorreto: "B",
+        justificativa:
+          "A validação sistemática de cada termo restritivo assegura precisão absoluta e desmantela pegadinhas da banca.",
+      },
+    };
+
+    return {
+      success: true,
+      data: fallbackData,
+    };
+  }
+}
+
+/**
+ * Análise aprofundada individual sob demanda com cache permanente no banco
+ */
+export async function analyzeSingleErrorAction(
+  inputOrErrorId: GenerateRemediationInput | string,
+): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
+  if (typeof inputOrErrorId === "string") {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const errorRecord = await prisma.questionError.findUnique({
+      where: { id: inputOrErrorId, userId },
+      include: { subject: true, topic: true },
+    });
+
+    if (!errorRecord) {
+      return { success: false, error: "Registro de erro não encontrado." };
+    }
+
+    return generateErrorRemediationAction({
+      errorId: errorRecord.id,
+      questionText: errorRecord.questionText,
+      userAnswer: errorRecord.userAnswer,
+      correctAnswer: errorRecord.correctAnswer,
+      explanation: errorRecord.explanation || undefined,
+      errorReason: errorRecord.errorReason,
+      subjectName: errorRecord.subject?.name,
+      topicTitle: errorRecord.topic?.title,
+    });
+  }
+
+  return generateErrorRemediationAction(inputOrErrorId);
+}
+
+/**
+ * Classificação taxonômica ultrarrápida e econômica em lote (apenas rootCause)
+ * Processa 15 a 20 questões por execução com custo mínimo de tokens.
+ */
+export async function batchClassifyTaxonomyOnlyAction(
+  batchSize: number = 20,
+): Promise<{
+  success: boolean;
+  processed?: number;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    // 1. Busca registros pendentes de classificação taxonômica pertencentes ao usuário logado
+    const unclassifiedRecords = await prisma.questionError.findMany({
+      where: {
+        userId,
+        OR: [
+          { errorReason: "UNCLASSIFIED" },
+          { errorReason: "GENERAL" },
+          { errorReason: "NOT_CLASSIFIED" },
+          { errorReason: "NAO_CLASSIFICADO" },
+          { errorReason: "Geral" },
+          { errorReason: "" },
+        ],
+      },
+      select: {
+        id: true,
+        questionText: true,
+        userAnswer: true,
+        correctAnswer: true,
+        explanation: true,
+      },
+      take: batchSize,
+    });
+
+    if (unclassifiedRecords.length === 0) {
+      return {
+        success: true,
+        processed: 0,
+        message: "Todos os erros já estão categorizados!",
+      };
+    }
+
+    // 2. Monta payload ultracompacto para o Gemini (zero desperdício de tokens)
+    const promptData = unclassifiedRecords.map((item: any) => ({
+      id: item.id,
+      enunciado: (item.questionText || "").slice(0, 150),
+      respostaMarcada: item.userAnswer || "N/A",
+      gabaritoOficial: item.correctAnswer || "N/A",
+    }));
+
+    // 3. Prompt estrito de sistema: nenhuma justificativa ou texto adicional
+    const prompt = `Classifique cada erro cometido pelo candidato na questão em exatamente UMA das 4 chaves taxonômicas:
+- THEORY_GAP: Lacuna Teórica (desconhecimento da lei, doutrina ou conceito técnico).
+- TRICK_QUESTION: Falta de Atenção / Pegadinha (distratores sutis ou palavras restritivas).
+- INTERPRETATION: Erro de Interpretação (compreensão equivocada do comando ou texto).
+- TIME_PRESSURE: Pressão de Tempo / Chute (pressa ou resolução precipitada).
+
+Questões a classificar:
+${JSON.stringify(promptData)}
+
+Retorne ESTRITAMENTE um array JSON no formato mínimo:
+[{"id": "id_da_questao", "rootCause": "THEORY_GAP"}]
+Sem qualquer texto introdutório, justificativa ou explicação.`;
+
+    let classifiedList: { id: string; rootCause: string }[] = [];
+
+    try {
+      const result = await generateContentWithFallback({
+        prompt,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                rootCause: {
+                  type: Type.STRING,
+                  enum: [
+                    "THEORY_GAP",
+                    "TRICK_QUESTION",
+                    "INTERPRETATION",
+                    "TIME_PRESSURE",
+                  ],
+                },
+              },
+              required: ["id", "rootCause"],
+            },
+          },
+        },
+      });
+
+      const parsed = JSON.parse(result.text);
+      if (Array.isArray(parsed)) {
+        classifiedList = parsed;
+      }
+    } catch (geminiErr) {
+      console.warn(
+        "[batchClassifyTaxonomyOnlyAction] Falha na chamada da IA, acionando heurística rápida:",
+        geminiErr,
+      );
+    }
+
+    // 4. Mapeia resultados da IA ou aplica heurística de resiliência
+    const classifiedMap = new Map<string, string>();
+    for (const c of classifiedList) {
+      if (c && c.id && c.rootCause) {
+        classifiedMap.set(c.id, c.rootCause);
+      }
+    }
+
+    const updatesToPersist: { id: string; errorReason: string }[] = [];
+
+    for (const item of unclassifiedRecords) {
+      const rootCause = classifiedMap.get(item.id);
+      let resolvedReason: string;
+
+      if (rootCause) {
+        resolvedReason = normalizeTaxonomy(rootCause);
+      } else {
+        // Heurística rápida de contingência
+        const combined =
+          `${item.questionText} ${item.explanation || ""}`.toLowerCase();
+        if (
+          combined.includes("pegadinha") ||
+          combined.includes("atenção") ||
+          combined.includes("cuidado") ||
+          combined.includes("exceto") ||
+          combined.includes("distrator") ||
+          combined.includes("vedado")
+        ) {
+          resolvedReason = "TRICK_QUESTION";
+        } else if (
+          combined.includes("interpreta") ||
+          combined.includes("infere") ||
+          combined.includes("compreens") ||
+          combined.includes("texto") ||
+          combined.includes("conclui")
+        ) {
+          resolvedReason = "INTERPRETATION";
+        } else if (
+          combined.includes("tempo") ||
+          combined.includes("pressa") ||
+          combined.includes("cálculo")
+        ) {
+          resolvedReason = "TIME_PRESSURE";
+        } else {
+          resolvedReason = "CONTENT_GAP";
+        }
+      }
+
+      updatesToPersist.push({ id: item.id, errorReason: resolvedReason });
+    }
+
+    // 5. Atualização atômica no banco via transação do Prisma
+    if (updatesToPersist.length > 0) {
+      await prisma.$transaction(
+        updatesToPersist.map((u: any) =>
+          prisma.questionError.update({
+            where: { id: u.id, userId },
+            data: { errorReason: u.errorReason },
+          }),
+        ),
+      );
+    }
+
+    // 6. Revalidação das rotas envolvidas
+    try {
+      revalidatePath("/notebook");
+      revalidatePath("/questions");
+    } catch {}
+
+    return {
+      success: true,
+      processed: updatesToPersist.length,
+      message: `${updatesToPersist.length} erros categorizados com sucesso!`,
+    };
+  } catch (err) {
+    console.error("[batchClassifyTaxonomyOnlyAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao classificar lote de erros.",
+    };
+  }
+}
+
+/**
+ * Diagnostica automaticamente a causa-raiz taxonômica de questões não classificadas
+ * Mantido para compatibilidade, delegando para batchClassifyTaxonomyOnlyAction.
+ */
+export async function autoClassifyPendingErrorsAction(): Promise<{
+  success: boolean;
+  classifiedCount?: number;
+  message?: string;
+  error?: string;
+}> {
+  const res = await batchClassifyTaxonomyOnlyAction(20);
+  return {
+    success: res.success,
+    classifiedCount: res.processed,
+    message: res.message,
+    error: res.error,
+  };
+}
+
+export interface WrongQuestionItem {
+  questionText: string;
+  options?: any;
+  userAnswer: string;
+  correctAnswer: string;
+  explanation?: string | null;
+  errorReason?: string;
+  subjectId?: string | null;
+  topicId?: string | null;
+}
+
+export interface SaveWrongQuestionsInput {
+  quizId?: string | null;
+  subjectId?: string | null;
+  topicId?: string | null;
+  questions: WrongQuestionItem[];
+}
+
+/**
+ * Persiste as questões incorretas diretamente no Caderno de Erros com validação de unicidade.
+ */
+export async function saveWrongQuestionsToNotebookAction(
+  input: SaveWrongQuestionsInput,
+): Promise<{
+  success: boolean;
+  countAdded?: number;
+  alreadyExisted?: number;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    if (!Array.isArray(input.questions) || input.questions.length === 0) {
+      return {
+        success: true,
+        countAdded: 0,
+        alreadyExisted: 0,
+        message: "Nenhuma questão incorreta para salvar.",
+      };
+    }
+
+    // Busca erros existentes do usuário para evitar duplicatas
+    const existingErrors = await prisma.questionError.findMany({
+      where: { userId },
+      select: { questionText: true },
+    });
+
+    const existingKeys = new Set(
+      existingErrors.map((r: any) => normalizeQuestionKey(r.questionText)),
+    );
+
+    const toInsert: any[] = [];
+    let alreadyExisted = 0;
+    const seenInBatch = new Set<string>();
+
+    for (const q of input.questions) {
+      if (!q.questionText || typeof q.questionText !== "string") continue;
+      const key = normalizeQuestionKey(q.questionText);
+      if (!key) continue;
+
+      if (existingKeys.has(key) || seenInBatch.has(key)) {
+        alreadyExisted++;
+        continue;
+      }
+
+      seenInBatch.add(key);
+
+      const normalizedReason = normalizeTaxonomy(q.errorReason || "UNCLASSIFIED");
+
+      toInsert.push({
+        userId,
+        subjectId: q.subjectId || input.subjectId || null,
+        topicId: q.topicId || input.topicId || null,
+        quizId: input.quizId || null,
+        questionText: q.questionText.trim(),
+        options: q.options || [],
+        userAnswer: String(q.userAnswer || "Não informada"),
+        correctAnswer: String(q.correctAnswer || "A"),
+        explanation: q.explanation || null,
+        errorReason: normalizedReason,
+        status: "PENDING",
+      });
+    }
+
+    if (toInsert.length > 0) {
+      await prisma.questionError.createMany({
+        data: toInsert,
+      });
+    }
+
+    try {
+      revalidatePath("/notebook");
+      revalidatePath("/questions");
+    } catch {}
+
+    return {
+      success: true,
+      countAdded: toInsert.length,
+      alreadyExisted,
+      message:
+        toInsert.length > 0
+          ? `${toInsert.length} questão(ões) adicionada(s) ao Caderno de Erros!`
+          : alreadyExisted > 0
+            ? "As questões incorretas já estão salvas no seu Caderno de Erros."
+            : "Nenhuma questão para salvar.",
+    };
+  } catch (err) {
+    console.error("[saveWrongQuestionsToNotebookAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao salvar questões no caderno de erros.",
+    };
+  }
+}
+</file>
+
 <file path="src/actions/quiz-actions.ts">
 "use server";
 
@@ -7192,6 +8022,7 @@ import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
 import { revalidatePath } from "next/cache";
 import { SubmitQuizAttemptInput, SubjectDomainMetric } from "@/types/quiz";
+import { generateContentWithFallback } from "@/lib/gemini-fallback";
 
 export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
   try {
@@ -7530,6 +8361,121 @@ export async function deleteSavedQuizAction(quizId: string) {
     };
   }
 }
+
+export interface DeepenExplanationInput {
+  enunciado: string;
+  alternativas?: { id: string; texto: string }[];
+  gabaritoCorreto: string;
+  selectedAnswer?: string;
+  justificativaOriginal?: string;
+  banca?: string;
+  subject?: string;
+}
+
+export interface DeepenExplanationResult {
+  overview: string;
+  alternativesAnalysis: {
+    letter: string;
+    isCorrect: boolean;
+    explanation: string;
+  }[];
+  legalBasis?: string;
+  mnemonicTip?: string;
+}
+
+/**
+ * Aprofunda a explicação pedagógica e jurídica de uma questão via IA sob demanda
+ */
+export async function deepenExplanationAction(input: DeepenExplanationInput) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const {
+      enunciado,
+      alternativas = [],
+      gabaritoCorreto,
+      selectedAnswer,
+      justificativaOriginal = "",
+      banca = "Geral",
+      subject = "Conhecimentos Gerais",
+    } = input;
+
+    const altsFormatted = alternativas.length > 0
+      ? alternativas.map((a) => `${a.id}) ${a.texto}`).join("\n")
+      : "Opções: Certo / Errado";
+
+    const prompt = `Você é o tutor cognitivo de elite do Synapse AI para concursos públicos e exames de alto rendimento.
+O candidato solicitou um Aprofundamento Explicativo Detalhado para a seguinte questão:
+
+[CONTEXTO]
+Banca: ${banca}
+Disciplina: ${subject}
+Resposta do candidato: ${selectedAnswer || "Não respondeu ainda"}
+Gabarito Oficial: ${gabaritoCorreto}
+
+[ENUNCIADO]
+${enunciado}
+
+[ALTERNATIVAS]
+${altsFormatted}
+
+[JUSTIFICATIVA BASE DISPONÍVEL]
+${justificativaOriginal}
+
+[SUA TAREFA]
+Retorne um JSON estrito contendo uma dissecação completa e pedagógica da questão, no seguinte formato exato:
+{
+  "overview": "Visão geral estratégica de alto nível sobre o tema cobrado, o raciocínio central que o examinador da banca exigiu e o cerne da controvérsia.",
+  "alternativesAnalysis": [
+    {
+      "letter": "Identificador da alternativa (ex: A, B, C, Certo ou Errado)",
+      "isCorrect": true ou false,
+      "explanation": "Por que esta alternativa está correta ou incorreta, detalhando a pegadinha ou a regra violada."
+    }
+  ],
+  "legalBasis": "Fundamento legal, constitucional, doutrinário, jurisprudencial ou regra normativa exata que fundamenta o tema.",
+  "mnemonicTip": "Mnemônico prático, regra de ouro ou gatilho mental para o candidato memorizar e nunca mais cair nessa pegadinha."
+}
+Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
+
+    const aiRes = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+      },
+    });
+
+    let parsed: DeepenExplanationResult;
+    try {
+      const cleaned = aiRes.text.replace(/```json/g, "").replace(/```/g, "").trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = {
+        overview: aiRes.text,
+        alternativesAnalysis: [],
+        legalBasis: "Fundamentação extraída via análise neural.",
+        mnemonicTip: "Revise com atenção as palavras restritivas do comando da questão.",
+      };
+    }
+
+    return {
+      success: true,
+      data: parsed,
+    };
+  } catch (err) {
+    console.error("Erro em deepenExplanationAction:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao aprofundar explicação com IA.",
+    };
+  }
+}
+
+export { deleteBatchSimuladosAction } from "./simulado-actions";
 </file>
 
 </files>
