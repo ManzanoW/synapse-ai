@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSidebar } from "@/lib/sidebar-context";
 import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
 import { EditalEmptyState } from "@/components/edital-empty-state";
+import { ApprovalPredictorSection } from "@/components/performance/ApprovalPredictorSection";
 import {
   Menu,
   TrendingUp,
@@ -267,6 +268,9 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
             </div>
           </div>
         )}
+
+        {/* PREDITOR DE APROVAÇÃO & NOTA DE CORTE DINÂMICA */}
+        {hasTopics && <ApprovalPredictorSection />}
 
         {hasRebalanceSuggestions && hasTopics && (
           <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#0b1021] to-[#050814] border border-cyan-500/30 p-6 backdrop-blur-2xl space-y-4 shadow-2xl">

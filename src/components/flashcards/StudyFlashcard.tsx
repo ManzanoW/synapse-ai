@@ -9,7 +9,7 @@ import {
   useTransition,
   useMemo,
 } from "react";
-import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from "framer-motion";
 import {
   X,
   RotateCcw,
@@ -83,6 +83,7 @@ export default function StudyFlashcard({
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState<ReviewGrade | null>(null);
+  const [showEbbinghausCurve, setShowEbbinghausCurve] = useState(false);
   const isDraggingRef = useRef(false);
   const cardStartTimeRef = useRef(0);
 
@@ -347,6 +348,7 @@ export default function StudyFlashcard({
   // Reseta a posição do card para o centro ao avançar ou reiniciar e reinicia cronômetro do card
   useEffect(() => {
     x.set(0);
+    setShowEbbinghausCurve(false);
     cardStartTimeRef.current = Date.now();
   }, [currentIndex, x]);
 
@@ -399,7 +401,12 @@ export default function StudyFlashcard({
 
       if (e.code === "Space") {
         e.preventDefault();
-        toggleFlip();
+        if (!isFlipped) {
+          toggleFlip();
+        } else {
+          // Padrão de Alta Velocidade Anki/SuperMemo: quando virado, Espaço confirma BOM (3)
+          handleAnswer(3);
+        }
       } else if (isFlipped) {
         if (e.key === "1") {
           e.preventDefault();
@@ -647,23 +654,103 @@ export default function StudyFlashcard({
                       Pergunta
                     </span>
                     
-                    {/* Medidor de Retenção FSRS e Indicador de Leech */}
-                    <div className="flex items-center gap-2">
-                      {isLeech && (
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 animate-pulse">
-                          <AlertCircle size={10} />
-                          Ponto Cego
-                        </span>
-                      )}
-                      <div
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-bold shadow-sm ${memoryStatus.bgBadge} ${memoryStatus.textBadge} ${memoryStatus.borderBadge}`}
-                        title={`${memoryStatus.label}: ${memoryStatus.description}`}
-                      >
-                        <Brain size={11} />
-                        <span>Retenção {memoryRetention}%</span>
+                      {/* Medidor de Retenção FSRS e Indicador de Leech com Curva de Ebbinghaus Visual */}
+                      <div className="flex items-center gap-2">
+                        {isLeech && (
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 animate-pulse">
+                            <AlertCircle size={10} />
+                            Ponto Cego
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowEbbinghausCurve((prev) => !prev);
+                          }}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-bold shadow-sm transition-all hover:scale-105 cursor-pointer ${memoryStatus.bgBadge} ${memoryStatus.textBadge} ${memoryStatus.borderBadge}`}
+                          title="Clique para ver a Curva de Esquecimento de Ebbinghaus"
+                        >
+                          <Brain size={11} />
+                          <span>Retenção {memoryRetention}%</span>
+                          <span className="text-[8px] opacity-70">📈</span>
+                        </button>
                       </div>
                     </div>
-                  </div>
+
+                  {/* Popover / Drawer da Curva de Esquecimento de Ebbinghaus */}
+                  <AnimatePresence>
+                    {showEbbinghausCurve && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative z-30 my-2 p-3.5 rounded-2xl bg-slate-950/95 border border-indigo-500/40 text-left shadow-2xl backdrop-blur-2xl space-y-2.5 max-w-md mx-auto"
+                      >
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                              <span>📈 Curva de Ebbinghaus</span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
+                                FSRS Pro
+                              </span>
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowEbbinghausCurve(false)}
+                            className="text-slate-400 hover:text-white text-xs cursor-pointer p-0.5"
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        {/* Gráfico SVG da Curva Exponencial */}
+                        <div className="relative h-20 w-full bg-slate-900/80 rounded-xl p-2 border border-white/5 flex items-end">
+                          <svg className="w-full h-full overflow-visible" viewBox="0 0 200 60">
+                            <defs>
+                              <linearGradient id="ebbinghaus-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#818cf8" />
+                                <stop offset="50%" stopColor="#38bdf8" />
+                                <stop offset="100%" stopColor="#f43f5e" />
+                              </linearGradient>
+                            </defs>
+                            {/* Linha crítica de 70% */}
+                            <line x1="0" y1="24" x2="200" y2="24" stroke="#f43f5e" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />
+                            {/* Curva R = e^(-t/S) */}
+                            <path
+                              d="M 0,6 Q 40,12 80,24 T 200,52"
+                              fill="none"
+                              stroke="url(#ebbinghaus-grad)"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                            />
+                            {/* Ponto Atual */}
+                            <circle
+                              cx={Math.max(10, Math.min(190, 200 - (memoryRetention / 100) * 190))}
+                              cy={Math.max(6, Math.min(54, 60 - (memoryRetention / 100) * 54))}
+                              r="4.5"
+                              fill="#38bdf8"
+                              className="animate-pulse shadow-lg"
+                            />
+                          </svg>
+                          <span className="absolute bottom-1 right-2 text-[8px] font-mono text-slate-500">
+                            Tempo (dias) ➔
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[10px] text-slate-300 font-mono">
+                          <span>
+                            Estabilidade: <strong>{currentCard?.stability ? `${currentCard.stability.toFixed(1)}d` : "1d"}</strong>
+                          </span>
+                          <span>
+                            Declínio crítico: <strong>&lt; 70%</strong>
+                          </span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Banner de Intervenção para Ponto Cego (Leech) */}
                   {isLeech && (
@@ -824,7 +911,7 @@ export default function StudyFlashcard({
                   label: "BOM",
                   sublabel: "Good",
                   grade: 3 as ReviewGrade,
-                  key: "3",
+                  key: "3 [Espaço]",
                   icon: Check,
                   interval: projections[3]?.label ?? "4d",
                   style:

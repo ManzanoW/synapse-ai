@@ -11,6 +11,7 @@ import { useGamification } from "@/context/GamificationContext";
 import LogoutModal from "@/components/logout/logout-modal";
 import { PrestigeModal } from "@/components/gamification/prestige-modal";
 import { useAudioContext } from "@/contexts/AudioContext";
+import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 import {
   Sparkles,
   Layers,
@@ -271,7 +272,7 @@ export default function Sidebar({ user }: SidebarProps) {
             <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-3 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
           </div>
 
-          {/* Busca rápida & Volume */}
+          {/* Busca rápida, Notificações & Volume */}
           <div className="px-1 flex items-center gap-1.5">
             <button
               type="button"
@@ -279,19 +280,22 @@ export default function Sidebar({ user }: SidebarProps) {
                 closeSidebar();
                 window.dispatchEvent(new CustomEvent("open-command-palette"));
               }}
-              className="flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-slate-200 transition-all text-xs cursor-pointer group"
+              className="flex-1 min-w-0 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-slate-200 transition-all text-xs cursor-pointer group"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 truncate">
                 <Search
                   size={14}
-                  className="text-slate-400 group-hover:text-indigo-400 transition-colors"
+                  className="text-slate-400 group-hover:text-indigo-400 transition-colors shrink-0"
                 />
-                <span className="font-medium">Busca rápida...</span>
+                <span className="font-medium truncate">Busca...</span>
               </div>
-              <kbd className="font-mono text-[10px] text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+              <kbd className="font-mono text-[10px] text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded shrink-0">
                 ⌘K
               </kbd>
             </button>
+
+            {/* Central de Notificações Inteligentes */}
+            <NotificationsPopover onNavigate={closeSidebar} />
 
             <button
               type="button"

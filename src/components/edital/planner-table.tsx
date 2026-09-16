@@ -13,6 +13,7 @@ import {
   ArrowUpDown,
   Filter,
   Pencil,
+  Scale,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { EditSubjectModal } from "./edit-subject-modal";
@@ -436,9 +437,24 @@ export function PlannerView({
                           {subjectTopics.length}{" "}
                           {subjectTopics.length === 1 ? "tópico" : "tópicos"}
                         </span>
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold">
-                          Peso {matchedSubject?.weight !== undefined ? Number(matchedSubject.weight).toFixed(1) : "5.0"}
-                        </span>
+                        {matchedSubject ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSubjectToEdit(matchedSubject);
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-500/50 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer group/w active:scale-95 shadow-xs"
+                            title="Clique para calibrar o peso desta matéria"
+                          >
+                            <Scale size={10} className="text-amber-400 group-hover/w:rotate-12 transition-transform" />
+                            <span>Peso {matchedSubject.weight !== undefined ? Number(matchedSubject.weight).toFixed(1) : "5.0"}</span>
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold">
+                            Peso 5.0
+                          </span>
+                        )}
                         {progressPercent === 100 && (
                           <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
                             ✓ Concluída

@@ -7,6 +7,7 @@ export type SoundscapeType =
   | "none"
   | "alpha_binaural"
   | "soft_rain"
+  | "cafe_ambience"
   | "brown_noise"
   | "zen_drone";
 
@@ -37,6 +38,13 @@ export const SOUNDSCAPE_OPTIONS: SoundscapeOption[] = [
     label: "Chuva Suave",
     description: "Ruído relaxante de chuva leve para mascarar distrações",
     iconName: "CloudRain",
+  },
+  {
+    id: "cafe_ambience",
+    label: "Cafeteria Acústica",
+    description: "Murmúrio e calor acústico de coffee shop para estimular foco",
+    iconName: "Coffee",
+    badge: "WARMTH",
   },
   {
     id: "brown_noise",
@@ -154,6 +162,9 @@ class SoundscapeEngine {
         case "soft_rain":
           this.startSoftRain();
           break;
+        case "cafe_ambience":
+          this.startCafeAmbience();
+          break;
         case "brown_noise":
           this.startBrownNoise();
           break;
@@ -249,6 +260,75 @@ class SoundscapeEngine {
     this.activeNodes.push(
       { stop: () => noiseSource.stop(), disconnect: () => noiseSource.disconnect() },
       { disconnect: () => filter.disconnect() },
+      { disconnect: () => gain.disconnect() }
+    );
+  }
+
+  /**
+   * Cafeteria Acústica: Filtro de banda média (300-2400Hz) sobre ruído com modulação de LFO
+   * simulando murmúrio distante e ressonância acolhedora de coffee shop.
+   */
+  private startCafeAmbience() {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+
+    // Buffer de ruído com textura aveludada
+    const bufferSize = ctx.sampleRate * 6;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      b3 = 0.86650 * b3 + white * 0.3104856;
+      data[i] = (b0 + b1 + b2 + b3) * 0.25;
+    }
+
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = buffer;
+    noiseSource.loop = true;
+
+    // Filtro Passa-Banda focado nas frequências de voz/ambiente de sala (500Hz - 1800Hz)
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = "bandpass";
+    bandpass.frequency.setValueAtTime(850, ctx.currentTime);
+    bandpass.Q.setValueAtTime(0.8, ctx.currentTime);
+
+    // Segundo filtro passa-baixas para suavizar o topo
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = "lowpass";
+    lowpass.frequency.setValueAtTime(2200, ctx.currentTime);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.38, ctx.currentTime);
+
+    // LFO suave oscilando o ganho para simular dinamismo acústico humano natural
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.type = "sine";
+    lfo.frequency.setValueAtTime(0.2, ctx.currentTime); // 1 ciclo a cada 5s
+    lfoGain.gain.setValueAtTime(0.08, ctx.currentTime);
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(gain.gain);
+    lfo.start();
+
+    noiseSource.connect(bandpass);
+    bandpass.connect(lowpass);
+    lowpass.connect(gain);
+    gain.connect(this.masterGain);
+
+    noiseSource.start();
+
+    this.activeNodes.push(
+      { stop: () => noiseSource.stop(), disconnect: () => noiseSource.disconnect() },
+      { stop: () => lfo.stop(), disconnect: () => lfo.disconnect() },
+      { disconnect: () => lfoGain.disconnect() },
+      { disconnect: () => bandpass.disconnect() },
+      { disconnect: () => lowpass.disconnect() },
       { disconnect: () => gain.disconnect() }
     );
   }

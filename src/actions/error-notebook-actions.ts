@@ -1341,3 +1341,178 @@ export async function saveWrongQuestionsToNotebookAction(
   }
 }
 
+export interface GetRemediationQuestionsParams {
+  subjectId?: string;
+  taxonomy?: string;
+  limit?: number;
+}
+
+/**
+ * Busca questões pendentes de remediação para o Simulado de Remediação
+ */
+export async function getRemediationQuestionsAction(
+  params?: GetRemediationQuestionsParams,
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const whereClause: any = {
+      userId,
+      status: "PENDING",
+    };
+
+    if (params?.subjectId && params.subjectId !== "ALL") {
+      whereClause.subjectId = params.subjectId;
+    }
+
+    if (params?.taxonomy && params.taxonomy !== "ALL") {
+      whereClause.errorReason = params.taxonomy;
+    }
+
+    const takeLimit = Math.min(Math.max(params?.limit || 10, 1), 50);
+
+    const errors = await prisma.questionError.findMany({
+      where: whereClause,
+      include: {
+        subject: {
+          select: { id: true, name: true, color: true },
+        },
+        topic: {
+          select: { id: true, title: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: takeLimit,
+    });
+
+    const parsedQuestions: ErrorNotebookItem[] = errors.map((item) => ({
+      id: item.id,
+      userId: item.userId,
+      subjectId: item.subjectId,
+      topicId: item.topicId,
+      quizId: item.quizId,
+      questionText: item.questionText,
+      options: Array.isArray(item.options) ? (item.options as any) : null,
+      userAnswer: item.userAnswer,
+      correctAnswer: item.correctAnswer,
+      explanation: item.explanation,
+      errorReason: item.errorReason,
+      status: item.status as "PENDING" | "MASTERED",
+      masteredAt: item.masteredAt,
+      aiExplanation: item.aiExplanation,
+      mnemonic: item.mnemonic,
+      drillQuestion: (item.drillQuestion as any) || null,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      subject: item.subject,
+      topic: item.topic,
+    }));
+
+    return {
+      success: true,
+      questions: parsedQuestions,
+      totalFound: parsedQuestions.length,
+    };
+  } catch (err) {
+    console.error("[getRemediationQuestionsAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao buscar questões para remediação.",
+      questions: [],
+      totalFound: 0,
+    };
+  }
+}
+
+export interface SubmitRemediationAnswerInput {
+  errorId: string;
+  selectedAnswer: string;
+}
+
+/**
+ * Valida a resposta do Simulado de Remediação, promove o erro a MASTERED em caso de acerto,
+ * concede XP de superação e avança nas missões diárias.
+ */
+export async function submitRemediationAnswerAction(
+  input: SubmitRemediationAnswerInput,
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const errorItem = await prisma.questionError.findUnique({
+      where: { id: input.errorId, userId },
+    });
+
+    if (!errorItem) {
+      return { success: false, error: "Questão não encontrada no caderno." };
+    }
+
+    const cleanUserAnswer = String(input.selectedAnswer || "").trim().toUpperCase();
+    const cleanCorrectAnswer = String(errorItem.correctAnswer || "").trim().toUpperCase();
+    const isCorrect = cleanUserAnswer === cleanCorrectAnswer;
+
+    let earnedXp = 0;
+    let activityResult: any = null;
+
+    if (isCorrect) {
+      earnedXp = 25; // XP de remediação / superação ativa
+
+      // Atualiza o erro para MASTERED
+      await prisma.questionError.update({
+        where: { id: errorItem.id, userId },
+        data: {
+          status: "MASTERED",
+          masteredAt: new Date(),
+        },
+      });
+
+      // Grava atividade de estudo com bônus de XP
+      activityResult = await recordStudyActivityAction(
+        userId,
+        earnedXp,
+        "ERROR_FIX",
+      );
+
+      // Avança a missão diária de questões resolvidas
+      await trackQuestProgressAction("QUESTIONS_SOLVED", 1);
+
+      try {
+        revalidatePath("/notebook");
+        revalidatePath("/questions");
+      } catch {}
+    }
+
+    return {
+      success: true,
+      isCorrect,
+      correctAnswer: errorItem.correctAnswer,
+      explanation: errorItem.explanation || errorItem.aiExplanation || null,
+      mnemonic: errorItem.mnemonic || null,
+      earnedXp,
+      newStatus: isCorrect ? ("MASTERED" as const) : ("PENDING" as const),
+      activityData: activityResult?.data || null,
+    };
+  } catch (err) {
+    console.error("[submitRemediationAnswerAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao processar resposta do simulado de remediação.",
+    };
+  }
+}

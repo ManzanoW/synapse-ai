@@ -214,35 +214,35 @@ export function DailyQuestsPanel() {
   const completedCount = quests.filter((q) => q.completed).length;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-linear-to-br from-[#0c0f1d] via-[#080b16] to-[#04060d] p-5 sm:p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 group hover:border-violet-500/35">
+    <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-linear-to-br from-[#0c0f1d] via-[#080b16] to-[#04060d] p-4 sm:p-5 shadow-2xl backdrop-blur-2xl transition-all duration-300 group hover:border-violet-500/35">
       {/* Glow de ambientação no topo */}
       <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/50 to-transparent" />
       <div className="pointer-events-none absolute -top-20 -left-20 h-40 w-40 rounded-full bg-violet-600/10 blur-3xl" />
 
       {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-violet-500/30 bg-violet-500/15 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.25)] group-hover:scale-105 transition-transform">
-            <Trophy size={18} className="text-violet-300" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-white/5 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/15 text-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.2)] group-hover:scale-105 transition-transform">
+            <Trophy size={16} className="text-violet-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xs sm:text-sm font-black text-white tracking-wide uppercase">
+              <h3 className="text-xs font-black text-white tracking-wide uppercase">
                 Missões Diárias
               </h3>
-              <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                {completedCount}/{quests.length} Concluídas
+              <span className="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                {completedCount}/{quests.length} Feito
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">
-              Conclua metas diárias para acelerar seu ganho de XP e patentes.
+            <p className="text-[10px] text-slate-400 font-medium">
+              Metas diárias para acelerar seu ganho de XP e patentes
             </p>
           </div>
         </div>
 
         {/* Timer regressivo dinâmico */}
-        <div className="flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-white/5 bg-slate-950/70 px-2.5 py-1 text-[11px] font-mono font-bold text-slate-400">
-          <Timer size={13} className="text-violet-400 animate-pulse" />
+        <div className="flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-white/5 bg-slate-950/70 px-2.5 py-1 text-[10px] font-mono font-bold text-slate-400">
+          <Timer size={12} className="text-violet-400 animate-pulse" />
           <span className="text-slate-300">{resetCountdown}</span>
         </div>
       </div>
@@ -254,7 +254,7 @@ export function DailyQuestsPanel() {
           <span>Carregando missões de hoje...</span>
         </div>
       ) : (
-        <div className="space-y-3 pt-3.5">
+        <div className="space-y-2 pt-2.5">
           {quests.map((quest) => {
             const progress = Math.min(
               100,
@@ -266,7 +266,7 @@ export function DailyQuestsPanel() {
             return (
               <div
                 key={quest.id}
-                className={`relative overflow-hidden p-3.5 rounded-2xl border transition-all duration-300 ${
+                className={`relative overflow-hidden p-2.5 sm:p-3 rounded-xl border transition-all duration-300 ${
                   quest.claimed
                     ? "bg-white/[0.015] border-white/5 opacity-55"
                     : quest.completed
@@ -289,8 +289,8 @@ export function DailyQuestsPanel() {
                   )}
                 </AnimatePresence>
 
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
                     {getQuestIcon(quest.iconType)}
 
                     <div className="min-w-0 flex-1">
@@ -298,25 +298,25 @@ export function DailyQuestsPanel() {
                         <span className="text-xs font-bold text-slate-100 tracking-tight">
                           {quest.title}
                         </span>
-                        <span className="text-[10px] font-mono font-black text-amber-400 flex items-center gap-0.5 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-md">
-                          <Flame size={11} className="fill-amber-400 text-amber-400" />
+                        <span className="text-[9px] font-mono font-black text-amber-400 flex items-center gap-0.5 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-md">
+                          <Flame size={10} className="fill-amber-400 text-amber-400" />
                           +{quest.xpReward} XP
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed font-normal">
+                      <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed font-normal">
                         {quest.description}
                       </p>
 
                       {/* Botão de Atalho Rápido ("Fazer Agora") se ainda pendente */}
                       {!quest.completed && !quest.claimed && quest.actionUrl && (
-                        <div className="pt-2">
+                        <div className="pt-1.5">
                           <Link
                             href={quest.actionUrl}
-                            className="inline-flex items-center gap-1 text-[10px] font-extrabold text-violet-300 hover:text-white bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/25 px-2.5 py-1 rounded-lg transition-all duration-200 group/btn"
+                            className="inline-flex items-center gap-1 text-[9px] font-extrabold text-violet-300 hover:text-white bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/25 px-2 py-0.5 rounded-md transition-all duration-200 group/btn"
                           >
                             <span>{quest.actionLabel || "Iniciar"}</span>
                             <ArrowRight
-                              size={10}
+                              size={9}
                               className="group-hover/btn:translate-x-0.5 transition-transform"
                             />
                           </Link>
@@ -328,21 +328,21 @@ export function DailyQuestsPanel() {
                   {/* Ação de Resgate ou Status */}
                   <div className="shrink-0 pt-0.5">
                     {quest.claimed ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-white/5 border border-white/5 px-2.5 py-1 rounded-xl">
-                        <CheckCircle2 size={12} className="text-emerald-400" />
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-400 bg-white/5 border border-white/5 px-2 py-0.5 rounded-lg">
+                        <CheckCircle2 size={11} className="text-emerald-400" />
                         <span>Resgatado</span>
                       </span>
                     ) : quest.completed ? (
                       <button
                         onClick={() => handleClaim(quest.id, quest.xpReward)}
                         disabled={isPending}
-                        className="px-3.5 py-1.5 bg-linear-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-[11px] rounded-xl shadow-lg shadow-violet-600/30 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer animate-pulse"
+                        className="px-3 py-1 bg-linear-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-[10px] rounded-lg shadow-md shadow-violet-600/30 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer animate-pulse"
                       >
-                        <Gift size={13} />
+                        <Gift size={12} />
                         <span>Resgatar</span>
                       </button>
                     ) : (
-                      <span className="font-mono text-[10px] font-bold text-slate-300 bg-white/5 border border-white/5 px-2 py-1 rounded-lg">
+                      <span className="font-mono text-[9px] font-bold text-slate-300 bg-white/5 border border-white/5 px-1.5 py-0.5 rounded-md">
                         {quest.currentCount}/{quest.targetCount}
                       </span>
                     )}
@@ -351,7 +351,7 @@ export function DailyQuestsPanel() {
 
                 {/* Barra de Progresso com Gradiente Fluido */}
                 {!quest.claimed && (
-                  <div className="mt-3 w-full bg-slate-950/80 rounded-full h-1.5 overflow-hidden border border-white/5">
+                  <div className="mt-2 w-full bg-slate-950/80 rounded-full h-1 overflow-hidden border border-white/5">
                     <div
                       className={`h-full transition-all duration-500 rounded-full ${
                         quest.completed
@@ -370,43 +370,43 @@ export function DailyQuestsPanel() {
 
       {/* ================= BAÚ DE MAESTRIA DIÁRIA (BÔNUS 3/3) ================= */}
       {dailyChest && (
-        <div className="pt-3.5 border-t border-white/5">
+        <div className="pt-2.5 border-t border-white/5">
           {dailyChest.claimed ? (
-            <div className="rounded-2xl border border-emerald-500/25 bg-emerald-950/20 p-3 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
-                  <Crown size={16} />
+            <div className="rounded-xl border border-emerald-500/25 bg-emerald-950/20 p-2.5 flex items-center justify-between gap-2.5 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="p-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                  <Crown size={14} />
                 </div>
                 <div>
-                  <span className="font-black text-emerald-300 text-xs block">
+                  <span className="font-black text-emerald-300 text-[11px] block">
                     Baú de Maestria Resgatado!
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    Você completou 100% dos objetivos do dia (+100 XP coletados).
+                  <span className="text-[9px] text-slate-400 font-medium">
+                    100% das missões de hoje concluídas (+100 XP coletados).
                   </span>
                 </div>
               </div>
-              <span className="font-mono text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+              <span className="font-mono text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
                 ✓ 3/3 Feito
               </span>
             </div>
           ) : dailyChest.unlocked ? (
-            <div className="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-linear-to-r from-amber-950/40 via-[#181308] to-amber-900/30 p-3.5 shadow-[0_0_25px_rgba(245,158,11,0.2)] flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-pulse">
-                  <Sparkles size={18} />
+            <div className="relative overflow-hidden rounded-xl border border-amber-500/40 bg-linear-to-r from-amber-950/40 via-[#181308] to-amber-900/30 p-2.5 shadow-[0_0_20px_rgba(245,158,11,0.2)] flex items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.3)] animate-pulse">
+                  <Sparkles size={15} />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-amber-200 text-xs tracking-tight">
-                      Baú de Maestria Desbloqueado!
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-amber-200 text-[11px] tracking-tight">
+                      Baú Desbloqueado!
                     </span>
-                    <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-500/20 px-1.5 py-0.2 rounded-sm border border-amber-500/30">
+                    <span className="text-[9px] font-mono font-black text-amber-400 bg-amber-500/20 px-1 py-0.2 rounded-sm border border-amber-500/30">
                       +100 XP
                     </span>
                   </div>
-                  <p className="text-[10px] text-amber-200/70 truncate">
-                    Parabéns! Todas as 3 missões foram concluídas.
+                  <p className="text-[9px] text-amber-200/70 truncate">
+                    Todas as 3 missões foram concluídas hoje.
                   </p>
                 </div>
               </div>
@@ -414,28 +414,28 @@ export function DailyQuestsPanel() {
               <button
                 onClick={handleClaimChest}
                 disabled={isPending}
-                className="shrink-0 px-3.5 py-1.5 bg-linear-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-[11px] rounded-xl shadow-lg shadow-amber-500/30 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                className="shrink-0 px-3 py-1 bg-linear-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-[10px] rounded-lg shadow-md shadow-amber-500/30 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
               >
-                <Gift size={13} className="text-slate-950" />
+                <Gift size={12} className="text-slate-950" />
                 <span>Abrir Baú</span>
               </button>
             </div>
           ) : (
-            <div className="rounded-2xl border border-white/5 bg-slate-950/50 p-3 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="p-1.5 rounded-xl bg-white/5 text-slate-400 border border-white/5">
-                  <Lock size={14} />
+            <div className="rounded-xl border border-white/5 bg-slate-950/50 p-2.5 flex items-center justify-between gap-2.5 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="p-1 rounded-lg bg-white/5 text-slate-400 border border-white/5">
+                  <Lock size={12} />
                 </div>
                 <div className="min-w-0">
-                  <span className="font-bold text-slate-300 text-[11px] block truncate">
+                  <span className="font-bold text-slate-300 text-[10px] block truncate">
                     Baú de Maestria Diária (+100 XP)
                   </span>
-                  <span className="text-[10px] text-slate-500 font-medium block truncate">
-                    Complete todas as missões de hoje para abrir o baú.
+                  <span className="text-[9px] text-slate-500 font-medium block truncate">
+                    Complete todas as missões de hoje para abrir.
                   </span>
                 </div>
               </div>
-              <span className="font-mono text-[10px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-md shrink-0">
+              <span className="font-mono text-[9px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-md shrink-0">
                 {dailyChest.completedQuests}/{dailyChest.totalQuests}
               </span>
             </div>

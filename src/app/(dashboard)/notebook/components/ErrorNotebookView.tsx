@@ -11,6 +11,7 @@ import {
 import { ErrorMetricsHeader } from "./ErrorMetricsHeader";
 import { ErrorFiltersBar } from "./ErrorFiltersBar";
 import { ErrorCard } from "./ErrorCard";
+import { RemediationQuizModal } from "./RemediationQuizModal";
 import {
   getErrorNotebookQuestionsAction,
   getErrorMetricsAction,
@@ -61,6 +62,7 @@ export function ErrorNotebookView({
   });
   const [isFiltering, setIsFiltering] = useState(false);
   const [isClassifying, setIsClassifying] = useState(false);
+  const [isRemediationOpen, setIsRemediationOpen] = useState(false);
 
   // Refs de controle de requisição e Sentinela de Rolagem
   const requestIdRef = useRef(0);
@@ -261,6 +263,16 @@ export function ErrorNotebookView({
     refreshMetrics();
   };
 
+  // Callback de conclusão do simulado de remediação
+  const handleRemediationFinished = async () => {
+    await refreshMetrics();
+    setPage(1);
+    setQuestions([]);
+    setHasMore(true);
+    fetchQuestions(1, filters, true);
+    showToast("Simulado de remediação concluído com sucesso!", "success");
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* 1. Métricas e Distribuição Taxonômica */}
@@ -270,6 +282,7 @@ export function ErrorNotebookView({
         onSelectReason={(reason) => handleFilterChange({ errorReason: reason })}
         onBatchClassify={handleBatchClassify}
         isClassifying={isClassifying}
+        onOpenRemediationModal={() => setIsRemediationOpen(true)}
       />
 
       {/* 2. Barra de Filtros */}
@@ -412,6 +425,15 @@ export function ErrorNotebookView({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 6. Modal de Simulado de Remediação Instantâneo */}
+      <RemediationQuizModal
+        isOpen={isRemediationOpen}
+        onClose={() => setIsRemediationOpen(false)}
+        subjects={subjects}
+        initialTaxonomy={filters.errorReason || "ALL"}
+        onFinished={handleRemediationFinished}
+      />
     </div>
   );
 }

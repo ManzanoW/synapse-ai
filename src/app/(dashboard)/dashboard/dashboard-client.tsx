@@ -17,6 +17,7 @@ import { DashboardSubject } from "@/types";
 import { LevelUpModal } from "@/components/gamification/level-up-modal";
 import { DailyQuestsPanel } from "@/components/dashboard/DailyQuestsPanel";
 import { GamificationCockpitCard } from "@/components/dashboard/GamificationCockpitCard";
+import { KeyMetricsCard } from "@/components/dashboard/KeyMetricsCard";
 import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
 import { useGamification } from "@/context/GamificationContext";
 import {
@@ -1046,92 +1047,16 @@ export default function DashboardClient({
               {/* CARD 1: Missões do Dia */}
               <DailyQuestsPanel />
 
-              {/* CARD 2: Métricas de Desempenho */}
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl">
-                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-                
-                <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                    Estatísticas Chave
-                  </span>
-                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
-                    <Zap size={11} /> Tempo Real
-                  </span>
-                </div>
-
-                <div className="mb-6 flex gap-6">
-                  <div>
-                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Tempo Total
-                    </span>
-                    {isLoading ? (
-                      <div className="h-8 w-20 rounded bg-white/10 animate-pulse" />
-                    ) : (
-                      <span className="font-mono text-2xl font-black text-white">
-                        {stats?.metrics?.totalTimeFormatted || "0h 0m"}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      <span>Precisão</span>
-                      {isLoading ? (
-                        <div className="h-3 w-8 rounded bg-emerald-400/20 animate-pulse" />
-                      ) : (
-                        <span className="font-mono font-bold text-emerald-400">
-                          {stats?.metrics?.precision || "0%"}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
-                      <div
-                        className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
-                        style={{ width: stats?.metrics?.precision || "0%" }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4 text-center">
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">
-                      Sessões
-                    </span>
-                    {isLoading ? (
-                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
-                    ) : (
-                      <span className="font-mono text-sm font-extrabold text-white">
-                        {stats?.metrics?.sessionsCount ?? 0}
-                      </span>
-                    )}
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">
-                      Questões
-                    </span>
-                    {isLoading ? (
-                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
-                    ) : (
-                      <span className="font-mono text-sm font-extrabold text-white">
-                        {stats?.metrics?.questionsCount ?? 0}
-                      </span>
-                    )}
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">
-                      Méd/Dia
-                    </span>
-                    {isLoading ? (
-                      <div className="mx-auto my-0.5 h-5 w-12 rounded bg-white/10 animate-pulse" />
-                    ) : (
-                      <span className="font-mono text-sm font-extrabold text-white">
-                        {stats?.metrics?.averageTimePerSession || "0min"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+              {/* CARD 2: Métricas de Desempenho & Ritmo Semanal */}
+              <KeyMetricsCard
+                isLoading={isLoading}
+                totalTime={stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                precision={stats?.metrics?.precision || "0%"}
+                sessionsCount={stats?.metrics?.sessionsCount ?? 0}
+                questionsCount={stats?.metrics?.questionsCount ?? 0}
+                averageTimePerSession={stats?.metrics?.averageTimePerSession || "0min"}
+                heatmap={stats?.heatmap}
+              />
             </div>
 
             {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}

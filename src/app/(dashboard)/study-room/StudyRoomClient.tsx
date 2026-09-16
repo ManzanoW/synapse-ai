@@ -19,6 +19,9 @@ import {
   Zap,
   BookOpenCheck,
   ChevronDown,
+  Headphones,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -268,6 +271,41 @@ export default function StudyRoomClient({
     }
   };
 
+  // Listener para atalhos do teclado (Espaço = Play/Pause, Esc = Sair do Zen)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isInput =
+        activeEl?.tagName === "INPUT" ||
+        activeEl?.tagName === "TEXTAREA" ||
+        activeEl?.tagName === "SELECT";
+      if (isInput) return;
+
+      if (e.key === "Escape" && isZenMode) {
+        setIsZenMode(false);
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } else if (e.code === "Space" && isZenMode) {
+        e.preventDefault();
+        setIsActive((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isZenMode]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && isZenMode) {
+        setIsZenMode(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, [isZenMode]);
+
   // Gerenciamento de Micro-Tarefas
   const handleAddTask = (text: string) => {
     setTasks((prev) => [
@@ -291,14 +329,291 @@ export default function StudyRoomClient({
     [initialSubjects, selectedSubjectId],
   );
 
+  // ==========================================
+  // RENDERIZAÇÃO DO MODO ZEN TOTAL (IMERSÃO MÁXIMA)
+  // ==========================================
+  if (isZenMode) {
+    const zenRadius = 130;
+    const zenCircumference = 2 * Math.PI * zenRadius;
+
+    return (
+      <div className="fixed inset-0 z-50 bg-[#030712] text-white flex flex-col justify-between p-6 sm:p-10 select-none overflow-hidden">
+        {/* Glows Ambientais Dinâmicos */}
+        <div
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none transition-all duration-1000 ${
+            isFocusMode ? "bg-indigo-600/15" : "bg-emerald-600/15"
+          }`}
+        />
+
+        {/* Topo Zen: Disciplina em Foco + Botão de Sair */}
+        <div className="relative z-10 flex items-center justify-between w-full max-w-5xl mx-auto">
+          <div className="flex items-center gap-3">
+            <span className="flex h-2.5 w-2.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase font-mono tracking-widest text-slate-400">
+                Cockpit Zen
+              </span>
+              <span className="text-slate-600">•</span>
+              <span className="text-xs font-semibold text-indigo-300 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-500/30">
+                {selectedSubject?.name || "Geral / Foco Livre"}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setIsZenMode(false);
+              if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+              }
+            }}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 hover:text-white transition-all shadow-lg active:scale-95 cursor-pointer"
+            title="Sair do Modo Zen (Esc)"
+          >
+            <Minimize2 size={15} />
+            <span>Sair do Zen (Esc)</span>
+          </button>
+        </div>
+
+        {/* Centro Zen: Pomodoro Gigante e Controles */}
+        <div className="relative z-10 flex flex-col items-center justify-center my-auto">
+          {/* Seletor Rápido de Modos */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-900/70 border border-slate-800/80 rounded-2xl mb-8 backdrop-blur-md">
+            {(["foco_25", "foco_50", "curta", "longa"] as TimerMode[]).map((m) => {
+              const conf = MODE_CONFIG[m];
+              const isCurrent = mode === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => changeMode(m)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    isCurrent
+                      ? conf.type === "focus"
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/40"
+                        : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/40"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {conf.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Anel do Cronômetro */}
+          <motion.div
+            animate={{
+              boxShadow: isActive
+                ? [
+                    `0 0 35px ${isFocusMode ? "rgba(99, 102, 241, 0.25)" : "rgba(16, 185, 129, 0.25)"}`,
+                    `0 0 80px ${isFocusMode ? "rgba(99, 102, 241, 0.55)" : "rgba(16, 185, 129, 0.55)"}`,
+                    `0 0 35px ${isFocusMode ? "rgba(99, 102, 241, 0.25)" : "rgba(16, 185, 129, 0.25)"}`,
+                  ]
+                : "0 0 0px rgba(0, 0, 0, 0)",
+            }}
+            transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+            className="relative w-80 h-80 sm:w-96 sm:h-96 rounded-full flex items-center justify-center"
+          >
+            <svg viewBox="0 0 320 320" className="w-full h-full -rotate-90">
+              <circle
+                cx="160"
+                cy="160"
+                r={zenRadius}
+                className="stroke-slate-800/60"
+                strokeWidth="8"
+                fill="transparent"
+              />
+              <circle
+                cx="160"
+                cy="160"
+                r={zenRadius}
+                className="transition-all duration-1000 ease-linear"
+                stroke={
+                  isActive
+                    ? isFocusMode
+                      ? "#6366f1"
+                      : "#10b981"
+                    : isFocusMode
+                      ? "#4338ca"
+                      : "#047857"
+                }
+                strokeWidth="8"
+                fill="transparent"
+                strokeDasharray={zenCircumference}
+                strokeDashoffset={zenCircumference * (1 - progressPercent / 100)}
+                strokeLinecap="round"
+              />
+            </svg>
+
+            <div className="absolute flex flex-col items-center justify-center">
+              <span className="font-mono text-7xl sm:text-8xl font-black tracking-widest text-white drop-shadow-2xl">
+                {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+              </span>
+              <span className="text-xs uppercase tracking-widest text-slate-400 font-semibold mt-3">
+                {isFocusMode ? "Foco Profundo em Execução" : "Momento de Descanso"}
+              </span>
+
+              {/* Ciclos Diários */}
+              <div
+                className="flex items-center gap-2 mt-4"
+                title={`${completedCycles} ciclo(s) concluído(s)`}
+              >
+                {[0, 1, 2, 3].map((dotIndex) => {
+                  const isFilled = dotIndex < completedCycles % 4;
+                  return (
+                    <span
+                      key={dotIndex}
+                      className={`w-3 h-3 rounded-full transition-all ${
+                        isFilled
+                          ? "bg-indigo-400 shadow-md shadow-indigo-400"
+                          : "bg-slate-800 border border-slate-700"
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Botões de Ação */}
+          <div className="flex items-center gap-4 mt-8">
+            <button
+              onClick={resetTimer}
+              className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95"
+              title="Reiniciar tempo"
+            >
+              <RotateCcw size={20} />
+            </button>
+
+            <button
+              onClick={toggleTimer}
+              className={`py-4 px-8 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-3 transition-all shadow-xl active:scale-95 ${
+                isActive
+                  ? isFocusMode
+                    ? "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/40"
+                    : "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/40"
+                  : "bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-600/40"
+              }`}
+            >
+              {isActive ? <Pause size={20} /> : <Play size={20} />}
+              <span>{isActive ? "Pausar" : "Iniciar Foco"}</span>
+            </button>
+
+            <button
+              onClick={skipToNext}
+              className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95"
+              title="Pular para a próxima fase"
+            >
+              <SkipForward size={20} />
+            </button>
+          </div>
+
+          {elapsedFocusSeconds >= 60 && (
+            <div className="mt-4">
+              <button
+                onClick={() => handleFinishSession(false)}
+                disabled={isFinishing}
+                className="px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-lg"
+              >
+                <CheckCircle2 size={14} />
+                <span>
+                  {isFinishing
+                    ? "Registrando..."
+                    : `Concluir Bloco (${Math.round(elapsedFocusSeconds / 60)} min) & Salvar XP`}
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Rodapé Flutuante Zen: Paisagens Sonoras & Atalhos */}
+        <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-xl shadow-2xl">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mr-1">
+              <Headphones size={15} className="text-indigo-400" />
+              Som:
+            </span>
+            {soundscapeHook.options.map((opt) => {
+              const isSelected = soundscapeHook.currentSoundscape === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => soundscapeHook.selectSoundscape(opt.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                    isSelected
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 border border-indigo-500"
+                      : "bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800"
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  soundscapeHook.selectSoundscape(
+                    soundscapeHook.currentSoundscape === "none"
+                      ? "alpha_binaural"
+                      : "none"
+                  )
+                }
+                className="text-slate-400 hover:text-white transition-colors"
+                title={soundscapeHook.currentSoundscape === "none" ? "Ativar som" : "Mutar som"}
+              >
+                {soundscapeHook.currentSoundscape === "none" ||
+                soundscapeHook.volume === 0 ? (
+                  <VolumeX size={15} />
+                ) : (
+                  <Volume2 size={15} className="text-indigo-400" />
+                )}
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={soundscapeHook.volume}
+                onChange={(e) => soundscapeHook.setVolume(Number(e.target.value))}
+                className="w-20 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+              />
+              <span className="text-[11px] font-mono text-slate-400 w-6">
+                {soundscapeHook.volume}%
+              </span>
+            </div>
+
+            <div className="hidden md:flex items-center gap-1.5 text-[11px] text-slate-400 pl-3 border-l border-slate-800">
+              <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-mono text-slate-300">
+                Espaço
+              </kbd>
+              <span>pausar</span>
+              <kbd className="ml-1.5 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-mono text-slate-300">
+                Esc
+              </kbd>
+              <span>sair</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal de Celebração caso dispare dentro do Modo Zen */}
+        <FocusCelebrationModal
+          isOpen={isCelebrationOpen}
+          onClose={() => setIsCelebrationOpen(false)}
+          result={celebrationResult}
+          subjectName={selectedSubject?.name}
+          tasksCompletedCount={tasks.filter((t) => t.completed).length}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`min-h-screen transition-all duration-300 ${
-        isZenMode
-          ? "fixed inset-0 z-50 bg-[#030712] overflow-y-auto p-4 sm:p-8"
-          : "max-w-6xl mx-auto space-y-6"
-      }`}
-    >
+    <div className="max-w-6xl mx-auto space-y-6">
       {/* Barra de Ações do Topo */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 border border-slate-800/80 p-4 rounded-2xl backdrop-blur-xl shadow-lg">
         {/* Lado Esquerdo: Seletor de Matéria & Título */}

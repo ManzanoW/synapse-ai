@@ -26,6 +26,7 @@ interface ErrorMetricsHeaderProps {
   onBatchClassify?: () => Promise<void> | void;
   onAutoClassify?: () => Promise<void> | void;
   isClassifying?: boolean;
+  onOpenRemediationModal?: () => void;
 }
 
 const TAXONOMY_ICONS: Record<string, React.ElementType> = {
@@ -43,6 +44,7 @@ export function ErrorMetricsHeader({
   onBatchClassify,
   onAutoClassify,
   isClassifying = false,
+  onOpenRemediationModal,
 }: ErrorMetricsHeaderProps) {
   const classifyHandler = onBatchClassify || onAutoClassify;
   const { totalErrors, pendingErrors, masteredErrors, masteryRate, taxonomyDistribution } =
@@ -74,10 +76,24 @@ export function ErrorMetricsHeader({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          {onOpenRemediationModal && pendingErrors > 0 && (
+            <button
+              type="button"
+              onClick={onOpenRemediationModal}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-violet-600 to-rose-600 hover:from-amber-400 hover:via-violet-500 hover:to-rose-500 text-white text-xs md:text-sm font-extrabold shadow-lg shadow-violet-600/30 border border-amber-400/40 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer group"
+            >
+              <Zap size={16} className="text-amber-300 fill-amber-300 animate-pulse group-hover:scale-110 transition-transform" />
+              <span>Iniciar Simulado de Remediação</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-black/30 text-amber-200 border border-white/20">
+                {pendingErrors} a superar
+              </span>
+            </button>
+          )}
+
           <Link
             href="/questions"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs md:text-sm font-semibold shadow-lg shadow-violet-600/25 border border-violet-400/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-white text-xs md:text-sm font-semibold shadow-md border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <FileStack size={16} />
             <span>Treinar em Simulado</span>
@@ -115,6 +131,16 @@ export function ErrorMetricsHeader({
               ? "Parabéns! Nenhum erro pendente no momento."
               : "Requerem análise de causa-raiz e fixação ativa."}
           </p>
+          {pendingErrors > 0 && onOpenRemediationModal && (
+            <button
+              type="button"
+              onClick={onOpenRemediationModal}
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer group"
+            >
+              <Zap size={13} className="fill-rose-400 group-hover:scale-110 transition-transform" />
+              <span className="underline underline-offset-2">Superar com simulado de remediação ➔</span>
+            </button>
+          )}
         </motion.div>
 
         {/* Card 2: Taxa de Superação */}
