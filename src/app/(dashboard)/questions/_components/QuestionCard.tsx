@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
@@ -18,9 +18,11 @@ import {
   Clock,
   AlertCircle,
   Check,
+  Sparkles,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
 import { ErrorClassification } from "@/types/quiz";
+import { MentorCopilotDrawer } from "@/components/mentor/MentorCopilotDrawer";
 
 interface QuestionCardProps {
   questao: QuestaoIA;
@@ -119,6 +121,22 @@ export function QuestionCard({
   const [eliminatedAlts, setEliminatedAlts] = useState<Record<string, boolean>>({});
   const [showErrorDiagnosis, setShowErrorDiagnosis] = useState(false);
   const [selectedReason, setSelectedReason] = useState<ErrorClassification | null>(null);
+  const [isMentorOpen, setIsMentorOpen] = useState(false);
+
+  // Atalho global ⌘J / Ctrl+J para acionar o Mentor IA na questão focada
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        setIsMentorOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFocused]);
 
   const toggleEliminate = (e: React.MouseEvent, altId: string) => {
     e.stopPropagation();
@@ -202,24 +220,40 @@ export function QuestionCard({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={onToggleFlag}
-          className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 ${
-            isFlagged
-              ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
-              : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-          }`}
-          title="Marcar questão para revisar depois"
-        >
-          <Flag
-            size={13}
-            className={isFlagged ? "fill-amber-300 text-amber-300" : ""}
-          />
-          <span className="text-[11px]">
-            {isFlagged ? "Marcada" : "Revisar"}
-          </span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Botão Copilot Mentor IA */}
+          <button
+            type="button"
+            onClick={() => setIsMentorOpen(true)}
+            className="px-2.5 py-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 hover:border-violet-500/50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 shadow-xs"
+            title="Abrir Mentor IA Copilot (⌘J ou Ctrl+J)"
+          >
+            <Brain size={13} className="text-violet-400" />
+            <span className="text-[11px] font-bold">Mentor IA</span>
+            <span className="text-[9px] font-mono text-violet-400/80 bg-violet-500/20 px-1 py-0.5 rounded border border-violet-500/30 hidden sm:inline">
+              ⌘J
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleFlag}
+            className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 ${
+              isFlagged
+                ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+            }`}
+            title="Marcar questão para revisar depois"
+          >
+            <Flag
+              size={13}
+              className={isFlagged ? "fill-amber-300 text-amber-300" : ""}
+            />
+            <span className="text-[11px]">
+              {isFlagged ? "Marcada" : "Revisar"}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* ENUNCIADO */}
@@ -598,6 +632,21 @@ export function QuestionCard({
           </div>
         )}
       </AnimatePresence>
+
+      {/* DRAWER FLUTUANTE DO COPILOT MENTOR IA */}
+      <MentorCopilotDrawer
+        isOpen={isMentorOpen}
+        onClose={() => setIsMentorOpen(false)}
+        questionIndex={index}
+        questionText={questao.enunciado}
+        options={questao.alternativas}
+        correctAnswer={questao.gabaritoCorreto}
+        explanation={questao.justificativa}
+        mentorGuidance={questao.mentorGuidance}
+        onGuidanceGenerated={(newGuidance) => {
+          questao.mentorGuidance = newGuidance;
+        }}
+      />
     </motion.div>
   );
 }

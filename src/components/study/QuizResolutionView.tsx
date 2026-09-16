@@ -36,6 +36,7 @@ import {
   deepenExplanationAction,
   DeepenExplanationResult,
 } from "@/actions/quiz-actions";
+import { MentorCopilotDrawer } from "@/components/mentor/MentorCopilotDrawer";
 
 export interface QuizResolutionViewProps {
   quizId?: string | null;
@@ -182,6 +183,19 @@ export function QuizResolutionView({
     Record<number, DeepenExplanationResult>
   >({});
   const [isDeepeningLoading, setIsDeepeningLoading] = useState(false);
+  const [isMentorOpen, setIsMentorOpen] = useState(false);
+
+  // Atalho global ⌘J / Ctrl+J para alternar o Mentor IA
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        setIsMentorOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Alternância de Tela Cheia
   const toggleFullscreen = useCallback(() => {
@@ -711,22 +725,38 @@ export function QuizResolutionView({
                     )}
                   </div>
 
-                  <button
-                    onClick={handleToggleFlag}
-                    type="button"
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 ${
-                      isCurrentFlagged
-                        ? "bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-md shadow-amber-950/40"
-                        : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
-                    }`}
-                    title="Marcar para revisar no painel"
-                  >
-                    <Flag
-                      size={14}
-                      className={isCurrentFlagged ? "fill-amber-300 text-amber-300" : ""}
-                    />
-                    <span>{isCurrentFlagged ? "Marcada para Revisar" : "Marcar p/ Revisar"}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Botão Copilot Mentor IA */}
+                    <button
+                      onClick={() => setIsMentorOpen(true)}
+                      type="button"
+                      className="px-3 py-1.5 rounded-xl border border-violet-500/40 bg-violet-500/15 text-violet-300 hover:bg-violet-500/25 hover:border-violet-500/60 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-md shadow-violet-950/40"
+                      title="Abrir Mentor IA Copilot (⌘J ou Ctrl+J)"
+                    >
+                      <Brain size={14} className="text-violet-400" />
+                      <span>Mentor IA</span>
+                      <span className="text-[9px] font-mono text-violet-400/90 bg-violet-500/25 px-1 py-0.5 rounded border border-violet-500/30 hidden sm:inline">
+                        ⌘J
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={handleToggleFlag}
+                      type="button"
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 ${
+                        isCurrentFlagged
+                          ? "bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-md shadow-amber-950/40"
+                          : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
+                      }`}
+                      title="Marcar para revisar no painel"
+                    >
+                      <Flag
+                        size={14}
+                        className={isCurrentFlagged ? "fill-amber-300 text-amber-300" : ""}
+                      />
+                      <span>{isCurrentFlagged ? "Marcada para Revisar" : "Marcar p/ Revisar"}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* ENUNCIADO NÍTIDO COM TIPOGRAFIA AMPLA */}
@@ -1628,6 +1658,25 @@ export function QuizResolutionView({
           </div>
         )}
       </AnimatePresence>
+
+      {/* DRAWER FLUTUANTE DO COPILOT MENTOR IA */}
+      {currentQuestion && (
+        <MentorCopilotDrawer
+          isOpen={isMentorOpen}
+          onClose={() => setIsMentorOpen(false)}
+          questionIndex={activeQuestionIndex}
+          questionText={currentQuestion.enunciado}
+          options={currentQuestion.alternativas}
+          correctAnswer={currentQuestion.gabaritoCorreto}
+          explanation={currentQuestion.justificativa}
+          banca={banca}
+          subject={subject}
+          mentorGuidance={currentQuestion.mentorGuidance}
+          onGuidanceGenerated={(newGuidance) => {
+            currentQuestion.mentorGuidance = newGuidance;
+          }}
+        />
+      )}
     </div>
   );
 }

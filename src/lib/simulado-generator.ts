@@ -2,6 +2,9 @@ import { Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { MentorGuidance } from "@/types/quiz";
+
+export type { MentorGuidance };
 
 export interface Alternativa {
   id: string;
@@ -21,6 +24,7 @@ export interface QuestaoGerada {
   flashcardVerso: string;
   subjectId?: string;
   topicId?: string;
+  mentorGuidance?: MentorGuidance;
 }
 
 export interface GenerateSimuladoParams {
@@ -160,6 +164,39 @@ const geminiResponseSchema = {
             description:
               "Resposta direta e sucinta com a explicação teórica essencial.",
           },
+          mentorGuidance: {
+            type: Type.OBJECT,
+            description:
+              "Orientação pedagógica estruturada do Copilot Mentor IA (Socrático, Lei Seca Descomplicada, Mnemônico e Pegadinha).",
+            properties: {
+              socraticHint: {
+                type: Type.STRING,
+                description:
+                  "Dica socrática cirúrgica guiando a linha de raciocínio do aluno SEM dar o gabarito de bandeja.",
+              },
+              simplifiedLaw: {
+                type: Type.STRING,
+                description:
+                  "Tradução da lei seca ou conceito técnico denso em linguagem simples e analogia do cotidiano.",
+              },
+              mnemonic: {
+                type: Type.STRING,
+                description:
+                  "Mnemônico, acrônimo ou rima marcante para fixar regras, prazos ou competências.",
+              },
+              trapWarning: {
+                type: Type.STRING,
+                description:
+                  "Alerta da pegadinha clássica da banca e atenção aos distratores traiçoeiros.",
+              },
+            },
+            required: [
+              "socraticHint",
+              "simplifiedLaw",
+              "mnemonic",
+              "trapWarning",
+            ],
+          },
         },
         required: [
           "enunciado",
@@ -169,6 +206,7 @@ const geminiResponseSchema = {
           "gabaritoCorreto",
           "flashcardFrente",
           "flashcardVerso",
+          "mentorGuidance",
         ],
       },
     },
@@ -381,6 +419,15 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
       - "gabaritoCorreto": deve conter APENAS a letra correspondente à opção correta ("A", "B", "C" ou "D") ou "Certo"/"Errado".
     
       Além da questão e das alternativas, gere uma versão em Flashcard (Active Recall) para cada item: no 'flashcardFrente', elabore uma pergunta conceitual e direta sobre o cerne do tema; no 'flashcardVerso', responda com a definição/regra essencial de forma clara e sintética.
+
+      ===================================================================
+      🧠 COPILOT MENTOR IA (ORIENTAÇÃO PEDAGÓGICA INTEGRADA):
+      ===================================================================
+      Para cada questão, elabore cuidadosamente o objeto 'mentorGuidance':
+      1. socraticHint: Dica socrática cirúrgica (1 a 2 frases) que estimula o raciocínio do candidato SEM entregar a resposta ou gabarito (ex: "Repare no conectivo ou na palavra restritiva no trecho...", "Lembre-se do princípio fundamental que diferencia atos vinculados de discricionários...").
+      2. simplifiedLaw: Explicação clara em português simples, descomplicando termos jurídicos/técnicos pesados com uma analogia do cotidiano fácil de visualizar.
+      3. mnemonic: Bizú, acrônimo, rima ou trocadilho memorável para fixar a regra, prazo ou lista sem esforço (ex: LIMPE, SOCIDIVAPU, etc.).
+      4. trapWarning: Onde e como a banca costuma armar a pegadinha clássica neste tema para derrubar candidatos desatentos.
     `;
 
     try {
@@ -389,7 +436,7 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
         config: {
           responseMimeType: "application/json",
           temperature: 0.7,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 4096,
           responseSchema: geminiResponseSchema,
         },
         timeoutMs: 30000,

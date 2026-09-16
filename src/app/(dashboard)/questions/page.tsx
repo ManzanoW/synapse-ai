@@ -61,6 +61,7 @@ import {
   ErrorClassification,
   QuestionAnswerSubmission,
   ErrorNotebookMetrics,
+  MentorGuidance,
 } from "@/types/quiz";
 
 export interface QuestaoIA {
@@ -76,6 +77,7 @@ export interface QuestaoIA {
   flashcardVerso: string;
   subjectId?: string;
   topicId?: string;
+  mentorGuidance?: MentorGuidance;
 }
 
 interface QuizHistoryItem {

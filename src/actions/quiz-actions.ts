@@ -8,7 +8,7 @@ import {
 } from "@/actions/gamification-actions";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
 import { revalidatePath } from "next/cache";
-import { SubmitQuizAttemptInput, SubjectDomainMetric } from "@/types/quiz";
+import { SubmitQuizAttemptInput, SubjectDomainMetric, MentorGuidance } from "@/types/quiz";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 
 export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
@@ -464,4 +464,99 @@ Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
     };
   }
 }
+
+export interface GetMentorGuidanceInput {
+  enunciado: string;
+  alternativas?: Array<{ id: string; texto: string }>;
+  gabaritoCorreto?: string;
+  justificativa?: string;
+  banca?: string;
+  subject?: string;
+}
+
+export async function getQuestionMentorGuidanceAction(input: GetMentorGuidanceInput): Promise<{
+  success: boolean;
+  data?: MentorGuidance;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const {
+      enunciado,
+      alternativas = [],
+      gabaritoCorreto = "",
+      justificativa = "",
+      banca = "Geral",
+      subject = "Conhecimentos Gerais",
+    } = input;
+
+    const altsFormatted = alternativas.length > 0
+      ? alternativas.map((a) => `${a.id}) ${a.texto}`).join("\n")
+      : "Formato: Certo / Errado";
+
+    const prompt = `Você é o Copilot Mentor IA do Synapse AI, um tutor socrático de elite para estudantes e concurseiros de alta performance.
+Analise a seguinte questão de prova e produza orientações de raciocínio pedagógico:
+
+[CONTEXTO]
+Banca: ${banca}
+Disciplina: ${subject}
+Gabarito Oficial: ${gabaritoCorreto || "Não revelado"}
+
+[ENUNCIADO]
+${enunciado}
+
+[ALTERNATIVAS]
+${altsFormatted}
+
+[JUSTIFICATIVA BASE]
+${justificativa || "Sem justificativa prévia"}
+
+[SUA TAREFA]
+Retorne um JSON estrito contendo os 4 pilares do Mentor IA:
+{
+  "socraticHint": "Dica socrática cirúrgica (1 a 2 frases) orientando o candidato a pensar e raciocinar por conta própria SEM dar o gabarito ou a letra da resposta de bandeja. Aponte para onde olhar no enunciado ou qual princípio jurídico/lógico aplicar.",
+  "simplifiedLaw": "Tradução do conceito ou texto de lei/norma jurídica em linguagem ultra simples e acessível, com uma analogia visual do cotidiano prático que qualquer pessoa entende.",
+  "mnemonic": "Um mnemônico memorável, acrônimo, rima ou trocadilho inteligente para fixar essa matéria ou pegadinha na memória de longo prazo.",
+  "trapWarning": "Alerta da pegadinha clássica da banca ${banca}: o que a banca costuma inverter, omitir ou confundir nesta matéria para derrubar o estudante."
+}
+Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
+
+    const aiRes = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.4,
+      },
+    });
+
+    let parsed: MentorGuidance;
+    try {
+      const cleaned = aiRes.text.replace(/```json/g, "").replace(/```/g, "").trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = {
+        socraticHint: "Analise o comando central da questão e identifique quais elementos qualificam ou restringem a regra geral.",
+        simplifiedLaw: "Pense nesta regra como uma chave de segurança: quando a condição se cumpre, o procedimento é obrigatório; se houver exceção, ela deve estar expressa.",
+        mnemonic: "Lembre-se da regra de ouro: quem qualifica o ato determina a competência!",
+        trapWarning: `A banca ${banca} frequentemente substitui termos como 'sempre' por 'salvo exceção legal' para induzir o candidato desatento ao erro.`,
+      };
+    }
+
+    return {
+      success: true,
+      data: parsed,
+    };
+  } catch (err) {
+    console.error("Erro em getQuestionMentorGuidanceAction:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao consultar o Copilot Mentor IA.",
+    };
+  }
+}
+
 
