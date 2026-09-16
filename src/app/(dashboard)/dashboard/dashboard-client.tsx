@@ -37,11 +37,13 @@ import {
   ChevronUp,
   Snowflake,
   Maximize2,
+  Headphones,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
 import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
 import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
+import type { ApprovalOddsData } from "@/actions/analytics-actions";
 import { TutorialModal } from "@/components/tutorial/TutorialModal";
 
 interface JourneyData {
@@ -105,9 +107,13 @@ interface DashboardClientProps {
     email?: string | null;
     image?: string | null;
   };
+  initialApprovalOdds?: ApprovalOddsData | null;
 }
 
-export default function DashboardClient({ user }: DashboardClientProps) {
+export default function DashboardClient({
+  user,
+  initialApprovalOdds,
+}: DashboardClientProps) {
   const { openSidebar } = useSidebar();
   const searchParams = useSearchParams();
 
@@ -865,7 +871,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           {mobileTab === "stats" && (
             <div className="space-y-4">
               {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
-              <ApprovalOddsCard />
+              <ApprovalOddsCard initialData={initialApprovalOdds} />
 
               <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
                 <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
@@ -1277,7 +1283,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           {/* BARRA LATERAL DIREITA (`lg:col-span-4` - APENAS DESKTOP) */}
           <div className="hidden md:block space-y-6 lg:col-span-4">
             {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
-            <ApprovalOddsCard />
+            <ApprovalOddsCard initialData={initialApprovalOdds} />
 
             {/* GAMIFICAÇÃO & NÍVEL */}
             <Link
@@ -1391,7 +1397,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             >
               <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
               
-              <div className="flex justify-end pb-2">
+              <div className="flex items-center justify-between pb-2">
+                <Link
+                  href={getHref("/study-room")}
+                  className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-mono font-bold text-indigo-300 hover:bg-indigo-500/20 transition-all active:scale-95"
+                >
+                  <Headphones size={12} className="text-indigo-400" />
+                  <span>Sala de Foco</span>
+                </Link>
+
                 <button
                   onClick={() => setIsZenModeOpen(true)}
                   className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-mono font-bold text-slate-300 hover:bg-white/[0.08] transition-all active:scale-95"
@@ -1429,13 +1443,23 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               )}
             </button>
 
-            <button
-              onClick={() => setIsZenModeOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-violet-300"
-            >
-              <Maximize2 size={10} />
-              <span>Zen</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={getHref("/study-room")}
+                className="cursor-pointer inline-flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-indigo-300"
+              >
+                <Headphones size={10} />
+                <span>Sala</span>
+              </Link>
+
+              <button
+                onClick={() => setIsZenModeOpen(true)}
+                className="cursor-pointer inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-violet-300"
+              >
+                <Maximize2 size={10} />
+                <span>Zen</span>
+              </button>
+            </div>
           </div>
 
           <div className={`${isPomodoroOpenMobile ? "block" : "hidden"}`}>

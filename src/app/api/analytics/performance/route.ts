@@ -17,11 +17,6 @@ interface SubjectData {
   topics: TopicData[];
 }
 
-interface QuestionLogData {
-  isCorrect: boolean;
-  topicId?: string | null;
-  createdAt: Date;
-}
 
 interface StudySessionData {
   durationMinutes: number | null;
@@ -37,8 +32,8 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // 1. Busca matérias, tópicos e históricos com o nome do campo corrigido
-    const [subjects, studySessions] = await Promise.all([
+    // 1. Busca matérias, tópicos, históricos e tentativas de simulado
+    const [subjects, studySessions, quizAttempts] = await Promise.all([
       prisma.subject.findMany({
         where: { userId },
         include: {
@@ -48,7 +43,7 @@ export async function GET() {
               title: true,
               easiness: true,
               interval: true,
-              nextRev: true, // 🟢 Alterado de nextReview para nextRev
+              nextRev: true,
             },
           },
         },
@@ -60,20 +55,16 @@ export async function GET() {
           createdAt: true,
         },
       }),
+      prisma.quizAttempt.findMany({
+        where: { userId },
+        select: {
+          topicId: true,
+          totalCount: true,
+          correctCount: true,
+          completedAt: true,
+        },
+      }),
     ]);
-
-    // Tentativa de busca dos logs de questões adaptada ao schema
-    let questionLogs: QuestionLogData[] = [];
-    try {
-      if ((prisma as any).questionHistory) {
-        questionLogs = await (prisma as any).questionHistory.findMany({
-          where: { userId },
-          select: { isCorrect: true, topicId: true, createdAt: true },
-        });
-      }
-    } catch {
-      questionLogs = [];
-    }
 
     // 2. Cálculo de métricas gerais do SM-2
     let totalTopics = 0;
@@ -100,12 +91,16 @@ export async function GET() {
       Math.round((avgEasiness / 2.5) * 85),
     )}%`;
 
-    // 3. Resumo de Qualidade de Feedback
-    const totalQuestions = questionLogs.length;
-    const correctCount = questionLogs.filter(
-      (q: QuestionLogData) => q.isCorrect,
-    ).length;
-    const incorrectCount = totalQuestions - correctCount;
+    // 3. Resumo de Qualidade de Feedback com base nos simulados reais
+    let totalQuestions = 0;
+    let correctCount = 0;
+
+    quizAttempts.forEach((q) => {
+      totalQuestions += q.totalCount;
+      correctCount += q.correctCount;
+    });
+
+    const incorrectCount = Math.max(0, totalQuestions - correctCount);
 
     const performanceSummary = {
       bom: correctCount,
@@ -115,12 +110,12 @@ export async function GET() {
 
     // 4. Mapeamento de estatísticas por disciplina
     const subjectStats = (subjects as SubjectData[]).map((sub: SubjectData) => {
-      const topicIds = sub.topics.map((t: TopicData) => t.id);
-      const logs = questionLogs.filter(
-        (q: QuestionLogData) => q.topicId && topicIds.includes(q.topicId),
+      const topicIds = new Set(sub.topics.map((t: TopicData) => t.id));
+      const logs = quizAttempts.filter(
+        (q) => q.topicId && topicIds.has(q.topicId),
       );
-      const total = logs.length;
-      const correct = logs.filter((l: QuestionLogData) => l.isCorrect).length;
+      const total = logs.reduce((acc, curr) => acc + curr.totalCount, 0);
+      const correct = logs.reduce((acc, curr) => acc + curr.correctCount, 0);
       const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
 
       return {
@@ -133,7 +128,7 @@ export async function GET() {
       };
     });
 
-    // 5. Identificação dos Pontos Fracos (< 60% de acerto)
+    // 5. Identificação dos Pontos Fracos (< 60% de acerto com pelo menos 3 questões)
     const weakTopics: Array<{
       id: string;
       title: string;
@@ -144,21 +139,19 @@ export async function GET() {
 
     (subjects as SubjectData[]).forEach((sub: SubjectData) => {
       sub.topics.forEach((topic: TopicData) => {
-        const logs = questionLogs.filter(
-          (q: QuestionLogData) => q.topicId === topic.id,
-        );
-        if (logs.length >= 3) {
-          const correct = logs.filter(
-            (l: QuestionLogData) => l.isCorrect,
-          ).length;
-          const accuracy = Math.round((correct / logs.length) * 100);
+        const logs = quizAttempts.filter((q) => q.topicId === topic.id);
+        const total = logs.reduce((acc, curr) => acc + curr.totalCount, 0);
+        const correct = logs.reduce((acc, curr) => acc + curr.correctCount, 0);
+
+        if (total >= 3) {
+          const accuracy = Math.round((correct / total) * 100);
           if (accuracy < 60) {
             weakTopics.push({
               id: topic.id,
               title: topic.title,
               subject: sub.name,
               accuracy,
-              total: logs.length,
+              total,
             });
           }
         }

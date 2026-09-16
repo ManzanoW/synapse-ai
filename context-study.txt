@@ -56,6 +56,12 @@ src/
           ResumeSessionCard.tsx
           TimedLaunchModal.tsx
           TimedPacingModal.tsx
+        [id]/
+          results/
+            page.tsx
+            QuizResultClient.tsx
+          page.tsx
+          QuestionIdClient.tsx
         page.tsx
   components/
     decks/
@@ -524,6 +530,138 @@ export function ResumeSessionCard({
       </div>
     </div>
   );
+}
+</file>
+
+<file path="src/app/(dashboard)/questions/[id]/results/page.tsx">
+import React from "react";
+import Link from "next/link";
+import { getSavedQuizByIdAction } from "@/actions/quiz-actions";
+import { QuizResultClient } from "./QuizResultClient";
+import { QuestaoIA } from "../../page";
+import { ArrowLeft, AlertCircle } from "lucide-react";
+
+export default async function QuestionResultPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  const res = await getSavedQuizByIdAction(id);
+
+  if (!res.success || !res.data) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+          <AlertCircle size={28} />
+        </div>
+        <h2 className="text-xl font-bold text-white">
+          Resultado não encontrado
+        </h2>
+        <p className="text-sm text-slate-400 max-w-md leading-relaxed">
+          {res.error ||
+            "Este simulado não existe ou não possui resultados vinculados à sua conta."}
+        </p>
+        <Link
+          href="/questions"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-all shadow-lg shadow-violet-950/40 mt-2"
+        >
+          <ArrowLeft size={14} />
+          <span>Voltar ao Painel de Questões</span>
+        </Link>
+      </div>
+    );
+  }
+
+  const rawQuiz = res.data;
+  const rawQuestions = (Array.isArray(rawQuiz.questions)
+    ? rawQuiz.questions
+    : []) as unknown as (QuestaoIA & { userAnswer?: string })[];
+
+  const initialSelectedAnswers: Record<number, string> = {};
+  rawQuestions.forEach((q, idx) => {
+    if (q.userAnswer) {
+      initialSelectedAnswers[idx] = q.userAnswer;
+    }
+  });
+
+  const serializableQuiz = {
+    id: rawQuiz.id,
+    banca: rawQuiz.banca || "FGV",
+    subject: rawQuiz.subject || "Conhecimentos Gerais",
+    difficulty: rawQuiz.difficulty || "Média",
+    questions: rawQuestions,
+    topicId: rawQuiz.topicId || rawQuiz.topic?.id || null,
+  };
+
+  return (
+    <QuizResultClient
+      quiz={serializableQuiz}
+      initialSelectedAnswers={initialSelectedAnswers}
+      initialTimerSeconds={rawQuestions.length * 45}
+      initialEarnedXp={rawQuestions.length * 20}
+    />
+  );
+}
+</file>
+
+<file path="src/app/(dashboard)/questions/[id]/page.tsx">
+import React from "react";
+import Link from "next/link";
+import { getSavedQuizByIdAction } from "@/actions/quiz-actions";
+import { QuestionIdClient } from "./QuestionIdClient";
+import { QuestaoIA } from "../page";
+import { ArrowLeft, AlertCircle } from "lucide-react";
+
+export default async function QuestionIdPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  const res = await getSavedQuizByIdAction(id);
+
+  if (!res.success || !res.data) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+          <AlertCircle size={28} />
+        </div>
+        <h2 className="text-xl font-bold text-white">
+          Simulado não encontrado
+        </h2>
+        <p className="text-sm text-slate-400 max-w-md leading-relaxed">
+          {res.error ||
+            "Este simulado não existe ou não pertence à sua conta de estudante."}
+        </p>
+        <Link
+          href="/questions?tab=history"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-all shadow-lg shadow-violet-950/40 mt-2"
+        >
+          <ArrowLeft size={14} />
+          <span>Voltar aos Simulados Salvos</span>
+        </Link>
+      </div>
+    );
+  }
+
+  const rawQuiz = res.data;
+  const questionsList = (Array.isArray(rawQuiz.questions)
+    ? rawQuiz.questions
+    : []) as unknown as QuestaoIA[];
+
+  const serializableQuiz = {
+    id: rawQuiz.id,
+    banca: rawQuiz.banca || "FGV",
+    subject: rawQuiz.subject || "Conhecimentos Gerais",
+    difficulty: rawQuiz.difficulty || "Média",
+    questions: questionsList,
+    topicId: rawQuiz.topicId || rawQuiz.topic?.id || null,
+  };
+
+  return <QuestionIdClient quiz={serializableQuiz} />;
 }
 </file>
 
@@ -1139,315 +1277,6 @@ export function TimerWidget({ onReset }: TimerWidgetProps) {
 }
 </file>
 
-<file path="src/app/(dashboard)/questions/_components/GenerateAIModal.tsx">
-"use client";
-
-import React from "react";
-import Link from "next/link";
-import {
-  Sparkles,
-  Target,
-  BookOpen,
-  FileText,
-  Loader2,
-  X,
-  AlertTriangle,
-  ArrowRight,
-} from "lucide-react";
-
-interface SubjectItem {
-  id: string;
-  name: string;
-  topics?: { id: string; title: string }[];
-}
-
-interface GenerateAIModalProps {
-  isOpen: boolean;
-  isGenerating: boolean;
-  banca: string;
-  materia: string;
-  selectedTopicId: string;
-  qtdQuestoes: string;
-  fonteConteudo: "banca" | "texto" | "pdf";
-  dificuldade: string;
-  textoBase: string;
-  subjects: SubjectItem[];
-  availableTopics: { id: string; title: string }[];
-  onClose: () => void;
-  onBancaChange: (value: string) => void;
-  onMateriaChange: (value: string) => void;
-  onTopicChange: (value: string) => void;
-  onFonteChange: (value: "banca" | "texto" | "pdf") => void;
-  onTextoBaseChange: (value: string) => void;
-  onDificuldadeChange: (value: string) => void;
-  onQtdQuestoesChange: (value: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
-}
-
-export function GenerateAIModal({
-  isOpen,
-  isGenerating,
-  banca,
-  materia,
-  selectedTopicId,
-  qtdQuestoes,
-  fonteConteudo,
-  dificuldade,
-  subjects,
-  availableTopics,
-  onClose,
-  onBancaChange,
-  onMateriaChange,
-  onTopicChange,
-  onFonteChange,
-  onDificuldadeChange,
-  onQtdQuestoesChange,
-  onSubmit,
-}: GenerateAIModalProps) {
-  if (!isOpen) return null;
-
-  const hasNoSubjects = subjects.length === 0;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-[#090d16] border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl p-5 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 custom-scrollbar">
-        {/* Handle visual no celular */}
-        <div className="w-full flex justify-center pt-1 pb-2 sm:hidden">
-          <div className="w-12 h-1.5 rounded-full bg-slate-700/80" />
-        </div>
-
-        <button
-          onClick={() => !isGenerating && onClose()}
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-900 transition-colors cursor-pointer"
-          disabled={isGenerating}
-        >
-          <X size={18} />
-        </button>
-
-        <div className="flex items-center gap-3 border-b border-slate-900 pb-3">
-          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl animate-pulse shrink-0">
-            <Sparkles size={20} />
-          </div>
-          <div className="min-w-0 pr-6">
-            <h3 className="text-base font-bold text-slate-200 truncate">
-              Gerador Cognitivo por IA
-            </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-              Configure o escopo para simular sua prova.
-            </p>
-          </div>
-        </div>
-
-        {hasNoSubjects ? (
-          <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-center space-y-4 py-8 animate-in fade-in duration-300">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
-              <AlertTriangle size={22} />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-amber-400">
-                Edital não configurado
-              </h4>
-              <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
-                Você precisa cadastrar matérias em seu edital primeiro para
-                habilitar o gerador com IA.
-              </p>
-            </div>
-            <div className="pt-1">
-              <Link
-                href="/edital"
-                className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-extrabold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-amber-500/10"
-              >
-                <BookOpen size={13} />
-                <span>Configurar Edital</span>
-                <ArrowRight size={13} />
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={onSubmit} className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="space-y-1.5">
-                <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
-                  <Target size={12} className="text-indigo-400" /> Banca Alvo
-                </label>
-                <select
-                  value={banca}
-                  onChange={(e) => onBancaChange(e.target.value)}
-                  disabled={isGenerating}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer outline-none focus:border-indigo-500/50"
-                >
-                  <option value="Cebraspe">Cebraspe</option>
-                  <option value="FGV">FGV</option>
-                  <option value="FCC">FCC</option>
-                  <option value="IBAM">IBAM</option>
-                  <option value="Vunesp">Vunesp</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
-                  <BookOpen size={12} className="text-indigo-400" /> Matéria
-                  Principal
-                </label>
-                <select
-                  value={materia}
-                  onChange={(e) => onMateriaChange(e.target.value)}
-                  disabled={isGenerating}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer outline-none focus:border-indigo-500/50"
-                >
-                  {subjects.map((sub) => (
-                    <option key={`sub-${sub.id}`} value={sub.name}>
-                      {sub.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-1.5 border-t border-slate-900 pt-3">
-              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
-                <FileText size={12} className="text-indigo-400" /> Tópico
-                Específico (Opcional)
-              </label>
-              <select
-                value={selectedTopicId}
-                onChange={(e) => onTopicChange(e.target.value)}
-                disabled={isGenerating || availableTopics.length === 0}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer disabled:opacity-50 outline-none focus:border-indigo-500/50"
-              >
-                <option value="">
-                  {availableTopics.length === 0
-                    ? "Nenhum tópico encontrado nesta matéria"
-                    : "Todos os Tópicos da Matéria"}
-                </option>
-                {availableTopics.map((top, index) => {
-                  const topicKey = top.id
-                    ? `top-${top.id}`
-                    : `top-idx-${index}-${top.title}`;
-                  return (
-                    <option key={topicKey} value={top.id || top.title}>
-                      {top.title}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            <div className="space-y-1.5 border-t border-slate-900 pt-3">
-              <label className="text-slate-400 font-semibold uppercase tracking-wider block">
-                Origem do Conteúdo
-              </label>
-              <div className="grid grid-cols-3 gap-1.5 bg-slate-950 border border-slate-800 p-1 rounded-xl min-h-10 items-center">
-                <button
-                  type="button"
-                  disabled={isGenerating}
-                  onClick={() => onFonteChange("banca")}
-                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
-                    fonteConteudo === "banca"
-                      ? "bg-indigo-600 text-slate-100 shadow-sm"
-                      : "text-slate-400"
-                  }`}
-                >
-                  Histórico Banca
-                </button>
-                <button
-                  type="button"
-                  disabled={isGenerating}
-                  onClick={() => onFonteChange("texto")}
-                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
-                    fonteConteudo === "texto"
-                      ? "bg-indigo-600 text-slate-100 shadow-sm"
-                      : "text-slate-400"
-                  }`}
-                >
-                  Texto / Lei
-                </button>
-                <button
-                  type="button"
-                  disabled={isGenerating}
-                  onClick={() => onFonteChange("pdf")}
-                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
-                    fonteConteudo === "pdf"
-                      ? "bg-indigo-600 text-slate-100 shadow-sm"
-                      : "text-slate-400"
-                  }`}
-                >
-                  PDF
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1.5 border-t border-slate-900 pt-3">
-              <label className="text-slate-400 font-semibold uppercase tracking-wider block">
-                Dificuldade
-              </label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {["Fácil", "Média", "Difícil", "Aleatória"].map((nivel) => (
-                  <button
-                    key={`diff-${nivel}`}
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={() => onDificuldadeChange(nivel)}
-                    className={`py-2.5 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer ${
-                      dificuldade === nivel
-                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
-                        : "bg-slate-950 border-slate-800 text-slate-400"
-                    }`}
-                  >
-                    {nivel}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1.5 border-t border-slate-900 pt-3">
-              <label className="text-slate-400 font-semibold uppercase tracking-wider block">
-                Volume
-              </label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {["5", "10", "15", "20"].map((num) => (
-                  <button
-                    key={`qtd-${num}`}
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={() => onQtdQuestoesChange(num)}
-                    className={`py-2.5 rounded-xl border font-bold text-xs transition-all cursor-pointer ${
-                      qtdQuestoes === num
-                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
-                        : "bg-slate-950 border-slate-800 text-slate-400"
-                    }`}
-                  >
-                    {num} Q
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isGenerating}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-lg shadow-indigo-950/40 cursor-pointer min-h-11"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 size={15} className="animate-spin" />
-                  <span>Sincronizando sinapses...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={15} />
-                  <span>Gerar Simulado Inédito</span>
-                </>
-              )}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
-  );
-}
-</file>
-
 <file path="src/app/(dashboard)/questions/_components/TimedLaunchModal.tsx">
 "use client";
 
@@ -1996,6 +1825,276 @@ export function TimedPacingModal({
 }
 </file>
 
+<file path="src/app/(dashboard)/questions/[id]/results/QuizResultClient.tsx">
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { QuizResultView } from "@/components/study/QuizResultView";
+import { QuestaoIA } from "../../page";
+
+interface QuizResultClientProps {
+  quiz: {
+    id: string;
+    banca: string;
+    subject: string;
+    difficulty: string;
+    questions: QuestaoIA[];
+    topicId?: string | null;
+  };
+  initialSelectedAnswers?: Record<number, string>;
+  initialTimerSeconds?: number;
+  initialEarnedXp?: number;
+}
+
+export function QuizResultClient({
+  quiz,
+  initialSelectedAnswers = {},
+  initialTimerSeconds = 0,
+  initialEarnedXp = 0,
+}: QuizResultClientProps) {
+  const router = useRouter();
+  const [questions] = useState<QuestaoIA[]>(quiz.questions || []);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>(
+    initialSelectedAnswers
+  );
+  const [timerSeconds] = useState(initialTimerSeconds);
+
+  const handleRestart = () => {
+    router.push(`/questions/${quiz.id}`);
+  };
+
+  const handleExit = () => {
+    router.push("/questions?tab=history");
+  };
+
+  return (
+    <QuizResultView
+      quizId={quiz.id}
+      banca={quiz.banca}
+      subject={quiz.subject}
+      topicId={quiz.topicId}
+      questions={questions}
+      selectedAnswers={selectedAnswers}
+      timerSeconds={timerSeconds}
+      earnedXp={initialEarnedXp}
+      onRestart={handleRestart}
+      onExit={handleExit}
+    />
+  );
+}
+</file>
+
+<file path="src/app/(dashboard)/questions/[id]/QuestionIdClient.tsx">
+"use client";
+
+import React, { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { QuizResolutionView } from "@/components/study/QuizResolutionView";
+import { QuizResultView } from "@/components/study/QuizResultView";
+import { QuestaoIA } from "../page";
+import { submitQuizAttemptAction } from "@/actions/quiz-actions";
+import { useGamification } from "@/context/GamificationContext";
+import { ErrorClassification, QuestionAnswerSubmission } from "@/types/quiz";
+
+interface QuestionIdClientProps {
+  quiz: {
+    id: string;
+    banca: string;
+    subject: string;
+    difficulty: string;
+    questions: QuestaoIA[];
+    topicId?: string | null;
+  };
+}
+
+export function QuestionIdClient({ quiz }: QuestionIdClientProps) {
+  const router = useRouter();
+  const { refreshStats } = useGamification();
+
+  const [viewMode, setViewMode] = useState<"quiz" | "results">("quiz");
+  const [questions, setQuestions] = useState<QuestaoIA[]>(quiz.questions || []);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
+  const [checkedQuestions, setCheckedQuestions] = useState<Record<number, boolean>>({});
+  const [errorClassifications, setErrorClassifications] = useState<
+    Record<number, ErrorClassification>
+  >({});
+  const [timerSeconds, setTimerSeconds] = useState(0);
+
+  // Gamificação e resultados
+  const [lastEarnedXp, setLastEarnedXp] = useState(0);
+  const [levelUpData, setLevelUpData] = useState<{
+    leveledUp: boolean;
+    newLevel: number;
+    title?: string;
+  } | null>(null);
+
+  // Flashcards
+  const [createdFlashcards, setCreatedFlashcards] = useState<Record<number, boolean>>({});
+  const [isCreatingFlashcard, setIsCreatingFlashcard] = useState(false);
+
+  const handleAnswerQuestion = (
+    index: number,
+    selectedAlt: string,
+    isCorrect: boolean,
+  ) => {
+    setSelectedAnswers((prev) => ({ ...prev, [index]: selectedAlt }));
+    setCheckedQuestions((prev) => ({ ...prev, [index]: true }));
+  };
+
+  const handleCreateFlashcard = async (index: number) => {
+    const q = questions[index];
+    if (!q || createdFlashcards[index] || isCreatingFlashcard) return;
+
+    setIsCreatingFlashcard(true);
+    try {
+      const res = await fetch("/api/flashcards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topicId: q.topicId || quiz.topicId || undefined,
+          question: q.flashcardFrente || q.enunciado,
+          answer: q.flashcardVerso || q.justificativa,
+          front: q.flashcardFrente || q.enunciado,
+          back: q.flashcardVerso || q.justificativa,
+        }),
+      });
+
+      if (res.ok) {
+        setCreatedFlashcards((prev) => ({ ...prev, [index]: true }));
+      }
+    } catch (err) {
+      console.error("Erro ao criar flashcard:", err);
+    } finally {
+      setIsCreatingFlashcard(false);
+    }
+  };
+
+  const handleFinishQuiz = async (finalData: {
+    totalQuestions: number;
+    correctCount: number;
+    timerSeconds: number;
+    selectedAnswers: Record<number, string>;
+    checkedQuestions: Record<number, boolean>;
+    errorClassifications: Record<number, ErrorClassification>;
+  }) => {
+    setTimerSeconds(finalData.timerSeconds);
+    setSelectedAnswers(finalData.selectedAnswers);
+    setCheckedQuestions(finalData.checkedQuestions);
+    setErrorClassifications(finalData.errorClassifications);
+
+    const total = finalData.totalQuestions || 1;
+    const accuracy = Math.round((finalData.correctCount / total) * 100);
+
+    // Sincronização SM-2
+    if (quiz.topicId) {
+      let grade = 1;
+      if (accuracy >= 95) grade = 5;
+      else if (accuracy >= 85) grade = 4;
+      else if (accuracy >= 70) grade = 3;
+      else if (accuracy >= 50) grade = 2;
+
+      try {
+        await fetch("/api/review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topicId: quiz.topicId,
+            grade,
+            source: "QUIZ",
+          }),
+        });
+      } catch (err) {
+        console.error("Erro SM-2:", err);
+      }
+    }
+
+    // Submissão da tentativa no banco de dados
+    try {
+      const submissions: QuestionAnswerSubmission[] = questions.map((q, idx) => ({
+        questionId: q.id || `q-${idx}`,
+        subjectId: q.subjectId || quiz.subject || "Geral",
+        topicId: q.topicId || quiz.topicId || undefined,
+        selectedOption: finalData.selectedAnswers[idx] || "",
+        isCorrect: finalData.selectedAnswers[idx] === q.gabaritoCorreto,
+        timeSpentSeconds: Math.round(finalData.timerSeconds / total),
+        errorReason: finalData.errorClassifications[idx] || "UNCLASSIFIED",
+        questionText: q.enunciado,
+        options: q.alternativas,
+        correctAnswer: q.gabaritoCorreto,
+        explanation: q.justificativa,
+      }));
+
+      const res = await submitQuizAttemptAction({
+        title: `Simulado ${quiz.banca} - ${quiz.subject}`,
+        topicId: quiz.topicId || undefined,
+        totalQuestions: total,
+        correctAnswers: finalData.correctCount,
+        timeSpentSeconds: finalData.timerSeconds,
+        answers: submissions,
+      });
+
+      if (res.success && res.data) {
+        setLastEarnedXp(res.data.earnedXp);
+        if (refreshStats) {
+          refreshStats();
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao registrar tentativa:", err);
+    }
+
+    setViewMode("results");
+  };
+
+  const handleRestart = () => {
+    setSelectedAnswers({});
+    setCheckedQuestions({});
+    setErrorClassifications({});
+    setTimerSeconds(0);
+    setViewMode("quiz");
+  };
+
+  if (viewMode === "results") {
+    return (
+      <QuizResultView
+        quizId={quiz.id}
+        banca={quiz.banca}
+        subject={quiz.subject}
+        topicId={quiz.topicId}
+        questions={questions}
+        selectedAnswers={selectedAnswers}
+        timerSeconds={timerSeconds}
+        earnedXp={lastEarnedXp}
+        levelUpData={levelUpData}
+        onRestart={handleRestart}
+        onExit={() => router.push("/questions")}
+      />
+    );
+  }
+
+  return (
+    <QuizResolutionView
+      quizId={quiz.id}
+      banca={quiz.banca}
+      subject={quiz.subject}
+      questions={questions}
+      initialSelectedAnswers={selectedAnswers}
+      initialCheckedQuestions={checkedQuestions}
+      initialErrorClassifications={errorClassifications}
+      initialTimerSeconds={timerSeconds}
+      isInitialTimerRunning={viewMode === "quiz"}
+      onAnswerQuestion={handleAnswerQuestion}
+      onFinishQuiz={handleFinishQuiz}
+      onExit={() => router.push("/questions")}
+      onCreateFlashcard={handleCreateFlashcard}
+      isCreatingFlashcard={isCreatingFlashcard}
+      createdFlashcards={createdFlashcards}
+    />
+  );
+}
+</file>
+
 <file path="src/components/questions/ErrorDiagnosisModal.tsx">
 "use client";
 
@@ -2130,511 +2229,331 @@ export function ErrorDiagnosisModal({
 }
 </file>
 
-<file path="src/app/(dashboard)/questions/_components/QuizHistoryTab.tsx">
-import React, { useState } from "react";
+<file path="src/app/(dashboard)/questions/_components/GenerateAIModal.tsx">
+"use client";
+
+import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  Search,
-  ChevronDown,
-  Calendar,
-  Layers,
-  HelpCircle,
+  Sparkles,
+  Target,
+  BookOpen,
   FileText,
   Loader2,
   X,
   AlertTriangle,
-  RotateCcw,
-  Bookmark,
-  BookOpen,
-  Timer,
-  Trash2,
+  ArrowRight,
 } from "lucide-react";
-import { QuestaoIA } from "../page";
-import {
-  TimedPacingModal,
-  TimedPacingConfig,
-} from "./TimedPacingModal";
 
-export interface QuizHistoryItem {
+interface SubjectItem {
   id: string;
+  name: string;
+  topics?: { id: string; title: string }[];
+}
+
+interface GenerateAIModalProps {
+  isOpen: boolean;
+  isGenerating: boolean;
   banca: string;
-  subject: string;
-  difficulty: string;
-  questions: QuestaoIA[];
-  createdAt: string;
-  topic?: { title: string } | null;
+  materia: string;
+  selectedTopicId: string;
+  specificTopic: string;
+  qtdQuestoes: string;
+  fonteConteudo: "banca" | "texto" | "pdf";
+  dificuldade: string;
+  textoBase: string;
+  subjects: SubjectItem[];
+  availableTopics: { id: string; title: string }[];
+  onClose: () => void;
+  onBancaChange: (value: string) => void;
+  onMateriaChange: (value: string) => void;
+  onTopicChange: (value: string) => void;
+  onSpecificTopicChange: (value: string) => void;
+  onFonteChange: (value: "banca" | "texto" | "pdf") => void;
+  onTextoBaseChange: (value: string) => void;
+  onDificuldadeChange: (value: string) => void;
+  onQtdQuestoesChange: (value: string) => void;
+  onSubmit: (e: React.FormEvent) => void;
 }
 
-interface QuizHistoryTabProps {
-  history: QuizHistoryItem[];
-  isLoading: boolean;
-  searchTerm: string;
-  sortBy: string;
-  confirmingDeleteId: string | null;
-  loadingQuizId: string | null;
-  onSearchChange: (value: string) => void;
-  onSortChange: (value: string) => void;
-  onLoadSavedQuiz: (questions: QuestaoIA[], banca: string, id: string) => void;
-  onConfirmDelete: (id: string | null) => void;
-  onDeleteSimulado: (id: string) => void;
-  onCreateNewQuiz: () => void;
-}
+export function GenerateAIModal({
+  isOpen,
+  isGenerating,
+  banca,
+  materia,
+  selectedTopicId,
+  specificTopic,
+  qtdQuestoes,
+  fonteConteudo,
+  dificuldade,
+  subjects,
+  availableTopics,
+  onClose,
+  onBancaChange,
+  onMateriaChange,
+  onTopicChange,
+  onSpecificTopicChange,
+  onFonteChange,
+  onDificuldadeChange,
+  onQtdQuestoesChange,
+  onSubmit,
+}: GenerateAIModalProps) {
+  if (!isOpen) return null;
 
-export function QuizHistoryTab({
-  history,
-  isLoading,
-  searchTerm,
-  sortBy,
-  confirmingDeleteId,
-  loadingQuizId,
-  onSearchChange,
-  onSortChange,
-  onLoadSavedQuiz,
-  onConfirmDelete,
-  onDeleteSimulado,
-  onCreateNewQuiz,
-}: QuizHistoryTabProps) {
-  const router = useRouter();
-  const [viewMode, setViewMode] = useState<"all" | "errors">("all");
-  const [pacingQuizTarget, setPacingQuizTarget] =
-    useState<QuizHistoryItem | null>(null);
-
-  // Filtra todas as questões erradas salvas no histórico
-  const getErrorQuestions = (): (QuestaoIA & {
-    banca: string;
-    subject: string;
-  })[] => {
-    const errorQuestions: (QuestaoIA & { banca: string; subject: string })[] =
-      [];
-    history.forEach((item) => {
-      const qArray = Array.isArray(item.questions) ? item.questions : [];
-      qArray.forEach((q: any) => {
-        if (q.userAnswer && !q.isCorrect) {
-          errorQuestions.push({
-            ...q,
-            banca: item.banca || "Geral",
-            subject: item.subject || "Conhecimentos Gerais",
-          });
-        }
-      });
-    });
-    return errorQuestions;
-  };
-
-  const errorList = getErrorQuestions();
-
-  const filteredHistory = history
-    .filter((sim) => {
-      const term = searchTerm.toLowerCase();
-      const matchesBanca = sim.banca?.toLowerCase().includes(term);
-      const matchesSubject = sim.subject?.toLowerCase().includes(term);
-      const matchesDifficulty = sim.difficulty?.toLowerCase().includes(term);
-      const topicMatch = sim.topic?.title?.toLowerCase().includes(term);
-      return matchesBanca || matchesSubject || matchesDifficulty || topicMatch;
-    })
-    .sort((a, b) => {
-      if (sortBy === "oldest") {
-        return (
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-      }
-      if (sortBy === "subject") {
-        return (a.subject || "").localeCompare(b.subject || "");
-      }
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
-  const handleConfirmPacing = (config: TimedPacingConfig) => {
-    if (!pacingQuizTarget) return;
-    const params = new URLSearchParams({
-      examId: pacingQuizTarget.id,
-      pacing: config.pacingMode,
-      pace: String(config.minutesPerQuestion),
-      block: String(config.totalBlockMinutes),
-      focus: config.strictAntiDistraction ? "true" : "false",
-    });
-    router.push(`/quiz/timed?${params.toString()}`);
-    setPacingQuizTarget(null);
-  };
+  const hasNoSubjects = subjects.length === 0;
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      {/* SELETOR DE ABA & PESQUISA */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-base font-bold text-slate-100 tracking-tight">
-                Histórico & Caderno de Erros
-              </h2>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5 leading-snug">
-              Refaça simulados completos ou crie cadernos de recuperação focados
-              nos seus pontos fracos.
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-[#090d16] border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl p-5 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 custom-scrollbar">
+        {/* Handle visual no celular */}
+        <div className="w-full flex justify-center pt-1 pb-2 sm:hidden">
+          <div className="w-12 h-1.5 rounded-full bg-slate-700/80" />
+        </div>
+
+        <button
+          onClick={() => !isGenerating && onClose()}
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-900 transition-colors cursor-pointer"
+          disabled={isGenerating}
+        >
+          <X size={18} />
+        </button>
+
+        <div className="flex items-center gap-3 border-b border-slate-900 pb-3">
+          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl animate-pulse shrink-0">
+            <Sparkles size={20} />
+          </div>
+          <div className="min-w-0 pr-6">
+            <h3 className="text-base font-bold text-slate-200 truncate">
+              Gerador Cognitivo por IA
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+              Configure o escopo para simular sua prova.
             </p>
           </div>
-
-          {/* TOGGLE: TODOS OS SIMULADOS X APENAS ERROS */}
-          <div className="flex items-center gap-1 bg-[#090d16] p-1 rounded-xl border border-slate-800/80 w-full sm:w-auto">
-            <button
-              onClick={() => setViewMode("all")}
-              type="button"
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                viewMode === "all"
-                  ? "bg-indigo-600 text-white shadow-md"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <Layers size={13} />
-              <span>Simulados ({history.length})</span>
-            </button>
-            <button
-              onClick={() => setViewMode("errors")}
-              type="button"
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                viewMode === "errors"
-                  ? "bg-rose-600 text-white shadow-md"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <AlertTriangle size={13} />
-              <span>Erros ({errorList.length})</span>
-            </button>
-          </div>
         </div>
 
-        {!isLoading && history.length > 0 && viewMode === "all" && (
-          <div className="flex flex-col sm:flex-row items-center gap-2.5">
-            <div className="relative flex-1 w-full">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500">
-                <Search size={15} />
-              </span>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Buscar por banca, matéria, tópico ou dificuldade..."
-                className="w-full bg-[#090d16]/80 border border-slate-800/80 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition-all shadow-inner"
-              />
+        {hasNoSubjects ? (
+          <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-center space-y-4 py-8 animate-in fade-in duration-300">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
+              <AlertTriangle size={22} />
             </div>
-
-            <div className="relative w-full sm:w-auto shrink-0">
-              <select
-                value={sortBy}
-                onChange={(e) => onSortChange(e.target.value)}
-                className="w-full sm:w-auto bg-[#090d16]/80 border border-slate-800/80 focus:border-indigo-500/50 rounded-xl px-3 py-2.5 text-xs text-slate-300 outline-none cursor-pointer transition-all appearance-none pr-8 font-medium"
-              >
-                <option value="newest">Mais recentes</option>
-                <option value="oldest">Mais antigos</option>
-                <option value="subject">Por Matéria (A-Z)</option>
-              </select>
-              <ChevronDown
-                size={14}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* TELA DE CARREGAMENTO */}
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3 text-xs">
-          <Loader2 size={24} className="animate-spin text-indigo-400" />
-          <span>Buscando registros no banco de dados...</span>
-        </div>
-      ) : viewMode === "errors" ? (
-        /* VISÃO: CADERNO DE ERROS DEDICADO */
-        <div className="space-y-4">
-          {errorList.length === 0 ? (
-            <div className="bg-[#090d16]/60 border border-slate-800/80 rounded-2xl p-8 sm:p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
-                <Bookmark size={22} />
-              </div>
-              <h3 className="text-sm font-bold text-slate-200">
-                Nenhum erro registrado!
-              </h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                À medida que você responder simulados e errar questões, elas
-                serão salvas automaticamente neste caderno de treino.
+            <div className="space-y-1">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-amber-400">
+                Edital não configurado
+              </h4>
+              <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
+                Você precisa cadastrar matérias em seu edital primeiro para
+                habilitar o gerador com IA.
               </p>
             </div>
-          ) : (
-            <div className="bg-[#090d16] border border-rose-500/30 rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-5">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 sm:pb-4">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                    <AlertTriangle
-                      size={16}
-                      className="text-rose-400 shrink-0"
-                    />
-                    <span>Simulado de Recuperação Intensiva</span>
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Você possui {errorList.length} questão(ões) pendente(s) de
-                    revisão.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-                  <button
-                    onClick={() =>
-                      onLoadSavedQuiz(errorList, "Recuperação", "errors_session")
-                    }
-                    type="button"
-                    className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-950/50 transition-all flex items-center gap-2 active:scale-[0.98] cursor-pointer"
-                  >
-                    <RotateCcw size={14} />
-                    <span>Modo Estudo</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      const params = new URLSearchParams({
-                        source: "errors",
-                        pacing: "per_question",
-                        pace: "3",
-                        block: "30",
-                      });
-                      router.push(`/quiz/timed?${params.toString()}`);
-                    }}
-                    type="button"
-                    className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-violet-950/50 transition-all flex items-center gap-2 active:scale-[0.98] cursor-pointer"
-                  >
-                    <Timer size={14} />
-                    <span>⚡ Cronometrado</span>
-                  </button>
-                </div>
+            <div className="pt-1">
+              <Link
+                href="/edital"
+                className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-extrabold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-amber-500/10"
+              >
+                <BookOpen size={13} />
+                <span>Configurar Edital</span>
+                <ArrowRight size={13} />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={onSubmit} className="space-y-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                  <Target size={12} className="text-indigo-400" /> Banca Alvo
+                </label>
+                <select
+                  value={banca}
+                  onChange={(e) => onBancaChange(e.target.value)}
+                  disabled={isGenerating}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer outline-none focus:border-indigo-500/50"
+                >
+                  <option value="Cebraspe">Cebraspe</option>
+                  <option value="FGV">FGV</option>
+                  <option value="FCC">FCC</option>
+                  <option value="IBAM">IBAM</option>
+                  <option value="Vunesp">Vunesp</option>
+                </select>
               </div>
 
-              <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
-                {errorList.map((errQ, idx) => (
-                  <div
-                    key={`err-${idx}`}
-                    className="bg-slate-950/80 border border-slate-800/80 p-3 sm:p-3.5 rounded-xl flex items-center justify-between gap-3 text-xs"
+              <div className="space-y-1.5">
+                <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                  <BookOpen size={12} className="text-indigo-400" /> Matéria
+                  Principal
+                </label>
+                <select
+                  value={materia}
+                  onChange={(e) => onMateriaChange(e.target.value)}
+                  disabled={isGenerating}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer outline-none focus:border-indigo-500/50"
+                >
+                  {subjects.map((sub) => (
+                    <option key={`sub-${sub.id}`} value={sub.name}>
+                      {sub.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                <FileText size={12} className="text-indigo-400" /> Tópico
+                Específico (Opcional)
+              </label>
+              <select
+                value={selectedTopicId}
+                onChange={(e) => onTopicChange(e.target.value)}
+                disabled={isGenerating || availableTopics.length === 0}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer disabled:opacity-50 outline-none focus:border-indigo-500/50"
+              >
+                <option value="">
+                  {availableTopics.length === 0
+                    ? "Nenhum tópico encontrado nesta matéria"
+                    : "Todos os Tópicos da Matéria"}
+                </option>
+                {availableTopics.map((top, index) => {
+                  const topicKey = top.id
+                    ? `top-${top.id}`
+                    : `top-idx-${index}-${top.title}`;
+                  return (
+                    <option key={topicKey} value={top.id || top.title}>
+                      {top.title}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                <Sparkles size={12} className="text-violet-400" /> Foco Específico ou Legislação (Opcional)
+              </label>
+              <input
+                type="text"
+                value={specificTopic}
+                onChange={(e) => onSpecificTopicChange(e.target.value)}
+                disabled={isGenerating}
+                placeholder="Ex: Lei 5.777, Lei 8.112/90, Acentuação Gráfica..."
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 outline-none transition-all"
+              />
+              <p className="text-[11px] text-zinc-500">
+                A IA concentrará todas as questões exclusivamente neste microtema.
+              </p>
+            </div>
+
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider block">
+                Origem do Conteúdo
+              </label>
+              <div className="grid grid-cols-3 gap-1.5 bg-slate-950 border border-slate-800 p-1 rounded-xl min-h-10 items-center">
+                <button
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={() => onFonteChange("banca")}
+                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
+                    fonteConteudo === "banca"
+                      ? "bg-indigo-600 text-slate-100 shadow-sm"
+                      : "text-slate-400"
+                  }`}
+                >
+                  Histórico Banca
+                </button>
+                <button
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={() => onFonteChange("texto")}
+                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
+                    fonteConteudo === "texto"
+                      ? "bg-indigo-600 text-slate-100 shadow-sm"
+                      : "text-slate-400"
+                  }`}
+                >
+                  Texto / Lei
+                </button>
+                <button
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={() => onFonteChange("pdf")}
+                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
+                    fonteConteudo === "pdf"
+                      ? "bg-indigo-600 text-slate-100 shadow-sm"
+                      : "text-slate-400"
+                  }`}
+                >
+                  PDF
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider block">
+                Dificuldade
+              </label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {["Fácil", "Média", "Difícil", "Aleatória"].map((nivel) => (
+                  <button
+                    key={`diff-${nivel}`}
+                    type="button"
+                    disabled={isGenerating}
+                    onClick={() => onDificuldadeChange(nivel)}
+                    className={`py-2.5 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer ${
+                      dificuldade === nivel
+                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
+                        : "bg-slate-950 border-slate-800 text-slate-400"
+                    }`}
                   >
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 mr-2 inline-block">
-                        {errQ.banca}
-                      </span>
-                      <span className="text-slate-300 font-medium line-clamp-2 sm:line-clamp-1">
-                        {errQ.enunciado.replace(/\*\*/g, "")}
-                      </span>
-                    </div>
-                  </div>
+                    {nivel}
+                  </button>
                 ))}
               </div>
             </div>
-          )}
-        </div>
-      ) : history.length === 0 ? (
-        /* SEM SIMULADOS */
-        <div className="flex flex-col items-center justify-center p-6 sm:p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-3xl my-6 space-y-4">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
-            <Layers size={24} className="sm:w-7 sm:h-7" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-slate-100">
-              Nenhum simulado salvo ainda
-            </h3>
-            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              Gere novos cadernos de questões para treinar. Certifique-se de ter
-              cadastrado suas matérias no{" "}
-              <strong className="text-indigo-300">Edital</strong> para obter
-              questões 100% personalizadas.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full sm:w-auto">
-            <button
-              onClick={onCreateNewQuiz}
-              className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-slate-100 text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-98 cursor-pointer"
-            >
-              Gerar Simulado
-            </button>
-            <Link
-              href="/edital"
-              className="w-full sm:w-auto px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all border border-slate-700/80 flex items-center justify-center gap-2"
-            >
-              <BookOpen size={14} />
-              <span>Ir para Editais</span>
-            </Link>
-          </div>
-        </div>
-      ) : filteredHistory.length === 0 ? (
-        /* SEM RESULTADOS NA BUSCA */
-        <div className="text-center py-12 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
-          <p className="text-xs text-slate-400">
-            Nenhum simulado encontrado para &quot;
-            <span className="text-slate-200 font-medium">{searchTerm}</span>
-            &quot;.
-          </p>
-        </div>
-      ) : (
-        /* LISTA DE SIMULADOS SALVOS DA VERSÃO COMPLETA */
-        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 items-start">
-          {filteredHistory.map((item) => {
-            const questionsArray = Array.isArray(item.questions)
-              ? item.questions
-              : [];
-            const formattedDate = new Date(item.createdAt).toLocaleDateString(
-              "pt-BR",
-            );
 
-            return (
-              <div
-                key={`quiz-history-${item.id}`}
-                className="relative overflow-hidden bg-[#090d16]/90 border border-slate-800/80 hover:border-indigo-500/40 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col justify-between hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] transition-all duration-300 group"
-              >
-                <div className="absolute top-0 right-0 -mt-6 -mr-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
-
-                <div className="space-y-3 relative z-10">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-inner">
-                        {item.banca}
-                      </span>
-                      <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
-                        <Calendar size={12} className="text-slate-600" />
-                        {formattedDate}
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onConfirmDelete(item.id);
-                      }}
-                      type="button"
-                      className="text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
-                      title="Excluir simulado"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-slate-100 text-base line-clamp-1 group-hover:text-indigo-300 transition-colors tracking-tight">
-                      {item.subject}
-                    </h3>
-
-                    {item.topic?.title && (
-                      <div className="flex items-center">
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 max-w-full">
-                          <FileText
-                            size={11}
-                            className="shrink-0 text-indigo-400"
-                          />
-                          <span className="truncate">{item.topic.title}</span>
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                      <span className="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-md border border-slate-800/80 text-[11px] text-slate-300 font-medium">
-                        <Layers
-                          size={11}
-                          className="text-indigo-400 shrink-0"
-                        />
-                        {item.difficulty}
-                      </span>
-
-                      <span className="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-md border border-slate-800/80 text-[11px] text-slate-300 font-medium">
-                        <HelpCircle
-                          size={11}
-                          className="text-indigo-400 shrink-0"
-                        />
-                        {questionsArray.length} questões
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 sm:mt-5 relative z-10 pt-3 border-t border-slate-800/60">
-                  {confirmingDeleteId === item.id ? (
-                    <div className="bg-rose-950/20 border border-rose-500/30 p-2.5 rounded-xl flex items-center justify-between gap-2 animate-in fade-in duration-200">
-                      <span className="text-[11px] text-rose-300 font-medium pl-1">
-                        Excluir este simulado?
-                      </span>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          onClick={() => onDeleteSimulado(item.id)}
-                          className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-slate-100 text-[11px] font-bold rounded-lg transition-all cursor-pointer"
-                        >
-                          Sim
-                        </button>
-                        <button
-                          onClick={() => onConfirmDelete(null)}
-                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded-lg transition-all cursor-pointer"
-                        >
-                          Não
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2 mt-4">
-                      <button
-                        onClick={() =>
-                          onLoadSavedQuiz(questionsArray, item.banca, item.id)
-                        }
-                        disabled={loadingQuizId === item.id}
-                        className="flex items-center justify-center gap-1.5 text-center py-2.5 px-2 bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/35 hover:border-indigo-500/60 text-indigo-200 text-xs font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group/btn cursor-pointer min-h-10 w-full"
-                        title="Modo Livre de Estudo"
-                      >
-                        {loadingQuizId === item.id ? (
-                          <>
-                            <Loader2
-                              size={14}
-                              className="animate-spin text-indigo-400 shrink-0"
-                            />
-                            <span className="truncate">Carregando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <BookOpen size={14} className="text-indigo-400 shrink-0" />
-                            <span className="truncate">
-                              Refazer Caderno (Grátis)
-                            </span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        onClick={() => setPacingQuizTarget(item)}
-                        type="button"
-                        className="flex items-center justify-center gap-1.5 text-center py-2.5 px-2 bg-violet-600/20 hover:bg-violet-600/35 border border-violet-500/40 hover:border-violet-500/70 text-violet-200 text-xs font-bold rounded-xl transition-all active:scale-[0.98] shadow-md shadow-violet-950/40 cursor-pointer min-h-10 group/timed w-full"
-                        title="Iniciar Simulado Cronometrado Sob Pressão de Tempo"
-                      >
-                        <Timer
-                          size={14}
-                          className="text-violet-400 group-hover/timed:scale-110 transition-transform shrink-0"
-                        />
-                        <span className="truncate">
-                          ⚡ Simulado Cronometrado
-                        </span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider block">
+                Volume
+              </label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {["5", "10", "15", "20"].map((num) => (
+                  <button
+                    key={`qtd-${num}`}
+                    type="button"
+                    disabled={isGenerating}
+                    onClick={() => onQtdQuestoesChange(num)}
+                    className={`py-2.5 rounded-xl border font-bold text-xs transition-all cursor-pointer ${
+                      qtdQuestoes === num
+                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
+                        : "bg-slate-950 border-slate-800 text-slate-400"
+                    }`}
+                  >
+                    {num} Q
+                  </button>
+                ))}
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
 
-      {/* MODAL DE RITMO PARA O SIMULADO SELECIONADO */}
-      {pacingQuizTarget && (
-        <TimedPacingModal
-          isOpen={Boolean(pacingQuizTarget)}
-          onClose={() => setPacingQuizTarget(null)}
-          title={pacingQuizTarget.subject}
-          subtitle={`Banca ${pacingQuizTarget.banca} • ${pacingQuizTarget.topic?.title || "Tópicos Gerais"}`}
-          totalQuestions={
-            Array.isArray(pacingQuizTarget.questions)
-              ? pacingQuizTarget.questions.length
-              : 10
-          }
-          onConfirm={handleConfirmPacing}
-        />
-      )}
+            <button
+              type="submit"
+              disabled={isGenerating}
+              className="w-full bg-linear-to-r from-violet-600 via-indigo-600 to-violet-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-lg shadow-violet-950/40 cursor-pointer min-h-11 border border-violet-500/30"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 size={15} className="animate-spin text-violet-300" />
+                  <span>Preparando matriz de questões...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={15} className="text-violet-300" />
+                  <span>Iniciar Simulado</span>
+                </>
+              )}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
@@ -3067,6 +2986,812 @@ export default function CreateDeckModal({
           </form>
         )}
       </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/app/(dashboard)/questions/_components/QuizHistoryTab.tsx">
+import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Search,
+  ChevronDown,
+  Calendar,
+  Layers,
+  HelpCircle,
+  FileText,
+  Loader2,
+  X,
+  RotateCcw,
+  BookOpen,
+  Timer,
+  Trash2,
+  Sparkles,
+  BarChart3,
+  Clock,
+  AlertTriangle,
+  Check,
+  CheckSquare,
+  Square,
+} from "lucide-react";
+import { QuestaoIA } from "../page";
+import { deleteBatchSimuladosAction } from "@/actions/simulado-actions";
+
+export interface QuizHistoryItem {
+  id: string;
+  banca: string;
+  subject: string;
+  difficulty: string;
+  questions: QuestaoIA[];
+  createdAt: string;
+  topic?: { title: string } | null;
+  timeSpentSeconds?: number;
+}
+
+interface QuizHistoryTabProps {
+  history: QuizHistoryItem[];
+  isLoading: boolean;
+  searchTerm: string;
+  sortBy: string;
+  confirmingDeleteId: string | null;
+  loadingQuizId: string | null;
+  onSearchChange: (value: string) => void;
+  onSortChange: (value: string) => void;
+  onLoadSavedQuiz: (questions: QuestaoIA[], banca: string, id: string) => void;
+  onConfirmDelete: (id: string | null) => void;
+  onDeleteSimulado: (id: string) => void;
+  onCreateNewQuiz: () => void;
+  onBatchDeleteSuccess?: (deletedIds: string[]) => void;
+}
+
+interface QuizPerformance {
+  isCompleted: boolean;
+  totalQuestions: number;
+  correctCount: number;
+  percentage: number;
+  timeSpentSeconds: number;
+}
+
+function getQuizPerformance(item: QuizHistoryItem): QuizPerformance {
+  const questionsArray = Array.isArray(item.questions) ? item.questions : [];
+  const total = questionsArray.length;
+  if (total === 0) {
+    return {
+      isCompleted: false,
+      totalQuestions: 0,
+      correctCount: 0,
+      percentage: 0,
+      timeSpentSeconds: 0,
+    };
+  }
+
+  // Identifica se o simulado foi respondido/concluído
+  const isCompleted = questionsArray.some(
+    (q: any) =>
+      typeof q.isCorrect === "boolean" ||
+      (q.userAnswer !== undefined && q.userAnswer !== null && q.userAnswer !== "")
+  );
+
+  const correctCount = questionsArray.filter((q: any) => {
+    if (typeof q.isCorrect === "boolean") return q.isCorrect;
+    if (q.userAnswer && q.gabaritoCorreto) {
+      return (
+        String(q.userAnswer).trim().toLowerCase() ===
+        String(q.gabaritoCorreto).trim().toLowerCase()
+      );
+    }
+    return false;
+  }).length;
+
+  const percentage =
+    isCompleted && total > 0 ? Math.round((correctCount / total) * 100) : 0;
+
+  // Telemetria do tempo gasto
+  let totalTime = (item as any).timeSpentSeconds || (item as any).timerSeconds || 0;
+  if (!totalTime) {
+    const sumFromQuestions = questionsArray.reduce(
+      (acc: number, q: any) => acc + (Number(q.timeSpentSeconds) || 0),
+      0
+    );
+    if (sumFromQuestions > 0) {
+      totalTime = sumFromQuestions;
+    }
+  }
+
+  return {
+    isCompleted,
+    totalQuestions: total,
+    correctCount,
+    percentage,
+    timeSpentSeconds: totalTime,
+  };
+}
+
+function formatTelemetryTime(
+  timeSpentSeconds: number,
+  isCompleted: boolean,
+  totalQuestions: number
+): string {
+  if (timeSpentSeconds > 0) {
+    const mins = Math.floor(timeSpentSeconds / 60);
+    const secs = timeSpentSeconds % 60;
+    if (mins === 0) return `${secs}s gastos`;
+    return `${mins}m ${secs > 0 ? `${secs}s` : ""} gastos`;
+  }
+  if (!isCompleted) {
+    return `~${Math.max(1, totalQuestions) * 3} min est.`;
+  }
+  return `~${Math.max(1, totalQuestions) * 2} min gastos`;
+}
+
+export function QuizHistoryTab({
+  history,
+  isLoading,
+  searchTerm,
+  sortBy,
+  confirmingDeleteId,
+  loadingQuizId,
+  onSearchChange,
+  onSortChange,
+  onLoadSavedQuiz,
+  onConfirmDelete,
+  onDeleteSimulado,
+  onCreateNewQuiz,
+  onBatchDeleteSuccess,
+}: QuizHistoryTabProps) {
+  const router = useRouter();
+
+  // Estados locais para controle de seleção e exclusão em lote
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+
+  // Filtragem e Ordenação dos Cadernos
+  const filteredHistory = history
+    .filter((sim) => {
+      const term = searchTerm.toLowerCase().trim();
+      if (!term) return true;
+      const matchesBanca = sim.banca?.toLowerCase().includes(term);
+      const matchesSubject = sim.subject?.toLowerCase().includes(term);
+      const matchesDifficulty = sim.difficulty?.toLowerCase().includes(term);
+      const topicMatch = sim.topic?.title?.toLowerCase().includes(term);
+      return matchesBanca || matchesSubject || matchesDifficulty || topicMatch;
+    })
+    .sort((a, b) => {
+      if (sortBy === "highest_score") {
+        const perfA = getQuizPerformance(a);
+        const perfB = getQuizPerformance(b);
+        if (perfB.isCompleted !== perfA.isCompleted) {
+          return perfB.isCompleted ? 1 : -1;
+        }
+        if (perfB.percentage !== perfA.percentage) {
+          return perfB.percentage - perfA.percentage;
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      if (sortBy === "lowest_score") {
+        const perfA = getQuizPerformance(a);
+        const perfB = getQuizPerformance(b);
+        if (perfA.isCompleted && perfB.isCompleted) {
+          if (perfA.percentage !== perfB.percentage) {
+            return perfA.percentage - perfB.percentage;
+          }
+        } else if (perfA.isCompleted !== perfB.isCompleted) {
+          return perfA.isCompleted ? 1 : -1;
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      // Padrão: "newest"
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+  const filteredIds = filteredHistory.map((item) => item.id);
+  const isAllSelected =
+    filteredIds.length > 0 &&
+    filteredIds.every((id) => selectedIds.includes(id));
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {/* 1. CABEÇALHO DA ABA (LIMPO E SEM REDUNDÂNCIAS) */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                Histórico de Cadernos & Simulados
+              </h2>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300">
+                {history.length}{" "}
+                {history.length === 1
+                  ? "caderno disponível"
+                  : "cadernos disponíveis"}
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400 mt-1">
+              Consulte seu relatório analítico de acertos, revise o gabarito
+              completo ou refaça cadernos salvos.
+            </p>
+          </div>
+
+          {/* Botão no cabeçalho: Selecionar / Gerenciar / Selecionar Todos / Concluir */}
+          {!isLoading && history.length > 0 && (
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              {!isSelectionMode ? (
+                <button
+                  type="button"
+                  onClick={() => setIsSelectionMode(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/10 hover:border-violet-500/30 text-xs font-medium transition-all cursor-pointer shadow-sm active:scale-98"
+                >
+                  <CheckSquare size={14} className="text-violet-400" />
+                  <span>Gerenciar</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 animate-in fade-in duration-200">
+                  <button
+                    type="button"
+                    onClick={handleToggleSelectAll}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 text-violet-300 border border-violet-500/30 text-xs font-medium transition-all cursor-pointer active:scale-98"
+                  >
+                    {isAllSelected ? (
+                      <>
+                        <Square size={14} />
+                        <span>Desmarcar Todos</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckSquare size={14} />
+                        <span>Selecionar Todos ({filteredHistory.length})</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSelectionMode(false);
+                      setSelectedIds([]);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-medium transition-all cursor-pointer"
+                    title="Sair do modo de seleção"
+                  >
+                    <X size={14} />
+                    <span>Concluir</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* BARRA DE BUSCA E FILTROS COM GLASSMORPHISM */}
+        {!isLoading && history.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative flex-1 w-full">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-zinc-500">
+                <Search size={15} />
+              </span>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Buscar por matéria, foco ou banca..."
+                className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 rounded-xl pl-10 pr-10 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 outline-none transition-all shadow-inner"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => onSearchChange("")}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                  title="Limpar busca"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <div className="relative w-full sm:w-auto shrink-0">
+              <select
+                value={sortBy}
+                onChange={(e) => onSortChange(e.target.value)}
+                className="w-full sm:w-auto bg-[#090d16] sm:bg-white/[0.03] backdrop-blur-md border border-white/10 focus:border-violet-500/50 rounded-xl pl-3.5 pr-9 py-2.5 text-xs text-zinc-200 outline-none cursor-pointer transition-all appearance-none font-medium"
+              >
+                <option value="newest" className="bg-[#0b0f19] text-zinc-200">
+                  Mais recentes
+                </option>
+                <option
+                  value="highest_score"
+                  className="bg-[#0b0f19] text-zinc-200"
+                >
+                  Maior pontuação
+                </option>
+                <option
+                  value="lowest_score"
+                  className="bg-[#0b0f19] text-zinc-200"
+                >
+                  Menor pontuação
+                </option>
+              </select>
+              <ChevronDown
+                size={14}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 2. CONTEÚDO PRINCIPAL: SKELETON / EMPTY STATES / GRID DE CARDS */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-16 text-zinc-400 gap-3 text-xs">
+          <Loader2 size={24} className="animate-spin text-violet-400" />
+          <span>Buscando registros no banco de dados...</span>
+        </div>
+      ) : history.length === 0 ? (
+        /* ESTADO VAZIO: NENHUM SIMULADO CADASTRADO */
+        <div className="flex flex-col items-center justify-center p-8 sm:p-14 text-center bg-white/[0.01] backdrop-blur-md border border-white/10 rounded-3xl my-6 space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-lg shadow-violet-500/10">
+            <Layers size={26} />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-base font-bold text-white tracking-tight">
+              Nenhum simulado salvo ainda
+            </h3>
+            <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
+              Gere simulados personalizados com base nas disciplinas do seu
+              Edital para exercitar questões e acompanhar seu progresso.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full sm:w-auto">
+            <button
+              onClick={onCreateNewQuiz}
+              type="button"
+              className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-violet-600/25 active:scale-98 cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Sparkles size={14} />
+              <span>Gerar Primeiro Simulado</span>
+            </button>
+            <Link
+              href="/edital"
+              className="w-full sm:w-auto px-5 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all border border-white/10 flex items-center justify-center gap-2"
+            >
+              <BookOpen size={14} />
+              <span>Ir para Edital</span>
+            </Link>
+          </div>
+        </div>
+      ) : filteredHistory.length === 0 ? (
+        /* ESTADO VAZIO: BUSCA SEM RESULTADOS */
+        <div className="text-center py-12 bg-white/[0.01] backdrop-blur-md border border-white/10 rounded-2xl space-y-2">
+          <p className="text-xs text-zinc-400">
+            Nenhum simulado encontrado para &quot;
+            <span className="text-zinc-100 font-medium">{searchTerm}</span>
+            &quot;.
+          </p>
+          <button
+            onClick={() => onSearchChange("")}
+            type="button"
+            className="text-xs text-violet-400 hover:text-violet-300 font-medium underline underline-offset-2 cursor-pointer transition-colors"
+          >
+            Limpar filtro de busca
+          </button>
+        </div>
+      ) : (
+        /* GRID DE CARDS REDESENHADOS (grid md:grid-cols-2 gap-5) */
+        <div className="grid md:grid-cols-2 gap-5 items-stretch">
+          {filteredHistory.map((item) => {
+            const questionsArray = Array.isArray(item.questions)
+              ? item.questions
+              : [];
+            const performance = getQuizPerformance(item);
+            const formattedDate = new Date(item.createdAt).toLocaleDateString(
+              "pt-BR"
+            );
+            const isSelected = selectedIds.includes(item.id);
+
+            // Cores dinâmicas da badge de desempenho
+            let badgeStyle = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+            if (performance.percentage >= 70) {
+              badgeStyle =
+                "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+            } else if (performance.percentage >= 50) {
+              badgeStyle =
+                "bg-violet-500/10 text-violet-400 border-violet-500/20";
+            }
+
+            return (
+              <div
+                key={`quiz-card-${item.id}`}
+                onClick={() => {
+                  if (isSelectionMode) {
+                    handleToggleSelect(item.id);
+                  }
+                }}
+                className={`relative overflow-hidden backdrop-blur-md rounded-2xl p-5 transition-all duration-300 flex flex-col justify-between group ${
+                  isSelectionMode ? "cursor-pointer select-none" : ""
+                } ${
+                  isSelected
+                    ? "border-violet-500/60 bg-violet-500/[0.03] shadow-[0_0_25px_-5px_rgba(139,92,246,0.25)] ring-1 ring-violet-500/30"
+                    : "bg-white/[0.02] border border-white/10 hover:border-violet-500/40 hover:shadow-[0_0_25px_-5px_rgba(139,92,246,0.15)]"
+                }`}
+              >
+                {/* Glow sutil de fundo */}
+                <div
+                  className={`absolute top-0 right-0 -mt-6 -mr-6 w-28 h-28 rounded-full blur-2xl transition-all pointer-events-none ${
+                    isSelected
+                      ? "bg-violet-500/20"
+                      : "bg-violet-500/5 group-hover:bg-violet-500/10"
+                  }`}
+                />
+
+                {/* TOPO DO CARD */}
+                <div className="space-y-3 relative z-10">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    {/* Checkbox (quando isSelectionMode) + Badges compactas: Banca e Data */}
+                    <div className="flex items-center gap-2">
+                      <AnimatePresence>
+                        {isSelectionMode && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.6, width: 0 }}
+                            animate={{ opacity: 1, scale: 1, width: "auto" }}
+                            exit={{ opacity: 0, scale: 0.6, width: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="shrink-0 overflow-hidden pr-1"
+                          >
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleSelect(item.id);
+                              }}
+                              className={`w-5 h-5 rounded-md flex items-center justify-center transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-violet-600 border border-violet-400 text-white shadow-sm shadow-violet-500/30"
+                                  : "border border-white/20 bg-white/[0.04] hover:border-violet-400/50 hover:bg-violet-500/10"
+                              }`}
+                              title={
+                                isSelected
+                                  ? "Desmarcar simulado"
+                                  : "Selecionar simulado"
+                              }
+                            >
+                              {isSelected && (
+                                <Check size={12} className="stroke-[3]" />
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <span className="bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-inner">
+                        {item.banca || "GERAL"}
+                      </span>
+                      <span className="text-[11px] text-zinc-400 flex items-center gap-1.5 font-medium">
+                        <Calendar size={12} className="text-zinc-500" />
+                        {formattedDate}
+                      </span>
+                    </div>
+
+                    {/* Lado direito: Badge de Desempenho e Botão Discreto de Exclusão */}
+                    <div className="flex items-center gap-2">
+                      {performance.isCompleted ? (
+                        <div
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold tracking-wide shadow-sm ${badgeStyle}`}
+                        >
+                          <span className="font-bold">
+                            {performance.percentage}%
+                          </span>
+                          <span className="opacity-80 text-[10px]">
+                            ({performance.correctCount}/
+                            {performance.totalQuestions} acertos)
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-400 text-[11px] font-medium">
+                          <Clock size={11} className="shrink-0" />
+                          <span>Não finalizado</span>
+                        </div>
+                      )}
+
+                      {!isSelectionMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onConfirmDelete(item.id);
+                          }}
+                          type="button"
+                          className="text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                          title="Excluir simulado"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Confirmação de Exclusão Inline */}
+                  {confirmingDeleteId === item.id && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-rose-950/40 border border-rose-500/30 p-2.5 rounded-xl flex items-center justify-between gap-2 animate-in fade-in duration-200"
+                    >
+                      <span className="text-[11px] text-rose-300 font-medium pl-1 flex items-center gap-1.5">
+                        <AlertTriangle
+                          size={13}
+                          className="text-rose-400 shrink-0"
+                        />
+                        Excluir este simulado?
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => onDeleteSimulado(item.id)}
+                          type="button"
+                          className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold rounded-lg transition-all cursor-pointer shadow-sm"
+                        >
+                          Excluir
+                        </button>
+                        <button
+                          onClick={() => onConfirmDelete(null)}
+                          type="button"
+                          className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-zinc-300 text-[11px] font-bold rounded-lg transition-all cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MIOLO DO CARD */}
+                  <div className="space-y-2.5 pt-1">
+                    <div>
+                      <h3 className="text-white font-medium text-base line-clamp-2 group-hover:text-violet-300 transition-colors tracking-tight">
+                        {item.subject}
+                      </h3>
+                      {item.topic?.title && (
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1 line-clamp-1">
+                          <FileText
+                            size={12}
+                            className="text-violet-400 shrink-0"
+                          />
+                          <span className="truncate">{item.topic.title}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Linha de telemetria: pílulas discretas com Dificuldade, Qtd e Tempo gasto */}
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                      <span className="flex items-center gap-1.5 bg-white/[0.03] px-2.5 py-1 rounded-lg border border-white/5 text-[11px] text-zinc-300 font-medium">
+                        <Layers size={11} className="text-violet-400 shrink-0" />
+                        <span>{item.difficulty || "Média"}</span>
+                      </span>
+
+                      <span className="flex items-center gap-1.5 bg-white/[0.03] px-2.5 py-1 rounded-lg border border-white/5 text-[11px] text-zinc-300 font-medium">
+                        <HelpCircle
+                          size={11}
+                          className="text-violet-400 shrink-0"
+                        />
+                        <span>
+                          {questionsArray.length}{" "}
+                          {questionsArray.length === 1
+                            ? "questão"
+                            : "questões"}
+                        </span>
+                      </span>
+
+                      <span className="flex items-center gap-1.5 bg-white/[0.03] px-2.5 py-1 rounded-lg border border-white/5 text-[11px] text-zinc-300 font-medium">
+                        <Timer size={11} className="text-violet-400 shrink-0" />
+                        <span>
+                          {formatTelemetryTime(
+                            performance.timeSpentSeconds,
+                            performance.isCompleted,
+                            questionsArray.length
+                          )}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RODAPÉ DO CARD (2 BOTÕES SEM TRUNCAMENTO) */}
+                <div className="mt-5 pt-3.5 border-t border-white/5 relative z-10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
+                    {/* Botão Secundário: Gabarito & Métricas */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/questions/${item.id}/results`);
+                      }}
+                      type="button"
+                      className="flex items-center justify-center gap-2 py-2.5 px-3.5 bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-violet-500/30 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all active:scale-[0.98] cursor-pointer w-full text-center"
+                      title="Abrir relatório de desempenho e respostas comentadas"
+                    >
+                      <BarChart3 size={14} className="text-violet-400 shrink-0" />
+                      <span className="whitespace-nowrap">
+                        Gabarito & Métricas
+                      </span>
+                    </button>
+
+                    {/* Botão Primário: Refazer Prova */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onLoadSavedQuiz(questionsArray, item.banca, item.id);
+                      }}
+                      disabled={loadingQuizId === item.id}
+                      type="button"
+                      className="flex items-center justify-center gap-2 py-2.5 px-3.5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-600/20 hover:shadow-violet-600/35 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer w-full text-center"
+                      title="Reiniciar este caderno de questões do início"
+                    >
+                      {loadingQuizId === item.id ? (
+                        <>
+                          <Loader2
+                            size={14}
+                            className="animate-spin text-white shrink-0"
+                          />
+                          <span className="whitespace-nowrap">
+                            Carregando...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw
+                            size={14}
+                            className="shrink-0 group-hover:rotate-[-45deg] transition-transform"
+                          />
+                          <span className="whitespace-nowrap">
+                            Refazer Prova
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 3. FLOATING ACTION BAR NO RODAPÉ */}
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 30, x: "-50%" }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl px-6 py-3.5 shadow-2xl flex items-center gap-4 max-w-[95vw]"
+          >
+            {/* Badge com contador */}
+            <span className="px-2.5 py-1 rounded-lg bg-violet-500/20 border border-violet-500/30 text-violet-300 text-xs font-semibold whitespace-nowrap">
+              {selectedIds.length}{" "}
+              {selectedIds.length === 1 ? "selecionado" : "selecionados"}
+            </span>
+
+            {/* Botão secundário "Cancelar Seleção" (ghost, reseta o array) */}
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="text-xs text-zinc-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer whitespace-nowrap font-medium"
+            >
+              Cancelar Seleção
+            </button>
+
+            {/* Botão destrutivo "Excluir Selecionados" */}
+            <button
+              type="button"
+              onClick={() => setIsConfirmModalOpen(true)}
+              className="bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Trash2 size={15} />
+              <span>Excluir Selecionados</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 4. MODAL RÁPIDO DE CONFIRMAÇÃO DE EXCLUSÃO EM LOTE */}
+      <AnimatePresence>
+        {isConfirmModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeletingBatch && setIsConfirmModalOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: "spring", duration: 0.25 }}
+              className="relative z-10 w-full max-w-md bg-[#0b0f19] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
+                  <AlertTriangle size={20} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-white">
+                    Excluir {selectedIds.length}{" "}
+                    {selectedIds.length === 1 ? "simulado" : "simulados"}?
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Tem certeza que deseja excluir {selectedIds.length}{" "}
+                    {selectedIds.length === 1
+                      ? "simulado selecionado"
+                      : "simulados selecionados"}
+                    ? Esta ação é irreversível.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={isDeletingBatch}
+                  onClick={() => setIsConfirmModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingBatch}
+                  onClick={async () => {
+                    if (selectedIds.length === 0 || isDeletingBatch) return;
+                    setIsDeletingBatch(true);
+                    try {
+                      const res = await deleteBatchSimuladosAction(selectedIds);
+                      if (res.success) {
+                        onBatchDeleteSuccess?.(selectedIds);
+                        setSelectedIds([]);
+                        setIsSelectionMode(false);
+                        setIsConfirmModalOpen(false);
+                      } else {
+                        console.error("Erro na exclusão em lote:", res.error);
+                      }
+                    } catch (err) {
+                      console.error("Erro ao executar exclusão em lote:", err);
+                    } finally {
+                      setIsDeletingBatch(false);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeletingBatch ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Excluindo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      <span>Excluir {selectedIds.length}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -4783,6 +5508,7 @@ export function QuestionCard({
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
 
@@ -4797,7 +5523,8 @@ import {
   BookOpen,
   Lock,
   Printer,
-  PlusCircle,
+  Target,
+  Flame,
   Maximize2,
   Minimize2,
   Clock,
@@ -4816,26 +5543,29 @@ import {
 } from "./_components/ResumeSessionCard";
 import { QuestionCard } from "./_components/QuestionCard";
 import { CompletionModal } from "./_components/CompletionModal";
+import { QuizResultView } from "@/components/study/QuizResultView";
 import { QuizHistoryTab } from "./_components/QuizHistoryTab";
 import { GenerateAIModal } from "./_components/GenerateAIModal";
 import { QuestionMinimap } from "./_components/QuestionMinimap";
 import { TimedLaunchModal } from "./_components/TimedLaunchModal";
 import { TimedPacingModal } from "./_components/TimedPacingModal";
 import { ErrorNotebookView } from "../notebook/components/ErrorNotebookView";
+import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
+import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
-import { RegisterQuestionsModal } from "@/components/questions/register-questions-modal";
 
-import { submitQuizAttemptAction } from "@/actions/quiz-actions";
+import {
+  submitQuizAttemptAction,
+  getSubjectDomainStatsAction,
+} from "@/actions/quiz-actions";
 import { generateTargetedDeckAction } from "@/actions/deck-actions";
 import {
-  getErrorNotebookItemsAction,
   getErrorMetricsAction,
 } from "@/actions/error-notebook-actions";
 import {
   ErrorClassification,
   QuestionAnswerSubmission,
-  ErrorNotebookItem,
   ErrorNotebookMetrics,
 } from "@/types/quiz";
 
@@ -4921,6 +5651,124 @@ function formatTimer(totalSeconds: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function TabCreateSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="relative overflow-hidden backdrop-blur-xl bg-gradient-to-br from-violet-950/30 via-zinc-900/60 to-black/80 border border-violet-500/20 rounded-2xl p-6 sm:p-7">
+        <div className="space-y-4 max-w-xl">
+          <div className="h-5 w-44 rounded-full bg-violet-500/15 border border-violet-500/30" />
+          <div className="h-8 w-4/5 rounded-xl bg-white/5" />
+          <div className="h-4 w-3/5 rounded-lg bg-white/5" />
+        </div>
+        <div className="mt-6 pt-3 flex gap-3 border-t border-white/5">
+          <div className="h-7 w-32 rounded-xl bg-white/5" />
+          <div className="h-7 w-36 rounded-xl bg-white/5" />
+          <div className="h-7 w-32 rounded-xl bg-white/5" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="h-52 rounded-2xl bg-zinc-900/50 border border-violet-500/20 backdrop-blur-xl p-6 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/30" />
+            <div className="h-5 w-44 rounded-lg bg-white/5" />
+            <div className="h-3 w-56 rounded bg-white/5" />
+          </div>
+          <div className="h-9 w-full rounded-xl bg-white/5" />
+        </div>
+        <div className="h-52 rounded-2xl bg-zinc-900/50 border border-indigo-500/20 backdrop-blur-xl p-6 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30" />
+            <div className="h-5 w-44 rounded-lg bg-white/5" />
+            <div className="h-3 w-56 rounded bg-white/5" />
+          </div>
+          <div className="h-9 w-full rounded-xl bg-white/5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TabHistorySkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="bg-[#090d16]/60 border border-white/10 backdrop-blur-xl rounded-2xl p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="h-5 w-36 rounded bg-white/5" />
+          <div className="flex gap-2 w-full sm:w-auto">
+            <div className="h-8 w-28 rounded-lg bg-white/5" />
+            <div className="h-8 w-24 rounded-lg bg-white/5" />
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+          <div className="h-10 flex-1 rounded-xl bg-white/[0.03] border border-white/5" />
+          <div className="h-10 w-36 rounded-xl bg-white/[0.03] border border-white/5" />
+        </div>
+      </div>
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-40 rounded-2xl bg-[#090d16]/60 border border-white/10 backdrop-blur-xl p-5 flex flex-col justify-between space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <div className="h-5 w-16 rounded bg-indigo-500/10 border border-indigo-500/20" />
+              <div className="h-4 w-20 rounded bg-white/5" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 w-3/4 rounded bg-white/5" />
+              <div className="h-3 w-1/2 rounded bg-white/5" />
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-white/5">
+              <div className="h-4 w-24 rounded bg-white/5" />
+              <div className="h-7 w-20 rounded-lg bg-white/5" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TabErrorsSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-24 rounded-2xl bg-[#090d16]/60 border border-white/10 backdrop-blur-xl p-4 flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <div className="h-3 w-16 rounded bg-white/5" />
+              <div className="w-5 h-5 rounded bg-white/5" />
+            </div>
+            <div className="h-6 w-12 rounded bg-white/10" />
+          </div>
+        ))}
+      </div>
+      <div className="h-14 rounded-2xl bg-[#090d16]/60 border border-white/10 backdrop-blur-xl p-3 flex items-center justify-between gap-3">
+        <div className="h-8 flex-1 rounded-xl bg-white/[0.03]" />
+        <div className="h-8 w-28 rounded-xl bg-white/[0.03]" />
+      </div>
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-32 rounded-2xl bg-[#090d16]/60 border border-white/10 backdrop-blur-xl p-5 flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <div className="h-4 w-24 rounded bg-rose-500/10 border border-rose-500/20" />
+              <div className="h-4 w-16 rounded bg-white/5" />
+            </div>
+            <div className="h-4 w-4/5 rounded bg-white/5" />
+            <div className="h-3 w-1/3 rounded bg-white/5" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function QuestoesPage() {
   const router = useRouter();
   const { openSidebar, closeSidebar } = useSidebar();
@@ -4928,24 +5776,29 @@ export default function QuestoesPage() {
 
   // Estados gerais
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [practiceMetrics, setPracticeMetrics] = useState<{
+    totalAnswered: number;
+    averageAccuracy: number;
+  }>({ totalAnswered: 0, averageAccuracy: 0 });
 
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
     null,
   );
-  const [activeTab, setActiveTab] = useState<"create" | "history" | "notebook">(
-    "create",
+  const [activeTab, setActiveTab] = useState<"create" | "history" | "errors">(
+    () => {
+      const tabParam = searchParams.get("tab");
+      if (tabParam === "history") return "history";
+      if (tabParam === "errors" || tabParam === "notebook") return "errors";
+      return "create";
+    },
   );
   const [pendingTab, setPendingTab] = useState<
-    "create" | "history" | "notebook" | null
+    "create" | "history" | "errors" | null
   >(null);
 
   // Caderno de Erros Integrado
-  const [errorNotebookItems, setErrorNotebookItems] = useState<
-    ErrorNotebookItem[]
-  >([]);
   const [errorNotebookMetrics, setErrorNotebookMetrics] =
     useState<ErrorNotebookMetrics>({
       totalErrors: 0,
@@ -4996,9 +5849,18 @@ export default function QuestoesPage() {
   const [isSyncingSM2, setIsSyncingSM2] = useState(false);
   const [lastEarnedXp, setLastEarnedXp] = useState(0);
 
+  // Modal de Feedback Visual Premium de Geração com IA
+  const [isSimuladoModalOpen, setIsSimuladoModalOpen] = useState(false);
+  const [simuladoGenerationError, setSimuladoGenerationError] = useState<string | null>(null);
+  const [pendingSimuladoData, setPendingSimuladoData] = useState<{
+    questions: QuestaoIA[];
+    quizId: string | null;
+  } | null>(null);
+
   // Modal IA / Edital
   const [materia, setMateria] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
+  const [specificTopic, setSpecificTopic] = useState("");
   const [qtdQuestoes, setQtdQuestoes] = useState("5");
   const [fonteConteudo, setFonteConteudo] = useState<"banca" | "texto" | "pdf">(
     "banca",
@@ -5011,6 +5873,7 @@ export default function QuestoesPage() {
   // Histórico
   const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   const [loadingQuizId, setLoadingQuizId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -5072,6 +5935,7 @@ export default function QuestoesPage() {
       const response = await fetch("/api/questions/list");
       const json = await response.json();
       setQuizHistory(json.data || []);
+      setIsHistoryLoaded(true);
     } catch (error) {
       console.error("Erro ao carregar histórico:", error);
     } finally {
@@ -5082,13 +5946,7 @@ export default function QuestoesPage() {
   const loadErrorNotebookData = useCallback(async () => {
     setIsLoadingNotebook(true);
     try {
-      const [itemsRes, metricsRes] = await Promise.all([
-        getErrorNotebookItemsAction({}),
-        getErrorMetricsAction(),
-      ]);
-      if (itemsRes.success && itemsRes.data) {
-        setErrorNotebookItems(itemsRes.data);
-      }
+      const metricsRes = await getErrorMetricsAction();
       if (metricsRes.success && metricsRes.data) {
         setErrorNotebookMetrics(metricsRes.data);
       }
@@ -5101,12 +5959,35 @@ export default function QuestoesPage() {
   }, []);
 
   useEffect(() => {
+    // Carrega histórico para contagem de cadernos salvos e pré-carregamento
+    fetchQuizHistory();
+
+    // Carrega métricas agregadas de treino (precisão e total de questões)
+    getSubjectDomainStatsAction()
+      .then((res) => {
+        if (res.success && res.data) {
+          const totalAnswered = res.data.reduce(
+            (acc, curr) => acc + curr.totalAnswered,
+            0,
+          );
+          const totalCorrect = res.data.reduce(
+            (acc, curr) => acc + curr.correctCount,
+            0,
+          );
+          const averageAccuracy =
+            totalAnswered > 0
+              ? Math.round((totalCorrect / totalAnswered) * 100)
+              : 0;
+          setPracticeMetrics({ totalAnswered, averageAccuracy });
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar métricas de domínio:", err));
+
     const tabParam = searchParams.get("tab");
     if (tabParam === "history") {
       setActiveTab("history");
-      fetchQuizHistory();
-    } else if (tabParam === "notebook") {
-      setActiveTab("notebook");
+    } else if (tabParam === "notebook" || tabParam === "errors") {
+      setActiveTab("errors");
       loadErrorNotebookData();
     } else if (tabParam === "create") {
       setActiveTab("create");
@@ -5114,7 +5995,6 @@ export default function QuestoesPage() {
 
     const openTimed = searchParams.get("openTimed");
     if (openTimed === "true") {
-      fetchQuizHistory();
       loadErrorNotebookData();
       setIsTimedLaunchModalOpen(true);
     }
@@ -5133,12 +6013,18 @@ export default function QuestoesPage() {
     const paramQuizId = searchParams.get("quizId");
 
     if (paramQuizId) {
-      fetch("/api/questions/list")
-        .then((res) => res.json())
-        .then((json) => {
-          const historyList: QuizHistoryItem[] = json.data || [];
-          const foundQuiz = historyList.find((q) => q.id === paramQuizId);
-
+      fetch(`/api/questions/${paramQuizId}`)
+        .then(async (res) => {
+          if (res.ok) {
+            const json = await res.json();
+            if (json.data) return json.data;
+          }
+          const listRes = await fetch("/api/questions/list");
+          const listJson = await listRes.json();
+          const list: QuizHistoryItem[] = listJson.data || [];
+          return list.find((q) => q.id === paramQuizId);
+        })
+        .then((foundQuiz) => {
           if (foundQuiz && foundQuiz.questions?.length > 0) {
             setCurrentQuizId(foundQuiz.id);
             setQuestions(foundQuiz.questions);
@@ -5162,7 +6048,25 @@ export default function QuestoesPage() {
         setIsAIModalOpen(true);
       });
     }
-  }, [searchParams, fetchQuizHistory, loadErrorNotebookData]);
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "history") {
+        setActiveTab("history");
+        if (!isHistoryLoaded) fetchQuizHistory();
+      } else if (tab === "errors" || tab === "notebook") {
+        setActiveTab("errors");
+        if (!isNotebookLoaded) loadErrorNotebookData();
+      } else {
+        setActiveTab("create");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [isHistoryLoaded, isNotebookLoaded, fetchQuizHistory, loadErrorNotebookData]);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -5272,7 +6176,7 @@ export default function QuestoesPage() {
       .finally(() => {
         setIsInitialLoading(false);
       });
-  }, [searchParams]);
+  }, []);
 
   const currentSubjectObj = subjects.find(
     (s) =>
@@ -5280,15 +6184,6 @@ export default function QuestoesPage() {
       s.name.trim().toLowerCase() === materia.trim().toLowerCase(),
   );
   const availableTopics = currentSubjectObj?.topics || [];
-
-  const allModalTopics = subjects.flatMap(
-    (s) =>
-      s.topics?.map((t) => ({
-        id: t.id,
-        title: t.title,
-        subjectName: s.name,
-      })) || [],
-  );
 
   const totalQuestions = questions.length;
   const answeredCount = Object.keys(checkedQuestions).length;
@@ -5300,32 +6195,50 @@ export default function QuestoesPage() {
   const percentageAcc =
     answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
-  const handleTabChange = (newTab: "create" | "history" | "notebook") => {
-    if (
-      activeTab === "create" &&
-      newTab !== "create" &&
-      questions.length > 0 &&
-      Object.keys(selectedAnswers).length > 0
-    ) {
-      setPendingTab(newTab);
-      return;
-    }
-    setActiveTab(newTab);
-    router.replace(`/questions?tab=${newTab}`, { scroll: false });
-    if (newTab === "history") {
-      fetchQuizHistory();
-    } else if (newTab === "notebook") {
-      loadErrorNotebookData();
-    }
-  };
+  const handleTabChange = useCallback(
+    (newTab: "create" | "history" | "errors") => {
+      if (
+        activeTab === "create" &&
+        newTab !== "create" &&
+        questions.length > 0 &&
+        Object.keys(selectedAnswers).length > 0
+      ) {
+        setPendingTab(newTab);
+        return;
+      }
+      setActiveTab(newTab);
+      const newUrl =
+        newTab === "create" ? window.location.pathname : `?tab=${newTab}`;
+      window.history.replaceState(null, "", newUrl);
+
+      if (newTab === "history" && !isHistoryLoaded) {
+        fetchQuizHistory();
+      } else if (newTab === "errors" && !isNotebookLoaded) {
+        loadErrorNotebookData();
+      }
+    },
+    [
+      activeTab,
+      questions.length,
+      selectedAnswers,
+      isHistoryLoaded,
+      isNotebookLoaded,
+      fetchQuizHistory,
+      loadErrorNotebookData,
+    ],
+  );
 
   const confirmNavigation = () => {
     if (pendingTab) {
       setActiveTab(pendingTab);
-      router.replace(`/questions?tab=${pendingTab}`, { scroll: false });
-      if (pendingTab === "history") {
+      const newUrl =
+        pendingTab === "create"
+          ? window.location.pathname
+          : `?tab=${pendingTab}`;
+      window.history.replaceState(null, "", newUrl);
+      if (pendingTab === "history" && !isHistoryLoaded) {
         fetchQuizHistory();
-      } else if (pendingTab === "notebook") {
+      } else if (pendingTab === "errors" && !isNotebookLoaded) {
         loadErrorNotebookData();
       }
       setQuestions([]);
@@ -5430,6 +6343,9 @@ export default function QuestoesPage() {
                 userAnswer: selectedAnswers[idx],
                 isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
                 errorReason: errorClassifications[idx] || null,
+                timeSpentSeconds: Math.round(
+                  timerSeconds / Math.max(1, totalQuestions),
+                ),
               })),
             }),
           });
@@ -5537,7 +6453,13 @@ export default function QuestoesPage() {
   const handleGenerateSimulado = async (e: React.FormEvent) => {
     e.preventDefault();
     if (subjects.length === 0) return;
+
+    // Dispara imediatamente o modal futurista e fecha a tela de configuração
+    setIsAIModalOpen(false);
     setIsGenerating(true);
+    setSimuladoGenerationError(null);
+    setPendingSimuladoData(null);
+    setIsSimuladoModalOpen(true);
 
     try {
       const selectedTopicObj = availableTopics.find(
@@ -5555,6 +6477,7 @@ export default function QuestoesPage() {
           materia,
           topicoId: selectedTopicId || "ALL",
           topicoNome: topicoNome || "Todos os Tópicos da Matéria",
+          specificTopic: specificTopic.trim() || undefined,
           qtdQuestoes: parseInt(qtdQuestoes, 10),
           dificuldade,
           textoBase,
@@ -5562,23 +6485,57 @@ export default function QuestoesPage() {
         }),
       });
 
-      const json = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          json.error || json.details || "Falha ao gerar simulado com IA.",
+          data.error || data.details || "Falha ao gerar simulado com IA.",
         );
       }
 
-      if (!json.data || json.data.length === 0) {
-        throw new Error(
-          "A IA não retornou questões para o escopo selecionado.",
-        );
+      const targetId = data.id || data.simuladoId;
+
+      setIsGenerating(false);
+      setIsSimuladoModalOpen(false);
+
+      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+        setQuestions(data.data);
+        setCurrentQuizId(targetId || null);
+        setSelectedAnswers({});
+        setCheckedQuestions({});
+        setFlaggedQuestions({});
+        setErrorClassifications({});
+        setSavedErrors({});
+        setCreatedFlashcards({});
+        setTimerSeconds(0);
+        setFocusedQuestionIndex(0);
+        setIsTimerRunning(true);
       }
 
-      setQuestions(json.data);
-      setCurrentQuizId(json.quizId || null);
-      setIsAIModalOpen(false);
+      if (targetId) {
+        router.push(`/questions/${targetId}`);
+        // Se o projeto usar tabs na mesma página, descomente:
+        // setActiveTab("solve");
+      } else {
+        handleTabChange("history");
+      }
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Erro desconhecido ao gerar questões.";
+      console.error("Erro ao gerar simulado:", msg);
+      setSimuladoGenerationError(msg);
+      setIsSimuladoModalOpen(false);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSimuladoModalComplete = () => {
+    if (pendingSimuladoData) {
+      setQuestions(pendingSimuladoData.questions);
+      setCurrentQuizId(pendingSimuladoData.quizId);
       setSelectedAnswers({});
       setCheckedQuestions({});
       setFlaggedQuestions({});
@@ -5586,16 +6543,17 @@ export default function QuestoesPage() {
       setSavedErrors({});
       setCreatedFlashcards({});
       setTimerSeconds(0);
-      setFocusedQuestionIndex(0);
+      setFocusedQuestionIndex(0); // Transição direta para a 1ª questão
       setIsTimerRunning(true);
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Erro desconhecido ao gerar questões.";
-      console.error("Erro ao gerar simulado:", msg);
-    } finally {
-      setIsGenerating(false);
+      setIsSimuladoModalOpen(false);
+      setPendingSimuladoData(null);
+
+      // Rola suavemente até o primeiro card de questão
+      setTimeout(() => {
+        document
+          .getElementById("question-card-0")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
     }
   };
 
@@ -5744,12 +6702,180 @@ export default function QuestoesPage() {
     );
   }
 
-  if (isInitialLoading) {
+  if (questions.length > 0 && activeTab === "create") {
     return (
-      <div className="min-h-screen bg-[#02050e] text-slate-400 flex flex-col items-center justify-center gap-3 text-xs">
-        <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-        <span>Sincronizando banco de dados cognitivo...</span>
-      </div>
+      <>
+        <QuizResolutionView
+          quizId={currentQuizId}
+          banca={banca}
+          subject={materia || "Simulado"}
+          questions={questions}
+          initialSelectedAnswers={selectedAnswers}
+          initialCheckedQuestions={checkedQuestions}
+          initialFlaggedQuestions={flaggedQuestions}
+          initialErrorClassifications={errorClassifications}
+          initialTimerSeconds={timerSeconds}
+          isInitialTimerRunning={isTimerRunning && !showCompletionModal}
+          onAnswerQuestion={(index, altId, isCorrect) => {
+            setSelectedAnswers((prev) => ({ ...prev, [index]: altId }));
+            setCheckedQuestions((prev) => ({ ...prev, [index]: true }));
+          }}
+          onFinishQuiz={async (finalData) => {
+            setSelectedAnswers(finalData.selectedAnswers);
+            setCheckedQuestions(finalData.checkedQuestions);
+            setErrorClassifications(finalData.errorClassifications);
+            setTimerSeconds(finalData.timerSeconds);
+            setIsTimerRunning(false);
+
+            const finalCorrect = finalData.correctCount;
+            const finalTotal = finalData.totalQuestions || 1;
+            const finalAcc = Math.round((finalCorrect / finalTotal) * 100);
+
+            await syncQuizWithSM2(finalAcc);
+
+            try {
+              const submissions: QuestionAnswerSubmission[] = questions.map(
+                (q, idx) => ({
+                  questionId: q.id || `q-${idx}`,
+                  subjectId: q.subjectId || currentSubjectObj?.id || "",
+                  topicId: q.topicId || selectedTopicId || undefined,
+                  selectedOption: finalData.selectedAnswers[idx] || "",
+                  isCorrect:
+                    finalData.selectedAnswers[idx] === q.gabaritoCorreto,
+                  timeSpentSeconds: Math.round(
+                    finalData.timerSeconds / finalTotal,
+                  ),
+                  errorReason:
+                    finalData.errorClassifications[idx] || "UNCLASSIFIED",
+                  questionText: q.enunciado,
+                  options: q.alternativas,
+                  correctAnswer: q.gabaritoCorreto,
+                  explanation: q.justificativa,
+                }),
+              );
+
+              const attemptResult = await submitQuizAttemptAction({
+                title: `Simulado ${banca} - ${materia || "Geral"}`,
+                topicId: selectedTopicId || undefined,
+                subjectId: currentSubjectObj?.id || undefined,
+                totalQuestions: finalTotal,
+                correctAnswers: finalCorrect,
+                timeSpentSeconds: finalData.timerSeconds,
+                answers: submissions,
+              });
+
+              const response = await fetch("/api/questions/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  quizId: currentQuizId,
+                  banca: banca || "Geral",
+                  subject: materia?.trim() || "Geral",
+                  topicId: selectedTopicId || null,
+                  difficulty: dificuldade || "Média",
+                  questions: questions.map((q, idx) => ({
+                    ...q,
+                    userAnswer: finalData.selectedAnswers[idx],
+                    isCorrect:
+                      finalData.selectedAnswers[idx] === q.gabaritoCorreto,
+                    errorReason: finalData.errorClassifications[idx] || null,
+                    timeSpentSeconds: Math.round(
+                      finalData.timerSeconds / Math.max(1, finalTotal),
+                    ),
+                  })),
+                }),
+              });
+
+              const data = await response.json();
+              const earnedXp = attemptResult.success
+                ? attemptResult.data?.earnedXp || data.earnedXp || 0
+                : data.earnedXp || 0;
+
+              setLastEarnedXp(earnedXp);
+
+              window.dispatchEvent(
+                new CustomEvent("xp-updated", {
+                  detail: {
+                    totalXp: data.totalXp,
+                    earnedXp,
+                    levelInfo: data.levelInfo,
+                  },
+                }),
+              );
+
+              const newLevel = data.levelInfo?.level;
+              const previousLevel =
+                gamificationStats?.gamification?.level ?? 1;
+
+              if (newLevel && newLevel > previousLevel) {
+                setLevelUpData({
+                  leveledUp: true,
+                  newLevel,
+                  title: data.levelInfo?.title || "Iniciante Consciente",
+                });
+              }
+              if (refreshStats) await refreshStats();
+            } catch (error) {
+              console.error(
+                "Erro ao registrar simulado e creditar XP:",
+                error,
+              );
+            } finally {
+              setShowCompletionModal(true);
+            }
+          }}
+          onExit={() => {
+            setQuestions([]);
+            setSelectedAnswers({});
+            setCheckedQuestions({});
+            setFlaggedQuestions({});
+            setErrorClassifications({});
+            localStorage.removeItem(STORAGE_KEY);
+            setPausedSession(null);
+            setCurrentQuizId(null);
+            setIsTimerRunning(false);
+            setIsZenMode(false);
+          }}
+          onCreateFlashcard={(index) => handleCreateFlashcard(index)}
+          isCreatingFlashcard={creatingFlashcardIndex !== null}
+          createdFlashcards={createdFlashcards}
+        />
+
+        {showCompletionModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-[#030712] animate-in fade-in duration-300">
+            <QuizResultView
+              quizId={currentQuizId}
+              banca={banca}
+              subject={materia || "Simulado"}
+              topicId={selectedTopicId || null}
+              questions={questions}
+              selectedAnswers={selectedAnswers}
+              timerSeconds={timerSeconds}
+              earnedXp={lastEarnedXp}
+              levelUpData={levelUpData}
+              onRestart={() => {
+                setSelectedAnswers({});
+                setCheckedQuestions({});
+                setFlaggedQuestions({});
+                setErrorClassifications({});
+                setTimerSeconds(0);
+                setIsTimerRunning(true);
+                setShowCompletionModal(false);
+              }}
+              onExit={() => {
+                setQuestions([]);
+                setSelectedAnswers({});
+                setCheckedQuestions({});
+                setFlaggedQuestions({});
+                setErrorClassifications({});
+                setTimerSeconds(0);
+                setIsTimerRunning(false);
+                setShowCompletionModal(false);
+              }}
+            />
+          </div>
+        )}
+      </>
     );
   }
 
@@ -5787,515 +6913,482 @@ export default function QuestoesPage() {
         {/* ================= 1. CABEÇALHO PRINCIPAL (SEM QUESTÕES ATIVAS) ================= */}
         {!isZenMode && questions.length === 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 sm:pb-6 transition-all duration-300">
-            <div className="flex items-start sm:items-center gap-3">
+            <div className="flex items-start sm:items-center gap-3.5">
               <button
                 onClick={openSidebar}
                 type="button"
                 className="p-2 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white md:hidden transition-colors cursor-pointer shrink-0 mt-0.5 sm:mt-0"
+                aria-label="Abrir navegação lateral"
               >
                 <Menu size={18} />
               </button>
 
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2 sm:gap-2.5">
-                  <div className="p-1.5 sm:p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-xs shrink-0">
-                    <HelpCircle size={18} className="sm:w-5 sm:h-5" />
-                  </div>
-                  <span className="truncate">Banco de Provas & Simulados</span>
-                </h1>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.2)] shrink-0">
+                      <HelpCircle size={20} />
+                    </div>
+                    <span className="truncate">Banco de Provas & Simulados</span>
+                  </h1>
 
-                <p className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2 leading-tight">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-semibold tracking-wide shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>SISTEMA ATIVO</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-zinc-400 mt-1.5 flex flex-wrap items-center gap-1.5 sm:gap-2 leading-tight">
                   Crie cadernos adaptativos com IA e acompanhe sua evolução.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0 flex-wrap">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => {
-                  fetchQuizHistory();
-                  loadErrorNotebookData();
+                  if (!isHistoryLoaded) fetchQuizHistory();
+                  if (!isNotebookLoaded) loadErrorNotebookData();
                   setIsTimedLaunchModalOpen(true);
                 }}
-                className="w-full sm:w-auto justify-center bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-violet-600/10 active:scale-95"
+                className="w-full sm:w-auto justify-center bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-violet-600/10 active:scale-95 hover:shadow-violet-600/20"
               >
                 <Timer size={15} className="text-violet-400" />
                 <span>Modo Cronometrado</span>
               </button>
-
-              <button
-                onClick={() => setIsRegisterModalOpen(true)}
-                type="button"
-                className="w-full sm:w-auto justify-center bg-white/5 border border-white/10 hover:border-indigo-500/40 text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
-              >
-                <PlusCircle size={15} />
-                <span>Registrar Externo</span>
-              </button>
             </div>
           </div>
         )}
 
-        {/* ETAPA OBRIGATÓRIA EDITAL */}
-        {subjects.length === 0 && questions.length === 0 && (
-          <div className="min-h-[60vh] flex items-center justify-center py-4">
-            <div className="relative overflow-hidden max-w-xl w-full bg-linear-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl space-y-6">
-              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10 relative z-10">
-                <BookOpen size={28} />
-              </div>
-              <div className="space-y-2 relative z-10">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
-                  <Lock size={12} /> Etapa Obrigatória
-                </div>
-                <h2 className="text-xl font-black text-white tracking-tight">
-                  Cadastre seu Edital Primeiro
-                </h2>
-                <p className="text-slate-300 text-xs leading-relaxed max-w-sm mx-auto">
-                  Para gerar simulados ou flashcards adaptados com IA para o seu
-                  concurso, você precisa primeiro cadastrar matérias e tópicos
-                  na aba de Editais.
-                </p>
-              </div>
-              <div className="pt-2 relative z-10">
-                <Link
-                  href="/edital"
-                  className="inline-flex items-center gap-2 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-6 py-3.5 rounded-xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 cursor-pointer"
-                >
-                  <BookOpen size={15} />
-                  <span>Configurar Edital</span>
-                  <ArrowRight size={15} />
-                </Link>
-              </div>
-            </div>
+        {/* 2. NAVEGAÇÃO DE ABAS */}
+        {!isZenMode && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <button
+              onClick={() => handleTabChange("create")}
+              type="button"
+              className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
+                activeTab === "create"
+                  ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+              }`}
+            >
+              <Home size={14} />
+              <span>Início / Gerador</span>
+            </button>
+            <button
+              onClick={() => handleTabChange("history")}
+              type="button"
+              className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
+                activeTab === "history"
+                  ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+              }`}
+            >
+              <History size={14} />
+              <span>Simulados Salvos</span>
+            </button>
+            <button
+              onClick={() => handleTabChange("errors")}
+              type="button"
+              className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
+                activeTab === "errors"
+                  ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+              }`}
+            >
+              <BookOpenCheck size={14} />
+              <span>Caderno de Erros</span>
+              {errorNotebookMetrics.pendingErrors > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold border border-rose-500/30">
+                  {errorNotebookMetrics.pendingErrors}
+                </span>
+              )}
+            </button>
           </div>
         )}
 
-        {/* CONTEÚDO PRINCIPAL */}
-        {subjects.length > 0 && (
-          <>
-            {/* HUD REORGANIZADO PARA MODO RESOLUÇÃO */}
-            {questions.length > 0 && activeTab === "create" && (
-              <div className="bg-[#090d16] border border-white/10 rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
-                {/* LINHA 1: MENU + INFO MATÉRIA + TEMPO */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {!isZenMode && (
-                      <button
-                        onClick={openSidebar}
-                        type="button"
-                        className="p-1.5 bg-white/5 border border-white/10 rounded-lg text-slate-400 hover:text-white md:hidden shrink-0 cursor-pointer"
+        {/* 3. CONTEÚDO DA ABA ATIVA COM TRANSIÇÃO SUAVE */}
+        <AnimatePresence mode="wait">
+          {activeTab === "create" && (
+            <motion.div
+              key="tab-create"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="space-y-6"
+            >
+              {isInitialLoading && subjects.length === 0 ? (
+                <TabCreateSkeleton />
+              ) : subjects.length === 0 ? (
+                /* ETAPA OBRIGATÓRIA EDITAL */
+                <div className="min-h-[50vh] flex items-center justify-center py-4">
+                  <div className="relative overflow-hidden max-w-xl w-full bg-linear-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl space-y-6">
+                    <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10 relative z-10">
+                      <BookOpen size={28} />
+                    </div>
+                    <div className="space-y-2 relative z-10">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
+                        <Lock size={12} /> Etapa Obrigatória
+                      </div>
+                      <h2 className="text-xl font-black text-white tracking-tight">
+                        Cadastre seu Edital Primeiro
+                      </h2>
+                      <p className="text-slate-300 text-xs leading-relaxed max-w-sm mx-auto">
+                        Para gerar simulados ou flashcards adaptados com IA para o seu
+                        concurso, você precisa primeiro cadastrar matérias e tópicos
+                        na aba de Editais.
+                      </p>
+                    </div>
+                    <div className="pt-2 relative z-10">
+                      <Link
+                        href="/edital"
+                        className="inline-flex items-center gap-2 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-6 py-3.5 rounded-xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 cursor-pointer"
                       >
-                        <Menu size={16} />
-                      </button>
-                    )}
-                    <span className="px-2 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/30 font-bold text-indigo-300 text-[10px] shrink-0 uppercase">
-                      {banca}
-                    </span>
-                    <span className="text-xs text-slate-200 font-bold truncate">
-                      {materia || "Simulado"}
-                    </span>
-                  </div>
-
-                  {/* CRONÔMETRO */}
-                  <div className="flex items-center gap-1.5 bg-indigo-950/60 border border-indigo-500/40 px-2.5 py-1 rounded-xl text-xs font-mono text-indigo-300 shrink-0">
-                    <Clock
-                      size={12}
-                      className="text-emerald-400 animate-pulse"
-                    />
-                    <span>{formatTimer(timerSeconds)}</span>
-                    <button
-                      onClick={() => setIsTimerRunning((prev) => !prev)}
-                      className="p-0.5 hover:bg-white/10 rounded text-slate-400 hover:text-white cursor-pointer ml-0.5"
-                    >
-                      {isTimerRunning ? (
-                        <Pause size={11} />
-                      ) : (
-                        <Play size={11} />
-                      )}
-                    </button>
+                        <BookOpen size={15} />
+                        <span>Configurar Edital</span>
+                        <ArrowRight size={15} />
+                      </Link>
+                    </div>
                   </div>
                 </div>
+              ) : (
+                <>
+                  {questions.length === 0 ? (
+                    <div className="space-y-6">
+                      {pausedSession &&
+                        pausedSession.questions &&
+                        pausedSession.questions.length > 0 && (
+                          <ResumeSessionCard
+                            session={pausedSession}
+                            onResume={() => {
+                              setCurrentQuizId(pausedSession.quizId || null);
+                              setBanca(pausedSession.banca || "FGV");
+                              setQuestions(pausedSession.questions || []);
+                              setSelectedAnswers(
+                                pausedSession.selectedAnswers || {},
+                              );
+                              setCheckedQuestions(
+                                pausedSession.checkedQuestions || {},
+                              );
+                              setCreatedFlashcards(
+                                pausedSession.createdFlashcards || {},
+                              );
+                              setTimerSeconds(pausedSession.timerSeconds || 0);
+                              setFocusedQuestionIndex(0);
+                              setIsTimerRunning(true);
+                            }}
+                            onDiscard={(e) => {
+                              e.stopPropagation();
+                              localStorage.removeItem(STORAGE_KEY);
+                              setPausedSession(null);
+                            }}
+                          />
+                        )}
 
-                {/* LINHA 2: PROGRESSO + AÇÕES */}
-                <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-2 text-xs">
-                  <div className="flex items-center gap-2 font-mono text-slate-300 text-[11px]">
-                    <span className="font-bold text-emerald-400">
-                      {answeredCount}/{totalQuestions}
-                    </span>
-                    <span className="text-slate-600">•</span>
-                    <span>{percentageAcc}% Acerto</span>
-                  </div>
+                      {/* HERO SPOTLIGHT - BANNER PRINCIPAL */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="backdrop-blur-xl bg-gradient-to-br from-violet-950/30 via-zinc-900/60 to-black/80 border border-violet-500/20 rounded-2xl p-7 relative overflow-hidden shadow-2xl hover:border-violet-500/30 transition-all duration-300"
+                      >
+                        {/* Luz radial ambiente em degradê violeta no canto superior direito */}
+                        <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 bg-violet-600/15 rounded-full blur-3xl" />
 
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => setIsPrintMode(true)}
-                      type="button"
-                      className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-cyan-400 text-xs font-semibold cursor-pointer"
-                      title="Imprimir"
-                    >
-                      <Printer size={13} />
-                    </button>
-
-                    <button
-                      onClick={() => setIsZenMode((prev) => !prev)}
-                      type="button"
-                      className={`p-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
-                        isZenMode
-                          ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
-                          : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
-                      }`}
-                      title="Modo Zen"
-                    >
-                      {isZenMode ? (
-                        <Minimize2 size={13} />
-                      ) : (
-                        <Maximize2 size={13} />
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setQuestions([]);
-                        setSelectedAnswers({});
-                        setCheckedQuestions({});
-                        setFlaggedQuestions({});
-                        setErrorClassifications({});
-                        localStorage.removeItem(STORAGE_KEY);
-                        setPausedSession(null);
-                        setCurrentQuizId(null);
-                        setIsTimerRunning(false);
-                        setIsZenMode(false);
-                      }}
-                      type="button"
-                      className="text-[10px] font-bold text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-lg shrink-0 cursor-pointer"
-                    >
-                      Sair
-                    </button>
-                  </div>
-                </div>
-
-                {/* BARRA DE PROGRESSO */}
-                <div className="w-full bg-slate-950/80 rounded-full h-1.5 overflow-hidden border border-white/5">
-                  <div
-                    className="bg-linear-to-r from-indigo-500 via-indigo-400 to-emerald-400 h-full transition-all duration-300 rounded-full"
-                    style={{
-                      width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* 3. NAVEGAÇÃO DE ABAS */}
-            {!isZenMode && questions.length === 0 && (
-              <div className="flex border-b border-white/10 gap-2 overflow-x-auto pb-px scrollbar-none">
-                <button
-                  onClick={() => handleTabChange("create")}
-                  type="button"
-                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
-                    activeTab === "create"
-                      ? "border-indigo-500 text-indigo-400 bg-white/5"
-                      : "border-transparent text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <Home size={14} />
-                  <span>Início / Gerador</span>
-                </button>
-                <button
-                  onClick={() => {
-                    handleTabChange("history");
-                    fetchQuizHistory();
-                  }}
-                  type="button"
-                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
-                    activeTab === "history"
-                      ? "border-indigo-500 text-indigo-400 bg-white/5"
-                      : "border-transparent text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <History size={14} />
-                  <span>Simulados Salvos</span>
-                </button>
-                <button
-                  onClick={() => {
-                    handleTabChange("notebook");
-                    loadErrorNotebookData();
-                  }}
-                  type="button"
-                  className={`py-2.5 px-4 font-bold text-xs tracking-wider transition-all border-b-2 rounded-t-xl flex items-center gap-2 cursor-pointer shrink-0 ${
-                    activeTab === "notebook"
-                      ? "border-rose-500 text-rose-400 bg-white/5"
-                      : "border-transparent text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <BookOpenCheck size={14} />
-                  <span>Caderno de Erros</span>
-                  {errorNotebookMetrics.pendingErrors > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold border border-rose-500/30">
-                      {errorNotebookMetrics.pendingErrors}
-                    </span>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {/* 4. ABA 1: HUB OU CADERNO ATIVO */}
-            {activeTab === "create" && (
-              <>
-                {questions.length === 0 ? (
-                  <div className="space-y-6">
-                    {pausedSession &&
-                      pausedSession.questions &&
-                      pausedSession.questions.length > 0 && (
-                        <ResumeSessionCard
-                          session={pausedSession}
-                          onResume={() => {
-                            setCurrentQuizId(pausedSession.quizId || null);
-                            setBanca(pausedSession.banca || "FGV");
-                            setQuestions(pausedSession.questions || []);
-                            setSelectedAnswers(
-                              pausedSession.selectedAnswers || {},
-                            );
-                            setCheckedQuestions(
-                              pausedSession.checkedQuestions || {},
-                            );
-                            setCreatedFlashcards(
-                              pausedSession.createdFlashcards || {},
-                            );
-                            setTimerSeconds(pausedSession.timerSeconds || 0);
-                            setFocusedQuestionIndex(0);
-                            setIsTimerRunning(true);
-                          }}
-                          onDiscard={(e) => {
-                            e.stopPropagation();
-                            localStorage.removeItem(STORAGE_KEY);
-                            setPausedSession(null);
-                          }}
-                        />
-                      )}
-
-                    {/* HERO SPOTLIGHT */}
-                    <div className="relative overflow-hidden bg-linear-to-br from-[#0d1326] via-[#090d18] to-[#04060c] border border-indigo-500/20 sm:border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl backdrop-blur-2xl">
-                      <div className="pointer-events-none absolute -top-12 -right-12 h-40 w-40 sm:h-72 sm:w-72 rounded-full bg-indigo-500/20 blur-[60px] sm:blur-[100px]" />
-
-                      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-8">
-                        <div className="space-y-2.5 sm:space-y-4 max-w-xl">
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 backdrop-blur-md">
+                        <div className="relative z-10 space-y-5">
+                          {/* Badge futurista */}
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 backdrop-blur-md shadow-[0_0_12px_rgba(139,92,246,0.15)]">
                             <Sparkles
-                              size={11}
-                              className="text-indigo-400 animate-pulse"
+                              size={12}
+                              className="text-violet-400 animate-pulse"
                             />
-                            <span className="text-[9px] sm:text-[10px] font-black tracking-widest text-indigo-300 uppercase">
-                              Central de Treinamento
+                            <span className="text-[10px] font-mono font-bold tracking-widest text-violet-300 uppercase">
+                              CORE ENGINE V2.0 • IA GENERATIVA
                             </span>
                           </div>
 
-                          <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-snug sm:leading-tight">
-                            Pratique com questões inéditas e simulados
-                            direcionados
-                          </h2>
-
-                          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                            Gere cadernos adaptativos configurados pela IA ou
-                            retome seus testes anteriores com feedback em tempo
-                            real.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* CARDS DE AÇÃO */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-5">
-                      <div
-                        onClick={() => setIsAIModalOpen(true)}
-                        className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] active:scale-[0.98] sm:active:scale-[0.99] hover:border-indigo-500/50 border border-indigo-500/20 sm:border-white/10 p-5 sm:p-7 rounded-2xl sm:rounded-3xl cursor-pointer transition-all duration-200 shadow-xl flex flex-col justify-between overflow-hidden"
-                      >
-                        <div className="pointer-events-none absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all" />
-
-                        <div className="space-y-3 sm:space-y-4 relative z-10">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)]">
-                            <Sparkles size={20} className="sm:w-5 sm:h-5" />
+                          {/* Título & Descrição */}
+                          <div className="space-y-2 max-w-2xl">
+                            <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent leading-tight">
+                              Pratique com questões inéditas e simulados direcionados
+                            </h2>
+                            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl">
+                              Gere cadernos adaptativos configurados pela IA ou retome seus testes anteriores com feedback e correção comentada em tempo real.
+                            </p>
                           </div>
 
-                          <div>
-                            <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-indigo-300 transition-colors flex items-center justify-between">
-                              <span>Gerar Simulado por IA</span>
-                              <span className="text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full sm:hidden">
-                                Recomendado
+                          {/* Métricas integradas no rodapé do banner */}
+                          <div className="pt-3 flex flex-wrap items-center gap-2.5 sm:gap-3 border-t border-white/5">
+                            {/* 1. Precisão Média */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
+                              <Target size={14} className="text-violet-400 shrink-0" />
+                              <span className="text-zinc-400 text-[11px]">Precisão Média:</span>
+                              <span className="text-white font-bold font-mono">
+                                {practiceMetrics.averageAccuracy}%
                               </span>
-                            </h3>
+                            </div>
 
-                            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                              Filtre por banca, disciplina e dificuldade para
-                              montar cadernos sob medida.
-                            </p>
+                            {/* 2. Total de Questões Praticadas */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
+                              <Zap size={14} className="text-violet-400 shrink-0" />
+                              <span className="text-zinc-400 text-[11px]">Questões Praticadas:</span>
+                              <span className="text-white font-bold font-mono">
+                                {practiceMetrics.totalAnswered}
+                              </span>
+                            </div>
+
+                            {/* 3. Sequência Ativa */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
+                              <Flame size={14} className="text-amber-400 shrink-0" />
+                              <span className="text-zinc-400 text-[11px]">Sequência Ativa:</span>
+                              <span className="text-white font-bold font-mono">
+                                {gamificationStats?.streak?.currentDays ?? 0}{" "}
+                                {gamificationStats?.streak?.currentDays === 1 ? "dia" : "dias"}
+                              </span>
+                            </div>
                           </div>
                         </div>
+                      </motion.div>
 
-                        <div className="mt-5 sm:mt-8 flex items-center gap-2 text-xs font-extrabold text-indigo-400 group-hover:translate-x-1 transition-transform">
-                          <span>Configurar Parâmetros</span>
-                          <ArrowRight size={14} />
-                        </div>
-                      </div>
+                      {/* CARDS DE AÇÃO */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {/* Card 1 - Gerar Simulado por IA */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.05 }}
+                          onClick={() => setIsAIModalOpen(true)}
+                          className="group relative backdrop-blur-xl bg-gradient-to-br from-violet-950/20 via-zinc-900/50 to-black/70 border border-violet-500/20 hover:border-violet-500/40 hover:-translate-y-0.5 rounded-2xl p-6 sm:p-7 cursor-pointer transition-all duration-300 shadow-xl overflow-hidden flex flex-col justify-between"
+                        >
+                          {/* Glow ambiente no hover */}
+                          <div className="pointer-events-none absolute top-0 right-0 w-36 h-36 bg-violet-600/10 rounded-full blur-2xl group-hover:bg-violet-600/20 transition-all duration-300" />
 
-                      <div
-                        onClick={() => {
-                          handleTabChange("history");
-                          fetchQuizHistory();
-                        }}
-                        className="group relative bg-linear-to-br from-[#0c101d] via-[#090d18] to-[#05070e] active:scale-[0.98] sm:active:scale-[0.99] hover:border-white/30 border border-white/10 p-5 sm:p-7 rounded-2xl sm:rounded-3xl cursor-pointer transition-all duration-200 shadow-xl flex flex-col justify-between overflow-hidden"
-                      >
-                        <div className="space-y-3 sm:space-y-4 relative z-10">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 shadow-inner">
-                            <History size={20} className="sm:w-5 sm:h-5" />
+                          <div className="space-y-4 relative z-10">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="bg-violet-500/10 border border-violet-500/30 text-violet-400 p-3 rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+                                <Sparkles size={20} />
+                              </div>
+                              <span className="text-[10px] font-mono font-medium text-violet-300 bg-violet-500/15 border border-violet-500/30 px-2.5 py-1 rounded-full">
+                                Motor Ultrarrápido (&lt;5s)
+                              </span>
+                            </div>
+
+                            <div>
+                              <h3 className="text-lg font-bold text-white group-hover:text-violet-200 transition-colors">
+                                Gerar Simulado por IA
+                              </h3>
+                              <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+                                Filtre por banca, disciplina e dificuldade para montar cadernos sob medida com questões inéditas e análise de pegadinhas.
+                              </p>
+                            </div>
                           </div>
 
-                          <div>
-                            <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-slate-200 transition-colors">
-                              Meus Simulados Salvos
-                            </h3>
-
-                            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                              Acesse e refaça cadernos salvos no seu histórico a
-                              qualquer momento.
-                            </p>
+                          <div className="mt-6 pt-4 border-t border-white/5 relative z-10">
+                            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-violet-600/20 group-hover:shadow-violet-600/35 transition-all">
+                              <span>Configurar e Gerar</span>
+                              <ArrowRight
+                                size={14}
+                                className="group-hover:translate-x-1 transition-transform duration-200"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        </motion.div>
 
-                        <div className="mt-5 sm:mt-8 flex items-center gap-2 text-xs font-extrabold text-slate-400 group-hover:text-slate-200 group-hover:translate-x-1 transition-transform">
-                          <span>Ver Cadernos Salvos</span>
-                          <ArrowRight size={14} />
-                        </div>
+                        {/* Card 2 - Cadernos Salvos */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.1 }}
+                          onClick={() => {
+                            handleTabChange("history");
+                          }}
+                          className="group relative backdrop-blur-xl bg-gradient-to-br from-indigo-950/20 via-zinc-900/50 to-black/70 border border-indigo-500/20 hover:border-indigo-500/40 hover:-translate-y-0.5 rounded-2xl p-6 sm:p-7 cursor-pointer transition-all duration-300 shadow-xl overflow-hidden flex flex-col justify-between"
+                        >
+                          {/* Glow ambiente no hover */}
+                          <div className="pointer-events-none absolute top-0 right-0 w-36 h-36 bg-indigo-600/10 rounded-full blur-2xl group-hover:bg-indigo-600/20 transition-all duration-300" />
+
+                          <div className="space-y-4 relative z-10">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 p-3 rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                                <History size={20} />
+                              </div>
+                              <span className="text-[10px] font-mono font-medium text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 rounded-full">
+                                {quizHistory.length} {quizHistory.length === 1 ? "caderno" : "cadernos"}
+                              </span>
+                            </div>
+
+                            <div>
+                              <h3 className="text-lg font-bold text-white group-hover:text-indigo-200 transition-colors">
+                                Cadernos Salvos
+                              </h3>
+                              <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+                                {quizHistory.length > 0
+                                  ? `${quizHistory.length} ${quizHistory.length === 1 ? "simulado arquivado pronto" : "simulados arquivados prontos"} para refazer com gabarito comentado.`
+                                  : "Acesse e refaça cadernos salvos no seu histórico a qualquer momento com resolução detalhada."}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-6 pt-4 border-t border-white/5 relative z-10">
+                            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-zinc-200 text-xs font-bold transition-all">
+                              <span>Ver Cadernos Salvos</span>
+                              <ArrowRight
+                                size={14}
+                                className="group-hover:translate-x-1 transition-transform duration-200 text-zinc-400 group-hover:text-zinc-200"
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  /* LISTA DE QUESTÕES COM PADDING INFERIOR ADEQUADO */
-                  <div className="space-y-6 pb-40">
-                    {questions.map((questao, index) => (
-                      <QuestionCard
-                        key={`questao-${index}`}
-                        questao={questao}
-                        index={index}
-                        isFocused={index === focusedQuestionIndex}
-                        respondida={Boolean(checkedQuestions[index])}
-                        alternativaSelecionada={selectedAnswers[index]}
-                        isSavedError={Boolean(savedErrors[index])}
-                        isFlashcardCreated={Boolean(createdFlashcards[index])}
-                        isCreatingFlashcard={creatingFlashcardIndex === index}
-                        isFlagged={Boolean(flaggedQuestions[index])}
-                        onSelectAnswer={(altId) =>
-                          setSelectedAnswers((prev) => ({
-                            ...prev,
-                            [index]: altId,
-                          }))
-                        }
-                        onAnswerQuestion={() => handleAnswerQuestion(index)}
-                        onToggleSaveError={() =>
-                          setSavedErrors((prev) => ({
-                            ...prev,
-                            [index]: !prev[index],
-                          }))
-                        }
-                        onCreateFlashcard={() => handleCreateFlashcard(index)}
-                        onToggleFlag={() =>
-                          setFlaggedQuestions((prev) => ({
-                            ...prev,
-                            [index]: !prev[index],
-                          }))
-                        }
-                        onClassifyError={(reason: ErrorClassification) =>
-                          setErrorClassifications((prev) => ({
-                            ...prev,
-                            [index]: reason,
-                          }))
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
+                  ) : (
+                    /* LISTA DE QUESTÕES COM PADDING INFERIOR ADEQUADO */
+                    <div className="space-y-6 pb-40">
+                      {questions.map((questao, index) => (
+                        <QuestionCard
+                          key={`questao-${index}`}
+                          questao={questao}
+                          index={index}
+                          isFocused={index === focusedQuestionIndex}
+                          respondida={Boolean(checkedQuestions[index])}
+                          alternativaSelecionada={selectedAnswers[index]}
+                          isSavedError={Boolean(savedErrors[index])}
+                          isFlashcardCreated={Boolean(createdFlashcards[index])}
+                          isCreatingFlashcard={creatingFlashcardIndex === index}
+                          isFlagged={Boolean(flaggedQuestions[index])}
+                          onSelectAnswer={(altId) =>
+                            setSelectedAnswers((prev) => ({
+                              ...prev,
+                              [index]: altId,
+                            }))
+                          }
+                          onAnswerQuestion={() => handleAnswerQuestion(index)}
+                          onToggleSaveError={() =>
+                            setSavedErrors((prev) => ({
+                              ...prev,
+                              [index]: !prev[index],
+                            }))
+                          }
+                          onCreateFlashcard={() => handleCreateFlashcard(index)}
+                          onToggleFlag={() =>
+                            setFlaggedQuestions((prev) => ({
+                              ...prev,
+                              [index]: !prev[index],
+                            }))
+                          }
+                          onClassifyError={(reason: ErrorClassification) =>
+                            setErrorClassifications((prev) => ({
+                              ...prev,
+                              [index]: reason,
+                            }))
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </motion.div>
+          )}
 
-            {/* 5. ABA 2: HISTÓRICO */}
-            {activeTab === "history" && (
-              <QuizHistoryTab
-                history={quizHistory}
-                isLoading={isLoadingHistory}
-                searchTerm={searchTerm}
-                sortBy={sortBy}
-                confirmingDeleteId={confirmingDeleteId}
-                loadingQuizId={loadingQuizId}
-                onSearchChange={setSearchTerm}
-                onSortChange={setSortBy}
-                onLoadSavedQuiz={(savedQ, savedBanca, id) => {
-                  setLoadingQuizId(id);
-                  setTimeout(() => {
-                    const randomized = randomizeQuizSession(savedQ);
-                    setCurrentQuizId(id);
+          {activeTab === "history" && (
+            <motion.div
+              key="tab-history"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {isLoadingHistory && !isHistoryLoaded ? (
+                <TabHistorySkeleton />
+              ) : (
+                <QuizHistoryTab
+                  history={quizHistory}
+                  isLoading={isLoadingHistory && !isHistoryLoaded}
+                  searchTerm={searchTerm}
+                  sortBy={sortBy}
+                  confirmingDeleteId={confirmingDeleteId}
+                  loadingQuizId={loadingQuizId}
+                  onSearchChange={setSearchTerm}
+                  onSortChange={setSortBy}
+                  onLoadSavedQuiz={(savedQ, savedBanca, id) => {
+                    setLoadingQuizId(id);
+                    setTimeout(() => {
+                      const randomized = randomizeQuizSession(savedQ);
+                      setCurrentQuizId(id);
+                      setSelectedAnswers({});
+                      setCheckedQuestions({});
+                      setFlaggedQuestions({});
+                      setErrorClassifications({});
+                      setSavedErrors({});
+                      setCreatedFlashcards({});
+                      setShowCompletionModal(false);
+                      setQuestions(randomized);
+                      setBanca(savedBanca);
+                      handleTabChange("create");
+                      setLoadingQuizId(null);
+                      setTimerSeconds(0);
+                      setFocusedQuestionIndex(0);
+                      setIsTimerRunning(true);
+                    }, 200);
+                  }}
+                  onConfirmDelete={setConfirmingDeleteId}
+                  onDeleteSimulado={async (id) => {
+                    try {
+                      const res = await fetch(`/api/questions/${id}`, {
+                        method: "DELETE",
+                      });
+                      if (res.ok) {
+                        setQuizHistory((prev) => prev.filter((i) => i.id !== id));
+                        setConfirmingDeleteId(null);
+                      }
+                    } catch (err) {
+                      console.error("Erro ao deletar:", err);
+                    }
+                  }}
+                  onBatchDeleteSuccess={(deletedIds) => {
+                    setQuizHistory((prev) =>
+                      prev.filter((i) => !deletedIds.includes(i.id)),
+                    );
+                  }}
+                  onCreateNewQuiz={() => {
+                    setQuestions([]);
                     setSelectedAnswers({});
                     setCheckedQuestions({});
                     setFlaggedQuestions({});
                     setErrorClassifications({});
-                    setSavedErrors({});
-                    setCreatedFlashcards({});
-                    setShowCompletionModal(false);
-                    setQuestions(randomized);
-                    setBanca(savedBanca);
+                    setCurrentQuizId(null);
                     handleTabChange("create");
-                    setLoadingQuizId(null);
-                    setTimerSeconds(0);
-                    setFocusedQuestionIndex(0);
-                    setIsTimerRunning(true);
-                  }, 200);
-                }}
-                onConfirmDelete={setConfirmingDeleteId}
-                onDeleteSimulado={async (id) => {
-                  try {
-                    const res = await fetch(`/api/questions/${id}`, {
-                      method: "DELETE",
-                    });
-                    if (res.ok) {
-                      setQuizHistory((prev) => prev.filter((i) => i.id !== id));
-                      setConfirmingDeleteId(null);
-                    }
-                  } catch (err) {
-                    console.error("Erro ao deletar:", err);
-                  }
-                }}
-                onCreateNewQuiz={() => {
-                  setQuestions([]);
-                  setSelectedAnswers({});
-                  setCheckedQuestions({});
-                  setFlaggedQuestions({});
-                  setErrorClassifications({});
-                  setCurrentQuizId(null);
-                  handleTabChange("create");
-                  setIsZenMode(false);
-                }}
-              />
-            )}
+                    setIsZenMode(false);
+                  }}
+                />
+              )}
+            </motion.div>
+          )}
 
-            {/* 5. ABA 3: CADERNO DE ERROS COMPLETO */}
-            {activeTab === "notebook" && questions.length === 0 && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                {!isNotebookLoaded || isLoadingNotebook ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3 text-xs">
-                    <Loader2 size={24} className="animate-spin text-rose-400" />
-                    <span>Carregando diagnóstico do Caderno de Erros...</span>
-                  </div>
-                ) : (
-                  <ErrorNotebookView
-                    initialItems={errorNotebookItems}
-                    initialMetrics={errorNotebookMetrics}
-                    subjects={subjects}
-                  />
-                )}
-              </div>
-            )}
-          </>
-        )}
+          {activeTab === "errors" && (
+            <motion.div
+              key="tab-errors"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="space-y-4"
+            >
+              {isLoadingNotebook && !isNotebookLoaded ? (
+                <TabErrorsSkeleton />
+              ) : (
+                <ErrorNotebookView
+                  initialMetrics={errorNotebookMetrics}
+                  subjects={subjects}
+                />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* MINIMAP FLUTUANTE */}
@@ -6322,6 +7415,7 @@ export default function QuestoesPage() {
         banca={banca}
         materia={materia}
         selectedTopicId={selectedTopicId}
+        specificTopic={specificTopic}
         qtdQuestoes={qtdQuestoes}
         fonteConteudo={fonteConteudo}
         dificuldade={dificuldade}
@@ -6342,6 +7436,7 @@ export default function QuestoesPage() {
           }
         }}
         onTopicChange={setSelectedTopicId}
+        onSpecificTopicChange={setSpecificTopic}
         onFonteChange={setFonteConteudo}
         onTextoBaseChange={setTextoBase}
         onDificuldadeChange={setDificuldade}
@@ -6349,12 +7444,17 @@ export default function QuestoesPage() {
         onSubmit={handleGenerateSimulado}
       />
 
-      <RegisterQuestionsModal
-        isOpen={isRegisterModalOpen}
-        onClose={() => setIsRegisterModalOpen(false)}
-        topics={allModalTopics}
-        onSuccess={() => {
-          if (refreshStats) refreshStats();
+      <SimuladoGenerationModal
+        isOpen={isSimuladoModalOpen}
+        isGenerating={isGenerating}
+        banca={banca}
+        materia={specificTopic.trim() ? `${materia} (${specificTopic.trim()})` : materia}
+        qtdQuestoes={qtdQuestoes}
+        error={simuladoGenerationError}
+        onComplete={handleSimuladoModalComplete}
+        onClose={() => {
+          setIsSimuladoModalOpen(false);
+          setSimuladoGenerationError(null);
         }}
       />
 

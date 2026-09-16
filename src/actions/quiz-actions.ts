@@ -2,7 +2,10 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { invalidateUserCacheAction } from "@/actions/gamification-actions";
+import {
+  invalidateUserCacheAction,
+  recordStudyActivityAction,
+} from "@/actions/gamification-actions";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
 import { revalidatePath } from "next/cache";
 import { SubmitQuizAttemptInput, SubjectDomainMetric } from "@/types/quiz";
@@ -64,29 +67,22 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
 
     const earnedXp = baseEarnedXp + accuracyBonusXp + timedBonusXp;
 
-    // 1. Grava a tentativa no banco e atualiza XP atômico
-    const [attempt] = await prisma.$transaction([
-      prisma.quizAttempt.create({
-        data: {
-          userId,
-          topicId: targetTopicId,
-          totalCount: input.totalQuestions,
-          correctCount: input.correctAnswers,
-        },
-      }),
-      prisma.userStats.upsert({
-        where: { userId },
-        create: {
-          userId,
-          totalXp: earnedXp,
-          lastStudyDate: new Date(),
-        },
-        update: {
-          totalXp: { increment: earnedXp },
-          lastStudyDate: new Date(),
-        },
-      }),
-    ]);
+    // 1. Grava a tentativa no banco
+    const attempt = await prisma.quizAttempt.create({
+      data: {
+        userId,
+        topicId: targetTopicId,
+        totalCount: input.totalQuestions,
+        correctCount: input.correctAnswers,
+      },
+    });
+
+    // 1.1 Atualiza XP, streak e proteção anti-frustração via motor centralizado
+    const activityResult = await recordStudyActivityAction(
+      userId,
+      earnedXp,
+      "QUIZ",
+    );
 
     // 2. Atualiza a performance e última data no tópico
     await prisma.topic.update({
@@ -158,6 +154,10 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
         accuracyBonusXp,
         timedBonusXp,
         completedWithinTime,
+        totalXp: activityResult.data?.totalXp,
+        streakDays: activityResult.data?.streakDays,
+        streakProtected: activityResult.data?.streakProtected,
+        levelInfo: activityResult.data?.levelInfo,
       },
     };
   } catch (err) {
@@ -458,4 +458,6 @@ Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
     };
   }
 }
+
+export { deleteBatchSimuladosAction } from "./simulado-actions";
 

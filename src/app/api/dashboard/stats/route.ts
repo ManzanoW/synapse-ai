@@ -16,61 +16,65 @@ export async function GET() {
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    // 1. Busca histórico de revisões do usuário
-    const reviews = await prisma.reviewHistory.findMany({
-      where: {
-        topic: {
-          subject: {
-            userId: userId,
+    // 1. Executa todas as consultas estatísticas de forma concorrente via Promise.all
+    const [
+      reviews,
+      studySessions,
+      totalDecks,
+      totalFlashcards,
+      totalTopics,
+      completedTopics,
+      user,
+    ] = await Promise.all([
+      // Histórico de revisões do usuário
+      prisma.reviewHistory.findMany({
+        where: {
+          topic: {
+            subject: {
+              userId: userId,
+            },
           },
         },
-      },
-      select: {
-        id: true,
-        grade: true,
-        reviewedAt: true,
-        durationSeconds: true,
-      },
-      orderBy: { reviewedAt: "desc" },
-    });
-
-    // 2. Busca sessões de estudo diretas do Cronograma/Ciclo
-    const studySessions = await prisma.studySession.findMany({
-      where: { userId },
-      select: { durationMinutes: true, date: true, createdAt: true },
-    });
+        select: {
+          id: true,
+          grade: true,
+          reviewedAt: true,
+          durationSeconds: true,
+        },
+        orderBy: { reviewedAt: "desc" },
+      }),
+      // Sessões de estudo diretas do Cronograma/Ciclo
+      prisma.studySession.findMany({
+        where: { userId },
+        select: { durationMinutes: true, date: true, createdAt: true },
+      }),
+      // Total de Decks
+      prisma.deck.count({ where: { userId } }),
+      // Total de Flashcards
+      prisma.flashcard.count({ where: { deck: { userId } } }),
+      // Total de tópicos do edital
+      prisma.topic.count({ where: { subject: { userId } } }),
+      // Tópicos concluídos ou em revisão
+      prisma.topic.count({
+        where: {
+          subject: { userId },
+          firstStudy: { in: ["Concluido", "Em Revisão"] },
+        },
+      }),
+      // Data da Prova Alvo
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { targetExamDate: true },
+      }),
+    ]);
 
     const sessionMinutesTotal = studySessions.reduce(
       (acc: number, s: { durationMinutes: number | null }) => acc + (s.durationMinutes || 0),
       0
     );
 
-    // 3. Busca total de Decks e Flashcards
-    const totalDecks = await prisma.deck.count({ where: { userId } });
-    const totalFlashcards = await prisma.flashcard.count({
-      where: { deck: { userId } },
-    });
-
-    // 4. Métrica da Jornada
-    const totalTopics = await prisma.topic.count({
-      where: { subject: { userId } },
-    });
-
-    const completedTopics = await prisma.topic.count({
-      where: {
-        subject: { userId },
-        firstStudy: { in: ["Concluido", "Em Revisão"] },
-      },
-    });
-
     const journeyPercentage =
       totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
-
-    // 5. Data da Prova Alvo
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { targetExamDate: true },
-    });
 
     const hasObjective = !!user?.targetExamDate;
     let daysRemaining = 0;

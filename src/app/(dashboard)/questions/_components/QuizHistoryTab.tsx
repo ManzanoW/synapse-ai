@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Search,
   ChevronDown,
@@ -18,8 +19,12 @@ import {
   BarChart3,
   Clock,
   AlertTriangle,
+  Check,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
+import { deleteBatchSimuladosAction } from "@/actions/simulado-actions";
 
 export interface QuizHistoryItem {
   id: string;
@@ -45,6 +50,7 @@ interface QuizHistoryTabProps {
   onConfirmDelete: (id: string | null) => void;
   onDeleteSimulado: (id: string) => void;
   onCreateNewQuiz: () => void;
+  onBatchDeleteSuccess?: (deletedIds: string[]) => void;
 }
 
 interface QuizPerformance {
@@ -140,8 +146,15 @@ export function QuizHistoryTab({
   onConfirmDelete,
   onDeleteSimulado,
   onCreateNewQuiz,
+  onBatchDeleteSuccess,
 }: QuizHistoryTabProps) {
   const router = useRouter();
+
+  // Estados locais para controle de seleção e exclusão em lote
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false);
 
   // Filtragem e Ordenação dos Cadernos
   const filteredHistory = history
@@ -182,6 +195,25 @@ export function QuizHistoryTab({
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
+  const filteredIds = filteredHistory.map((item) => item.id);
+  const isAllSelected =
+    filteredIds.length > 0 &&
+    filteredIds.every((id) => selectedIds.includes(id));
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       {/* 1. CABEÇALHO DA ABA (LIMPO E SEM REDUNDÂNCIAS) */}
@@ -204,6 +236,54 @@ export function QuizHistoryTab({
               completo ou refaça cadernos salvos.
             </p>
           </div>
+
+          {/* Botão no cabeçalho: Selecionar / Gerenciar / Selecionar Todos / Concluir */}
+          {!isLoading && history.length > 0 && (
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              {!isSelectionMode ? (
+                <button
+                  type="button"
+                  onClick={() => setIsSelectionMode(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/10 hover:border-violet-500/30 text-xs font-medium transition-all cursor-pointer shadow-sm active:scale-98"
+                >
+                  <CheckSquare size={14} className="text-violet-400" />
+                  <span>Gerenciar</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 animate-in fade-in duration-200">
+                  <button
+                    type="button"
+                    onClick={handleToggleSelectAll}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 text-violet-300 border border-violet-500/30 text-xs font-medium transition-all cursor-pointer active:scale-98"
+                  >
+                    {isAllSelected ? (
+                      <>
+                        <Square size={14} />
+                        <span>Desmarcar Todos</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckSquare size={14} />
+                        <span>Selecionar Todos ({filteredHistory.length})</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSelectionMode(false);
+                      setSelectedIds([]);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-medium transition-all cursor-pointer"
+                    title="Sair do modo de seleção"
+                  >
+                    <X size={14} />
+                    <span>Concluir</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* BARRA DE BUSCA E FILTROS COM GLASSMORPHISM */}
@@ -329,6 +409,7 @@ export function QuizHistoryTab({
             const formattedDate = new Date(item.createdAt).toLocaleDateString(
               "pt-BR"
             );
+            const isSelected = selectedIds.includes(item.id);
 
             // Cores dinâmicas da badge de desempenho
             let badgeStyle = "bg-rose-500/10 text-rose-400 border-rose-500/20";
@@ -343,16 +424,66 @@ export function QuizHistoryTab({
             return (
               <div
                 key={`quiz-card-${item.id}`}
-                className="relative overflow-hidden bg-white/[0.02] backdrop-blur-md border border-white/10 hover:border-violet-500/40 rounded-2xl p-5 transition-all duration-300 flex flex-col justify-between hover:shadow-[0_0_25px_-5px_rgba(139,92,246,0.15)] group"
+                onClick={() => {
+                  if (isSelectionMode) {
+                    handleToggleSelect(item.id);
+                  }
+                }}
+                className={`relative overflow-hidden backdrop-blur-md rounded-2xl p-5 transition-all duration-300 flex flex-col justify-between group ${
+                  isSelectionMode ? "cursor-pointer select-none" : ""
+                } ${
+                  isSelected
+                    ? "border-violet-500/60 bg-violet-500/[0.03] shadow-[0_0_25px_-5px_rgba(139,92,246,0.25)] ring-1 ring-violet-500/30"
+                    : "bg-white/[0.02] border border-white/10 hover:border-violet-500/40 hover:shadow-[0_0_25px_-5px_rgba(139,92,246,0.15)]"
+                }`}
               >
                 {/* Glow sutil de fundo */}
-                <div className="absolute top-0 right-0 -mt-6 -mr-6 w-28 h-28 bg-violet-500/5 rounded-full blur-2xl group-hover:bg-violet-500/10 transition-all pointer-events-none" />
+                <div
+                  className={`absolute top-0 right-0 -mt-6 -mr-6 w-28 h-28 rounded-full blur-2xl transition-all pointer-events-none ${
+                    isSelected
+                      ? "bg-violet-500/20"
+                      : "bg-violet-500/5 group-hover:bg-violet-500/10"
+                  }`}
+                />
 
                 {/* TOPO DO CARD */}
                 <div className="space-y-3 relative z-10">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    {/* Badges compactas: Banca e Data */}
+                    {/* Checkbox (quando isSelectionMode) + Badges compactas: Banca e Data */}
                     <div className="flex items-center gap-2">
+                      <AnimatePresence>
+                        {isSelectionMode && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.6, width: 0 }}
+                            animate={{ opacity: 1, scale: 1, width: "auto" }}
+                            exit={{ opacity: 0, scale: 0.6, width: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="shrink-0 overflow-hidden pr-1"
+                          >
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleSelect(item.id);
+                              }}
+                              className={`w-5 h-5 rounded-md flex items-center justify-center transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-violet-600 border border-violet-400 text-white shadow-sm shadow-violet-500/30"
+                                  : "border border-white/20 bg-white/[0.04] hover:border-violet-400/50 hover:bg-violet-500/10"
+                              }`}
+                              title={
+                                isSelected
+                                  ? "Desmarcar simulado"
+                                  : "Selecionar simulado"
+                              }
+                            >
+                              {isSelected && (
+                                <Check size={12} className="stroke-[3]" />
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                       <span className="bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-inner">
                         {item.banca || "GERAL"}
                       </span>
@@ -383,23 +514,28 @@ export function QuizHistoryTab({
                         </div>
                       )}
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onConfirmDelete(item.id);
-                        }}
-                        type="button"
-                        className="text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
-                        title="Excluir simulado"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {!isSelectionMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onConfirmDelete(item.id);
+                          }}
+                          type="button"
+                          className="text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                          title="Excluir simulado"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   {/* Confirmação de Exclusão Inline */}
                   {confirmingDeleteId === item.id && (
-                    <div className="bg-rose-950/40 border border-rose-500/30 p-2.5 rounded-xl flex items-center justify-between gap-2 animate-in fade-in duration-200">
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-rose-950/40 border border-rose-500/30 p-2.5 rounded-xl flex items-center justify-between gap-2 animate-in fade-in duration-200"
+                    >
                       <span className="text-[11px] text-rose-300 font-medium pl-1 flex items-center gap-1.5">
                         <AlertTriangle
                           size={13}
@@ -482,9 +618,10 @@ export function QuizHistoryTab({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
                     {/* Botão Secundário: Gabarito & Métricas */}
                     <button
-                      onClick={() =>
-                        router.push(`/questions/${item.id}/results`)
-                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/questions/${item.id}/results`);
+                      }}
                       type="button"
                       className="flex items-center justify-center gap-2 py-2.5 px-3.5 bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-violet-500/30 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all active:scale-[0.98] cursor-pointer w-full text-center"
                       title="Abrir relatório de desempenho e respostas comentadas"
@@ -497,9 +634,10 @@ export function QuizHistoryTab({
 
                     {/* Botão Primário: Refazer Prova */}
                     <button
-                      onClick={() =>
-                        onLoadSavedQuiz(questionsArray, item.banca, item.id)
-                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onLoadSavedQuiz(questionsArray, item.banca, item.id);
+                      }}
                       disabled={loadingQuizId === item.id}
                       type="button"
                       className="flex items-center justify-center gap-2 py-2.5 px-3.5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-600/20 hover:shadow-violet-600/35 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer w-full text-center"
@@ -534,6 +672,132 @@ export function QuizHistoryTab({
           })}
         </div>
       )}
+
+      {/* 3. FLOATING ACTION BAR NO RODAPÉ */}
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 30, x: "-50%" }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl px-6 py-3.5 shadow-2xl flex items-center gap-4 max-w-[95vw]"
+          >
+            {/* Badge com contador */}
+            <span className="px-2.5 py-1 rounded-lg bg-violet-500/20 border border-violet-500/30 text-violet-300 text-xs font-semibold whitespace-nowrap">
+              {selectedIds.length}{" "}
+              {selectedIds.length === 1 ? "selecionado" : "selecionados"}
+            </span>
+
+            {/* Botão secundário "Cancelar Seleção" (ghost, reseta o array) */}
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="text-xs text-zinc-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer whitespace-nowrap font-medium"
+            >
+              Cancelar Seleção
+            </button>
+
+            {/* Botão destrutivo "Excluir Selecionados" */}
+            <button
+              type="button"
+              onClick={() => setIsConfirmModalOpen(true)}
+              className="bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Trash2 size={15} />
+              <span>Excluir Selecionados</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 4. MODAL RÁPIDO DE CONFIRMAÇÃO DE EXCLUSÃO EM LOTE */}
+      <AnimatePresence>
+        {isConfirmModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeletingBatch && setIsConfirmModalOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: "spring", duration: 0.25 }}
+              className="relative z-10 w-full max-w-md bg-[#0b0f19] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
+                  <AlertTriangle size={20} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-white">
+                    Excluir {selectedIds.length}{" "}
+                    {selectedIds.length === 1 ? "simulado" : "simulados"}?
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Tem certeza que deseja excluir {selectedIds.length}{" "}
+                    {selectedIds.length === 1
+                      ? "simulado selecionado"
+                      : "simulados selecionados"}
+                    ? Esta ação é irreversível.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={isDeletingBatch}
+                  onClick={() => setIsConfirmModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingBatch}
+                  onClick={async () => {
+                    if (selectedIds.length === 0 || isDeletingBatch) return;
+                    setIsDeletingBatch(true);
+                    try {
+                      const res = await deleteBatchSimuladosAction(selectedIds);
+                      if (res.success) {
+                        onBatchDeleteSuccess?.(selectedIds);
+                        setSelectedIds([]);
+                        setIsSelectionMode(false);
+                        setIsConfirmModalOpen(false);
+                      } else {
+                        console.error("Erro na exclusão em lote:", res.error);
+                      }
+                    } catch (err) {
+                      console.error("Erro ao executar exclusão em lote:", err);
+                    } finally {
+                      setIsDeletingBatch(false);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeletingBatch ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Excluindo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      <span>Excluir {selectedIds.length}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

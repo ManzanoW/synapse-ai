@@ -16,7 +16,10 @@ import {
   TrendingUp,
   Check,
   Lock,
+  Brain,
+  AlertCircle,
 } from "lucide-react";
+import { getFlashcardsAnalyticsAction } from "@/actions/flashcard-actions";
 
 export default async function FlashcardsPage() {
   const session = await auth();
@@ -27,46 +30,41 @@ export default async function FlashcardsPage() {
 
   const userId = session.user.id;
 
-  const totalSubjects = await prisma.subject.count({
-    where: { userId },
-  });
-
-  const totalDecks = await prisma.deck.count({
-    where: { userId },
-  });
-
-  const totalCards = await prisma.flashcard.count({
-    where: {
-      deck: { userId },
-    },
-  });
-
-  const dueCardsCount = await prisma.flashcard.count({
-    where: {
-      deck: { userId },
-      OR: [
-        { nextReviewDate: { lte: new Date() } },
-        {
-          topic: {
-            nextRev: { lte: new Date() },
-          },
+  const [totalSubjects, totalDecks, recentDecks, analyticsRes] =
+    await Promise.all([
+      prisma.subject.count({ where: { userId } }),
+      prisma.deck.count({ where: { userId } }),
+      prisma.deck.findMany({
+        where: { userId },
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        include: {
+          subject: true,
+          _count: { select: { flashcards: true } },
         },
-      ],
-    },
-  });
+      }),
+      getFlashcardsAnalyticsAction(),
+    ]);
 
-  const recentDecks = await prisma.deck.findMany({
-    where: { userId },
-    take: 5,
-    orderBy: { createdAt: "desc" },
-    include: {
-      subject: true,
-      _count: { select: { flashcards: true } },
-    },
-  });
+  const analytics = analyticsRes.success && analyticsRes.data
+    ? analyticsRes.data
+    : {
+        totalCards: 0,
+        dueTodayCount: 0,
+        averageRetention: 100,
+        streakDays: 0,
+        maturity: {
+          newCount: 0,
+          learningCount: 0,
+          matureCount: 0,
+          leechCount: 0,
+        },
+      };
 
-  const estimatedRetention = totalCards > 0 ? "88.5%" : "100%";
-  const streakDays: number = 0;
+  const totalCards = analytics.totalCards;
+  const dueCardsCount = analytics.dueTodayCount;
+  const estimatedRetention = `${analytics.averageRetention}%`;
+  const streakDays = analytics.streakDays;
 
   return (
     <div className="p-3 sm:p-6 md:p-8 max-w-7xl mx-auto text-slate-100 space-y-6 sm:space-y-8 selection:bg-indigo-500/30 font-sans pb-16">
@@ -239,11 +237,11 @@ export default async function FlashcardsPage() {
             <div className="p-5 sm:p-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Target size={16} className="text-emerald-400" />
-                  Taxa de Retenção
+                  <Brain size={16} className="text-emerald-400" />
+                  Retenção FSRS
                 </span>
-                <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                  <TrendingUp size={12} /> SM-2
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">
+                  Ebbinghaus
                 </span>
               </div>
 
@@ -252,14 +250,14 @@ export default async function FlashcardsPage() {
                   {estimatedRetention}
                 </p>
                 <span className="text-[11px] text-slate-400">
-                  Domínio da memória
+                  domínio médio
                 </span>
               </div>
 
               <p className="text-xs text-slate-500 leading-normal">
-                Você possui{" "}
-                <strong className="text-slate-300">{totalCards} cards</strong>{" "}
-                cadastrados.
+                Baseado em{" "}
+                <strong className="text-slate-300">{totalCards} flashcards</strong>{" "}
+                e na curva de decaimento de memória.
               </p>
             </div>
 
@@ -289,6 +287,89 @@ export default async function FlashcardsPage() {
               </div>
             </div>
           </div>
+
+          {/* PAINEL FSRS: DISTRIBUIÇÃO DE MATURIDADE DA MEMÓRIA */}
+          {totalCards > 0 && (
+            <div className="p-5 sm:p-6 bg-slate-900/50 border border-slate-800/80 rounded-2xl backdrop-blur-xl shadow-lg space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/60 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <Brain size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      Pipeline de Retenção FSRS
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono font-bold uppercase">
+                        NeuroMemory
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Classificação dos seus flashcards pelo nível de consolidação cerebral
+                    </p>
+                  </div>
+                </div>
+
+                <span className="text-xs font-mono text-slate-400">
+                  {totalCards} cards auditados
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* Novos */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                  <span className="text-[11px] font-bold text-violet-400 uppercase tracking-wider block">
+                    🟣 Novos
+                  </span>
+                  <p className="text-xl font-black font-mono text-white">
+                    {analytics.maturity.newCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Aguardando primeira fixação
+                  </p>
+                </div>
+
+                {/* Em Fixação */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
+                    🟡 Em Fixação
+                  </span>
+                  <p className="text-xl font-black font-mono text-white">
+                    {analytics.maturity.learningCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Estabilidade &lt; 21 dias
+                  </p>
+                </div>
+
+                {/* Maduros / Longo Prazo */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
+                    🟢 Longo Prazo
+                  </span>
+                  <p className="text-xl font-black font-mono text-white">
+                    {analytics.maturity.matureCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Estabilidade &ge; 21 dias
+                  </p>
+                </div>
+
+                {/* Pontos Cegos / Leeches */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                  <span className="text-[11px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1">
+                    <AlertCircle size={12} />
+                    Pontos Cegos
+                  </span>
+                  <p className="text-xl font-black font-mono text-white">
+                    {analytics.maturity.leechCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Falhas repetidas (&ge; 3 erros)
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* SESSÃO: BARALHOS PRIORITÁRIOS */}
           <div className="space-y-4 pt-2">

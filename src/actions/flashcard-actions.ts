@@ -4,13 +4,22 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
-import { invalidateUserCacheAction } from "@/actions/gamification-actions";
+import {
+  invalidateUserCacheAction,
+  recordStudyActivityAction,
+} from "@/actions/gamification-actions";
+import { calculateLevel, type LevelInfo } from "@/lib/gamification/gamification";
+import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { Type } from "@google/genai";
 import {
   calculateNextReview,
   normalizeGrade,
   ReviewGrade,
   EvaluationRating,
   NextReviewResult,
+  calculateMemoryRetention,
+  isLeechCard,
+  classifyCardMaturity,
 } from "@/lib/spaced-repetition";
 
 export interface ReviewFlashcardInput {
@@ -36,6 +45,9 @@ export interface ReviewFlashcardResponse {
     subjectRetentionFactor: number;
     earnedXp?: number;
     totalXp?: number;
+    streakDays?: number;
+    streakProtected?: boolean;
+    levelInfo?: LevelInfo;
   };
 }
 
@@ -187,31 +199,15 @@ export async function reviewFlashcardAction(
       });
     }
 
-    // 6. Registra StudySession para métricas do painel semanal
-    await prisma.studySession.create({
-      data: {
-        userId,
-        durationMinutes: 1,
-        status: "COMPLETED",
-      },
-    });
-
-    // 7. Gamificação: XP escalonado (+5 XP por revisão, +8 XP se acertado/grade >= 3)
+    // 6. Gamificação: XP escalonado (+5 XP por revisão, +8 XP se acertado/grade >= 3) e Ofensiva
     const isCorrect = grade >= 3;
     const earnedXp = 5 + (isCorrect ? 8 : 0); // 5 XP se errou, 13 XP se acertou
 
-    const updatedStats = await prisma.userStats.upsert({
-      where: { userId },
-      update: {
-        totalXp: { increment: earnedXp },
-        lastStudyDate: new Date(),
-      },
-      create: {
-        userId,
-        totalXp: earnedXp,
-        lastStudyDate: new Date(),
-      },
-    });
+    const activityResult = await recordStudyActivityAction(
+      userId,
+      earnedXp,
+      "FLASHCARD",
+    );
 
     // 8. Sincroniza com as missões diárias
     try {
@@ -251,7 +247,10 @@ export async function reviewFlashcardAction(
         isCriticalSubjectDeficit: srsResult.isSubjectCriticalDeficit,
         subjectRetentionFactor: srsResult.subjectRetentionFactor,
         earnedXp,
-        totalXp: updatedStats.totalXp,
+        totalXp: activityResult.data?.totalXp ?? 0,
+        streakDays: activityResult.data?.streakDays ?? 0,
+        streakProtected: activityResult.data?.streakProtected ?? false,
+        levelInfo: calculateLevel(activityResult.data?.totalXp ?? 0),
       },
     };
   } catch (error) {
@@ -262,3 +261,244 @@ export async function reviewFlashcardAction(
     };
   }
 }
+
+export interface FlashcardMnemonicResult {
+  cardId: string;
+  mnemonic: string;
+  explanation: string;
+  details: string;
+}
+
+/**
+ * 🤖 Gera uma regra mnemônica via IA (Gemini) para desatar pontos cegos e cards difíceis (Leeches)
+ */
+export async function generateFlashcardMnemonicAction(
+  cardId: string,
+): Promise<{ success: boolean; data?: FlashcardMnemonicResult; error?: string }> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Não autorizado" };
+    }
+
+    const card = await prisma.flashcard.findFirst({
+      where: {
+        id: cardId,
+        deck: { userId },
+      },
+      select: {
+        id: true,
+        question: true,
+        answer: true,
+        details: true,
+        deckId: true,
+      },
+    });
+
+    if (!card) {
+      return { success: false, error: "Flashcard não encontrado." };
+    }
+
+    // Prompt pedagógico de alta memorização para concurseiros
+    const prompt = `
+Você é o NeuroMemory AI do Synapse AI, especialista em neurociência da aprendizagem e memorização acelerada para concursos públicos.
+
+O concurseiro está enfrentando dificuldades de retenção para fixar o seguinte flashcard:
+- Pergunta / Gatilho de Memória: "${card.question}"
+- Resposta Correta: "${card.answer}"
+${card.details ? `- Contexto / Detalhes atuais: "${card.details}"` : ""}
+
+SUA MISSÃO:
+1. "mnemonic": Crie uma regra mnemônica elegante, acrônimo infalível, rima marcante ou frase-gatilho de NO MÁXIMO 2 LINHAS para que o candidato nunca mais erre essa informação.
+2. "explanation": Explicação sucinta de 1 linha sobre como associar o gatilho à resposta na hora da prova.
+
+Responda ESTRITAMENTE em formato JSON com a estrutura solicitada.
+`;
+
+    const aiRes = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+        maxOutputTokens: 1024,
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            mnemonic: { type: Type.STRING },
+            explanation: { type: Type.STRING },
+          },
+          required: ["mnemonic", "explanation"],
+        },
+      },
+    });
+
+    let mnemonic = "Gatilho mental: Relacione as palavras-chave do enunciado à resposta.";
+    let explanation = "Fixe a conexão lógica entre os conceitos.";
+
+    try {
+      const text = aiRes.text || "{}";
+      const parsed = JSON.parse(text);
+      if (parsed.mnemonic) mnemonic = parsed.mnemonic.trim();
+      if (parsed.explanation) explanation = parsed.explanation.trim();
+    } catch {
+      // Fallback
+    }
+
+    const newDetails = card.details
+      ? `${card.details}\n\n💡 Mnemônico IA: ${mnemonic}`
+      : `💡 Mnemônico IA: ${mnemonic}`;
+
+    await prisma.flashcard.update({
+      where: { id: cardId },
+      data: { details: newDetails },
+    });
+
+    if (card.deckId) {
+      revalidatePath(`/flashcards/study/${card.deckId}`);
+    }
+    revalidatePath("/flashcards");
+
+    return {
+      success: true,
+      data: {
+        cardId,
+        mnemonic,
+        explanation,
+        details: newDetails,
+      },
+    };
+  } catch (error) {
+    console.error("Erro em generateFlashcardMnemonicAction:", error);
+    return {
+      success: false,
+      error: "Falha ao gerar mnemônico inteligente.",
+    };
+  }
+}
+
+export interface FlashcardsAnalyticsData {
+  totalCards: number;
+  dueTodayCount: number;
+  averageRetention: number; // % (0 a 100)
+  streakDays: number;
+  maturity: {
+    newCount: number;
+    learningCount: number;
+    matureCount: number;
+    leechCount: number;
+  };
+}
+
+/**
+ * 📊 Computa métricas globais e distribuição de maturidade FSRS dos flashcards do estudante
+ */
+export async function getFlashcardsAnalyticsAction(): Promise<{
+  success: boolean;
+  data?: FlashcardsAnalyticsData;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Não autorizado" };
+    }
+
+    const now = new Date();
+
+    const [cards, userStats] = await Promise.all([
+      prisma.flashcard.findMany({
+        where: { deck: { userId } },
+        select: {
+          id: true,
+          stability: true,
+          repetitions: true,
+          lapses: true,
+          nextReviewDate: true,
+          lastReviewed: true,
+          interval: true,
+        },
+      }),
+      prisma.userStats.findUnique({
+        where: { userId },
+        select: { streakDays: true },
+      }),
+    ]);
+
+    const totalCards = cards.length;
+    if (totalCards === 0) {
+      return {
+        success: true,
+        data: {
+          totalCards: 0,
+          dueTodayCount: 0,
+          averageRetention: 100,
+          streakDays: userStats?.streakDays ?? 0,
+          maturity: {
+            newCount: 0,
+            learningCount: 0,
+            matureCount: 0,
+            leechCount: 0,
+          },
+        },
+      };
+    }
+
+    let sumRetention = 0;
+    let dueTodayCount = 0;
+    let newCount = 0;
+    let learningCount = 0;
+    let matureCount = 0;
+    let leechCount = 0;
+
+    for (const c of cards) {
+      // 1. Retenção de memória FSRS individual
+      const retention = calculateMemoryRetention(c.stability ?? 1.0, c.lastReviewed, now);
+      sumRetention += retention;
+
+      // 2. Vencimento
+      if (!c.nextReviewDate || new Date(c.nextReviewDate) <= now) {
+        dueTodayCount++;
+      }
+
+      // 3. Maturidade FSRS
+      const stage = classifyCardMaturity(c.repetitions ?? 0, c.stability ?? 1.0);
+      if (stage === "NEW") newCount++;
+      else if (stage === "LEARNING") learningCount++;
+      else matureCount++;
+
+      // 4. Detecção de Leech
+      if (isLeechCard(c.lapses ?? 0, c.repetitions ?? 0)) {
+        leechCount++;
+      }
+    }
+
+    const averageRetention = Math.round(sumRetention / totalCards);
+
+    return {
+      success: true,
+      data: {
+        totalCards,
+        dueTodayCount,
+        averageRetention,
+        streakDays: userStats?.streakDays ?? 0,
+        maturity: {
+          newCount,
+          learningCount,
+          matureCount,
+          leechCount,
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Erro em getFlashcardsAnalyticsAction:", error);
+    return {
+      success: false,
+      error: "Falha ao calcular analytics FSRS dos flashcards.",
+    };
+  }
+}
+

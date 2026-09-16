@@ -25,6 +25,7 @@ import {
   Command,
   TouchpadIcon,
   HelpCircle,
+  Lightbulb,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -36,7 +37,11 @@ import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 import {
   predictNextIntervals,
   ReviewGrade,
+  calculateMemoryRetention,
+  getMemoryStatus,
+  isLeechCard,
 } from "@/lib/spaced-repetition";
+import { generateFlashcardMnemonicAction } from "@/actions/flashcard-actions";
 
 interface Flashcard {
   id: string;
@@ -53,6 +58,7 @@ interface Flashcard {
   difficulty?: number | null;
   repetitions?: number | null;
   lapses?: number | null;
+  lastReviewed?: Date | string | null;
 }
 
 interface StudyFlashcardProps {
@@ -141,6 +147,58 @@ export default function StudyFlashcard({
   const progress =
     cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
 
+  // Estado local para mnemônicos gerados durante a sessão
+  const [mnemonicOverrides, setMnemonicOverrides] = useState<Record<string, string>>({});
+  const [isGeneratingMnemonic, setIsGeneratingMnemonic] = useState(false);
+
+  // Cálculo da Retenção de Memória FSRS em Tempo Real (Curva de Ebbinghaus: R = 0.9^(t / S))
+  const memoryRetention = useMemo(() => {
+    if (!currentCard) return 100;
+    return calculateMemoryRetention(
+      currentCard.stability ?? 1.0,
+      currentCard.lastReviewed ? new Date(currentCard.lastReviewed) : null,
+    );
+  }, [currentCard]);
+
+  const memoryStatus = useMemo(
+    () => getMemoryStatus(memoryRetention),
+    [memoryRetention],
+  );
+
+  // Detecção de Card Sanguessuga (Leech / Ponto Cego)
+  const isLeech = useMemo(() => {
+    if (!currentCard) return false;
+    return isLeechCard(currentCard.lapses ?? 0, currentCard.repetitions ?? 0);
+  }, [currentCard]);
+
+  const currentDetails = useMemo(() => {
+    if (!currentCard) return null;
+    return mnemonicOverrides[currentCard.id] ?? currentCard.details ?? null;
+  }, [currentCard, mnemonicOverrides]);
+
+  const handleGenerateMnemonic = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!currentCard || isGeneratingMnemonic) return;
+
+      setIsGeneratingMnemonic(true);
+      try {
+        const res = await generateFlashcardMnemonicAction(currentCard.id);
+        if (res.success && res.data) {
+          setMnemonicOverrides((prev) => ({
+            ...prev,
+            [currentCard.id]: res.data!.details,
+          }));
+        }
+      } catch (err) {
+        console.error("Erro ao gerar mnemônico inteligente:", err);
+      } finally {
+        setIsGeneratingMnemonic(false);
+      }
+    },
+    [currentCard, isGeneratingMnemonic],
+  );
+
   // Previsão dinâmica dos próximos intervalos do card atual (FSRS)
   const projections = useMemo(() => {
     if (!currentCard) {
@@ -204,30 +262,16 @@ export default function StudyFlashcard({
       try {
         const previousLevel = gamificationStats?.gamification?.level ?? 1;
 
-        const [resReview] = await Promise.all([
-          fetch("/api/flashcards/review", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cardId: currentCard.id,
-              grade,
-              rating: grade,
-              responseTimeMs,
-            }),
+        const resReview = await fetch("/api/flashcards/review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardId: currentCard.id,
+            grade,
+            rating: grade,
+            responseTimeMs,
           }),
-          fetch("/api/review", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cardId: currentCard.id,
-              flashcardId: currentCard.id,
-              topicId:
-                currentCard.topicId || currentCard.deckId || currentCard.id,
-              grade: grade === 1 ? 0 : grade === 2 ? 3 : grade === 3 ? 4 : 5,
-              source: "FLASHCARD",
-            }),
-          }),
-        ]);
+        });
 
         if (resReview.ok) {
           const data = await resReview.json();
@@ -602,10 +646,46 @@ export default function StudyFlashcard({
                     <span className="text-[9px] font-extrabold tracking-widest text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 rounded-lg uppercase backdrop-blur-md">
                       Pergunta
                     </span>
-                    <span className="text-[10px] text-slate-500 font-mono tracking-wider">
-                      CARD #{currentIndex + 1}
-                    </span>
+                    
+                    {/* Medidor de Retenção FSRS e Indicador de Leech */}
+                    <div className="flex items-center gap-2">
+                      {isLeech && (
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 animate-pulse">
+                          <AlertCircle size={10} />
+                          Ponto Cego
+                        </span>
+                      )}
+                      <div
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-bold shadow-sm ${memoryStatus.bgBadge} ${memoryStatus.textBadge} ${memoryStatus.borderBadge}`}
+                        title={`${memoryStatus.label}: ${memoryStatus.description}`}
+                      >
+                        <Brain size={11} />
+                        <span>Retenção {memoryRetention}%</span>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Banner de Intervenção para Ponto Cego (Leech) */}
+                  {isLeech && (
+                    <div className="relative z-10 my-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-center justify-between gap-2 max-w-lg mx-auto">
+                      <div className="flex items-center gap-2 text-left">
+                        <AlertCircle size={14} className="shrink-0 text-amber-400" />
+                        <span className="text-[11px] leading-tight">Card com falhas repetidas. Fixe com gatilho mnemônico!</span>
+                      </div>
+                      <button
+                        onClick={handleGenerateMnemonic}
+                        disabled={isGeneratingMnemonic}
+                        className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[10px] font-bold flex items-center gap-1 transition-all shrink-0 cursor-pointer shadow-sm active:scale-95"
+                      >
+                        {isGeneratingMnemonic ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <Sparkles size={11} className="text-amber-400" />
+                        )}
+                        <span>Mnemônico IA</span>
+                      </button>
+                    </div>
+                  )}
 
                   <div className="my-auto space-y-3 sm:space-y-4 max-w-lg mx-auto relative z-10 py-2">
                     <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform shadow-[0_0_20px_rgba(99,102,241,0.15)]">
@@ -651,20 +731,52 @@ export default function StudyFlashcard({
                     <span className="text-[9px] font-extrabold tracking-widest text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-lg uppercase backdrop-blur-md">
                       Resposta
                     </span>
-                    <span className="text-[10px] text-emerald-400/80 font-mono tracking-wider">
-                      FSRS / SM-2
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-emerald-400/80 font-mono tracking-wider">
+                        FSRS • S: {currentCard?.stability ? `${currentCard.stability.toFixed(1)}d` : "1d"}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="my-auto space-y-2.5 sm:space-y-3 max-w-lg mx-auto overflow-y-auto max-h-56 px-1 custom-scrollbar py-2">
+                  <div className="my-auto space-y-3 max-w-lg mx-auto overflow-y-auto max-h-56 px-1 custom-scrollbar py-2">
                     <h3 className="text-sm sm:text-lg font-semibold text-slate-100 leading-relaxed">
                       {backText}
                     </h3>
 
-                    {currentCard?.details && (
-                      <p className="text-[11px] sm:text-xs text-slate-300 bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-xl leading-relaxed text-left shadow-inner">
-                        {currentCard.details}
-                      </p>
+                    {/* Mnemônico / Detalhes de Aprendizagem */}
+                    {currentDetails ? (
+                      <div className="text-[11px] sm:text-xs text-slate-200 bg-slate-900/90 border border-indigo-500/30 p-3.5 rounded-xl leading-relaxed text-left shadow-inner space-y-2">
+                        {currentDetails.includes("💡 Mnemônico IA:") ? (
+                          <>
+                            <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs border-b border-white/10 pb-1.5">
+                              <Lightbulb size={14} className="text-amber-400" />
+                              <span>Regra Mnemônica Inteligente</span>
+                            </div>
+                            <div className="whitespace-pre-line text-indigo-100 font-medium">
+                              {currentDetails}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="whitespace-pre-line text-slate-300">
+                            {currentDetails}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="pt-1">
+                        <button
+                          onClick={handleGenerateMnemonic}
+                          disabled={isGeneratingMnemonic}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
+                        >
+                          {isGeneratingMnemonic ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Sparkles size={12} className="text-indigo-400" />
+                          )}
+                          <span>Criar Mnemônico com IA</span>
+                        </button>
+                      </div>
                     )}
                   </div>
 

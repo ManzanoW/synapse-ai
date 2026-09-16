@@ -18,6 +18,7 @@ export async function POST(request: Request) {
       dificuldade,
       textoBase,
       fonteConteudo,
+      adaptiveMode,
     } = body;
 
     if (!banca || !materia || !qtdQuestoes) {
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
         dificuldade,
         textoBase,
         fonteConteudo,
+        adaptiveMode: Boolean(adaptiveMode),
       },
       userId,
     );

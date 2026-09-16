@@ -33,6 +33,7 @@ export interface GenerateSimuladoParams {
   dificuldade?: string;
   textoBase?: string | null;
   fonteConteudo?: "banca" | "texto" | "pdf" | string;
+  adaptiveMode?: boolean;
 }
 
 export interface GenerateSimuladoResult {
@@ -235,6 +236,61 @@ export async function generateSimuladoInParallel(
     }
   }
 
+  // Coleta de histórico do Caderno de Erros para Modo Adaptativo
+  let adaptiveContext = "";
+  if (params.adaptiveMode && userId) {
+    try {
+      const userErrors = await prisma.questionError.findMany({
+        where: {
+          userId,
+          status: "PENDING",
+          ...(materia
+            ? {
+                OR: [
+                  { subject: { name: { equals: materia, mode: "insensitive" } } },
+                  { questionText: { contains: materia, mode: "insensitive" } },
+                ],
+              }
+            : {}),
+        },
+        take: 8,
+        orderBy: { createdAt: "desc" },
+        select: {
+          questionText: true,
+          errorReason: true,
+          topic: { select: { title: true } },
+        },
+      });
+
+      if (userErrors.length > 0) {
+        const errorSummaries = userErrors
+          .map((e, idx) => {
+            const reasonLabel = e.errorReason || "Não classificado";
+            const snippet = e.questionText.slice(0, 130).replace(/\s+/g, " ");
+            const topicInfo = e.topic?.title ? ` [Tópico: ${e.topic.title}]` : "";
+            return `${idx + 1}. Questão que o aluno errou: "${snippet}..." (Diagnóstico: ${reasonLabel})${topicInfo}`;
+          })
+          .join("\n");
+
+        adaptiveContext = `
+===================================================================
+🎯 MODO ADAPTATIVO ATIVADO (SUPERACÃO DAS FRAQUEZAS DO ESTUDANTE):
+===================================================================
+O estudante possui erros pendentes nesta matéria no Caderno de Erros:
+${errorSummaries}
+
+DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
+- Crie questões INÉDITAS que cobrem esses mesmos conceitos e pegadinhas onde o aluno falhou acima.
+- Se houver pegadinha ou confusão de leitura (TRICK_QUESTION ou INTERPRETATION), calibre distratores realistas da banca "${banca}" e esclareça a distinção exata na justificativa.
+- O objetivo central é desarmar as dúvidas recorrentes do estudante e consolidar o aprendizado definitivo.
+===================================================================
+`;
+      }
+    } catch (err) {
+      console.error("[generateSimuladoInParallel] Erro ao buscar contexto adaptativo:", err);
+    }
+  }
+
   // Divisão em lotes paralelos (chunks de no máximo 5)
   const batches = calculateBatchSizes(quantidadeTotal, 5);
 
@@ -286,6 +342,7 @@ export async function generateSimuladoInParallel(
       Estilo da Banca: "${banca}".
       
       ${batchContext}
+      ${adaptiveContext}
       
       ===================================================================
       🔥 FLUXO OBRIGATÓRIO DE ELABORAÇÃO PARA CADA QUESTÃO:
@@ -406,11 +463,16 @@ export async function generateSimuladoInParallel(
       if (!topicExists) targetTopicUuid = null;
     }
 
+    const isAdaptive = Boolean(params.adaptiveMode);
     const finalSubject = specificTopic?.trim()
       ? (materia.toLowerCase().startsWith("simulado")
           ? `${materia} - ${specificTopic.trim()}`
           : `Simulado: ${materia} - ${specificTopic.trim()}`)
-      : materia;
+      : isAdaptive
+        ? (materia.toLowerCase().startsWith("simulado")
+            ? `${materia} [Adaptativo]`
+            : `Simulado Adaptativo: ${materia}`)
+        : materia;
 
     savedQuiz = await prisma.quiz.create({
       data: {
@@ -428,18 +490,6 @@ export async function generateSimuladoInParallel(
       },
     });
 
-    if (targetTopicUuid) {
-      await prisma.quizAttempt
-        .create({
-          data: {
-            userId,
-            topicId: targetTopicUuid,
-            totalCount: questoesProcessadas.length,
-            correctCount: 0,
-          },
-        })
-        .catch((e) => console.error("Aviso ao registrar QuizAttempt:", e));
-    }
   }
 
   const durationMs = Date.now() - startTime;

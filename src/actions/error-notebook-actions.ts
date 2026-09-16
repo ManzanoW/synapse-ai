@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { Type } from "@google/genai";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
+import { recordStudyActivityAction } from "@/actions/gamification-actions";
 import {
   ErrorNotebookFilters,
   ErrorNotebookItem,
@@ -668,18 +669,12 @@ export async function markErrorAsMasteredAction(
       await trackQuestProgressAction("QUESTIONS_SOLVED", 1);
     }
 
-    await prisma.userStats.upsert({
-      where: { userId },
-      create: {
-        userId,
-        totalXp: earnedXp,
-        lastStudyDate: new Date(),
-      },
-      update: {
-        totalXp: { increment: earnedXp },
-        lastStudyDate: new Date(),
-      },
-    });
+    // Atualização de XP, streak e proteção anti-frustração via motor centralizado
+    const activityResult = await recordStudyActivityAction(
+      userId,
+      earnedXp,
+      "ERROR_FIX",
+    );
 
     try {
       revalidatePath("/notebook");
@@ -694,6 +689,10 @@ export async function markErrorAsMasteredAction(
         id: updated.id,
         status: updated.status,
         earnedXp,
+        totalXp: activityResult.data?.totalXp,
+        streakDays: activityResult.data?.streakDays,
+        streakProtected: activityResult.data?.streakProtected,
+        levelInfo: activityResult.data?.levelInfo,
       },
     };
   } catch (err) {

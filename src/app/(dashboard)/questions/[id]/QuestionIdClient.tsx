@@ -65,6 +65,7 @@ export function QuestionIdClient({ quiz }: QuestionIdClientProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           topicId: q.topicId || quiz.topicId || undefined,
+          subject: quiz.subject,
           question: q.flashcardFrente || q.enunciado,
           answer: q.flashcardVerso || q.justificativa,
           front: q.flashcardFrente || q.enunciado,

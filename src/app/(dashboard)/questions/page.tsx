@@ -337,8 +337,10 @@ export default function QuestoesPage() {
   const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
   const [isZenMode, setIsZenMode] = useState(false);
 
-  // Cronômetro e conclusão
+  // Cronômetro, Pacing Real-Time e conclusão
   const [timerSeconds, setTimerSeconds] = useState(0);
+  const [currentQuestionSeconds, setCurrentQuestionSeconds] = useState(0);
+  const [isAdaptiveMode, setIsAdaptiveMode] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [isSyncingSM2, setIsSyncingSM2] = useState(false);
@@ -592,10 +594,18 @@ export default function QuestoesPage() {
     isMounted,
   ]);
 
+  // Reinicia o tempo da questão atual ao alternar a questão em foco
+  useEffect(() => {
+    setCurrentQuestionSeconds(0);
+  }, [focusedQuestionIndex]);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTimerRunning && questions.length > 0) {
-      interval = setInterval(() => setTimerSeconds((prev) => prev + 1), 1000);
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => prev + 1);
+        setCurrentQuestionSeconds((prev) => prev + 1);
+      }, 1000);
     }
     return () => clearInterval(interval);
   }, [isTimerRunning, questions.length]);
@@ -977,6 +987,7 @@ export default function QuestoesPage() {
           dificuldade,
           textoBase,
           fonteConteudo,
+          adaptiveMode: isAdaptiveMode,
         }),
       });
 
@@ -1393,15 +1404,16 @@ export default function QuestoesPage() {
         `}</style>
       )}
 
-      {/* Timer Flutuante apenas em Telas Médias/Grandes */}
+      {/* Timer Flutuante com Pacing Real-Time */}
       {questions.length > 0 && activeTab === "create" && (
-        <div className="hidden sm:block">
-          <FloatingTimer
-            seconds={timerSeconds}
-            isRunning={isTimerRunning}
-            onToggleTimer={() => setIsTimerRunning((prev) => !prev)}
-          />
-        </div>
+        <FloatingTimer
+          seconds={timerSeconds}
+          currentQuestionSeconds={currentQuestionSeconds}
+          questionIndex={focusedQuestionIndex}
+          totalQuestions={questions.length}
+          isRunning={isTimerRunning}
+          onToggleTimer={() => setIsTimerRunning((prev) => !prev)}
+        />
       )}
 
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
@@ -1844,6 +1856,11 @@ export default function QuestoesPage() {
                       console.error("Erro ao deletar:", err);
                     }
                   }}
+                  onBatchDeleteSuccess={(deletedIds) => {
+                    setQuizHistory((prev) =>
+                      prev.filter((i) => !deletedIds.includes(i.id)),
+                    );
+                  }}
                   onCreateNewQuiz={() => {
                     setQuestions([]);
                     setSelectedAnswers({});
@@ -1931,6 +1948,8 @@ export default function QuestoesPage() {
         onTextoBaseChange={setTextoBase}
         onDificuldadeChange={setDificuldade}
         onQtdQuestoesChange={setQtdQuestoes}
+        isAdaptiveMode={isAdaptiveMode}
+        onAdaptiveModeChange={setIsAdaptiveMode}
         onSubmit={handleGenerateSimulado}
       />
 

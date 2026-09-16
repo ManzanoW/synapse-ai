@@ -6,8 +6,7 @@ const globalForPrisma = globalThis as unknown as { prisma?: any };
 const connectionString = process.env.DATABASE_URL;
 const isMockOrLocal =
   !connectionString ||
-  connectionString.includes("mock") ||
-  connectionString.includes("localhost:5432");
+  connectionString.includes("mock");
 
 let prismaClientInstance: any;
 

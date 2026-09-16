@@ -13,10 +13,12 @@ export async function POST(request: Request) {
       materia,
       topicoId,
       topicoNome,
+      specificTopic,
       qtdQuestoes,
       dificuldade,
       textoBase,
       fonteConteudo,
+      adaptiveMode,
     } = body;
 
     if (!banca || !materia || !qtdQuestoes) {
@@ -32,10 +34,13 @@ export async function POST(request: Request) {
         materia,
         topicoId,
         topicoNome,
+        specificTopic:
+          typeof specificTopic === "string" ? specificTopic.trim() : undefined,
         qtdQuestoes,
         dificuldade,
         textoBase,
         fonteConteudo,
+        adaptiveMode: Boolean(adaptiveMode),
       },
       userId,
     );
