@@ -502,3 +502,212 @@ export async function getFlashcardsAnalyticsAction(): Promise<{
   }
 }
 
+// ========================================================
+// EXTRATOR TURBO DE FLASHCARDS POR IA (LEI SECA / RESUMOS)
+// ========================================================
+
+export interface ExtractTurboFlashcardsInput {
+  rawText: string;
+  targetCount?: number;
+  mode?: "CLOZE_AND_CONCEPTS" | "LAW_EXCEPTIONS" | "DEADLINES_AND_NUMBERS";
+  deckTitle?: string;
+  deckId?: string;
+  subjectId?: string;
+  topicId?: string;
+}
+
+export interface ExtractTurboFlashcardsResult {
+  deckId: string;
+  deckTitle: string;
+  cardsCount: number;
+  cards: Array<{
+    id: string;
+    question: string;
+    answer: string;
+    details: string | null;
+  }>;
+}
+
+export interface ExtractTurboFlashcardsResponse {
+  success: boolean;
+  data?: ExtractTurboFlashcardsResult;
+  error?: string;
+}
+
+/**
+ * Server Action que extrai flashcards de alto rendimento a partir de texto bruto,
+ * artigos de lei ou anotações usando Gemini AI com formatação de Cloze Deletion e mnemônicos.
+ */
+export async function extractTurboFlashcardsAction(
+  input: ExtractTurboFlashcardsInput
+): Promise<ExtractTurboFlashcardsResponse> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const rawText = input.rawText?.trim();
+    if (!rawText || rawText.length < 25) {
+      return {
+        success: false,
+        error: "Insira ao menos 25 caracteres de conteúdo (lei, anotação ou resumo).",
+      };
+    }
+
+    const count = Math.min(20, Math.max(3, input.targetCount || 10));
+    const mode = input.mode || "CLOZE_AND_CONCEPTS";
+
+    let modeInstruction = "";
+    if (mode === "LAW_EXCEPTIONS") {
+      modeInstruction =
+        "FOCO PRINCIPAL: Exceções à regra geral, palavras perigosas de pegadinha ('salvo', 'exceto', 'vedado', 'não se aplica', 'dispensa vs inexigibilidade'). Formule perguntas que testem se o aluno cairia na pegadinha da banca.";
+    } else if (mode === "DEADLINES_AND_NUMBERS") {
+      modeInstruction =
+        "FOCO PRINCIPAL: Prazos processuais/legais (dias úteis vs corridos), quóruns de votação, percentuais, idades e números explícitos da lei. Pergunta direta e resposta pontual com mnemônico para memorização.";
+    } else {
+      modeInstruction =
+        "FOCO PRINCIPAL: Conceitos-chave de alta recorrência em concursos, combinando perguntas diretas com itens em formato Cloze Deletion '[...]' (onde o candidato precisa preencher a palavra crítica).";
+    }
+
+    const prompt = `Você é o maior especialista em Engenharia Pedagógica de Concursos Públicos do Brasil (Cebraspe, FGV, FCC, Vunesp).
+Sua missão é ler o texto bruto fornecido pelo estudante e extrair exatamente ${count} Flashcards de Altíssimo Rendimento para fixação rápida na memória de longo prazo (algoritmo FSRS/Anki).
+
+${modeInstruction}
+
+DIRETRIZES TÉCNICAS OBRIGATÓRIAS:
+1. Pergunta (question): Enxuta, instigante, clara. Use negrito ou lacunas '[...]' quando apropriado.
+2. Resposta (answer): Objetiva, sem enrolação. Destaque o gabarito no início e a fundamentação legal curta.
+3. Detalhes (details): Forneça um mnemônico rápido (ex: 'LIMPE', 'SOCIDIVAPLU', 'Bizú do Professor') ou a pegadinha clássica da banca sobre esse ponto.
+4. Título do Baralho (deckTitle): Crie um título profissional e direto (ex: 'Art. 5º CF - Direitos Fundamentais', 'Lei 8.112 - Regime Disciplinar').
+
+TEXTO BRUTO FORNECIDO:
+"""
+${rawText.slice(0, 12000)}
+"""`;
+
+    const aiRes = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.35,
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            deckTitle: { type: Type.STRING },
+            cards: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  question: { type: Type.STRING },
+                  answer: { type: Type.STRING },
+                  details: { type: Type.STRING },
+                },
+                required: ["question", "answer"],
+              },
+            },
+          },
+          required: ["deckTitle", "cards"],
+        },
+      },
+    });
+
+    if (!aiRes || !aiRes.text) {
+      throw new Error("A IA não retornou resposta estruturada.");
+    }
+
+    const parsed = JSON.parse(aiRes.text) as {
+      deckTitle: string;
+      cards: Array<{ question: string; answer: string; details?: string }>;
+    };
+
+    if (!parsed.cards || parsed.cards.length === 0) {
+      throw new Error("Nenhum card foi gerado a partir do texto.");
+    }
+
+    // Identifica ou cria o Deck no Prisma
+    let targetDeckId = input.deckId;
+    let finalTitle = input.deckTitle?.trim() || parsed.deckTitle || "Baralho Turbo IA";
+
+    if (targetDeckId) {
+      const existingDeck = await prisma.deck.findUnique({
+        where: { id: targetDeckId },
+      });
+      if (existingDeck) {
+        finalTitle = existingDeck.title;
+      } else {
+        targetDeckId = undefined;
+      }
+    }
+
+    if (!targetDeckId) {
+      const newDeck = await prisma.deck.create({
+        data: {
+          title: finalTitle,
+          color: "bg-indigo-600",
+          userId,
+          subjectId: input.subjectId || null,
+          topicId: input.topicId || null,
+        },
+      });
+      targetDeckId = newDeck.id;
+    }
+
+    // Insere os flashcards no banco
+    const createdCards = await prisma.$transaction(
+      parsed.cards.map((c) =>
+        prisma.flashcard.create({
+          data: {
+            deckId: targetDeckId!,
+            question: c.question,
+            answer: c.answer,
+            details: c.details || null,
+            topicId: input.topicId || null,
+            stability: 1.0,
+            difficulty: 5.0,
+            easeFactor: 2.5,
+            interval: 1,
+            repetitions: 0,
+            lapses: 0,
+            nextReviewDate: new Date(),
+          },
+          select: {
+            id: true,
+            question: true,
+            answer: true,
+            details: true,
+          },
+        })
+      )
+    );
+
+    revalidatePath("/flashcards");
+    revalidatePath("/flashcards/decks");
+    if (targetDeckId) {
+      revalidatePath(`/flashcards/decks/${targetDeckId}`);
+    }
+
+    return {
+      success: true,
+      data: {
+        deckId: targetDeckId,
+        deckTitle: finalTitle,
+        cardsCount: createdCards.length,
+        cards: createdCards,
+      },
+    };
+  } catch (error) {
+    console.error("Erro em extractTurboFlashcardsAction:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Falha ao extrair flashcards por inteligência artificial.",
+    };
+  }
+}
+

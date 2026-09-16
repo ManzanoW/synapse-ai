@@ -52,6 +52,13 @@ export interface TimedQuizConfig {
   strictAntiDistraction: boolean;
 }
 
+export interface MentorGuidance {
+  socraticHint: string;   // Dica socrática sem spoiler orientando a linha de raciocínio
+  simplifiedLaw: string;  // Tradução do juridiquês ou conceitos densos com analogia prática
+  mnemonic: string;       // Acrônimo, rima ou frase de memorização
+  trapWarning: string;    // Pegadinha clássica da banca e atenção aos distratores
+}
+
 export interface TimedQuizQuestion {
   id?: string;
   enunciado: string;
@@ -65,6 +72,7 @@ export interface TimedQuizQuestion {
   flashcardVerso?: string;
   subjectId?: string;
   topicId?: string;
+  mentorGuidance?: MentorGuidance;
 }
 
 export interface SubjectDomainMetric {
