@@ -22,6 +22,7 @@ import { Topic } from "@/types";
 import { ImportEditalModal } from "@/components/edital/import-edital-modal";
 import { CalibrateWeightsModal } from "@/components/edital/calibrate-weights-modal";
 import { PlannerView } from "@/components/edital/planner-table";
+import { EditalSkillTree } from "@/components/edital/edital-skill-tree";
 import { NewContentModal } from "@/components/create-subject-modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { useSearchParams } from "next/navigation";
@@ -76,6 +77,8 @@ function PlannerContent() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   // Modal de Calibrar Pesos
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
+  // Modo de visualização: Tabela vs Árvore RPG
+  const [viewMode, setViewMode] = useState<"table" | "skill-tree">("table");
 
   async function refreshData() {
     try {
@@ -291,15 +294,50 @@ function PlannerContent() {
 
             <div className="grid grid-cols-2 sm:flex items-center gap-2 shrink-0 justify-end">
               {subjects.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setIsCalibrateModalOpen(true)}
-                  className="flex items-center justify-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm hover:border-amber-500/50 active:scale-95"
-                  title="Calibrar os pesos oficiais das disciplinas para o Radar de Domínio"
-                >
-                  <Scale size={14} className="text-amber-400" />
-                  <span className="truncate">Calibrar Pesos</span>
-                </button>
+                <>
+                  {/* Alternador de Visão: Tabela vs Árvore RPG */}
+                  <div className="flex items-center p-1 bg-slate-950/80 border border-slate-800 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("table")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        viewMode === "table"
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                      title="Exibir edital em formato de tabela"
+                    >
+                      <BookOpen size={13} />
+                      <span>Tabela</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("skill-tree")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        viewMode === "skill-tree"
+                          ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-sm shadow-cyan-500/25"
+                          : "text-slate-400 hover:text-cyan-300"
+                      }`}
+                      title="Exibir edital em formato de Árvore de Domínio RPG"
+                    >
+                      <Sparkles size={13} className={viewMode === "skill-tree" ? "text-cyan-300" : "text-slate-400"} />
+                      <span>Árvore RPG</span>
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">
+                        NOVO
+                      </span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCalibrateModalOpen(true)}
+                    className="flex items-center justify-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm hover:border-amber-500/50 active:scale-95"
+                    title="Calibrar os pesos oficiais das disciplinas para o Radar de Domínio"
+                  >
+                    <Scale size={14} className="text-amber-400" />
+                    <span className="truncate">Calibrar Pesos</span>
+                  </button>
+                </>
               )}
 
               <button
@@ -470,7 +508,7 @@ function PlannerContent() {
           </div>
         )}
 
-        {/* Tabela do Planner */}
+        {/* Tabela do Planner ou Árvore de Domínio RPG */}
         {loading ? (
           <div className="flex items-center justify-center py-10 gap-2">
             <Loader2 className="animate-spin text-indigo-500" size={16} />
@@ -478,22 +516,36 @@ function PlannerContent() {
           </div>
         ) : (
           subjects.length > 0 && (
-            <PlannerView
-              topics={mappedTopicsForView}
-              subjects={subjects}
-              searchQuery={searchQuery}
-              targetSubjectId={targetSubjectId}
-              onReviewClick={(topicId) => {
-                const found = topics.find((t) => t.id === topicId);
-                if (found) {
-                  setActiveReviewTopic(found);
-                  setPerformanceValue(found.performance || 100);
-                }
-              }}
-              onDeleteTopic={handleDeleteTopic}
-              onDeleteSubject={handleDeleteSubject}
-              onSubjectUpdated={refreshData}
-            />
+            viewMode === "skill-tree" ? (
+              <EditalSkillTree
+                subjects={subjects}
+                topics={mappedTopicsForView}
+                onReviewClick={(topicId) => {
+                  const found = topics.find((t) => t.id === topicId);
+                  if (found) {
+                    setActiveReviewTopic(found);
+                    setPerformanceValue(found.performance || 100);
+                  }
+                }}
+              />
+            ) : (
+              <PlannerView
+                topics={mappedTopicsForView}
+                subjects={subjects}
+                searchQuery={searchQuery}
+                targetSubjectId={targetSubjectId}
+                onReviewClick={(topicId) => {
+                  const found = topics.find((t) => t.id === topicId);
+                  if (found) {
+                    setActiveReviewTopic(found);
+                    setPerformanceValue(found.performance || 100);
+                  }
+                }}
+                onDeleteTopic={handleDeleteTopic}
+                onDeleteSubject={handleDeleteSubject}
+                onSubjectUpdated={refreshData}
+              />
+            )
           )
         )}
       </div>

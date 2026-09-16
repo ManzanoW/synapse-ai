@@ -20,6 +20,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { getFlashcardsAnalyticsAction } from "@/actions/flashcard-actions";
+import { FlashcardsHeroActions } from "@/components/flashcards/FlashcardsHeroActions";
 
 export default async function FlashcardsPage() {
   const session = await auth();
@@ -30,7 +31,7 @@ export default async function FlashcardsPage() {
 
   const userId = session.user.id;
 
-  const [totalSubjects, totalDecks, recentDecks, analyticsRes] =
+  const [totalSubjects, totalDecks, recentDecks, analyticsRes, allUserDecks, audioCards] =
     await Promise.all([
       prisma.subject.count({ where: { userId } }),
       prisma.deck.count({ where: { userId } }),
@@ -44,6 +45,17 @@ export default async function FlashcardsPage() {
         },
       }),
       getFlashcardsAnalyticsAction(),
+      prisma.deck.findMany({
+        where: { userId },
+        select: { id: true, title: true },
+        orderBy: { title: "asc" },
+      }),
+      prisma.flashcard.findMany({
+        where: { deck: { userId } },
+        take: 30,
+        orderBy: { nextReviewDate: "asc" },
+        select: { id: true, question: true, answer: true, details: true },
+      }),
     ]);
 
   const analytics = analyticsRes.success && analyticsRes.data
@@ -152,40 +164,12 @@ export default async function FlashcardsPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full sm:w-auto">
-                {totalCards > 0 ? (
-                  <Link
-                    href="/flashcards/study/all"
-                    className="group relative inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs sm:text-sm font-bold px-6 py-3.5 rounded-xl sm:rounded-2xl transition-all duration-300 shadow-lg shadow-indigo-600/30 active:scale-95 border border-indigo-400/30 cursor-pointer w-full sm:w-auto"
-                  >
-                    <Zap
-                      size={16}
-                      className="fill-white group-hover:scale-110 transition-transform"
-                    />
-                    <span>Iniciar Revisão Geral</span>
-                    <ArrowRight
-                      size={15}
-                      className="group-hover:translate-x-1 transition-transform"
-                    />
-                  </Link>
-                ) : (
-                  <Link
-                    href="/flashcards/decks?openModal=true"
-                    className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold px-6 py-3.5 rounded-xl sm:rounded-2xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95 cursor-pointer w-full sm:w-auto"
-                  >
-                    <Plus size={18} />
-                    <span>Criar Primeiro Baralho</span>
-                  </Link>
-                )}
-
-                <Link
-                  href="/flashcards/decks"
-                  className="inline-flex items-center justify-center gap-2 bg-slate-900/80 hover:bg-slate-800/80 text-slate-300 text-xs font-semibold px-5 py-3 rounded-xl border border-slate-800/80 transition-colors w-full sm:w-auto"
-                >
-                  <Layers size={15} />
-                  <span>Gerenciar Coleções ({totalDecks})</span>
-                </Link>
-              </div>
+              <FlashcardsHeroActions
+                totalCards={totalCards}
+                totalDecks={totalDecks}
+                decks={allUserDecks}
+                audioCards={audioCards}
+              />
             </div>
           </div>
 
