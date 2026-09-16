@@ -20,8 +20,10 @@ import {
   X,
   Clock,
   Flame,
+  Brain,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { MindMapModal } from "@/components/mindmap/MindMapModal";
 
 export interface SkillTreeTopic {
   id: string;
@@ -150,6 +152,12 @@ export function EditalSkillTree({
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("ALL");
   const [selectedTopic, setSelectedTopic] = useState<SkillTreeTopic | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mindMapTarget, setMindMapTarget] = useState<{
+    topicTitle: string;
+    subjectName: string;
+    topicId?: string;
+    color?: string;
+  } | null>(null);
 
   // Tópicos agrupados por disciplina
   const groupedData = useMemo(() => {
@@ -641,6 +649,31 @@ export function EditalSkillTree({
                   <ArrowRight size={14} />
                 </Link>
 
+                {/* Botão de Mapa Mental Neural */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const parentSubject = subjects.find(
+                      (s) =>
+                        s.id === selectedTopic.subjectId ||
+                        s.name.toLowerCase() === selectedTopic.subjectName?.toLowerCase(),
+                    );
+                    setMindMapTarget({
+                      topicTitle: selectedTopic.title,
+                      subjectName: parentSubject?.name || selectedTopic.subjectName || "Edital",
+                      topicId: selectedTopic.id,
+                      color: parentSubject?.color || "#8b5cf6",
+                    });
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-violet-600/25 to-indigo-600/25 hover:from-violet-600/40 hover:to-indigo-600/40 border border-violet-500/40 text-violet-200 hover:text-white text-xs font-bold transition-all shadow-md shadow-violet-950/40 flex items-center justify-between cursor-pointer active:scale-95"
+                >
+                  <div className="flex items-center gap-2">
+                    <Brain size={15} className="text-violet-400" />
+                    <span>Ver Mapa Mental do Tópico (SVG)</span>
+                  </div>
+                  <ArrowRight size={14} />
+                </button>
+
                 {onReviewClick && (
                   <button
                     type="button"
@@ -660,6 +693,18 @@ export function EditalSkillTree({
           </div>
         )}
       </AnimatePresence>
+
+      {/* MODAL INTERATIVO DE MAPA MENTAL NEURAL */}
+      {mindMapTarget && (
+        <MindMapModal
+          isOpen={Boolean(mindMapTarget)}
+          onClose={() => setMindMapTarget(null)}
+          topicTitle={mindMapTarget.topicTitle}
+          subjectName={mindMapTarget.subjectName}
+          topicId={mindMapTarget.topicId}
+          subjectColor={mindMapTarget.color}
+        />
+      )}
     </div>
   );
 }
