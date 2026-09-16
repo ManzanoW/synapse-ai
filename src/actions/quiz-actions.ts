@@ -459,5 +459,3 @@ Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
   }
 }
 
-export { deleteBatchSimuladosAction } from "./simulado-actions";
-
