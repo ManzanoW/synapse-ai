@@ -16,6 +16,7 @@ import { useSidebar } from "@/lib/sidebar-context";
 import { DashboardSubject } from "@/types";
 import { LevelUpModal } from "@/components/gamification/level-up-modal";
 import { DailyQuestsPanel } from "@/components/dashboard/DailyQuestsPanel";
+import { GamificationCockpitCard } from "@/components/dashboard/GamificationCockpitCard";
 import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
 import { useGamification } from "@/context/GamificationContext";
 import {
@@ -1010,108 +1011,27 @@ export default function DashboardClient({
           )}
 
           {mobileTab === "gamification" && (
-            <div className="space-y-4">
-              <Link
-                href={getHref("/achievements")}
-                className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
-              >
-                <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400">
-                      {level}
-                    </div>
-                    <div>
-                      <span className="block text-[9px] font-bold uppercase text-amber-400">
-                        Nível Atual
-                      </span>
-                      <h3 className="text-xs font-bold text-white">
-                        {levelTitle}
-                      </h3>
-                    </div>
-                  </div>
-                  <Award size={18} className="text-amber-400" />
-                </div>
-
-                <div className="space-y-2 pt-3">
-                  <div className="flex items-center justify-between font-mono text-xs">
-                    <span className="text-slate-400">
-                      XP: <strong className="text-white">{currentXp}</strong>
-                    </span>
-                    <span className="font-bold text-amber-400">
-                      {levelProgressPercent}%
-                    </span>
-                  </div>
-
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
-                    <div
-                      style={{ width: `${levelProgressPercent}%` }}
-                      className="h-full rounded-full bg-linear-to-r from-amber-500 to-amber-400"
-                    />
-                  </div>
-                </div>
-              </Link>
-
-              <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
-                <Link href={getHref("/performance")} className="block space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase text-slate-400">
-                      Meta Semanal
-                    </span>
-                    {isLoading ? (
-                      <div className="h-3 w-8 rounded bg-indigo-400/20 animate-pulse" />
-                    ) : (
-                      <span className="font-mono text-xs font-black text-indigo-400">
-                        {stats?.weeklyGoal?.percentage ?? 0}%
-                      </span>
-                    )}
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
-                    <div
-                      className="h-full rounded-full bg-indigo-500"
-                      style={{
-                        width: `${stats?.weeklyGoal?.percentage ?? 0}%`,
-                      }}
-                    />
-                  </div>
-                </Link>
-
-                <div className="my-2 border-t border-white/5" />
-
-                <div className="flex items-center justify-between">
-                  <Link
-                    href={getHref("/performance")}
-                    className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
-                  >
-                    Constância
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setIsStreakFreezeModalOpen(true)}
-                      title="Trava de Sequência"
-                      className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 transition-all hover:bg-cyan-500/20"
-                    >
-                      <Snowflake size={11} className="animate-spin-slow" />
-                      {streakFreezeCount}
-                    </button>
-                    <Link
-                      href={getHref("/performance")}
-                      className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
-                    >
-                      <Flame
-                        size={14}
-                        className="fill-amber-400 text-amber-400"
-                      />
-                      {Number(
-                        gStats.streakDays ??
-                          globalGamification?.streak?.currentDays ??
-                          0,
-                      )}{" "}
-                      Dias
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <GamificationCockpitCard
+              totalXp={currentXp}
+              level={level}
+              levelTitle={levelTitle}
+              currentLevelXp={xpProgressInLevel}
+              nextLevelXp={xpSpanForLevel}
+              progressPercent={levelProgressPercent}
+              streakDays={Number(
+                gStats.streakDays ??
+                  globalGamification?.streak?.currentDays ??
+                  stats?.streak?.currentDays ??
+                  0,
+              )}
+              streakFreezes={streakFreezeCount}
+              weekDays={stats?.streak?.weekDays}
+              weeklyGoalPercentage={stats?.weeklyGoal?.percentage ?? 0}
+              weeklyGoalTarget={stats?.weeklyGoal?.target ?? 50}
+              weeklyGoalCurrent={stats?.weeklyGoal?.current ?? 0}
+              onOpenStreakModal={() => setIsStreakFreezeModalOpen(true)}
+              getHref={getHref}
+            />
           )}
         </div>
 
@@ -1345,67 +1265,28 @@ export default function DashboardClient({
             {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
             <ApprovalOddsCard initialData={initialApprovalOdds} />
 
-            {/* META SEMANAL & CONSTÂNCIA */}
-            <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              
-              <Link href={getHref("/performance")} className="block space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase text-slate-400">
-                    Meta Semanal
-                  </span>
-                  {isLoading ? (
-                    <div className="h-3 w-8 rounded bg-indigo-400/20 animate-pulse" />
-                  ) : (
-                    <span className="font-mono text-xs font-black text-indigo-400">
-                      {stats?.weeklyGoal?.percentage ?? 0}%
-                    </span>
-                  )}
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
-                  <div
-                    className="h-full rounded-full bg-indigo-500"
-                    style={{ width: `${stats?.weeklyGoal?.percentage ?? 0}%` }}
-                  />
-                </div>
-              </Link>
-
-              <div className="my-2 border-t border-white/5" />
-
-              <div className="flex items-center justify-between">
-                <Link
-                  href={getHref("/performance")}
-                  className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
-                >
-                  Constância
-                </Link>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setIsStreakFreezeModalOpen(true)}
-                    title="Trava de Sequência"
-                    className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/20 transition-all"
-                  >
-                    <Snowflake size={11} className="animate-spin-slow" />
-                    {streakFreezeCount}
-                  </button>
-                  <Link
-                    href={getHref("/performance")}
-                    className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
-                  >
-                    <Flame
-                      size={14}
-                      className="fill-amber-400 text-amber-400"
-                    />
-                    {Number(
-                      gStats.streakDays ??
-                        globalGamification?.streak?.currentDays ??
-                        0,
-                    )}{" "}
-                    Dias
-                  </Link>
-                </div>
-              </div>
-            </div>
+            {/* COCKPIT DE GAMIFICAÇÃO & CONSTÂNCIA */}
+            <GamificationCockpitCard
+              totalXp={currentXp}
+              level={level}
+              levelTitle={levelTitle}
+              currentLevelXp={xpProgressInLevel}
+              nextLevelXp={xpSpanForLevel}
+              progressPercent={levelProgressPercent}
+              streakDays={Number(
+                gStats.streakDays ??
+                  globalGamification?.streak?.currentDays ??
+                  stats?.streak?.currentDays ??
+                  0,
+              )}
+              streakFreezes={streakFreezeCount}
+              weekDays={stats?.streak?.weekDays}
+              weeklyGoalPercentage={stats?.weeklyGoal?.percentage ?? 0}
+              weeklyGoalTarget={stats?.weeklyGoal?.target ?? 50}
+              weeklyGoalCurrent={stats?.weeklyGoal?.current ?? 0}
+              onOpenStreakModal={() => setIsStreakFreezeModalOpen(true)}
+              getHref={getHref}
+            />
 
             {/* SALA DE FOCO & DEEP WORK (ZEN COCKPIT) */}
             <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-linear-to-br from-indigo-950/40 via-slate-950/70 to-purple-950/30 p-6 shadow-2xl backdrop-blur-2xl group hover:border-indigo-500/40 transition-all duration-300">

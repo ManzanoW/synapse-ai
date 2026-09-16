@@ -174,11 +174,11 @@ export default function DomainRadarChart({
 
   const criticalBlindSpot = blindSpots.length > 0 ? blindSpots[0] : null;
 
-  // Configurações do SVG Radar
-  const size = 380;
+  // Configurações do SVG Radar com margem ampliada para rótulos longos
+  const size = 400;
   const cx = size / 2;
   const cy = size / 2;
-  const radius = 130;
+  const radius = 120;
   const levels = [0.2, 0.4, 0.6, 0.8, 1.0];
 
   const totalAxes = processedData.length;
@@ -541,7 +541,7 @@ export default function DomainRadarChart({
               {/* 6. RÓTULOS NO PERÍMETRO */}
               {processedData.map((item, i) => {
                 const angle = (Math.PI * 2 * i) / totalAxes - Math.PI / 2;
-                const labelRadius = radius + 26;
+                const labelRadius = radius + 28;
                 const lx = cx + labelRadius * Math.cos(angle);
                 const ly = cy + labelRadius * Math.sin(angle);
 
@@ -554,8 +554,8 @@ export default function DomainRadarChart({
                 const isBlindSpot = item.status === "blind_spot";
 
                 const displayName =
-                  item.name.length > 14
-                    ? `${item.name.substring(0, 12)}...`
+                  item.name.length > 22
+                    ? `${item.name.substring(0, 20)}...`
                     : item.name;
 
                 return (
