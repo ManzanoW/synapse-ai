@@ -699,7 +699,7 @@ export default function DashboardClient({
                         Data não definida
                       </span>
                       <Link
-                        href={getHref("/edital")}
+                        href={getHref("/profile")}
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
                       >
                         <span>Definir data do concurso</span>
