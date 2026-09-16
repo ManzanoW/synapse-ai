@@ -29,6 +29,7 @@ import {
   LogOut,
   Maximize2,
   Minimize2,
+  Printer,
 } from "lucide-react";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 import { ErrorClassification } from "@/types/quiz";
@@ -37,6 +38,7 @@ import {
   DeepenExplanationResult,
 } from "@/actions/quiz-actions";
 import { MentorCopilotDrawer } from "@/components/mentor/MentorCopilotDrawer";
+import { PrintableQuestions } from "@/components/questions/printable-questions";
 
 export interface QuizResolutionViewProps {
   quizId?: string | null;
@@ -184,6 +186,7 @@ export function QuizResolutionView({
   >({});
   const [isDeepeningLoading, setIsDeepeningLoading] = useState(false);
   const [isMentorOpen, setIsMentorOpen] = useState(false);
+  const [isPrintMode, setIsPrintMode] = useState(false);
 
   // Atalho global ⌘J / Ctrl+J para alternar o Mentor IA
   useEffect(() => {
@@ -500,6 +503,29 @@ export function QuizResolutionView({
     totalQuestions,
   ]);
 
+  if (isPrintMode) {
+    return (
+      <PrintableQuestions
+        title={subject ? `Simulado - ${subject}` : "Caderno de Prova Oficial"}
+        banca={banca}
+        quizId={quizId}
+        totalQuestions={totalQuestions}
+        estimatedTimeMinutes={totalQuestions * 3}
+        onBack={() => setIsPrintMode(false)}
+        questions={questions.map((q, idx) => ({
+          id: `q-${idx}`,
+          number: idx + 1,
+          statement: q.enunciado,
+          options: q.alternativas?.map((a) => a.texto),
+          correctOption: q.gabaritoCorreto,
+          subjectName: subject || "Conhecimentos Gerais",
+          format: q.formato,
+          justification: q.justificativa,
+        }))}
+      />
+    );
+  }
+
   if (!currentQuestion) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 text-slate-300">
@@ -588,6 +614,17 @@ export function QuizResolutionView({
               </button>
             </div>
 
+            {/* Botão de Imprimir Caderno de Prova (PDF) */}
+            <button
+              onClick={() => setIsPrintMode(true)}
+              type="button"
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-400 hover:text-cyan-300 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+              title="Imprimir Caderno de Prova Oficial com Folha Óptica (PDF)"
+            >
+              <Printer size={15} />
+              <span className="hidden xl:inline">Imprimir Prova (PDF)</span>
+            </button>
+
             {/* Botão de Tela Cheia */}
             <button
               onClick={toggleFullscreen}
@@ -625,8 +662,18 @@ export function QuizResolutionView({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {/* Botão de Imprimir Prova Mobile */}
+          <button
+            onClick={() => setIsPrintMode(true)}
+            type="button"
+            className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-cyan-400 hover:text-white transition-all cursor-pointer"
+            title="Imprimir Caderno de Prova (PDF)"
+          >
+            <Printer size={14} />
+          </button>
+
           {/* Badge 01/20 */}
-          <span className="text-xs font-mono font-black text-violet-300 bg-violet-500/15 border border-violet-500/30 px-2.5 py-1 rounded-xl shadow-xs">
+          <span className="text-xs font-mono font-black text-violet-300 bg-violet-500/15 border border-violet-500/30 px-2 py-1 rounded-xl shadow-xs">
             {String(activeQuestionIndex + 1).padStart(2, "0")}/
             {String(totalQuestions).padStart(2, "0")}
           </span>

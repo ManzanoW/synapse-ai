@@ -1160,6 +1160,8 @@ export default function QuestoesPage() {
     return (
       <PrintableQuestions
         title={materia ? `Simulado - ${materia}` : "Simulado de Questões Geral"}
+        banca={banca}
+        quizId={currentQuizId}
         totalQuestions={questions.length > 0 ? questions.length : 20}
         estimatedTimeMinutes={questions.length > 0 ? questions.length * 2 : 40}
         onBack={() => setIsPrintMode(false)}
@@ -1172,6 +1174,8 @@ export default function QuestoesPage() {
                 options: q.alternativas?.map((a) => a.texto),
                 correctOption: q.gabaritoCorreto,
                 subjectName: materia || "Conhecimentos Gerais",
+                format: q.formato,
+                justification: q.justificativa,
               }))
             : []
         }

@@ -20,6 +20,10 @@ import {
   ChevronUp,
   Scale,
   Award,
+  Dice5,
+  Activity,
+  RefreshCw,
+  TrendingDown,
 } from "lucide-react";
 import {
   ApprovalPredictorData,
@@ -44,7 +48,7 @@ export function ApprovalPredictorSection({
     initialData ?? null,
   );
   const [loading, setLoading] = useState<boolean>(!initialData);
-  const [showTooltip, setShowTooltip] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<"classic" | "monte_carlo">("classic");
 
   // Configuração da Nota de Corte
   const [selectedPreset, setSelectedPreset] = useState<string>("TRIBUNAIS");
@@ -52,10 +56,13 @@ export function ApprovalPredictorSection({
 
   // Simulador Interativo "E se..." (What-If)
   const [isSimulatorOpen, setIsSimulatorOpen] = useState<boolean>(false);
-  // Mapa de notas hipotéticas por subjectId: { [subjectId]: accuracyPercentage }
   const [simulatedAccuracies, setSimulatedAccuracies] = useState<
     Record<string, number>
   >({});
+
+  // Parâmetros de Monte Carlo
+  const [volatility, setVolatility] = useState<"low" | "medium" | "high">("medium");
+  const [monteCarloSeed, setMonteCarloSeed] = useState<number>(0);
 
   // Carrega nota de corte salva no localStorage se disponível
   useEffect(() => {
@@ -125,7 +132,7 @@ export function ApprovalPredictorSection({
     } catch {}
   };
 
-  // Cálculo da Nota Ponderada Simulada
+  // Cálculo da Nota Ponderada Simulada (Modo Linear)
   const simulatedWeightedScore = useMemo(() => {
     if (!data || !data.subjects || data.subjects.length === 0) return 0;
     if (data.totalWeight <= 0) return 0;
@@ -145,10 +152,8 @@ export function ApprovalPredictorSection({
   );
   const isSimulationActive = scoreDiffFromSimulation !== 0;
 
-  // Pontuação em análise (simulada se ativa, senão a real)
+  // Pontuação em análise
   const activeScore = isSimulationActive ? simulatedWeightedScore : realScore;
-
-  // Delta em relação à Nota de Corte
   const deltaToCutoff = Number((activeScore - cutoffScore).toFixed(1));
 
   // Diagnóstico de Zona
@@ -183,9 +188,8 @@ export function ApprovalPredictorSection({
     }
   }, [deltaToCutoff]);
 
-  // Cálculo da Probabilidade de Aprovação (0 a 99%)
+  // Probabilidade linear
   const approvalProbability = useMemo(() => {
-    // Relação entre a nota ativa e o corte
     const ratio = activeScore / Math.max(1, cutoffScore);
     let baseChance = Math.round(ratio * 70);
 
@@ -194,14 +198,131 @@ export function ApprovalPredictorSection({
     else if (deltaToCutoff >= -5) baseChance = 55 + Math.round((5 + deltaToCutoff) * 4);
     else baseChance = Math.max(8, Math.round(50 + deltaToCutoff * 3));
 
-    // Pondera com a cobertura do edital se disponível
     const coverage = data?.coveragePercentage ?? 50;
     const finalOdds = Math.round(baseChance * 0.8 + coverage * 0.2);
-
     return Math.min(99, Math.max(5, finalOdds));
   }, [activeScore, cutoffScore, deltaToCutoff, data?.coveragePercentage]);
 
-  // Reset do simulador
+  // =========================================================================
+  // MOTOR DE MONTE CARLO (1.000 SIMULAÇÕES ESTOCÁSTICAS)
+  // =========================================================================
+  const monteCarloResult = useMemo(() => {
+    if (!data?.subjects || data.subjects.length === 0 || data.totalWeight <= 0) {
+      return null;
+    }
+
+    const runs = 1000;
+    const sigmaBase =
+      volatility === "low" ? 4.0 : volatility === "high" ? 8.5 : 6.0;
+
+    // Transformada de Box-Muller para ruído gaussiano
+    let seedState = monteCarloSeed * 1000;
+    const pseudoRandom = () => {
+      seedState = (seedState * 9301 + 49297) % 233280;
+      return seedState / 233280;
+    };
+
+    const randomNormal = () => {
+      let u = 0, v = 0;
+      while (u === 0) u = pseudoRandom();
+      while (v === 0) v = pseudoRandom();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    };
+
+    const scores: number[] = [];
+
+    for (let i = 0; i < runs; i++) {
+      let weightedSum = 0;
+      for (const sub of data.subjects) {
+        const accuracy = simulatedAccuracies[sub.id] ?? sub.accuracy;
+        const noise = randomNormal() * sigmaBase;
+        const subScore = Math.max(0, Math.min(100, accuracy + noise));
+        weightedSum += subScore * sub.weight;
+      }
+      const examScore = Number((weightedSum / data.totalWeight).toFixed(1));
+      scores.push(examScore);
+    }
+
+    scores.sort((a, b) => a - b);
+
+    const p10 = scores[Math.floor(runs * 0.1)];
+    const p50 = scores[Math.floor(runs * 0.5)];
+    const p90 = scores[Math.floor(runs * 0.9)];
+    const wins = scores.filter((s) => s >= cutoffScore).length;
+    const winRate = Number(((wins / runs) * 100).toFixed(1));
+
+    // Bins para o histograma da Curva de Gauss
+    const minScore = Math.max(30, Math.floor(scores[0] - 1));
+    const maxScore = Math.min(100, Math.ceil(scores[runs - 1] + 1));
+    const binCount = 28;
+    const binWidth = Math.max(0.5, (maxScore - minScore) / binCount);
+
+    const bins: Array<{
+      mid: number;
+      count: number;
+      height: number;
+      isApproved: boolean;
+    }> = [];
+
+    for (let b = 0; b < binCount; b++) {
+      const bStart = minScore + b * binWidth;
+      const bEnd = bStart + binWidth;
+      const mid = Number(((bStart + bEnd) / 2).toFixed(1));
+      const count = scores.filter((s) => s >= bStart && s < bEnd).length;
+      bins.push({
+        mid,
+        count,
+        height: 0,
+        isApproved: mid >= cutoffScore,
+      });
+    }
+
+    const maxCount = Math.max(1, ...bins.map((b) => b.count));
+    bins.forEach((b) => {
+      b.height = Number(((b.count / maxCount) * 100).toFixed(1));
+    });
+
+    // Alavanca de Ouro: Identifica a disciplina que dá o maior salto de vitória ao subir +5%
+    let bestSubject = data.subjects[0];
+    let maxDeltaWins = -1;
+
+    for (const candidate of data.subjects) {
+      let candidateWins = 0;
+      for (let i = 0; i < runs; i++) {
+        let wSum = 0;
+        for (const sub of data.subjects) {
+          const accuracy = simulatedAccuracies[sub.id] ?? sub.accuracy;
+          const bonus = sub.id === candidate.id ? 5 : 0;
+          const noise = randomNormal() * sigmaBase;
+          const subScore = Math.max(0, Math.min(100, accuracy + bonus + noise));
+          wSum += subScore * sub.weight;
+        }
+        if (wSum / data.totalWeight >= cutoffScore) {
+          candidateWins++;
+        }
+      }
+      const delta = candidateWins - wins;
+      if (delta > maxDeltaWins) {
+        maxDeltaWins = delta;
+        bestSubject = candidate;
+      }
+    }
+
+    const goldenGain = Number(((Math.max(0, maxDeltaWins) / runs) * 100).toFixed(1));
+
+    return {
+      p10,
+      p50,
+      p90,
+      winRate,
+      bins,
+      minScore,
+      maxScore,
+      bestSubject,
+      goldenGain,
+    };
+  }, [data, simulatedAccuracies, cutoffScore, volatility, monteCarloSeed]);
+
   const handleResetSimulator = () => {
     if (data?.subjects) {
       const resetMap: Record<string, number> = {};
@@ -291,307 +412,598 @@ export function ApprovalPredictorSection({
         </div>
       </div>
 
-      {/* 2. PLACAR PRINCIPAL: NOTA PONDERADA VS NOTA DE CORTE */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card 1: Sua Nota Ponderada Real */}
-        <div className="relative overflow-hidden rounded-2xl bg-slate-900/80 border border-white/10 p-5 shadow-xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Scale size={15} className="text-violet-400" />
-              <span>Nota Ponderada Global</span>
+      {/* SELETOR DE MODO: CLÁSSICO VS ORÁCULO DE MONTE CARLO */}
+      <div className="flex items-center justify-between gap-3 bg-black/40 border border-white/10 p-1.5 rounded-2xl flex-wrap">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab("classic")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "classic"
+                ? "bg-violet-600 text-white shadow-lg shadow-violet-950/60"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Scale size={14} />
+            <span>Diagnóstico Ponderado Linear</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("monte_carlo")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "monte_carlo"
+                ? "bg-linear-to-r from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-950/60"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Dice5 size={14} className="text-cyan-300" />
+            <span>🔮 Oráculo Monte Carlo (1.000 Corridas)</span>
+            <span className="text-[9px] bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 px-1.5 py-0.2 rounded font-mono">
+              IA Gaussiana
             </span>
-            {isSimulationActive && (
-              <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
-                Simulado
-              </span>
-            )}
-          </div>
-
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-4xl sm:text-5xl font-black text-white font-mono tracking-tight">
-              {activeScore}%
-            </span>
-            <span className="text-xs text-slate-400 font-medium">da prova</span>
-          </div>
-
-          {isSimulationActive && (
-            <div className="mt-2 text-xs font-bold text-emerald-400 flex items-center gap-1 font-mono">
-              <TrendingUp size={14} />
-              <span>
-                +{scoreDiffFromSimulation}% vs nota real ({realScore}%)
-              </span>
-            </div>
-          )}
-
-          <p className="text-[11px] text-slate-400 mt-2">
-            Calculada a partir de {data.totalWeight.toFixed(1)} pontos de peso distribuídos no edital.
-          </p>
+          </button>
         </div>
 
-        {/* Card 2: Comparativo com o Corte & Zona de Classificação */}
-        <div
-          className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${zone.accentBg} border p-5 shadow-xl flex flex-col justify-between`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-              Linha de Corte: {cutoffScore}%
-            </span>
-            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${zone.bg}`}>
-              {zone.id}
-            </span>
-          </div>
-
-          <div className="mt-3">
-            <h3 className={`text-lg font-black tracking-tight ${zone.color}`}>
-              {zone.label}
-            </h3>
-            <p className="text-xs text-slate-200 mt-1 leading-relaxed">
-              {zone.message}
-            </p>
-          </div>
-
-          {/* Barra de comparação visual */}
-          <div className="mt-4 space-y-1">
-            <div className="flex justify-between text-[10px] font-mono text-slate-400">
-              <span>Sua Nota: {activeScore}%</span>
-              <span>Corte: {cutoffScore}%</span>
+        {activeTab === "monte_carlo" && (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-[11px] text-slate-400 font-medium">Volatilidade:</span>
+            <div className="flex items-center bg-slate-900 border border-white/10 rounded-lg p-0.5">
+              {(["low", "medium", "high"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setVolatility(mode)}
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                    volatility === mode
+                      ? "bg-cyan-500 text-black shadow-xs"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {mode === "low" ? "Baixa" : mode === "medium" ? "Média" : "Alta"}
+                </button>
+              ))}
             </div>
-            <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/10 relative">
-              {/* Marcador da Nota de Corte */}
-              <div
-                className="absolute top-0 bottom-0 w-1 bg-white z-10 shadow-[0_0_8px_#fff]"
-                style={{ left: `${cutoffScore}%` }}
-                title={`Nota de Corte: ${cutoffScore}%`}
-              />
-              {/* Barra do aluno */}
-              <div
-                className={`h-full rounded-full transition-all duration-700 ${
-                  activeScore >= cutoffScore
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
-                    : activeScore >= cutoffScore - 5
-                    ? "bg-gradient-to-r from-amber-500 to-orange-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
-                    : "bg-gradient-to-r from-rose-500 to-violet-500"
-                }`}
-                style={{ width: `${Math.min(100, activeScore)}%` }}
-              />
-            </div>
-          </div>
-        </div>
 
-        {/* Card 3: Probabilidade Estatística de Aprovação */}
-        <div className="relative overflow-hidden rounded-2xl bg-slate-900/80 border border-white/10 p-5 shadow-xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Sparkles size={15} className="text-cyan-400" />
-              <span>Chance Estimada de Vaga</span>
-            </span>
-            <span className="text-[10px] font-mono font-bold text-cyan-300">
-              Previsão IA
-            </span>
+            <button
+              type="button"
+              onClick={() => setMonteCarloSeed((s) => s + 1)}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-cyan-300 border border-cyan-500/30 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+              title="Executar novas 1.000 simulações com variação estocástica"
+            >
+              <RefreshCw size={12} />
+              <span>Simular Novamente</span>
+            </button>
           </div>
-
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-violet-300 to-emerald-300 font-mono tracking-tight">
-              {approvalProbability}%
-            </span>
-            <span className="text-xs text-slate-400 font-medium">probabilidade</span>
-          </div>
-
-          <div className="w-full bg-slate-950 rounded-full h-1.5 mt-2 overflow-hidden border border-white/5">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${approvalProbability}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="h-full bg-gradient-to-r from-cyan-500 via-indigo-500 to-emerald-400 rounded-full"
-            />
-          </div>
-
-          <p className="text-[11px] text-slate-400 mt-2">
-            Pondera precisão das disciplinas, cobertura do edital ({data.coveragePercentage}%) e margem de corte.
-          </p>
-        </div>
+        )}
       </div>
 
-      {/* 3. CAMINHO CRÍTICO DE MAIOR ALAVANCAGEM (MENOR ESFORÇO) */}
-      {data.topLeverageSubjects && data.topLeverageSubjects.length > 0 && (
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-violet-950/40 via-indigo-950/20 to-slate-900/60 border border-violet-500/30 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap size={16} className="text-amber-400 fill-amber-400" />
-              <h3 className="text-sm font-extrabold text-white">
-                Caminho Crítico de Maior Alavancagem (Menor Esforço)
-              </h3>
-            </div>
-            <span className="text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">
-              Máximo Retorno por Hora
-            </span>
-          </div>
-
-          <p className="text-xs text-slate-300">
-            A IA analisou os pesos do edital e sua precisão atual. Estas são as matérias onde seu tempo terá o maior impacto direto na nota final:
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-            {data.topLeverageSubjects.map((item) => (
-              <div
-                key={item.id}
-                className="p-3.5 rounded-xl bg-slate-900/80 border border-white/10 hover:border-violet-500/40 transition-all flex flex-col justify-between space-y-2 group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white truncate group-hover:text-violet-300 transition-colors">
-                    {item.name}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                    Peso {item.weight.toFixed(1)}
-                  </span>
-                </div>
-
-                <p className="text-[11px] text-slate-300 leading-snug">
-                  {item.recommendation}
-                </p>
-
-                <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px]">
-                  <span className="text-slate-400">
-                    Acerto atual: <strong className="text-white">{item.accuracy}%</strong>
-                  </span>
-                  <Link
-                    href={`/questions?subjectId=${item.id}`}
-                    className="text-violet-400 hover:text-white font-bold flex items-center gap-1 transition-colors"
-                  >
-                    <span>Treinar</span>
-                    <ArrowRight size={11} />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 4. SIMULADOR INTERATIVO "E SE..." (WHAT-IF) */}
-      <div className="rounded-2xl border border-white/10 bg-slate-900/40 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setIsSimulatorOpen((prev) => !prev)}
-          className="w-full p-4 sm:p-5 flex items-center justify-between bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer text-left"
+      {/* ========================================================================= */}
+      {/* ABA 1: DIAGNÓSTICO LINEAR CLÁSSICO */}
+      {/* ========================================================================= */}
+      {activeTab === "classic" && (
+        <motion.div
+          key="view-classic"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="space-y-6"
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400">
-              <Sliders size={18} />
-            </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                <span>Simulador de Impacto &quot;E se...&quot;</span>
+          {/* PLACAR PRINCIPAL */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Card 1: Sua Nota Ponderada Real */}
+            <div className="relative overflow-hidden rounded-2xl bg-slate-900/80 border border-white/10 p-5 shadow-xl flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Scale size={15} className="text-violet-400" />
+                  <span>Nota Ponderada Global</span>
+                </span>
                 {isSimulationActive && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
-                    Ativo (+{scoreDiffFromSimulation} pts)
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                    Simulado
                   </span>
                 )}
-              </h3>
-              <p className="text-xs text-slate-400">
-                Ajuste os sliders para projetar como aumentos de rendimento em matérias específicas alavancam sua aprovação.
+              </div>
+
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-4xl sm:text-5xl font-black text-white font-mono tracking-tight">
+                  {activeScore}%
+                </span>
+                <span className="text-xs text-slate-400 font-medium">da prova</span>
+              </div>
+
+              {isSimulationActive && (
+                <div className="mt-2 text-xs font-bold text-emerald-400 flex items-center gap-1 font-mono">
+                  <TrendingUp size={14} />
+                  <span>
+                    +{scoreDiffFromSimulation}% vs nota real ({realScore}%)
+                  </span>
+                </div>
+              )}
+
+              <p className="text-[11px] text-slate-400 mt-2">
+                Calculada a partir de {data.totalWeight.toFixed(1)} pontos de peso distribuídos no edital.
+              </p>
+            </div>
+
+            {/* Card 2: Comparativo com o Corte & Zona de Classificação */}
+            <div
+              className={`relative overflow-hidden rounded-2xl bg-linear-to-br ${zone.accentBg} border p-5 shadow-xl flex flex-col justify-between`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Linha de Corte: {cutoffScore}%
+                </span>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${zone.bg}`}>
+                  {zone.id}
+                </span>
+              </div>
+
+              <div className="mt-3">
+                <h3 className={`text-lg font-black tracking-tight ${zone.color}`}>
+                  {zone.label}
+                </h3>
+                <p className="text-xs text-slate-200 mt-1 leading-relaxed">
+                  {zone.message}
+                </p>
+              </div>
+
+              {/* Barra de comparação visual */}
+              <div className="mt-4 space-y-1">
+                <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                  <span>Sua Nota: {activeScore}%</span>
+                  <span>Corte: {cutoffScore}%</span>
+                </div>
+                <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/10 relative">
+                  <div
+                    className="absolute top-0 bottom-0 w-1 bg-white z-10 shadow-[0_0_8px_#fff]"
+                    style={{ left: `${cutoffScore}%` }}
+                    title={`Nota de Corte: ${cutoffScore}%`}
+                  />
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      activeScore >= cutoffScore
+                        ? "bg-linear-to-r from-emerald-500 to-teal-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
+                        : activeScore >= cutoffScore - 5
+                        ? "bg-linear-to-r from-amber-500 to-orange-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                        : "bg-linear-to-r from-rose-500 to-violet-500"
+                    }`}
+                    style={{ width: `${Math.min(100, activeScore)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Probabilidade Estatística de Aprovação */}
+            <div className="relative overflow-hidden rounded-2xl bg-slate-900/80 border border-white/10 p-5 shadow-xl flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles size={15} className="text-cyan-400" />
+                  <span>Chance Estimada de Vaga</span>
+                </span>
+                <span className="text-[10px] font-mono font-bold text-cyan-300">
+                  Previsão Linear
+                </span>
+              </div>
+
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-cyan-300 via-violet-300 to-emerald-300 font-mono tracking-tight">
+                  {approvalProbability}%
+                </span>
+                <span className="text-xs text-slate-400 font-medium">probabilidade</span>
+              </div>
+
+              <div className="w-full bg-slate-950 rounded-full h-1.5 mt-2 overflow-hidden border border-white/5">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${approvalProbability}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="h-full bg-linear-to-r from-cyan-500 via-indigo-500 to-emerald-400 rounded-full"
+                />
+              </div>
+
+              <p className="text-[11px] text-slate-400 mt-2">
+                Pondera precisão das disciplinas, cobertura do edital ({data.coveragePercentage}%) e margem de corte.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 text-slate-400">
-            {isSimulatorOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </div>
-        </button>
-
-        <AnimatePresence>
-          {isSimulatorOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="p-5 sm:p-6 border-t border-white/10 space-y-5 bg-slate-950/40"
-            >
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-medium">
-                  Ajuste o rendimento hipotético (%) em cada disciplina:
+          {/* CAMINHO CRÍTICO DE MAIOR ALAVANCAGEM */}
+          {data.topLeverageSubjects && data.topLeverageSubjects.length > 0 && (
+            <div className="p-5 rounded-2xl bg-linear-to-r from-violet-950/40 via-indigo-950/20 to-slate-900/60 border border-violet-500/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap size={16} className="text-amber-400 fill-amber-400" />
+                  <h3 className="text-sm font-extrabold text-white">
+                    Caminho Crítico de Maior Alavancagem (Menor Esforço)
+                  </h3>
+                </div>
+                <span className="text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                  Máximo Retorno por Hora
                 </span>
-                {isSimulationActive && (
-                  <button
-                    type="button"
-                    onClick={handleResetSimulator}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+              </div>
+
+              <p className="text-xs text-slate-300">
+                A IA analisou os pesos do edital e sua precisão atual. Estas são as matérias onde seu tempo terá o maior impacto direto na nota final:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                {data.topLeverageSubjects.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3.5 rounded-xl bg-slate-900/80 border border-white/10 hover:border-violet-500/40 transition-all flex flex-col justify-between space-y-2 group"
                   >
-                    <RotateCcw size={13} />
-                    <span>Resetar Simulação</span>
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {data.subjects.map((sub) => {
-                  const simulatedValue = simulatedAccuracies[sub.id] ?? sub.accuracy;
-                  const diff = simulatedValue - sub.accuracy;
-
-                  return (
-                    <div
-                      key={sub.id}
-                      className="p-4 rounded-xl bg-slate-900/60 border border-white/5 space-y-2.5"
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2 truncate max-w-[200px]">
-                          <span className="font-bold text-slate-200 truncate">
-                            {sub.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 font-mono">
-                          <span className="text-[10px] text-slate-400">
-                            Peso {sub.weight.toFixed(1)} ({sub.weightPercentage}%)
-                          </span>
-                          <span
-                            className={`font-black text-xs ${
-                              diff > 0
-                                ? "text-emerald-400"
-                                : diff < 0
-                                ? "text-rose-400"
-                                : "text-white"
-                            }`}
-                          >
-                            {simulatedValue}%
-                            {diff !== 0 && (
-                              <span className="text-[10px] ml-1">
-                                ({diff > 0 ? `+${diff}` : diff}%)
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={simulatedValue}
-                        onChange={(e) =>
-                          setSimulatedAccuracies((prev) => ({
-                            ...prev,
-                            [sub.id]: Number(e.target.value),
-                          }))
-                        }
-                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-violet-500"
-                      />
-
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                        <span>Real: {sub.accuracy}%</span>
-                        <span>
-                          Impacto máx: +{sub.leverageScore.toFixed(1)} pts
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white truncate group-hover:text-violet-300 transition-colors">
+                        {item.name}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                        Peso {item.weight.toFixed(1)}
+                      </span>
                     </div>
-                  );
-                })}
+
+                    <p className="text-[11px] text-slate-300 leading-snug">
+                      {item.recommendation}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px]">
+                      <span className="text-slate-400">
+                        Acerto atual: <strong className="text-white">{item.accuracy}%</strong>
+                      </span>
+                      <Link
+                        href={`/questions?subjectId=${item.id}`}
+                        className="text-violet-400 hover:text-white font-bold flex items-center gap-1 transition-colors"
+                      >
+                        <span>Treinar</span>
+                        <ArrowRight size={11} />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
-      </div>
+
+          {/* SIMULADOR INTERATIVO WHAT-IF */}
+          <div className="rounded-2xl border border-white/10 bg-slate-900/40 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setIsSimulatorOpen((prev) => !prev)}
+              className="w-full p-4 sm:p-5 flex items-center justify-between bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400">
+                  <Sliders size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    <span>Simulador de Impacto &quot;E se...&quot;</span>
+                    {isSimulationActive && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                        Ativo (+{scoreDiffFromSimulation} pts)
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Ajuste os sliders para projetar como aumentos de rendimento em matérias específicas alavancam sua aprovação.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-slate-400">
+                {isSimulatorOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {isSimulatorOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="p-5 sm:p-6 border-t border-white/10 space-y-5 bg-slate-950/40"
+                >
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400 font-medium">
+                      Ajuste o rendimento hipotético (%) em cada disciplina:
+                    </span>
+                    {isSimulationActive && (
+                      <button
+                        type="button"
+                        onClick={handleResetSimulator}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                      >
+                        <RotateCcw size={13} />
+                        <span>Resetar Simulação</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {data.subjects.map((sub) => {
+                      const simulatedValue = simulatedAccuracies[sub.id] ?? sub.accuracy;
+                      const diff = simulatedValue - sub.accuracy;
+
+                      return (
+                        <div
+                          key={sub.id}
+                          className="p-4 rounded-xl bg-slate-900/60 border border-white/5 space-y-2.5"
+                        >
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2 truncate max-w-[200px]">
+                              <span className="font-bold text-slate-200 truncate">
+                                {sub.name}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 font-mono">
+                              <span className="text-[10px] text-slate-400">
+                                Peso {sub.weight.toFixed(1)} ({sub.weightPercentage}%)
+                              </span>
+                              <span
+                                className={`font-black text-xs ${
+                                  diff > 0
+                                    ? "text-emerald-400"
+                                    : diff < 0
+                                    ? "text-rose-400"
+                                    : "text-white"
+                                }`}
+                              >
+                                {simulatedValue}%
+                                {diff !== 0 && (
+                                  <span className="text-[10px] ml-1">
+                                    ({diff > 0 ? `+${diff}` : diff}%)
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="1"
+                            value={simulatedValue}
+                            onChange={(e) =>
+                              setSimulatedAccuracies((prev) => ({
+                                ...prev,
+                                [sub.id]: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                          />
+
+                          <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                            <span>Real: {sub.accuracy}%</span>
+                            <span>
+                              Impacto máx: +{sub.leverageScore.toFixed(1)} pts
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ABA 2: ORÁCULO DE MONTE CARLO (1.000 SIMULAÇÕES & CURVA DE GAUSS) */}
+      {/* ========================================================================= */}
+      {activeTab === "monte_carlo" && monteCarloResult && (
+        <motion.div
+          key="view-monte-carlo"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="space-y-6"
+        >
+          {/* CARDS DOS 3 PERCENTIS (P10, P50, P90) E CHANCE REAL */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* P10 */}
+            <div className="p-4 rounded-2xl bg-slate-900/80 border border-rose-500/20 shadow-xl space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span className="font-bold text-rose-400">P10 • Dia Difícil</span>
+                <span className="text-[9px] font-mono text-slate-500">Pessimista</span>
+              </div>
+              <div className="text-3xl font-black font-mono text-white">
+                {monteCarloResult.p10}%
+              </div>
+              <p className="text-[10px] text-slate-400 leading-snug">
+                90% de certeza estatística de tirar no mínimo esta pontuação sob pressão.
+              </p>
+            </div>
+
+            {/* P50 */}
+            <div className="p-4 rounded-2xl bg-linear-to-b from-violet-950/40 to-slate-900/80 border border-violet-500/30 shadow-xl space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span className="font-bold text-violet-300">P50 • Mediana</span>
+                <span className="text-[9px] font-mono text-violet-400 font-bold">Mais Provável</span>
+              </div>
+              <div className="text-3xl font-black font-mono text-violet-200">
+                {monteCarloResult.p50}%
+              </div>
+              <p className="text-[10px] text-slate-400 leading-snug">
+                Centro da distribuição de Gauss onde se concentram 50% dos cenários.
+              </p>
+            </div>
+
+            {/* P90 */}
+            <div className="p-4 rounded-2xl bg-slate-900/80 border border-cyan-500/20 shadow-xl space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span className="font-bold text-cyan-400">P90 • Dia Perfeito</span>
+                <span className="text-[9px] font-mono text-slate-500">Otimista</span>
+              </div>
+              <div className="text-3xl font-black font-mono text-white">
+                {monteCarloResult.p90}%
+              </div>
+              <p className="text-[10px] text-slate-400 leading-snug">
+                Pontuação atingida quando você acerta distratores e pegadinhas da banca.
+              </p>
+            </div>
+
+            {/* CHANCE DE APROVAÇÃO REAL */}
+            <div className="p-4 rounded-2xl bg-linear-to-b from-emerald-950/40 to-slate-900/80 border border-emerald-500/30 shadow-xl space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span className="font-bold text-emerald-400">Vitória no Corte</span>
+                <span className="text-[9px] font-mono text-emerald-300 font-bold">Monte Carlo</span>
+              </div>
+              <div className="text-3xl font-black font-mono text-emerald-300">
+                {monteCarloResult.winRate}%
+              </div>
+              <p className="text-[10px] text-slate-400 leading-snug">
+                Das 1.000 provas simuladas, superou a nota de corte de {cutoffScore}%.
+              </p>
+            </div>
+          </div>
+
+          {/* VISUALIZAÇÃO GRÁFICA: CURVA DE GAUSS / DISTRIBUIÇÃO EM SINO */}
+          <div className="p-6 rounded-3xl bg-slate-950/80 border border-white/10 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="space-y-0.5">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Activity size={16} className="text-cyan-400" />
+                  <span>Distribuição de Densidade de Probabilidade (Curva de Gauss)</span>
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Gráfico empírico das 1.000 simulações com área verde indicando aprovação dentro das vagas.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4 text-xs font-mono">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-xs bg-emerald-500/40 border border-emerald-400 inline-block" />
+                  <span className="text-emerald-300 font-bold">Zona Aprovada (≥ {cutoffScore}%)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-xs bg-violet-600/30 border border-violet-500 inline-block" />
+                  <span className="text-slate-400">Abaixo do Corte</span>
+                </div>
+              </div>
+            </div>
+
+            {/* CURVA DE GAUSS SVG DINÂMICA */}
+            <div className="h-56 w-full relative pt-4 pb-6">
+              <div className="h-full w-full flex items-end justify-between gap-1 border-b border-white/10 px-2 relative">
+                {monteCarloResult.bins.map((bin, idx) => (
+                  <div
+                    key={`bin-${idx}`}
+                    className="flex-1 flex flex-col items-center group relative h-full justify-end"
+                  >
+                    {/* Tooltip no Hover */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none absolute -top-10 bg-slate-900 border border-white/20 px-2 py-1 rounded text-[10px] font-mono text-white whitespace-nowrap z-20 shadow-xl">
+                      Nota {bin.mid}%: {bin.count} provas ({bin.isApproved ? "Aprovado" : "Reprovado"})
+                    </div>
+
+                    {/* Barra do histograma suave */}
+                    <div
+                      style={{ height: `${Math.max(4, bin.height)}%` }}
+                      className={`w-full rounded-t-xs transition-all duration-300 group-hover:scale-y-105 ${
+                        bin.isApproved
+                          ? "bg-gradient-to-t from-emerald-500/30 via-emerald-500/60 to-emerald-400 border-t-2 border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                          : "bg-gradient-to-t from-violet-950/20 via-violet-600/30 to-violet-500/50 border-t border-violet-400/40"
+                      }`}
+                    />
+                  </div>
+                ))}
+
+                {/* Linha da Nota de Corte */}
+                <div
+                  className="absolute top-0 bottom-0 border-l-2 border-dashed border-amber-400 z-10 flex flex-col justify-between"
+                  style={{
+                    left: `${Math.max(
+                      5,
+                      Math.min(
+                        95,
+                        ((cutoffScore - monteCarloResult.minScore) /
+                          (monteCarloResult.maxScore - monteCarloResult.minScore)) *
+                          100,
+                      ),
+                    )}%`,
+                  }}
+                >
+                  <div className="bg-amber-500 text-black text-[9px] font-mono font-black px-1.5 py-0.5 rounded-xs shadow-md -translate-x-1/2 whitespace-nowrap">
+                    Corte: {cutoffScore}%
+                  </div>
+                </div>
+
+                {/* Linha da Mediana P50 */}
+                <div
+                  className="absolute top-0 bottom-0 border-l border-violet-400 z-10 flex flex-col justify-between"
+                  style={{
+                    left: `${Math.max(
+                      5,
+                      Math.min(
+                        95,
+                        ((monteCarloResult.p50 - monteCarloResult.minScore) /
+                          (monteCarloResult.maxScore - monteCarloResult.minScore)) *
+                          100,
+                      ),
+                    )}%`,
+                  }}
+                >
+                  <div className="bg-violet-600 text-white text-[9px] font-mono font-black px-1.5 py-0.5 rounded-xs shadow-md -translate-x-1/2 whitespace-nowrap">
+                    P50: {monteCarloResult.p50}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Legenda do eixo X */}
+              <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-2 px-2">
+                <span>Pior caso: {monteCarloResult.minScore}%</span>
+                <span>Mediana P50: {monteCarloResult.p50}%</span>
+                <span>Melhor caso: {monteCarloResult.maxScore}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* CARD ALAVANCA DE OURO */}
+          <div className="p-5 rounded-2xl bg-linear-to-r from-amber-950/30 via-slate-900/80 to-slate-900/60 border border-amber-500/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award size={18} className="text-amber-400" />
+                <h4 className="text-sm font-black text-amber-200">
+                  🏆 Alavanca de Ouro (Maior Retorno Estatístico de Aprovação)
+                </h4>
+              </div>
+              <span className="text-[10px] font-mono font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                +{monteCarloResult.goldenGain}% de Vitória
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-200 leading-relaxed">
+              O algoritmo de Monte Carlo detectou que a disciplina{" "}
+              <strong className="text-amber-300">
+                &ldquo;{monteCarloResult.bestSubject.name}&rdquo;
+              </strong>{" "}
+              (Peso {monteCarloResult.bestSubject.weight.toFixed(1)}) oferece a maior alavancagem para sua aprovação.
+              Se você elevar seu índice de acertos nela em apenas <strong>+5%</strong>, sua probabilidade de vaga salta de{" "}
+              <strong className="text-slate-300">{monteCarloResult.winRate}%</strong> para{" "}
+              <strong className="text-emerald-400">
+                {(monteCarloResult.winRate + monteCarloResult.goldenGain).toFixed(1)}%
+              </strong>.
+            </p>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-slate-400">
+                Acerto atual em {monteCarloResult.bestSubject.name}:{" "}
+                <strong className="text-white">{monteCarloResult.bestSubject.accuracy}%</strong>
+              </span>
+              <Link
+                href={`/questions?subjectId=${monteCarloResult.bestSubject.id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all"
+              >
+                <span>Fazer Bateria de Questões</span>
+                <ArrowRight size={13} />
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
