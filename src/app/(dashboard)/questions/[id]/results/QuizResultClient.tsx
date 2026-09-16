@@ -37,7 +37,7 @@ export function QuizResultClient({
   };
 
   const handleExit = () => {
-    router.push("/questions");
+    router.push("/questions?tab=history");
   };
 
   return (

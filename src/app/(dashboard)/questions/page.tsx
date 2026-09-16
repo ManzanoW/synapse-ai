@@ -838,6 +838,9 @@ export default function QuestoesPage() {
                 userAnswer: selectedAnswers[idx],
                 isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
                 errorReason: errorClassifications[idx] || null,
+                timeSpentSeconds: Math.round(
+                  timerSeconds / Math.max(1, totalQuestions),
+                ),
               })),
             }),
           });
@@ -1271,6 +1274,9 @@ export default function QuestoesPage() {
                     isCorrect:
                       finalData.selectedAnswers[idx] === q.gabaritoCorreto,
                     errorReason: finalData.errorClassifications[idx] || null,
+                    timeSpentSeconds: Math.round(
+                      finalData.timerSeconds / Math.max(1, finalTotal),
+                    ),
                   })),
                 }),
               });
