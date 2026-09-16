@@ -44,7 +44,6 @@ import { GenerateAIModal } from "./_components/GenerateAIModal";
 import { QuestionMinimap } from "./_components/QuestionMinimap";
 import { TimedLaunchModal } from "./_components/TimedLaunchModal";
 import { TimedPacingModal } from "./_components/TimedPacingModal";
-import { ErrorNotebookView } from "../notebook/components/ErrorNotebookView";
 import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
 import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 
@@ -224,46 +223,6 @@ function TabHistorySkeleton() {
   );
 }
 
-function TabErrorsSkeleton() {
-  return (
-    <div className="space-y-4 animate-pulse">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-24 rounded-2xl bg-[#090d16]/60 border border-white/10 backdrop-blur-xl p-4 flex flex-col justify-between"
-          >
-            <div className="flex items-center justify-between">
-              <div className="h-3 w-16 rounded bg-white/5" />
-              <div className="w-5 h-5 rounded bg-white/5" />
-            </div>
-            <div className="h-6 w-12 rounded bg-white/10" />
-          </div>
-        ))}
-      </div>
-      <div className="h-14 rounded-2xl bg-[#090d16]/60 border border-white/10 backdrop-blur-xl p-3 flex items-center justify-between gap-3">
-        <div className="h-8 flex-1 rounded-xl bg-white/[0.03]" />
-        <div className="h-8 w-28 rounded-xl bg-white/[0.03]" />
-      </div>
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-32 rounded-2xl bg-[#090d16]/60 border border-white/10 backdrop-blur-xl p-5 flex flex-col justify-between"
-          >
-            <div className="flex items-center justify-between">
-              <div className="h-4 w-24 rounded bg-rose-500/10 border border-rose-500/20" />
-              <div className="h-4 w-16 rounded bg-white/5" />
-            </div>
-            <div className="h-4 w-4/5 rounded bg-white/5" />
-            <div className="h-3 w-1/3 rounded bg-white/5" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function QuestoesPage() {
   const router = useRouter();
   const { openSidebar, closeSidebar } = useSidebar();
@@ -281,16 +240,15 @@ export default function QuestoesPage() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
     null,
   );
-  const [activeTab, setActiveTab] = useState<"create" | "history" | "errors">(
+  const [activeTab, setActiveTab] = useState<"create" | "history">(
     () => {
       const tabParam = searchParams.get("tab");
       if (tabParam === "history") return "history";
-      if (tabParam === "errors" || tabParam === "notebook") return "errors";
       return "create";
     },
   );
   const [pendingTab, setPendingTab] = useState<
-    "create" | "history" | "errors" | null
+    "create" | "history" | null
   >(null);
 
   // Caderno de Erros Integrado
@@ -302,8 +260,6 @@ export default function QuestoesPage() {
       masteryRate: 0,
       taxonomyDistribution: [],
     });
-  const [isLoadingNotebook, setIsLoadingNotebook] = useState(false);
-  const [isNotebookLoaded, setIsNotebookLoaded] = useState(false);
 
   // Modais de Simulado Cronometrado Integrado
   const [isTimedLaunchModalOpen, setIsTimedLaunchModalOpen] = useState(false);
@@ -441,17 +397,13 @@ export default function QuestoesPage() {
   }, []);
 
   const loadErrorNotebookData = useCallback(async () => {
-    setIsLoadingNotebook(true);
     try {
       const metricsRes = await getErrorMetricsAction();
       if (metricsRes.success && metricsRes.data) {
         setErrorNotebookMetrics(metricsRes.data);
       }
-      setIsNotebookLoaded(true);
     } catch (err) {
       console.error("Erro ao carregar caderno de erros:", err);
-    } finally {
-      setIsLoadingNotebook(false);
     }
   }, []);
 
@@ -484,8 +436,7 @@ export default function QuestoesPage() {
     if (tabParam === "history") {
       setActiveTab("history");
     } else if (tabParam === "notebook" || tabParam === "errors") {
-      setActiveTab("errors");
-      loadErrorNotebookData();
+      router.replace("/notebook");
     } else if (tabParam === "create") {
       setActiveTab("create");
     }
@@ -555,15 +506,14 @@ export default function QuestoesPage() {
         setActiveTab("history");
         if (!isHistoryLoaded) fetchQuizHistory();
       } else if (tab === "errors" || tab === "notebook") {
-        setActiveTab("errors");
-        if (!isNotebookLoaded) loadErrorNotebookData();
+        router.replace("/notebook");
       } else {
         setActiveTab("create");
       }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [isHistoryLoaded, isNotebookLoaded, fetchQuizHistory, loadErrorNotebookData]);
+  }, [isHistoryLoaded, fetchQuizHistory, router]);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -701,7 +651,7 @@ export default function QuestoesPage() {
     answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
   const handleTabChange = useCallback(
-    (newTab: "create" | "history" | "errors") => {
+    (newTab: "create" | "history") => {
       if (
         activeTab === "create" &&
         newTab !== "create" &&
@@ -718,8 +668,6 @@ export default function QuestoesPage() {
 
       if (newTab === "history" && !isHistoryLoaded) {
         fetchQuizHistory();
-      } else if (newTab === "errors" && !isNotebookLoaded) {
-        loadErrorNotebookData();
       }
     },
     [
@@ -727,9 +675,7 @@ export default function QuestoesPage() {
       questions.length,
       selectedAnswers,
       isHistoryLoaded,
-      isNotebookLoaded,
       fetchQuizHistory,
-      loadErrorNotebookData,
     ],
   );
 
@@ -743,8 +689,6 @@ export default function QuestoesPage() {
       window.history.replaceState(null, "", newUrl);
       if (pendingTab === "history" && !isHistoryLoaded) {
         fetchQuizHistory();
-      } else if (pendingTab === "errors" && !isNotebookLoaded) {
-        loadErrorNotebookData();
       }
       setQuestions([]);
       setSelectedAnswers({});
@@ -1456,7 +1400,7 @@ export default function QuestoesPage() {
                 type="button"
                 onClick={() => {
                   if (!isHistoryLoaded) fetchQuizHistory();
-                  if (!isNotebookLoaded) loadErrorNotebookData();
+                  loadErrorNotebookData();
                   setIsTimedLaunchModalOpen(true);
                 }}
                 className="w-full sm:w-auto justify-center bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-violet-600/10 active:scale-95 hover:shadow-violet-600/20"
@@ -1470,48 +1414,54 @@ export default function QuestoesPage() {
 
         {/* 2. NAVEGAÇÃO DE ABAS */}
         {!isZenMode && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <button
-              onClick={() => handleTabChange("create")}
-              type="button"
-              className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
-                activeTab === "create"
-                  ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
-              }`}
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => handleTabChange("create")}
+                type="button"
+                className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
+                  activeTab === "create"
+                    ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+                }`}
+              >
+                <Home size={14} />
+                <span>Início / Gerador</span>
+              </button>
+              <button
+                onClick={() => handleTabChange("history")}
+                type="button"
+                className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
+                  activeTab === "history"
+                    ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+                }`}
+              >
+                <History size={14} />
+                <span>Simulados Salvos</span>
+                {quizHistory.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-mono font-bold border border-violet-500/30">
+                    {quizHistory.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* ATALHO DIRETO PARA O MÓDULO VIP CADERNO DE ERROS */}
+            <Link
+              href="/notebook"
+              className="py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 text-rose-300/90 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/30 group ml-auto"
             >
-              <Home size={14} />
-              <span>Início / Gerador</span>
-            </button>
-            <button
-              onClick={() => handleTabChange("history")}
-              type="button"
-              className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
-                activeTab === "history"
-                  ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
-              }`}
-            >
-              <History size={14} />
-              <span>Simulados Salvos</span>
-            </button>
-            <button
-              onClick={() => handleTabChange("errors")}
-              type="button"
-              className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 ${
-                activeTab === "errors"
-                  ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
-              }`}
-            >
-              <BookOpenCheck size={14} />
-              <span>Caderno de Erros</span>
+              <BookOpenCheck size={14} className="text-rose-400 group-hover:scale-110 transition-transform" />
+              <span className="hidden sm:inline">Caderno de Erros (Módulo VIP)</span>
+              <span className="sm:hidden">Caderno de Erros</span>
               {errorNotebookMetrics.pendingErrors > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold border border-rose-500/30">
                   {errorNotebookMetrics.pendingErrors}
                 </span>
               )}
-            </button>
+              <ArrowRight size={13} className="text-rose-400 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
         )}
 
@@ -1876,25 +1826,7 @@ export default function QuestoesPage() {
             </motion.div>
           )}
 
-          {activeTab === "errors" && (
-            <motion.div
-              key="tab-errors"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="space-y-4"
-            >
-              {isLoadingNotebook && !isNotebookLoaded ? (
-                <TabErrorsSkeleton />
-              ) : (
-                <ErrorNotebookView
-                  initialMetrics={errorNotebookMetrics}
-                  subjects={subjects}
-                />
-              )}
-            </motion.div>
-          )}
+
         </AnimatePresence>
       </div>
 

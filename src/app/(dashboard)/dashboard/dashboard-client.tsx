@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import PomodoroTimer from "@/components/pomodoro-timer";
 import SubjectCard from "@/components/subject-card";
 import { NewContentModal } from "@/components/create-subject-modal";
 import SubjectCardSkeleton from "@/components/subject-card-skeleton";
@@ -38,6 +37,8 @@ import {
   Snowflake,
   Maximize2,
   Headphones,
+  ArrowRight,
+  ArrowUpRight,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
@@ -161,7 +162,6 @@ export default function DashboardClient({
   const [mobileTab, setMobileTab] = useState<
     "missions" | "stats" | "gamification"
   >("missions");
-  const [isPomodoroOpenMobile, setIsPomodoroOpenMobile] = useState(false);
 
   // Modo Zen / Imersivo
   const [isZenModeOpen, setIsZenModeOpen] = useState(false);
@@ -605,10 +605,17 @@ export default function DashboardClient({
               </span>
               {isLoading ? (
                 <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
-              ) : (
+              ) : stats?.journey?.hasObjective && (stats.journey.daysRemaining ?? 0) > 0 ? (
                 <span className="font-mono text-xl font-black text-white">
-                  {stats?.journey?.daysRemaining ?? 0}
+                  {stats.journey.daysRemaining}
                 </span>
+              ) : (
+                <Link
+                  href={getHref("/edital")}
+                  className="font-mono text-xs font-bold text-indigo-400 underline decoration-indigo-500/40 my-1 hover:text-indigo-300"
+                >
+                  Definir
+                </Link>
               )}
               <span className="text-[9px] text-slate-500 block">restantes</span>
             </div>
@@ -619,9 +626,13 @@ export default function DashboardClient({
               </span>
               {isLoading ? (
                 <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
-              ) : (
+              ) : stats?.journey?.hasObjective && (stats.journey.topicsPerWeek ?? 0) > 0 ? (
                 <span className="font-mono text-xl font-black text-amber-300">
-                  {stats?.journey?.topicsPerWeek ?? 0}
+                  {stats.journey.topicsPerWeek}
+                </span>
+              ) : (
+                <span className="font-mono text-xs font-bold text-amber-300/80 my-1">
+                  —
                 </span>
               )}
               <span className="text-[9px] text-slate-500 block">
@@ -660,15 +671,28 @@ export default function DashboardClient({
                 <div className="flex items-baseline gap-2">
                   {isLoading ? (
                     <div className="h-10 w-24 rounded-lg bg-white/10 animate-pulse" />
-                  ) : (
+                  ) : stats?.journey?.hasObjective && (stats.journey.daysRemaining ?? 0) > 0 ? (
                     <>
                       <span className="font-mono text-4xl font-black tracking-tight text-white">
-                        {stats?.journey?.daysRemaining ?? 0}
+                        {stats.journey.daysRemaining}
                       </span>
                       <span className="text-xs font-semibold text-slate-400">
                         dias restantes
                       </span>
                     </>
+                  ) : (
+                    <div className="space-y-1">
+                      <span className="font-sans text-sm font-bold text-slate-200 block">
+                        Data não definida
+                      </span>
+                      <Link
+                        href={getHref("/edital")}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
+                      >
+                        <span>Definir data do concurso</span>
+                        <ArrowUpRight size={12} />
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -679,7 +703,9 @@ export default function DashboardClient({
                   <div className="h-4 w-12 rounded bg-white/10 animate-pulse" />
                 ) : (
                   <strong className="font-mono text-slate-200">
-                    {stats?.journey?.weeksRemaining ?? 0} sem
+                    {stats?.journey?.hasObjective && (stats.journey.weeksRemaining ?? 0) > 0
+                      ? `${stats.journey.weeksRemaining} sem`
+                      : "—"}
                   </strong>
                 )}
               </div>
@@ -701,17 +727,24 @@ export default function DashboardClient({
                 <div className="flex items-baseline gap-2">
                   {isLoading ? (
                     <div className="h-10 w-24 rounded-lg bg-amber-400/10 animate-pulse" />
-                  ) : (
+                  ) : stats?.journey?.hasObjective && (stats.journey.topicsPerWeek ?? 0) > 0 ? (
                     <>
                       <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
-                        {hasEditalSubjects
-                          ? (stats?.journey?.topicsPerWeek ?? 0)
-                          : "—"}
+                        {stats.journey.topicsPerWeek}
                       </span>
                       <span className="text-xs font-medium text-slate-400">
-                        {hasEditalSubjects ? "tópicos / sem" : "Aguardando Edital"}
+                        tópicos / sem
                       </span>
                     </>
+                  ) : (
+                    <div className="space-y-1">
+                      <span className="font-sans text-sm font-bold text-amber-300/90 block">
+                        Calibrando Ritmo
+                      </span>
+                      <span className="text-[11px] text-slate-400 block">
+                        {hasEditalSubjects ? "Defina data para meta semanal" : "Aguardando matérias"}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -722,8 +755,8 @@ export default function DashboardClient({
                   <div className="h-4 w-16 rounded bg-white/10 animate-pulse" />
                 ) : (
                   <strong className="font-mono text-amber-300/90">
-                    {hasEditalSubjects
-                      ? `${stats?.journey?.currentPace ?? 0.0} / sem`
+                    {hasEditalSubjects && stats?.journey?.currentPace && stats.journey.currentPace > 0
+                      ? `${stats.journey.currentPace} / sem`
                       : "—"}
                   </strong>
                 )}
@@ -1285,49 +1318,6 @@ export default function DashboardClient({
             {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
             <ApprovalOddsCard initialData={initialApprovalOdds} />
 
-            {/* GAMIFICAÇÃO & NÍVEL */}
-            <Link
-              href={getHref("/achievements")}
-              className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
-            >
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-400/50 to-transparent" />
-              
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
-                    {level}
-                  </div>
-                  <div>
-                    <span className="block text-[9px] font-bold uppercase text-amber-400/90">
-                      Nível Atual
-                    </span>
-                    <h3 className="text-xs font-bold text-white">
-                      {levelTitle}
-                    </h3>
-                  </div>
-                </div>
-                <Award size={18} className="text-amber-400" />
-              </div>
-
-              <div className="space-y-2 pt-3">
-                <div className="flex items-center justify-between font-mono text-xs">
-                  <span className="text-slate-400">
-                    XP: <strong className="text-white">{currentXp}</strong>
-                  </span>
-                  <span className="font-bold text-amber-400">
-                    {levelProgressPercent}%
-                  </span>
-                </div>
-
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
-                  <div
-                    style={{ width: `${levelProgressPercent}%` }}
-                    className="h-full rounded-full bg-linear-to-r from-amber-500 to-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
-                  />
-                </div>
-              </div>
-            </Link>
-
             {/* META SEMANAL & CONSTÂNCIA */}
             <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
               <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
@@ -1390,31 +1380,57 @@ export default function DashboardClient({
               </div>
             </div>
 
-            {/* POMODORO TIMER COM GATILHO MODO ZEN */}
-            <div
-              id="pomodoro"
-              className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-4 shadow-2xl backdrop-blur-2xl relative"
-            >
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              
-              <div className="flex items-center justify-between pb-2">
-                <Link
-                  href={getHref("/study-room")}
-                  className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-mono font-bold text-indigo-300 hover:bg-indigo-500/20 transition-all active:scale-95"
-                >
-                  <Headphones size={12} className="text-indigo-400" />
-                  <span>Sala de Foco</span>
-                </Link>
+            {/* SALA DE FOCO & DEEP WORK (ZEN COCKPIT) */}
+            <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-linear-to-br from-indigo-950/40 via-slate-950/70 to-purple-950/30 p-6 shadow-2xl backdrop-blur-2xl group hover:border-indigo-500/40 transition-all duration-300">
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-400/50 to-transparent" />
+              <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-indigo-500/10 blur-2xl" />
 
-                <button
-                  onClick={() => setIsZenModeOpen(true)}
-                  className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-mono font-bold text-slate-300 hover:bg-white/[0.08] transition-all active:scale-95"
-                >
-                  <Maximize2 size={12} className="text-violet-400" />
-                  <span>Modo Zen</span>
-                </button>
+              <div className="relative z-10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-transform">
+                      <Headphones size={20} className="animate-pulse text-indigo-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                          Sala de Foco
+                        </h3>
+                        <span className="rounded-full border border-violet-500/30 bg-violet-500/15 px-1.5 py-0.5 font-mono text-[9px] font-bold text-violet-300">
+                          ZEN
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Deep Work & Bioacústica
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setIsZenModeOpen(true)}
+                    className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-mono font-bold text-slate-300 hover:bg-white/[0.08] hover:text-white transition-all active:scale-95"
+                    title="Ativar tela cheia minimalista"
+                  >
+                    <Maximize2 size={11} className="text-violet-400" />
+                    <span>Modo Zen</span>
+                  </button>
+                </div>
+
+                <p className="text-xs text-slate-300/90 leading-relaxed">
+                  Treine em estado de flow com sons binaurais procedurais (Alpha 10Hz), chuva, ruído marrom e timer pomodoro inteligente.
+                </p>
+
+                <div className="pt-1">
+                  <Link
+                    href={getHref("/study-room")}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-600/80 via-purple-600/80 to-indigo-600/80 hover:from-indigo-500 hover:to-purple-500 py-3 px-4 text-xs font-bold text-white shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/30 active:scale-98 transition-all group/btn cursor-pointer"
+                  >
+                    <Headphones size={15} className="group-hover/btn:rotate-12 transition-transform" />
+                    <span>Entrar na Sala de Foco</span>
+                    <ArrowRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                  </Link>
+                </div>
               </div>
-              <PomodoroTimer />
             </div>
 
             {/* HEATMAP */}
@@ -1425,45 +1441,39 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* POMODORO DOBRÁVEL APENAS NO MOBILE */}
-        <div
-          id="pomodoro-mobile"
-          className="block md:hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-3 shadow-2xl backdrop-blur-2xl"
-        >
-          <div className="flex items-center justify-between p-2">
-            <button
-              onClick={() => setIsPomodoroOpenMobile((prev) => !prev)}
-              className="flex items-center gap-2 text-xs font-bold text-slate-300"
-            >
-              <span>Pomodoro Timer</span>
-              {isPomodoroOpenMobile ? (
-                <ChevronUp size={16} />
-              ) : (
-                <ChevronDown size={16} />
-              )}
-            </button>
+        {/* SALA DE FOCO NO MOBILE */}
+        <div className="block md:hidden rounded-3xl border border-indigo-500/20 bg-linear-to-br from-indigo-950/40 via-slate-950/70 to-purple-950/30 p-4 shadow-2xl backdrop-blur-2xl">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400">
+                <Headphones size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold text-white truncate">Sala de Foco</h4>
+                  <span className="rounded-full border border-violet-500/30 bg-violet-500/15 px-1 py-0.2 font-mono text-[8px] font-bold text-violet-300">ZEN</span>
+                </div>
+                <p className="text-[10px] text-slate-400 truncate">Sons binaurais & Pomodoro</p>
+              </div>
+            </div>
 
-            <div className="flex items-center gap-1.5">
-              <Link
-                href={getHref("/study-room")}
-                className="cursor-pointer inline-flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-indigo-300"
-              >
-                <Headphones size={10} />
-                <span>Sala</span>
-              </Link>
-
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setIsZenModeOpen(true)}
-                className="cursor-pointer inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-violet-300"
+                className="cursor-pointer inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-mono font-bold text-slate-300 active:scale-95"
               >
-                <Maximize2 size={10} />
+                <Maximize2 size={11} className="text-violet-400" />
                 <span>Zen</span>
               </button>
-            </div>
-          </div>
 
-          <div className={`${isPomodoroOpenMobile ? "block" : "hidden"}`}>
-            <PomodoroTimer />
+              <Link
+                href={getHref("/study-room")}
+                className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-500/40 bg-indigo-600/80 hover:bg-indigo-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-md active:scale-95"
+              >
+                <Headphones size={12} />
+                <span>Entrar</span>
+              </Link>
+            </div>
           </div>
         </div>
 
