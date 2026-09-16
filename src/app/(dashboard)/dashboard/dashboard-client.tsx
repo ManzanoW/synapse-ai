@@ -39,6 +39,7 @@ import {
   Headphones,
   ArrowRight,
   ArrowUpRight,
+  Check,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
@@ -46,6 +47,7 @@ import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
 import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
 import type { ApprovalOddsData } from "@/actions/analytics-actions";
 import { TutorialModal } from "@/components/tutorial/TutorialModal";
+import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
 
 interface JourneyData {
   hasObjective: boolean;
@@ -397,16 +399,27 @@ export default function DashboardClient({
   const handleOptimizeSchedule = async () => {
     try {
       setIsOptimizing(true);
+      // 1. Executa algoritmo adaptativo real para balancear metas e prioridades por desempenho
+      try {
+        await autoRebalanceFromPerformanceAction();
+      } catch (rebalanceErr) {
+        console.warn("Aviso ao rebalancear cronograma adaptativo:", rebalanceErr);
+      }
+
+      // 2. Busca novas sugestões inteligentes atualizadas
       const response = await fetch("/api/ai/suggestions", {
         cache: "no-store",
       });
 
-      if (!response.ok) throw new Error("Erro ao otimizar cronograma");
-      const data = await response.json();
-
-      if (data.data) {
-        setSuggestions(data.data);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data) {
+          setSuggestions(data.data);
+        }
       }
+
+      // 3. Recarrega métricas do dashboard
+      await loadDashboardData();
 
       setIsOptimized(true);
       setTimeout(() => setIsOptimized(false), 4000);
@@ -1260,11 +1273,25 @@ export default function DashboardClient({
                 <button
                   onClick={handleOptimizeSchedule}
                   disabled={isOptimizing}
-                  className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 py-2.5 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20 transition-all"
+                  className={`mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-bold transition-all ${
+                    isOptimized
+                      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                      : "border-cyan-500/20 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+                  }`}
                 >
-                  {isOptimizing
-                    ? "Otimizando..."
-                    : "Otimizar Cronograma com IA"}
+                  {isOptimizing ? (
+                    <span>Otimizando Cronograma com IA...</span>
+                  ) : isOptimized ? (
+                    <>
+                      <Check size={14} className="text-emerald-400" />
+                      <span>Cronograma e Metas Otimizados!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      <span>Otimizar Cronograma com IA</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}

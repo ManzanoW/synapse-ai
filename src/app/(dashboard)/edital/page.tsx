@@ -46,6 +46,7 @@ interface ApiSubject {
   importance?: string;
   priority?: string;
   color?: string | null;
+  weight?: number;
   topics?: ApiTopic[];
   _count?: {
     topics: number;
@@ -152,6 +153,7 @@ function PlannerContent() {
     weight: string;
   }) {
     try {
+      const parsedWeight = parseFloat(data.weight.split("/")[0]) || 5.0;
       const response = await fetch("/api/edital", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,6 +162,7 @@ function PlannerContent() {
           title: data.title,
           subjectName: data.subjectName,
           relevance: data.weight,
+          weight: parsedWeight,
         }),
       });
 
@@ -471,6 +474,7 @@ function PlannerContent() {
               }}
               onDeleteTopic={handleDeleteTopic}
               onDeleteSubject={handleDeleteSubject}
+              onSubjectUpdated={refreshData}
             />
           )
         )}

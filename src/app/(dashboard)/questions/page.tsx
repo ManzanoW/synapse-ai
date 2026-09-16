@@ -622,9 +622,34 @@ export default function QuestoesPage() {
             setMateria(decodedSubject);
             if (paramTopicId) setSelectedTopicId(paramTopicId);
           }
+        } else if (paramTopicId) {
+          const owningSubject = loadedSubjects.find((s) =>
+            s.topics?.some(
+              (t) =>
+                t.id === paramTopicId ||
+                t.title.trim().toLowerCase() ===
+                  paramTopicId.trim().toLowerCase(),
+            ),
+          );
+
+          if (owningSubject) {
+            setMateria(owningSubject.name);
+            const matchedTopic = owningSubject.topics?.find(
+              (t) =>
+                t.id === paramTopicId ||
+                t.title.trim().toLowerCase() ===
+                  paramTopicId.trim().toLowerCase(),
+            );
+            setSelectedTopicId(matchedTopic ? matchedTopic.id : paramTopicId);
+          } else {
+            setSelectedTopicId(paramTopicId);
+          }
         } else if (loadedSubjects.length > 0) {
           setMateria((prev) => prev || loadedSubjects[0].name);
-          if (paramTopicId) setSelectedTopicId(paramTopicId);
+        }
+
+        if (paramTopicId || paramSubjectId) {
+          setIsAIModalOpen(true);
         }
       })
       .catch(console.error)

@@ -208,6 +208,12 @@ export async function getSubjectDomainStatsAction(userIdParam?: string) {
           ? Math.round((totalCorrect / totalQuestions) * 100)
           : 0;
 
+      const rawWeight = Number(
+        subject.weight ??
+          (subject.priority && subject.priority <= 10 ? subject.priority : 5.0),
+      );
+      const safeWeight = Math.max(1, Math.min(10, isNaN(rawWeight) ? 5.0 : rawWeight));
+
       return {
         subjectId: subject.id,
         subjectName: subject.name,
@@ -215,7 +221,7 @@ export async function getSubjectDomainStatsAction(userIdParam?: string) {
         totalAnswered: totalQuestions,
         correctCount: totalCorrect,
         domainPercentage,
-        weight: Number(subject.priority || 1),
+        weight: safeWeight,
       };
     });
 

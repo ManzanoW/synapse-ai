@@ -10,6 +10,7 @@ interface SubjectInput {
   name: string;
   cor?: string;
   color?: string;
+  weight?: number;
   topics: TopicInput[];
 }
 
@@ -91,6 +92,11 @@ export async function POST(request: Request) {
           materia.cor || materia.color,
         );
 
+        const finalWeight =
+          typeof materia.weight === "number" && !isNaN(materia.weight)
+            ? Math.min(10, Math.max(1, materia.weight))
+            : 5.0;
+
         return prisma.subject.create({
           data: {
             userId, // 🔒 Injeta o ID verificado da sessão
@@ -98,6 +104,7 @@ export async function POST(request: Request) {
             color: finalColor,
             importance: "Média",
             priority: 6.3,
+            weight: finalWeight,
             topics: {
               create: materia.topics.map((topic) => ({
                 title: topic.name,

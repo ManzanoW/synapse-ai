@@ -175,7 +175,12 @@ export async function GET(request: Request) {
             color: sub.color,
             importance: sub.importance,
             priority: sub.priority ?? 6.3,
-            weight: Math.min(100, Math.round((sub.priority ?? 6.3) * 10)),
+            weight:
+              typeof (sub as any).weight === "number" && !isNaN((sub as any).weight)
+                ? (sub as any).weight
+                : sub.priority && sub.priority <= 10
+                  ? sub.priority
+                  : 5.0,
             progress: subjectProgress,
             accuracy: subjectAccuracy,
             domain: subjectAccuracy,
@@ -246,7 +251,7 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     if (body.action === "CREATE") {
-      const { title, subjectName, relevance } = body;
+      const { title, subjectName, relevance, weight } = body;
 
       if (!title || !subjectName) {
         return NextResponse.json(
@@ -268,12 +273,21 @@ export async function POST(request: Request) {
             Math.floor(Math.random() * PRESET_HEX_COLORS.length)
           ];
 
+        const rawWeight =
+          typeof weight === "number"
+            ? weight
+            : parseFloat(String(weight || "5.0"));
+        const safeWeight = !isNaN(rawWeight)
+          ? Math.min(10, Math.max(1, rawWeight))
+          : 5.0;
+
         subject = await prisma.subject.create({
           data: {
             name: subjectName.trim(),
             userId,
             importance: "5",
             color: randomColor,
+            weight: safeWeight,
           },
         });
       }

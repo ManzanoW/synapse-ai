@@ -25,6 +25,7 @@ interface SubjectItem {
   id: string;
   name: string;
   color?: string;
+  weight?: number;
   selected: boolean;
   topics: TopicItem[];
 }
@@ -140,6 +141,7 @@ export function ImportEditalModal({
             id: `materia-${mIdx}`,
             name,
             color: subjectColor,
+            weight: 5.0,
             selected: true,
             topics: rawTopics.map((t: string, tIdx: number) => ({
               id: `topico-${mIdx}-${tIdx}`,
@@ -171,6 +173,12 @@ export function ImportEditalModal({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const updateSubjectWeight = (subjectId: string, weight: number) => {
+    setParsedSubjects((prev) =>
+      prev.map((sub) => (sub.id === subjectId ? { ...sub, weight } : sub)),
+    );
   };
 
   const toggleSubjectSelect = (subjectId: string) => {
@@ -218,6 +226,7 @@ export function ImportEditalModal({
       .map((sub) => ({
         name: sub.name,
         cor: sub.color,
+        weight: sub.weight ?? 5.0,
         topics: sub.topics
           .filter((t) => t.selected)
           .map((t) => ({ name: t.name })),
@@ -444,6 +453,35 @@ export function ImportEditalModal({
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
                           {selectedCount}/{sub.topics.length} tópicos
                         </span>
+
+                        <div
+                          className="flex items-center gap-1 bg-slate-950/90 border border-amber-500/25 px-2 py-0.5 rounded-lg"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+                            Peso:
+                          </span>
+                          <select
+                            value={sub.weight ?? 5.0}
+                            onChange={(e) =>
+                              updateSubjectWeight(
+                                sub.id,
+                                parseFloat(e.target.value) || 5.0,
+                              )
+                            }
+                            className="bg-transparent text-amber-300 text-[11px] font-mono font-bold outline-none cursor-pointer"
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => (
+                              <option
+                                key={w}
+                                value={w}
+                                className="bg-[#090d16] text-slate-200"
+                              >
+                                {w.toFixed(1)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
 
                       <button
