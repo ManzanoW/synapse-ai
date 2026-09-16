@@ -7,6 +7,7 @@ import {
   Headphones,
   BrainCircuit,
   CloudRain,
+  Coffee,
   Waves,
   Sparkles,
   Zap,
@@ -34,6 +35,8 @@ export function SoundscapePlayer({ soundscapeHook }: SoundscapePlayerProps) {
         return BrainCircuit;
       case "soft_rain":
         return CloudRain;
+      case "cafe_ambience":
+        return Coffee;
       case "brown_noise":
         return Waves;
       case "zen_drone":

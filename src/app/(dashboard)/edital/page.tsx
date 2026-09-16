@@ -15,10 +15,12 @@ import {
   Copy,
   Sparkles,
   ArrowRight,
+  Scale,
 } from "lucide-react";
 import PendingSubjects from "./PendingSubjects";
 import { Topic } from "@/types";
 import { ImportEditalModal } from "@/components/edital/import-edital-modal";
+import { CalibrateWeightsModal } from "@/components/edital/calibrate-weights-modal";
 import { PlannerView } from "@/components/edital/planner-table";
 import { NewContentModal } from "@/components/create-subject-modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -72,6 +74,8 @@ function PlannerContent() {
 
   // Modal de Importar Edital
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  // Modal de Calibrar Pesos
+  const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
 
   async function refreshData() {
     try {
@@ -286,7 +290,20 @@ function PlannerContent() {
             </div>
 
             <div className="grid grid-cols-2 sm:flex items-center gap-2 shrink-0 justify-end">
+              {subjects.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsCalibrateModalOpen(true)}
+                  className="flex items-center justify-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm hover:border-amber-500/50 active:scale-95"
+                  title="Calibrar os pesos oficiais das disciplinas para o Radar de Domínio"
+                >
+                  <Scale size={14} className="text-amber-400" />
+                  <span className="truncate">Calibrar Pesos</span>
+                </button>
+              )}
+
               <button
+                type="button"
                 onClick={() => setIsImportModalOpen(true)}
                 className="flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer"
               >
@@ -295,6 +312,7 @@ function PlannerContent() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setIsCreateModalOpen(true)}
                 className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
               >
@@ -560,6 +578,21 @@ function PlannerContent() {
           }}
         />
       )}
+
+      <CalibrateWeightsModal
+        isOpen={isCalibrateModalOpen}
+        subjects={subjects.map((s) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          weight: s.weight,
+          topicsCount: s._count?.topics || s.topics?.length || 0,
+        }))}
+        onClose={() => setIsCalibrateModalOpen(false)}
+        onSuccess={async () => {
+          await refreshData();
+        }}
+      />
     </div>
   );
 }

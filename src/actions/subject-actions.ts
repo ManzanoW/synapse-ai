@@ -71,3 +71,71 @@ export async function updateSubjectAction(input: UpdateSubjectInput) {
     };
   }
 }
+
+export interface BulkSubjectWeightItem {
+  subjectId: string;
+  weight: number;
+}
+
+export async function bulkUpdateSubjectWeightsAction(items: BulkSubjectWeightItem[]) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return { success: false, error: "Nenhum item informado para atualização." };
+    }
+
+    // Busca apenas as matérias que de fato pertencem a este usuário
+    const userSubjectIds = new Set(
+      (
+        await prisma.subject.findMany({
+          where: { userId },
+          select: { id: true },
+        })
+      ).map((s) => s.id)
+    );
+
+    const validUpdates = items.filter((item) => userSubjectIds.has(item.subjectId));
+
+    if (validUpdates.length === 0) {
+      return { success: false, error: "Nenhuma matéria válida encontrada para este usuário." };
+    }
+
+    // Executa as atualizações em transação única
+    await prisma.$transaction(
+      validUpdates.map((item) => {
+        const clampedWeight = Math.max(1.0, Math.min(10.0, Number(item.weight) || 5.0));
+        return prisma.subject.update({
+          where: { id: item.subjectId },
+          data: { weight: clampedWeight },
+        });
+      })
+    );
+
+    try {
+      revalidatePath("/edital");
+      revalidatePath("/dashboard");
+      revalidatePath("/performance");
+      revalidatePath("/questions");
+    } catch {
+      // Ignora fora de contexto HTTP
+    }
+
+    return {
+      success: true,
+      updatedCount: validUpdates.length,
+    };
+  } catch (error) {
+    console.error("Erro em bulkUpdateSubjectWeightsAction:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Falha ao atualizar pesos das matérias.",
+    };
+  }
+}
+
