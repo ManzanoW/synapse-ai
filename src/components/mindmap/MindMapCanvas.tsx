@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useMemo, useCallback } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import {
   Brain,
   Sparkles,
@@ -10,13 +9,14 @@ import {
   Lightbulb,
   Plus,
   Minus,
-  Maximize2,
   Download,
   RotateCcw,
   BookOpen,
-  Info,
-  ChevronRight,
+  Printer,
+  FileImage,
+  FileText,
   ChevronDown,
+  Check,
 } from "lucide-react";
 import { MindMapNode } from "@/actions/mindmap-actions";
 
@@ -37,18 +37,189 @@ interface LayoutNode {
   children: LayoutNode[];
 }
 
+function escapeXml(unsafe: string): string {
+  return (unsafe || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/**
+ * Calcula dimensões ideais do card para que TODO o texto caiba
+ * sem qualquer truncamento ou cortes com reticências.
+ */
+function computeNodeDimensions(node: MindMapNode) {
+  const width = 280;
+  const labelLength = node.label ? node.label.length : 0;
+  const descLength = node.description ? node.description.length : 0;
+
+  // Estima linhas necessárias
+  const titleLines = Math.max(1, Math.ceil(labelLength / 26));
+  const descLines = descLength > 0 ? Math.max(1, Math.ceil(descLength / 36)) : 0;
+  const extraPill = node.mnemonic || node.ruleOrLaw ? 28 : 0;
+
+  // Altura dinâmica confortável
+  const computedHeight = 28 + titleLines * 18 + descLines * 15 + extraPill;
+  const height = Math.max(76, computedHeight);
+
+  return { width, height };
+}
+
+/**
+ * Gera string SVG autocontida com estilos embutidos e fundo opaco,
+ * pronta para ser aberta em qualquer navegador, visualizador vetorial ou impressão.
+ */
+function generateStandaloneSvg(
+  nodes: LayoutNode[],
+  connections: Array<{
+    id: string;
+    from: { x: number; y: number };
+    to: { x: number; y: number };
+    color: string;
+  }>,
+  title: string,
+  mode: "dark" | "light" = "dark",
+): string {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  nodes.forEach((n) => {
+    minX = Math.min(minX, n.x);
+    minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + n.width);
+    maxY = Math.max(maxY, n.y + n.height);
+  });
+
+  const padding = 60;
+  const viewBoxX = minX - padding;
+  const viewBoxY = minY - padding;
+  const viewBoxWidth = Math.max(600, maxX - minX + padding * 2);
+  const viewBoxHeight = Math.max(400, maxY - minY + padding * 2);
+
+  const isDark = mode === "dark";
+  const bgColor = isDark ? "#030611" : "#ffffff";
+  const textColor = isDark ? "#ffffff" : "#0f172a";
+  const descColor = isDark ? "#cbd5e1" : "#475569";
+
+  const connectionsSvg = connections
+    .map((conn) => {
+      const dx = (conn.to.x - conn.from.x) * 0.5;
+      const pathD = `M ${conn.from.x} ${conn.from.y} C ${conn.from.x + dx} ${conn.from.y}, ${conn.to.x - dx} ${conn.to.y}, ${conn.to.x} ${conn.to.y}`;
+      return `<path d="${pathD}" fill="none" stroke="${conn.color}" stroke-width="2.5" stroke-linecap="round" opacity="${isDark ? "0.85" : "0.7"}" />`;
+    })
+    .join("\n    ");
+
+  const nodesSvg = nodes
+    .map((n) => {
+      const node = n.node;
+      let cardBg = isDark ? "#0d1326" : "#f8fafc";
+      let borderColor = isDark ? "#6366f1" : "#cbd5e1";
+
+      if (node.type === "root") {
+        cardBg = isDark
+          ? "linear-gradient(135deg, #2e1065 0%, #0f172a 100%)"
+          : "#ede9fe";
+        borderColor = isDark ? "#a78bfa" : "#8b5cf6";
+      } else if (node.type === "mnemonic") {
+        cardBg = isDark
+          ? "linear-gradient(135deg, #451a03 0%, #0f172a 100%)"
+          : "#fef3c7";
+        borderColor = isDark ? "#f59e0b" : "#d97706";
+      } else if (node.type === "rule") {
+        cardBg = isDark
+          ? "linear-gradient(135deg, #083344 0%, #0f172a 100%)"
+          : "#ecfeff";
+        borderColor = isDark ? "#06b6d4" : "#0891b2";
+      } else if (node.type === "leaf") {
+        cardBg = isDark ? "#06221b" : "#f0fdf4";
+        borderColor = isDark ? "#10b981" : "#059669";
+      }
+
+      const mnemonicHtml = node.mnemonic
+        ? `<div style="margin-top: 6px; font-size: 10px; font-weight: 700; color: ${isDark ? "#fcd34d" : "#b45309"}; font-family: monospace; background: ${isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7"}; border: 1px solid ${isDark ? "rgba(245, 158, 11, 0.4)" : "#fde68a"}; padding: 3px 6px; border-radius: 6px;">💡 Bizú: ${escapeXml(node.mnemonic)}</div>`
+        : "";
+
+      const ruleHtml = node.ruleOrLaw
+        ? `<div style="margin-top: 6px; font-size: 10px; font-weight: 700; color: ${isDark ? "#67e8f9" : "#0e7490"}; font-family: monospace; background: ${isDark ? "rgba(6, 182, 212, 0.2)" : "#cffafe"}; border: 1px solid ${isDark ? "rgba(6, 182, 212, 0.4)" : "#a5f3fc"}; padding: 3px 6px; border-radius: 6px;">⚖️ Regra: ${escapeXml(node.ruleOrLaw)}</div>`
+        : "";
+
+      return `
+    <foreignObject x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}">
+      <div xmlns="http://www.w3.org/1999/xhtml" style="width: 100%; min-height: 100%; box-sizing: border-box; background: ${cardBg}; border: 1.5px solid ${borderColor}; border-radius: 14px; padding: 10px 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 4px 14px rgba(0,0,0,${isDark ? "0.4" : "0.08"});">
+        <div style="font-size: 12px; font-weight: 700; color: ${textColor}; line-height: 1.35; word-break: break-word;">
+          ${escapeXml(node.label)}
+        </div>
+        ${
+          node.description
+            ? `<div style="font-size: 10.5px; color: ${descColor}; line-height: 1.4; margin-top: 5px; word-break: break-word;">${escapeXml(node.description)}</div>`
+            : ""
+        }
+        ${mnemonicHtml}
+        ${ruleHtml}
+      </div>
+    </foreignObject>`;
+    })
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}" width="${viewBoxWidth}" height="${viewBoxHeight}">
+  <defs>
+    <style type="text/css">
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap');
+      div { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
+    </style>
+  </defs>
+  <!-- Fundo do Mapa Mental -->
+  <rect x="${viewBoxX}" y="${viewBoxY}" width="${viewBoxWidth}" height="${viewBoxHeight}" fill="${bgColor}" rx="12" />
+
+  <!-- Conexões -->
+  <g id="connections">
+    ${connectionsSvg}
+  </g>
+
+  <!-- Nós do Mapa -->
+  <g id="nodes">
+    ${nodesSvg}
+  </g>
+</svg>`;
+}
+
 export function MindMapCanvas({
   rootNode,
   subjectColor = "#8b5cf6",
 }: MindMapCanvasProps) {
-  const [zoom, setZoom] = useState<number>(1);
-  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+  const [zoom, setZoom] = useState<number>(0.85);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 60, y: 60 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
   const [collapsedIds, setCollapsedIds] = useState<Record<string, boolean>>({});
   const [selectedNode, setSelectedNode] = useState<MindMapNode | null>(rootNode);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState<boolean>(false);
+  const [exportSuccessMsg, setExportSuccessMsg] = useState<string | null>(null);
 
+  const exportMenuRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
+
+  // Fecha menu de exportação ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        exportMenuRef.current &&
+        !exportMenuRef.current.contains(e.target as Node)
+      ) {
+        setIsExportMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const toggleCollapse = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -58,12 +229,10 @@ export function MindMapCanvas({
     }));
   };
 
-  // Cálculo da árvore de nós posicionados
+  // Cálculo da árvore de nós posicionados com alturas dinâmicas
   const layoutTree = useMemo(() => {
-    const nodeWidth = 240;
-    const nodeHeight = 65;
     const colSpacing = 160;
-    const rowSpacing = 32;
+    const rowSpacing = 28;
 
     let currentY = 60;
 
@@ -73,9 +242,12 @@ export function MindMapCanvas({
       parent?: LayoutNode,
     ): LayoutNode => {
       const isCollapsed = Boolean(collapsedIds[node.id]);
+      const { width: nodeWidth, height: nodeHeight } =
+        computeNodeDimensions(node);
+
       const layout: LayoutNode = {
         node,
-        x: depth * (nodeWidth + colSpacing),
+        x: depth * (280 + colSpacing),
         y: 0,
         width: nodeWidth,
         height: nodeHeight,
@@ -89,8 +261,9 @@ export function MindMapCanvas({
         layout.children = node.children.map((child) =>
           buildTree(child, depth + 1, layout),
         );
-        const childYs = layout.children.map((c) => c.y);
-        layout.y = (Math.min(...childYs) + Math.max(...childYs)) / 2;
+        const childYs = layout.children.map((c) => c.y + c.height / 2);
+        const avgCenterY = (Math.min(...childYs) + Math.max(...childYs)) / 2;
+        layout.y = avgCenterY - nodeHeight / 2;
       } else {
         layout.y = currentY;
         currentY += nodeHeight + rowSpacing;
@@ -140,6 +313,18 @@ export function MindMapCanvas({
 
     traverse(layoutTree);
 
+    // Garante que nenhum nó fique acima de y=40
+    const minY = Math.min(...allNodes.map((n) => n.y), 40);
+    const yOffset = minY < 40 ? 40 - minY : 0;
+
+    if (yOffset > 0) {
+      allNodes.forEach((n) => (n.y += yOffset));
+      allConnections.forEach((c) => {
+        c.from.y += yOffset;
+        c.to.y += yOffset;
+      });
+    }
+
     const maxX = Math.max(...allNodes.map((n) => n.x + n.width), 1000);
     const maxY = Math.max(...allNodes.map((n) => n.y + n.height), 700);
 
@@ -166,22 +351,213 @@ export function MindMapCanvas({
 
   const handleMouseUp = () => setIsDragging(false);
 
-  // Download do SVG
-  const handleDownloadSvg = useCallback(() => {
-    if (!svgRef.current) return;
-    const svgEl = svgRef.current;
-    const serializer = new XMLSerializer();
-    const source = serializer.serializeToString(svgEl);
-    const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `mapa-mental-${rootNode.label.toLowerCase().replace(/\s+/g, "-")}.svg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [rootNode.label]);
+  // 1. Download SVG Autocontido
+  const handleDownloadSvg = useCallback(
+    (mode: "dark" | "light" = "dark") => {
+      setIsExportMenuOpen(false);
+      const svgString = generateStandaloneSvg(
+        nodes,
+        connections,
+        rootNode.label,
+        mode,
+      );
+      const blob = new Blob([svgString], {
+        type: "image/svg+xml;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `mapa-mental-${rootNode.label
+        .toLowerCase()
+        .replace(/\s+/g, "-")}-${mode}.svg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setExportSuccessMsg("SVG Exportado com Sucesso!");
+      setTimeout(() => setExportSuccessMsg(null), 3000);
+    },
+    [nodes, connections, rootNode.label],
+  );
+
+  // 2. Download PNG em Alta Resolução (HD)
+  const handleDownloadPng = useCallback(
+    (mode: "dark" | "light" = "dark") => {
+      setIsExportMenuOpen(false);
+      const svgString = generateStandaloneSvg(
+        nodes,
+        connections,
+        rootNode.label,
+        mode,
+      );
+      const blob = new Blob([svgString], {
+        type: "image/svg+xml;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+
+      img.onload = () => {
+        try {
+          const scale = 2; // Resolução Retina 2x
+          const canvas = document.createElement("canvas");
+          canvas.width = bounds.width * scale;
+          canvas.height = bounds.height * scale;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            URL.revokeObjectURL(url);
+            return;
+          }
+
+          ctx.scale(scale, scale);
+          ctx.drawImage(img, 0, 0);
+
+          canvas.toBlob((pngBlob) => {
+            if (pngBlob) {
+              const pngUrl = URL.createObjectURL(pngBlob);
+              const link = document.createElement("a");
+              link.href = pngUrl;
+              link.download = `mapa-mental-${rootNode.label
+                .toLowerCase()
+                .replace(/\s+/g, "-")}-${mode}.png`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(pngUrl);
+            }
+            URL.revokeObjectURL(url);
+          }, "image/png");
+
+          setExportSuccessMsg("Imagem PNG Gerada em Alta Resolução!");
+          setTimeout(() => setExportSuccessMsg(null), 3000);
+        } catch (e) {
+          console.error("Erro ao gerar PNG:", e);
+          handleDownloadSvg(mode);
+          URL.revokeObjectURL(url);
+        }
+      };
+
+      img.onerror = () => {
+        handleDownloadSvg(mode);
+        URL.revokeObjectURL(url);
+      };
+
+      img.src = url;
+    },
+    [nodes, connections, bounds, rootNode.label, handleDownloadSvg],
+  );
+
+  // 3. Impressão Direta / Salvar como PDF em A4 Paisagem
+  const handlePrint = useCallback(
+    (mode: "light" | "dark" = "light") => {
+      setIsExportMenuOpen(false);
+      const svgString = generateStandaloneSvg(
+        nodes,
+        connections,
+        rootNode.label,
+        mode,
+      );
+
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Permita pop-ups no navegador para imprimir o mapa mental.");
+        return;
+      }
+
+      const isDark = mode === "dark";
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Mapa Mental - ${escapeXml(rootNode.label)}</title>
+            <style>
+              @page {
+                size: landscape;
+                margin: 8mm;
+              }
+              * {
+                box-sizing: border-box;
+              }
+              body {
+                margin: 0;
+                padding: 16px;
+                background-color: ${isDark ? "#030611" : "#ffffff"};
+                color: ${isDark ? "#ffffff" : "#0f172a"};
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+              }
+              .header {
+                width: 100%;
+                max-width: 1100px;
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"};
+                padding-bottom: 8px;
+              }
+              .title {
+                font-size: 17px;
+                font-weight: 800;
+                margin: 0;
+              }
+              .subtitle {
+                font-size: 11px;
+                color: ${isDark ? "#94a3b8" : "#64748b"};
+                margin: 2px 0 0 0;
+              }
+              .svg-wrap {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+              }
+              svg {
+                max-width: 100%;
+                height: auto;
+                max-height: 85vh;
+              }
+              @media print {
+                body {
+                  padding: 0;
+                }
+                .no-print {
+                  display: none !important;
+                }
+                svg {
+                  max-height: 94vh;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div>
+                <h1 class="title">${escapeXml(rootNode.label)}</h1>
+                <p class="subtitle">Synapse AI • Mapa Mental de Alta Retenção</p>
+              </div>
+              <button class="no-print" onclick="window.print()" style="padding: 7px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; background: #6366f1; color: white; border: none; font-size: 12px;">Imprimir Agora / Salvar PDF</button>
+            </div>
+            <div class="svg-wrap">
+              ${svgString.replace(/<\?xml.*?\?>/, "")}
+            </div>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                }, 400);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    },
+    [nodes, connections, rootNode.label],
+  );
 
   const getNodeIcon = (type: MindMapNode["type"]) => {
     switch (type) {
@@ -268,17 +644,114 @@ export function MindMapCanvas({
         </button>
       </div>
 
-      {/* BOTÃO DOWNLOAD SVG */}
-      <div className="absolute top-4 right-4 z-30">
+      {/* BOTÕES DE EXPORTAÇÃO & IMPRESSÃO */}
+      <div
+        className="absolute top-4 right-4 z-30 flex items-center gap-2"
+        ref={exportMenuRef}
+      >
+        {/* Notificação toast de feedback */}
+        {exportSuccessMsg && (
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">
+            <Check size={13} className="text-emerald-400" />
+            <span>{exportSuccessMsg}</span>
+          </div>
+        )}
+
+        {/* Botão rápido: Imprimir / PDF */}
         <button
           type="button"
-          onClick={handleDownloadSvg}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-950/60 transition-all cursor-pointer active:scale-95"
-          title="Baixar Mapa Mental em Formato Vetorial SVG"
+          onClick={() => handlePrint("light")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-white/10 font-bold text-xs backdrop-blur-md shadow-lg transition-all cursor-pointer active:scale-95"
+          title="Imprimir mapa mental ou Salvar em PDF (Formato A4 Paisagem)"
         >
-          <Download size={13} />
-          <span>Exportar SVG</span>
+          <Printer size={13} className="text-violet-400" />
+          <span className="hidden sm:inline">Imprimir / PDF</span>
         </button>
+
+        {/* Menu Dropdown de Exportação */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsExportMenuOpen((prev) => !prev)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-950/60 transition-all cursor-pointer active:scale-95"
+            title="Opções de Download e Exportação"
+          >
+            <Download size={13} />
+            <span>Exportar</span>
+            <ChevronDown
+              size={12}
+              className={`transition-transform duration-200 ${
+                isExportMenuOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {isExportMenuOpen && (
+            <div className="absolute right-0 mt-2 w-64 rounded-xl bg-slate-900/95 border border-violet-500/30 backdrop-blur-xl shadow-2xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Formato Vetorial (SVG)
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDownloadSvg("dark")}
+                className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-violet-600/20 hover:text-white transition-colors cursor-pointer"
+              >
+                <Download size={13} className="text-violet-400 shrink-0" />
+                <div>
+                  <div className="font-semibold">SVG Vetorial (Tema Escuro)</div>
+                  <div className="text-[10px] text-slate-400">
+                    Nitidez infinita com visual Cyber Dark
+                  </div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownloadSvg("light")}
+                className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-violet-600/20 hover:text-white transition-colors cursor-pointer"
+              >
+                <Download size={13} className="text-indigo-400 shrink-0" />
+                <div>
+                  <div className="font-semibold">SVG Vetorial (Tema Claro)</div>
+                  <div className="text-[10px] text-slate-400">
+                    Fundo branco, ideal para Illustrator/Canva
+                  </div>
+                </div>
+              </button>
+
+              <div className="my-1 border-t border-white/10" />
+
+              <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Imagem e Impressão
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDownloadPng("dark")}
+                className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-violet-600/20 hover:text-white transition-colors cursor-pointer"
+              >
+                <FileImage size={13} className="text-emerald-400 shrink-0" />
+                <div>
+                  <div className="font-semibold">PNG Alta Resolução (HD 2x)</div>
+                  <div className="text-[10px] text-slate-400">
+                    Imagem nítida pronta para slides e celular
+                  </div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePrint("light")}
+                className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-violet-600/20 hover:text-white transition-colors cursor-pointer"
+              >
+                <Printer size={13} className="text-amber-400 shrink-0" />
+                <div>
+                  <div className="font-semibold">Imprimir / Salvar PDF</div>
+                  <div className="text-[10px] text-slate-400">
+                    Otimizado para folha A4 em modo paisagem
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ÁREA INTERATIVA DO CANVAS */}
@@ -347,10 +820,12 @@ export function MindMapCanvas({
                   className={getNodeStyle(node.type, isSelected)}
                   style={{ width: layoutNode.width }}
                 >
-                  <div className="flex items-center justify-between gap-1.5 mb-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      {getNodeIcon(node.type)}
-                      <span className="text-xs font-bold text-slate-100 truncate">
+                  <div className="flex items-start justify-between gap-1.5 mb-1.5">
+                    <div className="flex items-start gap-1.5 min-w-0">
+                      <div className="shrink-0 mt-0.5">
+                        {getNodeIcon(node.type)}
+                      </div>
+                      <span className="text-xs font-bold text-slate-100 leading-snug break-words">
                         {node.label}
                       </span>
                     </div>
@@ -359,7 +834,7 @@ export function MindMapCanvas({
                       <button
                         type="button"
                         onClick={(e) => toggleCollapse(node.id, e)}
-                        className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                        className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0 mt-[-2px]"
                         title={layoutNode.collapsed ? "Expandir" : "Recolher"}
                       >
                         {layoutNode.collapsed ? (
@@ -372,15 +847,22 @@ export function MindMapCanvas({
                   </div>
 
                   {node.description && (
-                    <p className="text-[10px] text-slate-400 line-clamp-1 leading-tight">
+                    <p className="text-[10.5px] text-slate-300/90 leading-relaxed break-words mb-1">
                       {node.description}
                     </p>
                   )}
 
+                  {node.ruleOrLaw && (
+                    <div className="mt-1 text-[9.5px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-md break-words flex items-start gap-1">
+                      <span className="shrink-0">⚖️</span>
+                      <span className="leading-snug">{node.ruleOrLaw}</span>
+                    </div>
+                  )}
+
                   {node.mnemonic && (
-                    <div className="mt-1 text-[9px] font-bold text-amber-300 font-mono flex items-center gap-1">
-                      <span>💡 Bizú:</span>
-                      <span className="truncate">{node.mnemonic}</span>
+                    <div className="mt-1 text-[9.5px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md break-words flex items-start gap-1">
+                      <span className="shrink-0">💡</span>
+                      <span className="leading-snug">{node.mnemonic}</span>
                     </div>
                   )}
                 </div>
