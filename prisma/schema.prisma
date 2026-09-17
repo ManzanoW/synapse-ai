@@ -143,6 +143,7 @@ model Topic {
   lastRev     DateTime?
   nextRev     DateTime? @default(now())
   lastQuizAt  DateTime?
+  mindMap     Json?
 }
 
 model Deck {
