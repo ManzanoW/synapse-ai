@@ -159,12 +159,12 @@ export async function autoRebalanceFromPerformanceAction(
 
     const totalWeeklyHours = user.weeklyGoalHours || 10;
     const totalWeeklyMinutes = totalWeeklyHours * 60;
-    const totalPriority = user.subjects.reduce(
-      (acc: number, s: { priority?: number | null }) => acc + (s.priority || 1),
+    const totalWeight = user.subjects.reduce(
+      (acc: number, s: { weight?: number | null }) => acc + (s.weight || 5),
       0,
     );
 
-    // 2. Monta o vetor de SubjectPerformance com base nos QuizAttempts
+    // 2. Monta o vetor de SubjectPerformance com base nos QuizAttempts e peso base do edital
     const performances: SubjectPerformance[] = user.subjects.map((subject: any) => {
       let totalQuestions = 0;
       let totalCorrect = 0;
@@ -185,9 +185,10 @@ export async function autoRebalanceFromPerformanceAction(
           ? Math.round((totalCorrect / totalQuestions) * 100)
           : 70;
 
-      const targetWeeklyMinutes = Math.round(
-        (totalWeeklyMinutes * (subject.priority || 1)) /
-          Math.max(1, totalPriority),
+      // Base padrão do edital (distribuição ponderada pelo peso da matéria)
+      const baseWeeklyMinutes = Math.round(
+        (totalWeeklyMinutes * (subject.weight || 5)) /
+          Math.max(1, totalWeight),
       );
 
       return {
@@ -196,7 +197,7 @@ export async function autoRebalanceFromPerformanceAction(
         accuracyPercentage,
         totalQuestionsSolved: totalQuestions,
         lastStudiedAt: latestQuizDate,
-        targetWeeklyMinutes,
+        targetWeeklyMinutes: baseWeeklyMinutes,
       };
     });
 
@@ -220,14 +221,14 @@ export async function autoRebalanceFromPerformanceAction(
         const originalPerf = performances.find(
           (p) => p.subjectId === adj.subjectId,
         );
-        const previousMinutes = originalPerf?.targetWeeklyMinutes ?? 120;
-        const diff = newMinutes - previousMinutes;
+        const baseMinutes = originalPerf?.targetWeeklyMinutes ?? 120;
+        const diff = newMinutes - baseMinutes;
 
         comparison.push({
           subjectId: adj.subjectId,
           subjectName: adj.subjectName,
           accuracyPercentage: originalPerf?.accuracyPercentage ?? 70,
-          previousWeeklyMinutes: previousMinutes,
+          previousWeeklyMinutes: baseMinutes,
           newWeeklyMinutes: newMinutes,
           diffMinutes: diff,
         });
@@ -586,3 +587,69 @@ export async function emergencyRescheduleAction(
     };
   }
 }
+
+/**
+ * Restaura todas as prioridades das matérias para a carga horária base do edital
+ */
+export async function resetScheduleToDefaultAction(userIdParam?: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = userIdParam || session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { subjects: true },
+    });
+
+    if (!user || !user.subjects.length) {
+      return { success: false, error: "Nenhuma matéria cadastrada." };
+    }
+
+    const totalWeeklyHours = user.weeklyGoalHours || 10;
+    const totalWeeklyMinutes = totalWeeklyHours * 60;
+    const totalWeight = user.subjects.reduce(
+      (acc, s) => acc + (s.weight || 5),
+      0,
+    );
+
+    for (const sub of user.subjects) {
+      const baseMinutes = Math.round(
+        (totalWeeklyMinutes * (sub.weight || 5)) / Math.max(1, totalWeight),
+      );
+      await prisma.subject.updateMany({
+        where: { id: sub.id, userId },
+        data: {
+          priority: baseMinutes,
+        },
+      });
+    }
+
+    try {
+      (revalidateTag as (tag: string) => void)(`user-schedule-${userId}`);
+      revalidatePath("/week");
+      revalidatePath("/dashboard");
+      revalidatePath("/performance");
+    } catch {
+      // Ignora erro fora de contexto HTTP
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Erro em resetScheduleToDefaultAction:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Falha ao restaurar metas originais.",
+    };
+  }
+}
+

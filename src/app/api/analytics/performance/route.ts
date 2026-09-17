@@ -282,12 +282,23 @@ export async function GET() {
       badgeColor = "rose";
     }
 
+    // Busca também a meta semanal do usuário
+    const userRecord = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { weeklyGoalHours: true },
+    });
+
+    const userWeeklyHours = userRecord?.weeklyGoalHours || 10;
+    const totalWeeklyMinutesCalc = userWeeklyHours * 60;
+    const totalWeight = subjects.reduce((acc, s) => acc + (s.weight || 5), 0);
+
     // 7. Estatísticas por Disciplina (Deduplicadas e com diferenciação de atividades)
     const subjectMap = new Map<string, {
       subjectId: string;
       subject: string;
       total: number;
       correct: number;
+      baseWeeklyMinutes: number;
       targetWeeklyMinutes: number;
     }>();
 
@@ -299,7 +310,14 @@ export async function GET() {
       );
       const total = logs.reduce((acc, curr) => acc + curr.totalCount, 0);
       const correct = logs.reduce((acc, curr) => acc + curr.correctCount, 0);
-      const targetWeeklyMinutes = sub.priority && sub.priority > 10 ? Math.round(sub.priority) : 120;
+
+      const baseWeeklyMinutes = Math.round(
+        (totalWeeklyMinutesCalc * (sub.weight || 5)) / Math.max(1, totalWeight),
+      );
+      const targetWeeklyMinutes =
+        sub.priority && sub.priority > 10
+          ? Math.round(sub.priority)
+          : baseWeeklyMinutes;
 
       if (!subjectMap.has(key)) {
         subjectMap.set(key, {
@@ -307,6 +325,7 @@ export async function GET() {
           subject: sub.name,
           total,
           correct,
+          baseWeeklyMinutes,
           targetWeeklyMinutes,
         });
       } else {
@@ -319,6 +338,19 @@ export async function GET() {
     const subjectStats = Array.from(subjectMap.values()).map((item) => {
       const hasActivity = item.total > 0;
       const accuracy = hasActivity ? Math.round((item.correct / item.total) * 100) : null;
+      const isReinforced =
+        hasActivity &&
+        item.total >= 3 &&
+        accuracy !== null &&
+        accuracy < 65 &&
+        item.targetWeeklyMinutes > item.baseWeeklyMinutes * 1.1;
+      const isOptimized =
+        hasActivity &&
+        item.total >= 5 &&
+        accuracy !== null &&
+        accuracy > 85 &&
+        item.targetWeeklyMinutes < item.baseWeeklyMinutes * 0.95;
+
       return {
         subjectId: item.subjectId,
         subject: item.subject,
@@ -326,7 +358,10 @@ export async function GET() {
         correct: item.correct,
         hasActivity,
         accuracy,
+        baseWeeklyMinutes: item.baseWeeklyMinutes,
         targetWeeklyMinutes: item.targetWeeklyMinutes,
+        isReinforced,
+        isOptimized,
       };
     });
 
@@ -340,6 +375,11 @@ export async function GET() {
     const untestedCount = subjectStats.filter(
       (s) => !s.hasActivity || s.total < 3,
     ).length;
+
+    // Se as matérias com déficit já possuem minutos superiores à base (+25%), a calibração já está ativa
+    const isRebalanceApplied =
+      highPrioritySubjects.length > 0 &&
+      highPrioritySubjects.some((s) => s.isReinforced);
 
     // 9. Pontos Fracos (< 60% de acerto com pelo menos 3 questões)
     const weakTopics: Array<{
@@ -425,6 +465,7 @@ export async function GET() {
       subjectStats,
       rebalanceSuggestions: {
         needsRebalance: highPrioritySubjects.length > 0 || optimizedSubjects.length > 0,
+        isApplied: isRebalanceApplied,
         highPriority: highPrioritySubjects,
         optimized: optimizedSubjects,
         untestedCount,

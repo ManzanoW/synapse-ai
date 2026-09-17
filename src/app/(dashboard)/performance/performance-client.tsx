@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSidebar } from "@/lib/sidebar-context";
 import {
   autoRebalanceFromPerformanceAction,
+  resetScheduleToDefaultAction,
   RebalanceComparisonItem,
 } from "@/actions/adaptive-actions";
 import { EditalEmptyState } from "@/components/edital-empty-state";
@@ -33,6 +34,7 @@ import {
   Layers,
   Clock,
   ShieldCheck,
+  RotateCcw,
 } from "lucide-react";
 
 interface SubjectPerformance {
@@ -42,7 +44,10 @@ interface SubjectPerformance {
   correct: number;
   accuracy: number | null;
   hasActivity?: boolean;
+  baseWeeklyMinutes?: number;
   targetWeeklyMinutes?: number;
+  isReinforced?: boolean;
+  isOptimized?: boolean;
 }
 
 interface WeakTopic {
@@ -108,6 +113,7 @@ interface AnalyticsData {
   weakTopics?: WeakTopic[];
   rebalanceSuggestions?: {
     needsRebalance: boolean;
+    isApplied?: boolean;
     highPriority: SubjectPerformance[];
     optimized: SubjectPerformance[];
     untestedCount: number;
@@ -132,6 +138,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
 
   const [isRebalancing, startRebalanceTransition] = useTransition();
   const [rebalancedSuccess, setRebalancedSuccess] = useState(false);
+  const [isResetting, startResetTransition] = useTransition();
 
   // Modal de Antes vs. Depois do Rebalanceamento
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
@@ -196,6 +203,19 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
     });
   };
 
+  const handleResetSchedule = () => {
+    startResetTransition(async () => {
+      try {
+        const res = await resetScheduleToDefaultAction();
+        if (res?.success) {
+          await fetchAnalytics();
+        }
+      } catch (err) {
+        console.error("Erro ao restaurar metas do edital:", err);
+      }
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#02050e] text-slate-100 flex flex-col items-center justify-center gap-3">
@@ -237,6 +257,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
   const highPrioritySubjects = data.rebalanceSuggestions?.highPriority || [];
   const optimizedSubjects = data.rebalanceSuggestions?.optimized || [];
   const untestedCount = data.rebalanceSuggestions?.untestedCount || 0;
+  const isRebalanceApplied = Boolean(data.rebalanceSuggestions?.isApplied);
   const hasRebalanceSuggestions =
     highPrioritySubjects.length > 0 || optimizedSubjects.length > 0;
 
@@ -338,20 +359,44 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    Sugestões de Ajuste do Alvo
-                    <span className="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full font-mono font-bold">
-                      Adaptive Rebalancer
+                    {isRebalanceApplied ? "Calibração Adaptativa em Vigor" : "Sugestões de Ajuste do Alvo"}
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold flex items-center gap-1 border ${
+                        isRebalanceApplied
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                          : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                      }`}
+                    >
+                      {isRebalanceApplied ? (
+                        <>
+                          <Check size={11} /> Ativo no Cronograma Semanal
+                        </>
+                      ) : (
+                        "Adaptive Rebalancer"
+                      )}
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {hasRebalanceSuggestions
-                      ? "O motor adaptativo detectou assimetrias no seu desempenho e calculou a redistribuição exata das horas semanais."
-                      : "Suas metas semanais estão alinhadas. Conforme você resolver mais simulados, a calibração adaptativa entrará em ação."}
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    {isRebalanceApplied
+                      ? "O reforço de +25% de tempo já está ativo no seu Cronograma Semanal (/week) para sanar as matérias abaixo de 65%. Conforme você resolver novos simulados e subir a acurácia, a carga será normalizada."
+                      : hasRebalanceSuggestions
+                        ? "O motor adaptativo detectou assimetrias no seu desempenho e calculou a redistribuição exata das horas semanais."
+                        : "Suas metas semanais estão perfeitamente equilibradas com seu rendimento atual."}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
+                {isRebalanceApplied && (
+                  <Link
+                    href="/week"
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-bold text-xs transition-all cursor-pointer"
+                  >
+                    <Calendar size={14} />
+                    <span>Ver na Semana</span>
+                  </Link>
+                )}
+
                 <button
                   onClick={handleApplyAdaptiveRebalance}
                   disabled={isRebalancing}
@@ -360,12 +405,17 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                   {isRebalancing ? (
                     <>
                       <Loader2 size={14} className="animate-spin" />
-                      <span>Calibrando com IA...</span>
+                      <span>Calibrando...</span>
                     </>
                   ) : rebalancedSuccess ? (
                     <>
                       <Check size={14} />
                       <span>Metas Calibradas!</span>
+                    </>
+                  ) : isRebalanceApplied ? (
+                    <>
+                      <Sparkles size={14} />
+                      <span>Recalibrar com IA</span>
                     </>
                   ) : (
                     <>
@@ -374,6 +424,21 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     </>
                   )}
                 </button>
+
+                {isRebalanceApplied && (
+                  <button
+                    onClick={handleResetSchedule}
+                    disabled={isResetting}
+                    title="Restaurar prioridades para carga horária base do edital"
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {isResetting ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <RotateCcw size={14} />
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -384,27 +449,43 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     <div className="bg-rose-500/5 border border-rose-500/20 p-4 rounded-2xl space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block">
-                          ⚡ Reforço Recomendado (+25% de tempo)
+                          {isRebalanceApplied
+                            ? "⚡ Reforço Ativo no Cronograma (+25% de tempo)"
+                            : "⚡ Reforço Recomendado (+25% de tempo)"}
                         </span>
                         <span className="text-[10px] text-rose-400/80 font-mono">
-                          Déficit &lt; 65%
+                          {isRebalanceApplied ? "Em Vigor" : "Déficit < 65%"}
                         </span>
                       </div>
                       <div className="space-y-1.5">
                         {highPrioritySubjects.map((s, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between text-xs p-1.5 rounded-xl bg-rose-500/5 border border-rose-500/10"
+                            className="flex items-center justify-between text-xs p-2 rounded-xl bg-rose-500/5 border border-rose-500/10"
                           >
-                            <span className="text-slate-200 font-medium">
-                              {s.subject}
-                            </span>
+                            <div className="space-y-0.5">
+                              <span className="text-slate-200 font-medium block">
+                                {s.subject}
+                              </span>
+                              <span className="text-[10px] text-rose-400/90 font-mono flex items-center gap-1">
+                                {isRebalanceApplied ? (
+                                  <>
+                                    <Check size={10} /> +25% de tempo ativo
+                                  </>
+                                ) : (
+                                  "Reforço sugerido"
+                                )}
+                              </span>
+                            </div>
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] text-slate-400 font-mono">
                                 {s.total} q.
                               </span>
                               <span className="text-rose-400 font-mono font-bold">
                                 {s.accuracy}% acerto
+                              </span>
+                              <span className="text-[11px] font-mono font-bold text-white bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded-lg">
+                                {s.targetWeeklyMinutes || 120}m/sem
                               </span>
                             </div>
                           </div>
@@ -417,27 +498,43 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
-                          🎯 Manutenção Otimizada (-15% de tempo)
+                          {isRebalanceApplied
+                            ? "🎯 Manutenção Otimizada Ativa (-15% de tempo)"
+                            : "🎯 Manutenção Otimizada (-15% de tempo)"}
                         </span>
                         <span className="text-[10px] text-emerald-400/80 font-mono">
-                          Domínio &gt; 85%
+                          {isRebalanceApplied ? "Em Vigor" : "Domínio > 85%"}
                         </span>
                       </div>
                       <div className="space-y-1.5">
                         {optimizedSubjects.map((s, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between text-xs p-1.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10"
+                            className="flex items-center justify-between text-xs p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10"
                           >
-                            <span className="text-slate-200 font-medium">
-                              {s.subject}
-                            </span>
+                            <div className="space-y-0.5">
+                              <span className="text-slate-200 font-medium block">
+                                {s.subject}
+                              </span>
+                              <span className="text-[10px] text-emerald-400/90 font-mono flex items-center gap-1">
+                                {isRebalanceApplied ? (
+                                  <>
+                                    <Check size={10} /> -15% otimizado
+                                  </>
+                                ) : (
+                                  "Tempo otimizado"
+                                )}
+                              </span>
+                            </div>
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] text-slate-400 font-mono">
                                 {s.total} q.
                               </span>
                               <span className="text-emerald-400 font-mono font-bold">
                                 {s.accuracy}% acerto
+                              </span>
+                              <span className="text-[11px] font-mono font-bold text-white bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-lg">
+                                {s.targetWeeklyMinutes || 120}m/sem
                               </span>
                             </div>
                           </div>
