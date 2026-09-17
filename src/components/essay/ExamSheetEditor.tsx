@@ -14,10 +14,12 @@ import {
   Minimize2,
   Eye,
   Info,
+  Camera,
 } from "lucide-react";
 import { EssayTheme } from "@/actions/essay-actions";
 import { SubmitConfirmationModal } from "./SubmitConfirmationModal";
 import { ClearSheetModal } from "./ClearSheetModal";
+import { HandwrittenOcrModal } from "./HandwrittenOcrModal";
 
 interface ExamSheetEditorProps {
   theme: EssayTheme;
@@ -42,6 +44,7 @@ export function ExamSheetEditor({
   const [showInstructions, setShowInstructions] = useState<boolean>(true);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState<boolean>(false);
   const [isClearModalOpen, setIsClearModalOpen] = useState<boolean>(false);
+  const [isOcrModalOpen, setIsOcrModalOpen] = useState<boolean>(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -191,6 +194,18 @@ export function ExamSheetEditor({
           >
             <BookOpen size={13} className="text-indigo-400" />
             <span>Proposta & Textos</span>
+          </button>
+
+          {/* Botão Foto do Manuscrito (OCR) */}
+          <button
+            type="button"
+            onClick={() => setIsOcrModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-950/60 hover:bg-violet-900/60 text-violet-200 text-xs font-semibold border border-violet-500/30 hover:border-violet-400 transition-all cursor-pointer shadow-sm"
+            title="Digitalizar foto da folha manuscrita com IA"
+          >
+            <Camera size={13} className="text-violet-400" />
+            <span className="hidden sm:inline">Foto Manuscrito</span>
+            <span className="sm:hidden">OCR</span>
           </button>
 
           {/* Botão Recuo de Parágrafo */}
@@ -406,6 +421,13 @@ export function ExamSheetEditor({
         isOpen={isClearModalOpen}
         onClose={() => setIsClearModalOpen(false)}
         onConfirm={handleConfirmClear}
+      />
+
+      {/* MODAL DE OCR DE FOLHA MANUSCRITA */}
+      <HandwrittenOcrModal
+        isOpen={isOcrModalOpen}
+        onClose={() => setIsOcrModalOpen(false)}
+        onApplyTranscription={(txt) => setContent(txt)}
       />
     </div>
   );

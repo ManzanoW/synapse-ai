@@ -19,6 +19,7 @@ import {
   deleteEssayAction,
   EssayEvaluationResult,
 } from "@/actions/essay-actions";
+import { EssayEvolutionChart } from "./EssayEvolutionChart";
 
 interface EssayHistoryListProps {
   onSelectEssay: (essay: EssayEvaluationResult) => void;
@@ -140,7 +141,10 @@ export function EssayHistoryList({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3">
+        <div className="space-y-6">
+          <EssayEvolutionChart history={history} />
+
+          <div className="grid grid-cols-1 gap-3">
           {history.map((item) => {
             const isApproved = item.isApproved;
             const dateStr = new Date(item.createdAt).toLocaleDateString("pt-BR", {
@@ -235,6 +239,7 @@ export function EssayHistoryList({
               </div>
             );
           })}
+          </div>
         </div>
       )}
 

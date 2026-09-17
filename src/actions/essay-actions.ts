@@ -503,3 +503,116 @@ export async function deleteEssayAction(id: string): Promise<{
     return { success: false, error: "Falha ao excluir redação." };
   }
 }
+
+export interface TranscribeHandwrittenEssayResponse {
+  success: boolean;
+  error?: string;
+  transcription?: string;
+  detectedLines?: number;
+  legibility?: "Alta" | "Média" | "Baixa";
+  observations?: string;
+}
+
+/**
+ * 6. Transcreve uma folha de redação manuscrita via OCR Multimodal com Gemini
+ */
+export async function transcribeHandwrittenEssayAction(
+  formData: FormData
+): Promise<TranscribeHandwrittenEssayResponse> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const file = formData.get("file") as File | null;
+    if (!file) {
+      return { success: false, error: "Nenhuma foto de redação foi enviada." };
+    }
+
+    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (!validTypes.includes(file.type)) {
+      return {
+        success: false,
+        error: "Formato inválido. Por favor, envie uma foto em JPG, PNG ou WEBP.",
+      };
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      return {
+        success: false,
+        error: "A foto é maior que 15MB. Envie uma foto menor ou com menor resolução.",
+      };
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const base64Data = Buffer.from(arrayBuffer).toString("base64");
+
+    const prompt = `Você é o maior especialista do Brasil em leitura, transcrição paleográfica e caligrafia de redações manuscritas de concursos públicos (Cebraspe, FGV, FCC, Vunesp).
+Analise a imagem da folha pautada de redação manuscrita enviada pelo candidato.
+Sua missão é transcrever com a máxima fidelidade a redação manuscrita, linha por linha (exatamente como o candidato escreveu nas linhas pautadas 1 a 30).
+
+DIRETRIZES TÉCNICAS OBRIGATÓRIAS:
+1. IDENTAÇÃO DE PARÁGRAFOS: Identifique o recuo inicial dos parágrafos e preserve-o adicionando 4 espaços no início da linha correspondente ("    Texto...").
+2. LINHA POR LINHA: Transcreva exatamente uma linha da folha pautada por linha de texto separada por quebra de linha (\\n), mantendo o padrão das linhas 1 a 30.
+3. RASURAS: Se houver alguma palavra rasurada pelo candidato com um traço simples horizontal (padrão de concurso), transcreva a palavra corrigida que ele escreveu logo ao lado.
+4. FIDELIDADE TEXTUAL: Mantenha a pontuação, acentuação e grafia exatas do candidato (mesmo se contiver desvios ortográficos ou gramaticais, pois a banca examinadora irá pontuá-los depois).
+5. Se alguma palavra estiver completamente ilegível, transcreva como [ilegível].
+
+Retorne em formato JSON estrito:
+{
+  "transcription": "Texto transcrito linha por linha exatamente como nas linhas da folha",
+  "detectedLines": 28,
+  "legibility": "Alta" | "Média" | "Baixa",
+  "observations": "Observação rápida sobre a nitidez da caligrafia e organização espacial dos parágrafos"
+}`;
+
+    const response = await generateContentWithFallback({
+      contents: [
+        { text: prompt },
+        {
+          inlineData: {
+            mimeType: file.type,
+            data: base64Data,
+          },
+        },
+      ],
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      },
+    });
+
+    if (!response || !response.text) {
+      throw new Error("A IA não retornou a transcrição da folha.");
+    }
+
+    let text = response.text.trim();
+    if (text.startsWith("```json")) text = text.replace(/^```json/, "").replace(/```$/, "").trim();
+    if (text.startsWith("```")) text = text.replace(/^```/, "").replace(/```$/, "").trim();
+
+    const parsed = JSON.parse(text) as {
+      transcription: string;
+      detectedLines: number;
+      legibility: "Alta" | "Média" | "Baixa";
+      observations: string;
+    };
+
+    return {
+      success: true,
+      transcription: parsed.transcription,
+      detectedLines: parsed.detectedLines,
+      legibility: parsed.legibility,
+      observations: parsed.observations,
+    };
+  } catch (err: unknown) {
+    console.error("[transcribeHandwrittenEssayAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao processar a imagem da redação manuscrita.",
+    };
+  }
+}
