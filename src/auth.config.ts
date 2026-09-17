@@ -3,30 +3,37 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 
 export function getBaseUrl(): string {
-  // 1. Se houver NEXTAUTH_URL explícita (e não for preview dinâmico)
-  if (
-    process.env.NEXTAUTH_URL &&
-    !process.env.NEXTAUTH_URL.includes("localhost") &&
-    process.env.NODE_ENV === "production" &&
-    process.env.VERCEL_ENV === "production"
-  ) {
+  // 1. Se houver AUTH_URL explícita (padrão Auth.js v5)
+  if (process.env.AUTH_URL && !process.env.AUTH_URL.includes("localhost")) {
+    return process.env.AUTH_URL;
+  }
+  // 2. Se houver NEXTAUTH_URL explícita
+  if (process.env.NEXTAUTH_URL && !process.env.NEXTAUTH_URL.includes("localhost")) {
     return process.env.NEXTAUTH_URL;
   }
-  // 2. URL estável da branch na Vercel (ex: git-dev)
-  if (process.env.VERCEL_BRANCH_URL) {
-    return `https://${process.env.VERCEL_BRANCH_URL}`;
-  }
-  // 3. Fallback para VERCEL_PROJECT_PRODUCTION_URL
+  // 3. Domínio de produção principal da Vercel
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
     return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   }
-  // 4. Desenvolvimento local
+  // 4. URL da Vercel para este deployment
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // 5. URL de branch na Vercel
+  if (process.env.VERCEL_BRANCH_URL) {
+    return `https://${process.env.VERCEL_BRANCH_URL}`;
+  }
+  // 6. Desenvolvimento local
   return "http://localhost:3000";
 }
 
 const host = getBaseUrl();
-process.env.AUTH_URL = host;
-process.env.NEXTAUTH_URL = host;
+if (!process.env.AUTH_URL) {
+  process.env.AUTH_URL = host;
+}
+if (!process.env.NEXTAUTH_URL) {
+  process.env.NEXTAUTH_URL = host;
+}
 process.env.AUTH_TRUST_HOST = "true";
 
 export const baseUrl = host;
