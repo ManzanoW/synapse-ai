@@ -188,7 +188,13 @@ export interface RecordStudyActivityResult {
 export async function recordStudyActivityAction(
   userId: string,
   earnedXp: number,
-  activityType: "QUIZ" | "FLASHCARD" | "ERROR_FIX" | "POMODORO" | "FOCUS" = "QUIZ",
+  activityType:
+    | "QUIZ"
+    | "FLASHCARD"
+    | "ERROR_FIX"
+    | "POMODORO"
+    | "FOCUS"
+    | "ESSAY" = "QUIZ",
   durationMinutes: number = 1,
 ): Promise<RecordStudyActivityResult> {
   try {
