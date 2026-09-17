@@ -50,6 +50,7 @@ import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
 import type { ApprovalOddsData } from "@/actions/analytics-actions";
 import { TutorialModal } from "@/components/tutorial/TutorialModal";
 import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
+import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
 interface JourneyData {
   hasObjective: boolean;
@@ -492,6 +493,10 @@ export default function DashboardClient({
             >
               <Menu size={18} />
             </button>
+
+            <div className="md:hidden flex items-center">
+              <NotificationsPopover />
+            </div>
 
             <div>
               <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-white">
