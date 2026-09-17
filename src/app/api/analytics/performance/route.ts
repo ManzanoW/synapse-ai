@@ -291,11 +291,15 @@ export async function GET() {
     const userWeeklyHours = userRecord?.weeklyGoalHours || 10;
     const totalWeeklyMinutesCalc = userWeeklyHours * 60;
     const totalWeight = subjects.reduce((acc, s) => acc + (s.weight || 5), 0);
+    const totalPriority = subjects.reduce((acc, s) => acc + (s.priority || 1), 0);
+    const avgRatio = totalPriority / Math.max(1, totalWeight);
 
     // 7. Estatísticas por Disciplina (Deduplicadas e com diferenciação de atividades)
     const subjectMap = new Map<string, {
       subjectId: string;
       subject: string;
+      priority: number;
+      weight: number;
       total: number;
       correct: number;
       baseWeeklyMinutes: number;
@@ -314,15 +318,16 @@ export async function GET() {
       const baseWeeklyMinutes = Math.round(
         (totalWeeklyMinutesCalc * (sub.weight || 5)) / Math.max(1, totalWeight),
       );
-      const targetWeeklyMinutes =
-        sub.priority && sub.priority > 10
-          ? Math.round(sub.priority)
-          : baseWeeklyMinutes;
+      const targetWeeklyMinutes = Math.round(
+        (totalWeeklyMinutesCalc * (sub.priority || 1)) / Math.max(1, totalPriority),
+      );
 
       if (!subjectMap.has(key)) {
         subjectMap.set(key, {
           subjectId: sub.id,
           subject: sub.name,
+          priority: sub.priority || 1,
+          weight: sub.weight || 5,
           total,
           correct,
           baseWeeklyMinutes,
@@ -338,18 +343,20 @@ export async function GET() {
     const subjectStats = Array.from(subjectMap.values()).map((item) => {
       const hasActivity = item.total > 0;
       const accuracy = hasActivity ? Math.round((item.correct / item.total) * 100) : null;
+      const priorityRatio = item.priority / Math.max(1, item.weight);
+
       const isReinforced =
         hasActivity &&
         item.total >= 3 &&
         accuracy !== null &&
         accuracy < 65 &&
-        item.targetWeeklyMinutes > item.baseWeeklyMinutes * 1.1;
+        (item.targetWeeklyMinutes > item.baseWeeklyMinutes * 1.03 || priorityRatio > avgRatio * 1.04);
       const isOptimized =
         hasActivity &&
         item.total >= 5 &&
         accuracy !== null &&
         accuracy > 85 &&
-        item.targetWeeklyMinutes < item.baseWeeklyMinutes * 0.95;
+        (item.targetWeeklyMinutes < item.baseWeeklyMinutes * 0.98 || priorityRatio < avgRatio * 0.96);
 
       return {
         subjectId: item.subjectId,
@@ -376,10 +383,13 @@ export async function GET() {
       (s) => !s.hasActivity || s.total < 3,
     ).length;
 
-    // Se as matérias com déficit já possuem minutos superiores à base (+25%), a calibração já está ativa
+    // Se as matérias com déficit já possuem reforço ativo no cronograma
     const isRebalanceApplied =
-      highPrioritySubjects.length > 0 &&
-      highPrioritySubjects.some((s) => s.isReinforced);
+      highPrioritySubjects.length > 0
+        ? highPrioritySubjects.every((s) => s.isReinforced)
+        : optimizedSubjects.length > 0
+          ? optimizedSubjects.every((s) => s.isOptimized)
+          : false;
 
     // 9. Pontos Fracos (< 60% de acerto com pelo menos 3 questões)
     const weakTopics: Array<{
@@ -464,7 +474,9 @@ export async function GET() {
       performanceSummary,
       subjectStats,
       rebalanceSuggestions: {
-        needsRebalance: highPrioritySubjects.length > 0 || optimizedSubjects.length > 0,
+        needsRebalance:
+          !isRebalanceApplied &&
+          (highPrioritySubjects.length > 0 || optimizedSubjects.length > 0),
         isApplied: isRebalanceApplied,
         highPriority: highPrioritySubjects,
         optimized: optimizedSubjects,

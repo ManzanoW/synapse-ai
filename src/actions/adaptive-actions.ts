@@ -71,18 +71,37 @@ export async function rebalanceScheduleAction(
     if (params.performances && params.performances.length > 0) {
       adjustments = calculateAdaptiveRebalance(params);
 
+      const userRecord = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { weeklyGoalHours: true },
+      });
+      const totalWeeklyMinutes =
+        (params.weeklyGoalHours || userRecord?.weeklyGoalHours || 10) * 60;
+      const totalRawAdjusted = adjustments.reduce(
+        (acc, a) =>
+          acc + (a.adjustedMinutes || a.targetWeeklyMinutes || 1),
+        0,
+      );
+
       for (const adj of adjustments) {
         if (adj.subjectId) {
-          const targetMinutes =
+          const rawMinutes =
             adj.targetWeeklyMinutes ??
             adj.adjustedWeeklyMinutes ??
             adj.adjustedMinutes ??
             120;
+          const normalizedMinutes = Math.max(
+            15,
+            Math.round(
+              (totalWeeklyMinutes * rawMinutes) /
+                Math.max(1, totalRawAdjusted),
+            ),
+          );
 
           await prisma.subject.updateMany({
             where: { id: adj.subjectId, userId },
             data: {
-              priority: Number(targetMinutes),
+              priority: Number(normalizedMinutes),
             },
           });
         }
@@ -212,31 +231,42 @@ export async function autoRebalanceFromPerformanceAction(
 
     const adjustments = calculateAdaptiveRebalance(rebalanceParams);
 
-    // 4. Monta a lista comparativa Antes vs. Depois e grava os novos tempos calibrados no banco
+    // 4. Normaliza os novos minutos para que a soma bata EXATAMENTE com a meta semanal do usuário (ex: 600m = 10h)
+    const totalRawAdjusted = adjustments.reduce(
+      (acc, a) => acc + (a.adjustedMinutes || a.targetWeeklyMinutes || 1),
+      0,
+    );
+
     const comparison: RebalanceComparisonItem[] = [];
 
     for (const adj of adjustments) {
       if (adj.subjectId) {
-        const newMinutes = adj.adjustedMinutes;
+        const rawNewMinutes = adj.adjustedMinutes;
+        const normalizedNewMinutes = Math.max(
+          15,
+          Math.round(
+            (totalWeeklyMinutes * rawNewMinutes) / Math.max(1, totalRawAdjusted),
+          ),
+        );
         const originalPerf = performances.find(
           (p) => p.subjectId === adj.subjectId,
         );
-        const baseMinutes = originalPerf?.targetWeeklyMinutes ?? 120;
-        const diff = newMinutes - baseMinutes;
+        const baseMinutes = originalPerf?.targetWeeklyMinutes ?? 60;
+        const diff = normalizedNewMinutes - baseMinutes;
 
         comparison.push({
           subjectId: adj.subjectId,
           subjectName: adj.subjectName,
           accuracyPercentage: originalPerf?.accuracyPercentage ?? 70,
           previousWeeklyMinutes: baseMinutes,
-          newWeeklyMinutes: newMinutes,
+          newWeeklyMinutes: normalizedNewMinutes,
           diffMinutes: diff,
         });
 
         await prisma.subject.updateMany({
           where: { id: adj.subjectId, userId },
           data: {
-            priority: Number(newMinutes),
+            priority: Number(normalizedNewMinutes),
           },
         });
       }
@@ -338,7 +368,18 @@ export async function checkRebalanceNeedsAction(): Promise<{
       },
     });
 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { weeklyGoalHours: true },
+    });
+
+    const totalWeeklyHours = user?.weeklyGoalHours || 10;
+    const totalWeeklyMinutes = totalWeeklyHours * 60;
+    const totalWeight = subjects.reduce((acc, s) => acc + (s.weight || 5), 0);
+    const totalPriority = subjects.reduce((acc, s) => acc + (s.priority || 1), 0);
+
     const criticalList: RebalanceAlertStatus["criticalSubjects"] = [];
+    let unreinforcedCount = 0;
 
     for (const subject of subjects) {
       let total = 0;
@@ -351,7 +392,7 @@ export async function checkRebalanceNeedsAction(): Promise<{
         });
       });
 
-      if (total >= 5) {
+      if (total >= 3) {
         const accuracy = Math.round((correct / total) * 100);
         if (accuracy < 65) {
           criticalList.push({
@@ -360,6 +401,21 @@ export async function checkRebalanceNeedsAction(): Promise<{
             accuracy,
             totalQuestions: total,
           });
+
+          const baseMinutes =
+            (totalWeeklyMinutes * (subject.weight || 5)) / Math.max(1, totalWeight);
+          const currentMinutes =
+            (totalWeeklyMinutes * (subject.priority || 1)) /
+            Math.max(1, totalPriority);
+          const avgRatio = totalPriority / Math.max(1, totalWeight);
+          const priorityRatio = (subject.priority || 1) / (subject.weight || 5);
+
+          const isReinforced =
+            currentMinutes >= baseMinutes * 1.03 || priorityRatio > avgRatio * 1.04;
+
+          if (!isReinforced) {
+            unreinforcedCount++;
+          }
         }
       }
     }
@@ -367,7 +423,8 @@ export async function checkRebalanceNeedsAction(): Promise<{
     return {
       success: true,
       data: {
-        needsRebalance: criticalList.length > 0,
+        // Só aciona o banner de alerta se houver disciplinas críticas que ainda não receberam a calibração
+        needsRebalance: unreinforcedCount > 0,
         criticalSubjects: criticalList,
       },
     };
