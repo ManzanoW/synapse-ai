@@ -3,9 +3,13 @@
 import React, { useState, useEffect, useTransition, useCallback } from "react";
 import Link from "next/link";
 import { useSidebar } from "@/lib/sidebar-context";
-import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
+import {
+  autoRebalanceFromPerformanceAction,
+  RebalanceComparisonItem,
+} from "@/actions/adaptive-actions";
 import { EditalEmptyState } from "@/components/edital-empty-state";
 import { ApprovalPredictorSection } from "@/components/performance/ApprovalPredictorSection";
+import { AdaptiveRebalanceComparisonModal } from "@/components/performance/AdaptiveRebalanceComparisonModal";
 import {
   Menu,
   TrendingUp,
@@ -21,9 +25,14 @@ import {
   Brain,
   AlertCircle,
   BookOpen,
-  ArrowUpRight,
   Sliders,
   Check,
+  ChevronDown,
+  ChevronUp,
+  Info,
+  Layers,
+  Clock,
+  ShieldCheck,
 } from "lucide-react";
 
 interface SubjectPerformance {
@@ -31,7 +40,8 @@ interface SubjectPerformance {
   subject: string;
   total: number;
   correct: number;
-  accuracy: number;
+  accuracy: number | null;
+  hasActivity?: boolean;
   targetWeeklyMinutes?: number;
 }
 
@@ -43,22 +53,65 @@ interface WeakTopic {
   total: number;
 }
 
+interface CognitiveMasteryComponents {
+  quizAccuracy: number | null;
+  quizScore: number;
+  memoryRetention: number;
+  retentionScore: number;
+  editalCoverage: number;
+  coverageScore: number;
+  studiedTopicsCount: number;
+  totalTopics: number;
+  totalQuizQuestions: number;
+}
+
 interface AnalyticsData {
   metrics: {
     totalTopics: number;
     completedReviews: number;
     estimatedRetention: string;
+    retentionValue?: number;
+    retentionStatus?: {
+      status: string;
+      label: string;
+      description: string;
+      color: "emerald" | "amber" | "rose" | "indigo";
+      bgBadge?: string;
+      textBadge?: string;
+      borderBadge?: string;
+    };
     avgEasiness: number;
     materiasPendentes: number;
+    cognitiveMastery?: {
+      score: number;
+      level: string;
+      badgeColor: "rose" | "amber" | "indigo" | "emerald";
+      components: CognitiveMasteryComponents;
+    };
+    fsrsMaturity?: {
+      totalCards: number;
+      newCards: number;
+      learningCards: number;
+      matureCards: number;
+      leechCards: number;
+    };
   };
   chartDistribution: Array<{ day: string; quantidade: number }>;
   performanceSummary: {
     bom: number;
     dificil: number;
     errei: number;
+    total?: number;
+    source?: "mixed" | "quiz" | "flashcard" | "none";
   };
   subjectStats?: SubjectPerformance[];
   weakTopics?: WeakTopic[];
+  rebalanceSuggestions?: {
+    needsRebalance: boolean;
+    highPriority: SubjectPerformance[];
+    optimized: SubjectPerformance[];
+    untestedCount: number;
+  };
 }
 
 interface AnalyticsClientProps {
@@ -70,7 +123,7 @@ interface AnalyticsClientProps {
   };
 }
 
-export default function AnalyticsClient({ user }: AnalyticsClientProps) {
+export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
   const { openSidebar } = useSidebar();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,6 +132,16 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
 
   const [isRebalancing, startRebalanceTransition] = useTransition();
   const [rebalancedSuccess, setRebalancedSuccess] = useState(false);
+
+  // Modal de Antes vs. Depois do Rebalanceamento
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
+  const [rebalanceComparison, setRebalanceComparison] = useState<
+    RebalanceComparisonItem[]
+  >([]);
+  const [rebalanceTotalHours, setRebalanceTotalHours] = useState(10);
+
+  // Expansão de detalhes de transparência do score
+  const [showMasteryBreakdown, setShowMasteryBreakdown] = useState(false);
 
   // 1. Evita Hydration Mismatch definindo a data apenas no cliente
   useEffect(() => {
@@ -109,32 +172,23 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
     fetchAnalytics();
   }, [fetchAnalytics]);
 
-  // 3. Rebalanceamento adaptativo com re-fetch automático
+  // 3. Rebalanceamento adaptativo com IA e modal comparativo
   const handleApplyAdaptiveRebalance = () => {
     startRebalanceTransition(async () => {
       try {
-        const performances =
-          data?.subjectStats?.map((s) => ({
-            subjectId: s.subjectId || s.subject,
-            subjectName: s.subject,
-            accuracyPercentage: s.accuracy,
-            totalQuestionsSolved: s.total,
-            lastStudiedAt: new Date(),
-            targetWeeklyMinutes: s.targetWeeklyMinutes ?? 120,
-          })) || [];
-
-        const res = await rebalanceScheduleAction({
-          studyMode: "WEEKLY",
-          weeklyGoalHours: 10,
-          activeDaysPerWeek: 5,
-          daysMissedThisWeek: 0,
-          performances,
-        });
+        const res = await autoRebalanceFromPerformanceAction();
 
         if (res?.success) {
+          if (res.comparison && res.comparison.length > 0) {
+            setRebalanceComparison(res.comparison);
+            setRebalanceTotalHours(res.totalWeeklyHours || 10);
+            setIsComparisonOpen(true);
+          }
           setRebalancedSuccess(true);
-          await fetchAnalytics(); // Recarrega as métricas atualizadas
+          await fetchAnalytics(); // Recarrega métricas atualizadas
           setTimeout(() => setRebalancedSuccess(false), 4000);
+        } else if (res?.error) {
+          console.error("Erro no rebalanceamento:", res.error);
         }
       } catch (err) {
         console.error("Erro ao aplicar rebalanceamento adaptativo:", err);
@@ -147,7 +201,7 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
       <div className="min-h-screen bg-[#02050e] text-slate-100 flex flex-col items-center justify-center gap-3">
         <Loader2 size={32} className="animate-spin text-indigo-400" />
         <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-          Consolidando inteligência cognitiva...
+          Consolidando inteligência cognitiva real...
         </span>
       </div>
     );
@@ -170,21 +224,25 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
   const hasTopics = data.metrics.totalTopics > 0;
 
   const totalSummary =
-    data.performanceSummary.bom +
-    data.performanceSummary.dificil +
-    data.performanceSummary.errei;
+    (data.performanceSummary.bom || 0) +
+    (data.performanceSummary.dificil || 0) +
+    (data.performanceSummary.errei || 0);
 
   const maxChartQty = Math.max(
     ...data.chartDistribution.map((d) => d.quantidade),
-    1
+    1,
   );
 
-  const highPrioritySubjects =
-    data.subjectStats?.filter((s) => s.accuracy < 65) || [];
-  const optimizedSubjects =
-    data.subjectStats?.filter((s) => s.accuracy > 85) || [];
+  // Rebalance suggestions reais vindas da inteligência matemática
+  const highPrioritySubjects = data.rebalanceSuggestions?.highPriority || [];
+  const optimizedSubjects = data.rebalanceSuggestions?.optimized || [];
+  const untestedCount = data.rebalanceSuggestions?.untestedCount || 0;
   const hasRebalanceSuggestions =
     highPrioritySubjects.length > 0 || optimizedSubjects.length > 0;
+
+  const mastery = data.metrics.cognitiveMastery;
+  const fsrsMaturity = data.metrics.fsrsMaturity;
+  const retentionStatus = data.metrics.retentionStatus;
 
   return (
     <div className="relative min-h-screen bg-[#02050e] text-slate-100 p-4 md:p-8 font-sans antialiased selection:bg-indigo-500/30 overflow-hidden">
@@ -203,14 +261,13 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] font-bold uppercase tracking-wider mb-1.5">
                 <Activity size={13} className="text-indigo-400" />
-                <span>Analytics & Métricas</span>
+                <span>Analytics & Inteligência Cognitiva</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
                 Desempenho Cognitivo
               </h1>
               <p className="text-xs text-slate-400 mt-1">
-                Acompanhe a sua evolução contínua e a força da sua memória no
-                tempo.
+                Acompanhamento com métricas 100% autênticas: algoritmos FSRS, simulados reais e cobertura do edital.
               </p>
             </div>
           </div>
@@ -231,14 +288,13 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  Revisões Pendentes para Hoje
+                  Revisões Prontas para Consolidação
                   <span className="px-2.5 py-0.5 rounded-full bg-indigo-500 text-white text-[10px] font-mono font-black shadow-[0_0_12px_rgba(99,102,241,0.6)]">
                     {data.metrics.materiasPendentes}
                   </span>
                 </h3>
                 <p className="text-slate-300 text-xs leading-relaxed">
-                  Você tem {data.metrics.materiasPendentes} matérias agendadas
-                  no algoritmo SM-2 prontas para revisão.
+                  Você tem {data.metrics.materiasPendentes} tópicos/cards atingindo o ponto ideal na curva de Ebbinghaus hoje.
                 </p>
               </div>
             </div>
@@ -259,10 +315,10 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white">
-                  Tudo em dia por aqui!
+                  Curva de Esquecimento Estabilizada
                 </h3>
                 <p className="text-slate-400 text-[11px]">
-                  Você não possui nenhuma revisão acumulada para hoje.
+                  Você não possui nenhuma revisão pendente acumulada para hoje. Excelente constância!
                 </p>
               </div>
             </div>
@@ -272,8 +328,9 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
         {/* PREDITOR DE APROVAÇÃO & NOTA DE CORTE DINÂMICA */}
         {hasTopics && <ApprovalPredictorSection />}
 
-        {hasRebalanceSuggestions && hasTopics && (
-          <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#0b1021] to-[#050814] border border-cyan-500/30 p-6 backdrop-blur-2xl space-y-4 shadow-2xl">
+        {/* SUGESTÕES DE AJUSTE DO ALVO (ADAPTIVE REBALANCER) */}
+        {hasTopics && (
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0b1021] to-[#050814] border border-cyan-500/30 p-6 backdrop-blur-2xl space-y-4 shadow-2xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
@@ -282,145 +339,214 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
                 <div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     Sugestões de Ajuste do Alvo
-                    <span className="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full font-mono">
+                    <span className="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full font-mono font-bold">
                       Adaptive Rebalancer
                     </span>
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    O rebalanceador detectou assimetria no seu desempenho e
-                    sugere redistribuir os minutos de estudo semanal.
+                    {hasRebalanceSuggestions
+                      ? "O motor adaptativo detectou assimetrias no seu desempenho e calculou a redistribuição exata das horas semanais."
+                      : "Suas metas semanais estão alinhadas. Conforme você resolver mais simulados, a calibração adaptativa entrará em ação."}
                   </p>
                 </div>
               </div>
 
-              <button
-                onClick={handleApplyAdaptiveRebalance}
-                disabled={isRebalancing}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all shadow-lg shadow-cyan-500/20 active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
-              >
-                {isRebalancing ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>Aplicando...</span>
-                  </>
-                ) : rebalancedSuccess ? (
-                  <>
-                    <Check size={14} />
-                    <span>Metas Ajustadas!</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={14} />
-                    <span>Aplicar Recomendação</span>
-                  </>
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={handleApplyAdaptiveRebalance}
+                  disabled={isRebalancing}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all shadow-lg shadow-cyan-500/20 active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
+                >
+                  {isRebalancing ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Calibrando com IA...</span>
+                    </>
+                  ) : rebalancedSuccess ? (
+                    <>
+                      <Check size={14} />
+                      <span>Metas Calibradas!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      <span>Aplicar Recomendação Inteligente</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {hasRebalanceSuggestions ? (
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {highPrioritySubjects.length > 0 && (
+                    <div className="bg-rose-500/5 border border-rose-500/20 p-4 rounded-2xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block">
+                          ⚡ Reforço Recomendado (+25% de tempo)
+                        </span>
+                        <span className="text-[10px] text-rose-400/80 font-mono">
+                          Déficit &lt; 65%
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {highPrioritySubjects.map((s, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between text-xs p-1.5 rounded-xl bg-rose-500/5 border border-rose-500/10"
+                          >
+                            <span className="text-slate-200 font-medium">
+                              {s.subject}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {s.total} q.
+                              </span>
+                              <span className="text-rose-400 font-mono font-bold">
+                                {s.accuracy}% acerto
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {optimizedSubjects.length > 0 && (
+                    <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
+                          🎯 Manutenção Otimizada (-15% de tempo)
+                        </span>
+                        <span className="text-[10px] text-emerald-400/80 font-mono">
+                          Domínio &gt; 85%
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {optimizedSubjects.map((s, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between text-xs p-1.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10"
+                          >
+                            <span className="text-slate-200 font-medium">
+                              {s.subject}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {s.total} q.
+                              </span>
+                              <span className="text-emerald-400 font-mono font-bold">
+                                {s.accuracy}% acerto
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {untestedCount > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-slate-400">
+                    <Info size={13} className="text-cyan-400 shrink-0" />
+                    <span>
+                      <strong>{untestedCount} disciplina(s)</strong> possuem menos de 3 questões resolvidas e permanecem com carga padrão sem penalização.
+                    </span>
+                  </div>
                 )}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-              {highPrioritySubjects.length > 0 && (
-                <div className="bg-rose-500/5 border border-rose-500/20 p-4 rounded-2xl space-y-2">
-                  <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block">
-                    ⚡ Reforço Recomendado (+25% de tempo)
-                  </span>
-                  <div className="space-y-1.5">
-                    {highPrioritySubjects.map((s, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-xs"
-                      >
-                        <span className="text-slate-200 font-medium">
-                          {s.subject}
-                        </span>
-                        <span className="text-rose-400 font-mono font-bold">
-                          {s.accuracy}% acerto
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {optimizedSubjects.length > 0 && (
-                <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl space-y-2">
-                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
-                    🎯 Manutenção Otimizada (-15% de tempo)
-                  </span>
-                  <div className="space-y-1.5">
-                    {optimizedSubjects.map((s, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-xs"
-                      >
-                        <span className="text-slate-200 font-medium">
-                          {s.subject}
-                        </span>
-                        <span className="text-emerald-400 font-mono font-bold">
-                          {s.accuracy}% acerto
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-cyan-500/5 border border-cyan-500/20">
+                <ShieldCheck size={20} className="text-cyan-400 shrink-0" />
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Seu cronograma atual está <strong>harmonizado</strong> com suas taxas de acerto. Continue praticando simulados para desbloquear calibrações micro-adaptativas contínuas.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
+        {/* 4 CARDS DE MÉTRICAS PRINCIPAIS (100% REAIS) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Retenção Estimada FSRS */}
           <div className="relative group overflow-hidden bg-linear-to-br from-[#090d16] to-[#05070e] border border-white/10 hover:border-emerald-500/40 rounded-3xl p-5 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 shadow-xl">
             <div className="flex items-center justify-between mb-3">
               <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                Retenção Estimada
+                Retenção de Memória FSRS
               </span>
               <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                 <TrendingUp size={16} />
               </div>
             </div>
             <div className="space-y-1">
-              <div className="flex items-baseline justify-between">
-                <span className="text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-emerald-300 to-emerald-500 font-mono tracking-tight">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-emerald-500 font-mono tracking-tight">
                   {data.metrics.estimatedRetention}
                 </span>
-                <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  <ArrowUpRight size={10} className="mr-0.5" /> +2.4%
+                <span
+                  className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    retentionStatus?.color === "emerald"
+                      ? "text-emerald-300 bg-emerald-500/10 border-emerald-500/30"
+                      : retentionStatus?.color === "amber"
+                        ? "text-amber-300 bg-amber-500/10 border-amber-500/30"
+                        : retentionStatus?.color === "rose"
+                          ? "text-rose-300 bg-rose-500/10 border-rose-500/30"
+                          : "text-indigo-300 bg-indigo-500/10 border-indigo-500/30"
+                  }`}
+                >
+                  {retentionStatus?.label || "Estável"}
                 </span>
               </div>
-              <p className="text-slate-400 text-[11px]">
-                Probabilidade de retenção na memória.
+              <p className="text-slate-400 text-[11px] line-clamp-1">
+                {retentionStatus?.description || "Curva de esquecimento FSRS calculada."}
               </p>
             </div>
           </div>
 
+          {/* Card 2: Grau de Domínio Cognitivo Real */}
           <div className="relative group overflow-hidden bg-linear-to-br from-[#090d16] to-[#05070e] border border-white/10 hover:border-indigo-500/40 rounded-3xl p-5 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 shadow-xl">
             <div className="flex items-center justify-between mb-3">
               <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                Grau de Domínio
+                Grau de Domínio Cognitivo
               </span>
-              <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                <Activity size={16} />
-              </div>
+              <button
+                onClick={() => setShowMasteryBreakdown((prev) => !prev)}
+                className="p-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:text-white transition-colors cursor-pointer"
+                title="Ver fórmula transparente do score"
+              >
+                {showMasteryBreakdown ? <ChevronUp size={14} /> : <Info size={14} />}
+              </button>
             </div>
             <div className="space-y-1">
-              <div className="flex items-baseline justify-between">
-                <div className="text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-indigo-300 to-indigo-500 font-mono tracking-tight flex items-baseline gap-1">
-                  {data.metrics.avgEasiness
-                    ? ((data.metrics.avgEasiness / 2.5) * 10).toFixed(1)
-                    : "10.0"}
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-indigo-500 font-mono tracking-tight flex items-baseline gap-1">
+                  {mastery?.score.toFixed(1) ?? "0.0"}
                   <span className="text-xs font-semibold text-slate-500 font-sans">
                     / 10
                   </span>
                 </div>
-                <span className="inline-flex items-center text-[10px] font-bold text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
-                  SM-2 Pro
+                <span
+                  className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                    mastery?.badgeColor === "emerald"
+                      ? "text-emerald-300 bg-emerald-500/10 border-emerald-500/30"
+                      : mastery?.badgeColor === "indigo"
+                        ? "text-indigo-300 bg-indigo-500/10 border-indigo-500/30"
+                        : mastery?.badgeColor === "amber"
+                          ? "text-amber-300 bg-amber-500/10 border-amber-500/30"
+                          : "text-rose-300 bg-rose-500/10 border-rose-500/30"
+                  }`}
+                >
+                  {mastery?.level || "Fase Inicial"}
                 </span>
               </div>
               <p className="text-slate-400 text-[11px]">
-                Fator médio de facilidade cognitiva.
+                Score real: 50% Questões + 30% FSRS + 20% Edital.
               </p>
             </div>
           </div>
 
+          {/* Card 3: Revisões Realizadas */}
           <div className="relative group overflow-hidden bg-linear-to-br from-[#090d16] to-[#05070e] border border-white/10 hover:border-purple-500/40 rounded-3xl p-5 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 shadow-xl">
             <div className="flex items-center justify-between mb-3">
               <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
@@ -445,10 +571,11 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
             </div>
           </div>
 
+          {/* Card 4: Tópicos Mapeados */}
           <div className="relative group overflow-hidden bg-linear-to-br from-[#090d16] to-[#05070e] border border-white/10 hover:border-amber-500/40 rounded-3xl p-5 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 shadow-xl">
             <div className="flex items-center justify-between mb-3">
               <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                Tópicos Mapeados
+                Tópicos do Edital
               </span>
               <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
                 <Calendar size={16} />
@@ -456,20 +583,166 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
             </div>
             <div className="space-y-1">
               <div className="flex items-baseline justify-between">
-                <span className="text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-amber-300 to-amber-500 font-mono tracking-tight">
+                <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500 font-mono tracking-tight">
                   {data.metrics.totalTopics}
                 </span>
                 <span className="inline-flex items-center text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-                  Ativos
+                  {mastery?.components.studiedTopicsCount || 0} Ativos
                 </span>
               </div>
               <p className="text-slate-400 text-[11px]">
-                Conteúdos na grade de estudos.
+                Conteúdos cadastrados na grade de estudos.
               </p>
             </div>
           </div>
         </div>
 
+        {/* DETALHAMENTO DE TRANSPARÊNCIA DO GRAU DE DOMÍNIO (EXPANSÍVEL) */}
+        {showMasteryBreakdown && mastery && (
+          <div className="bg-gradient-to-br from-[#0c1224] to-[#060a14] border border-indigo-500/30 rounded-3xl p-6 backdrop-blur-2xl space-y-4 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-300">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Brain size={18} className="text-indigo-400" />
+                <h3 className="text-sm font-bold text-white">
+                  Transparência do Grau de Domínio ({mastery.score.toFixed(1)} / 10)
+                </h3>
+              </div>
+              <span className="text-xs text-indigo-300 font-mono">
+                Ponderação Multidimensional
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-200">1. Acurácia em Questões</span>
+                  <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                    Peso 50%
+                  </span>
+                </div>
+                <div className="text-2xl font-black font-mono text-white">
+                  {mastery.components.quizAccuracy !== null
+                    ? `${mastery.components.quizAccuracy}%`
+                    : "Sem dados"}
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  {mastery.components.totalQuizQuestions} questões resolvidas em simulados. Parcela de score:{" "}
+                  <strong className="text-indigo-300 font-mono">
+                    {mastery.components.quizScore.toFixed(1)} / 10
+                  </strong>
+                  .
+                </p>
+              </div>
+
+              <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-200">2. Retenção FSRS</span>
+                  <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                    Peso 30%
+                  </span>
+                </div>
+                <div className="text-2xl font-black font-mono text-white">
+                  {mastery.components.memoryRetention}%
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Probabilidade de fixação na curva de Ebbinghaus. Parcela de score:{" "}
+                  <strong className="text-indigo-300 font-mono">
+                    {mastery.components.retentionScore.toFixed(1)} / 10
+                  </strong>
+                  .
+                </p>
+              </div>
+
+              <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-200">3. Cobertura do Edital</span>
+                  <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                    Peso 20%
+                  </span>
+                </div>
+                <div className="text-2xl font-black font-mono text-white">
+                  {mastery.components.editalCoverage}%
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  {mastery.components.studiedTopicsCount} de {mastery.components.totalTopics} tópicos iniciados. Parcela de score:{" "}
+                  <strong className="text-indigo-300 font-mono">
+                    {mastery.components.coverageScore.toFixed(1)} / 10
+                  </strong>
+                  .
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PIPELINE DE MATURIDADE FSRS (SE HOUVER FLASHCARDS) */}
+        {fsrsMaturity && fsrsMaturity.totalCards > 0 && (
+          <div className="bg-gradient-to-br from-[#090d16] to-[#05070e] border border-white/10 rounded-3xl p-6 backdrop-blur-2xl shadow-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Layers size={18} className="text-cyan-400" />
+                <h3 className="text-sm font-bold text-white">
+                  Pipeline de Maturidade de Memória (FSRS)
+                </h3>
+              </div>
+              <span className="text-xs text-slate-400 font-mono">
+                {fsrsMaturity.totalCards} cards ativos no algoritmo
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-1">
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
+                  🟢 Maduros (S &ge; 21d)
+                </span>
+                <span className="text-xl font-black text-emerald-300 font-mono">
+                  {fsrsMaturity.matureCards}
+                </span>
+                <span className="text-[10px] text-slate-400 block">
+                  Memória de longo prazo
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-1">
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
+                  🟡 Em Fixação
+                </span>
+                <span className="text-xl font-black text-amber-300 font-mono">
+                  {fsrsMaturity.learningCards}
+                </span>
+                <span className="text-[10px] text-slate-400 block">
+                  Estabilidade intermediária
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-1">
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">
+                  🔵 Novos
+                </span>
+                <span className="text-xl font-black text-indigo-300 font-mono">
+                  {fsrsMaturity.newCards}
+                </span>
+                <span className="text-[10px] text-slate-400 block">
+                  Aguardando 1ª repetição
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-rose-500/5 border border-rose-500/20 space-y-1">
+                <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block">
+                  🔴 Pontos Cegos (Leeches)
+                </span>
+                <span className="text-xl font-black text-rose-300 font-mono">
+                  {fsrsMaturity.leechCards}
+                </span>
+                <span className="text-[10px] text-slate-400 block">
+                  3+ lapsos (precisa de mnemônico)
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CARGA DE REVISÃO E QUALIDADE DE MEMORIZAÇÃO */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           <div className="lg:col-span-7 bg-linear-to-br from-[#090d16] to-[#05070e] border border-white/10 rounded-3xl p-6 md:p-7 backdrop-blur-2xl shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
             <div className="flex items-center justify-between">
@@ -478,7 +751,7 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
                   Carga de Revisão da Semana
                 </h3>
                 <p className="text-slate-400 text-xs mt-0.5">
-                  Previsão de vencimento na curva de esquecimento.
+                  Sessões de repetição realizadas ao longo dos dias.
                 </p>
               </div>
               <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
@@ -537,18 +810,27 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
 
           <div className="lg:col-span-5 bg-linear-to-br from-[#090d16] to-[#05070e] border border-white/10 rounded-3xl p-6 md:p-7 backdrop-blur-2xl shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
             <div>
-              <h3 className="text-base font-bold text-white tracking-tight">
-                Qualidade da Memorização
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-white tracking-tight">
+                  Qualidade da Memorização
+                </h3>
+                <span className="text-[10px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded-full">
+                  {data.performanceSummary.source === "mixed"
+                    ? "Flashcards + Simulados"
+                    : data.performanceSummary.source === "flashcard"
+                      ? "Flashcards FSRS"
+                      : "Simulados Reais"}
+                </span>
+              </div>
               <p className="text-slate-400 text-xs mt-0.5">
-                Distribuição dos feedbacks acumulados.
+                Distribuição autêntica dos feedbacks registrados.
               </p>
             </div>
 
             <div className="space-y-4 my-auto">
               {[
                 {
-                  label: "🚀 Excelente (Bom)",
+                  label: "🚀 Excelente (Bom/Fácil)",
                   value: data.performanceSummary.bom,
                   barColor:
                     "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]",
@@ -596,7 +878,7 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
               })}
             </div>
 
-            <div className="relative overflow-hidden p-3.5 rounded-2xl bg-linear-to-r from-indigo-950/60 via-indigo-900/30 to-[#04060c] border border-indigo-500/30 backdrop-blur-2xl flex items-center gap-3.5">
+            <div className="relative overflow-hidden p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-indigo-900/30 to-[#04060c] border border-indigo-500/30 backdrop-blur-2xl flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 flex items-center justify-center shrink-0">
                 <Brain size={20} className="text-indigo-400" />
               </div>
@@ -605,22 +887,25 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
                   Insight Synapse AI
                 </span>
                 <p className="text-xs text-slate-200 leading-relaxed">
-                  Se os itens{" "}
-                  <strong className="text-rose-400 font-bold">Críticos</strong>{" "}
-                  crescerem, cogite fragmentar a matéria em tópicos menores.
+                  {totalSummary === 0
+                    ? "Comece a responder simulados e flashcards para mapear seu padrão cognitivo."
+                    : data.performanceSummary.errei > data.performanceSummary.bom
+                      ? "Atenção: índice elevado de erros detectado. O Adaptive Rebalancer priorizará essas matérias."
+                      : "Excelente padrão de retenção! Os intervalos de revisão estão expandindo eficientemente."}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
+        {/* PONTOS FRACOS (< 60% COM PELO MENOS 3 QUESTÕES) */}
         {data.weakTopics && data.weakTopics.length > 0 && (
           <div className="bg-linear-to-br from-[#090d16] to-[#05070e] border border-rose-500/30 rounded-3xl p-6 backdrop-blur-2xl space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <AlertCircle size={18} className="text-rose-400" />
                 <h3 className="text-sm font-bold text-white">
-                  Atenção Prioritária (Pontos Fracos)
+                  Atenção Prioritária (Pontos Fracos Validados)
                 </h3>
               </div>
               <span className="text-[11px] font-bold text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 rounded-full">
@@ -658,6 +943,7 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
           </div>
         )}
 
+        {/* APROVEITAMENTO POR DISCIPLINA (TRANSPARENTE E COM DIFERENCIAÇÃO DE MATÉRIAS NÃO INICIADAS) */}
         {data.subjectStats && data.subjectStats.length > 0 && (
           <div className="bg-linear-to-br from-[#090d16] to-[#05070e] border border-white/10 rounded-3xl p-6 md:p-7 backdrop-blur-2xl space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -673,46 +959,75 @@ export default function AnalyticsClient({ user }: AnalyticsClientProps) {
             </div>
 
             <div className="space-y-4">
-              {data.subjectStats.map((subj, i) => (
-                <div key={`subj-${i}`} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-slate-200">{subj.subject}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[11px] text-slate-400 font-mono">
-                        {subj.correct}/{subj.total} acertos
-                      </span>
-                      <span
-                        className={`font-mono font-bold text-xs ${
-                          subj.accuracy >= 80
-                            ? "text-emerald-400"
-                            : subj.accuracy >= 60
-                              ? "text-amber-400"
-                              : "text-rose-400"
+              {data.subjectStats.map((subj, i) => {
+                const hasData = subj.hasActivity && subj.accuracy !== null;
+
+                return (
+                  <div key={`subj-${i}`} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-200">{subj.subject}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          (Meta: {subj.targetWeeklyMinutes || 120}m/sem)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {hasData ? (
+                          <>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              {subj.correct}/{subj.total} acertos
+                            </span>
+                            <span
+                              className={`font-mono font-bold text-xs ${
+                                subj.accuracy! >= 80
+                                  ? "text-emerald-400"
+                                  : subj.accuracy! >= 60
+                                    ? "text-amber-400"
+                                    : "text-rose-400"
+                              }`}
+                            >
+                              {subj.accuracy}%
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-[10px] font-mono text-slate-500 bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
+                            Aguardando simulados
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                      <div
+                        style={{
+                          width: hasData ? `${Math.max(subj.accuracy!, 3)}%` : "0%",
+                        }}
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          !hasData
+                            ? "bg-slate-800"
+                            : subj.accuracy! >= 80
+                              ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                              : subj.accuracy! >= 60
+                                ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                                : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
                         }`}
-                      >
-                        {subj.accuracy}%
-                      </span>
+                      />
                     </div>
                   </div>
-
-                  <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
-                    <div
-                      style={{ width: `${Math.max(subj.accuracy, 2)}%` }}
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        subj.accuracy >= 80
-                          ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                          : subj.accuracy >= 60
-                            ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
-                            : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
-                      }`}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
       </div>
+
+      {/* MODAL COMPARATIVO ANTES VS. DEPOIS DO REBALANCEAMENTO */}
+      <AdaptiveRebalanceComparisonModal
+        isOpen={isComparisonOpen}
+        onClose={() => setIsComparisonOpen(false)}
+        comparison={rebalanceComparison}
+        totalWeeklyHours={rebalanceTotalHours}
+      />
     </div>
   );
 }

@@ -14,16 +14,16 @@ export function calculateAdaptiveRebalance(
     let type: AdaptiveAdjustment["type"] = "REBALANCE";
 
     // Análise de Desempenho (Reforço vs Redução)
-    if (subject.accuracyPercentage < 65 && subject.totalQuestionsSolved >= 10) {
+    if (subject.accuracyPercentage < 65 && subject.totalQuestionsSolved >= 3) {
       newMinutes = Math.round(subject.targetWeeklyMinutes * 1.25);
-      reason = `Desempenho em ${subject.accuracyPercentage}% (Abaixo do alvo de 70%). Bloco de Reforço Ativo inserido.`;
+      reason = `Desempenho em ${subject.accuracyPercentage}% (${subject.totalQuestionsSolved} questões resolvidas). Bloco de Reforço Ativo (+25%).`;
       type = "REINFORCEMENT";
     } else if (
       subject.accuracyPercentage > 85 &&
-      subject.totalQuestionsSolved >= 15
+      subject.totalQuestionsSolved >= 5
     ) {
       newMinutes = Math.round(subject.targetWeeklyMinutes * 0.85);
-      reason = `Domínio alto (${subject.accuracyPercentage}% de acertos). Tempo otimizado para matérias críticas.`;
+      reason = `Domínio alto (${subject.accuracyPercentage}% em ${subject.totalQuestionsSolved} questões). Tempo otimizado (-15%).`;
       type = "REDUCTION";
     }
 
