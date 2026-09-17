@@ -35,6 +35,7 @@ import {
   BookOpenCheck,
   Shield,
   Headphones,
+  PenTool,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -59,6 +60,12 @@ const NAV_GROUPS = [
     label: "Prática & Performance",
     items: [
       { label: "Banco de Provas", href: "/questions", icon: FileStack },
+      {
+        label: "Redação Oficial",
+        href: "/redacao",
+        icon: PenTool,
+        badge: "IA",
+      },
       {
         label: "Caderno de Erros",
         href: "/notebook",
