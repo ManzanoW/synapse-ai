@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Share2,
   BookOpen,
+  AlertTriangle,
 } from "lucide-react";
 import {
   MindMapNode,
@@ -37,6 +38,7 @@ export function MindMapModal({
   const [data, setData] = useState<MindMapNode | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState<boolean>(false);
 
   // Fecha com ESC
   useEffect(() => {
@@ -137,7 +139,7 @@ export function MindMapModal({
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={() => loadMindMap(true)}
+              onClick={() => setIsRegenerateConfirmOpen(true)}
               disabled={isLoading}
               className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer disabled:opacity-50"
               title="Regenerar Mapa Mental com IA"
@@ -198,6 +200,64 @@ export function MindMapModal({
             <MindMapCanvas rootNode={data} subjectColor={subjectColor} />
           ) : null}
         </div>
+
+        {/* MODAL DE CONFIRMAÇÃO PARA REGENERAR COM IA */}
+        <AnimatePresence>
+          {isRegenerateConfirmOpen && (
+            <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-slate-900 border border-violet-500/30 rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 flex flex-col gap-4 text-center"
+              >
+                <div className="mx-auto w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+                  <AlertTriangle size={24} />
+                </div>
+
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    Regenerar Mapa Mental com IA?
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                    O mapa mental atual salvo para <strong>&ldquo;{topicTitle}&rdquo;</strong> será substituído por uma nova estrutura gerada pelo Gemini.
+                  </p>
+                </div>
+
+                <div className="bg-slate-800/60 rounded-xl p-3 text-left text-xs text-slate-300 border border-white/5 flex flex-col gap-1">
+                  <div className="text-[10px] font-mono text-violet-400 uppercase font-bold">
+                    {subjectName}
+                  </div>
+                  <div className="font-semibold text-white truncate">{topicTitle}</div>
+                  <div className="text-[11px] text-amber-300/90 font-mono mt-1">
+                    ⚡ Esta ação consumirá tokens de IA para estruturar um novo mapa.
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setIsRegenerateConfirmOpen(false)}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegenerateConfirmOpen(false);
+                      loadMindMap(true);
+                    }}
+                    className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 shadow-lg shadow-violet-950/60 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Sparkles size={13} />
+                    <span>Sim, Regenerar</span>
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );
