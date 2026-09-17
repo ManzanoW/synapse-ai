@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { extractText } from "unpdf";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { generateSimuladoInParallel } from "@/lib/simulado-generator";
 import { Type } from "@google/genai";
 
 export interface ExtractedTopicItem {
@@ -518,6 +519,91 @@ ${text.slice(0, 10000)}
         err instanceof Error
           ? err.message
           : "Erro ao gerar flashcards para o tópico selecionado.",
+    };
+  }
+}
+
+export interface GenerateQuizFromPdfTopicInput {
+  topicTitle: string;
+  text: string;
+  banca?: string;
+  qtdQuestoes?: number;
+  dificuldade?: string;
+}
+
+export interface GenerateQuizFromPdfTopicResponse {
+  success: boolean;
+  error?: string;
+  quizId?: string;
+  count?: number;
+  quizTitle?: string;
+}
+
+/**
+ * Gera um simulado com questões de concurso a partir do texto do PDF
+ * e salva diretamente no banco de questões do aluno.
+ */
+export async function generateQuizFromPdfTopicAction(
+  input: GenerateQuizFromPdfTopicInput
+): Promise<GenerateQuizFromPdfTopicResponse> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const {
+      topicTitle,
+      text,
+      banca = "Cebraspe",
+      qtdQuestoes = 5,
+      dificuldade = "Médio",
+    } = input;
+
+    if (!text || text.trim().length < 50) {
+      return {
+        success: false,
+        error: "Texto insuficiente para formular questões a partir do PDF.",
+      };
+    }
+
+    const count = Math.min(10, Math.max(3, qtdQuestoes));
+
+    const result = await generateSimuladoInParallel(
+      {
+        banca,
+        materia: `PDF: ${topicTitle}`,
+        topicoNome: topicTitle,
+        qtdQuestoes: count,
+        dificuldade,
+        textoBase: text.slice(0, 10000),
+        fonteConteudo: "pdf",
+      },
+      userId
+    );
+
+    if (!result.success || !result.quizId) {
+      throw new Error("Não foi possível salvar o simulado gerado.");
+    }
+
+    revalidatePath("/questions");
+
+    return {
+      success: true,
+      quizId: result.quizId,
+      count: result.data.length,
+      quizTitle: `Simulado: ${topicTitle}`,
+    };
+  } catch (err: unknown) {
+    console.error("Erro no generateQuizFromPdfTopicAction:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao gerar questões a partir do PDF.",
     };
   }
 }
