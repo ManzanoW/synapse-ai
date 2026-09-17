@@ -51,8 +51,8 @@ export function MindMapModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Carrega ou gera o mapa mental
-  const loadMindMap = async () => {
+  // Carrega ou gera o mapa mental (com cache automático no banco de dados)
+  const loadMindMap = async (force: boolean = false) => {
     if (!topicTitle) return;
     setIsLoading(true);
     setError(null);
@@ -62,6 +62,7 @@ export function MindMapModal({
         topicTitle,
         subjectName,
         topicId,
+        forceRegenerate: force,
       });
 
       if (res.success && res.data) {
@@ -136,10 +137,10 @@ export function MindMapModal({
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={loadMindMap}
+              onClick={() => loadMindMap(true)}
               disabled={isLoading}
               className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer disabled:opacity-50"
-              title="Regenerar Mapa Mental"
+              title="Regenerar Mapa Mental com IA"
             >
               <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
             </button>
@@ -187,7 +188,7 @@ export function MindMapModal({
               <p className="text-sm text-rose-400 font-medium">{error}</p>
               <button
                 type="button"
-                onClick={loadMindMap}
+                onClick={() => loadMindMap(false)}
                 className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all cursor-pointer"
               >
                 Tentar Novamente

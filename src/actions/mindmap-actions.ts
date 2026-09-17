@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 
 export interface MindMapNode {
@@ -17,6 +18,7 @@ export interface GenerateMindMapInput {
   topicTitle: string;
   subjectName: string;
   topicId?: string;
+  forceRegenerate?: boolean;
 }
 
 export interface GenerateMindMapResult {
@@ -34,7 +36,34 @@ export async function generateTopicMindMapAction(
       return { success: false, error: "Usuário não autenticado." };
     }
 
-    const { topicTitle, subjectName } = input;
+    const userId = session.user.id;
+    const { topicTitle, subjectName, topicId, forceRegenerate = false } = input;
+
+    // 1. Verificação de Cache no Banco de Dados (Zero tokens gastos ao reabrir)
+    if (!forceRegenerate) {
+      let cachedTopic = null;
+      if (topicId) {
+        cachedTopic = await prisma.topic.findUnique({
+          where: { id: topicId },
+          select: { id: true, mindMap: true },
+        });
+      } else {
+        cachedTopic = await prisma.topic.findFirst({
+          where: {
+            title: topicTitle,
+            subject: { userId },
+          },
+          select: { id: true, mindMap: true },
+        });
+      }
+
+      if (cachedTopic?.mindMap) {
+        return {
+          success: true,
+          data: cachedTopic.mindMap as unknown as MindMapNode,
+        };
+      }
+    }
 
     const prompt = `Você é o arquiteto pedagógico e especialista em mapas conceituais do Synapse AI.
 Sua missão é sintetizar o seguinte assunto de concurso/estudo em um MAPA MENTAL HIERÁRQUICO estruturado para máxima retenção visual:
@@ -145,6 +174,29 @@ Retorne APENAS um JSON válido estrito sem blocos markdown adicionais no formato
           },
         ],
       };
+    }
+
+    // 2. Persiste o mapa mental gerado no banco de dados para evitar chamadas redundantes
+    try {
+      if (topicId) {
+        await prisma.topic.update({
+          where: { id: topicId },
+          data: { mindMap: parsed as any },
+        });
+      } else {
+        const found = await prisma.topic.findFirst({
+          where: { title: topicTitle, subject: { userId } },
+          select: { id: true },
+        });
+        if (found) {
+          await prisma.topic.update({
+            where: { id: found.id },
+            data: { mindMap: parsed as any },
+          });
+        }
+      }
+    } catch (saveErr) {
+      console.warn("[generateTopicMindMapAction] Aviso ao salvar mapa mental no banco:", saveErr);
     }
 
     return {

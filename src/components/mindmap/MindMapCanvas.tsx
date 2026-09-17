@@ -447,7 +447,7 @@ export function MindMapCanvas({
     [nodes, connections, bounds, rootNode.label, handleDownloadSvg],
   );
 
-  // 3. Impressão Direta / Salvar como PDF em A4 Paisagem
+  // 3. Impressão Direta / Salvar como PDF em A4 Paisagem (1 Página Perfeita)
   const handlePrint = useCallback(
     (mode: "light" | "dark" = "light") => {
       setIsExportMenuOpen(false);
@@ -466,6 +466,12 @@ export function MindMapCanvas({
 
       const isDark = mode === "dark";
 
+      // Converte largura e altura fixas para 100% para que o viewBox escale responsivamente na folha A4
+      const responsiveSvg = svgString
+        .replace(/<\?xml.*?\?>/, "")
+        .replace(/width="[^"]*"/, 'width="100%"')
+        .replace(/height="[^"]*"/, 'height="100%"');
+
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -475,80 +481,117 @@ export function MindMapCanvas({
             <style>
               @page {
                 size: landscape;
-                margin: 8mm;
+                margin: 6mm 8mm;
               }
               * {
                 box-sizing: border-box;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
-              body {
+              html, body {
                 margin: 0;
-                padding: 16px;
+                padding: 0;
+                width: 100%;
+                height: 100%;
                 background-color: ${isDark ? "#030611" : "#ffffff"};
                 color: ${isDark ? "#ffffff" : "#0f172a"};
                 font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                overflow: hidden;
+              }
+              .page-container {
+                width: 100%;
+                height: 100%;
                 display: flex;
                 flex-direction: column;
-                align-items: center;
+                padding: 8px 12px;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
               }
               .header {
                 width: 100%;
-                max-width: 1100px;
-                margin-bottom: 12px;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                border-bottom: 1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"};
-                padding-bottom: 8px;
+                border-bottom: 1px solid ${isDark ? "rgba(255,255,255,0.12)" : "#e2e8f0"};
+                padding-bottom: 6px;
+                margin-bottom: 6px;
+                flex-shrink: 0;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
               }
               .title {
-                font-size: 17px;
+                font-size: 15px;
                 font-weight: 800;
                 margin: 0;
               }
               .subtitle {
-                font-size: 11px;
+                font-size: 10px;
                 color: ${isDark ? "#94a3b8" : "#64748b"};
-                margin: 2px 0 0 0;
+                margin: 1px 0 0 0;
               }
               .svg-wrap {
+                flex: 1;
                 width: 100%;
+                min-height: 0;
                 display: flex;
+                align-items: center;
                 justify-content: center;
+                overflow: hidden;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
               }
               svg {
-                max-width: 100%;
-                height: auto;
-                max-height: 85vh;
+                width: 100% !important;
+                height: 100% !important;
+                max-width: 100% !important;
+                max-height: calc(100vh - 58px) !important;
+                object-fit: contain;
+                display: block;
+                margin: 0 auto;
               }
               @media print {
-                body {
+                html, body {
+                  width: 100%;
+                  height: 100%;
+                  overflow: hidden !important;
+                }
+                .page-container {
                   padding: 0;
+                  height: 100vh !important;
+                  max-height: 100vh !important;
+                  overflow: hidden !important;
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
                 }
                 .no-print {
                   display: none !important;
                 }
                 svg {
-                  max-height: 94vh;
+                  max-height: calc(100vh - 48px) !important;
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
                 }
               }
             </style>
           </head>
           <body>
-            <div class="header">
-              <div>
-                <h1 class="title">${escapeXml(rootNode.label)}</h1>
-                <p class="subtitle">Synapse AI • Mapa Mental de Alta Retenção</p>
+            <div class="page-container">
+              <div class="header">
+                <div>
+                  <h1 class="title">${escapeXml(rootNode.label)}</h1>
+                  <p class="subtitle">Synapse AI • Mapa Mental de Alta Retenção</p>
+                </div>
+                <button class="no-print" onclick="window.print()" style="padding: 6px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; background: #6366f1; color: white; border: none; font-size: 11px;">Imprimir Agora / Salvar PDF</button>
               </div>
-              <button class="no-print" onclick="window.print()" style="padding: 7px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; background: #6366f1; color: white; border: none; font-size: 12px;">Imprimir Agora / Salvar PDF</button>
-            </div>
-            <div class="svg-wrap">
-              ${svgString.replace(/<\?xml.*?\?>/, "")}
+              <div class="svg-wrap">
+                ${responsiveSvg}
+              </div>
             </div>
             <script>
               window.onload = function() {
                 setTimeout(function() {
                   window.print();
-                }, 400);
+                }, 350);
               };
             </script>
           </body>
