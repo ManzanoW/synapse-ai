@@ -45,6 +45,7 @@ export function EssayHistoryList({
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [essayToDeleteId, setEssayToDeleteId] = useState<string | null>(null);
 
   const loadHistory = async () => {
     setIsLoading(true);
@@ -70,27 +71,23 @@ export function EssayHistoryList({
       const res = await getEssaySubmissionByIdAction(id);
       if (res.success && res.data) {
         onSelectEssay(res.data);
-      } else {
-        alert("Erro ao abrir a redação.");
       }
     } catch (e) {
       console.error(e);
-      alert("Falha de conexão.");
     } finally {
       setLoadingId(null);
     }
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm("Tem certeza que deseja excluir esta redação do seu histórico?")) {
-      return;
-    }
+  const handleConfirmDelete = async () => {
+    if (!essayToDeleteId) return;
+    const targetId = essayToDeleteId;
+    setEssayToDeleteId(null);
 
     try {
-      const res = await deleteEssayAction(id);
+      const res = await deleteEssayAction(targetId);
       if (res.success) {
-        setHistory((prev) => prev.filter((item) => item.id !== id));
+        setHistory((prev) => prev.filter((item) => item.id !== targetId));
       }
     } catch (e) {
       console.error(e);
@@ -217,7 +214,10 @@ export function EssayHistoryList({
 
                   <button
                     type="button"
-                    onClick={(e) => handleDelete(item.id, e)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEssayToDeleteId(item.id);
+                    }}
                     className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                     title="Excluir"
                   >
@@ -235,6 +235,39 @@ export function EssayHistoryList({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
+      {essayToDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-rose-500/30 rounded-3xl w-full max-w-sm shadow-2xl p-5 flex flex-col items-center text-center gap-3">
+            <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="text-base font-bold text-white">
+              Excluir Redação do Histórico?
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Esta ação removerá permanentemente esta redação, notas e o feedback da banca examinadora.
+            </p>
+            <div className="flex items-center justify-end gap-2 w-full mt-2 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setEssayToDeleteId(null)}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-md transition-all cursor-pointer"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

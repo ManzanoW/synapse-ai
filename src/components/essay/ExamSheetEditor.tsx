@@ -16,6 +16,8 @@ import {
   Info,
 } from "lucide-react";
 import { EssayTheme } from "@/actions/essay-actions";
+import { SubmitConfirmationModal } from "./SubmitConfirmationModal";
+import { ClearSheetModal } from "./ClearSheetModal";
 
 interface ExamSheetEditorProps {
   theme: EssayTheme;
@@ -38,6 +40,8 @@ export function ExamSheetEditor({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(false);
   const [showInstructions, setShowInstructions] = useState<boolean>(true);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState<boolean>(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState<boolean>(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -135,23 +139,17 @@ export function ExamSheetEditor({
     }, 10);
   };
 
-  const handleClear = () => {
-    if (confirm("Deseja realmente limpar toda a folha de redação?")) {
-      setContent("");
-      localStorage.removeItem(`essay_draft_${theme.title}`);
-    }
+  const handleConfirmClear = () => {
+    setContent("");
+    localStorage.removeItem(`essay_draft_${theme.title}`);
   };
 
-  const handleSubmit = () => {
-    if (!content.trim() || wordCount < 30) {
-      alert("Sua redação precisa conter pelo menos 30 palavras para ser avaliada pela banca.");
-      return;
-    }
-    if (lineCount < 15) {
-      if (!confirm("Seu texto possui poucas linhas (menos de 15). Bancas oficiais costumam exigir entre 20 e 30 linhas. Deseja submeter mesmo assim?")) {
-        return;
-      }
-    }
+  const handleOpenSubmitModal = () => {
+    setIsSubmitModalOpen(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    setIsSubmitModalOpen(false);
     onSubmitEssay(content, seconds, lineCount, wordCount);
   };
 
@@ -208,7 +206,7 @@ export function ExamSheetEditor({
           {/* Botão Limpar */}
           <button
             type="button"
-            onClick={handleClear}
+            onClick={() => setIsClearModalOpen(true)}
             className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
             title="Limpar Folha"
           >
@@ -228,7 +226,7 @@ export function ExamSheetEditor({
           {/* Botão Enviar para Banca */}
           <button
             type="button"
-            onClick={handleSubmit}
+            onClick={handleOpenSubmitModal}
             disabled={isEvaluating}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-violet-950/60 transition-all cursor-pointer active:scale-95 ml-2"
           >
@@ -389,6 +387,26 @@ export function ExamSheetEditor({
           </span>
         </div>
       </div>
+
+      {/* MODAL DE CONFIRMAÇÃO DE ENVIO PARA A BANCA */}
+      <SubmitConfirmationModal
+        isOpen={isSubmitModalOpen}
+        onClose={() => setIsSubmitModalOpen(false)}
+        onConfirm={handleConfirmSubmit}
+        banca={theme.banca}
+        themeTitle={theme.title}
+        lineCount={lineCount}
+        wordCount={wordCount}
+        formattedTime={formattedTime}
+        isEvaluating={isEvaluating}
+      />
+
+      {/* MODAL DE CONFIRMAÇÃO PARA LIMPAR FOLHA */}
+      <ClearSheetModal
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
+        onConfirm={handleConfirmClear}
+      />
     </div>
   );
 }
