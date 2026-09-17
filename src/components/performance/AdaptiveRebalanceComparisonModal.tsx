@@ -118,31 +118,31 @@ export function AdaptiveRebalanceComparisonModal({
                 {reinforcements.length}
               </span>
               <span className="text-[10px] text-slate-400 block mt-0.5">
-                +25% tempo
-              </span>
-            </div>
-
-            <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-2xl text-center">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
-                🎯 Otimizadas
-              </span>
-              <span className="text-lg font-black text-emerald-300 font-mono">
-                {reductions.length}
-              </span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">
-                -15% tempo
+                prioridade +25%
               </span>
             </div>
 
             <div className="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-2xl text-center">
               <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">
-                ⏱️ Meta Total
+                ⚖️ Compensadas
               </span>
               <span className="text-lg font-black text-indigo-300 font-mono">
+                {reductions.length}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                equilíbrio da meta
+              </span>
+            </div>
+
+            <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-2xl text-center">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
+                ⏱️ Meta Semanal
+              </span>
+              <span className="text-lg font-black text-emerald-300 font-mono">
                 {totalWeeklyHours}h
               </span>
               <span className="text-[10px] text-slate-400 block mt-0.5">
-                semanais mantidas
+                teto 100% mantido
               </span>
             </div>
           </div>
@@ -184,12 +184,17 @@ export function AdaptiveRebalanceComparisonModal({
                     <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
                       {isReinforced && (
                         <span className="text-rose-400 flex items-center gap-1">
-                          <TrendingUp size={12} /> Déficit detectado (+25%)
+                          <TrendingUp size={12} /> Déficit detectado (reforço de +25% no peso relativo)
                         </span>
                       )}
-                      {isReduced && (
+                      {isReduced && item.accuracyPercentage > 85 && (
                         <span className="text-emerald-400 flex items-center gap-1">
-                          <TrendingDown size={12} /> Domínio elevado (-15%)
+                          <TrendingDown size={12} /> Domínio elevado (-15% tempo)
+                        </span>
+                      )}
+                      {isReduced && item.accuracyPercentage <= 85 && (
+                        <span className="text-indigo-300 flex items-center gap-1">
+                          <TrendingDown size={12} /> Carga compensada para preservar teto de {totalWeeklyHours}h
                         </span>
                       )}
                       {!isReinforced && !isReduced && (

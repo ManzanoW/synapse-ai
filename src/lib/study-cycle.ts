@@ -205,59 +205,85 @@ export function buildWeeklySchedule(
     () => [],
   );
 
-  const maxSubjectsPerDay = Math.min(
-    3,
-    Math.max(2, Math.ceil(sanitizedSubjects.length / activeDaysPerWeek)),
-  );
+  // Mapeamento de disciplinas para os dias ativos:
+  // Se houver mais disciplinas que dias (ex: 11 matérias e 5 dias), cada disciplina
+  // é alocada exatamente 1 vez na semana, sem duplicatas aleatórias.
+  if (sanitizedSubjects.length >= activeDaysPerWeek) {
+    const unallocatedSubjects: SubjectInput[] = [];
 
-  let subjectPointer = 0;
+    // 1. Respeita dias fixados pelo usuário (assignedDay)
+    sortedSubjects.forEach((sub) => {
+      if (
+        sub.assignedDay !== null &&
+        sub.assignedDay !== undefined &&
+        sub.assignedDay >= 0 &&
+        sub.assignedDay < activeDaysPerWeek
+      ) {
+        daysSubjectsMap[sub.assignedDay].push(sub);
+      } else {
+        unallocatedSubjects.push(sub);
+      }
+    });
 
-  for (let pass = 0; pass < maxSubjectsPerDay; pass++) {
-    for (let dayIdx = 0; dayIdx < activeDaysPerWeek; dayIdx++) {
-      if (daysSubjectsMap[dayIdx].length >= maxSubjectsPerDay) continue;
+    // 2. Distribui as demais matérias equilibrando a quantidade por dia
+    unallocatedSubjects.forEach((sub) => {
+      let bestDayIdx = 0;
+      let minCount = Infinity;
 
-      let attempts = 0;
-      while (attempts < sortedSubjects.length) {
-        const candidate =
-          sortedSubjects[subjectPointer % sortedSubjects.length];
-        subjectPointer++;
-        attempts++;
-
-        if (!daysSubjectsMap[dayIdx].some((s) => s.id === candidate.id)) {
-          daysSubjectsMap[dayIdx].push(candidate);
-          break;
+      for (let d = 0; d < activeDaysPerWeek; d++) {
+        if (daysSubjectsMap[d].length < minCount) {
+          minCount = daysSubjectsMap[d].length;
+          bestDayIdx = d;
         }
       }
+
+      daysSubjectsMap[bestDayIdx].push(sub);
+    });
+  } else {
+    // Se houver menos matérias que dias (ex: 3 matérias e 5 dias),
+    // distribui ciclicamente para que todos os dias ativos tenham estudo
+    let pointer = 0;
+    for (let d = 0; d < activeDaysPerWeek; d++) {
+      const candidate = sortedSubjects[pointer % sortedSubjects.length];
+      daysSubjectsMap[d].push(candidate);
+      pointer++;
     }
   }
+
+  // Contagem de quantas vezes cada matéria foi agendada na semana
+  const subjectOccurrences: Record<string, number> = {};
+  daysSubjectsMap.forEach((dayList) => {
+    dayList.forEach((s) => {
+      subjectOccurrences[s.id] = (subjectOccurrences[s.id] || 0) + 1;
+    });
+  });
 
   const topicPointers: Record<string, number> = {};
   sanitizedSubjects.forEach((s) => (topicPointers[s.id] = 0));
 
   const scheduleByDay: DaySchedule[] = [];
-  const dayTotalMinutes = Math.round(totalWeeklyMinutes / activeDaysPerWeek);
+  const defaultDayTotalMinutes = Math.round(totalWeeklyMinutes / activeDaysPerWeek);
 
   for (let dayIdx = 0; dayIdx < activeDaysPerWeek; dayIdx++) {
     const dayName = daysOfWeek[dayIdx % daysOfWeek.length];
-
-    const subjectsForToday = daysSubjectsMap[dayIdx].slice(
-      0,
-      maxSubjectsPerDay,
-    );
-
-    const dayPrioritySum = subjectsForToday.reduce(
-      (acc, s) => acc + (s.priority || 1),
-      0,
-    );
+    const subjectsForToday = daysSubjectsMap[dayIdx];
 
     const daySubjects: ScheduledSubject[] = [];
 
     subjectsForToday.forEach((subject) => {
-      const priority = subject.priority || 1;
-      const dailyMinutes = Math.round(
-        (dayTotalMinutes * priority) / Math.max(1, dayPrioritySum),
-      );
       const overview = subjectOverview.find((s) => s.id === subject.id);
+      const weeklyMinutes =
+        overview?.weeklyMinutesAllocated ||
+        Math.round(totalWeeklyMinutes / sanitizedSubjects.length);
+      const occurrences = subjectOccurrences[subject.id] || 1;
+
+      // O tempo da sessão diária é a meta semanal dividida pelo número de sessões daquela matéria.
+      // Se a matéria é estudada 1 vez na semana, o tempo do card é EXATAMENTE a meta semanal (ex: 59m)!
+      // Se ela é estudada em 2 dias, o tempo é dividido (ex: 30m + 30m = 60m).
+      const dailyMinutes = Math.max(
+        15,
+        Math.round(weeklyMinutes / Math.max(1, occurrences)),
+      );
 
       const allTopics = subject.topics || [];
       const assignedTopics: Topic[] = [];
@@ -278,17 +304,22 @@ export function buildWeeklySchedule(
 
       daySubjects.push({
         ...subject,
-        weeklyMinutesAllocated: overview?.weeklyMinutesAllocated || 0,
+        weeklyMinutesAllocated: weeklyMinutes,
         dailyMinutesAllocated: dailyMinutes,
         percentageOfTotal: overview?.percentageOfTotal || 0,
         assignedTopics,
       });
     });
 
+    const dayActualMinutes = daySubjects.reduce(
+      (acc, s) => acc + s.dailyMinutesAllocated,
+      0,
+    );
+
     scheduleByDay.push({
       dayIndex: dayIdx,
       dayName,
-      totalMinutes: dayTotalMinutes,
+      totalMinutes: dayActualMinutes || defaultDayTotalMinutes,
       subjects: daySubjects,
     });
   }
