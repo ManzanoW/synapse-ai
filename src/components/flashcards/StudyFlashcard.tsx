@@ -458,8 +458,8 @@ export default function StudyFlashcard({
         <div className="absolute top-1/4 w-[280px] h-[200px] bg-violet-600/15 rounded-full blur-[100px]" />
       </div>
 
-      {/* Contêiner Principal */}
-      <div className="w-full max-w-2xl p-3 sm:p-7 md:p-8 bg-transparent sm:bg-[#090d16]/90 sm:border sm:border-slate-800/80 rounded-none sm:rounded-[2.5rem] sm:backdrop-blur-3xl sm:shadow-[0_0_50px_-10px_rgba(99,102,241,0.2)] select-none transition-all relative z-10">
+      {/* Contêiner Principal Expandido para visualização imersiva e clara */}
+      <div className="w-full max-w-4xl lg:max-w-5xl p-3 sm:p-8 md:p-10 bg-transparent sm:bg-[#090d16]/90 sm:border sm:border-slate-800/80 rounded-none sm:rounded-[2.5rem] sm:backdrop-blur-3xl sm:shadow-[0_0_60px_-10px_rgba(99,102,241,0.25)] select-none transition-all relative z-10">
         <div className="hidden sm:block absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
 
         {isFinished ? (
@@ -602,7 +602,7 @@ export default function StudyFlashcard({
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onClick={handleCardClick}
-              className="relative w-full min-h-[360px] sm:min-h-[420px] mb-4 cursor-grab active:cursor-grabbing group flex flex-col select-none touch-none"
+              className="relative w-full min-h-[420px] sm:min-h-[480px] md:min-h-[520px] mb-5 cursor-grab active:cursor-grabbing group flex flex-col select-none touch-none"
             >
               {/* BADGE ERREI: Arrasto para a esquerda (< 0px) -> Grade 1 */}
               <motion.div
@@ -641,24 +641,24 @@ export default function StudyFlashcard({
               >
                 {/* FRENTE DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors duration-300 border-t-indigo-400/40"
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors duration-300 border-t-indigo-400/40"
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",
                   }}
                 >
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
                   <div className="w-full flex justify-between items-center relative z-10">
-                    <span className="text-[9px] font-extrabold tracking-widest text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 rounded-lg uppercase backdrop-blur-md">
+                    <span className="text-[10px] sm:text-xs font-extrabold tracking-widest text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-3 py-1 rounded-lg uppercase backdrop-blur-md">
                       Pergunta
                     </span>
                     
                       {/* Medidor de Retenção FSRS e Indicador de Leech com Curva de Ebbinghaus Visual */}
                       <div className="flex items-center gap-2">
                         {isLeech && (
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 animate-pulse">
-                            <AlertCircle size={10} />
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 animate-pulse">
+                            <AlertCircle size={11} />
                             Ponto Cego
                           </span>
                         )}
@@ -668,12 +668,12 @@ export default function StudyFlashcard({
                             e.stopPropagation();
                             setShowEbbinghausCurve((prev) => !prev);
                           }}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-bold shadow-sm transition-all hover:scale-105 cursor-pointer ${memoryStatus.bgBadge} ${memoryStatus.textBadge} ${memoryStatus.borderBadge}`}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-mono font-bold shadow-sm transition-all hover:scale-105 cursor-pointer ${memoryStatus.bgBadge} ${memoryStatus.textBadge} ${memoryStatus.borderBadge}`}
                           title="Clique para ver a Curva de Esquecimento de Ebbinghaus"
                         >
-                          <Brain size={11} />
+                          <Brain size={12} />
                           <span>Retenção {memoryRetention}%</span>
-                          <span className="text-[8px] opacity-70">📈</span>
+                          <span className="text-[9px] opacity-70">📈</span>
                         </button>
                       </div>
                     </div>
@@ -774,11 +774,11 @@ export default function StudyFlashcard({
                     </div>
                   )}
 
-                  <div className="my-auto space-y-3 sm:space-y-4 max-w-lg mx-auto relative z-10 py-2">
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform shadow-[0_0_20px_rgba(99,102,241,0.15)]">
-                      <HelpCircle size={22} />
+                  <div className="my-auto space-y-4 sm:space-y-5 max-w-2xl sm:max-w-3xl mx-auto relative z-10 py-4 sm:py-6">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform shadow-[0_0_25px_rgba(99,102,241,0.2)]">
+                      <HelpCircle size={26} />
                     </div>
-                    <h2 className="text-base sm:text-2xl font-bold text-slate-100 leading-relaxed tracking-tight">
+                    <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-100 leading-relaxed tracking-tight select-text">
                       {frontText}
                     </h2>
                   </div>
@@ -795,10 +795,10 @@ export default function StudyFlashcard({
                     </div>
 
                     {/* Exclusivo Desktop */}
-                    <div className="hidden sm:inline-flex items-center gap-1.5 text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                    <div className="hidden sm:inline-flex items-center gap-2 text-xs text-slate-400 uppercase tracking-widest font-semibold">
                       <span className="text-slate-500">Arraste para avaliar ou</span>
-                      <kbd className="px-2.5 py-1 rounded-md bg-slate-900 text-slate-200 border border-slate-700/80 text-[10px] font-mono shadow-md flex items-center gap-1">
-                        <Command size={10} /> Espaço
+                      <kbd className="px-3 py-1 rounded-md bg-slate-900 text-slate-200 border border-slate-700/80 text-xs font-mono shadow-md flex items-center gap-1">
+                        <Command size={11} /> Espaço
                       </kbd>
                       <span className="text-slate-500">para virar</span>
                     </div>
@@ -807,7 +807,7 @@ export default function StudyFlashcard({
 
                 {/* VERSO DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",
@@ -815,18 +815,18 @@ export default function StudyFlashcard({
                   }}
                 >
                   <div className="w-full flex justify-between items-center">
-                    <span className="text-[9px] font-extrabold tracking-widest text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-lg uppercase backdrop-blur-md">
+                    <span className="text-[10px] sm:text-xs font-extrabold tracking-widest text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-lg uppercase backdrop-blur-md">
                       Resposta
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-emerald-400/80 font-mono tracking-wider">
+                      <span className="text-[11px] text-emerald-400/80 font-mono tracking-wider">
                         FSRS • S: {currentCard?.stability ? `${currentCard.stability.toFixed(1)}d` : "1d"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="my-auto space-y-3 max-w-lg mx-auto overflow-y-auto max-h-56 px-1 custom-scrollbar py-2">
-                    <h3 className="text-sm sm:text-lg font-semibold text-slate-100 leading-relaxed">
+                  <div className="my-auto space-y-4 max-w-2xl sm:max-w-3xl mx-auto overflow-y-auto max-h-72 sm:max-h-96 px-2 custom-scrollbar py-3">
+                    <h3 className="text-base sm:text-xl md:text-2xl font-semibold text-slate-100 leading-relaxed select-text">
                       {backText}
                     </h3>
 

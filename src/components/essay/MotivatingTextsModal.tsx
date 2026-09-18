@@ -19,7 +19,7 @@ export function MotivatingTextsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-violet-500/30 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl flex flex-col">
+      <div className="bg-slate-900 border border-violet-500/30 rounded-2xl w-full max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
         <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between sticky top-0 bg-slate-900/95 backdrop-blur-md z-10">
           <div className="flex items-center gap-2">
             <BookOpen className="text-violet-400" size={18} />
@@ -41,7 +41,7 @@ export function MotivatingTextsModal({
             <div className="text-[10px] font-mono text-violet-300 uppercase tracking-widest mb-1">
               {theme.banca} • {theme.subjectArea}
             </div>
-            <h4 className="text-base font-bold text-white leading-snug">
+            <h4 className="text-base font-bold text-white leading-snug break-words">
               {theme.title}
             </h4>
           </div>
@@ -55,19 +55,19 @@ export function MotivatingTextsModal({
               {theme.motivatingTexts.map((txt, idx) => (
                 <div
                   key={idx}
-                  className="bg-slate-800/40 border border-white/5 rounded-xl p-3.5 flex flex-col gap-1.5"
+                  className="bg-slate-800/40 border border-white/5 rounded-xl p-4 flex flex-col gap-2"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-200">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-200 break-words">
                       {txt.title}
                     </span>
                     {txt.source && (
-                      <span className="text-[10px] font-mono text-slate-400">
+                      <span className="text-[10px] font-mono text-slate-400 shrink-0">
                         {txt.source}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-[13px] text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
                     {txt.content}
                   </p>
                 </div>

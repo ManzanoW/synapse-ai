@@ -386,7 +386,7 @@ export function RemediationQuizModal({
                   <button
                     type="button"
                     onClick={() => setSelectedTaxonomy("ALL")}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                    className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer min-h-[84px] flex flex-col justify-start ${
                       selectedTaxonomy === "ALL"
                         ? "bg-violet-600/20 border-violet-500 text-white shadow-md shadow-violet-900/30 scale-[1.02]"
                         : "bg-slate-800/40 border-white/5 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
@@ -396,7 +396,7 @@ export function RemediationQuizModal({
                       <Sparkles size={15} className="text-violet-400" />
                       <span>Todas as Falhas</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">
+                    <p className="text-[11px] text-slate-300/80 mt-1.5 leading-snug break-words">
                       Misto geral de todos os erros pendentes
                     </p>
                   </button>
@@ -409,7 +409,7 @@ export function RemediationQuizModal({
                         key={key}
                         type="button"
                         onClick={() => setSelectedTaxonomy(key)}
-                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer min-h-[84px] flex flex-col justify-start ${
                           isSelected
                             ? "scale-[1.02] shadow-md"
                             : "bg-slate-800/40 border-white/5 opacity-80 hover:opacity-100 hover:bg-slate-800"
@@ -427,7 +427,7 @@ export function RemediationQuizModal({
                           <Icon size={14} />
                           <span className="truncate">{meta.label}</span>
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">
+                        <p className="text-[11px] text-slate-300/80 mt-1.5 leading-snug break-words">
                           {meta.desc}
                         </p>
                       </button>

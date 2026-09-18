@@ -50,6 +50,9 @@ export function AudioFlashcardPlayerModal({
     prev,
     setPauseDuration,
     setPlaybackSpeed,
+    availableVoices,
+    selectedVoiceURI,
+    setSelectedVoiceURI,
   } = useAudioFlashcards({
     cards,
     deckTitle,
@@ -262,13 +265,41 @@ export function AudioFlashcardPlayerModal({
             </button>
           </div>
 
-          {/* Barra Inferior: Configurações de Velocidade & Pausa Reflexiva */}
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80">
+          {/* Barra Inferior: Configurações de Voz, Velocidade & Pausa Reflexiva */}
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3 text-xs bg-slate-950/60 p-3 sm:p-4 rounded-2xl border border-slate-800/80">
+            {/* Seletor de Voz Natural / Neural */}
+            {availableVoices.length > 0 && (
+              <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                <Volume2 size={13} className="text-emerald-400 shrink-0" />
+                <span className="text-slate-400 font-semibold shrink-0">Voz:</span>
+                <select
+                  value={selectedVoiceURI}
+                  onChange={(e) => setSelectedVoiceURI(e.target.value)}
+                  className="bg-slate-900 border border-slate-700/80 text-slate-200 rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer max-w-[200px] truncate"
+                  title="Selecione a voz de reprodução do navegador"
+                >
+                  {availableVoices.map((v) => {
+                    const isNeural =
+                      v.name.toLowerCase().includes("natural") ||
+                      v.name.toLowerCase().includes("neural") ||
+                      v.name.toLowerCase().includes("google") ||
+                      v.name.toLowerCase().includes("online");
+                    return (
+                      <option key={v.voiceURI} value={v.voiceURI}>
+                        {isNeural ? "✨ " : ""}
+                        {v.name.replace(/Microsoft |Google /g, "").split(" - ")[0]}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
+
             {/* Velocidade da Voz */}
             <div className="flex items-center gap-1.5">
               <span className="text-slate-400 font-semibold flex items-center gap-1">
                 <Gauge size={13} className="text-indigo-400" />
-                Voz:
+                Velocidade:
               </span>
               {[0.8, 1.0, 1.25, 1.5].map((s) => (
                 <button
@@ -289,7 +320,7 @@ export function AudioFlashcardPlayerModal({
             <div className="flex items-center gap-1.5">
               <span className="text-slate-400 font-semibold flex items-center gap-1">
                 <Clock size={13} className="text-amber-400" />
-                Pausa Reflexiva:
+                Pausa:
               </span>
               {[2, 3, 4, 5, 6].map((sec) => (
                 <button

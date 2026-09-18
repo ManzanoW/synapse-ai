@@ -42,6 +42,12 @@ import {
   ArrowRight,
   ArrowUpRight,
   Check,
+  Compass,
+  SlidersHorizontal,
+  Settings2,
+  CheckSquare,
+  Square,
+  Eye,
 } from "lucide-react";
 import Heatmap from "@/components/analytics/Heatmap";
 import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
@@ -49,6 +55,7 @@ import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
 import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
 import type { ApprovalOddsData } from "@/actions/analytics-actions";
 import { TutorialModal } from "@/components/tutorial/TutorialModal";
+import { CustomizeCardsModal } from "@/components/dashboard/CustomizeCardsModal";
 import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
@@ -106,6 +113,48 @@ interface Suggestion {
   actionUrl?: string;
 }
 
+export interface DashboardCardVisibility {
+  heroJourney: boolean;
+  quickActions: boolean;
+  dailyQuests: boolean;
+  keyMetrics: boolean;
+  radarDomain: boolean;
+  aiSuggestions: boolean;
+  subjects: boolean;
+  approvalOdds: boolean;
+  gamification: boolean;
+  focusRoom: boolean;
+  heatmap: boolean;
+}
+
+export const DEFAULT_FULL_CARDS: DashboardCardVisibility = {
+  heroJourney: true,
+  quickActions: true,
+  dailyQuests: true,
+  keyMetrics: true,
+  radarDomain: true,
+  aiSuggestions: true,
+  subjects: true,
+  approvalOdds: true,
+  gamification: true,
+  focusRoom: true,
+  heatmap: true,
+};
+
+export const DEFAULT_MINIMAL_CARDS: DashboardCardVisibility = {
+  heroJourney: true,
+  quickActions: true,
+  dailyQuests: true,
+  keyMetrics: false,
+  radarDomain: false,
+  aiSuggestions: false,
+  subjects: true,
+  approvalOdds: false,
+  gamification: false,
+  focusRoom: false,
+  heatmap: false,
+};
+
 interface DashboardClientProps {
   user: {
     id?: string;
@@ -142,17 +191,56 @@ export default function DashboardClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Exibe tutorial automaticamente para novos usuários no modo demo
+  // Modo de Exibição do Dashboard (Minimalista vs Completo vs Personalizado)
+  const [dashboardMode, setDashboardMode] = useState<"full" | "minimal" | "custom">("full");
+  const [visibleCards, setVisibleCards] = useState<DashboardCardVisibility>(DEFAULT_FULL_CARDS);
+  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
+  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
+
+  // Carrega preferências salvas e exibe tutorial automaticamente no 1º acesso para qualquer usuário
   useEffect(() => {
-    if (isDemo) {
-      try {
-        const seen = localStorage.getItem("synapse_tutorial_seen");
-        if (!seen) {
-          setIsTutorialOpen(true);
-        }
-      } catch {}
-    }
-  }, [isDemo]);
+    try {
+      const seen = localStorage.getItem("synapse_tutorial_seen");
+      if (!seen) {
+        setIsTutorialOpen(true);
+      } else {
+        setHasCompletedTutorial(true);
+      }
+
+      const savedMode = localStorage.getItem("synapse_dashboard_mode") as "full" | "minimal" | "custom" | null;
+      const savedCards = localStorage.getItem("synapse_dashboard_cards");
+      if (savedMode === "minimal") {
+        setDashboardMode("minimal");
+        setVisibleCards(DEFAULT_MINIMAL_CARDS);
+      } else if (savedMode === "custom" && savedCards) {
+        setDashboardMode("custom");
+        setVisibleCards({ ...DEFAULT_FULL_CARDS, ...JSON.parse(savedCards) });
+      } else {
+        setDashboardMode("full");
+        setVisibleCards(DEFAULT_FULL_CARDS);
+      }
+    } catch {}
+  }, []);
+
+  const handleSwitchMode = (mode: "full" | "minimal") => {
+    setDashboardMode(mode);
+    const nextCards = mode === "minimal" ? DEFAULT_MINIMAL_CARDS : DEFAULT_FULL_CARDS;
+    setVisibleCards(nextCards);
+    try {
+      localStorage.setItem("synapse_dashboard_mode", mode);
+      localStorage.setItem("synapse_dashboard_cards", JSON.stringify(nextCards));
+    } catch {}
+  };
+
+  const handleToggleCard = (key: keyof DashboardCardVisibility) => {
+    const updated = { ...visibleCards, [key]: !visibleCards[key] };
+    setVisibleCards(updated);
+    setDashboardMode("custom");
+    try {
+      localStorage.setItem("synapse_dashboard_mode", "custom");
+      localStorage.setItem("synapse_dashboard_cards", JSON.stringify(updated));
+    } catch {}
+  };
 
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
@@ -479,6 +567,11 @@ export default function DashboardClient({
 
   const hasEditalSubjects = subjects.length > 0;
   const displayedSubjects = subjects.slice(0, 4);
+  const hasRightColumnCards =
+    visibleCards.approvalOdds ||
+    visibleCards.gamification ||
+    visibleCards.focusRoom ||
+    visibleCards.heatmap;
 
   return (
     <div className="min-h-screen w-full bg-transparent p-4 sm:p-6 md:p-8 font-sans text-slate-100 selection:bg-indigo-500/30">
@@ -511,34 +604,86 @@ export default function DashboardClient({
             </div>
           </div>
 
+          {/* Ações e Controles Superiores do Dashboard */}
           <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Seletor de Modo: Minimalista (Essencial) vs Completo vs Personalizado */}
+            <div className="flex items-center p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-inner">
+              <button
+                type="button"
+                onClick={() => handleSwitchMode("minimal")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  dashboardMode === "minimal"
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Modo Foco Essencial: apenas metas do dia e matérias, sem sobrecarga de gráficos"
+              >
+                <span>🌟 Essencial</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSwitchMode("full")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  dashboardMode === "full"
+                    ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Modo Completo: exibe todos os indicadores, predição de aprovação e métricas neurais"
+              >
+                <span>🚀 Completo</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsCustomizeModalOpen(true)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  dashboardMode === "custom"
+                    ? "bg-violet-600/30 text-violet-300 border border-violet-500/40"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Escolha exatamente quais cards aparecem na tela"
+              >
+                <SlidersHorizontal size={13} />
+                <span className="hidden sm:inline">Cards</span>
+              </button>
+            </div>
+
+            {/* Botão de Tour pelo Sistema */}
             <button
               type="button"
               onClick={() => setIsTutorialOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-2.5 text-xs font-bold text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.15)] transition-all hover:bg-indigo-500/20 hover:border-indigo-500/50 active:scale-95"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-500/40 bg-indigo-950/40 hover:bg-indigo-900/50 px-3.5 py-2 text-xs font-bold text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all hover:border-indigo-400 active:scale-95 relative"
+              title="Iniciar tour guiado pela plataforma"
             >
-              <Sparkles size={14} className="text-indigo-400" />
-              <span>Modo Tutorial</span>
+              <Compass size={15} className="text-indigo-400 animate-spin-slow" />
+              <span>Tour do Sistema</span>
+              {!hasCompletedTutorial && (
+                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping absolute -top-0.5 -right-0.5" />
+              )}
             </button>
 
+            {/* Modo Zen */}
             <button
               onClick={() => setIsZenModeOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:bg-white/[0.08] hover:border-white/20 active:scale-95"
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:bg-white/[0.08] hover:border-white/20 active:scale-95"
+              title="Tela cheia minimalista para estudo focado"
             >
-              <Maximize2 size={14} className="text-violet-400" />
-              <span>Modo Zen</span>
+              <Maximize2 size={13} className="text-violet-400" />
+              <span className="hidden sm:inline">Modo Zen</span>
             </button>
 
+            {/* Iniciar Estudos */}
             <Link
               href={getHref(!isLoading && hasEditalSubjects ? "/flashcards" : "/edital")}
-              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/20 transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-95"
+              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 px-4 py-2 text-xs font-black text-white shadow-lg shadow-indigo-600/20 transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-95"
             >
               <Zap size={14} className="fill-white" />
               <span>
                 {isLoading
                   ? "Carregando..."
                   : hasEditalSubjects
-                    ? "Iniciar Estudos do Dia"
+                    ? "Iniciar Estudos"
                     : "Configurar Edital"}
               </span>
             </Link>
@@ -546,58 +691,60 @@ export default function DashboardClient({
         </div>
 
         {/* ================= ATALHOS RÁPIDOS ================= */}
-        <div className="hidden md:grid grid-cols-4 gap-3">
-          {[
-            {
-              title: "Resolver Questões",
-              icon: HelpCircle,
-              color: "text-amber-400",
-              href: "/questions",
-            },
-            {
-              title: "Praticar Cards",
-              icon: Layers,
-              color: "text-indigo-400",
-              href: "/flashcards",
-            },
-            {
-              title: "Edital Verticalizado",
-              icon: BookOpen,
-              color: "text-cyan-400",
-              href: "/edital",
-              badge: !isLoading && !hasEditalSubjects ? "Passo 1" : undefined,
-            },
-            {
-              title: "Hall de Conquistas",
-              icon: Trophy,
-              color: "text-emerald-400",
-              href: "/achievements",
-            },
-          ].map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={idx}
-                href={getHref(item.href)}
-                className="relative flex items-center justify-between gap-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 p-3.5 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-slate-900/40 active:scale-[0.98]"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div className={`shrink-0 rounded-xl p-2 bg-white/[0.03] border border-white/5 ${item.color}`}>
-                    <Icon size={16} />
+        {visibleCards.quickActions && (
+          <div className="hidden md:grid grid-cols-4 gap-3">
+            {[
+              {
+                title: "Resolver Questões",
+                icon: HelpCircle,
+                color: "text-amber-400",
+                href: "/questions",
+              },
+              {
+                title: "Praticar Cards",
+                icon: Layers,
+                color: "text-indigo-400",
+                href: "/flashcards",
+              },
+              {
+                title: "Edital Verticalizado",
+                icon: BookOpen,
+                color: "text-cyan-400",
+                href: "/edital",
+                badge: !isLoading && !hasEditalSubjects ? "Passo 1" : undefined,
+              },
+              {
+                title: "Hall de Conquistas",
+                icon: Trophy,
+                color: "text-emerald-400",
+                href: "/achievements",
+              },
+            ].map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={idx}
+                  href={getHref(item.href)}
+                  className="relative flex items-center justify-between gap-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 p-3.5 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-slate-900/40 active:scale-[0.98]"
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div className={`shrink-0 rounded-xl p-2 bg-white/[0.03] border border-white/5 ${item.color}`}>
+                      <Icon size={16} />
+                    </div>
+                    <span className="text-xs font-bold text-slate-200 truncate">
+                      {item.title}
+                    </span>
                   </div>
-                  <span className="text-xs font-bold text-slate-200 truncate">
-                    {item.title}
-                  </span>
-                </div>
-                {item.badge && (
-                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+                  {item.badge && (
+                    <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
         {/* BANNER DE REMANEJAMENTO */}
         {!isLoading &&
@@ -614,8 +761,9 @@ export default function DashboardClient({
           )}
 
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
-          <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+        {visibleCards.heroJourney && (
+          <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
 
           {/* LAYOUT MOBILE */}
           <div className="grid grid-cols-3 gap-2 text-center divide-x divide-white/5 md:hidden">
@@ -842,6 +990,7 @@ export default function DashboardClient({
             </div>
           </div>
         </section>
+        )}
 
         {/* ================= 3. ONBOARDING DISCRETO ================= */}
         {!isLoading && !hasEditalSubjects && (
@@ -1044,31 +1193,37 @@ export default function DashboardClient({
         {/* ================= 5. GRID PRINCIPAL (DESKTOP) ================= */}
         <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-12">
           
-          {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
-          <div className="space-y-6 lg:col-span-8">
+          {/* COLUNA ESQUERDA (expandida dinamicamente se a coluna direita estiver oculta) */}
+          <div className={`space-y-6 ${hasRightColumnCards ? "lg:col-span-8" : "lg:col-span-12"}`}>
             
             {/* PAINEL DUPLO APENAS NO DESKTOP */}
-            <div className="hidden md:grid grid-cols-2 gap-6">
-              {/* CARD 1: Missões do Dia */}
-              <DailyQuestsPanel />
+            {(visibleCards.dailyQuests || visibleCards.keyMetrics) && (
+              <div className={`hidden md:grid gap-6 ${visibleCards.dailyQuests && visibleCards.keyMetrics ? "grid-cols-2" : "grid-cols-1"}`}>
+                {/* CARD 1: Missões do Dia */}
+                {visibleCards.dailyQuests && <DailyQuestsPanel />}
 
-              {/* CARD 2: Métricas de Desempenho & Ritmo Semanal */}
-              <KeyMetricsCard
-                isLoading={isLoading}
-                totalTime={stats?.metrics?.totalTimeFormatted || "0h 0m"}
-                precision={stats?.metrics?.precision || "0%"}
-                sessionsCount={stats?.metrics?.sessionsCount ?? 0}
-                questionsCount={stats?.metrics?.questionsCount ?? 0}
-                averageTimePerSession={stats?.metrics?.averageTimePerSession || "0min"}
-                heatmap={stats?.heatmap}
-              />
-            </div>
+                {/* CARD 2: Métricas de Desempenho & Ritmo Semanal */}
+                {visibleCards.keyMetrics && (
+                  <KeyMetricsCard
+                    isLoading={isLoading}
+                    totalTime={stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                    precision={stats?.metrics?.precision || "0%"}
+                    sessionsCount={stats?.metrics?.sessionsCount ?? 0}
+                    questionsCount={stats?.metrics?.questionsCount ?? 0}
+                    averageTimePerSession={stats?.metrics?.averageTimePerSession || "0min"}
+                    heatmap={stats?.heatmap}
+                  />
+                )}
+              </div>
+            )}
 
             {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
-            <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              <DomainRadarChart subjects={subjects} isLoading={isLoading} />
-            </div>
+            {visibleCards.radarDomain && (
+              <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                <DomainRadarChart subjects={subjects} isLoading={isLoading} />
+              </div>
+            )}
 
             {/* CARD 3: Sugestões com IA */}
             {!isLoading && hasEditalSubjects && (
@@ -1147,136 +1302,148 @@ export default function DashboardClient({
             )}
 
             {/* CARD 4: Minhas Matérias */}
-            <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl relative">
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <BookOpen size={18} className="text-indigo-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                    Minhas Matérias
-                  </h3>
+            {visibleCards.subjects && (
+              <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl relative">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <BookOpen size={18} className="text-indigo-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                      Minhas Matérias
+                    </h3>
+                  </div>
+                  <Link
+                    href={getHref("/edital")}
+                    className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
+                    Ver todas ({subjects.length})
+                  </Link>
                 </div>
-                <Link
-                  href={getHref("/edital")}
-                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  Ver todas ({subjects.length})
-                </Link>
-              </div>
 
-              {isLoading ? (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {[...Array(2)].map((_, i) => (
-                    <SubjectCardSkeleton key={i} />
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {displayedSubjects.map((sub) => (
-                    <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
-                      <SubjectCard
-                        title={sub.name}
-                        colorClass={sub.color || "#3B82F6"}
-                        progress={sub.progress ?? 0}
-                        accuracy={sub.accuracy ?? 0}
-                        timeSpent={sub.timeSpent ?? "0min"}
-                        totalCards={sub._count?.topics ?? 0}
-                      />
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+                {isLoading ? (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {[...Array(2)].map((_, i) => (
+                      <SubjectCardSkeleton key={i} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {displayedSubjects.map((sub) => (
+                      <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
+                        <SubjectCard
+                          title={sub.name}
+                          colorClass={sub.color || "#3B82F6"}
+                          progress={sub.progress ?? 0}
+                          accuracy={sub.accuracy ?? 0}
+                          timeSpent={sub.timeSpent ?? "0min"}
+                          totalCards={sub._count?.topics ?? 0}
+                        />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* BARRA LATERAL DIREITA (`lg:col-span-4` - APENAS DESKTOP) */}
-          <div className="hidden md:block space-y-6 lg:col-span-4">
-            {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
-            <ApprovalOddsCard initialData={initialApprovalOdds} />
-
-            {/* COCKPIT DE GAMIFICAÇÃO & CONSTÂNCIA */}
-            <GamificationCockpitCard
-              totalXp={currentXp}
-              level={level}
-              levelTitle={levelTitle}
-              currentLevelXp={xpProgressInLevel}
-              nextLevelXp={xpSpanForLevel}
-              progressPercent={levelProgressPercent}
-              streakDays={Number(
-                gStats.streakDays ??
-                  globalGamification?.streak?.currentDays ??
-                  stats?.streak?.currentDays ??
-                  0,
+          {hasRightColumnCards && (
+            <div className="hidden md:block space-y-6 lg:col-span-4">
+              {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
+              {visibleCards.approvalOdds && (
+                <ApprovalOddsCard initialData={initialApprovalOdds} />
               )}
-              streakFreezes={streakFreezeCount}
-              weekDays={stats?.streak?.weekDays}
-              weeklyGoalPercentage={stats?.weeklyGoal?.percentage ?? 0}
-              weeklyGoalTarget={stats?.weeklyGoal?.target ?? 50}
-              weeklyGoalCurrent={stats?.weeklyGoal?.current ?? 0}
-              onOpenStreakModal={() => setIsStreakFreezeModalOpen(true)}
-              getHref={getHref}
-            />
 
-            {/* SALA DE FOCO & DEEP WORK (ZEN COCKPIT) */}
-            <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-linear-to-br from-indigo-950/40 via-slate-950/70 to-purple-950/30 p-6 shadow-2xl backdrop-blur-2xl group hover:border-indigo-500/40 transition-all duration-300">
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-400/50 to-transparent" />
-              <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-indigo-500/10 blur-2xl" />
+              {/* COCKPIT DE GAMIFICAÇÃO & CONSTÂNCIA */}
+              {visibleCards.gamification && (
+                <GamificationCockpitCard
+                  totalXp={currentXp}
+                  level={level}
+                  levelTitle={levelTitle}
+                  currentLevelXp={xpProgressInLevel}
+                  nextLevelXp={xpSpanForLevel}
+                  progressPercent={levelProgressPercent}
+                  streakDays={Number(
+                    gStats.streakDays ??
+                      globalGamification?.streak?.currentDays ??
+                      stats?.streak?.currentDays ??
+                      0,
+                  )}
+                  streakFreezes={streakFreezeCount}
+                  weekDays={stats?.streak?.weekDays}
+                  weeklyGoalPercentage={stats?.weeklyGoal?.percentage ?? 0}
+                  weeklyGoalTarget={stats?.weeklyGoal?.target ?? 50}
+                  weeklyGoalCurrent={stats?.weeklyGoal?.current ?? 0}
+                  onOpenStreakModal={() => setIsStreakFreezeModalOpen(true)}
+                  getHref={getHref}
+                />
+              )}
 
-              <div className="relative z-10 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-transform">
-                      <Headphones size={20} className="animate-pulse text-indigo-400" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                          Sala de Foco
-                        </h3>
-                        <span className="rounded-full border border-violet-500/30 bg-violet-500/15 px-1.5 py-0.5 font-mono text-[9px] font-bold text-violet-300">
-                          ZEN
-                        </span>
+              {/* SALA DE FOCO & DEEP WORK (ZEN COCKPIT) */}
+              {visibleCards.focusRoom && (
+                <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-linear-to-br from-indigo-950/40 via-slate-950/70 to-purple-950/30 p-6 shadow-2xl backdrop-blur-2xl group hover:border-indigo-500/40 transition-all duration-300">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-400/50 to-transparent" />
+                  <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-indigo-500/10 blur-2xl" />
+
+                  <div className="relative z-10 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-transform">
+                          <Headphones size={20} className="animate-pulse text-indigo-400" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                              Sala de Foco
+                            </h3>
+                            <span className="rounded-full border border-violet-500/30 bg-violet-500/15 px-1.5 py-0.5 font-mono text-[9px] font-bold text-violet-300">
+                              ZEN
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400">
+                            Deep Work & Bioacústica
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-slate-400">
-                        Deep Work & Bioacústica
-                      </p>
+
+                      <button
+                        onClick={() => setIsZenModeOpen(true)}
+                        className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-mono font-bold text-slate-300 hover:bg-white/[0.08] hover:text-white transition-all active:scale-95"
+                        title="Ativar tela cheia minimalista"
+                      >
+                        <Maximize2 size={11} className="text-violet-400" />
+                        <span>Modo Zen</span>
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-slate-300/90 leading-relaxed">
+                      Treine em estado de flow com sons binaurais procedurais (Alpha 10Hz), chuva, ruído marrom e timer pomodoro inteligente.
+                    </p>
+
+                    <div className="pt-1">
+                      <Link
+                        href={getHref("/study-room")}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-600/80 via-purple-600/80 to-indigo-600/80 hover:from-indigo-500 hover:to-purple-500 py-3 px-4 text-xs font-bold text-white shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/30 active:scale-98 transition-all group/btn cursor-pointer"
+                      >
+                        <Headphones size={15} className="group-hover/btn:rotate-12 transition-transform" />
+                        <span>Entrar na Sala de Foco</span>
+                        <ArrowRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                      </Link>
                     </div>
                   </div>
-
-                  <button
-                    onClick={() => setIsZenModeOpen(true)}
-                    className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-mono font-bold text-slate-300 hover:bg-white/[0.08] hover:text-white transition-all active:scale-95"
-                    title="Ativar tela cheia minimalista"
-                  >
-                    <Maximize2 size={11} className="text-violet-400" />
-                    <span>Modo Zen</span>
-                  </button>
                 </div>
+              )}
 
-                <p className="text-xs text-slate-300/90 leading-relaxed">
-                  Treine em estado de flow com sons binaurais procedurais (Alpha 10Hz), chuva, ruído marrom e timer pomodoro inteligente.
-                </p>
-
-                <div className="pt-1">
-                  <Link
-                    href={getHref("/study-room")}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-600/80 via-purple-600/80 to-indigo-600/80 hover:from-indigo-500 hover:to-purple-500 py-3 px-4 text-xs font-bold text-white shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/30 active:scale-98 transition-all group/btn cursor-pointer"
-                  >
-                    <Headphones size={15} className="group-hover/btn:rotate-12 transition-transform" />
-                    <span>Entrar na Sala de Foco</span>
-                    <ArrowRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
-                  </Link>
+              {/* HEATMAP */}
+              {visibleCards.heatmap && (
+                <div className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                  <Heatmap />
                 </div>
-              </div>
+              )}
             </div>
-
-            {/* HEATMAP */}
-            <div className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              <Heatmap />
-            </div>
-          </div>
+          )}
         </div>
 
         {/* SALA DE FOCO NO MOBILE */}
@@ -1355,8 +1522,21 @@ export default function DashboardClient({
       {/* MODAL MODO TUTORIAL */}
       <TutorialModal
         isOpen={isTutorialOpen}
-        onClose={() => setIsTutorialOpen(false)}
+        onClose={() => {
+          setIsTutorialOpen(false);
+          setHasCompletedTutorial(true);
+        }}
         isDemo={isDemo}
+      />
+
+      {/* MODAL DE PERSONALIZAÇÃO DE CARDS */}
+      <CustomizeCardsModal
+        isOpen={isCustomizeModalOpen}
+        onClose={() => setIsCustomizeModalOpen(false)}
+        visibleCards={visibleCards}
+        onToggleCard={handleToggleCard}
+        onApplyPreset={handleSwitchMode}
+        currentMode={dashboardMode}
       />
     </div>
   );

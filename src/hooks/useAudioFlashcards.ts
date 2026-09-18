@@ -28,6 +28,8 @@ export function useAudioFlashcards({
   const [pauseDuration, setPauseDuration] = useState(initialPauseDuration);
   const [countdownRemaining, setCountdownRemaining] = useState(initialPauseDuration);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>("");
 
   const isPlayingRef = useRef(false);
   isPlayingRef.current = isPlaying;
@@ -58,6 +60,77 @@ export function useAudioFlashcards({
     return audioCtxRef.current;
   }, []);
 
+  // Carrega e classifica vozes por naturalidade/qualidade neural
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    const loadVoices = () => {
+      const allVoices = window.speechSynthesis.getVoices();
+      if (!allVoices || allVoices.length === 0) return;
+
+      // Filtra vozes em português
+      const ptVoices = allVoices.filter(
+        (v) =>
+          v.lang.toLowerCase().startsWith("pt-br") ||
+          v.lang.toLowerCase().startsWith("pt_br") ||
+          v.lang.toLowerCase().startsWith("pt")
+      );
+
+      // Pontua cada voz: vozes neurais/naturais têm prioridade máxima
+      const scoreVoice = (v: SpeechSynthesisVoice): number => {
+        let score = 0;
+        const name = v.name.toLowerCase();
+        const lang = v.lang.toLowerCase();
+
+        if (lang.includes("br")) score += 20;
+        if (name.includes("natural")) score += 50;
+        if (name.includes("neural")) score += 40;
+        if (name.includes("online")) score += 30;
+        if (name.includes("google")) score += 25;
+        if (
+          name.includes("francisca") ||
+          name.includes("antonio") ||
+          name.includes("luciana") ||
+          name.includes("brenda") ||
+          name.includes("donato") ||
+          name.includes("yara")
+        ) {
+          score += 35;
+        }
+        return score;
+      };
+
+      const sorted = (ptVoices.length > 0 ? ptVoices : allVoices).sort(
+        (a, b) => scoreVoice(b) - scoreVoice(a)
+      );
+
+      setAvailableVoices(sorted);
+
+      // Recupera voz salva ou seleciona a melhor classificada
+      try {
+        const saved = localStorage.getItem("synapse_audio_voice");
+        if (saved && sorted.some((v) => v.voiceURI === saved)) {
+          setSelectedVoiceURI(saved);
+          return;
+        }
+      } catch {}
+
+      if (sorted.length > 0) {
+        setSelectedVoiceURI(sorted[0].voiceURI);
+      }
+    };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }, []);
+
+  const handleSetSelectedVoiceURI = useCallback((uri: string) => {
+    setSelectedVoiceURI(uri);
+    try {
+      localStorage.setItem("synapse_audio_voice", uri);
+    } catch {}
+  }, []);
+
   // Toca um bipe suave ou tom alfa durante o pensamento
   const playReflexBeep = useCallback((freq = 432, duration = 0.12) => {
     try {
@@ -78,16 +151,38 @@ export function useAudioFlashcards({
     }
   }, [getAudioCtx]);
 
-  // Busca voz em português do navegador
+  // Busca voz em português do navegador, priorizando a selecionada ou mais natural
   const getPortugueseVoice = useCallback((): SpeechSynthesisVoice | null => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
     const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    if (selectedVoiceURI) {
+      const found = voices.find((v) => v.voiceURI === selectedVoiceURI);
+      if (found) return found;
+    }
+
+    // Heurística de fallback prioritária
+    const isNatural = (v: SpeechSynthesisVoice) => {
+      const n = v.name.toLowerCase();
+      return (
+        n.includes("natural") ||
+        n.includes("neural") ||
+        n.includes("online") ||
+        n.includes("google") ||
+        n.includes("francisca") ||
+        n.includes("antonio") ||
+        n.includes("luciana")
+      );
+    };
+
     return (
+      voices.find((v) => v.lang.toLowerCase().includes("br") && isNatural(v)) ||
       voices.find((v) => v.lang === "pt-BR" || v.lang === "pt_BR") ||
       voices.find((v) => v.lang.startsWith("pt")) ||
       null
     );
-  }, []);
+  }, [selectedVoiceURI]);
 
   // Limpa qualquer fala ou timer ativo
   const stopPlayback = useCallback(() => {
@@ -100,7 +195,7 @@ export function useAudioFlashcards({
     }
   }, []);
 
-  // Fala um texto com voz e velocidade configuradas
+  // Fala um texto com voz e velocidade configuradas com entonação suave
   const speakText = useCallback(
     (text: string, onEnd?: () => void) => {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -114,14 +209,18 @@ export function useAudioFlashcards({
       const cleanText = text
         .replace(/\[\.\.\.\]/g, "lacuna")
         .replace(/[*_#`~]/g, "")
+        .replace(/\n+/g, ". ")
         .trim();
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = "pt-BR";
       utterance.rate = playbackSpeed;
+      utterance.pitch = 1.0;
 
       const voice = getPortugueseVoice();
-      if (voice) utterance.voice = voice;
+      if (voice) {
+        utterance.voice = voice;
+      }
 
       utterance.onend = () => {
         if (isPlayingRef.current && onEnd) {
@@ -310,5 +409,8 @@ export function useAudioFlashcards({
     prev,
     setPauseDuration,
     setPlaybackSpeed,
+    availableVoices,
+    selectedVoiceURI,
+    setSelectedVoiceURI: handleSetSelectedVoiceURI,
   };
 }
