@@ -87,7 +87,7 @@ export function ExamSheetEditor({
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }, [seconds]);
 
-  // Cálculo de linhas e palavras
+  // Cálculo realista de linhas e palavras
   const lines = useMemo(() => {
     if (!content) return [];
     return content.split("\n");
@@ -95,8 +95,17 @@ export function ExamSheetEditor({
 
   const lineCount = useMemo(() => {
     if (!content.trim()) return 0;
-    // Conta as linhas explícitas e estima quebras longas
-    return Math.max(1, lines.length);
+    // Conta quebras explícitas e calcula quebras físicas para parágrafos longos sem \n
+    let total = 0;
+    const CHARS_PER_LINE = 72;
+    for (const p of lines) {
+      if (p.length === 0) {
+        total += 1;
+      } else {
+        total += Math.max(1, Math.ceil(p.length / CHARS_PER_LINE));
+      }
+    }
+    return Math.max(1, total);
   }, [content, lines]);
 
   const wordCount = useMemo(() => {
@@ -298,7 +307,7 @@ export function ExamSheetEditor({
               {theme.expectedTopics.map((top, idx) => (
                 <div
                   key={idx}
-                  className="text-[11px] text-slate-400 bg-white/5 border border-white/5 rounded-lg p-2 leading-tight"
+                  className="text-[11px] text-slate-300 bg-white/5 border border-white/5 rounded-lg p-2.5 leading-relaxed break-words whitespace-normal"
                 >
                   {top}
                 </div>
@@ -375,14 +384,14 @@ export function ExamSheetEditor({
             {/* Linha vermelha vertical de margem direita (aviso visual da margem) */}
             <div className="absolute right-4 top-0 bottom-0 w-px bg-rose-500/10 pointer-events-none" />
 
-            {/* Textarea oficial */}
+            {/* Textarea oficial com quebra fluida */}
             <textarea
               ref={textareaRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Inicie sua redação aqui. Use o botão '⇥ Parágrafo' ou pressione espaço para dar o recuo obrigatório de início de parágrafo..."
               rows={Math.max(30, lineCount)}
-              className="relative w-full h-full bg-transparent text-slate-100 text-[14px] sm:text-[14.5px] font-serif leading-[34px] px-3 sm:px-4 py-3 resize-none focus:outline-hidden placeholder:text-slate-600 placeholder:font-sans placeholder:text-xs z-10"
+              className="relative w-full h-full bg-transparent text-slate-100 text-[14px] sm:text-[14.5px] font-serif leading-[34px] px-3 sm:px-4 py-3 resize-none focus:outline-hidden placeholder:text-slate-600 placeholder:font-sans placeholder:text-xs z-10 break-words whitespace-pre-wrap overflow-x-hidden"
               style={{
                 lineHeight: "34px",
                 caretColor: "#818cf8",

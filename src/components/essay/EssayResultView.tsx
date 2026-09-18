@@ -79,7 +79,7 @@ export function EssayResultView({
             {result.themeTitle}
           </h1>
 
-          <p className="text-xs text-slate-400 max-w-xl">
+          <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed break-words">
             {result.generalFeedback}
           </p>
 
@@ -279,10 +279,10 @@ export function EssayResultView({
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-mono text-rose-300 bg-rose-500/10 px-2 py-1 rounded-md border border-rose-500/20 inline-block mb-1">
+                      <div className="text-xs font-mono text-rose-300 bg-rose-500/10 px-2.5 py-1.5 rounded-md border border-rose-500/20 inline-block mb-1.5 break-words break-all max-w-full">
                         &quot;{err.excerpt}&quot;
                       </div>
-                      <p className="text-xs text-slate-300 leading-relaxed mb-1">
+                      <p className="text-xs text-slate-300 leading-relaxed mb-1.5 break-words">
                         {err.explanation}
                       </p>
                       {err.suggestion && (
@@ -372,7 +372,7 @@ export function EssayResultView({
             </button>
           </div>
 
-          <div className="bg-[#0b0f19] border border-slate-700/60 rounded-xl p-5 sm:p-6 text-slate-200 text-sm font-serif leading-relaxed whitespace-pre-wrap selection:bg-amber-500/30">
+          <div className="bg-[#0b0f19] border border-slate-700/60 rounded-xl p-5 sm:p-6 text-slate-200 text-sm font-serif leading-relaxed whitespace-pre-wrap selection:bg-amber-500/30 break-words overflow-x-hidden">
             {result.goldenVersion}
           </div>
         </div>
@@ -392,7 +392,7 @@ export function EssayResultView({
             </div>
           </div>
 
-          <div className="bg-[#0b0f19] border border-slate-700/60 rounded-xl p-5 sm:p-6 text-slate-200 text-sm font-serif leading-relaxed whitespace-pre-wrap">
+          <div className="bg-[#0b0f19] border border-slate-700/60 rounded-xl p-5 sm:p-6 text-slate-200 text-sm font-serif leading-relaxed whitespace-pre-wrap break-words overflow-x-hidden">
             {result.content}
           </div>
         </div>
