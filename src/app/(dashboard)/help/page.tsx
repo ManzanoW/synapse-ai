@@ -15,47 +15,110 @@ import {
   MessageSquare,
   ExternalLink,
   Zap,
+  Compass,
+  Sliders,
+  RotateCcw,
+  PenTool,
+  ShieldAlert,
+  Headphones,
+  CheckCircle2,
+  Target,
 } from 'lucide-react';
+
+interface FaqItem {
+  q: string;
+  a: string;
+  category: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  tag: string;
+}
 
 export default function HelpPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [openFaq, setOpenFaq] = useState<number | null>(0); // Primeiro item aberto por padrão
 
-  const faqs = [
+  const faqs: FaqItem[] = [
     {
-      q: 'Como funciona o algoritmo de repetição espaçada (SM-2)?',
-      a: 'O Synapse AI utiliza o algoritmo SM-2 customizado. Ele calcula o intervalo ideal para reagendar seus flashcards e tópicos baseado na sua nota (Errei, Difícil, Bom, Fácil). O objetivo é apresentar o conteúdo momentos antes de a curva do esquecimento agir no seu cérebro.',
-      category: 'Algoritmo',
-      icon: Brain,
+      q: 'Estou começando agora e não sei por onde começar. Qual é o primeiro passo?',
+      a: 'O primeiro e mais importante passo é definir o que você vai estudar. Se você já tem o PDF do seu edital, acesse a aba "Edital Verticalizado" e importe o documento para a IA criar o mapa das matérias. Se você ainda não tem edital, não se preocupe: use nossos "Kits de Edital em 1 Clique" (Policial, Administrativo, Bancário ou Tronco Comum). Com o edital ativo, você pode gerar simulados no módulo de Questões, criar Flashcards e iniciar suas sessões de estudo guiadas na Sala de Foco.',
+      category: 'iniciante',
+      tag: 'Primeiros Passos',
+      icon: Compass,
     },
     {
-      q: 'Qual a diferença entre Cronograma Semanal e Ciclo de Estudos?',
-      a: 'No Cronograma Semanal, as matérias são fixadas em dias específicos da semana. No Ciclo de Estudos Dinâmico, as matérias giram em blocos sequenciais (ex: Bloco 1 ao 12), permitindo que você retome os estudos exatamente de onde parou, mesmo que tenha faltado algum dia.',
-      category: 'Cronograma',
+      q: 'Meu concurso ainda não tem edital publicado ou banca definida. Como devo estudar?',
+      a: 'Mais de 70% do conteúdo de quase todos os concursos do Brasil é composto pelo chamado "Tronco Comum": Língua Portuguesa, Raciocínio Lógico-Matemático, Direito Constitucional e Direito Administrativo. Se o seu concurso dos sonhos ainda não saiu, selecione o kit "Tronco Comum" na área de Editais. Dominar essas 4 matérias com antecedência é o maior diferencial dos candidatos aprovados nos primeiros lugares.',
+      category: 'edital',
+      tag: 'Estratégia de Edital',
+      icon: BookOpen,
+    },
+    {
+      q: 'O que é o Modo Minimalista (Essencial) e como alternar a visualização do Dashboard?',
+      a: 'Sabemos que dashboards cheios de métricas podem sobrecarregar quem busca foco absoluto. Por isso, criamos o seletor de visualização no topo da tela inicial. Você pode alternar entre: 1) Modo Essencial (focado estritamente na sua meta de hoje e no botão de iniciar estudos); 2) Prática Diária (destaque para simulados e flashcards); 3) Modo Completo (visão analítica com estatísticas avançadas e cockpit); ou 4) Personalizado (onde você escolhe exatamente quais cartões deseja ver ou ocultar).',
+      category: 'iniciante',
+      tag: 'Personalização',
+      icon: Sliders,
+    },
+    {
+      q: 'Como funciona o Laboratório de Redação e o envio de foto manuscrita?',
+      a: 'Você pode treinar redações digitando diretamente no editor ou, ainda melhor, escrevendo à mão em uma folha pautada e enviando uma foto pelo celular! Nossa inteligência artificial com visão computacional (OCR) transcreve sua letra e avalia o texto segundo os critérios oficiais da banca (Cebraspe, FCC, FGV ou Vunesp). Você recebe notas por critério (estrutura, argumentação, gramática e coesão) e correções pontuais em cada parágrafo.',
+      category: 'redacao',
+      tag: 'Redação Oficial',
+      icon: PenTool,
+    },
+    {
+      q: 'O que é o Caderno de Erros e o Simulado de Remediação?',
+      a: 'O segredo da aprovação rápida não é acertar o que você já sabe, e sim exterminar o que você ainda erra. Toda vez que você erra uma questão em um simulado, ela é arquivada automaticamente no seu Caderno de Erros com o diagnóstico da pegadinha. Pelo botão "Treinar Questões que Errei" na tela de Simulados, o sistema monta um teste exclusivo focado nas suas falhas para garantir que você domine o assunto antes da prova.',
+      category: 'simulados',
+      tag: 'Caderno de Erros',
+      icon: ShieldAlert,
+    },
+    {
+      q: 'Como funcionam os Flashcards e o Estudo em Áudio (Modo Podcast)?',
+      a: 'Os Flashcards utilizam o algoritmo de repetição espaçada: ele calcula o momento exato em que seu cérebro está prestes a esquecer uma informação e a reapresenta para você fixá-la na memória de longo prazo. Além disso, pelo Modo Podcast, você pode ouvir resumos em áudio de alta fidelidade enquanto se desloca no trânsito, faz caminhadas ou treina para o Teste de Aptidão Física (TAF).',
+      category: 'revisao',
+      tag: 'Áudio & Flashcards',
+      icon: Headphones,
+    },
+    {
+      q: 'Qual a diferença entre Cronograma Semanal e Ciclo de Estudos Dinâmico?',
+      a: 'No Cronograma Semanal tradicional, as disciplinas ficam amarradas a dias fixos (ex: Português na segunda, RLM na terça). O problema é que, se você tiver um imprevisto na segunda, a matéria fica para trás. No Ciclo de Estudos Dinâmico, as matérias giram em uma fila contínua de blocos: se um imprevisto acontecer, você retoma exatamente no bloco seguinte no próximo momento livre, sem culpa e sem perder o ritmo.',
+      category: 'rotina',
+      tag: 'Rotina & Ciclos',
       icon: Calendar,
     },
     {
-      q: 'Como gerar flashcards e simulados com Inteligência Artificial?',
-      a: 'Acesse o módulo de Edital ou Cards, selecione a disciplina desejada e clique em "Gerar via IA". Nosso cérebro artificial sintetizará o conteúdo do edital e criará automaticamente pares de pergunta/resposta otimizados para fixação.',
-      category: 'IA',
-      icon: Sparkles,
-    },
-    {
-      q: 'Como recalcular as horas semanais de estudo?',
-      a: 'Você pode alterar sua meta semanal a qualquer momento. Acesse a página do Cronograma (/week) e clique em "Editar Configurações". Defina sua nova carga horária e dias ativos para que o sistema rebalanceie os pesos de cada disciplina.',
-      category: 'Ajustes',
-      icon: Layers,
+      q: 'O que significa a "Chance de Aprovação" e como ela é calculada?',
+      a: 'A estimativa de aprovação é um termômetro estatístico inteligente que combina 3 fatores: 1) Sua porcentagem média de acertos nos simulados por matéria; 2) A cobertura total do edital que você já estudou e revisou; e 3) Sua constância de estudo (streak e cumprimento de metas semanais). Conforme você resolve questões e revisa flashcards, o algoritmo recalibra sua probabilidade real de passar.',
+      category: 'metricas',
+      tag: 'Métricas Inteligentes',
+      icon: Target,
     },
   ];
 
-  const filteredFaqs = faqs.filter(
-    (faq) =>
+  const categories = [
+    { id: 'todos', label: 'Todas as Dúvidas' },
+    { id: 'iniciante', label: 'Primeiros Passos' },
+    { id: 'edital', label: 'Edital & Carreiras' },
+    { id: 'simulados', label: 'Simulados & Erros' },
+    { id: 'redacao', label: 'Redação Oficial' },
+    { id: 'revisao', label: 'Flashcards & Áudio' },
+    { id: 'rotina', label: 'Rotina & Ciclos' },
+  ];
+
+  const filteredFaqs = faqs.filter((faq) => {
+    const matchesCategory =
+      selectedCategory === 'todos' || faq.category === selectedCategory;
+    const matchesSearch =
       faq.q.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      faq.a.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      faq.a.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      faq.tag.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-6 md:p-10 font-sans antialiased space-y-8 max-w-5xl mx-auto">
+    <div className="min-h-screen bg-[#030712] text-slate-100 p-4 sm:p-6 md:p-10 font-sans antialiased space-y-8 max-w-5xl mx-auto">
       {/* NAVEGAÇÃO SUPERIOR */}
       <div className="flex items-center justify-between">
         <Link
@@ -71,30 +134,30 @@ export default function HelpPage() {
 
         <div className="flex items-center gap-2 text-xs font-mono text-indigo-400/80 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full">
           <HelpCircle size={13} className="text-indigo-400 animate-pulse" />
-          <span>Central de Conhecimento</span>
+          <span>Guia do Concurseiro</span>
         </div>
       </div>
 
       {/* 🚀 HERO BANNER - CENTRO DE AJUDA */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-950/80 via-slate-900/90 to-slate-950 border border-indigo-500/30 p-8 shadow-2xl backdrop-blur-2xl">
+      <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-950/80 via-slate-900/90 to-slate-950 border border-indigo-500/30 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 space-y-4 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
             <Sparkles size={13} className="text-indigo-400" />
-            <span>Suporte Inteligente</span>
+            <span>Suporte & Boas-Vindas</span>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-            Como podemos ajudar o seu{' '}
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
+            Como podemos descomplicar seu{' '}
             <span className="bg-linear-to-r from-indigo-400 via-indigo-300 to-violet-400 bg-clip-text text-transparent">
               estudo hoje?
             </span>
           </h1>
 
           <p className="text-slate-300 text-sm leading-relaxed">
-            Aprenda a otimizar o uso da inteligência artificial, ajustar seus ciclos de repetição e dominar a plataforma.
+            Criamos o Synapse AI para ser seu parceiro diário de aprovação. Aqui você encontra respostas diretas, atalhos rápidos e guias práticos para tirar o máximo proveito da plataforma.
           </p>
 
           {/* BARRA DE PESQUISA */}
@@ -105,7 +168,7 @@ export default function HelpPage() {
             />
             <input
               type="text"
-              placeholder="Buscar dúvida ou funcionalidade..."
+              placeholder="Buscar dúvida, ferramenta ou assunto..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl pl-11 pr-4 py-3 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all shadow-inner"
@@ -114,58 +177,85 @@ export default function HelpPage() {
         </div>
       </div>
 
-      {/* 🧭 ATALHOS RÁPIDOS */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link
-          href="/flashcards"
-          className="p-5 bg-slate-900/40 border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl backdrop-blur-xl flex items-center gap-4 group transition-all"
-        >
-          <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 group-hover:scale-110 transition-transform">
-            <Zap size={22} />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
-              Flashcards SM-2
-            </h3>
-            <span className="text-xs text-slate-400 block mt-0.5">
-              Revisões espaçadas
-            </span>
-          </div>
-        </Link>
+      {/* ⚡ AÇÕES RÁPIDAS PARA O ALUNO */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+          <Zap size={14} className="text-amber-400" />
+          <span>Ações Rápidas de Ajuste e Navegação</span>
+        </div>
 
-        <Link
-          href="/week"
-          className="p-5 bg-slate-900/40 border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl backdrop-blur-xl flex items-center gap-4 group transition-all"
-        >
-          <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0 group-hover:scale-110 transition-transform">
-            <Calendar size={22} />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
-              Ciclos de Estudo
-            </h3>
-            <span className="text-xs text-slate-400 block mt-0.5">
-              Ajuste de carga diária
-            </span>
-          </div>
-        </Link>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link
+            href="/dashboard?openTour=true"
+            className="p-4 bg-slate-900/50 border border-slate-800 hover:border-indigo-500/50 rounded-2xl backdrop-blur-xl flex items-center gap-3.5 group transition-all hover:bg-slate-900/80"
+          >
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 group-hover:scale-110 transition-transform">
+              <Compass size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
+                Reiniciar Tour Guiado
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Rever a explicação interativa
+              </p>
+            </div>
+          </Link>
 
-        <Link
-          href="/edital"
-          className="p-5 bg-slate-900/40 border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl backdrop-blur-xl flex items-center gap-4 group transition-all"
-        >
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
-            <BookOpen size={22} />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
-              Gestão de Edital
-            </h3>
-            <span className="text-xs text-slate-400 block mt-0.5">
-              Mapeamento de tópicos
-            </span>
-          </div>
-        </Link>
+          <Link
+            href="/dashboard?openQuiz=true"
+            className="p-4 bg-slate-900/50 border border-slate-800 hover:border-violet-500/50 rounded-2xl backdrop-blur-xl flex items-center gap-3.5 group transition-all hover:bg-slate-900/80"
+          >
+            <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shrink-0 group-hover:scale-110 transition-transform">
+              <RotateCcw size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white group-hover:text-violet-300 transition-colors">
+                Recalibrar Perfil
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Redefinir horas e carreira
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            href="/edital"
+            className="p-4 bg-slate-900/50 border border-slate-800 hover:border-emerald-500/50 rounded-2xl backdrop-blur-xl flex items-center gap-3.5 group transition-all hover:bg-slate-900/80"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+              <BookOpen size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
+                Kits de Edital em 1 Clique
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Policial, Admin, Bancos e Tronco
+              </p>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* 🏷️ FILTROS DE CATEGORIA */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {categories.map((cat) => {
+          const isActive = selectedCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'bg-slate-900/70 text-slate-400 border border-slate-800 hover:text-slate-200 hover:border-slate-700'
+              }`}
+            >
+              {cat.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* ❓ LISTA DE ACCORDION FAQ */}
@@ -173,10 +263,10 @@ export default function HelpPage() {
         <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
           <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
             <BookOpen size={18} className="text-indigo-400" />
-            Perguntas Frequentes
+            <span>Perguntas Frequentes & Tutoriais</span>
           </h2>
           <span className="text-xs text-slate-500 font-mono">
-            {filteredFaqs.length} artigos encontrados
+            {filteredFaqs.length} {filteredFaqs.length === 1 ? 'dúvida' : 'dúvidas'}
           </span>
         </div>
 
@@ -201,15 +291,26 @@ export default function HelpPage() {
                 >
                   <button
                     onClick={() => setOpenFaq(isOpen ? null : index)}
-                    className="w-full flex items-center justify-between p-5 text-left cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 sm:p-5 text-left cursor-pointer gap-4"
                   >
-                    <div className="flex items-center gap-3.5 pr-4">
-                      <div className={`p-2 rounded-xl shrink-0 ${isOpen ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800/60 text-slate-400'}`}>
+                    <div className="flex items-center gap-3.5 pr-2">
+                      <div
+                        className={`p-2.5 rounded-xl shrink-0 ${
+                          isOpen
+                            ? 'bg-indigo-500/20 text-indigo-300'
+                            : 'bg-slate-800/60 text-slate-400'
+                        }`}
+                      >
                         <IconComponent size={18} />
                       </div>
-                      <h3 className="text-sm font-bold text-slate-200">
-                        {faq.q}
-                      </h3>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400/90 block mb-0.5">
+                          {faq.tag}
+                        </span>
+                        <h3 className="text-sm font-bold text-slate-200 leading-snug">
+                          {faq.q}
+                        </h3>
+                      </div>
                     </div>
 
                     <ChevronDown
@@ -221,8 +322,8 @@ export default function HelpPage() {
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 pb-5 pt-1 text-xs text-slate-300 leading-relaxed border-t border-slate-800/40 pl-14">
-                      {faq.a}
+                    <div className="px-5 pb-5 pt-2 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-slate-800/40 pl-6 sm:pl-16">
+                      <p>{faq.a}</p>
                     </div>
                   )}
                 </div>
@@ -240,10 +341,10 @@ export default function HelpPage() {
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">
-              Ainda tem dúvidas ou sugestões?
+              Ainda tem alguma dúvida pedagógica ou técnica?
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Nossa equipe técnica e pedagógica pode te ajudar a configurar seu plano.
+              Nossa equipe está à disposição para te apoiar em toda a sua jornada até o diário oficial.
             </p>
           </div>
         </div>

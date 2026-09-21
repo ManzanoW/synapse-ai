@@ -217,13 +217,20 @@ export default function DashboardClient({
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
 
-  // Carrega preferências salvas e exibe Welcome Quiz no 1º acesso
+  // Carrega preferências salvas e exibe Welcome Quiz no 1º acesso ou sob demanda via query params
   useEffect(() => {
     try {
+      const openQuizParam = searchParams?.get("openQuiz") === "true";
+      const openTourParam = searchParams?.get("openTour") === "true";
+
       const quizSeen = localStorage.getItem("synapse_onboarding_quiz_seen");
       const tutorialSeen = localStorage.getItem("synapse_tutorial_seen");
 
-      if (!quizSeen) {
+      if (openQuizParam) {
+        setIsWelcomeQuizOpen(true);
+      } else if (openTourParam) {
+        setIsTutorialOpen(true);
+      } else if (!quizSeen) {
         setIsWelcomeQuizOpen(true);
       } else if (tutorialSeen) {
         setHasCompletedTutorial(true);
