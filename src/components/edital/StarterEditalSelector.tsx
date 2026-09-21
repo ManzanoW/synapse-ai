@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 import {
   STARTER_EDITAL_TEMPLATES,
-  importStarterEditalAction,
   EditalTemplate,
-} from "@/actions/edital-templates-actions";
+} from "@/lib/edital-templates";
+import { importStarterEditalAction } from "@/actions/edital-templates-actions";
 
 interface StarterEditalSelectorProps {
   onSuccess?: () => void;

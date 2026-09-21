@@ -26,10 +26,8 @@ import {
   Check,
   Loader2,
 } from "lucide-react";
-import {
-  importStarterEditalAction,
-  STARTER_EDITAL_TEMPLATES,
-} from "@/actions/edital-templates-actions";
+import { importStarterEditalAction } from "@/actions/edital-templates-actions";
+import { STARTER_EDITAL_TEMPLATES } from "@/lib/edital-templates";
 
 export type OnboardingProfileMode = "minimal" | "practice" | "full";
 
