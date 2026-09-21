@@ -23,8 +23,8 @@ interface CustomizeCardsModalProps {
   onClose: () => void;
   visibleCards: DashboardCardVisibility;
   onToggleCard: (key: keyof DashboardCardVisibility) => void;
-  onApplyPreset: (mode: "minimal" | "full") => void;
-  currentMode: "full" | "minimal" | "custom";
+  onApplyPreset: (mode: "minimal" | "practice" | "full") => void;
+  currentMode: "full" | "minimal" | "practice" | "custom";
 }
 
 interface CardItemConfig {
@@ -190,7 +190,7 @@ export function CustomizeCardsModal({
             Modos Pré-definidos:
           </span>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => onApplyPreset("minimal")}
@@ -200,7 +200,19 @@ export function CustomizeCardsModal({
                   : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10"
               }`}
             >
-              <span>🌟 Modo Minimalista (Essencial)</span>
+              <span>🌟 Essencial</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onApplyPreset("practice")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                currentMode === "practice"
+                  ? "bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/20"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10"
+              }`}
+            >
+              <span>🎯 Prática</span>
             </button>
 
             <button
@@ -208,11 +220,11 @@ export function CustomizeCardsModal({
               onClick={() => onApplyPreset("full")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 currentMode === "full"
-                  ? "bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/20"
+                  ? "bg-cyan-600 text-white font-black shadow-md shadow-cyan-600/20"
                   : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10"
               }`}
             >
-              <span>🚀 Modo Completo</span>
+              <span>🚀 Completo</span>
             </button>
           </div>
         </div>

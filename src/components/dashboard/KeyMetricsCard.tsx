@@ -79,7 +79,7 @@ export function KeyMetricsCard({
 
   return (
     <div
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-linear-to-br from-slate-950/80 via-[#0a0d1a]/90 to-slate-950/90 p-4 sm:p-5 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30 ${className}`}
+      className={`group relative flex flex-col justify-start gap-2.5 sm:gap-3 overflow-hidden rounded-3xl border border-white/[0.08] bg-linear-to-br from-slate-950/80 via-[#0a0d1a]/90 to-slate-950/90 p-4 sm:p-5 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30 ${className}`}
     >
       {/* Luz ambiente de fundo */}
       <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
@@ -87,7 +87,7 @@ export function KeyMetricsCard({
       <div className="pointer-events-none absolute -bottom-16 -left-16 h-36 w-36 rounded-full bg-emerald-500/10 blur-3xl" />
 
       {/* ================= 1. CABEÇALHO ================= */}
-      <div className="relative z-10 flex items-center justify-between border-b border-white/5 pb-3">
+      <div className="relative z-10 flex items-center justify-between border-b border-white/5 pb-2.5">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
             <Zap size={16} />
@@ -107,7 +107,7 @@ export function KeyMetricsCard({
       </div>
 
       {/* ================= 2. LINHA DE MÉTRICAS PRINCIPAIS ================= */}
-      <div className="relative z-10 my-3 grid grid-cols-2 gap-3">
+      <div className="relative z-10 grid grid-cols-2 gap-2.5 sm:gap-3">
         {/* Tempo Total */}
         <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3">
           <div className="flex items-center justify-between mb-1">
@@ -157,8 +157,8 @@ export function KeyMetricsCard({
         </div>
       </div>
 
-      {/* ================= 3. MINI HISTOGRAMA DE RITMO SEMANAL (Preenche o vácuo!) ================= */}
-      <div className="relative z-10 rounded-2xl border border-white/5 bg-slate-950/50 p-3 my-1">
+      {/* ================= 3. MINI HISTOGRAMA DE RITMO SEMANAL ================= */}
+      <div className="relative z-10 rounded-2xl border border-white/5 bg-slate-950/50 p-2.5 sm:p-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
             <TrendingUp size={12} className="text-cyan-400" />
@@ -215,7 +215,7 @@ export function KeyMetricsCard({
       </div>
 
       {/* ================= 4. RODAPÉ DE MÉTRICAS COMPACTAS ================= */}
-      <div className="relative z-10 grid grid-cols-3 gap-2 border-t border-white/5 pt-3 text-center">
+      <div className="relative z-10 grid grid-cols-3 gap-2 border-t border-white/5 pt-2.5 text-center">
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-2">
           <span className="block text-[9px] font-bold uppercase text-slate-400">
             Sessões

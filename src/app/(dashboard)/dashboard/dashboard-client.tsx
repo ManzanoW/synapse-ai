@@ -56,6 +56,10 @@ import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
 import type { ApprovalOddsData } from "@/actions/analytics-actions";
 import { TutorialModal } from "@/components/tutorial/TutorialModal";
 import { CustomizeCardsModal } from "@/components/dashboard/CustomizeCardsModal";
+import {
+  WelcomeQuizModal,
+  type OnboardingQuizResult,
+} from "@/components/onboarding/WelcomeQuizModal";
 import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
@@ -155,6 +159,20 @@ export const DEFAULT_MINIMAL_CARDS: DashboardCardVisibility = {
   heatmap: false,
 };
 
+export const DEFAULT_PRACTICE_CARDS: DashboardCardVisibility = {
+  heroJourney: true,
+  quickActions: true,
+  dailyQuests: true,
+  keyMetrics: true,
+  radarDomain: false,
+  aiSuggestions: false,
+  subjects: true,
+  approvalOdds: false,
+  gamification: true,
+  focusRoom: true,
+  heatmap: false,
+};
+
 interface DashboardClientProps {
   user: {
     id?: string;
@@ -187,31 +205,37 @@ export default function DashboardClient({
     [isDemo],
   );
 
+  const [isWelcomeQuizOpen, setIsWelcomeQuizOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modo de Exibição do Dashboard (Minimalista vs Completo vs Personalizado)
-  const [dashboardMode, setDashboardMode] = useState<"full" | "minimal" | "custom">("full");
+  // Modo de Exibição do Dashboard (Minimalista vs Prática vs Completo vs Personalizado)
+  const [dashboardMode, setDashboardMode] = useState<"full" | "minimal" | "practice" | "custom">("full");
   const [visibleCards, setVisibleCards] = useState<DashboardCardVisibility>(DEFAULT_FULL_CARDS);
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
 
-  // Carrega preferências salvas e exibe tutorial automaticamente no 1º acesso para qualquer usuário
+  // Carrega preferências salvas e exibe Welcome Quiz no 1º acesso
   useEffect(() => {
     try {
-      const seen = localStorage.getItem("synapse_tutorial_seen");
-      if (!seen) {
-        setIsTutorialOpen(true);
-      } else {
+      const quizSeen = localStorage.getItem("synapse_onboarding_quiz_seen");
+      const tutorialSeen = localStorage.getItem("synapse_tutorial_seen");
+
+      if (!quizSeen) {
+        setIsWelcomeQuizOpen(true);
+      } else if (tutorialSeen) {
         setHasCompletedTutorial(true);
       }
 
-      const savedMode = localStorage.getItem("synapse_dashboard_mode") as "full" | "minimal" | "custom" | null;
+      const savedMode = localStorage.getItem("synapse_dashboard_mode") as "full" | "minimal" | "practice" | "custom" | null;
       const savedCards = localStorage.getItem("synapse_dashboard_cards");
       if (savedMode === "minimal") {
         setDashboardMode("minimal");
         setVisibleCards(DEFAULT_MINIMAL_CARDS);
+      } else if (savedMode === "practice") {
+        setDashboardMode("practice");
+        setVisibleCards(DEFAULT_PRACTICE_CARDS);
       } else if (savedMode === "custom" && savedCards) {
         setDashboardMode("custom");
         setVisibleCards({ ...DEFAULT_FULL_CARDS, ...JSON.parse(savedCards) });
@@ -222,14 +246,25 @@ export default function DashboardClient({
     } catch {}
   }, []);
 
-  const handleSwitchMode = (mode: "full" | "minimal") => {
+  const handleSwitchMode = (mode: "full" | "minimal" | "practice") => {
     setDashboardMode(mode);
-    const nextCards = mode === "minimal" ? DEFAULT_MINIMAL_CARDS : DEFAULT_FULL_CARDS;
+    let nextCards = DEFAULT_FULL_CARDS;
+    if (mode === "minimal") nextCards = DEFAULT_MINIMAL_CARDS;
+    if (mode === "practice") nextCards = DEFAULT_PRACTICE_CARDS;
     setVisibleCards(nextCards);
     try {
       localStorage.setItem("synapse_dashboard_mode", mode);
       localStorage.setItem("synapse_dashboard_cards", JSON.stringify(nextCards));
     } catch {}
+  };
+
+  const handleCompleteWelcomeQuiz = (result: OnboardingQuizResult) => {
+    setIsWelcomeQuizOpen(false);
+    try {
+      localStorage.setItem("synapse_onboarding_quiz_seen", "true");
+      localStorage.setItem("synapse_daily_study_hours", String(result.dailyHours));
+    } catch {}
+    handleSwitchMode(result.profileMode);
   };
 
   const handleToggleCard = (key: keyof DashboardCardVisibility) => {
@@ -606,7 +641,7 @@ export default function DashboardClient({
 
           {/* Ações e Controles Superiores do Dashboard */}
           <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Seletor de Modo: Minimalista (Essencial) vs Completo vs Personalizado */}
+            {/* Seletor de Modo: Minimalista (Essencial) vs Prática vs Completo vs Personalizado */}
             <div className="flex items-center p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-inner">
               <button
                 type="button"
@@ -623,10 +658,23 @@ export default function DashboardClient({
 
               <button
                 type="button"
+                onClick={() => handleSwitchMode("practice")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  dashboardMode === "practice"
+                    ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Modo Prática: foco em simulados, flashcards e metas diárias"
+              >
+                <span>🎯 Prática</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => handleSwitchMode("full")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   dashboardMode === "full"
-                    ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 shadow-sm"
+                    ? "bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 shadow-sm"
                     : "text-slate-400 hover:text-slate-200"
                 }`}
                 title="Modo Completo: exibe todos os indicadores, predição de aprovação e métricas neurais"
@@ -648,6 +696,17 @@ export default function DashboardClient({
                 <span className="hidden sm:inline">Cards</span>
               </button>
             </div>
+
+            {/* Botão de Personalização / Meu Perfil */}
+            <button
+              type="button"
+              onClick={() => setIsWelcomeQuizOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:border-white/20 active:scale-95"
+              title="Ajustar perfil de estudos e tempo diário"
+            >
+              <Sparkles size={13} className="text-amber-400" />
+              <span className="hidden sm:inline">Meu Perfil</span>
+            </button>
 
             {/* Botão de Tour pelo Sistema */}
             <button
@@ -1198,7 +1257,7 @@ export default function DashboardClient({
             
             {/* PAINEL DUPLO APENAS NO DESKTOP */}
             {(visibleCards.dailyQuests || visibleCards.keyMetrics) && (
-              <div className={`hidden md:grid gap-6 ${visibleCards.dailyQuests && visibleCards.keyMetrics ? "grid-cols-2" : "grid-cols-1"}`}>
+              <div className={`hidden md:grid gap-6 items-start ${visibleCards.dailyQuests && visibleCards.keyMetrics ? "grid-cols-2" : "grid-cols-1"}`}>
                 {/* CARD 1: Missões do Dia */}
                 {visibleCards.dailyQuests && <DailyQuestsPanel />}
 
@@ -1517,6 +1576,20 @@ export default function DashboardClient({
         onPurchaseSuccess={(newXp, newFreezes) => {
           setStreakFreezeCount(newFreezes);
         }}
+      />
+
+      {/* MODAL WIZARD DE BOAS-VINDAS / ONBOARDING */}
+      <WelcomeQuizModal
+        isOpen={isWelcomeQuizOpen}
+        onClose={() => {
+          setIsWelcomeQuizOpen(false);
+          try {
+            localStorage.setItem("synapse_onboarding_quiz_seen", "true");
+          } catch {}
+        }}
+        onComplete={handleCompleteWelcomeQuiz}
+        onOpenFullTour={() => setIsTutorialOpen(true)}
+        userName={user.name}
       />
 
       {/* MODAL MODO TUTORIAL */}
