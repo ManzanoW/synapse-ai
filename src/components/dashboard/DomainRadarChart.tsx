@@ -54,8 +54,8 @@ export default function DomainRadarChart({
   subjects: propSubjects = [],
   isLoading: propLoading = false,
   className = "",
-  title = "Radar de Domínio vs. Peso do Edital",
-  subtitle = "Identificação preditiva de pontos cegos e calibração de foco",
+  title = "Radar de Matérias vs. Peso na Prova",
+  subtitle = "Descubra quais matérias mais cobradas precisam de mais atenção",
 }: DomainRadarChartProps) {
   const [hoveredSubject, setHoveredSubject] = useState<ProcessedSubject | null>(
     null,
@@ -265,12 +265,12 @@ export default function DomainRadarChart({
         <div className="flex items-center gap-2.5 self-start sm:self-center">
           <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[11px] font-bold text-emerald-300">
             <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-            <span>Domínio Real %</span>
+            <span>Seu Acerto %</span>
           </div>
 
           <div className="flex items-center gap-1.5 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-2.5 py-1 text-[11px] font-bold text-indigo-300">
             <span className="h-2 w-2 rounded-full border border-dashed border-indigo-400 bg-indigo-500/60 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
-            <span>Peso Ideal %</span>
+            <span>Peso na Prova %</span>
           </div>
 
           <button
@@ -294,8 +294,7 @@ export default function DomainRadarChart({
             Nenhuma disciplina cadastrada
           </h4>
           <p className="mt-1 max-w-sm text-xs text-slate-400">
-            Adicione matérias ao seu edital verticalizado para visualizar a teia
-            neural de domínio versus peso ideal.
+            Adicione matérias ao seu edital para visualizar o gráfico de radar comparando seu aproveitamento com o peso de cada matéria na prova.
           </p>
         </div>
       ) : processedData.length < 3 ? (
@@ -706,18 +705,14 @@ export default function DomainRadarChart({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h4 className="text-xs font-black uppercase tracking-wider text-rose-200">
-                Ponto Cego Crítico Detectado
+                Atenção: Matéria Prioritária
               </h4>
               <span className="rounded-full border border-rose-500/40 bg-rose-500/20 px-2 py-0.5 font-mono text-[9px] font-bold text-rose-300">
-                Prioridade Máxima
+                Foco Recomendado
               </span>
             </div>
             <p className="mt-0.5 text-[11px] text-rose-200/80 leading-relaxed">
-              <strong>{criticalBlindSpot.name}</strong> possui peso elevado no
-              edital (<strong>{criticalBlindSpot.weight}%</strong>), porém seu
-              domínio real está em apenas{" "}
-              <strong>{criticalBlindSpot.domain}%</strong> (déficit de{" "}
-              {Math.abs(criticalBlindSpot.gap)}%).
+              <strong>{criticalBlindSpot.name}</strong> possui peso elevado na prova (<strong>{criticalBlindSpot.weight}%</strong>), porém seu índice de acertos atual está em <strong>{criticalBlindSpot.domain}%</strong>. Dedicar mais tempo a esta matéria trará o maior ganho de pontos na sua nota!
             </p>
           </div>
         </div>

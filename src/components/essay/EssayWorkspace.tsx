@@ -10,7 +10,13 @@ import {
   RotateCcw,
   FileText,
   AlertCircle,
+  Award,
 } from "lucide-react";
+import {
+  PageSpotlightBanner,
+  SpotlightTriggerButton,
+  useSpotlight,
+} from "@/components/onboarding/PageSpotlightBanner";
 import {
   EssayTheme,
   EssayEvaluationResult,
@@ -53,6 +59,7 @@ const DEFAULT_THEME: EssayTheme = {
 };
 
 export function EssayWorkspace() {
+  const spotlight = useSpotlight("synapse_spotlight_redacao");
   const [viewMode, setViewMode] = useState<"write" | "result" | "history">("write");
   const [theme, setTheme] = useState<EssayTheme>(DEFAULT_THEME);
   const [evaluationResult, setEvaluationResult] = useState<EssayEvaluationResult | null>(null);
@@ -147,6 +154,12 @@ export function EssayWorkspace() {
         </div>
 
         <div className="flex items-center gap-2">
+          <SpotlightTriggerButton
+            accentColor="violet"
+            onClick={spotlight.toggle}
+            label="Como Funciona?"
+          />
+
           {viewMode === "write" && (
             <button
               type="button"
@@ -186,6 +199,41 @@ export function EssayWorkspace() {
           </div>
         </div>
       </div>
+
+      {/* DICA DE PRIMEIRO ACESSO: SPOTLIGHT REDAÇÃO */}
+      <PageSpotlightBanner
+        storageKey="synapse_spotlight_redacao"
+        externalIsOpen={spotlight.isOpen}
+        onClose={spotlight.dismiss}
+        badgeText="✍️ Como Funciona o Treino Discursivo"
+        title="Domine a Redação Nota Máxima com Feedback Real da Banca"
+        description="Treine exatamente como no dia da sua prova: escolha a banca do concurso, redija na folha oficial ou envie foto do seu texto manuscrito para avaliação rigorosa da IA."
+        accentColor="violet"
+        primaryActionLabel="Entendi, vou praticar minha redação!"
+        steps={[
+          {
+            icon: <FileText size={18} />,
+            title: "1. Folha Oficial ou Foto Manuscrita",
+            description:
+              "Digite direto na régua de 30 linhas com alinhamento real de concurso ou envie foto da sua redação de próprio punho com leitura por OCR.",
+            tag: "Folha Oficial",
+          },
+          {
+            icon: <Award size={18} />,
+            title: "2. Espelho de Correção da Banca",
+            description:
+              "A IA pontua Aspectos Macroestruturais (tema e argumentação) e Microestruturais (gramática e coesão) seguindo os critérios do seu edital.",
+            tag: "Critérios Reais",
+          },
+          {
+            icon: <Sparkles size={18} />,
+            title: "3. Versão Ouro & Parecer Linha a Linha",
+            description:
+              "Veja em quais linhas você cometeu deslizes e receba uma reescrita nota máxima da sua redação para comparar e evoluir rápido.",
+            tag: "Feedback Detalhado",
+          },
+        ]}
+      />
 
       {/* MENSAGEM DE ERRO (SE HOUVER) */}
       {evaluationError && (

@@ -103,8 +103,8 @@ export function ApprovalOddsCard({
               <BrainCircuit size={18} />
             </div>
             <div>
-              <span className="block text-[9px] font-extrabold uppercase tracking-widest text-violet-400">
-                Predição Neural
+              <span className="block text-[9px] font-black uppercase tracking-widest text-violet-400">
+                Inteligência Artificial
               </span>
               <h3 className="text-xs font-bold text-white tracking-wide">
                 Chance de Aprovação
@@ -123,11 +123,10 @@ export function ApprovalOddsCard({
           </div>
           <div className="space-y-1 max-w-sm mx-auto">
             <h4 className="text-sm font-extrabold text-white">
-              Índice em Calibração
+              Calculando sua Chance
             </h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Resolva simulados e avance no edital para calibrar sua projeção
-              matemática de aprovação.
+              Resolva questões e avance nas matérias para a IA estimar sua chance real de aprovação no concurso.
             </p>
           </div>
 
@@ -212,7 +211,7 @@ export function ApprovalOddsCard({
           </div>
           <div>
             <span className="block text-[9px] font-black uppercase tracking-widest text-violet-400">
-              Projeção Preditiva
+              Estimativa da IA
             </span>
             <h3 className="text-xs font-bold text-white tracking-wide">
               Chance de Aprovação
@@ -236,12 +235,12 @@ export function ApprovalOddsCard({
             <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-violet-500/30 bg-[#0B0A16]/95 p-3.5 text-[11px] text-slate-300 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95 duration-150">
               <span className="block font-bold text-white mb-1 flex items-center gap-1.5">
                 <Sparkles size={12} className="text-cyan-400" />
-                Fórmula Preditiva IA:
+                Como a IA calcula sua chance:
               </span>
               <ul className="space-y-1 text-slate-300 text-[10px]">
-                <li>• 40% Cobertura do Edital</li>
-                <li>• 40% Retenção Ponderada (por peso)</li>
-                <li>• 20% Constância Semanal (Streak/Meta)</li>
+                <li>• 40% Matérias do Edital estudadas</li>
+                <li>• 40% Acertos em Questões mais importantes</li>
+                <li>• 20% Constância na semana</li>
               </ul>
             </div>
           )}
@@ -300,7 +299,7 @@ export function ApprovalOddsCard({
               {data.overallOdds}%
             </span>
             <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
-              Score
+              Índice
             </span>
           </div>
         </div>
@@ -355,12 +354,12 @@ export function ApprovalOddsCard({
           </div>
         </div>
 
-        {/* 2. Retenção Ponderada em Simulados */}
+        {/* 2. Acertos em Questões */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-[11px]">
             <span className="flex items-center gap-1.5 text-slate-300 font-semibold">
               <Target size={12} className="text-cyan-400" />
-              Retenção em Simulados
+              Acertos em Questões
             </span>
             <div className="flex items-center gap-2 font-mono">
               <span className="text-[10px] text-slate-500">

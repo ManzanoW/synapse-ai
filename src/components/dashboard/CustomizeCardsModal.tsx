@@ -23,8 +23,8 @@ interface CustomizeCardsModalProps {
   onClose: () => void;
   visibleCards: DashboardCardVisibility;
   onToggleCard: (key: keyof DashboardCardVisibility) => void;
-  onApplyPreset: (mode: "minimal" | "full") => void;
-  currentMode: "full" | "minimal" | "custom";
+  onApplyPreset: (mode: "minimal" | "practice" | "full") => void;
+  currentMode: "full" | "minimal" | "practice" | "custom";
 }
 
 interface CardItemConfig {
@@ -85,27 +85,27 @@ const CARDS_CONFIG: CardItemConfig[] = [
   },
   {
     key: "radarDomain",
-    title: "Radar de Domínio vs Edital",
+    title: "Radar de Matérias vs Peso da Prova",
     category: "analitico",
-    description: "Gráfico poligonal cruzando pesos da banca examinadora com sua precisão.",
+    description: "Compara seu aproveitamento atual com a importância de cada matéria no concurso.",
     icon: BrainCircuit,
     iconColor: "text-violet-400",
     iconBg: "bg-violet-500/10 border-violet-500/30",
   },
   {
     key: "approvalOdds",
-    title: "Predição de Aprovação (IA)",
+    title: "Chance de Aprovação (IA)",
     category: "analitico",
-    description: "Probabilidade matemática de aprovação com detecção de pontos cegos.",
+    description: "Estimativa calculada pela IA com base nos seus simulados, matérias e constância.",
     icon: Trophy,
     iconColor: "text-amber-400",
     iconBg: "bg-amber-500/10 border-amber-500/30",
   },
   {
     key: "aiSuggestions",
-    title: "Sugestões Neurais com IA",
+    title: "Sugestões de Estudo com IA",
     category: "analitico",
-    description: "Recomendações automatizadas para balancear pontos fracos no edital.",
+    description: "Recomendações da IA para priorizar matérias que mais precisam de revisão.",
     icon: Sparkles,
     iconColor: "text-cyan-400",
     iconBg: "bg-cyan-500/10 border-cyan-500/30",
@@ -121,18 +121,18 @@ const CARDS_CONFIG: CardItemConfig[] = [
   },
   {
     key: "focusRoom",
-    title: "Sala de Foco & Bioacústica",
+    title: "Sala de Foco & Concentração",
     category: "foco",
-    description: "Acesso rápido ao Deep Work com ondas binaurais e timer Pomodoro.",
+    description: "Timer de estudo pomodoro com sons ambientes e ondas para manter o foco.",
     icon: Headphones,
     iconColor: "text-indigo-400",
     iconBg: "bg-indigo-500/10 border-indigo-500/30",
   },
   {
     key: "heatmap",
-    title: "Heatmap de Constância Anual",
+    title: "Mapa de Frequência Anual",
     category: "analitico",
-    description: "Matriz estilo GitHub de consistência diária de estudos ao longo do ano.",
+    description: "Visualização dos dias em que você estudou ao longo de todo o ano.",
     icon: Calendar,
     iconColor: "text-emerald-400",
     iconBg: "bg-emerald-500/10 border-emerald-500/30",
@@ -190,7 +190,7 @@ export function CustomizeCardsModal({
             Modos Pré-definidos:
           </span>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => onApplyPreset("minimal")}
@@ -200,7 +200,19 @@ export function CustomizeCardsModal({
                   : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10"
               }`}
             >
-              <span>🌟 Modo Minimalista (Essencial)</span>
+              <span>🌟 Essencial</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onApplyPreset("practice")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                currentMode === "practice"
+                  ? "bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/20"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10"
+              }`}
+            >
+              <span>🎯 Prática</span>
             </button>
 
             <button
@@ -208,11 +220,11 @@ export function CustomizeCardsModal({
               onClick={() => onApplyPreset("full")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 currentMode === "full"
-                  ? "bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/20"
+                  ? "bg-cyan-600 text-white font-black shadow-md shadow-cyan-600/20"
                   : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10"
               }`}
             >
-              <span>🚀 Modo Completo</span>
+              <span>🚀 Completo</span>
             </button>
           </div>
         </div>

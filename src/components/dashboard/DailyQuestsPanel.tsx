@@ -160,9 +160,21 @@ export function DailyQuestsPanel() {
       setLoading(true);
       const res = await getDailyQuestsAction();
       if (res.success && res.data) {
-        setQuests(res.data);
+        // Garantia de desduplicação por título e limite estrito a 3 missões
+        const seen = new Set<string>();
+        const unique = res.data.filter((q) => {
+          if (seen.has(q.title)) return false;
+          seen.add(q.title);
+          return true;
+        });
+        const capped = unique.slice(0, 3);
+        setQuests(capped);
         if (res.dailyChest) {
-          setDailyChest(res.dailyChest);
+          setDailyChest({
+            ...res.dailyChest,
+            totalQuests: Math.min(3, capped.length || 3),
+            completedQuests: capped.filter((q) => q.completed).length,
+          });
         }
       }
     } catch (err) {
@@ -214,7 +226,7 @@ export function DailyQuestsPanel() {
   const completedCount = quests.filter((q) => q.completed).length;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-linear-to-br from-[#0c0f1d] via-[#080b16] to-[#04060d] p-4 sm:p-5 shadow-2xl backdrop-blur-2xl transition-all duration-300 group hover:border-violet-500/35">
+    <div className="relative flex flex-col justify-start overflow-hidden rounded-3xl border border-violet-500/20 bg-linear-to-br from-[#0c0f1d] via-[#080b16] to-[#04060d] p-4 sm:p-5 shadow-2xl backdrop-blur-2xl transition-all duration-300 group hover:border-violet-500/35">
       {/* Glow de ambientação no topo */}
       <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/50 to-transparent" />
       <div className="pointer-events-none absolute -top-20 -left-20 h-40 w-40 rounded-full bg-violet-600/10 blur-3xl" />
@@ -231,7 +243,7 @@ export function DailyQuestsPanel() {
                 Missões Diárias
               </h3>
               <span className="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                {completedCount}/{quests.length} Feito
+                {completedCount}/{Math.min(3, quests.length || 3)} Feito
               </span>
             </div>
             <p className="text-[10px] text-slate-400 font-medium">
@@ -255,7 +267,7 @@ export function DailyQuestsPanel() {
         </div>
       ) : (
         <div className="space-y-2 pt-2.5">
-          {quests.map((quest) => {
+          {quests.slice(0, 3).map((quest) => {
             const progress = Math.min(
               100,
               Math.round(

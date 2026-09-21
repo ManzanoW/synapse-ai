@@ -135,7 +135,49 @@ export async function getDailyQuestsAction(): Promise<{
       orderBy: { createdAt: "asc" },
     });
 
-    // 2. Se não houver missões para hoje, seleciona 3 templates com base no dia do ano
+    // 2. Se houver missões duplicadas para o mesmo dia (ex: race condition ou chamadas concorrentes),
+    // agrupa por título, preserva a com maior progresso/conclusão e limpa as excedentes do banco.
+    if (quests.length > 0) {
+      const uniqueMap = new Map<string, (typeof quests)[0]>();
+      const duplicateIdsToDelete: string[] = [];
+
+      for (const q of quests) {
+        const existing = uniqueMap.get(q.title);
+        if (!existing) {
+          uniqueMap.set(q.title, q);
+        } else {
+          const existingScore =
+            (existing.claimed ? 1000 : 0) +
+            (existing.completed ? 100 : 0) +
+            existing.currentCount;
+          const currentScore =
+            (q.claimed ? 1000 : 0) +
+            (q.completed ? 100 : 0) +
+            q.currentCount;
+
+          if (currentScore > existingScore) {
+            duplicateIdsToDelete.push(existing.id);
+            uniqueMap.set(q.title, q);
+          } else {
+            duplicateIdsToDelete.push(q.id);
+          }
+        }
+      }
+
+      if (duplicateIdsToDelete.length > 0) {
+        try {
+          await prisma.dailyQuest.deleteMany({
+            where: { id: { in: duplicateIdsToDelete } },
+          });
+        } catch (delErr) {
+          console.warn("Aviso ao limpar missões diárias duplicadas:", delErr);
+        }
+      }
+
+      quests = Array.from(uniqueMap.values()).slice(0, 3);
+    }
+
+    // 3. Se não houver missões para hoje, seleciona 3 templates com base no dia do ano
     if (quests.length === 0) {
       const dayOfYear = Math.floor(
         (todayStart.getTime() -
@@ -149,25 +191,36 @@ export async function getDailyQuestsAction(): Promise<{
         QUEST_TEMPLATES[(dayOfYear + 2) % QUEST_TEMPLATES.length],
       ];
 
-      await prisma.$transaction(
-        selectedTemplates.map((t: any) =>
-          prisma.dailyQuest.create({
-            data: {
-              userId,
-              title: t.title,
-              description: t.description,
-              xpReward: t.xpReward,
-              targetCount: t.targetCount,
-              currentCount: 0,
-              completed: false,
-              claimed: false,
-              questDate: todayStart,
-            },
-          }),
-        ),
-      );
+      // Proteção atômica contra concorrência
+      const countCheck = await prisma.dailyQuest.count({
+        where: {
+          userId,
+          questDate: { gte: todayStart, lte: todayEnd },
+          NOT: { title: "Baú de Maestria Diária" },
+        },
+      });
 
-      quests = await prisma.dailyQuest.findMany({
+      if (countCheck === 0) {
+        await prisma.$transaction(
+          selectedTemplates.map((t: any) =>
+            prisma.dailyQuest.create({
+              data: {
+                userId,
+                title: t.title,
+                description: t.description,
+                xpReward: t.xpReward,
+                targetCount: t.targetCount,
+                currentCount: 0,
+                completed: false,
+                claimed: false,
+                questDate: todayStart,
+              },
+            }),
+          ),
+        );
+      }
+
+      const reloaded = await prisma.dailyQuest.findMany({
         where: {
           userId,
           questDate: {
@@ -178,9 +231,17 @@ export async function getDailyQuestsAction(): Promise<{
         },
         orderBy: { createdAt: "asc" },
       });
+
+      const uniqueReloaded = new Map<string, (typeof reloaded)[0]>();
+      for (const q of reloaded) {
+        if (!uniqueReloaded.has(q.title)) {
+          uniqueReloaded.set(q.title, q);
+        }
+      }
+      quests = Array.from(uniqueReloaded.values()).slice(0, 3);
     }
 
-    // 3. Verifica status do Baú de Maestria Diária
+    // 4. Verifica status do Baú de Maestria Diária
     const chestRecord = await prisma.dailyQuest.findFirst({
       where: {
         userId,
@@ -354,7 +415,11 @@ export async function claimDailyChestAction(): Promise<{
       },
     });
 
-    if (regularQuests.length === 0 || regularQuests.some((q) => !q.completed)) {
+    const uniqueQuests = Array.from(
+      new Map(regularQuests.map((q) => [q.title, q])).values(),
+    );
+
+    if (uniqueQuests.length === 0 || uniqueQuests.some((q) => !q.completed)) {
       return {
         success: false,
         error: "Complete todas as 3 missões de hoje para desbloquear o Baú.",

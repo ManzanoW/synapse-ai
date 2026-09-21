@@ -43,6 +43,22 @@ if (isMockOrLocal) {
       // Transparent error fallback proxy
       globalForPrisma.prisma = new Proxy(realPrisma, {
         get(target: any, prop: string) {
+          if (prop === "$transaction") {
+            return async (...args: any[]) => {
+              try {
+                if (typeof target.$transaction === "function") {
+                  return await target.$transaction(...args);
+                }
+              } catch (err) {
+                console.warn(
+                  "[AI Studio] Database $transaction failed, falling back to in-memory store:",
+                  err instanceof Error ? err.message : err,
+                );
+              }
+              return await mockFallback.$transaction(...args);
+            };
+          }
+
           const original = target[prop];
           if (typeof original === "object" && original !== null) {
             return new Proxy(original, {

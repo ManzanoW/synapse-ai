@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { getFlashcardsAnalyticsAction } from "@/actions/flashcard-actions";
 import { FlashcardsHeroActions } from "@/components/flashcards/FlashcardsHeroActions";
+import { FlashcardsSpotlight } from "@/components/flashcards/FlashcardsSpotlight";
+import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
 
 export default async function FlashcardsPage() {
   const session = await auth();
@@ -82,38 +84,34 @@ export default async function FlashcardsPage() {
     <div className="p-3 sm:p-6 md:p-8 max-w-7xl mx-auto text-slate-100 space-y-6 sm:space-y-8 selection:bg-indigo-500/30 font-sans pb-16">
       {totalSubjects === 0 ? (
         <div className="min-h-[65vh] flex items-center justify-center py-4">
-          <div className="relative overflow-hidden max-w-xl w-full bg-gradient-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-6 sm:p-10 text-center shadow-2xl space-y-5">
-            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10 relative z-10">
-              <BookOpen size={26} />
-            </div>
-            <div className="space-y-2 relative z-10">
+          <div className="relative overflow-hidden max-w-3xl w-full bg-gradient-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="text-center space-y-3 relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10">
+                <BookOpen size={26} />
+              </div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
-                <Lock size={12} /> Etapa Obrigatória
+                <Lock size={12} /> Primeiro Passo para Flashcards
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Configure seu Edital Primeiro
+                Configure seu Edital ou Escolha um Modelo Pronto
               </h2>
-              <p className="text-slate-300 text-xs leading-relaxed max-w-sm mx-auto">
-                Para a inteligência artificial sincronizar tópicos e gerar
-                baralhos de repetição espaçada, é necessário mapear o seu edital
-                primeiro.
+              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto">
+                Para a inteligência artificial gerar baralhos de repetição espaçada adaptados ao seu concurso, você precisa de matérias cadastradas. Ative um modelo pronto abaixo ou importe seu próprio edital.
               </p>
             </div>
-            <div className="pt-2 relative z-10">
-              <Link
-                href="/edital"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-6 py-3.5 rounded-xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 cursor-pointer w-full sm:w-auto justify-center"
-              >
-                <BookOpen size={15} />
-                <span>Cadastrar Edital Agora</span>
-                <ArrowRight size={15} />
-              </Link>
+
+            <div className="relative z-10 pt-2">
+              <StarterEditalSelector />
             </div>
           </div>
         </div>
       ) : (
         <>
+          {/* SPOTLIGHT DICA DE PRIMEIRO ACESSO */}
+          <FlashcardsSpotlight />
+
           {/* HERO BANNER */}
           <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-indigo-950/90 via-slate-900/90 to-slate-950 border border-indigo-500/30 p-5 sm:p-8 shadow-2xl backdrop-blur-2xl">
             <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
