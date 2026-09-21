@@ -394,7 +394,7 @@ export function RemediationQuizModal({
                   >
                     <div className="flex items-center gap-2 font-bold text-xs">
                       <Sparkles size={15} className="text-violet-400" />
-                      <span>Todas as Falhas</span>
+                      <span>Todos os Erros</span>
                     </div>
                     <p className="text-[11px] text-slate-300/80 mt-1.5 leading-snug break-words">
                       Misto geral de todos os erros pendentes

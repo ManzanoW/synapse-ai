@@ -96,7 +96,7 @@ export function KeyMetricsCard({
             <h3 className="text-xs font-black uppercase tracking-wider text-white">
               Estatísticas Chave
             </h3>
-            <p className="text-[10px] text-slate-400">Telemetria de performance em tempo real</p>
+            <p className="text-[10px] text-slate-400">Seu ritmo de estudos em tempo real</p>
           </div>
         </div>
 

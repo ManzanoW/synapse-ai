@@ -62,7 +62,7 @@ export function ErrorMetricsHeader({
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs font-medium mb-2 backdrop-blur-md">
             <Sparkles size={14} className="text-violet-400 animate-pulse" />
-            <span>Diagnóstico Taxonômico & Aprendizado Ativo</span>
+            <span>Aprenda com seus Erros & Fixe o Conteúdo</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
             <span className="p-2 rounded-xl bg-gradient-to-br from-violet-600/30 to-rose-600/30 border border-violet-500/30 text-violet-300 shadow-lg shadow-violet-500/10">
@@ -71,8 +71,7 @@ export function ErrorMetricsHeader({
             Caderno de Erros Inteligente
           </h1>
           <p className="text-slate-400 text-sm md:text-base mt-1 max-w-2xl">
-            Converta falhas em aprovação: diagnostique a causa-raiz de cada erro em
-            simulado, gere desarmamentos conceituais e resolva questões de fixação sob demanda via IA.
+            Converta falhas em aprovação: entenda por que errou cada questão (falta de atenção, pegadinha ou matéria nova) e faça exercícios com IA para nunca mais errar na prova.
           </p>
         </div>
 
@@ -84,7 +83,7 @@ export function ErrorMetricsHeader({
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-violet-600 to-rose-600 hover:from-amber-400 hover:via-violet-500 hover:to-rose-500 text-white text-xs md:text-sm font-extrabold shadow-lg shadow-violet-600/30 border border-amber-400/40 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer group"
             >
               <Zap size={16} className="text-amber-300 fill-amber-300 animate-pulse group-hover:scale-110 transition-transform" />
-              <span>Iniciar Simulado de Remediação</span>
+              <span>Treinar Questões que Errei</span>
               <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-black/30 text-amber-200 border border-white/20">
                 {pendingErrors} a superar
               </span>
