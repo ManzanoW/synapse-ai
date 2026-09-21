@@ -25,8 +25,13 @@ import {
   Loader2,
   ArrowRight,
   Zap,
+  HelpCircle,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  PageSpotlightBanner,
+  useSpotlight,
+} from "@/components/onboarding/PageSpotlightBanner";
 
 export interface SubjectOption {
   id: string;
@@ -45,6 +50,8 @@ export function ErrorNotebookView({
   initialMetrics,
   subjects,
 }: ErrorNotebookViewProps) {
+  const spotlight = useSpotlight("synapse_spotlight_notebook");
+
   // Estado de Paginação (lotes de 10 em 10)
   const [questions, setQuestions] = useState<Question[]>(initialItems || []);
   const [page, setPage] = useState(1);
@@ -275,6 +282,41 @@ export function ErrorNotebookView({
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {/* SPOTLIGHT DICA DE PRIMEIRO ACESSO */}
+      <PageSpotlightBanner
+        storageKey="synapse_spotlight_notebook"
+        externalIsOpen={spotlight.isOpen}
+        onClose={spotlight.dismiss}
+        badgeText="🎯 Como Funciona o Caderno de Erros"
+        title="Transforme Questões Erradas na Chave da sua Aprovação"
+        description="Errar durante a preparação é normal e valioso. Aqui, cada questão errada é diagnosticada pelo motivo real para que você treine exatamente onde precisa."
+        accentColor="emerald"
+        primaryActionLabel="Entendi, vou superar meus erros!"
+        steps={[
+          {
+            icon: <HelpCircle size={18} />,
+            title: "1. Descubra o Motivo do Erro",
+            description:
+              "Classifique se errou por Teoria/Matéria Nova, Pegadinha da Banca, Interpretação do Enunciado ou Falta de Tempo.",
+            tag: "Diagnóstico",
+          },
+          {
+            icon: <Zap size={18} />,
+            title: "2. Treine com Questões Focadas",
+            description:
+              "Clique em 'Treinar Questões que Errei' para a IA montar um mini-simulado só com as matérias e armadilhas que você errou.",
+            tag: "Remediação Ativa",
+          },
+          {
+            icon: <CheckCircle2 size={18} />,
+            title: "3. Domine e Zere os Erros",
+            description:
+              "Ao acertar as questões nos treinos, elas sobem de nível e passam para 'Superadas', elevando sua taxa de domínio até os 100%.",
+            tag: "Evolução Real",
+          },
+        ]}
+      />
+
       {/* 1. Métricas e Distribuição Taxonômica */}
       <ErrorMetricsHeader
         metrics={metrics}
@@ -283,6 +325,7 @@ export function ErrorNotebookView({
         onBatchClassify={handleBatchClassify}
         isClassifying={isClassifying}
         onOpenRemediationModal={() => setIsRemediationOpen(true)}
+        onToggleSpotlight={spotlight.toggle}
       />
 
       {/* 2. Barra de Filtros */}

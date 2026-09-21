@@ -18,6 +18,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { ErrorNotebookMetrics, ErrorTaxonomyMetric } from "@/types/quiz";
+import { SpotlightTriggerButton } from "@/components/onboarding/PageSpotlightBanner";
 
 interface ErrorMetricsHeaderProps {
   metrics: ErrorNotebookMetrics;
@@ -27,6 +28,7 @@ interface ErrorMetricsHeaderProps {
   onAutoClassify?: () => Promise<void> | void;
   isClassifying?: boolean;
   onOpenRemediationModal?: () => void;
+  onToggleSpotlight?: () => void;
 }
 
 const TAXONOMY_ICONS: Record<string, React.ElementType> = {
@@ -45,6 +47,7 @@ export function ErrorMetricsHeader({
   onAutoClassify,
   isClassifying = false,
   onOpenRemediationModal,
+  onToggleSpotlight,
 }: ErrorMetricsHeaderProps) {
   const classifyHandler = onBatchClassify || onAutoClassify;
   const { totalErrors, pendingErrors, masteredErrors, masteryRate, taxonomyDistribution } =
@@ -76,6 +79,14 @@ export function ErrorMetricsHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 shrink-0">
+          {onToggleSpotlight && (
+            <SpotlightTriggerButton
+              accentColor="emerald"
+              onClick={onToggleSpotlight}
+              label="Como Funciona?"
+            />
+          )}
+
           {onOpenRemediationModal && pendingErrors > 0 && (
             <button
               type="button"

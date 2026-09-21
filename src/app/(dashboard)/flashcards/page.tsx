@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { getFlashcardsAnalyticsAction } from "@/actions/flashcard-actions";
 import { FlashcardsHeroActions } from "@/components/flashcards/FlashcardsHeroActions";
+import { FlashcardsSpotlight } from "@/components/flashcards/FlashcardsSpotlight";
 
 export default async function FlashcardsPage() {
   const session = await auth();
@@ -114,6 +115,9 @@ export default async function FlashcardsPage() {
         </div>
       ) : (
         <>
+          {/* SPOTLIGHT DICA DE PRIMEIRO ACESSO */}
+          <FlashcardsSpotlight />
+
           {/* HERO BANNER */}
           <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-indigo-950/90 via-slate-900/90 to-slate-950 border border-indigo-500/30 p-5 sm:p-8 shadow-2xl backdrop-blur-2xl">
             <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
