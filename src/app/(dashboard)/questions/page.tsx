@@ -48,6 +48,7 @@ import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationMo
 import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
+import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
 
 import {
   submitQuizAttemptAction,
@@ -562,103 +563,105 @@ export default function QuestoesPage() {
     return () => clearInterval(interval);
   }, [isTimerRunning, questions.length]);
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      setIsInitialLoading(true);
-    });
+  const fetchSubjects = useCallback(async () => {
+    setIsInitialLoading(true);
 
-    fetch("/api/edital?mode=subjects")
-      .then((res) => res.json())
-      .then((json) => {
-        const rawSubjects: SubjectItem[] = json.data || [];
-        const uniqueSubjectsMap = new Map<string, SubjectItem>();
+    try {
+      const res = await fetch("/api/edital?mode=subjects");
+      const json = await res.json();
+      const rawSubjects: SubjectItem[] = json.data || [];
+      const uniqueSubjectsMap = new Map<string, SubjectItem>();
 
-        rawSubjects.forEach((sub) => {
-          const nameKey = sub.name.trim();
-          if (uniqueSubjectsMap.has(nameKey)) {
-            const existing = uniqueSubjectsMap.get(nameKey)!;
-            const combinedTopics = [
-              ...(existing.topics || []),
-              ...(sub.topics || []),
-            ];
-            const uniqueTopics = Array.from(
-              new Map(combinedTopics.map((t) => [t.id, t])).values(),
-            );
-            existing.topics = uniqueTopics;
-          } else {
-            uniqueSubjectsMap.set(nameKey, {
-              ...sub,
-              name: nameKey,
-              topics: sub.topics ? [...sub.topics] : [],
-            });
-          }
-        });
-
-        const loadedSubjects = Array.from(uniqueSubjectsMap.values());
-        setSubjects(loadedSubjects);
-
-        const paramSubjectId = searchParams.get("subjectId");
-        const paramTopicId = searchParams.get("topicId");
-
-        if (paramSubjectId) {
-          const decodedSubject = decodeURIComponent(paramSubjectId);
-          const matchedSubject = loadedSubjects.find(
-            (s) =>
-              s.id === decodedSubject ||
-              s.name.trim().toLowerCase() ===
-                decodedSubject.trim().toLowerCase(),
+      rawSubjects.forEach((sub) => {
+        const nameKey = sub.name.trim();
+        if (uniqueSubjectsMap.has(nameKey)) {
+          const existing = uniqueSubjectsMap.get(nameKey)!;
+          const combinedTopics = [
+            ...(existing.topics || []),
+            ...(sub.topics || []),
+          ];
+          const uniqueTopics = Array.from(
+            new Map(combinedTopics.map((t) => [t.id, t])).values(),
           );
+          existing.topics = uniqueTopics;
+        } else {
+          uniqueSubjectsMap.set(nameKey, {
+            ...sub,
+            name: nameKey,
+            topics: sub.topics ? [...sub.topics] : [],
+          });
+        }
+      });
 
-          if (matchedSubject) {
-            setMateria(matchedSubject.name);
-            if (paramTopicId && matchedSubject.topics) {
-              const matchedTopic = matchedSubject.topics.find(
-                (t) =>
-                  t.id === paramTopicId ||
-                  t.title.trim().toLowerCase() ===
-                    paramTopicId.trim().toLowerCase(),
-              );
-              setSelectedTopicId(matchedTopic ? matchedTopic.id : paramTopicId);
-            }
-          } else {
-            setMateria(decodedSubject);
-            if (paramTopicId) setSelectedTopicId(paramTopicId);
-          }
-        } else if (paramTopicId) {
-          const owningSubject = loadedSubjects.find((s) =>
-            s.topics?.some(
-              (t) =>
-                t.id === paramTopicId ||
-                t.title.trim().toLowerCase() ===
-                  paramTopicId.trim().toLowerCase(),
-            ),
-          );
+      const loadedSubjects = Array.from(uniqueSubjectsMap.values());
+      setSubjects(loadedSubjects);
 
-          if (owningSubject) {
-            setMateria(owningSubject.name);
-            const matchedTopic = owningSubject.topics?.find(
+      const paramSubjectId = searchParams.get("subjectId");
+      const paramTopicId = searchParams.get("topicId");
+
+      if (paramSubjectId) {
+        const decodedSubject = decodeURIComponent(paramSubjectId);
+        const matchedSubject = loadedSubjects.find(
+          (s) =>
+            s.id === decodedSubject ||
+            s.name.trim().toLowerCase() ===
+              decodedSubject.trim().toLowerCase(),
+        );
+
+        if (matchedSubject) {
+          setMateria(matchedSubject.name);
+          if (paramTopicId && matchedSubject.topics) {
+            const matchedTopic = matchedSubject.topics.find(
               (t) =>
                 t.id === paramTopicId ||
                 t.title.trim().toLowerCase() ===
                   paramTopicId.trim().toLowerCase(),
             );
             setSelectedTopicId(matchedTopic ? matchedTopic.id : paramTopicId);
-          } else {
-            setSelectedTopicId(paramTopicId);
           }
-        } else if (loadedSubjects.length > 0) {
-          setMateria((prev) => prev || loadedSubjects[0].name);
+        } else {
+          setMateria(decodedSubject);
+          if (paramTopicId) setSelectedTopicId(paramTopicId);
         }
+      } else if (paramTopicId) {
+        const owningSubject = loadedSubjects.find((s) =>
+          s.topics?.some(
+            (t) =>
+              t.id === paramTopicId ||
+              t.title.trim().toLowerCase() ===
+                paramTopicId.trim().toLowerCase(),
+          ),
+        );
 
-        if (paramTopicId || paramSubjectId) {
-          setIsAIModalOpen(true);
+        if (owningSubject) {
+          setMateria(owningSubject.name);
+          const matchedTopic = owningSubject.topics?.find(
+            (t) =>
+              t.id === paramTopicId ||
+              t.title.trim().toLowerCase() ===
+                paramTopicId.trim().toLowerCase(),
+          );
+          setSelectedTopicId(matchedTopic ? matchedTopic.id : paramTopicId);
+        } else {
+          setSelectedTopicId(paramTopicId);
         }
-      })
-      .catch(console.error)
-      .finally(() => {
-        setIsInitialLoading(false);
-      });
-  }, []);
+      } else if (loadedSubjects.length > 0) {
+        setMateria((prev) => prev || loadedSubjects[0].name);
+      }
+
+      if (paramTopicId || paramSubjectId) {
+        setIsAIModalOpen(true);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar matérias:", err);
+    } finally {
+      setIsInitialLoading(false);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    fetchSubjects();
+  }, [fetchSubjects]);
 
   const currentSubjectObj = subjects.find(
     (s) =>
@@ -1510,35 +1513,28 @@ export default function QuestoesPage() {
               {isInitialLoading && subjects.length === 0 ? (
                 <TabCreateSkeleton />
               ) : subjects.length === 0 ? (
-                /* ETAPA OBRIGATÓRIA EDITAL */
+                /* ETAPA OBRIGATÓRIA EDITAL - COM ATIVAÇÃO EM 1 CLIQUE */
                 <div className="min-h-[50vh] flex items-center justify-center py-4">
-                  <div className="relative overflow-hidden max-w-xl w-full bg-linear-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl space-y-6">
-                    <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-                    <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10 relative z-10">
-                      <BookOpen size={28} />
-                    </div>
-                    <div className="space-y-2 relative z-10">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
-                        <Lock size={12} /> Etapa Obrigatória
+                  <div className="relative overflow-hidden max-w-3xl w-full bg-linear-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
+                    <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                    <div className="text-center space-y-3 relative z-10">
+                      <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10">
+                        <BookOpen size={28} />
                       </div>
-                      <h2 className="text-xl font-black text-white tracking-tight">
-                        Cadastre seu Edital Primeiro
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
+                        <Lock size={12} /> Primeiro Passo para Simulados
+                      </div>
+                      <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                        Cadastre seu Edital ou Escolha um Modelo Pronto
                       </h2>
-                      <p className="text-slate-300 text-xs leading-relaxed max-w-sm mx-auto">
-                        Para gerar simulados ou flashcards adaptados com IA para o seu
-                        concurso, você precisa primeiro cadastrar matérias e tópicos
-                        na aba de Editais.
+                      <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto">
+                        Para a inteligência artificial gerar questões personalizadas, você precisa de matérias cadastradas. Ative um modelo pronto em 1 clique abaixo ou importe seu próprio edital.
                       </p>
                     </div>
-                    <div className="pt-2 relative z-10">
-                      <Link
-                        href="/edital"
-                        className="inline-flex items-center gap-2 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-6 py-3.5 rounded-xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 cursor-pointer"
-                      >
-                        <BookOpen size={15} />
-                        <span>Configurar Edital</span>
-                        <ArrowRight size={15} />
-                      </Link>
+
+                    <div className="relative z-10 pt-2">
+                      <StarterEditalSelector onSuccess={() => fetchSubjects()} />
                     </div>
                   </div>
                 </div>

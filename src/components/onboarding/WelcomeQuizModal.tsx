@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 import {
   Sparkles,
   Clock,
@@ -20,14 +21,23 @@ import {
   Coffee,
   Rocket,
   ShieldCheck,
+  GraduationCap,
+  FileText,
+  Check,
+  Loader2,
 } from "lucide-react";
+import {
+  importStarterEditalAction,
+  STARTER_EDITAL_TEMPLATES,
+} from "@/actions/edital-templates-actions";
 
 export type OnboardingProfileMode = "minimal" | "practice" | "full";
 
 export interface OnboardingQuizResult {
   profileMode: OnboardingProfileMode;
   dailyHours: number;
-  startAction: "dashboard" | "flashcards" | "questions" | "redacao";
+  startAction: "dashboard" | "flashcards" | "questions" | "redacao" | "edital";
+  careerTemplate?: string | null;
 }
 
 interface WelcomeQuizModalProps {
@@ -53,8 +63,10 @@ export function WelcomeQuizModal({
     useState<OnboardingProfileMode>("minimal");
   const [selectedHours, setSelectedHours] = useState<number>(2);
   const [selectedAction, setSelectedAction] = useState<
-    "dashboard" | "flashcards" | "questions" | "redacao"
-  >("dashboard");
+    "dashboard" | "flashcards" | "questions" | "redacao" | "edital"
+  >("edital");
+  const [selectedCareerTemplate, setSelectedCareerTemplate] = useState<string>("comum");
+  const [isActivatingEdital, setIsActivatingEdital] = useState(false);
 
   if (!isOpen) return null;
 
@@ -75,17 +87,41 @@ export function WelcomeQuizModal({
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    setIsActivatingEdital(true);
+
+    try {
+      if (selectedAction === "edital" && selectedCareerTemplate && selectedCareerTemplate !== "custom") {
+        await importStarterEditalAction(selectedCareerTemplate);
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao ativar modelo de edital no onboarding:", err);
+    } finally {
+      setIsActivatingEdital(false);
+    }
+
     const result: OnboardingQuizResult = {
       profileMode: selectedMode,
       dailyHours: selectedHours,
       startAction: selectedAction,
+      careerTemplate: selectedCareerTemplate,
     };
 
     onComplete(result);
 
-    // Se o usuário escolheu uma rota direta de estudo, navega para ela
-    if (selectedAction === "flashcards") {
+    // Navega para o destino escolhido
+    if (selectedAction === "edital") {
+      if (selectedCareerTemplate === "custom") {
+        router.push("/edital");
+      } else {
+        router.push("/dashboard");
+      }
+    } else if (selectedAction === "flashcards") {
       router.push("/flashcards");
     } else if (selectedAction === "questions") {
       router.push("/questions");
@@ -397,102 +433,196 @@ export function WelcomeQuizModal({
                     Por onde você gostaria de começar hoje?
                   </h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    Você pode acessar qualquer uma das ferramentas a qualquer instante pelo menu lateral.
+                    Definir sua área de estudo é o passo mais importante para liberar simulados, flashcards e seu cronograma adaptativo.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  {/* Ponto 1: Flashcards */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAction("flashcards")}
-                    className={`flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                      selectedAction === "flashcards"
-                        ? "border-indigo-500/60 bg-indigo-950/25 ring-1 ring-indigo-500/30"
-                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
+                <div className="space-y-3 pt-1">
+                  {/* Opção Principal: Definir Concurso / Edital */}
+                  <div
+                    className={`rounded-2xl border transition-all ${
+                      selectedAction === "edital"
+                        ? "border-amber-500/60 bg-amber-950/20 ring-1 ring-amber-500/40 p-4"
+                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 p-3.5"
                     }`}
                   >
-                    <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
-                      <Layers size={18} />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-white block">
-                        Praticar Flashcards
-                      </span>
-                      <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                        Revise conceitos rápidos ou gere cards com IA a partir de qualquer PDF.
-                      </span>
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction("edital")}
+                      className="w-full flex items-start gap-3 text-left cursor-pointer"
+                    >
+                      <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+                        <GraduationCap size={20} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs sm:text-sm font-black text-white">
+                            Definir meu Concurso / Área de Estudo
+                          </span>
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                            ⭐ Recomendado 1º Passo
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                          Escolha sua carreira para carregar as matérias essenciais em 1 clique e liberar todos os simulados e flashcards sem travas.
+                        </p>
+                      </div>
+                    </button>
 
-                  {/* Ponto 2: Simulados */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAction("questions")}
-                    className={`flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                      selectedAction === "questions"
-                        ? "border-emerald-500/60 bg-emerald-950/25 ring-1 ring-emerald-500/30"
-                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
-                    }`}
-                  >
-                    <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
-                      <BookOpen size={18} />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-white block">
-                        Fazer Simulado Rápido
-                      </span>
-                      <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                        Resolva questões calibradas por banca e tema do seu edital.
-                      </span>
-                    </div>
-                  </button>
+                    {/* Sub-seletor de carreiras quando Edital está selecionado */}
+                    {selectedAction === "edital" && (
+                      <div className="mt-4 pt-3 border-t border-white/10 space-y-2.5">
+                        <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+                          Selecione sua carreira para carregar as disciplinas:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {Object.values(STARTER_EDITAL_TEMPLATES).map((tpl) => (
+                            <button
+                              key={tpl.id}
+                              type="button"
+                              onClick={() => setSelectedCareerTemplate(tpl.id)}
+                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                                selectedCareerTemplate === tpl.id
+                                  ? "border-amber-400/60 bg-amber-500/15 text-white ring-1 ring-amber-400/40"
+                                  : "border-white/10 bg-black/40 text-slate-300 hover:border-white/20"
+                              }`}
+                            >
+                              <span className="text-lg">{tpl.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-bold block truncate">
+                                  {tpl.title.split("(")[0].trim()}
+                                </span>
+                                <span className="text-[10px] text-slate-400 block truncate">
+                                  {tpl.materias.length} matérias base
+                                </span>
+                              </div>
+                              {selectedCareerTemplate === tpl.id && (
+                                <Check size={14} className="text-amber-400 shrink-0" />
+                              )}
+                            </button>
+                          ))}
 
-                  {/* Ponto 3: Redação */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAction("redacao")}
-                    className={`flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                      selectedAction === "redacao"
-                        ? "border-cyan-500/60 bg-cyan-950/25 ring-1 ring-cyan-500/30"
-                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
-                    }`}
-                  >
-                    <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0">
-                      <PenTool size={18} />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-white block">
-                        Corretor de Redação
-                      </span>
-                      <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                        Envie foto manuscrita ou digite e receba o parecer da banca em 15s.
-                      </span>
-                    </div>
-                  </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCareerTemplate("custom")}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                              selectedCareerTemplate === "custom"
+                                ? "border-amber-400/60 bg-amber-500/15 text-white ring-1 ring-amber-400/40"
+                                : "border-white/10 bg-black/40 text-slate-300 hover:border-white/20"
+                            }`}
+                          >
+                            <FileText size={18} className="text-slate-400 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-bold block truncate">
+                                Tenho edital próprio em PDF
+                              </span>
+                              <span className="text-[10px] text-slate-400 block truncate">
+                                Importar texto ou arquivo
+                              </span>
+                            </div>
+                            {selectedCareerTemplate === "custom" && (
+                              <Check size={14} className="text-amber-400 shrink-0" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Ponto 4: Dashboard Direto */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAction("dashboard")}
-                    className={`flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                      selectedAction === "dashboard"
-                        ? "border-violet-500/60 bg-violet-950/25 ring-1 ring-violet-500/30"
-                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
-                    }`}
-                  >
-                    <div className="p-2 rounded-xl bg-violet-500/20 text-violet-400 border border-violet-500/30 shrink-0">
-                      <Compass size={18} />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-white block">
-                        Entrar no Dashboard
-                      </span>
-                      <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                        Veja seu cronograma inicial ajustado ao seu perfil e metas.
-                      </span>
-                    </div>
-                  </button>
+                  {/* 4 Outras Ferramentas */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Ponto: Simulados */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction("questions")}
+                      className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        selectedAction === "questions"
+                          ? "border-emerald-500/60 bg-emerald-950/25 ring-1 ring-emerald-500/30"
+                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
+                      }`}
+                    >
+                      <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                        <BookOpen size={16} />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">
+                          Fazer Simulado Rápido
+                        </span>
+                        <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
+                          Resolva questões calibradas por banca e tema.
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Ponto: Flashcards */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction("flashcards")}
+                      className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        selectedAction === "flashcards"
+                          ? "border-indigo-500/60 bg-indigo-950/25 ring-1 ring-indigo-500/30"
+                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
+                      }`}
+                    >
+                      <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
+                        <Layers size={16} />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">
+                          Praticar Flashcards
+                        </span>
+                        <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
+                          Revise com repetição espaçada e áudio neural.
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Ponto: Redação */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction("redacao")}
+                      className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        selectedAction === "redacao"
+                          ? "border-cyan-500/60 bg-cyan-950/25 ring-1 ring-cyan-500/30"
+                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
+                      }`}
+                    >
+                      <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0">
+                        <PenTool size={16} />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">
+                          Corretor de Redação
+                        </span>
+                        <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
+                          Envie foto manuscrita ou texto e receba parecer.
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Ponto: Dashboard Direto */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction("dashboard")}
+                      className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        selectedAction === "dashboard"
+                          ? "border-violet-500/60 bg-violet-950/25 ring-1 ring-violet-500/30"
+                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
+                      }`}
+                    >
+                      <div className="p-2 rounded-xl bg-violet-500/20 text-violet-400 border border-violet-500/30 shrink-0">
+                        <Compass size={16} />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">
+                          Entrar no Dashboard
+                        </span>
+                        <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
+                          Ver meu cronograma ajustado ao perfil.
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -552,24 +682,40 @@ export function WelcomeQuizModal({
                       Primeiro Passo
                     </span>
                     <span className="text-xs font-black text-white mt-0.5 block truncate">
-                      {selectedAction === "flashcards"
-                        ? "Flashcards"
-                        : selectedAction === "questions"
-                          ? "Simulado"
-                          : selectedAction === "redacao"
-                            ? "Redação IA"
-                            : "Dashboard"}
+                      {selectedAction === "edital"
+                        ? selectedCareerTemplate === "custom"
+                          ? "Importar Edital"
+                          : `${STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.icon || "📚"} ${
+                              STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.title.split("(")[0].trim() || "Edital"
+                            }`
+                        : selectedAction === "flashcards"
+                          ? "Flashcards"
+                          : selectedAction === "questions"
+                            ? "Simulado"
+                            : selectedAction === "redacao"
+                              ? "Redação IA"
+                              : "Dashboard"}
                     </span>
                   </div>
                 </div>
 
                 <div className="pt-2">
                   <button
+                    disabled={isActivatingEdital}
                     onClick={handleFinish}
-                    className="w-full sm:w-auto px-8 py-3 rounded-xl bg-linear-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer inline-flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-8 py-3 rounded-xl bg-linear-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <span>Começar Meus Estudos Agora</span>
-                    <ArrowRight size={15} />
+                    {isActivatingEdital ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" />
+                        <span>Carregando seu Edital...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Começar Meus Estudos Agora</span>
+                        <ArrowRight size={15} />
+                      </>
+                    )}
                   </button>
                 </div>
 

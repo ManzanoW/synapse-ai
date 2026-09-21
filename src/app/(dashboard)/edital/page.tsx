@@ -25,6 +25,7 @@ import { PlannerView } from "@/components/edital/planner-table";
 import { EditalSkillTree } from "@/components/edital/edital-skill-tree";
 import { NewContentModal } from "@/components/create-subject-modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
 import { useSearchParams } from "next/navigation";
 
 interface ApiTopic {
@@ -494,15 +495,28 @@ function PlannerContent() {
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                   onClick={() => setIsImportModalOpen(true)}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 text-xs font-extrabold text-white shadow-lg transition-all active:scale-95 cursor-pointer"
                 >
                   <UploadCloud size={16} />
-                  <span>Importar meu Edital Agora</span>
+                  <span>Importar meu Edital em PDF / Texto</span>
                   <ArrowRight size={16} />
                 </button>
+              </div>
+
+              {/* MODELOS PRONTOS EM 1 CLIQUE */}
+              <div className="pt-4 border-t border-white/10 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Ou Escolha um Modelo Pronto por Carreira (1 Clique):
+                  </span>
+                </div>
+                <StarterEditalSelector
+                  onSuccess={() => refreshData()}
+                  showCustomLink={false}
+                />
               </div>
             </div>
           </div>

@@ -266,6 +266,9 @@ export default function DashboardClient({
       localStorage.setItem("synapse_daily_study_hours", String(result.dailyHours));
     } catch {}
     handleSwitchMode(result.profileMode);
+    if (result.startAction === "edital" && result.careerTemplate && result.careerTemplate !== "custom") {
+      loadDashboardData();
+    }
   };
 
   const handleToggleCard = (key: keyof DashboardCardVisibility) => {
