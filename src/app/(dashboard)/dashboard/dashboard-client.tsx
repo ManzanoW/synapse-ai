@@ -60,6 +60,7 @@ import {
   WelcomeQuizModal,
   type OnboardingQuizResult,
 } from "@/components/onboarding/WelcomeQuizModal";
+import { FirstStepsChecklistCard } from "@/components/dashboard/FirstStepsChecklistCard";
 import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
@@ -1051,41 +1052,14 @@ export default function DashboardClient({
         </section>
         )}
 
-        {/* ================= 3. ONBOARDING DISCRETO ================= */}
-        {!isLoading && !hasEditalSubjects && (
-          <div className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl">
-            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-500/40 to-transparent" />
-            <div className="relative z-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-              <div className="max-w-lg space-y-1.5">
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-amber-300">
-                  <Lock size={12} /> Onboarding Requerido
-                </div>
-                <h3 className="text-base sm:text-lg font-black text-white">
-                  Configure seu Edital para Ativar a IA
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Cadastre suas matérias para destravar o cronograma semanal, simulados adaptativos e predição neural de aprovação.
-                </p>
-              </div>
-              <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setIsTutorialOpen(true)}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/15 px-4 py-2.5 text-xs font-black text-indigo-300 shadow-md transition-all hover:bg-indigo-500/25 active:scale-95"
-                >
-                  <Sparkles size={14} className="text-indigo-400" />
-                  <span>Modo Tutorial</span>
-                </button>
-                <Link
-                  href={getHref("/edital")}
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-500/20 shrink-0 hover:bg-amber-400 transition-all"
-                >
-                  <BookOpen size={15} />
-                  <span>Cadastrar Edital</span>
-                </Link>
-              </div>
-            </div>
-          </div>
+        {/* ================= 3. PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS) ================= */}
+        {!isLoading && (
+          <FirstStepsChecklistCard
+            hasEditalSubjects={hasEditalSubjects}
+            sessionsCount={stats?.metrics?.sessionsCount ?? 0}
+            questionsCount={stats?.metrics?.questionsCount ?? 0}
+            getHref={getHref}
+          />
         )}
 
         {/* ================= 4. SELETOR DE ABAS E CONTEÚDO EXCLUSIVO MOBILE ================= */}
