@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Zap,
   X,
@@ -182,6 +183,11 @@ export function FlashcardSpeedRunModal({
   const [selectedDeckId, setSelectedDeckId] = useState<string>("all");
   const [cards, setCards] = useState<SpeedRunCardItem[]>(initialCards || []);
   const [loadingCards, setLoadingCards] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Gameplay state
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -408,16 +414,16 @@ export function FlashcardSpeedRunModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   });
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
   const currentCard = cards[currentCardIndex];
   const progressRatio = Math.max(0, Math.min(timeLeft / 60, 1));
   const isTimeCritical = timeLeft <= 15;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+  const modalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
       <div
-        className={`relative w-full max-w-2xl bg-gradient-to-b from-[#0e1322] via-[#090d18] to-[#04060c] border border-indigo-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] ${
+        className={`relative w-full max-w-2xl bg-gradient-to-b from-[#0e1322] via-[#090d18] to-[#04060c] border border-indigo-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto ${
           isShaking ? "animate-bounce" : ""
         }`}
       >
@@ -425,7 +431,7 @@ export function FlashcardSpeedRunModal({
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* TOP BAR */}
-        <div className="relative z-10 flex items-center justify-between px-5 py-4 border-b border-slate-800/80 bg-slate-900/40">
+        <div className="relative z-10 flex items-center justify-between px-5 py-4 border-b border-slate-800/80 bg-slate-900/40 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-md shadow-indigo-500/10">
               <Zap size={18} className="fill-indigo-400" />
@@ -837,4 +843,6 @@ export function FlashcardSpeedRunModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

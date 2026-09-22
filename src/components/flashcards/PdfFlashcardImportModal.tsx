@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   FileUp,
   X,
@@ -61,6 +62,11 @@ export function PdfFlashcardImportModal({
 }: PdfFlashcardImportModalProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Estados de Fluxo
   const [step, setStep] = useState<"UPLOAD" | "SELECT_TOPICS" | "GENERATING" | "SUCCESS">("UPLOAD");
@@ -326,15 +332,16 @@ export function PdfFlashcardImportModal({
     details: c.details,
   }));
 
-  return (
-    <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative w-full max-w-3xl max-h-[90vh] flex flex-col bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden"
-        >
+  if (!mounted || !isOpen) return null;
+
+  const modalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans overflow-y-auto">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 15 }}
+        className="relative w-full max-w-3xl max-h-[90vh] my-auto flex flex-col bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden"
+      >
           {/* CABEÇALHO */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-800 bg-slate-950/40 shrink-0">
             <div className="flex items-center gap-3">
@@ -998,6 +1005,11 @@ export function PdfFlashcardImportModal({
           </div>
         </motion.div>
       </div>
+  );
+
+  return (
+    <>
+      {createPortal(modalContent, document.body)}
 
       {/* Modal de Exportação para o Anki */}
       {isAnkiExportOpen && finalDeckId && (

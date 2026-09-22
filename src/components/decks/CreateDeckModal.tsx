@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   X,
@@ -83,6 +84,11 @@ export default function CreateDeckModal({
   const [color, setColor] = useState("bg-[#00f2fe]");
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
   const [isFetchLoading, setIsFetchLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     fetch("/api/edital?mode=subjects")
@@ -186,14 +192,16 @@ export default function CreateDeckModal({
 
   const hasNoSubjects = subjects.length === 0 && !isFetchLoading;
 
-  return (
+  if (!mounted) return null;
+
+  const modalContent = (
     <div
       onClick={(e) => {
         if (e.target === e.currentTarget && !loading) onClose();
       }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4 animate-fade-in overflow-y-auto"
     >
-      <div className="relative w-full max-w-xl bg-[#070b14] border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl backdrop-blur-2xl my-auto text-slate-100 font-sans select-none">
+      <div className="relative w-full max-w-xl bg-[#070b14] border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl backdrop-blur-2xl my-auto text-slate-100 font-sans select-none max-h-[92vh] overflow-y-auto">
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Header */}
@@ -426,4 +434,6 @@ export default function CreateDeckModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

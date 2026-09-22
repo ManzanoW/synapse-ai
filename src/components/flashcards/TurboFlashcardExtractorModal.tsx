@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Sparkles,
   X,
@@ -72,8 +73,13 @@ export function TurboFlashcardExtractorModal({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<ExtractTurboFlashcardsResult | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !isOpen) return null;
 
   const handleApplyTemplate = (text: string, title: string) => {
     setRawText(text);
@@ -119,7 +125,7 @@ export function TurboFlashcardExtractorModal({
     setDeckTitle("");
   };
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -132,7 +138,7 @@ export function TurboFlashcardExtractorModal({
         <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-violet-500/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Cabeçalho */}
-        <div className="relative z-10 flex items-center justify-between px-6 py-5 border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-xl">
+        <div className="relative z-10 flex items-center justify-between px-6 py-5 border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 text-indigo-400 border border-indigo-500/30 shadow-md">
               <Zap size={20} className="fill-indigo-400" />
@@ -423,4 +429,6 @@ export function TurboFlashcardExtractorModal({
       </motion.div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
