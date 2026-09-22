@@ -111,28 +111,34 @@ export function MentorCopilotDrawer({
     setTimeout(() => setHasCopied(null), 2000);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop com blur escuro */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <div
+          data-quiz-sidebar="true"
+          data-mentor-drawer="true"
+          className="fixed inset-0 z-[100] flex justify-end"
+        >
+          {/* Backdrop com blur escuro */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+          />
 
-      {/* Drawer deslizante da direita */}
-      <motion.aside
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", damping: 28, stiffness: 280 }}
-        className="relative w-full max-w-lg bg-[#080c16] border-l border-violet-500/20 shadow-2xl shadow-violet-950/40 flex flex-col h-full z-10 overflow-hidden"
-      >
+          {/* Drawer deslizante da direita */}
+          <motion.div
+            data-quiz-sidebar="true"
+            data-mentor-drawer="true"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 280 }}
+            className="relative w-full max-w-lg bg-[#080c16] border-l border-violet-500/20 shadow-2xl shadow-violet-950/40 flex flex-col h-full z-10 overflow-hidden"
+          >
         {/* Glow de fundo */}
         <div className="pointer-events-none absolute -top-32 -right-32 w-80 h-80 rounded-full bg-violet-600/15 blur-[100px]" />
         <div className="pointer-events-none absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-indigo-600/15 blur-[100px]" />
@@ -458,7 +464,9 @@ export function MentorCopilotDrawer({
             Continuar Questão
           </button>
         </div>
-      </motion.aside>
+      </motion.div>
     </div>
+  )}
+</AnimatePresence>
   );
 }
