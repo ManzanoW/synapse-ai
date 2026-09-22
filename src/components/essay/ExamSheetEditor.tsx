@@ -15,12 +15,14 @@ import {
   Eye,
   Info,
   Camera,
+  Printer,
 } from "lucide-react";
 import { EssayTheme } from "@/actions/essay-actions";
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
 import { SubmitConfirmationModal } from "./SubmitConfirmationModal";
 import { ClearSheetModal } from "./ClearSheetModal";
 import { HandwrittenOcrModal } from "./HandwrittenOcrModal";
+import { PrintableExamSheetModal } from "./PrintableExamSheetModal";
 
 interface ExamSheetEditorProps {
   theme: EssayTheme;
@@ -46,6 +48,7 @@ export function ExamSheetEditor({
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState<boolean>(false);
   const [isClearModalOpen, setIsClearModalOpen] = useState<boolean>(false);
   const [isOcrModalOpen, setIsOcrModalOpen] = useState<boolean>(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -220,6 +223,18 @@ export function ExamSheetEditor({
             <Camera size={13} className="text-violet-400" />
             <span className="hidden sm:inline">Foto Manuscrito</span>
             <span className="sm:hidden">OCR</span>
+          </button>
+
+          {/* Botão Imprimir Folha A4 de Concurso */}
+          <button
+            type="button"
+            onClick={() => setIsPrintModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold border border-white/10 hover:border-violet-500/40 transition-all cursor-pointer shadow-sm"
+            title="Imprimir folha oficial pautada A4 no formato de concurso (Cebraspe/FGV)"
+          >
+            <Printer size={13} className="text-violet-400" />
+            <span className="hidden sm:inline">Imprimir Folha A4</span>
+            <span className="sm:hidden">Imprimir</span>
           </button>
 
           {/* Botão Recuo de Parágrafo */}
@@ -442,6 +457,13 @@ export function ExamSheetEditor({
         isOpen={isOcrModalOpen}
         onClose={() => setIsOcrModalOpen(false)}
         onApplyTranscription={(txt) => setContent(sanitizeOcrTranscription(txt))}
+      />
+
+      {/* MODAL DE IMPRESSÃO DE FOLHA OFICIAL A4 */}
+      <PrintableExamSheetModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        theme={theme}
       />
     </div>
   );
