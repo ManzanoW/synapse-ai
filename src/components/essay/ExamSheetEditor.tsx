@@ -17,6 +17,7 @@ import {
   Camera,
 } from "lucide-react";
 import { EssayTheme } from "@/actions/essay-actions";
+import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
 import { SubmitConfirmationModal } from "./SubmitConfirmationModal";
 import { ClearSheetModal } from "./ClearSheetModal";
 import { HandwrittenOcrModal } from "./HandwrittenOcrModal";
@@ -90,14 +91,18 @@ export function ExamSheetEditor({
   // Cálculo realista de linhas e palavras
   const lines = useMemo(() => {
     if (!content) return [];
-    return content.split("\n");
+    // Remove quebras vazias consecutivas acidentais no final (ex: \n\n\n\n)
+    const sanitized = content.replace(/\r\n/g, "\n").replace(/\n{2,}$/, "\n");
+    return sanitized.split("\n");
   }, [content]);
 
   const lineCount = useMemo(() => {
     if (!content.trim()) return 0;
-    // Conta quebras explícitas e calcula quebras físicas para parágrafos longos sem \n
+    // Em folha oficial A4 de concurso com fonte serif 14.5px, uma linha comporta ~95-100 caracteres.
+    // Quando o texto possui quebras explícitas (\n), cada quebra representa uma linha da folha pautada.
+    // Apenas parágrafos contínuos muito longos (>100 caracteres sem \n) contam como múltiplas linhas físicas.
     let total = 0;
-    const CHARS_PER_LINE = 72;
+    const CHARS_PER_LINE = 100;
     for (const p of lines) {
       if (p.length === 0) {
         total += 1;
@@ -436,7 +441,7 @@ export function ExamSheetEditor({
       <HandwrittenOcrModal
         isOpen={isOcrModalOpen}
         onClose={() => setIsOcrModalOpen(false)}
-        onApplyTranscription={(txt) => setContent(txt)}
+        onApplyTranscription={(txt) => setContent(sanitizeOcrTranscription(txt))}
       />
     </div>
   );

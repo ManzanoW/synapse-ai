@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { recordStudyActivityAction } from "./gamification-actions";
+import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
 
 export interface MotivatingText {
   title: string;
@@ -548,23 +549,53 @@ export async function transcribeHandwrittenEssayAction(
     const arrayBuffer = await file.arrayBuffer();
     const base64Data = Buffer.from(arrayBuffer).toString("base64");
 
-    const prompt = `Você é o maior especialista do Brasil em leitura, transcrição paleográfica e caligrafia de redações manuscritas de concursos públicos (Cebraspe, FGV, FCC, Vunesp).
-Analise a imagem da folha pautada de redação manuscrita enviada pelo candidato.
+    const prompt = `Você é o maior especialista do Brasil em leitura paleográfica e transcrição de redações manuscritas de concursos públicos (Cebraspe, FGV, FCC, Vunesp).
+Analise com rigor extremo a imagem da folha pautada oficial anexada.
 Sua missão é transcrever com a máxima fidelidade a redação manuscrita, linha por linha (exatamente como o candidato escreveu nas linhas pautadas 1 a 30).
 
-DIRETRIZES TÉCNICAS OBRIGATÓRIAS:
-1. IDENTAÇÃO DE PARÁGRAFOS: Identifique o recuo inicial dos parágrafos e preserve-o adicionando 4 espaços no início da linha correspondente ("    Texto...").
-2. LINHA POR LINHA: Transcreva exatamente uma linha da folha pautada por linha de texto separada por quebra de linha (\\n), mantendo o padrão das linhas 1 a 30.
-3. RASURAS: Se houver alguma palavra rasurada pelo candidato com um traço simples horizontal (padrão de concurso), transcreva a palavra corrigida que ele escreveu logo ao lado.
-4. FIDELIDADE TEXTUAL: Mantenha a pontuação, acentuação e grafia exatas do candidato (mesmo se contiver desvios ortográficos ou gramaticais, pois a banca examinadora irá pontuá-los depois).
-5. Se alguma palavra estiver completamente ilegível, transcreva como [ilegível].
+DIRETRIZES PALEOGRÁFICAS CRÍTICAS DE CALIGRAFIA CURSIVA BRASILEIRA:
+1. ALERTA DE 's' CURSIVO vs 'k':
+   Na caligrafia cursiva brasileira, a letra 's' minúscula frequentemente possui uma haste vertical com laço ascendente que modelos ópticos confundem erroneamente com 'k'.
+   EM LÍNGUA PORTUGUESA NÃO EXISTE 'k' EM CLÍTICOS, PRONOMES, CONJUNÇÕES OU DESINÊNCIAS.
+   - Reconheça rigorosamente ênclises com '-se':
+     * 'configura-se' (NUNCA 'configura-k')
+     * 'observa-se' / 'ob-serva-se' (NUNCA 'ob-serva-k')
+     * 'encaixa-se' (NUNCA 'encaixa-k')
+     * 'trata-se', 'espera-se', etc.
+   - Reconheça mesóclises com '-se-':
+     * 'poder-se-á' (NUNCA 'poder-k-á')
+     * 'far-se-á', 'esperar-se-ia', etc.
+   - Reconheça a conjunção condicional 'se':
+     * 'se um indivíduo' (NUNCA 'k um indivíduo')
+     * 'seja pela' (NUNCA 'kja pela')
+
+2. CONCORDÂNCIA E DESINÊNCIAS CURSIVAS ('o' vs 'a'):
+   O laço superior de 'o' não deve ser confundido com 'a' quando a concordância gramatical for clara (ex: 'de surdos matriculados', e não 'surdas matriculados'; 'na teoria do sociólogo', e não 'no teoria').
+
+3. TRATAMENTO DE RASURAS DE CONCURSO:
+   Em provas discursivas, candidatos corrigem palavras passando um traço simples horizontal ou parênteses e escrevendo o termo correto ao lado.
+   - REGRA: Identifique o termo rasurado e o termo corrigido. Transcreva APENAS o termo corrigido válido pretendido pelo candidato (ex: se o candidato escreveu 'exercer(em pleno) plenamente' ou riscou uma palavra, transcreva 'exercerem plenamente' ou 'exercer plenamente').
+   - NUNCA junte partes da palavra riscada com a nova gerando palavras inexistentes como 'exercercromptend'.
+
+4. IDENTAÇÃO DE PARÁGRAFOS:
+   Preserve o recuo dos parágrafos iniciando a primeira linha de cada parágrafo com 4 espaços ("    Texto...").
+
+5. ESTRITAMENTE UMA LINHA DA FOLHA POR LINHA DE TEXTO:
+   - A folha pautada possui linhas numeradas de 1 a 30 na margem esquerda.
+   - Cada linha física que o candidato escreveu na folha deve corresponder a exatamente UMA linha no campo "transcription", separadas por \\n.
+   - Mantenha hifens de translineação no final das linhas exatamente como o candidato grafou (ex: 'desa-', 'cul-', 'proble-').
+   - NUNCA adicione linhas vazias ou em branco após o término da redação. Se o candidato escreveu até a linha 29, a transcrição deve terminar exatamente na linha 29.
+
+6. FIDELIDADE E CASOS ILEGÍVEIS:
+   - Preserve a grafia real do candidato.
+   - Se um trecho estiver de fato ilegível após análise minuciosa, marque como [ilegível].
 
 Retorne em formato JSON estrito:
 {
-  "transcription": "Texto transcrito linha por linha exatamente como nas linhas da folha",
-  "detectedLines": 28,
+  "transcription": "Texto transcrito linha por linha (1 a 30) separado por \\n",
+  "detectedLines": 29,
   "legibility": "Alta" | "Média" | "Baixa",
-  "observations": "Observação rápida sobre a nitidez da caligrafia e organização espacial dos parágrafos"
+  "observations": "Observação rápida sobre a caligrafia, respeito às margens e organização dos parágrafos"
 }`;
 
     const response = await generateContentWithFallback({
@@ -579,8 +610,14 @@ Retorne em formato JSON estrito:
       ],
       config: {
         responseMimeType: "application/json",
-        temperature: 0.2,
+        temperature: 0.1, // Baixa temperatura para precisão cirúrgica e sem alucinações
       },
+      preferredModels: [
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+      ],
     });
 
     if (!response || !response.text) {
@@ -598,9 +635,11 @@ Retorne em formato JSON estrito:
       observations: string;
     };
 
+    const sanitizedTranscription = sanitizeOcrTranscription(parsed.transcription);
+
     return {
       success: true,
-      transcription: parsed.transcription,
+      transcription: sanitizedTranscription,
       detectedLines: parsed.detectedLines,
       legibility: parsed.legibility,
       observations: parsed.observations,
