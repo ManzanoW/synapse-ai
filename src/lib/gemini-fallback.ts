@@ -34,6 +34,7 @@ export interface GeminiFallbackOptions {
   contents?: unknown;
   config?: GenerateContentConfig;
   timeoutMs?: number;
+  preferredModels?: string[];
 }
 
 /**
@@ -43,12 +44,16 @@ export interface GeminiFallbackOptions {
 export async function generateContentWithFallback(
   options: GeminiFallbackOptions,
 ): Promise<{ text: string; usedModel: string }> {
-  const { prompt, contents, config, timeoutMs = 90000 } = options;
+  const { prompt, contents, config, timeoutMs = 90000, preferredModels } = options;
   let lastError: unknown;
 
   const ai = getAIClient();
 
-  for (const modelName of MODELS_CASCADE) {
+  const modelsToTry = preferredModels && preferredModels.length > 0
+    ? Array.from(new Set([...preferredModels, ...MODELS_CASCADE]))
+    : MODELS_CASCADE;
+
+  for (const modelName of modelsToTry) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

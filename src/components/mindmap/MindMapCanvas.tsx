@@ -48,21 +48,51 @@ function escapeXml(unsafe: string): string {
 
 /**
  * Calcula dimensões ideais do card para que TODO o texto caiba
- * sem qualquer truncamento ou cortes com reticências.
+ * sem qualquer truncamento, cortes de linha ou bordas cortadas.
+ * Considera títulos multilinhas, descrições detalhadas e pílulas de bizu/regra.
  */
 function computeNodeDimensions(node: MindMapNode) {
   const width = 280;
+
+  // 1. Título (12px bold, ~7.5px por caractere)
+  // No card interativo divide espaço com o ícone (16px) e botão expandir (20px)
   const labelLength = node.label ? node.label.length : 0;
+  const titleCharsPerLine = 25;
+  const titleLines = Math.max(1, Math.ceil(labelLength / titleCharsPerLine));
+  const titleHeight = titleLines * 19;
+
+  // 2. Descrição (10.5px regular, ~6.2px por caractere)
   const descLength = node.description ? node.description.length : 0;
+  const descCharsPerLine = 35;
+  const descLines = descLength > 0 ? Math.ceil(descLength / descCharsPerLine) : 0;
+  const descHeight = descLines > 0 ? 6 + descLines * 16 : 0;
 
-  // Estima linhas necessárias
-  const titleLines = Math.max(1, Math.ceil(labelLength / 26));
-  const descLines = descLength > 0 ? Math.max(1, Math.ceil(descLength / 36)) : 0;
-  const extraPill = node.mnemonic || node.ruleOrLaw ? 28 : 0;
+  // 3. Regra / Legislação (10px monospace, ~7px por caractere)
+  let ruleHeight = 0;
+  if (node.ruleOrLaw) {
+    const fullRuleText = `⚖️ Regra: ${node.ruleOrLaw}`;
+    const ruleCharsPerLine = 28;
+    const ruleLines = Math.max(1, Math.ceil(fullRuleText.length / ruleCharsPerLine));
+    // margin-top (8px) + padding vertical (8px) + linhas (16px cada)
+    ruleHeight = 8 + 8 + ruleLines * 16;
+  }
 
-  // Altura dinâmica confortável
-  const computedHeight = 28 + titleLines * 18 + descLines * 15 + extraPill;
-  const height = Math.max(76, computedHeight);
+  // 4. Mnemônico / Bizú (10px monospace, ~7px por caractere)
+  let mnemonicHeight = 0;
+  if (node.mnemonic) {
+    const fullMnemonicText = `💡 Bizú: ${node.mnemonic}`;
+    const mnemonicCharsPerLine = 28;
+    const mnemonicLines = Math.max(1, Math.ceil(fullMnemonicText.length / mnemonicCharsPerLine));
+    // margin-top (8px) + padding vertical (8px) + linhas (16px cada)
+    mnemonicHeight = 8 + 8 + mnemonicLines * 16;
+  }
+
+  // 5. Padding do Card: top 12px + bottom 14px + bordas 3px + respiro de segurança 18px
+  const cardPaddingAndSafety = 12 + 14 + 3 + 18;
+
+  const computedHeight =
+    cardPaddingAndSafety + titleHeight + descHeight + ruleHeight + mnemonicHeight;
+  const height = Math.max(82, Math.ceil(computedHeight));
 
   return { width, height };
 }
@@ -94,11 +124,13 @@ function generateStandaloneSvg(
     maxY = Math.max(maxY, n.y + n.height);
   });
 
-  const padding = 60;
-  const viewBoxX = minX - padding;
-  const viewBoxY = minY - padding;
-  const viewBoxWidth = Math.max(600, maxX - minX + padding * 2);
-  const viewBoxHeight = Math.max(400, maxY - minY + padding * 2);
+  const paddingX = 60;
+  const paddingTop = 60;
+  const paddingBottom = 100; // Margem generosa no rodapé para garantir que cards e sombras nunca fiquem cortados
+  const viewBoxX = minX - paddingX;
+  const viewBoxY = minY - paddingTop;
+  const viewBoxWidth = Math.max(600, maxX - minX + paddingX * 2);
+  const viewBoxHeight = Math.max(400, maxY - minY + paddingTop + paddingBottom);
 
   const isDark = mode === "dark";
   const bgColor = isDark ? "#030611" : "#ffffff";
@@ -139,27 +171,27 @@ function generateStandaloneSvg(
         borderColor = isDark ? "#10b981" : "#059669";
       }
 
-      const mnemonicHtml = node.mnemonic
-        ? `<div style="margin-top: 6px; font-size: 10px; font-weight: 700; color: ${isDark ? "#fcd34d" : "#b45309"}; font-family: monospace; background: ${isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7"}; border: 1px solid ${isDark ? "rgba(245, 158, 11, 0.4)" : "#fde68a"}; padding: 3px 6px; border-radius: 6px;">💡 Bizú: ${escapeXml(node.mnemonic)}</div>`
+      const ruleHtml = node.ruleOrLaw
+        ? `<div style="margin-top: 8px; font-size: 10px; font-weight: 700; color: ${isDark ? "#67e8f9" : "#0e7490"}; font-family: monospace; background: ${isDark ? "rgba(6, 182, 212, 0.2)" : "#cffafe"}; border: 1px solid ${isDark ? "rgba(6, 182, 212, 0.4)" : "#a5f3fc"}; padding: 4px 8px; border-radius: 6px; line-height: 1.4; word-break: break-word;">⚖️ Regra: ${escapeXml(node.ruleOrLaw)}</div>`
         : "";
 
-      const ruleHtml = node.ruleOrLaw
-        ? `<div style="margin-top: 6px; font-size: 10px; font-weight: 700; color: ${isDark ? "#67e8f9" : "#0e7490"}; font-family: monospace; background: ${isDark ? "rgba(6, 182, 212, 0.2)" : "#cffafe"}; border: 1px solid ${isDark ? "rgba(6, 182, 212, 0.4)" : "#a5f3fc"}; padding: 3px 6px; border-radius: 6px;">⚖️ Regra: ${escapeXml(node.ruleOrLaw)}</div>`
+      const mnemonicHtml = node.mnemonic
+        ? `<div style="margin-top: 8px; font-size: 10px; font-weight: 700; color: ${isDark ? "#fcd34d" : "#b45309"}; font-family: monospace; background: ${isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7"}; border: 1px solid ${isDark ? "rgba(245, 158, 11, 0.4)" : "#fde68a"}; padding: 4px 8px; border-radius: 6px; line-height: 1.4; word-break: break-word;">💡 Bizú: ${escapeXml(node.mnemonic)}</div>`
         : "";
 
       return `
-    <foreignObject x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}">
-      <div xmlns="http://www.w3.org/1999/xhtml" style="width: 100%; min-height: 100%; box-sizing: border-box; background: ${cardBg}; border: 1.5px solid ${borderColor}; border-radius: 14px; padding: 10px 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 4px 14px rgba(0,0,0,${isDark ? "0.4" : "0.08"});">
+    <foreignObject x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" style="overflow: visible;">
+      <div xmlns="http://www.w3.org/1999/xhtml" style="width: 100%; box-sizing: border-box; background: ${cardBg}; border: 1.5px solid ${borderColor}; border-radius: 14px; padding: 12px 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 4px 14px rgba(0,0,0,${isDark ? "0.4" : "0.08"});">
         <div style="font-size: 12px; font-weight: 700; color: ${textColor}; line-height: 1.35; word-break: break-word;">
           ${escapeXml(node.label)}
         </div>
         ${
           node.description
-            ? `<div style="font-size: 10.5px; color: ${descColor}; line-height: 1.4; margin-top: 5px; word-break: break-word;">${escapeXml(node.description)}</div>`
+            ? `<div style="font-size: 10.5px; color: ${descColor}; line-height: 1.4; margin-top: 6px; word-break: break-word;">${escapeXml(node.description)}</div>`
             : ""
         }
-        ${mnemonicHtml}
         ${ruleHtml}
+        ${mnemonicHtml}
       </div>
     </foreignObject>`;
     })
@@ -331,7 +363,7 @@ export function MindMapCanvas({
     return {
       nodes: allNodes,
       connections: allConnections,
-      bounds: { width: maxX + 100, height: maxY + 100 },
+      bounds: { width: maxX + 120, height: maxY + 140 },
     };
   }, [layoutTree]);
 
@@ -400,9 +432,11 @@ export function MindMapCanvas({
       img.onload = () => {
         try {
           const scale = 2; // Resolução Retina 2x
+          const imgWidth = img.naturalWidth || img.width || bounds.width;
+          const imgHeight = img.naturalHeight || img.height || bounds.height;
           const canvas = document.createElement("canvas");
-          canvas.width = bounds.width * scale;
-          canvas.height = bounds.height * scale;
+          canvas.width = imgWidth * scale;
+          canvas.height = imgHeight * scale;
           const ctx = canvas.getContext("2d");
           if (!ctx) {
             URL.revokeObjectURL(url);
@@ -410,7 +444,7 @@ export function MindMapCanvas({
           }
 
           ctx.scale(scale, scale);
-          ctx.drawImage(img, 0, 0);
+          ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
 
           canvas.toBlob((pngBlob) => {
             if (pngBlob) {
@@ -496,14 +530,13 @@ export function MindMapCanvas({
                 background-color: ${isDark ? "#030611" : "#ffffff"};
                 color: ${isDark ? "#ffffff" : "#0f172a"};
                 font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                overflow: hidden;
               }
               .page-container {
                 width: 100%;
                 height: 100%;
                 display: flex;
                 flex-direction: column;
-                padding: 8px 12px;
+                padding: 6px 10px;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
               }
@@ -530,13 +563,14 @@ export function MindMapCanvas({
                 margin: 1px 0 0 0;
               }
               .svg-wrap {
-                flex: 1;
+                flex: 1 1 auto;
                 width: 100%;
                 min-height: 0;
+                height: calc(100% - 46px);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                overflow: hidden;
+                overflow: visible;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
               }
@@ -544,30 +578,54 @@ export function MindMapCanvas({
                 width: 100% !important;
                 height: 100% !important;
                 max-width: 100% !important;
-                max-height: calc(100vh - 58px) !important;
+                max-height: 100% !important;
                 object-fit: contain;
                 display: block;
                 margin: 0 auto;
               }
               @media print {
                 html, body {
-                  width: 100%;
-                  height: 100%;
-                  overflow: hidden !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  overflow: visible !important;
+                  background-color: ${isDark ? "#030611" : "#ffffff"} !important;
                 }
                 .page-container {
-                  padding: 0;
-                  height: 100vh !important;
-                  max-height: 100vh !important;
-                  overflow: hidden !important;
+                  padding: 2px 4px !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  max-height: 100% !important;
+                  overflow: visible !important;
+                  display: flex !important;
+                  flex-direction: column !important;
                   page-break-inside: avoid !important;
                   break-inside: avoid !important;
                 }
                 .no-print {
                   display: none !important;
                 }
+                .header {
+                  padding-bottom: 4px !important;
+                  margin-bottom: 4px !important;
+                  flex-shrink: 0 !important;
+                }
+                .svg-wrap {
+                  flex: 1 1 auto !important;
+                  width: 100% !important;
+                  min-height: 0 !important;
+                  height: calc(100% - 36px) !important;
+                  max-height: calc(100% - 36px) !important;
+                  overflow: visible !important;
+                  display: flex !important;
+                  align-items: center !important;
+                  justify-content: center !important;
+                }
                 svg {
-                  max-height: calc(100vh - 48px) !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  max-width: 100% !important;
+                  max-height: 100% !important;
+                  object-fit: contain !important;
                   page-break-inside: avoid !important;
                   break-inside: avoid !important;
                 }

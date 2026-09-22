@@ -18,7 +18,13 @@ import {
   Gift,
   Trophy,
   Flame,
+  Loader2,
 } from "lucide-react";
+import {
+  claimOnboardingRewardAction,
+  getOnboardingRewardStatusAction,
+} from "@/actions/gamification-actions";
+import { useGamification } from "@/context/GamificationContext";
 
 interface FirstStepsChecklistCardProps {
   hasEditalSubjects: boolean;
@@ -65,23 +71,65 @@ export function FirstStepsChecklistCard({
   questionsCount,
   getHref,
 }: FirstStepsChecklistCardProps) {
+  const { refreshStats } = useGamification();
   const [isDismissed, setIsDismissed] = useState<boolean>(false);
   const [isMinimized, setIsMinimized] = useState<boolean>(false);
   const [isClaimed, setIsClaimed] = useState<boolean>(false);
+  const [isClaiming, setIsClaiming] = useState<boolean>(false);
   const [floatingXp, setFloatingXp] = useState<boolean>(false);
 
-  // Carrega estado persistido
+  // Sincroniza estado persistido e auto-credita o XP se necessário
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("synapse_first_steps_checklist");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setIsDismissed(Boolean(parsed.dismissed));
-        setIsMinimized(Boolean(parsed.minimized));
-        setIsClaimed(Boolean(parsed.claimed));
+    let isMounted = true;
+
+    async function syncOnboardingClaim() {
+      try {
+        const saved = localStorage.getItem("synapse_first_steps_checklist");
+        let parsedClaimed = false;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (isMounted) {
+            setIsDismissed(Boolean(parsed.dismissed));
+            setIsMinimized(Boolean(parsed.minimized));
+          }
+          parsedClaimed = Boolean(parsed.claimed);
+          if (isMounted) setIsClaimed(parsedClaimed);
+        }
+
+        // Consulta se o banco de dados já registrou a conquista
+        const status = await getOnboardingRewardStatusAction();
+        if (status.claimed) {
+          if (isMounted) setIsClaimed(true);
+        } else if (
+          parsedClaimed ||
+          (hasEditalSubjects && sessionsCount > 0 && questionsCount >= 3)
+        ) {
+          // Auto-cura: se o usuário já havia clicado (apenas no localStorage) ou completou os 3 passos
+          const res = await claimOnboardingRewardAction();
+          if (res.success && res.earnedXp && res.earnedXp > 0) {
+            if (isMounted) {
+              setIsClaimed(true);
+              setFloatingXp(true);
+              setTimeout(() => setFloatingXp(false), 3000);
+            }
+            saveState({ claimed: true });
+            await refreshStats();
+            window.dispatchEvent(new CustomEvent("xp-updated"));
+          } else if (res.alreadyClaimed) {
+            if (isMounted) setIsClaimed(true);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao sincronizar primeiras conquistas:", err);
       }
-    } catch {}
-  }, []);
+    }
+
+    syncOnboardingClaim();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [hasEditalSubjects, sessionsCount, questionsCount, refreshStats]);
 
   const saveState = (updates: Partial<{ dismissed: boolean; minimized: boolean; claimed: boolean }>) => {
     try {
@@ -106,17 +154,31 @@ export function FirstStepsChecklistCard({
     saveState({ minimized: next });
   };
 
-  const handleClaim = () => {
-    playCelebrationSound();
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
-    setFloatingXp(true);
-    setTimeout(() => setFloatingXp(false), 2500);
-    setIsClaimed(true);
-    saveState({ claimed: true });
+  const handleClaim = async () => {
+    if (isClaiming) return;
+    setIsClaiming(true);
+    try {
+      const res = await claimOnboardingRewardAction();
+      if (res.success) {
+        playCelebrationSound();
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+        setFloatingXp(true);
+        setTimeout(() => setFloatingXp(false), 2500);
+        setIsClaimed(true);
+        saveState({ claimed: true });
+
+        await refreshStats();
+        window.dispatchEvent(new CustomEvent("xp-updated"));
+      }
+    } catch (err) {
+      console.error("Erro ao resgatar XP de primeiras conquistas:", err);
+    } finally {
+      setIsClaiming(false);
+    }
   };
 
   // Cálculo de tarefas completadas
@@ -393,10 +455,15 @@ export function FirstStepsChecklistCard({
                   <button
                     type="button"
                     onClick={handleClaim}
-                    className="px-4 py-2 rounded-xl bg-linear-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                    disabled={isClaiming}
+                    className="px-4 py-2 rounded-xl bg-linear-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
                   >
-                    <Gift size={14} />
-                    <span>Resgatar +100 XP</span>
+                    {isClaiming ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Gift size={14} />
+                    )}
+                    <span>{isClaiming ? "Resgatando..." : "Resgatar +100 XP"}</span>
                   </button>
                 )}
               </div>

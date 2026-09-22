@@ -18,6 +18,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { EssayEvaluationResult } from "@/actions/essay-actions";
+import { GoldenVersionSplitView } from "./GoldenVersionSplitView";
 
 interface EssayResultViewProps {
   result: EssayEvaluationResult;
@@ -125,6 +126,14 @@ export function EssayResultView({
           <div className="text-[10px] text-slate-400 mt-2 font-mono">
             {scorePercentage}% de aproveitamento
           </div>
+
+          {result.notaConteudo !== undefined && result.descontoFormal !== undefined && (
+            <div className="mt-2 text-[10px] font-mono text-slate-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+              <span>NC: <strong>{result.notaConteudo.toFixed(1)}</strong></span>
+              <span className="mx-1 text-slate-500">•</span>
+              <span>Desc: <strong className="text-rose-400">-{result.descontoFormal.toFixed(2)}</strong> ({result.numeroErros ?? 0} {result.numeroErros === 1 ? "erro" : "erros"})</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -337,45 +346,19 @@ export function EssayResultView({
         </div>
       )}
 
-      {/* ABA 2: VERSÃO PADRÃO OURO */}
+      {/* ABA 2: VERSÃO PADRÃO OURO COMPARATIVA */}
       {activeTab === "golden" && (
-        <div className="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-6 shadow-2xl flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <Sparkles className="text-amber-400" size={18} />
-                <h3 className="text-base font-bold text-white">
-                  Versão Padrão Ouro • Redação Nota 100
-                </h3>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Reescrita refinada pelo examinador mantendo suas ideias com vocabulário formal e coesão impecável.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleCopyGolden}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer"
-            >
-              {copiedGolden ? (
-                <>
-                  <Check size={13} />
-                  <span>Copiado!</span>
-                </>
-              ) : (
-                <>
-                  <Copy size={13} />
-                  <span>Copiar Versão</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="bg-[#0b0f19] border border-slate-700/60 rounded-xl p-5 sm:p-6 text-slate-200 text-sm font-serif leading-relaxed whitespace-pre-wrap selection:bg-amber-500/30 break-words overflow-x-hidden">
-            {result.goldenVersion}
-          </div>
-        </div>
+        <GoldenVersionSplitView
+          originalText={result.content}
+          goldenVersion={result.goldenVersion}
+          banca={result.banca}
+          score={result.score}
+          maxScore={result.maxScore}
+          lineCount={result.lineCount}
+          wordCount={result.wordCount}
+          lineErrors={result.lineErrors}
+          strengths={result.strengths}
+        />
       )}
 
       {/* ABA 3: TEXTO ORIGINAL DO ALUNO */}

@@ -4,6 +4,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { recordStudyActivityAction } from "./gamification-actions";
+import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
+import { evaluateDiscursivaEssay } from "@/lib/discursiva-evaluator";
 
 export interface MotivatingText {
   title: string;
@@ -57,6 +59,9 @@ export interface EssayEvaluationResult {
   goldenVersion: string;
   createdAt: string;
   xpEarned?: number;
+  notaConteudo?: number;
+  descontoFormal?: number;
+  numeroErros?: number;
 }
 
 /**
@@ -177,129 +182,27 @@ export async function evaluateEssayAction(payload: {
     } = payload;
 
     const cleanContent = content.trim();
-    if (!cleanContent || cleanContent.length < 100 || wordCount < 30) {
+    if (!cleanContent || cleanContent.length < 50 || wordCount < 20) {
       return {
         success: false,
-        error: "A redação precisa conter no mínimo 30 palavras para ser avaliada pela banca.",
+        error: "A redação precisa conter texto suficiente para ser avaliada pela banca.",
       };
     }
 
-    // Monta o texto enumerado linha por linha para que o Gemini analise exatamente a linha do aluno
-    const lines = cleanContent.split("\n");
-    const numberedEssay = lines
-      .map((l, idx) => `[Linha ${idx + 1}] ${l}`)
-      .join("\n");
-
-    const prompt = `
-Você é o examinador-chefe de redações da banca examinadora ${banca} para concursos públicos.
-Sua missão é realizar uma AVALIAÇÃO IMPARCIAL, RIGOROSA E 100% HONESTA da redação do candidato.
-NÃO facilite, NÃO passe pano e NÃO infle a nota. Se o candidato cometeu erros de crase, regência, concordância, usou conectivos de forma mecânica, foi superficial ou tangenciou os tópicos exigidos, PENALIZE SEVERAMENTE. O candidato precisa da verdade crua para evoluir e não ser desclassificado na prova real.
-
-INFORMAÇÕES DA PROVA:
-- Banca: ${banca}
-- Área: ${subjectArea}
-- Tema Proposto: "${themeTitle}"
-- Textos Motivadores Fornecidos:
-${motivatingText || "Sem textos motivadores adicionais."}
-- Tópicos / Padrão de Resposta Esperado pela Banca:
-${expectedPoints || "Abordagem crítica fundamentada, contextualização doutrinária/legal e intervenção prática."}
-
-REDAÇÃO DO CANDIDATO (com numeração de linhas):
-${numberedEssay}
-
-DADOS DA SUBMISSÃO:
-- Quantidade de linhas escritas: ${lineCount}
-- Total de palavras: ${wordCount}
-- Tempo de prova gasto: ${Math.round(durationSeconds / 60)} minutos
-
-REGRAS DE PONTUAÇÃO (Escala Oficial de 0 a 100):
-Avalie nos seguintes 4 critérios oficiais:
-1. "Apresentação, Estrutura e Coesão Textual (Forma e Gênero)" (máximo: 25.0 pontos):
-   - Avalia paragrafação nítida (introdução, 2 desenvolvimentos, conclusão), respeito ao limite de linhas (20 a 30 linhas), legibilidade e progressão lógica sem truncamento. Se escreveu menos de 20 linhas ou mais de 30 linhas, penalize fortemente.
-2. "Domínio da Norma Padrão da Língua Portuguesa" (máximo: 25.0 pontos):
-   - Avalia acentuação, ortografia, crase, concordância verbal/nominal, regência verbal/nominal, pontuação (especialmente vírgulas entre sujeito e predicado) e precisão vocabular. Desconte cerca de 1.0 a 2.0 pontos por cada erro gramatical identificável.
-3. "Desenvolvimento do Tema, Argumentação e Conteúdo" (máximo: 30.0 pontos):
-   - Avalia se o aluno respondeu diretamente a CADA UM dos tópicos esperados, se trouxe repertório sociocultural legítimo (leis, filósofos, dados, jurisprudência) e se defendeu um ponto de vista sem cair no senso comum. Se tangenciou ou ignorou algum tópico, desconte substancialmente.
-4. "Coesão, Coerência e Conclusão Propositiva" (máximo: 20.0 pontos):
-   - Avalia o uso diversificado de operadores argumentativos interparágrafos ("Outrossim", "Por conseguinte", "Nesse prisma", "Em contrapartida"), ausência de períodos excessivamente longos e uma conclusão consistente.
-
-REQUISITOS OBRIGATÓRIOS DO RETORNO:
-- Nota final de 0.0 a 100.0 (Aprovado se >= 60.0, Eliminado se < 60.0).
-- Parecer geral honesto e construtivo de 2 a 3 parágrafos sintetizando a avaliação da banca.
-- Lista detalhada de erros identificados linha a linha ("lineErrors"): para cada erro gramatical, sintático ou coesivo, aponte o número exato da linha, o trecho incorreto, o tipo de erro, a explicação técnica e como reescrever.
-- Pontos Fortes (o que o candidato fez bem e deve manter).
-- Pontos Críticos (os erros mais perigosos que o eliminariam na prova).
-- Versão Padrão Ouro ("goldenVersion"): reescreva a redação completa com as MESMAS ideias centrais do aluno, mas no padrão nota 100 da banca, com vocabulário formal impecável, conectivos perfeitos e períodos equilibrados.
-
-Retorne EXCLUSIVAMENTE um objeto JSON válido (sem comentários e sem markdown fora do JSON):
-{
-  "score": 76.5,
-  "maxScore": 100,
-  "isApproved": true,
-  "generalFeedback": "Parecer geral detalhado...",
-  "criteriaScores": [
-    {
-      "name": "Apresentação, Estrutura e Gênero Textual",
-      "maxScore": 25,
-      "awardedScore": 20.5,
-      "comments": "Justificativa da pontuação..."
-    },
-    {
-      "name": "Domínio da Norma Padrão da Língua Portuguesa",
-      "maxScore": 25,
-      "awardedScore": 18.0,
-      "comments": "Justificativa com menção aos erros gramaticais..."
-    },
-    {
-      "name": "Desenvolvimento do Tema e Repertório",
-      "maxScore": 30,
-      "awardedScore": 24.0,
-      "comments": "Justificativa da cobertura dos tópicos..."
-    },
-    {
-      "name": "Coesão, Coerência e Conclusão",
-      "maxScore": 20,
-      "awardedScore": 14.0,
-      "comments": "Justificativa da articulação entre parágrafos..."
-    }
-  ],
-  "lineErrors": [
-    {
-      "line": 4,
-      "excerpt": "onde a sociedade busca",
-      "errorType": "Coesão",
-      "explanation": "O pronome 'onde' só deve ser empregado para retomar lugares físicos e concretos.",
-      "suggestion": "em que a sociedade busca / no qual a sociedade busca"
-    }
-  ],
-  "strengths": [
-    "Boa articulação do repertório constitucional no primeiro parágrafo.",
-    "Paragrafação simétrica e visualmente equilibrada."
-  ],
-  "improvements": [
-    "Atenção ao uso indevido da vírgula separando sujeito e predicado na linha 12.",
-    "Aprofundar a resposta ao Tópico 2, que ficou superficial."
-  ],
-  "goldenVersion": "Texto completo reescrito no padrão nota máxima..."
-}
-`;
-
-    const { text } = await generateContentWithFallback({
-      prompt,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.4,
-        maxOutputTokens: 4000,
-      },
-      timeoutMs: 65000,
+    // 1. Executa avaliação calibrada oficial CEBRASPE
+    const evaluation = await evaluateDiscursivaEssay({
+      themeTitle,
+      banca,
+      subjectArea,
+      motivatingText,
+      expectedPoints,
+      content: cleanContent,
+      lineCount,
+      wordCount,
+      durationSeconds,
     });
 
-    const parsed = JSON.parse(text);
-
-    const calculatedScore = Number(parsed.score) || 0;
-    const isApproved = calculatedScore >= 60;
-
-    // 3. Salva no banco de dados
+    // 2. Salva no banco de dados
     const submission = await prisma.essaySubmission.create({
       data: {
         userId,
@@ -312,20 +215,20 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido (sem comentários e sem markdown f
         lineCount,
         wordCount,
         durationSeconds,
-        score: calculatedScore,
-        maxScore: 100,
-        isApproved,
-        generalFeedback: parsed.generalFeedback || "",
-        criteriaScores: parsed.criteriaScores || [],
-        lineErrors: parsed.lineErrors || [],
-        strengths: parsed.strengths || [],
-        improvements: parsed.improvements || [],
-        goldenVersion: parsed.goldenVersion || "",
+        score: evaluation.score,
+        maxScore: evaluation.maxScore,
+        isApproved: evaluation.isApproved,
+        generalFeedback: evaluation.generalFeedback || "",
+        criteriaScores: evaluation.criteriaScores as any,
+        lineErrors: evaluation.lineErrors as any,
+        strengths: evaluation.strengths as any,
+        improvements: evaluation.improvements as any,
+        goldenVersion: evaluation.goldenVersion || "",
         status: "EVALUATED",
       },
     });
 
-    // 4. Concede XP na Gamificação (+120 XP por redação completa corrigida)
+    // 3. Concede XP na Gamificação (+120 XP por redação completa corrigida)
     const xpReward = 120;
     const sessionMinutes = Math.max(15, Math.round(durationSeconds / 60));
     try {
@@ -347,17 +250,20 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido (sem comentários e sem markdown f
         lineCount: submission.lineCount,
         wordCount: submission.wordCount,
         durationSeconds: submission.durationSeconds || 0,
-        score: submission.score ?? calculatedScore,
+        score: submission.score ?? evaluation.score,
         maxScore: submission.maxScore,
-        isApproved: submission.isApproved ?? isApproved,
+        isApproved: submission.isApproved ?? evaluation.isApproved,
         generalFeedback: submission.generalFeedback || "",
-        criteriaScores: (submission.criteriaScores as unknown as CriteriaScore[]) || [],
-        lineErrors: (submission.lineErrors as unknown as LineError[]) || [],
-        strengths: (submission.strengths as unknown as string[]) || [],
-        improvements: (submission.improvements as unknown as string[]) || [],
+        criteriaScores: evaluation.criteriaScores,
+        lineErrors: evaluation.lineErrors,
+        strengths: evaluation.strengths,
+        improvements: evaluation.improvements,
         goldenVersion: submission.goldenVersion || "",
         createdAt: submission.createdAt.toISOString(),
         xpEarned: xpReward,
+        notaConteudo: evaluation.notaConteudo,
+        descontoFormal: evaluation.descontoFormal,
+        numeroErros: evaluation.numeroErros,
       },
     };
   } catch (error) {
@@ -548,23 +454,53 @@ export async function transcribeHandwrittenEssayAction(
     const arrayBuffer = await file.arrayBuffer();
     const base64Data = Buffer.from(arrayBuffer).toString("base64");
 
-    const prompt = `Você é o maior especialista do Brasil em leitura, transcrição paleográfica e caligrafia de redações manuscritas de concursos públicos (Cebraspe, FGV, FCC, Vunesp).
-Analise a imagem da folha pautada de redação manuscrita enviada pelo candidato.
+    const prompt = `Você é o maior especialista do Brasil em leitura paleográfica e transcrição de redações manuscritas de concursos públicos (Cebraspe, FGV, FCC, Vunesp).
+Analise com rigor extremo a imagem da folha pautada oficial anexada.
 Sua missão é transcrever com a máxima fidelidade a redação manuscrita, linha por linha (exatamente como o candidato escreveu nas linhas pautadas 1 a 30).
 
-DIRETRIZES TÉCNICAS OBRIGATÓRIAS:
-1. IDENTAÇÃO DE PARÁGRAFOS: Identifique o recuo inicial dos parágrafos e preserve-o adicionando 4 espaços no início da linha correspondente ("    Texto...").
-2. LINHA POR LINHA: Transcreva exatamente uma linha da folha pautada por linha de texto separada por quebra de linha (\\n), mantendo o padrão das linhas 1 a 30.
-3. RASURAS: Se houver alguma palavra rasurada pelo candidato com um traço simples horizontal (padrão de concurso), transcreva a palavra corrigida que ele escreveu logo ao lado.
-4. FIDELIDADE TEXTUAL: Mantenha a pontuação, acentuação e grafia exatas do candidato (mesmo se contiver desvios ortográficos ou gramaticais, pois a banca examinadora irá pontuá-los depois).
-5. Se alguma palavra estiver completamente ilegível, transcreva como [ilegível].
+DIRETRIZES PALEOGRÁFICAS CRÍTICAS DE CALIGRAFIA CURSIVA BRASILEIRA:
+1. ALERTA DE 's' CURSIVO vs 'k':
+   Na caligrafia cursiva brasileira, a letra 's' minúscula frequentemente possui uma haste vertical com laço ascendente que modelos ópticos confundem erroneamente com 'k'.
+   EM LÍNGUA PORTUGUESA NÃO EXISTE 'k' EM CLÍTICOS, PRONOMES, CONJUNÇÕES OU DESINÊNCIAS.
+   - Reconheça rigorosamente ênclises com '-se':
+     * 'configura-se' (NUNCA 'configura-k')
+     * 'observa-se' / 'ob-serva-se' (NUNCA 'ob-serva-k')
+     * 'encaixa-se' (NUNCA 'encaixa-k')
+     * 'trata-se', 'espera-se', etc.
+   - Reconheça mesóclises com '-se-':
+     * 'poder-se-á' (NUNCA 'poder-k-á')
+     * 'far-se-á', 'esperar-se-ia', etc.
+   - Reconheça a conjunção condicional 'se':
+     * 'se um indivíduo' (NUNCA 'k um indivíduo')
+     * 'seja pela' (NUNCA 'kja pela')
+
+2. CONCORDÂNCIA E DESINÊNCIAS CURSIVAS ('o' vs 'a'):
+   O laço superior de 'o' não deve ser confundido com 'a' quando a concordância gramatical for clara (ex: 'de surdos matriculados', e não 'surdas matriculados'; 'na teoria do sociólogo', e não 'no teoria').
+
+3. TRATAMENTO DE RASURAS DE CONCURSO:
+   Em provas discursivas, candidatos corrigem palavras passando um traço simples horizontal ou parênteses e escrevendo o termo correto ao lado.
+   - REGRA: Identifique o termo rasurado e o termo corrigido. Transcreva APENAS o termo corrigido válido pretendido pelo candidato (ex: se o candidato escreveu 'exercer(em pleno) plenamente' ou riscou uma palavra, transcreva 'exercerem plenamente' ou 'exercer plenamente').
+   - NUNCA junte partes da palavra riscada com a nova gerando palavras inexistentes como 'exercercromptend'.
+
+4. IDENTAÇÃO DE PARÁGRAFOS:
+   Preserve o recuo dos parágrafos iniciando a primeira linha de cada parágrafo com 4 espaços ("    Texto...").
+
+5. ESTRITAMENTE UMA LINHA DA FOLHA POR LINHA DE TEXTO:
+   - A folha pautada possui linhas numeradas de 1 a 30 na margem esquerda.
+   - Cada linha física que o candidato escreveu na folha deve corresponder a exatamente UMA linha no campo "transcription", separadas por \\n.
+   - Mantenha hifens de translineação no final das linhas exatamente como o candidato grafou (ex: 'desa-', 'cul-', 'proble-').
+   - NUNCA adicione linhas vazias ou em branco após o término da redação. Se o candidato escreveu até a linha 29, a transcrição deve terminar exatamente na linha 29.
+
+6. FIDELIDADE E CASOS ILEGÍVEIS:
+   - Preserve a grafia real do candidato.
+   - Se um trecho estiver de fato ilegível após análise minuciosa, marque como [ilegível].
 
 Retorne em formato JSON estrito:
 {
-  "transcription": "Texto transcrito linha por linha exatamente como nas linhas da folha",
-  "detectedLines": 28,
+  "transcription": "Texto transcrito linha por linha (1 a 30) separado por \\n",
+  "detectedLines": 29,
   "legibility": "Alta" | "Média" | "Baixa",
-  "observations": "Observação rápida sobre a nitidez da caligrafia e organização espacial dos parágrafos"
+  "observations": "Observação rápida sobre a caligrafia, respeito às margens e organização dos parágrafos"
 }`;
 
     const response = await generateContentWithFallback({
@@ -579,8 +515,14 @@ Retorne em formato JSON estrito:
       ],
       config: {
         responseMimeType: "application/json",
-        temperature: 0.2,
+        temperature: 0.1, // Baixa temperatura para precisão cirúrgica e sem alucinações
       },
+      preferredModels: [
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+      ],
     });
 
     if (!response || !response.text) {
@@ -598,9 +540,11 @@ Retorne em formato JSON estrito:
       observations: string;
     };
 
+    const sanitizedTranscription = sanitizeOcrTranscription(parsed.transcription);
+
     return {
       success: true,
-      transcription: parsed.transcription,
+      transcription: sanitizedTranscription,
       detectedLines: parsed.detectedLines,
       legibility: parsed.legibility,
       observations: parsed.observations,

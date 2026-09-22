@@ -545,7 +545,7 @@ export function QuizResolutionView({
     >
       {/* OCULTAÇÃO DA SIDEBAR E BOTTOM NAVIGATION GLOBAIS NO MODO RESOLUÇÃO */}
       <style jsx global>{`
-        aside:not([data-quiz-sidebar="true"]),
+        aside:not([data-quiz-sidebar="true"]):not([data-mentor-drawer="true"]),
         [data-sidebar="sidebar"],
         .sidebar-container {
           display: none !important;

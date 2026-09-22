@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Play,
@@ -59,6 +60,12 @@ export function AudioFlashcardPlayerModal({
     initialPauseDuration: 4,
   });
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Atalhos de teclado (Espaço = Play/Pause, Esc = Fechar)
   useEffect(() => {
     if (!isOpen) return;
@@ -87,13 +94,13 @@ export function AudioFlashcardPlayerModal({
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
   const progressPercent =
     totalCards > 0 ? ((currentIndex + 1) / totalCards) * 100 : 0;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-2xl select-none overflow-hidden">
+  const modalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-2xl select-none overflow-y-auto">
       {/* Ambient Glow dinâmico dependendo da fase */}
       <div
         className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none transition-all duration-700 ${
@@ -105,9 +112,9 @@ export function AudioFlashcardPlayerModal({
         }`}
       />
 
-      <div className="relative w-full max-w-2xl bg-[#060913]/90 border border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col justify-between min-h-[580px] max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-[#060913]/95 border border-slate-800/90 rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col justify-between my-auto max-h-[92vh] overflow-y-auto">
         {/* Topo do Player */}
-        <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
               <Headphones size={18} />
@@ -236,7 +243,7 @@ export function AudioFlashcardPlayerModal({
         </div>
 
         {/* Controles Principais de Áudio */}
-        <div className="space-y-5 pt-4 border-t border-slate-800/80">
+        <div className="space-y-5 pt-4 border-t border-slate-800/80 shrink-0">
           <div className="flex items-center justify-center gap-4 sm:gap-6">
             <button
               onClick={prev}
@@ -351,4 +358,6 @@ export function AudioFlashcardPlayerModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

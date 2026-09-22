@@ -21,6 +21,7 @@ import {
   transcribeHandwrittenEssayAction,
   TranscribeHandwrittenEssayResponse,
 } from "@/actions/essay-actions";
+import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
 
 interface HandwrittenOcrModalProps {
   isOpen: boolean;
@@ -94,7 +95,7 @@ export function HandwrittenOcrModal({
 
       if (res.success && res.transcription) {
         setOcrData(res);
-        setTranscribedText(res.transcription);
+        setTranscribedText(sanitizeOcrTranscription(res.transcription));
         setStep("review");
       } else {
         setErrorMessage(res.error || "Não foi possível transcrever a caligrafia da folha.");
@@ -110,7 +111,7 @@ export function HandwrittenOcrModal({
 
   const handleApply = () => {
     if (!transcribedText.trim()) return;
-    onApplyTranscription(transcribedText);
+    onApplyTranscription(sanitizeOcrTranscription(transcribedText));
     onClose();
   };
 
@@ -288,8 +289,18 @@ export function HandwrittenOcrModal({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs text-slate-400 px-1">
                   <span>Revise o texto transcrito antes de preencher a folha:</span>
-                  <span className="font-mono text-[10px]">
-                    {transcribedText.split("\n").length} linhas
+                  <span
+                    className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                      transcribedText.trimEnd() &&
+                      transcribedText.trimEnd().split("\n").length > 30
+                        ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                        : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    }`}
+                  >
+                    {transcribedText.trimEnd()
+                      ? transcribedText.trimEnd().split("\n").length
+                      : 0}{" "}
+                    / 30 linhas
                   </span>
                 </div>
 

@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { revalidateTag, revalidatePath } from "next/cache";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
   getCachedUserStats,
@@ -312,6 +313,122 @@ export async function recordStudyActivityAction(
       success: false,
       error: "Falha ao registrar atividade de estudo.",
     };
+  }
+}
+
+/**
+ * Resgata a recompensa de +100 XP por concluir os 3 passos iniciais (Suas Primeiras Conquistas)
+ */
+export async function claimOnboardingRewardAction(): Promise<{
+  success: boolean;
+  earnedXp?: number;
+  newTotalXp?: number;
+  alreadyClaimed?: boolean;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const ONBOARDING_FLAG = "onboarding_first_steps_claimed";
+    const ONBOARDING_XP = 100;
+
+    const userStats = await prisma.userStats.findUnique({
+      where: { userId },
+      select: { claimedAchievements: true, totalXp: true },
+    });
+
+    const claimedList = (userStats?.claimedAchievements || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (claimedList.includes(ONBOARDING_FLAG)) {
+      return {
+        success: true,
+        alreadyClaimed: true,
+        earnedXp: 0,
+        newTotalXp: userStats?.totalXp ?? 0,
+      };
+    }
+
+    claimedList.push(ONBOARDING_FLAG);
+
+    const now = new Date();
+    const [updatedStats] = await prisma.$transaction([
+      prisma.userStats.upsert({
+        where: { userId },
+        create: {
+          userId,
+          totalXp: ONBOARDING_XP,
+          claimedAchievements: claimedList.join(","),
+          lastStudyDate: now,
+        },
+        update: {
+          totalXp: { increment: ONBOARDING_XP },
+          claimedAchievements: claimedList.join(","),
+          lastStudyDate: now,
+        },
+      }),
+      prisma.studySession.create({
+        data: {
+          userId,
+          date: now,
+          status: "COMPLETED",
+          durationMinutes: 5,
+          notes: "ACTIVITY:ONBOARDING_FIRST_STEPS",
+        },
+      }),
+    ]);
+
+    await invalidateUserCacheAction(userId);
+    revalidatePath("/dashboard");
+    revalidatePath("/achievements");
+
+    return {
+      success: true,
+      earnedXp: ONBOARDING_XP,
+      newTotalXp: updatedStats.totalXp,
+      alreadyClaimed: false,
+    };
+  } catch (err) {
+    console.error("Erro em claimOnboardingRewardAction:", err);
+    return {
+      success: false,
+      error: "Falha ao processar recompensa de primeiras conquistas.",
+    };
+  }
+}
+
+/**
+ * Consulta se as Primeiras Conquistas já foram resgatadas no banco de dados
+ */
+export async function getOnboardingRewardStatusAction(): Promise<{
+  claimed: boolean;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) return { claimed: false };
+
+    const userStats = await prisma.userStats.findUnique({
+      where: { userId },
+      select: { claimedAchievements: true },
+    });
+
+    const claimedList = (userStats?.claimedAchievements || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    return {
+      claimed: claimedList.includes("onboarding_first_steps_claimed"),
+    };
+  } catch {
+    return { claimed: false };
   }
 }
 

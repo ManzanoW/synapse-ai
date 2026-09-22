@@ -29,6 +29,13 @@ import {
   Timer,
   BookOpenCheck,
   Loader2,
+  ShieldAlert,
+  RotateCcw,
+  ChevronRight,
+  Award,
+  Compass,
+  Layers,
+  Calendar,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -63,6 +70,7 @@ import {
   QuestionAnswerSubmission,
   ErrorNotebookMetrics,
   MentorGuidance,
+  SubjectDomainMetric,
 } from "@/types/quiz";
 
 export interface QuestaoIA {
@@ -94,6 +102,7 @@ interface QuizHistoryItem {
 interface SubjectItem {
   id: string;
   name: string;
+  color?: string;
   topics?: { id: string; title: string }[];
 }
 
@@ -237,6 +246,7 @@ export default function QuestoesPage() {
     totalAnswered: number;
     averageAccuracy: number;
   }>({ totalAnswered: 0, averageAccuracy: 0 });
+  const [domainStats, setDomainStats] = useState<SubjectDomainMetric[]>([]);
 
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -418,6 +428,7 @@ export default function QuestoesPage() {
     getSubjectDomainStatsAction()
       .then((res) => {
         if (res.success && res.data) {
+          setDomainStats(res.data);
           const totalAnswered = res.data.reduce(
             (acc, curr) => acc + curr.totalAnswered,
             0,
@@ -1037,6 +1048,93 @@ export default function QuestoesPage() {
     }
   };
 
+  const handleLoadSavedQuiz = useCallback(
+    (savedQ: QuestaoIA[], savedBanca: string, id: string) => {
+      setLoadingQuizId(id);
+      setTimeout(() => {
+        const randomized = randomizeQuizSession(savedQ);
+        setCurrentQuizId(id);
+        setSelectedAnswers({});
+        setCheckedQuestions({});
+        setFlaggedQuestions({});
+        setErrorClassifications({});
+        setSavedErrors({});
+        setCreatedFlashcards({});
+        setShowCompletionModal(false);
+        setQuestions(randomized);
+        setBanca(savedBanca || "FGV");
+        handleTabChange("create");
+        setLoadingQuizId(null);
+        setTimerSeconds(0);
+        setFocusedQuestionIndex(0);
+        setIsTimerRunning(true);
+      }, 200);
+    },
+    [handleTabChange],
+  );
+
+  const handleQuickQuiz = useCallback(
+    async (options?: {
+      materia?: string;
+      banca?: string;
+      qtd?: number;
+      dificuldade?: string;
+    }) => {
+      const targetBanca = options?.banca || banca || "FGV";
+      const targetMateria =
+        options?.materia ||
+        materia ||
+        (subjects.length > 0 ? subjects[0].name : "Direito Constitucional");
+      const targetQtd = options?.qtd || 10;
+      const targetDiff = options?.dificuldade || dificuldade || "Média";
+
+      setBanca(targetBanca);
+      setMateria(targetMateria);
+      setQtdQuestoes(String(targetQtd));
+      setDificuldade(targetDiff);
+
+      setIsAIModalOpen(false);
+      setIsGenerating(true);
+      setSimuladoGenerationError(null);
+      setPendingSimuladoData(null);
+      setIsSimuladoModalOpen(true);
+
+      try {
+        const response = await fetch("/api/questions/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            banca: targetBanca,
+            materia: targetMateria,
+            topicoId: "ALL",
+            topicoNome: "Todos os Tópicos",
+            qtdQuestoes: targetQtd,
+            dificuldade: targetDiff,
+            fonteConteudo: "banca",
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Erro ao gerar simulado com IA.");
+        }
+
+        setPendingSimuladoData({
+          questions: data.data.questions,
+          quizId: data.data.quizId || null,
+        });
+      } catch (err: any) {
+        console.error("Erro na geração rápida:", err);
+        setSimuladoGenerationError(
+          err.message || "Não foi possível gerar as questões no momento.",
+        );
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [banca, materia, subjects, dificuldade],
+  );
+
   // ATALHOS DE TECLADO
   useEffect(() => {
     if (
@@ -1572,15 +1670,14 @@ export default function QuestoesPage() {
                           />
                         )}
 
-                      {/* HERO SPOTLIGHT - BANNER PRINCIPAL */}
+                      {/* 1. HERO SPOTLIGHT / COCKPIT PRINCIPAL */}
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="backdrop-blur-xl bg-gradient-to-br from-violet-950/30 via-zinc-900/60 to-black/80 border border-violet-500/20 rounded-2xl p-7 relative overflow-hidden shadow-2xl hover:border-violet-500/30 transition-all duration-300"
+                        className="backdrop-blur-xl bg-gradient-to-br from-violet-950/35 via-zinc-900/70 to-black/85 border border-violet-500/25 rounded-2xl p-6 sm:p-7 relative overflow-hidden shadow-2xl hover:border-violet-500/35 transition-all duration-300"
                       >
-                        {/* Luz radial ambiente em degradê violeta no canto superior direito */}
-                        <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 bg-violet-600/15 rounded-full blur-3xl" />
+                        <div className="pointer-events-none absolute -top-16 -right-16 w-72 h-72 bg-violet-600/15 rounded-full blur-3xl" />
 
                         <div className="relative z-10 space-y-5">
                           {/* Badge futurista */}
@@ -1590,142 +1687,509 @@ export default function QuestoesPage() {
                               className="text-violet-400 animate-pulse"
                             />
                             <span className="text-[10px] font-mono font-bold tracking-widest text-violet-300 uppercase">
-                              CORE ENGINE V2.0 • IA GENERATIVA
+                              CENTRAL DE TREINO INTELIGENTE • QUESTÕES ADAPTATIVAS
                             </span>
                           </div>
 
                           {/* Título & Descrição */}
                           <div className="space-y-2 max-w-2xl">
                             <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent leading-tight">
-                              Pratique com questões inéditas e simulados direcionados
+                              Pratique com foco na sua aprovação
                             </h2>
                             <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl">
-                              Gere cadernos adaptativos configurados pela IA ou retome seus testes anteriores com feedback e correção comentada em tempo real.
+                              Simulados cronometrados, filtros por banca e regeneração cirúrgica dos seus pontos fracos potencializados por Inteligência Artificial.
                             </p>
                           </div>
 
-                          {/* Métricas integradas no rodapé do banner */}
-                          <div className="pt-3 flex flex-wrap items-center gap-2.5 sm:gap-3 border-t border-white/5">
+                          {/* 4 Métricas Integradas no Cockpit */}
+                          <div className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 border-t border-white/5">
                             {/* 1. Precisão Média */}
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
-                              <Target size={14} className="text-violet-400 shrink-0" />
-                              <span className="text-zinc-400 text-[11px]">Precisão Média:</span>
-                              <span className="text-white font-bold font-mono">
+                            <div className="flex flex-col p-3 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md">
+                              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
+                                <span className="text-[11px]">Precisão Média</span>
+                                <Target size={13} className="text-violet-400" />
+                              </div>
+                              <span className="text-white font-bold font-mono text-base sm:text-lg">
                                 {practiceMetrics.averageAccuracy}%
                               </span>
+                              <div className="w-full bg-white/5 h-1 rounded-full mt-2 overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-violet-500 to-emerald-400 rounded-full transition-all duration-500"
+                                  style={{ width: `${practiceMetrics.averageAccuracy}%` }}
+                                />
+                              </div>
                             </div>
 
-                            {/* 2. Total de Questões Praticadas */}
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
-                              <Zap size={14} className="text-violet-400 shrink-0" />
-                              <span className="text-zinc-400 text-[11px]">Questões Praticadas:</span>
-                              <span className="text-white font-bold font-mono">
+                            {/* 2. Questões Resolvidas */}
+                            <div className="flex flex-col p-3 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md">
+                              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
+                                <span className="text-[11px]">Resolvidas</span>
+                                <Zap size={13} className="text-violet-400" />
+                              </div>
+                              <span className="text-white font-bold font-mono text-base sm:text-lg">
                                 {practiceMetrics.totalAnswered}
                               </span>
+                              <span className="text-[10px] text-zinc-400 mt-1">questões registradas</span>
                             </div>
 
                             {/* 3. Sequência Ativa */}
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md text-xs">
-                              <Flame size={14} className="text-amber-400 shrink-0" />
-                              <span className="text-zinc-400 text-[11px]">Sequência Ativa:</span>
-                              <span className="text-white font-bold font-mono">
+                            <div className="flex flex-col p-3 rounded-xl bg-zinc-900/60 border border-amber-500/20 backdrop-blur-md">
+                              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
+                                <span className="text-[11px]">Ofensiva</span>
+                                <Flame size={13} className="text-amber-400" />
+                              </div>
+                              <span className="text-amber-400 font-bold font-mono text-base sm:text-lg">
                                 {gamificationStats?.streak?.currentDays ?? 0}{" "}
-                                {gamificationStats?.streak?.currentDays === 1 ? "dia" : "dias"}
+                                <span className="text-xs font-normal text-zinc-400">
+                                  {gamificationStats?.streak?.currentDays === 1 ? "dia" : "dias"}
+                                </span>
+                              </span>
+                              <span className="text-[10px] text-zinc-400 mt-1">ritmo contínuo</span>
+                            </div>
+
+                            {/* 4. Caderno de Erros */}
+                            <div
+                              onClick={() => {
+                                if (errorNotebookMetrics.pendingErrors > 0) {
+                                  setIsErrorsPacingModalOpen(true);
+                                } else {
+                                  router.push("/notebook");
+                                }
+                              }}
+                              className="flex flex-col p-3 rounded-xl bg-zinc-900/60 border border-rose-500/20 backdrop-blur-md cursor-pointer hover:border-rose-500/40 hover:bg-rose-950/10 transition-all"
+                            >
+                              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
+                                <span className="text-[11px]">Caderno de Erros</span>
+                                <ShieldAlert size={13} className="text-rose-400" />
+                              </div>
+                              <span className="text-rose-400 font-bold font-mono text-base sm:text-lg">
+                                {errorNotebookMetrics.pendingErrors}{" "}
+                                <span className="text-xs font-normal text-zinc-400">pendentes</span>
+                              </span>
+                              <span className="text-[10px] text-rose-400/80 mt-1 flex items-center gap-1">
+                                Treinar erros <ChevronRight size={10} />
                               </span>
                             </div>
                           </div>
                         </div>
                       </motion.div>
 
-                      {/* CARDS DE AÇÃO */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        {/* Card 1 - Gerar Simulado por IA */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3, delay: 0.05 }}
-                          onClick={() => setIsAIModalOpen(true)}
-                          className="group relative backdrop-blur-xl bg-gradient-to-br from-violet-950/20 via-zinc-900/50 to-black/70 border border-violet-500/20 hover:border-violet-500/40 hover:-translate-y-0.5 rounded-2xl p-6 sm:p-7 cursor-pointer transition-all duration-300 shadow-xl overflow-hidden flex flex-col justify-between"
-                        >
-                          {/* Glow ambiente no hover */}
-                          <div className="pointer-events-none absolute top-0 right-0 w-36 h-36 bg-violet-600/10 rounded-full blur-2xl group-hover:bg-violet-600/20 transition-all duration-300" />
+                      {/* 2. GRID DE 4 MODOS DE TREINO RÁPIDO */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                            <Sparkles size={16} className="text-violet-400" />
+                            Modos de Treino Rápido
+                          </h3>
+                          <span className="text-[11px] text-zinc-400 font-mono">
+                            Escolha uma modalidade para começar
+                          </span>
+                        </div>
 
-                          <div className="space-y-4 relative z-10">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="bg-violet-500/10 border border-violet-500/30 text-violet-400 p-3 rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.2)]">
-                                <Sparkles size={20} />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {/* MODO 1: Simulado Relâmpago */}
+                          <motion.div
+                            whileHover={{ y: -3, transition: { duration: 0.15 } }}
+                            onClick={() => handleQuickQuiz({ qtd: 10 })}
+                            className="group relative backdrop-blur-xl bg-gradient-to-b from-amber-950/20 via-zinc-900/60 to-zinc-950 border border-amber-500/20 hover:border-amber-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-lg flex flex-col justify-between"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                                  <Zap size={18} />
+                                </div>
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300">
+                                  10 Questões
+                                </span>
                               </div>
-                              <span className="text-[10px] font-mono font-medium text-violet-300 bg-violet-500/15 border border-violet-500/30 px-2.5 py-1 rounded-full">
-                                Motor Ultrarrápido (&lt;5s)
-                              </span>
+                              <div>
+                                <h4 className="text-sm font-bold text-white group-hover:text-amber-200 transition-colors">
+                                  Simulado Relâmpago
+                                </h4>
+                                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                                  Aquecimento ágil com 10 questões gerais do seu edital em 1 clique.
+                                </p>
+                              </div>
                             </div>
+                            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-amber-400 font-semibold">
+                              <span>Iniciar Agora</span>
+                              <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </motion.div>
 
-                            <div>
-                              <h3 className="text-lg font-bold text-white group-hover:text-violet-200 transition-colors">
-                                Gerar Simulado por IA
-                              </h3>
-                              <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-                                Filtre por banca, disciplina e dificuldade para montar cadernos sob medida com questões inéditas e análise de pegadinhas.
+                          {/* MODO 2: Exterminador de Erros */}
+                          <motion.div
+                            whileHover={{ y: -3, transition: { duration: 0.15 } }}
+                            onClick={() => {
+                              if (errorNotebookMetrics.pendingErrors > 0) {
+                                setIsErrorsPacingModalOpen(true);
+                              } else {
+                                router.push("/notebook");
+                              }
+                            }}
+                            className="group relative backdrop-blur-xl bg-gradient-to-b from-rose-950/20 via-zinc-900/60 to-zinc-950 border border-rose-500/20 hover:border-rose-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-lg flex flex-col justify-between"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.2)]">
+                                  <ShieldAlert size={18} />
+                                </div>
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300">
+                                  {errorNotebookMetrics.pendingErrors} Pendentes
+                                </span>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-bold text-white group-hover:text-rose-200 transition-colors">
+                                  Exterminador de Erros
+                                </h4>
+                                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                                  Zere as pendências do seu Caderno de Erros e supere suas fraquezas.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-rose-400 font-semibold">
+                              <span>Bateria de Erros</span>
+                              <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </motion.div>
+
+                          {/* MODO 3: Gerador Personalizado por IA */}
+                          <motion.div
+                            whileHover={{ y: -3, transition: { duration: 0.15 } }}
+                            onClick={() => setIsAIModalOpen(true)}
+                            className="group relative backdrop-blur-xl bg-gradient-to-b from-violet-950/25 via-zinc-900/60 to-zinc-950 border border-violet-500/20 hover:border-violet-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-lg flex flex-col justify-between"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.2)]">
+                                  <Sparkles size={18} />
+                                </div>
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300">
+                                  Customizado
+                                </span>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-bold text-white group-hover:text-violet-200 transition-colors">
+                                  Gerador por IA
+                                </h4>
+                                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                                  Filtre por matéria, tópico específico, banca, quantidade e nível.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-violet-400 font-semibold">
+                              <span>Configurar Filtros</span>
+                              <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </motion.div>
+
+                          {/* MODO 4: Modo Prova Real */}
+                          <motion.div
+                            whileHover={{ y: -3, transition: { duration: 0.15 } }}
+                            onClick={() => setIsTimedLaunchModalOpen(true)}
+                            className="group relative backdrop-blur-xl bg-gradient-to-b from-emerald-950/20 via-zinc-900/60 to-zinc-950 border border-emerald-500/20 hover:border-emerald-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-lg flex flex-col justify-between"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                                  <Timer size={18} />
+                                </div>
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+                                  Pacing Estrito
+                                </span>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-bold text-white group-hover:text-emerald-200 transition-colors">
+                                  Modo Prova Real
+                                </h4>
+                                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                                  Simule as condições de prova com limite de tempo e bloqueio de distrações.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-emerald-400 font-semibold">
+                              <span>Definir Ritmo</span>
+                              <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </motion.div>
+                        </div>
+                      </div>
+
+                      {/* 3. SELETOR DE GRANDES BANCAS EXAMINADORAS */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                            <Compass size={16} className="text-violet-400" />
+                            Treinar por Banca Examinadora
+                          </h3>
+                          <span className="text-[11px] text-zinc-400">
+                            Padrão de cobrança e estilo calibrados
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {[
+                            {
+                              sigla: "FGV",
+                              nome: "Fundação Getulio Vargas",
+                              desc: "Casos práticos, textos densos e jurisprudência.",
+                              badge: "Densa & Prática",
+                              border: "hover:border-violet-500/40",
+                            },
+                            {
+                              sigla: "Cebraspe",
+                              nome: "Cebraspe / UnB",
+                              desc: "Certo ou Errado e múltipla escolha, penalização por chute.",
+                              badge: "Rigor Conceitual",
+                              border: "hover:border-sky-500/40",
+                            },
+                            {
+                              sigla: "FCC",
+                              nome: "Fundação Carlos Chagas",
+                              desc: "Letra da lei, assertivas literais e casos pontuais.",
+                              badge: "Letra de Lei",
+                              border: "hover:border-indigo-500/40",
+                            },
+                            {
+                              sigla: "Vunesp",
+                              nome: "Fundação Vunesp",
+                              desc: "Cobrança direta do edital e pragmatismo nas alternativas.",
+                              badge: "Objetiva & Direta",
+                              border: "hover:border-teal-500/40",
+                            },
+                          ].map((b) => (
+                            <div
+                              key={b.sigla}
+                              onClick={() => {
+                                setBanca(b.sigla);
+                                setIsAIModalOpen(true);
+                              }}
+                              className={`p-4 rounded-xl bg-[#0b0f19]/70 border border-white/10 ${b.border} hover:bg-white/[0.04] transition-all cursor-pointer group flex flex-col justify-between space-y-3`}
+                            >
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-bold font-mono text-white group-hover:text-violet-300 transition-colors">
+                                    {b.sigla}
+                                  </span>
+                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400">
+                                    {b.badge}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-zinc-400 leading-snug pt-0.5">
+                                  {b.desc}
+                                </p>
+                              </div>
+                              <div className="flex items-center justify-between text-[11px] text-zinc-400 group-hover:text-zinc-200 pt-1 border-t border-white/5">
+                                <span>Filtrar questões</span>
+                                <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 4. DISCIPLINAS DO SEU EDITAL (MINI-RADAR) */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                            <Layers size={16} className="text-violet-400" />
+                            Disciplinas do seu Edital
+                          </h3>
+                          <Link
+                            href="/edital"
+                            className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+                          >
+                            Gerenciar Edital <ChevronRight size={12} />
+                          </Link>
+                        </div>
+
+                        {subjects.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                            {subjects.slice(0, 6).map((sub) => {
+                              const domain = domainStats.find(
+                                (d) =>
+                                  d.subjectId === sub.id ||
+                                  d.subjectName?.trim().toLowerCase() ===
+                                    sub.name.trim().toLowerCase(),
+                              );
+                              const totalAnsweredSub = domain?.totalAnswered ?? 0;
+                              const accSub = domain?.domainPercentage ?? 0;
+                              const subColor = sub.color || "#8b5cf6";
+
+                              return (
+                                <div
+                                  key={sub.id}
+                                  className="p-4 rounded-xl bg-[#0b0f19]/70 border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between space-y-3 group"
+                                >
+                                  <div>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <div
+                                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                                          style={{ backgroundColor: subColor }}
+                                        />
+                                        <h4 className="text-xs sm:text-sm font-semibold text-white truncate">
+                                          {sub.name}
+                                        </h4>
+                                      </div>
+                                      <span className="text-[10px] text-zinc-400 shrink-0 font-mono">
+                                        {sub.topics?.length ?? 0} tópicos
+                                      </span>
+                                    </div>
+
+                                    {/* Aproveitamento na disciplina */}
+                                    <div className="mt-2.5 flex items-center justify-between text-[11px] text-zinc-400">
+                                      <span>Aproveitamento</span>
+                                      <span className="text-white font-mono font-bold">
+                                        {totalAnsweredSub > 0 ? `${accSub}%` : "Não iniciado"}
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-white/5 h-1 rounded-full mt-1.5 overflow-hidden">
+                                      <div
+                                        className="h-full rounded-full transition-all duration-500"
+                                        style={{
+                                          width: `${totalAnsweredSub > 0 ? accSub : 0}%`,
+                                          backgroundColor: subColor,
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuickQuiz({ materia: sub.name, qtd: 5 })}
+                                      className="flex-1 py-1.5 px-3 rounded-lg bg-white/5 hover:bg-violet-600 hover:text-white text-zinc-300 text-xs font-semibold transition-all text-center cursor-pointer"
+                                    >
+                                      Treinar 5 questões
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setMateria(sub.name);
+                                        setIsAIModalOpen(true);
+                                      }}
+                                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                                      title="Configurar simulado detalhado"
+                                    >
+                                      <Sparkles size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="p-6 rounded-2xl bg-violet-950/20 border border-violet-500/20 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="space-y-1 text-center sm:text-left">
+                              <h4 className="text-sm font-bold text-white">
+                                Comece cadastrando o edital do seu concurso
+                              </h4>
+                              <p className="text-xs text-zinc-400 max-w-lg">
+                                Importe disciplinas e tópicos para que a IA crie simulados 100% alinhados ao seu objetivo.
                               </p>
                             </div>
+                            <Link
+                              href="/edital"
+                              className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all shrink-0 shadow-lg shadow-violet-600/20"
+                            >
+                              Configurar Edital
+                            </Link>
                           </div>
+                        )}
+                      </div>
 
-                          <div className="mt-6 pt-4 border-t border-white/5 relative z-10">
-                            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-violet-600/20 group-hover:shadow-violet-600/35 transition-all">
-                              <span>Configurar e Gerar</span>
-                              <ArrowRight
-                                size={14}
-                                className="group-hover:translate-x-1 transition-transform duration-200"
-                              />
-                            </div>
+                      {/* 5. ÚLTIMOS SIMULADOS REALIZADOS */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                            <RotateCcw size={16} className="text-violet-400" />
+                            Últimos Simulados Realizados
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => handleTabChange("history")}
+                            className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1 cursor-pointer font-medium"
+                          >
+                            Ver histórico completo ({quizHistory.length}) <ChevronRight size={12} />
+                          </button>
+                        </div>
+
+                        {quizHistory.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                            {quizHistory.slice(0, 3).map((quiz) => {
+                              const qCount = Array.isArray(quiz.questions)
+                                ? quiz.questions.length
+                                : 0;
+                              const formattedDate = new Date(
+                                quiz.createdAt,
+                              ).toLocaleDateString("pt-BR", {
+                                day: "2-digit",
+                                month: "short",
+                              });
+
+                              return (
+                                <div
+                                  key={quiz.id}
+                                  className="p-4 rounded-xl bg-[#0b0f19]/70 border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between space-y-3 group"
+                                >
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                                      <span className="font-mono font-semibold text-violet-300 px-2 py-0.5 rounded bg-violet-500/10 border border-violet-500/20">
+                                        {quiz.banca || "Banca Geral"}
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <Calendar size={11} /> {formattedDate}
+                                      </span>
+                                    </div>
+
+                                    <div>
+                                      <h4 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-violet-200 transition-colors">
+                                        {quiz.subject || "Simulado Geral"}
+                                      </h4>
+                                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                                        {quiz.topic?.title || "Tópicos variados"} • {qCount} questões
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={loadingQuizId === quiz.id}
+                                      onClick={() =>
+                                        handleLoadSavedQuiz(
+                                          quiz.questions,
+                                          quiz.banca,
+                                          quiz.id,
+                                        )
+                                      }
+                                      className="w-full py-1.5 px-3 rounded-lg bg-white/5 hover:bg-violet-600 hover:text-white text-zinc-200 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                    >
+                                      {loadingQuizId === quiz.id ? (
+                                        <>
+                                          <Loader2 size={12} className="animate-spin" />
+                                          <span>Carregando...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <RotateCcw size={12} />
+                                          <span>Refazer Simulado</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        </motion.div>
-
-                        {/* Card 2 - Cadernos Salvos */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3, delay: 0.1 }}
-                          onClick={() => {
-                            handleTabChange("history");
-                          }}
-                          className="group relative backdrop-blur-xl bg-gradient-to-br from-indigo-950/20 via-zinc-900/50 to-black/70 border border-indigo-500/20 hover:border-indigo-500/40 hover:-translate-y-0.5 rounded-2xl p-6 sm:p-7 cursor-pointer transition-all duration-300 shadow-xl overflow-hidden flex flex-col justify-between"
-                        >
-                          {/* Glow ambiente no hover */}
-                          <div className="pointer-events-none absolute top-0 right-0 w-36 h-36 bg-indigo-600/10 rounded-full blur-2xl group-hover:bg-indigo-600/20 transition-all duration-300" />
-
-                          <div className="space-y-4 relative z-10">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 p-3 rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                                <History size={20} />
-                              </div>
-                              <span className="text-[10px] font-mono font-medium text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 rounded-full">
-                                {quizHistory.length} {quizHistory.length === 1 ? "caderno" : "cadernos"}
-                              </span>
-                            </div>
-
-                            <div>
-                              <h3 className="text-lg font-bold text-white group-hover:text-indigo-200 transition-colors">
-                                Cadernos Salvos
-                              </h3>
-                              <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-                                {quizHistory.length > 0
-                                  ? `${quizHistory.length} ${quizHistory.length === 1 ? "simulado arquivado pronto" : "simulados arquivados prontos"} para refazer com gabarito comentado.`
-                                  : "Acesse e refaça cadernos salvos no seu histórico a qualquer momento com resolução detalhada."}
-                              </p>
-                            </div>
+                        ) : (
+                          <div className="p-5 rounded-xl bg-zinc-900/40 border border-white/5 text-center">
+                            <p className="text-xs text-zinc-400">
+                              Nenhum simulado finalizado ainda. Escolha um dos modos acima para iniciar sua primeira sessão!
+                            </p>
                           </div>
-
-                          <div className="mt-6 pt-4 border-t border-white/5 relative z-10">
-                            <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-zinc-200 text-xs font-bold transition-all">
-                              <span>Ver Cadernos Salvos</span>
-                              <ArrowRight
-                                size={14}
-                                className="group-hover:translate-x-1 transition-transform duration-200 text-zinc-400 group-hover:text-zinc-200"
-                              />
-                            </div>
-                          </div>
-                        </motion.div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -1798,27 +2262,7 @@ export default function QuestoesPage() {
                   loadingQuizId={loadingQuizId}
                   onSearchChange={setSearchTerm}
                   onSortChange={setSortBy}
-                  onLoadSavedQuiz={(savedQ, savedBanca, id) => {
-                    setLoadingQuizId(id);
-                    setTimeout(() => {
-                      const randomized = randomizeQuizSession(savedQ);
-                      setCurrentQuizId(id);
-                      setSelectedAnswers({});
-                      setCheckedQuestions({});
-                      setFlaggedQuestions({});
-                      setErrorClassifications({});
-                      setSavedErrors({});
-                      setCreatedFlashcards({});
-                      setShowCompletionModal(false);
-                      setQuestions(randomized);
-                      setBanca(savedBanca);
-                      handleTabChange("create");
-                      setLoadingQuizId(null);
-                      setTimerSeconds(0);
-                      setFocusedQuestionIndex(0);
-                      setIsTimerRunning(true);
-                    }, 200);
-                  }}
+                  onLoadSavedQuiz={handleLoadSavedQuiz}
                   onConfirmDelete={setConfirmingDeleteId}
                   onDeleteSimulado={async (id) => {
                     try {

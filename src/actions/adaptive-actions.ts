@@ -9,6 +9,7 @@ import {
   SubjectPerformance,
 } from "@/types/adaptive";
 import { revalidateTag, revalidatePath } from "next/cache";
+import { buildWeeklySchedule } from "@/lib/study-cycle";
 
 export interface RebalanceComparisonItem {
   subjectId: string;
@@ -478,8 +479,22 @@ export async function emergencyRescheduleAction(
       },
     });
 
+    const activeDaysCount = Math.max(1, Math.min(7, user?.activeDaysPerWeek ?? 5));
+    const weeklyGoalHours = user?.weeklyGoalHours ?? 10;
+
     const subjects = await prisma.subject.findMany({
       where: { userId },
+      include: {
+        topics: {
+          select: {
+            id: true,
+            title: true,
+            firstStudy: true,
+            relevance: true,
+            performance: true,
+          },
+        },
+      },
       orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
     });
 
@@ -490,16 +505,42 @@ export async function emergencyRescheduleAction(
       };
     }
 
-    const todayIndex = new Date().getDay(); // 0 a 6
-    const remainingDays = [1, 2, 3, 4, 5, 6].filter((d) => d > todayIndex);
-    const fallbackDays = remainingDays.length > 0 ? remainingDays : [1, 2, 3, 4, 5];
+    // Mapeamento correto de dias:
+    // JavaScript getDay(): 0 = Domingo, 1 = Segunda, 2 = Terça, ..., 6 = Sábado
+    // Cronograma semanal (buildWeeklySchedule): 0 = Segunda, 1 = Terça, 2 = Quarta, 3 = Quinta, 4 = Sexta, 5 = Sábado, 6 = Domingo
+    const jsDay = new Date().getDay();
+    const scheduleTodayIndex = jsDay === 0 ? 6 : jsDay - 1;
+
+    // Obtém o cronograma atual real de todos os dias
+    const { scheduleByDay } = buildWeeklySchedule(
+      subjects,
+      weeklyGoalHours,
+      activeDaysCount,
+    );
+
+    // Identifica as matérias agendadas para o dia de hoje
+    const todayDaySchedule = scheduleByDay.find(
+      (d) => d.dayIndex === scheduleTodayIndex,
+    );
+    const todaySubjects = todayDaySchedule?.subjects || [];
+
+    // Dias ativos restantes na semana (ex: se hoje é Segunda (0) e activeDays=5, restantes = [1, 2, 3, 4])
+    const remainingDays = Array.from(
+      { length: activeDaysCount },
+      (_, i) => i,
+    ).filter((d) => d > scheduleTodayIndex);
+
+    // Se hoje for o último dia ativo da semana (ex: Sexta) ou fim de semana, distribui pelos dias ativos da semana
+    const fallbackDays =
+      remainingDays.length > 0
+        ? remainingDays
+        : Array.from({ length: activeDaysCount }, (_, i) => i);
 
     let message = "";
     let affectedSubjects: string[] = [];
 
     // ================= CENÁRIO 1: PERDI O DIA DE HOJE =================
     if (input.scenario === "MISSED_TODAY") {
-      const todaySubjects = subjects.filter((s) => s.assignedDay === todayIndex);
       const targets = todaySubjects.length > 0 ? todaySubjects : subjects.slice(0, 2);
 
       for (let i = 0; i < targets.length; i++) {
@@ -509,7 +550,7 @@ export async function emergencyRescheduleAction(
           where: { id: sub.id },
           data: {
             assignedDay: nextDay,
-            priority: Math.max(10, (sub.priority || 50) + 10),
+            priority: Math.max(10, (sub.priority || 6.3) + 1.0),
             updatedAt: new Date(),
           },
         });
@@ -523,24 +564,23 @@ export async function emergencyRescheduleAction(
     // ================= CENÁRIO 2: MICRO-REVISÃO DE SOBREVIVÊNCIA =================
     else if (input.scenario === "SURVIVAL_MICRO") {
       const minutes = input.availableMinutesToday || 30;
-      const todaySubjects = subjects.filter((s) => s.assignedDay === todayIndex);
-      const primaryList = todaySubjects.length > 0 ? todaySubjects : subjects;
+      const targets = todaySubjects.length > 0 ? todaySubjects : subjects;
 
       // Matéria mais importante fica hoje
-      const topSubject = primaryList[0];
-      const otherSubjects = primaryList.slice(1);
+      const topSubject = targets[0];
+      const otherSubjects = targets.slice(1);
 
       await prisma.subject.update({
         where: { id: topSubject.id },
         data: {
-          assignedDay: todayIndex,
-          priority: Math.max(10, (topSubject.priority || 50) + 15),
+          assignedDay: scheduleTodayIndex < activeDaysCount ? scheduleTodayIndex : 0,
+          priority: Math.max(10, (topSubject.priority || 6.3) + 2.0),
           updatedAt: new Date(),
         },
       });
       affectedSubjects.push(topSubject.name);
 
-      // As outras matérias vão para os próximos dias
+      // As outras matérias vão para os próximos dias ativos
       for (let i = 0; i < otherSubjects.length; i++) {
         const sub = otherSubjects[i];
         const targetDay = fallbackDays[i % fallbackDays.length];
@@ -573,7 +613,7 @@ export async function emergencyRescheduleAction(
         await prisma.subject.update({
           where: { id: sub.id },
           data: {
-            priority: Math.max(10, Math.round((sub.priority || 50) * 0.8)),
+            priority: Math.max(5, Math.round((sub.priority || 6.3) * 0.8 * 10) / 10),
             updatedAt: new Date(),
           },
         });
@@ -586,15 +626,21 @@ export async function emergencyRescheduleAction(
     // ================= CENÁRIO 4: BLINDAGEM DE EDITAL (FOCO CORE) =================
     else if (input.scenario === "CORE_FOCUS") {
       const halfCount = Math.max(1, Math.ceil(subjects.length / 2));
-      const topSubjects = subjects.slice(0, halfCount);
-      const secondarySubjects = subjects.slice(halfCount);
+      const sortedByWeight = [...subjects].sort(
+        (a, b) => (b.weight || 5) - (a.weight || 5)
+      );
+      const topSubjects = sortedByWeight.slice(0, halfCount);
+      const secondarySubjects = sortedByWeight.slice(halfCount);
 
-      // Eleva matérias principais
-      for (const sub of topSubjects) {
+      // Eleva matérias principais e distribui nos dias ativos
+      for (let i = 0; i < topSubjects.length; i++) {
+        const sub = topSubjects[i];
+        const day = i % activeDaysCount;
         await prisma.subject.update({
           where: { id: sub.id },
           data: {
-            priority: Math.round((sub.priority || 50) * 1.4),
+            assignedDay: day,
+            priority: Math.round((sub.priority || 6.3) * 1.4 * 10) / 10,
             updatedAt: new Date(),
           },
         });
@@ -606,7 +652,7 @@ export async function emergencyRescheduleAction(
         await prisma.subject.update({
           where: { id: sub.id },
           data: {
-            priority: Math.max(5, Math.round((sub.priority || 50) * 0.5)),
+            priority: Math.max(3, Math.round((sub.priority || 6.3) * 0.5 * 10) / 10),
             updatedAt: new Date(),
           },
         });
