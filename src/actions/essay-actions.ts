@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { recordStudyActivityAction } from "./gamification-actions";
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
+import { evaluateDiscursivaEssay } from "@/lib/discursiva-evaluator";
 
 export interface MotivatingText {
   title: string;
@@ -58,6 +59,9 @@ export interface EssayEvaluationResult {
   goldenVersion: string;
   createdAt: string;
   xpEarned?: number;
+  notaConteudo?: number;
+  descontoFormal?: number;
+  numeroErros?: number;
 }
 
 /**
@@ -178,129 +182,27 @@ export async function evaluateEssayAction(payload: {
     } = payload;
 
     const cleanContent = content.trim();
-    if (!cleanContent || cleanContent.length < 100 || wordCount < 30) {
+    if (!cleanContent || cleanContent.length < 50 || wordCount < 20) {
       return {
         success: false,
-        error: "A redação precisa conter no mínimo 30 palavras para ser avaliada pela banca.",
+        error: "A redação precisa conter texto suficiente para ser avaliada pela banca.",
       };
     }
 
-    // Monta o texto enumerado linha por linha para que o Gemini analise exatamente a linha do aluno
-    const lines = cleanContent.split("\n");
-    const numberedEssay = lines
-      .map((l, idx) => `[Linha ${idx + 1}] ${l}`)
-      .join("\n");
-
-    const prompt = `
-Você é o examinador-chefe de redações da banca examinadora ${banca} para concursos públicos.
-Sua missão é realizar uma AVALIAÇÃO IMPARCIAL, RIGOROSA E 100% HONESTA da redação do candidato.
-NÃO facilite, NÃO passe pano e NÃO infle a nota. Se o candidato cometeu erros de crase, regência, concordância, usou conectivos de forma mecânica, foi superficial ou tangenciou os tópicos exigidos, PENALIZE SEVERAMENTE. O candidato precisa da verdade crua para evoluir e não ser desclassificado na prova real.
-
-INFORMAÇÕES DA PROVA:
-- Banca: ${banca}
-- Área: ${subjectArea}
-- Tema Proposto: "${themeTitle}"
-- Textos Motivadores Fornecidos:
-${motivatingText || "Sem textos motivadores adicionais."}
-- Tópicos / Padrão de Resposta Esperado pela Banca:
-${expectedPoints || "Abordagem crítica fundamentada, contextualização doutrinária/legal e intervenção prática."}
-
-REDAÇÃO DO CANDIDATO (com numeração de linhas):
-${numberedEssay}
-
-DADOS DA SUBMISSÃO:
-- Quantidade de linhas escritas: ${lineCount}
-- Total de palavras: ${wordCount}
-- Tempo de prova gasto: ${Math.round(durationSeconds / 60)} minutos
-
-REGRAS DE PONTUAÇÃO (Escala Oficial de 0 a 100):
-Avalie nos seguintes 4 critérios oficiais:
-1. "Apresentação, Estrutura e Coesão Textual (Forma e Gênero)" (máximo: 25.0 pontos):
-   - Avalia paragrafação nítida (introdução, 2 desenvolvimentos, conclusão), respeito ao limite de linhas (20 a 30 linhas), legibilidade e progressão lógica sem truncamento. Se escreveu menos de 20 linhas ou mais de 30 linhas, penalize fortemente.
-2. "Domínio da Norma Padrão da Língua Portuguesa" (máximo: 25.0 pontos):
-   - Avalia acentuação, ortografia, crase, concordância verbal/nominal, regência verbal/nominal, pontuação (especialmente vírgulas entre sujeito e predicado) e precisão vocabular. Desconte cerca de 1.0 a 2.0 pontos por cada erro gramatical identificável.
-3. "Desenvolvimento do Tema, Argumentação e Conteúdo" (máximo: 30.0 pontos):
-   - Avalia se o aluno respondeu diretamente a CADA UM dos tópicos esperados, se trouxe repertório sociocultural legítimo (leis, filósofos, dados, jurisprudência) e se defendeu um ponto de vista sem cair no senso comum. Se tangenciou ou ignorou algum tópico, desconte substancialmente.
-4. "Coesão, Coerência e Conclusão Propositiva" (máximo: 20.0 pontos):
-   - Avalia o uso diversificado de operadores argumentativos interparágrafos ("Outrossim", "Por conseguinte", "Nesse prisma", "Em contrapartida"), ausência de períodos excessivamente longos e uma conclusão consistente.
-
-REQUISITOS OBRIGATÓRIOS DO RETORNO:
-- Nota final de 0.0 a 100.0 (Aprovado se >= 60.0, Eliminado se < 60.0).
-- Parecer geral honesto e construtivo de 2 a 3 parágrafos sintetizando a avaliação da banca.
-- Lista detalhada de erros identificados linha a linha ("lineErrors"): para cada erro gramatical, sintático ou coesivo, aponte o número exato da linha, o trecho incorreto, o tipo de erro, a explicação técnica e como reescrever.
-- Pontos Fortes (o que o candidato fez bem e deve manter).
-- Pontos Críticos (os erros mais perigosos que o eliminariam na prova).
-- Versão Padrão Ouro ("goldenVersion"): reescreva a redação completa com as MESMAS ideias centrais do aluno, mas no padrão nota 100 da banca, com vocabulário formal impecável, conectivos perfeitos e períodos equilibrados.
-
-Retorne EXCLUSIVAMENTE um objeto JSON válido (sem comentários e sem markdown fora do JSON):
-{
-  "score": 76.5,
-  "maxScore": 100,
-  "isApproved": true,
-  "generalFeedback": "Parecer geral detalhado...",
-  "criteriaScores": [
-    {
-      "name": "Apresentação, Estrutura e Gênero Textual",
-      "maxScore": 25,
-      "awardedScore": 20.5,
-      "comments": "Justificativa da pontuação..."
-    },
-    {
-      "name": "Domínio da Norma Padrão da Língua Portuguesa",
-      "maxScore": 25,
-      "awardedScore": 18.0,
-      "comments": "Justificativa com menção aos erros gramaticais..."
-    },
-    {
-      "name": "Desenvolvimento do Tema e Repertório",
-      "maxScore": 30,
-      "awardedScore": 24.0,
-      "comments": "Justificativa da cobertura dos tópicos..."
-    },
-    {
-      "name": "Coesão, Coerência e Conclusão",
-      "maxScore": 20,
-      "awardedScore": 14.0,
-      "comments": "Justificativa da articulação entre parágrafos..."
-    }
-  ],
-  "lineErrors": [
-    {
-      "line": 4,
-      "excerpt": "onde a sociedade busca",
-      "errorType": "Coesão",
-      "explanation": "O pronome 'onde' só deve ser empregado para retomar lugares físicos e concretos.",
-      "suggestion": "em que a sociedade busca / no qual a sociedade busca"
-    }
-  ],
-  "strengths": [
-    "Boa articulação do repertório constitucional no primeiro parágrafo.",
-    "Paragrafação simétrica e visualmente equilibrada."
-  ],
-  "improvements": [
-    "Atenção ao uso indevido da vírgula separando sujeito e predicado na linha 12.",
-    "Aprofundar a resposta ao Tópico 2, que ficou superficial."
-  ],
-  "goldenVersion": "Texto completo reescrito no padrão nota máxima..."
-}
-`;
-
-    const { text } = await generateContentWithFallback({
-      prompt,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.4,
-        maxOutputTokens: 4000,
-      },
-      timeoutMs: 65000,
+    // 1. Executa avaliação calibrada oficial CEBRASPE
+    const evaluation = await evaluateDiscursivaEssay({
+      themeTitle,
+      banca,
+      subjectArea,
+      motivatingText,
+      expectedPoints,
+      content: cleanContent,
+      lineCount,
+      wordCount,
+      durationSeconds,
     });
 
-    const parsed = JSON.parse(text);
-
-    const calculatedScore = Number(parsed.score) || 0;
-    const isApproved = calculatedScore >= 60;
-
-    // 3. Salva no banco de dados
+    // 2. Salva no banco de dados
     const submission = await prisma.essaySubmission.create({
       data: {
         userId,
@@ -313,20 +215,20 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido (sem comentários e sem markdown f
         lineCount,
         wordCount,
         durationSeconds,
-        score: calculatedScore,
-        maxScore: 100,
-        isApproved,
-        generalFeedback: parsed.generalFeedback || "",
-        criteriaScores: parsed.criteriaScores || [],
-        lineErrors: parsed.lineErrors || [],
-        strengths: parsed.strengths || [],
-        improvements: parsed.improvements || [],
-        goldenVersion: parsed.goldenVersion || "",
+        score: evaluation.score,
+        maxScore: evaluation.maxScore,
+        isApproved: evaluation.isApproved,
+        generalFeedback: evaluation.generalFeedback || "",
+        criteriaScores: evaluation.criteriaScores as any,
+        lineErrors: evaluation.lineErrors as any,
+        strengths: evaluation.strengths as any,
+        improvements: evaluation.improvements as any,
+        goldenVersion: evaluation.goldenVersion || "",
         status: "EVALUATED",
       },
     });
 
-    // 4. Concede XP na Gamificação (+120 XP por redação completa corrigida)
+    // 3. Concede XP na Gamificação (+120 XP por redação completa corrigida)
     const xpReward = 120;
     const sessionMinutes = Math.max(15, Math.round(durationSeconds / 60));
     try {
@@ -348,17 +250,20 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido (sem comentários e sem markdown f
         lineCount: submission.lineCount,
         wordCount: submission.wordCount,
         durationSeconds: submission.durationSeconds || 0,
-        score: submission.score ?? calculatedScore,
+        score: submission.score ?? evaluation.score,
         maxScore: submission.maxScore,
-        isApproved: submission.isApproved ?? isApproved,
+        isApproved: submission.isApproved ?? evaluation.isApproved,
         generalFeedback: submission.generalFeedback || "",
-        criteriaScores: (submission.criteriaScores as unknown as CriteriaScore[]) || [],
-        lineErrors: (submission.lineErrors as unknown as LineError[]) || [],
-        strengths: (submission.strengths as unknown as string[]) || [],
-        improvements: (submission.improvements as unknown as string[]) || [],
+        criteriaScores: evaluation.criteriaScores,
+        lineErrors: evaluation.lineErrors,
+        strengths: evaluation.strengths,
+        improvements: evaluation.improvements,
         goldenVersion: submission.goldenVersion || "",
         createdAt: submission.createdAt.toISOString(),
         xpEarned: xpReward,
+        notaConteudo: evaluation.notaConteudo,
+        descontoFormal: evaluation.descontoFormal,
+        numeroErros: evaluation.numeroErros,
       },
     };
   } catch (error) {

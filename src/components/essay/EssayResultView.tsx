@@ -125,6 +125,14 @@ export function EssayResultView({
           <div className="text-[10px] text-slate-400 mt-2 font-mono">
             {scorePercentage}% de aproveitamento
           </div>
+
+          {result.notaConteudo !== undefined && result.descontoFormal !== undefined && (
+            <div className="mt-2 text-[10px] font-mono text-slate-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+              <span>NC: <strong>{result.notaConteudo.toFixed(1)}</strong></span>
+              <span className="mx-1 text-slate-500">•</span>
+              <span>Desc: <strong className="text-rose-400">-{result.descontoFormal.toFixed(2)}</strong> ({result.numeroErros ?? 0} {result.numeroErros === 1 ? "erro" : "erros"})</span>
+            </div>
+          )}
         </div>
       </div>
 
