@@ -121,6 +121,8 @@ export default function WeekPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
   const [isPending, startTransition] = useTransition();
 
@@ -418,6 +420,22 @@ export default function WeekPage() {
     });
   };
 
+  const handleResetWeek = async () => {
+    setIsResetting(true);
+    try {
+      const res = await fetch("/api/week/reset", {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Erro ao resetar semana");
+      await loadWeekData();
+      setIsResetModalOpen(false);
+    } catch (err) {
+      console.error("Erro ao resetar semana:", err);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const [optimisticData, setOptimisticData] = useOptimistic(
     data,
     (
@@ -586,6 +604,17 @@ export default function WeekPage() {
               <AlertTriangle size={14} className="text-rose-400" />
               <span className="hidden sm:inline">SOS Emergência</span>
               <span className="sm:hidden">SOS</span>
+            </button>
+
+            <button
+              onClick={() => setIsResetModalOpen(true)}
+              disabled={isPending || !hasSubjects}
+              title="Reiniciar checks de matérias concluídas na semana"
+              className="flex items-center gap-1.5 text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <RotateCcw size={14} className="text-amber-400" />
+              <span className="hidden sm:inline">Resetar Semana</span>
+              <span className="sm:hidden">Resetar</span>
             </button>
 
             <button
@@ -1437,6 +1466,69 @@ export default function WeekPage() {
         onClose={() => setIsEmergencyModalOpen(false)}
         onApplied={() => loadWeekData()}
       />
+
+      {/* Modal de Confirmação: Resetar Semana */}
+      {isResetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-slate-900 border border-amber-500/30 rounded-3xl p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                  <RotateCcw size={16} />
+                </div>
+                <h3 className="text-sm font-bold text-white">Resetar Semana</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsResetModalOpen(false)}
+                disabled={isResetting}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Deseja desmarcar todos os tópicos e matérias concluídos nesta semana?
+              <br /><br />
+              <span className="text-amber-300 font-medium">
+                • Seus históricos permanentes de questões, flashcards e tempo estudado serão 100% preservados.
+              </span>
+              <br />
+              • Apenas os checks da grade semanal voltarão para &quot;Pendente&quot; para você iniciar uma nova rodada.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsResetModalOpen(false)}
+                disabled={isResetting}
+                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleResetWeek}
+                disabled={isResetting}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                {isResetting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Resetando...</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw size={14} />
+                    <span>Confirmar Reset</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -56,7 +56,29 @@ export async function GET() {
       );
     }
 
-    // 2. Busca matérias e tópicos
+    // 2. Reset Automático Semanal:
+    // Se algum tópico foi concluído em semanas anteriores (lastRev anterior à Segunda-feira da semana atual),
+    // ele volta automaticamente para "Pendente", permitindo que a nova semana comece com checks zerados.
+    const startOfWeek = new Date();
+    const currentDay = startOfWeek.getDay(); // 0 = Domingo, 1 = Segunda...
+    const diffToMonday = (currentDay === 0 ? -6 : 1) - currentDay;
+    startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    await prisma.topic.updateMany({
+      where: {
+        subject: { userId },
+        lastRev: { lt: startOfWeek },
+        firstStudy: { in: ["Em Revisão", "Concluido", "Em Estudo"] },
+      },
+      data: {
+        firstStudy: "Pendente",
+        performance: 0,
+        lastRev: null,
+      },
+    });
+
+    // 3. Busca matérias e tópicos atualizados
     const rawSubjects = await prisma.subject.findMany({
       where: { userId },
       include: {
@@ -67,6 +89,7 @@ export async function GET() {
             firstStudy: true,
             relevance: true,
             performance: true,
+            lastRev: true,
           },
         },
       },
@@ -261,6 +284,7 @@ export async function PATCH(request: Request) {
             firstStudy: true,
             relevance: true,
             performance: true,
+            lastRev: true,
           },
         },
       },

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   X,
@@ -30,6 +31,7 @@ export function EmergencyRescheduleModal({
   onClose,
   onApplied,
 }: EmergencyRescheduleModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [selectedScenario, setSelectedScenario] =
     useState<EmergencyScenario>("MISSED_TODAY");
   const [microMinutes, setMicroMinutes] = useState<number>(30);
@@ -37,7 +39,11 @@ export function EmergencyRescheduleModal({
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [affectedList, setAffectedList] = useState<string[]>([]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const handleApply = async () => {
     setLoading(true);
@@ -72,9 +78,9 @@ export function EmergencyRescheduleModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-gradient-to-b from-[#101424] via-[#090d18] to-[#04060c] border border-rose-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-gradient-to-b from-[#101424] via-[#090d18] to-[#04060c] border border-rose-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
         {/* Glow Superior Vermelho/Âmbar */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
 
@@ -363,6 +369,7 @@ export function EmergencyRescheduleModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
