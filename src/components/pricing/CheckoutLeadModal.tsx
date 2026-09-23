@@ -157,12 +157,15 @@ export function CheckoutLeadModal({
               </div>
 
               {/* Lista de Vantagens */}
-              <div className="space-y-2.5 py-1">
+              <div className="space-y-2 py-1">
                 {[
-                  "IA Ilimitada sem restrições de cotas diárias",
-                  "Correções de redação discursiva ilimitadas padrão banca",
-                  "Simulados inéditos com foco nas suas fraquezas cognitivas",
-                  "Prioridade máxima nos servidores do Gemini 2.5",
+                  "IA 100% Ilimitada & Zero Anúncios (sem travas diárias)",
+                  "OCR de Redação Manuscrita (foto da folha de prova real)",
+                  "Remediação Cognitiva de Erros + Mnemônicos ilimitados",
+                  "Mapas Mentais Neurais com Expansão de Nós e Exportação HD/PDF A4",
+                  "Raio-X de Incidência Estatística da Banca no Edital (Cebraspe, FGV, FCC)",
+                  "Importador Inteligente de Editais em PDF por IA",
+                  "Prioridade máxima nos servidores Gemini 2.5 Pro",
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-200">
                     <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
@@ -247,10 +250,12 @@ export function CheckoutLeadModal({
                   <Sparkles size={14} className="text-indigo-400" />
                   <span>O que você já pode fazer agora:</span>
                 </div>
-                <p className="text-slate-400 text-[11px]">
-                  • Gerar simulados ilimitados em Provas & Questões.<br />
-                  • Enviar redações para correção aprofundada nota máxima.<br />
-                  • Criar decks e mapas mentais para qualquer edital.
+                <p className="text-slate-400 text-[11px] space-y-1">
+                  • 📸 <strong>OCR de Redação:</strong> Envie fotos da sua folha de redação sem limite semanal.<br />
+                  • 🧠 <strong>Caderno de Erros:</strong> Gere remediações cognitivas e mnemônicos em todas as questões.<br />
+                  • 🗺️ <strong>Mapas Mentais:</strong> Aprofunde ramos conceituais com IA e exporte em PDF A4 / PNG HD.<br />
+                  • 👑 <strong>Edital Verticalizado:</strong> Acesse o Raio-X de incidência da banca e importe editais em PDF.<br />
+                  • ⚡ <strong>Simulados:</strong> Crie provas inéditas ilimitadas sem nenhum anúncio ou interrupção.
                 </p>
               </div>
 

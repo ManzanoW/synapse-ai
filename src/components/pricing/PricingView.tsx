@@ -68,19 +68,31 @@ export function PricingView({
   const FAQS = [
     {
       q: "Como funciona o limite do Plano Gratuito?",
-      a: "No Plano Gratuito, você tem até 7 requisições diárias de Inteligência Artificial para testar nossos recursos (como até 2 simulados diários e 1 correção de redação). Esse limite reinicia automaticamente todos os dias às 00:00 (horário de Brasília).",
+      a: "No Plano Gratuito, você tem até 7 requisições diárias de Inteligência Artificial para testar nossos recursos (como até 2 simulados diários e 1 correção de redação). O limite reinicia automaticamente todos os dias às 00:00 (horário de Brasília).",
+    },
+    {
+      q: "O que são os Anúncios Recompensados no plano Gratuito?",
+      a: "Para que você nunca fique completamente travado nos estudos, permitimos que usuários do plano gratuito assistam a um anúncio de curta duração para desbloquear créditos extras (como +1 simulado ou +1 remediação de erro). Já no Synapse Pro, sua experiência é 100% livre de qualquer anúncio.",
+    },
+    {
+      q: "Como funciona o OCR de Redação Manuscrita?",
+      a: "Você pode escrever sua redação à mão em qualquer folha de prova ou padrão de banca, tirar uma foto com seu celular ou webcam e enviar. O modelo multimodal Gemini Vision digitaliza seus parágrafos mantendo a fidelidade do seu texto e avalia os critérios de grafia, coesão, concordância e norma padrão da banca examinadora.",
+    },
+    {
+      q: "O que é o Raio-X de Incidência da Banca no Edital Verticalizado?",
+      a: "É uma ferramenta exclusiva do Pro que cruza o edital do seu concurso com o banco histórico de questões da banca organizadora (Cebraspe, FGV, FCC, etc.), destacando com selos visuais quais tópicos têm alta, média ou baixa recorrência histórica para você priorizar seu tempo.",
     },
     {
       q: "O que ganho ao assinar o Synapse Concurseiro Pro?",
-      a: "Você tem acesso 100% ilimitado a todas as ferramentas com IA (sem fila nem bloqueio diário), correção aprofundada de redações com reescrita parágrafo a parágrafo, geração ilimitada de simulados com foco no seu edital, mapas mentais, flashcards e exportação em PDF e Anki.",
+      a: "Você tem acesso 100% ilimitado a todas as ferramentas com IA (sem fila nem bloqueio diário), OCR de redações manuscritas ilimitado, remediação cognitiva de erros com mnemônicos, mapas mentais com aprofundamento neural e exportação HD/PDF A4, leitor de editais em PDF e exportação para o Anki (.apkg).",
     },
     {
       q: "A IA é calibrada para as principais bancas do Brasil?",
-      a: "Sim! Treinamos nossos prompts e lógica para os critérios de avaliação das bancas Cebraspe (certo/errado e apenação), FGV (interpretação crítica e casos práticos), FCC, Vunesp e bancas regionais.",
+      a: "Sim! Treinamos nossos prompts e critérios para bancas como Cebraspe (certo/errado e apenação), FGV (interpretação crítica e casos práticos), FCC, Vunesp, Cesgranrio e bancas regionais.",
     },
     {
       q: "Posso cancelar minha assinatura quando quiser?",
-      a: "Sim, sem nenhuma burocracia ou taxa de cancelamento. Você pode cancelar sua renovação a qualquer momento e continuar com acesso até o fim do período já pago.",
+      a: "Sim, sem nenhuma burocracia ou taxa de cancelamento. Você pode cancelar sua renovação a qualquer momento com apenas 1 clique e continuar com acesso até o fim do período já pago.",
     },
     {
       q: "Existe garantia de reembolso?",
@@ -187,17 +199,18 @@ export function PricingView({
 
             <div className="space-y-3 pt-2">
               <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                Recursos Inclusos:
+                Recursos Inclusos no Grátis:
               </div>
               <ul className="space-y-2.5 text-xs text-slate-300">
                 {[
                   "7 requisições diárias de Inteligência Artificial",
-                  "Até 2 simulados com IA por dia",
-                  "1 correção de redação discursiva por dia",
-                  "Até 2 decks de flashcards inteligentes por dia",
-                  "Caderno de erros essencial com repetição espaçada",
-                  "Cronograma de estudos e métricas básicas",
-                  "Central de Feedback e suporte da comunidade",
+                  "Até 2 simulados com IA por dia (+1 com anúncio opcional)",
+                  "1 correção de redação digitada por dia",
+                  "1 OCR de redação manuscrita (foto) por semana para testar",
+                  "1 remediação cognitiva no Caderno de Erros por dia",
+                  "1 Mapa Mental Neural por dia (exportação SVG)",
+                  "Edital verticalizado com acompanhamento de progresso",
+                  "Créditos extras assistindo a anúncios recompensados voluntários",
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2.5">
                     <CheckCircle2 size={16} className="text-slate-400 shrink-0 mt-0.5" />
@@ -231,7 +244,7 @@ export function PricingView({
           {/* Badge de Destaque */}
           <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-linear-to-r from-indigo-500 to-purple-500 text-white text-[11px] font-black tracking-wide uppercase shadow-lg shadow-indigo-500/40 flex items-center gap-1.5">
             <Crown size={13} className="fill-white" />
-            <span>Mais Escolhido • Acesso Completo</span>
+            <span>Mais Escolhido • Acesso Ilimitado & Zero Anúncios</span>
           </div>
 
           <div className="space-y-6">
@@ -266,18 +279,19 @@ export function PricingView({
 
             <div className="space-y-3 pt-2">
               <div className="text-xs font-bold text-indigo-200 uppercase tracking-wider">
-                Tudo do Básico e mais:
+                Superpoderes Exclusivos do Pro:
               </div>
               <ul className="space-y-2.5 text-xs text-slate-200">
                 {[
-                  "IA 100% Ilimitada (sem travas diárias nem filas)",
-                  "Simulados ilimitados por banca, disciplina e cargo",
-                  "Correções completas de redação discursiva com nota e reescrita",
-                  "Geração ilimitada de Flashcards e Mapas Mentais",
-                  "Diagnóstico preditivo de aprovação e remediação cognitiva",
-                  "Exportação em PDF e baralhos para Anki (.apkg)",
-                  "Prioridade máxima com modelos Gemini 2.5 Pro",
-                  "Selo VIP exclusivo e acesso antecipado a novidades",
+                  "IA 100% Ilimitada & Zero Anúncios (foco total sem interrupções)",
+                  "OCR de Redação Manuscrita Ilimitado (foto da folha de prova real)",
+                  "Remediação Cognitiva & Mnemônicos no Caderno de Erros ilimitados",
+                  "Mapas Mentais Neurais: Aprofundamento de nós com IA e exportação em PDF A4 / PNG HD",
+                  "Raio-X de Incidência da Banca no Edital Verticalizado (Cebraspe, FGV, FCC)",
+                  "Importador de Edital em PDF (extração automática por IA)",
+                  "Simulados Inéditos ilimitados com filtros de cargo e banca",
+                  "Exportação de Flashcards para Anki (.apkg) e apostilas em PDF",
+                  "Prioridade máxima nos servidores Gemini 2.5 Pro (zero tempo de fila)",
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2.5 font-medium">
                     <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
@@ -330,7 +344,7 @@ export function PricingView({
             Comparativo Completo de Recursos
           </h2>
           <p className="text-xs text-slate-400">
-            Veja em detalhes o que cada plano oferece para sua rotina de estudos.
+            Veja em detalhes por que o Synapse Pro multiplica seu rendimento e economiza centenas de horas de preparação.
           </p>
         </div>
 
@@ -339,15 +353,21 @@ export function PricingView({
             <thead>
               <tr className="border-b border-slate-800 bg-slate-950/60">
                 <th className="p-4 text-slate-400 font-bold">Recurso / Ferramenta</th>
-                <th className="p-4 text-slate-400 font-bold text-center w-36 sm:w-44">
+                <th className="p-4 text-slate-400 font-bold text-center w-36 sm:w-48">
                   Básico (Grátis)
                 </th>
-                <th className="p-4 text-indigo-300 font-black text-center w-36 sm:w-44 bg-indigo-500/10 border-l border-r border-indigo-500/20">
+                <th className="p-4 text-indigo-300 font-black text-center w-36 sm:w-48 bg-indigo-500/10 border-l border-r border-indigo-500/20">
                   Synapse Pro 💎
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
+              {/* BLOCO IA & PERFORMANCE */}
+              <tr className="bg-slate-950/40">
+                <td colSpan={3} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-400">
+                  ⚡ Inteligência Artificial & Acesso
+                </td>
+              </tr>
               <tr>
                 <td className="p-4 text-slate-200 font-medium">
                   Cota Diária de Requisições com IA
@@ -359,56 +379,133 @@ export function PricingView({
               </tr>
               <tr>
                 <td className="p-4 text-slate-200 font-medium">
-                  Simulados Inéditos com IA
+                  Experiência sem Anúncios
                 </td>
-                <td className="p-4 text-center text-slate-400">Até 2 por dia</td>
+                <td className="p-4 text-center text-slate-400">
+                  Com anúncios recompensados
+                </td>
                 <td className="p-4 text-center text-emerald-400 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
-                  Ilimitados
+                  100% Zero Anúncios ✨
                 </td>
               </tr>
               <tr>
                 <td className="p-4 text-slate-200 font-medium">
-                  Correções de Redação Discursiva
+                  Prioridade nos Servidores de IA
+                </td>
+                <td className="p-4 text-center text-slate-400">Fila Padrão</td>
+                <td className="p-4 text-center text-indigo-300 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
+                  Alta Prioridade (Gemini 2.5 Pro)
+                </td>
+              </tr>
+
+              {/* BLOCO REDAÇÃO & OCR */}
+              <tr className="bg-slate-950/40">
+                <td colSpan={3} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-400">
+                  📝 Redação Discursiva & OCR
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-200 font-medium">
+                  Correção de Redação Digitada (Padrão Banca)
                 </td>
                 <td className="p-4 text-center text-slate-400">1 por dia</td>
                 <td className="p-4 text-center text-emerald-400 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
-                  Ilimitadas + Reescrita
+                  Ilimitada + Reescrita Modelo
                 </td>
               </tr>
               <tr>
                 <td className="p-4 text-slate-200 font-medium">
-                  Flashcards & Mapas Mentais
+                  OCR de Folha Manuscrita (Foto da Redação)
                 </td>
-                <td className="p-4 text-center text-slate-400">2 decks / dia</td>
+                <td className="p-4 text-center text-slate-400">1 por semana (teste)</td>
+                <td className="p-4 text-center text-emerald-400 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
+                  Ilimitado (Gemini Vision) 📸
+                </td>
+              </tr>
+
+              {/* BLOCO SIMULADOS & CADERNO DE ERROS */}
+              <tr className="bg-slate-950/40">
+                <td colSpan={3} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-400">
+                  🎯 Provas, Simulados & Erros
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-200 font-medium">
+                  Simulados Inéditos com IA
+                </td>
+                <td className="p-4 text-center text-slate-400">2 por dia (+1 via anúncio)</td>
+                <td className="p-4 text-center text-emerald-400 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
+                  Ilimitados por Banca e Cargo
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-200 font-medium">
+                  Remediação Cognitiva no Caderno de Erros
+                </td>
+                <td className="p-4 text-center text-slate-400">1 por dia (+1 via anúncio)</td>
+                <td className="p-4 text-center text-indigo-300 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
+                  Ilimitada + Mnemônicos por IA 🧠
+                </td>
+              </tr>
+
+              {/* BLOCO MAPAS MENTAIS & EDITAL */}
+              <tr className="bg-slate-950/40">
+                <td colSpan={3} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-400">
+                  🗺️ Mapas Mentais & Edital Verticalizado
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-200 font-medium">
+                  Geração de Mapas Mentais Neurais
+                </td>
+                <td className="p-4 text-center text-slate-400">1 por dia (+1 via anúncio)</td>
                 <td className="p-4 text-center text-emerald-400 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
                   Ilimitados
                 </td>
               </tr>
               <tr>
                 <td className="p-4 text-slate-200 font-medium">
-                  Caderno de Erros Inteligente
+                  Aprofundamento Neural de Nós com IA
                 </td>
-                <td className="p-4 text-center text-slate-300">Essencial</td>
-                <td className="p-4 text-center text-indigo-300 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
-                  Remediação Cognitiva + Mnemônicos
+                <td className="p-4 text-center text-slate-500">🔒 Exclusivo Pro</td>
+                <td className="p-4 text-center text-emerald-400 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
+                  Ilimitado (1 clique para expandir)
                 </td>
               </tr>
               <tr>
                 <td className="p-4 text-slate-200 font-medium">
-                  Exportação de Materiais
+                  Exportação de Mapas Mentais
+                </td>
+                <td className="p-4 text-center text-slate-400">SVG Básico</td>
+                <td className="p-4 text-center text-emerald-400 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
+                  PDF A4 Alta Resolução & PNG Retina 2x
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-200 font-medium">
+                  Raio-X de Incidência da Banca no Edital
+                </td>
+                <td className="p-4 text-center text-slate-500">🔒 Bloqueado</td>
+                <td className="p-4 text-center text-indigo-300 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
+                  Destravado com Histórico da Banca 👑
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-200 font-medium">
+                  Importador de Edital em PDF
+                </td>
+                <td className="p-4 text-center text-slate-400">Apenas Manual / Texto</td>
+                <td className="p-4 text-center text-emerald-400 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
+                  Leitor de PDF Bruto com IA
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-200 font-medium">
+                  Exportação para Anki (.apkg) & PDF
                 </td>
                 <td className="p-4 text-center text-slate-500">—</td>
                 <td className="p-4 text-center text-emerald-400 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
-                  PDF & Anki (.apkg)
-                </td>
-              </tr>
-              <tr>
-                <td className="p-4 text-slate-200 font-medium">
-                  Prioridade nos Servidores da IA
-                </td>
-                <td className="p-4 text-center text-slate-400">Padrão</td>
-                <td className="p-4 text-center text-indigo-300 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
-                  Alta Prioridade (Zero Fila)
+                  Ilimitada
                 </td>
               </tr>
             </tbody>
