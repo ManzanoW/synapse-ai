@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
@@ -24,9 +24,12 @@ import {
   Lock,
   Crown,
   Film,
+  Headphones,
+  VolumeX,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import Link from "next/link";
+import { tts } from "@/lib/tts-engine";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import {
   ErrorNotebookItem,
@@ -93,6 +96,26 @@ export function ErrorCard({
   // Estado de mutação
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSpeakingMnemonic, setIsSpeakingMnemonic] = useState(false);
+
+  const handleToggleSpeakMnemonic = (text: string) => {
+    if (isSpeakingMnemonic) {
+      tts.stop();
+      setIsSpeakingMnemonic(false);
+    } else {
+      setIsSpeakingMnemonic(true);
+      tts.speak(text, {
+        onEnd: () => setIsSpeakingMnemonic(false),
+        onError: () => setIsSpeakingMnemonic(false),
+      });
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      tts.stop();
+    };
+  }, []);
 
   const normalizedReason = normalizeTaxonomy(errorItem.errorReason);
   const meta = TAXONOMY_METADATA[normalizedReason] || TAXONOMY_METADATA.UNCLASSIFIED;
@@ -511,9 +534,29 @@ export function ErrorCard({
 
                 {/* 4.2 Mnemônico ou Regra Prática de Memorização */}
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-amber-300 text-xs font-bold uppercase tracking-wider">
-                    <Lightbulb size={15} />
-                    <span>Mnemônico / Regra de Ouro</span>
+                  <div className="flex items-center justify-between text-amber-300 text-xs font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <Lightbulb size={15} />
+                      <span>Mnemônico / Regra de Ouro</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSpeakMnemonic(remediation.mnemonicOrRule)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer ${
+                        isSpeakingMnemonic
+                          ? "bg-amber-500/20 border-amber-400 text-amber-200"
+                          : "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
+                      }`}
+                      title={isSpeakingMnemonic ? "Pausar leitura de áudio" : "Ouvir mnemônico em voz alta"}
+                    >
+                      {isSpeakingMnemonic ? (
+                        <VolumeX size={13} className="text-amber-400 animate-pulse" />
+                      ) : (
+                        <Headphones size={13} className="text-amber-400" />
+                      )}
+                      <span>{isSpeakingMnemonic ? "Pausar" : "Ouvir Áudio"}</span>
+                    </button>
                   </div>
                   <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-transparent border border-amber-500/30 text-sm text-amber-200 font-medium leading-relaxed flex items-start gap-3 shadow-inner">
                     <Zap className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />

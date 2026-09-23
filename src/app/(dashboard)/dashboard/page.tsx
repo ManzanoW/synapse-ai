@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import DashboardClient from "./dashboard-client";
 import DashboardLoading from "./loading";
 import { getApprovalOddsAction } from "@/actions/analytics-actions";
+import { getDailyFlowRecommendationAction } from "@/actions/daily-flow-actions";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -13,12 +14,19 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // Pré-carrega no servidor as chances de aprovação para eliminar loading pulsante
-  const approvalOddsRes = session.user.id
-    ? await getApprovalOddsAction(session.user.id).catch(() => null)
-    : null;
+  // Pré-carrega no servidor as chances de aprovação e fluxo diário recomendado
+  const [approvalOddsRes, dailyFlowRes] = await Promise.all([
+    session.user.id
+      ? getApprovalOddsAction(session.user.id).catch(() => null)
+      : null,
+    getDailyFlowRecommendationAction().catch(() => null),
+  ]);
+
   const initialApprovalOdds = approvalOddsRes?.success
     ? approvalOddsRes.data
+    : null;
+  const initialDailyFlow = dailyFlowRes?.success
+    ? dailyFlowRes.data
     : null;
 
   return (
@@ -26,6 +34,7 @@ export default async function DashboardPage() {
       <DashboardClient
         user={session.user}
         initialApprovalOdds={initialApprovalOdds}
+        initialDailyFlow={initialDailyFlow}
       />
     </Suspense>
   );

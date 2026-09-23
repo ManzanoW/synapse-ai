@@ -8,18 +8,30 @@ import React, {
 } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import SubjectCard from "@/components/subject-card";
-import { NewContentModal } from "@/components/create-subject-modal";
 import SubjectCardSkeleton from "@/components/subject-card-skeleton";
 import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { DashboardSubject } from "@/types";
-import { LevelUpModal } from "@/components/gamification/level-up-modal";
 import { DailyQuestsPanel } from "@/components/dashboard/DailyQuestsPanel";
 import { GamificationCockpitCard } from "@/components/dashboard/GamificationCockpitCard";
 import { KeyMetricsCard } from "@/components/dashboard/KeyMetricsCard";
-import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
 import { useGamification } from "@/context/GamificationContext";
+
+// Lazy-loaded Modais & Overlays pesados para otimização de bundle e LCP
+const NewContentModal = dynamic(
+  () => import("@/components/create-subject-modal").then((m) => m.NewContentModal),
+  { ssr: false }
+);
+const LevelUpModal = dynamic(
+  () => import("@/components/gamification/level-up-modal").then((m) => m.LevelUpModal),
+  { ssr: false }
+);
+const ZenModeOverlay = dynamic(
+  () => import("@/components/dashboard/ZenModeOverlay").then((m) => m.ZenModeOverlay),
+  { ssr: false }
+);
 import {
   Menu,
   BookOpen,
@@ -49,18 +61,36 @@ import {
   Square,
   Eye,
 } from "lucide-react";
-import Heatmap from "@/components/analytics/Heatmap";
-import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
-import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
 import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
 import type { ApprovalOddsData } from "@/actions/analytics-actions";
-import { TutorialModal } from "@/components/tutorial/TutorialModal";
-import { CustomizeCardsModal } from "@/components/dashboard/CustomizeCardsModal";
-import {
-  WelcomeQuizModal,
-  type OnboardingQuizResult,
-} from "@/components/onboarding/WelcomeQuizModal";
+import { type OnboardingQuizResult } from "@/components/onboarding/WelcomeQuizModal";
+
+const Heatmap = dynamic(() => import("@/components/analytics/Heatmap"), {
+  ssr: false,
+});
+const DomainRadarChart = dynamic(
+  () => import("@/components/dashboard/DomainRadarChart"),
+  { ssr: false }
+);
+const StreakFreezeModal = dynamic(
+  () => import("@/components/dashboard/StreakFreezeModal").then((m) => m.StreakFreezeModal),
+  { ssr: false }
+);
+const TutorialModal = dynamic(
+  () => import("@/components/tutorial/TutorialModal").then((m) => m.TutorialModal),
+  { ssr: false }
+);
+const CustomizeCardsModal = dynamic(
+  () => import("@/components/dashboard/CustomizeCardsModal").then((m) => m.CustomizeCardsModal),
+  { ssr: false }
+);
+const WelcomeQuizModal = dynamic(
+  () => import("@/components/onboarding/WelcomeQuizModal").then((m) => m.WelcomeQuizModal),
+  { ssr: false }
+);
 import { FirstStepsChecklistCard } from "@/components/dashboard/FirstStepsChecklistCard";
+import { DailyFlowCard } from "@/components/dashboard/DailyFlowCard";
+import type { DailyFlowData } from "@/actions/daily-flow-actions";
 import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
@@ -182,11 +212,13 @@ interface DashboardClientProps {
     image?: string | null;
   };
   initialApprovalOdds?: ApprovalOddsData | null;
+  initialDailyFlow?: DailyFlowData | null;
 }
 
 export default function DashboardClient({
   user,
   initialApprovalOdds,
+  initialDailyFlow,
 }: DashboardClientProps) {
   const { openSidebar } = useSidebar();
   const searchParams = useSearchParams();
@@ -1060,6 +1092,11 @@ export default function DashboardClient({
             </div>
           </div>
         </section>
+        )}
+
+        {/* ================= SESSÃO RECOMENDADA DE HOJE (DAILY FLOW 1-CLIQUE) ================= */}
+        {!isLoading && (
+          <DailyFlowCard flowData={initialDailyFlow || null} />
         )}
 
         {/* ================= 3. PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS) ================= */}

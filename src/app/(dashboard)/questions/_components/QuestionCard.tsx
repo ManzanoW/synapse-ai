@@ -19,10 +19,12 @@ import {
   AlertCircle,
   Check,
   Sparkles,
+  PenTool,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
 import { ErrorClassification } from "@/types/quiz";
 import { MentorCopilotDrawer } from "@/components/mentor/MentorCopilotDrawer";
+import { QuestionScratchpad } from "@/components/questions/QuestionScratchpad";
 
 interface QuestionCardProps {
   questao: QuestaoIA;
@@ -122,6 +124,8 @@ export function QuestionCard({
   const [showErrorDiagnosis, setShowErrorDiagnosis] = useState(false);
   const [selectedReason, setSelectedReason] = useState<ErrorClassification | null>(null);
   const [isMentorOpen, setIsMentorOpen] = useState(false);
+  const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
+  const [hasScratchpadNotes, setHasScratchpadNotes] = useState(false);
 
   // Atalho global ⌘J / Ctrl+J para acionar o Mentor IA na questão focada
   useEffect(() => {
@@ -235,6 +239,29 @@ export function QuestionCard({
             </span>
           </button>
 
+          {/* Botão Rascunho de Prova */}
+          <button
+            type="button"
+            onClick={() => setIsScratchpadOpen((prev) => !prev)}
+            className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 shadow-xs min-h-[36px] ${
+              isScratchpadOpen
+                ? "border-indigo-500 bg-indigo-600/20 text-indigo-200"
+                : hasScratchpadNotes
+                  ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20"
+                  : "border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20"
+            }`}
+            title="Abrir lousa de rascunho da questão"
+          >
+            <PenTool
+              size={13}
+              className={hasScratchpadNotes ? "text-indigo-400" : ""}
+            />
+            <span className="text-[11px] font-bold">Rascunho</span>
+            {hasScratchpadNotes && (
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            )}
+          </button>
+
           <button
             type="button"
             onClick={onToggleFlag}
@@ -255,6 +282,14 @@ export function QuestionCard({
           </button>
         </div>
       </div>
+
+      {/* LOUSA DE RASCUNHO DA QUESTÃO */}
+      <QuestionScratchpad
+        storageKey={questao.id || `q_${index}`}
+        isOpen={isScratchpadOpen}
+        onClose={() => setIsScratchpadOpen(false)}
+        onNotesChange={setHasScratchpadNotes}
+      />
 
       {/* ENUNCIADO */}
       <p className="text-slate-200 text-sm sm:text-base font-medium mb-5 leading-relaxed whitespace-pre-line">
@@ -486,6 +521,19 @@ export function QuestionCard({
               </strong>
               {renderEnunciado(questao.justificativa)}
             </div>
+
+            {/* ALERTA DE PEGADINHA DA BANCA */}
+            {(questao.pegadinhaBanca || questao.mentorGuidance?.trapWarning) && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs">
+                <div className="flex items-center gap-2 font-bold text-amber-400 mb-1">
+                  <AlertTriangle size={15} className="text-amber-400 shrink-0" />
+                  <span>⚠️ Pegadinha Clássica da Banca</span>
+                </div>
+                <p className="leading-relaxed text-amber-100/90 font-medium">
+                  {questao.pegadinhaBanca || questao.mentorGuidance?.trapWarning}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
