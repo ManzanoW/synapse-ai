@@ -11,12 +11,16 @@ import {
   BookOpen,
   FileText,
   ShieldAlert,
+  Wand2,
 } from "lucide-react";
 import {
   STARTER_EDITAL_TEMPLATES,
   EditalTemplate,
 } from "@/lib/edital-templates";
-import { importStarterEditalAction } from "@/actions/edital-templates-actions";
+import {
+  importStarterEditalAction,
+  generateCustomEditalAction,
+} from "@/actions/edital-templates-actions";
 
 interface StarterEditalSelectorProps {
   onSuccess?: () => void;
@@ -33,6 +37,13 @@ export function StarterEditalSelector({
   const [loadingTemplateId, setLoadingTemplateId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Filtro por categorias
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  // Personalização com IA
+  const [customRoleInput, setCustomRoleInput] = useState<string>("");
+  const [isGeneratingCustom, setIsGeneratingCustom] = useState<boolean>(false);
 
   const handleSelectTemplate = async (templateId: string) => {
     setLoadingTemplateId(templateId);
@@ -72,12 +83,65 @@ export function StarterEditalSelector({
     }
   };
 
-  const templatesList = Object.values(STARTER_EDITAL_TEMPLATES);
+  const handleGenerateCustom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = customRoleInput.trim();
+    if (!trimmed) return;
+
+    setIsGeneratingCustom(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await generateCustomEditalAction(trimmed);
+
+      if (res.success && res.data) {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+
+        setSuccessMessage(
+          `Plano de estudos para "${res.data.targetRole}" gerado com IA! (${res.data.subjectsCount} disciplinas e ${res.data.topicsCount} tópicos criados)`
+        );
+        setCustomRoleInput("");
+
+        if (onSuccess) {
+          setTimeout(() => {
+            onSuccess();
+          }, 800);
+        } else {
+          setTimeout(() => {
+            router.refresh();
+          }, 800);
+        }
+      } else {
+        setErrorMessage(res.error || "Falha ao gerar disciplinas com IA.");
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage("Erro de conexão ao comunicar com a IA.");
+    } finally {
+      setIsGeneratingCustom(false);
+    }
+  };
+
+  const allTemplates = Object.values(STARTER_EDITAL_TEMPLATES);
+  const filteredTemplates = allTemplates.filter((tpl) => {
+    if (activeCategory === "all") return true;
+    if (activeCategory === "ti") return tpl.category === "ti";
+    if (activeCategory === "policial") return tpl.category === "policial";
+    if (activeCategory === "fiscal_controle") return tpl.category === "fiscal_controle";
+    if (activeCategory === "administrativo") return tpl.category === "administrativo";
+    if (activeCategory === "juridica") return tpl.category === "juridica";
+    if (activeCategory === "saude_educacao") return tpl.category === "saude_educacao";
+    return true;
+  });
 
   return (
     <div className="space-y-4 w-full">
       {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
           <ShieldAlert size={16} className="shrink-0" />
           <span>{errorMessage}</span>
         </div>
@@ -90,6 +154,87 @@ export function StarterEditalSelector({
         </div>
       )}
 
+      {/* CARD PROMINENTE: PERSONALIZAR MEU FOCO COM IA */}
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-950/40 via-purple-950/30 to-indigo-950/40 p-4 shadow-xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
+              <Wand2 size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-white">
+                  Personalizar meu Foco com IA
+                </span>
+                <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  Qualquer Concurso / Cargo
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Digite o concurso ou cargo desejado e a IA pesquisa e estrutura as disciplinas e tópicos oficiais em segundos.
+              </p>
+            </div>
+          </div>
+
+          <form
+            onSubmit={handleGenerateCustom}
+            className="flex items-center gap-2 w-full md:w-auto shrink-0"
+          >
+            <input
+              type="text"
+              value={customRoleInput}
+              onChange={(e) => setCustomRoleInput(e.target.value)}
+              placeholder="Ex: Analista de TI - Caixa, Perito Criminal..."
+              className="flex-1 md:w-72 bg-slate-900/90 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={isGeneratingCustom || !customRoleInput.trim()}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              {isGeneratingCustom ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" />
+                  <span>Gerando...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={13} />
+                  <span>Gerar com IA</span>
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* FILTROS POR CATEGORIA DE CARREIRA */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+        {[
+          { id: "all", label: "🔥 Todas (10)" },
+          { id: "ti", label: "💻 TI & Dados" },
+          { id: "policial", label: "👮 Policial" },
+          { id: "fiscal_controle", label: "💰 Fiscal & Controle" },
+          { id: "administrativo", label: "🏛️ Tribunais & Adm" },
+          { id: "juridica", label: "⚖️ Jurídica" },
+          { id: "saude_educacao", label: "🩺 Saúde & Educação" },
+        ].map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => setActiveCategory(cat.id)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              activeCategory === cat.id
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* GRID DE CARREIRAS PRONTAS */}
       <div
         className={`grid gap-3 ${
           compact
@@ -97,7 +242,7 @@ export function StarterEditalSelector({
             : "grid-cols-1 md:grid-cols-2"
         }`}
       >
-        {templatesList.map((tpl) => {
+        {filteredTemplates.map((tpl) => {
           const isLoading = loadingTemplateId === tpl.id;
 
           return (
@@ -142,7 +287,7 @@ export function StarterEditalSelector({
 
                 <button
                   type="button"
-                  disabled={loadingTemplateId !== null}
+                  disabled={loadingTemplateId !== null || isGeneratingCustom}
                   onClick={() => handleSelectTemplate(tpl.id)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-md shadow-indigo-950/50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
