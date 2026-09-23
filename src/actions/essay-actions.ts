@@ -162,7 +162,13 @@ export async function evaluateEssayAction(payload: {
   lineCount: number;
   wordCount: number;
   durationSeconds: number;
-}): Promise<{ success: boolean; data?: EssayEvaluationResult; error?: string }> {
+}): Promise<{
+  success: boolean;
+  data?: EssayEvaluationResult;
+  error?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
+}> {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -196,6 +202,8 @@ export async function evaluateEssayAction(payload: {
       return {
         success: false,
         error: quota.message || "Limite diário de correções de redação com IA atingido.",
+        isQuotaExceeded: true,
+        canWatchRewardedAd: quota.canWatchRewardedAd,
       };
     }
 

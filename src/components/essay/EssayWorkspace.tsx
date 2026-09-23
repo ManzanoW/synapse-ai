@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+
+import Link from "next/link";
 import confetti from "canvas-confetti";
 import {
   Sparkles,
@@ -11,6 +13,8 @@ import {
   FileText,
   AlertCircle,
   Award,
+  Crown,
+  Gift,
 } from "lucide-react";
 import {
   PageSpotlightBanner,
@@ -22,11 +26,14 @@ import {
   EssayEvaluationResult,
   evaluateEssayAction,
 } from "@/actions/essay-actions";
+import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 import { ExamSheetEditor } from "./ExamSheetEditor";
 import { ThemeSelectorModal } from "./ThemeSelectorModal";
 import { MotivatingTextsModal } from "./MotivatingTextsModal";
 import { EssayResultView } from "./EssayResultView";
 import { EssayHistoryList } from "./EssayHistoryList";
+import { EssayQuotaModal } from "./EssayQuotaModal";
+
 
 const DEFAULT_THEME: EssayTheme = {
   title: "Os Desafios da Segurança Pública e o Uso da Inteligência Artificial no Combate ao Crime Organizado",
@@ -68,6 +75,12 @@ export function EssayWorkspace() {
   const [isMotivatingModalOpen, setIsMotivatingModalOpen] = useState<boolean>(false);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
   const [evaluationError, setEvaluationError] = useState<string | null>(null);
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState<boolean>(false);
+  const [submittedCounts, setSubmittedCounts] = useState<{ lines: number; words: number }>({
+    lines: 0,
+    words: 0,
+  });
+
 
   const handleSelectTheme = (newTheme: EssayTheme) => {
     setTheme(newTheme);
@@ -103,6 +116,7 @@ export function EssayWorkspace() {
       });
 
       if (res.success && res.data) {
+        triggerAiQuotaRefresh();
         setEvaluationResult(res.data);
         setViewMode("result");
 
@@ -115,9 +129,19 @@ export function EssayWorkspace() {
           });
         }
       } else {
-        setEvaluationError(
-          res.error || "Ocorreu um erro ao submeter a redação para a banca examinadora.",
-        );
+        triggerAiQuotaRefresh();
+        setSubmittedCounts({ lines: lineCount, words: wordCount });
+        const errMsg =
+          res.error || "Ocorreu um erro ao submeter a redação para a banca examinadora.";
+        setEvaluationError(errMsg);
+        if (
+          res.isQuotaExceeded ||
+          errMsg.toLowerCase().includes("cota") ||
+          errMsg.toLowerCase().includes("limite") ||
+          errMsg.toLowerCase().includes("premium")
+        ) {
+          setIsQuotaModalOpen(true);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -131,6 +155,15 @@ export function EssayWorkspace() {
     setEvaluationResult(essay);
     setViewMode("result");
   };
+
+  const isQuotaError = Boolean(
+    evaluationError &&
+      (evaluationError.toLowerCase().includes("cota") ||
+        evaluationError.toLowerCase().includes("limite") ||
+        evaluationError.toLowerCase().includes("premium") ||
+        evaluationError.includes("429")),
+  );
+
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -235,12 +268,53 @@ export function EssayWorkspace() {
         ]}
       />
 
-      {/* MENSAGEM DE ERRO (SE HOUVER) */}
+      {/* MENSAGEM DE ERRO OU AVISO DE COTA */}
       {evaluationError && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle size={16} className="shrink-0 text-rose-400" />
-          <span>{evaluationError}</span>
-        </div>
+        isQuotaError ? (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-violet-500/15 border border-amber-500/30 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-200">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-amber-400/20 text-amber-300 border border-amber-400/30 shrink-0 mt-0.5 sm:mt-0">
+                <Crown size={18} />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-bold text-amber-200">
+                    Cota Diária de Redação Atingida (1/1)
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/25">
+                    Rascunho Salvo
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                  {evaluationError} Assista a um vídeo de 15s para desbloquear +1 correção bônus ou assine o Synapse Pro para correções ilimitadas.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsQuotaModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-950/50 transition-all cursor-pointer group"
+              >
+                <Gift size={14} className="group-hover:scale-110 transition-transform" />
+                <span>Assistir Vídeo (+1 Bônus)</span>
+              </button>
+              <Link
+                href="/pricing"
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-violet-950/50 transition-all cursor-pointer group"
+              >
+                <Crown size={14} className="fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform" />
+                <span>Virar Pro</span>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0 text-rose-400" />
+            <span>{evaluationError}</span>
+          </div>
+        )
       )}
 
       {/* TELA 1: FOLHA DE REDAÇÃO */}
@@ -250,6 +324,8 @@ export function EssayWorkspace() {
           onOpenMotivatingTexts={() => setIsMotivatingModalOpen(true)}
           onSubmitEssay={handleSubmitEssay}
           isEvaluating={isEvaluating}
+          quotaError={isQuotaError ? evaluationError : null}
+          onOpenQuotaModal={() => setIsQuotaModalOpen(true)}
         />
       )}
 
@@ -288,6 +364,17 @@ export function EssayWorkspace() {
         isOpen={isMotivatingModalOpen}
         onClose={() => setIsMotivatingModalOpen(false)}
         theme={theme}
+      />
+
+      {/* MODAL DE COTA DE REDAÇÃO ESGOTADA */}
+      <EssayQuotaModal
+        isOpen={isQuotaModalOpen}
+        onClose={() => setIsQuotaModalOpen(false)}
+        lineCount={submittedCounts.lines}
+        wordCount={submittedCounts.words}
+        onRewardClaimed={() => {
+          setEvaluationError(null);
+        }}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import Link from "next/link";
 import {
   FileText,
   Clock,
@@ -16,6 +17,8 @@ import {
   Info,
   Camera,
   Printer,
+  Crown,
+  Gift,
 } from "lucide-react";
 import { EssayTheme } from "@/actions/essay-actions";
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
@@ -30,6 +33,8 @@ interface ExamSheetEditorProps {
   onOpenMotivatingTexts: () => void;
   onSubmitEssay: (content: string, durationSeconds: number, lineCount: number, wordCount: number) => void;
   isEvaluating: boolean;
+  quotaError?: string | null;
+  onOpenQuotaModal?: () => void;
 }
 
 export function ExamSheetEditor({
@@ -38,7 +43,10 @@ export function ExamSheetEditor({
   onOpenMotivatingTexts,
   onSubmitEssay,
   isEvaluating,
+  quotaError = null,
+  onOpenQuotaModal,
 }: ExamSheetEditorProps) {
+
   const [content, setContent] = useState<string>(initialContent);
   const [seconds, setSeconds] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(true);
@@ -289,6 +297,37 @@ export function ExamSheetEditor({
         </div>
       </div>
 
+      {/* AVISO DE COTA ESGOTADA EM DESTAQUE */}
+      {quotaError && (
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-amber-200 text-xs shadow-lg animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <Crown size={16} className="text-amber-400 shrink-0" />
+            <span>
+              <strong>Cota diária de redação atingida (1/1).</strong> Seu rascunho de {lineCount} linhas está salvo!
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {onOpenQuotaModal && (
+              <button
+                type="button"
+                onClick={onOpenQuotaModal}
+                className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm group"
+              >
+                <Gift size={13} className="group-hover:scale-110 transition-transform" />
+                <span>Desbloquear Cota (+1)</span>
+              </button>
+            )}
+            <Link
+              href="/pricing"
+              className="px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            >
+              <Crown size={13} className="text-amber-300" />
+              <span>Virar Pro</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* AVISOS DE LINHA OU INSTRUÇÃO */}
       {lineStatus.warning && (
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium animate-in fade-in duration-150">
@@ -296,6 +335,7 @@ export function ExamSheetEditor({
           <span>{lineStatus.warning}</span>
         </div>
       )}
+
 
       {/* CABEÇALHO DO TEMA E PADRÃO DE RESPOSTA */}
       <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col gap-2">
