@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Sparkles, ShieldCheck, Zap, Info, ChevronRight, X } from "lucide-react";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
-import { UserQuotaStatus, GLOBAL_DAILY_AI_LIMIT } from "@/lib/ai-quota-service";
+import type { UserQuotaStatus } from "@/types/quota";
 
 export function AiQuotaBadge() {
   const [quota, setQuota] = useState<UserQuotaStatus | null>(null);
@@ -116,7 +116,7 @@ export function AiQuotaBadge() {
           <div className="pt-1 flex items-center justify-between text-[10px] text-slate-500">
             <span>Total geral de hoje:</span>
             <span className="font-bold text-slate-300">
-              {quota.globalUsed}/{GLOBAL_DAILY_AI_LIMIT} requisições
+              {quota.globalUsed}/{quota.globalLimit} requisições
             </span>
           </div>
 

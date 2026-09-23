@@ -1,14 +1,13 @@
 // src/lib/ai-quota-service.ts
 
 import { prisma } from "@/lib/prisma";
+import type {
+  AiFeatureType,
+  QuotaCheckResult,
+  UserQuotaStatus,
+} from "@/types/quota";
 
-export type AiFeatureType =
-  | "SIMULADO"
-  | "ESSAY"
-  | "FLASHCARD"
-  | "MINDMAP"
-  | "REMEDIATION"
-  | "EDITAL";
+export type { AiFeatureType, QuotaCheckResult, UserQuotaStatus };
 
 // Limites diários para usuários no plano gratuito (Freemium estratégico de alta conversão)
 export const AI_QUOTA_LIMITS: Record<AiFeatureType, { label: string; dailyLimit: number }> = {
@@ -22,34 +21,6 @@ export const AI_QUOTA_LIMITS: Record<AiFeatureType, { label: string; dailyLimit:
 
 // Teto global diário para somatório de todas as requisições de IA no plano gratuito
 export const GLOBAL_DAILY_AI_LIMIT = 7;
-
-export interface QuotaCheckResult {
-  allowed: boolean;
-  remaining: number;
-  limit: number;
-  used: number;
-  isUnlimited: boolean;
-  message?: string;
-  resetsAt: string;
-}
-
-export interface UserQuotaStatus {
-  isUnlimited: boolean;
-  role: string;
-  planTier: string;
-  globalUsed: number;
-  globalLimit: number;
-  globalRemaining: number;
-  features: Record<
-    AiFeatureType,
-    {
-      label: string;
-      used: number;
-      limit: number;
-      remaining: number;
-    }
-  >;
-}
 
 function getTodayKey(): string {
   // Retorna YYYY-MM-DD com base no horário de Brasília (UTC-3)
