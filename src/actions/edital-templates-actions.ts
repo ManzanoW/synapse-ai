@@ -11,7 +11,10 @@ import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 /**
  * Importa um modelo de edital pré-definido por carreira para a conta do usuário
  */
-export async function importStarterEditalAction(templateKey: string) {
+export async function importStarterEditalAction(
+  templateKey: string,
+  options?: { replaceExisting?: boolean },
+) {
   try {
     const session = await auth();
     const userId = session?.user?.id;
@@ -23,6 +26,13 @@ export async function importStarterEditalAction(templateKey: string) {
     const template = STARTER_EDITAL_TEMPLATES[templateKey];
     if (!template) {
       return { success: false, error: "Modelo de edital não encontrado." };
+    }
+
+    // Se solicitado, remove matérias anteriores para substituir a carreira de forma limpa
+    if (options?.replaceExisting) {
+      await prisma.subject.deleteMany({
+        where: { userId },
+      });
     }
 
     let createdCount = 0;
@@ -94,11 +104,24 @@ export async function importStarterEditalAction(templateKey: string) {
     }
 
     try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          careerFocus: template.title,
+          targetRole: template.title.split("(")[0].trim(),
+        },
+      });
+    } catch (userErr) {
+      console.warn("Aviso ao atualizar foco no perfil do usuário:", userErr);
+    }
+
+    try {
       revalidatePath("/edital");
       revalidatePath("/questions");
       revalidatePath("/flashcards");
       revalidatePath("/dashboard");
       revalidatePath("/week");
+      revalidatePath("/profile");
     } catch {
       // Ignora erro fora de contexto
     }
@@ -130,7 +153,10 @@ interface CustomSubjectGenerated {
 /**
  * Gera e importa um plano de estudos personalizado para qualquer cargo/concurso digitado pelo usuário via IA (Gemini)
  */
-export async function generateCustomEditalAction(targetRoleOrExam: string) {
+export async function generateCustomEditalAction(
+  targetRoleOrExam: string,
+  options?: { replaceExisting?: boolean },
+) {
   try {
     const session = await auth();
     const userId = session?.user?.id;
@@ -151,6 +177,13 @@ export async function generateCustomEditalAction(targetRoleOrExam: string) {
         success: false,
         error: quota.message || "Limite diário de personalização de editais com IA atingido.",
       };
+    }
+
+    // Se solicitado substituição limpa, remove matérias anteriores antes de gerar o novo foco
+    if (options?.replaceExisting) {
+      await prisma.subject.deleteMany({
+        where: { userId },
+      });
     }
 
     const prompt = `Você é um coordenador pedagógico especialista em concursos públicos brasileiros.
@@ -234,11 +267,24 @@ Para cada matéria:
     }
 
     try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          careerFocus: trimmedInput,
+          targetRole: trimmedInput,
+        },
+      });
+    } catch (userErr) {
+      console.warn("Aviso ao atualizar foco no perfil do usuário:", userErr);
+    }
+
+    try {
       revalidatePath("/edital");
       revalidatePath("/questions");
       revalidatePath("/flashcards");
       revalidatePath("/dashboard");
       revalidatePath("/week");
+      revalidatePath("/profile");
     } catch {
       // Ignora erro fora de contexto
     }
@@ -310,3 +356,100 @@ export async function saveOnboardingPreferencesAction({
     return { success: false, error: "Não foi possível salvar a meta no perfil." };
   }
 }
+
+/**
+ * Consulta a carreira / foco atual configurado no perfil do usuário
+ */
+export async function getUserCareerFocusAction(): Promise<{
+  success: boolean;
+  careerFocus?: string | null;
+  targetRole?: string | null;
+  targetExamDate?: Date | null;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        careerFocus: true,
+        targetRole: true,
+        targetExamDate: true,
+      },
+    });
+
+    return {
+      success: true,
+      careerFocus: user?.careerFocus || "Tecnologia da Informação & Dados",
+      targetRole: user?.targetRole || "Concurso Geral",
+      targetExamDate: user?.targetExamDate,
+    };
+  } catch (err) {
+    console.error("[getUserCareerFocusAction] Erro:", err);
+    return { success: false, error: "Falha ao consultar foco de estudo." };
+  }
+}
+
+/**
+ * Atualiza o foco / cargo alvo e data de prova do concurseiro
+ */
+export async function updateUserCareerFocusAction(input: {
+  careerFocus?: string;
+  targetRole?: string;
+  targetExamDate?: string | Date | null;
+}): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const updateData: {
+      careerFocus?: string;
+      targetRole?: string;
+      targetExamDate?: Date | null;
+    } = {};
+
+    if (input.careerFocus !== undefined) updateData.careerFocus = input.careerFocus;
+    if (input.targetRole !== undefined) updateData.targetRole = input.targetRole;
+    if (input.targetExamDate !== undefined) {
+      updateData.targetExamDate = input.targetExamDate
+        ? new Date(input.targetExamDate)
+        : null;
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    try {
+      revalidatePath("/profile");
+      revalidatePath("/edital");
+      revalidatePath("/dashboard");
+    } catch {
+      // Ignora erro fora de contexto
+    }
+
+    return {
+      success: true,
+      message: "Foco de carreira e objetivo salvos com sucesso!",
+    };
+  } catch (err) {
+    console.error("[updateUserCareerFocusAction] Erro:", err);
+    return { success: false, error: "Falha ao salvar preferências de carreira." };
+  }
+}
+

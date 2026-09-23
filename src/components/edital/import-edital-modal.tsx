@@ -13,7 +13,9 @@ import {
   FileText,
   HelpCircle,
   Play,
+  Briefcase,
 } from "lucide-react";
+import { StarterEditalSelector } from "./StarterEditalSelector";
 
 interface TopicItem {
   id: string;
@@ -59,7 +61,7 @@ export function ImportEditalModal({
   onImportSuccess,
 }: ImportEditalModalProps) {
   const [step, setStep] = useState<"input" | "preview">("input");
-  const [activeTab, setActiveTab] = useState<"file" | "text">("text");
+  const [activeTab, setActiveTab] = useState<"career" | "text" | "file">("career");
   const [rawText, setRawText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -351,23 +353,34 @@ export function ImportEditalModal({
               </div>
 
               {/* Tabs */}
-              <div className="flex p-1 bg-slate-900/80 border border-white/5 rounded-xl">
+              <div className="flex flex-wrap p-1 bg-slate-900/80 border border-white/5 rounded-xl gap-1">
+                <button
+                  onClick={() => setActiveTab("career")}
+                  className={`flex-1 min-w-[130px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    activeTab === "career"
+                      ? "bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Sparkles size={14} className="text-amber-400" />
+                  <span>Carreiras & IA (1 Clique)</span>
+                </button>
                 <button
                   onClick={() => setActiveTab("text")}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 min-w-[130px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     activeTab === "text"
-                      ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                      ? "bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   <FileText size={14} />
-                  <span>Colar Texto do Edital (Recomendado)</span>
+                  <span>Colar Texto do Edital</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("file")}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 min-w-[100px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     activeTab === "file"
-                      ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                      ? "bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
@@ -376,7 +389,17 @@ export function ImportEditalModal({
                 </button>
               </div>
 
-              {activeTab === "file" ? (
+              {activeTab === "career" ? (
+                <div className="pt-2">
+                  <StarterEditalSelector
+                    onSuccess={() => {
+                      onImportSuccess({ materias: [] });
+                      onClose();
+                    }}
+                    compact={true}
+                  />
+                </div>
+              ) : activeTab === "file" ? (
                 <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-white/10 rounded-xl cursor-pointer bg-white/5 hover:bg-white/10 hover:border-indigo-500/40 transition-all group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
                     <div className="p-3 mb-2 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:scale-110 transition-transform">
@@ -543,7 +566,7 @@ export function ImportEditalModal({
             Cancelar
           </button>
 
-          {step === "input" ? (
+          {step === "input" && activeTab !== "career" ? (
             <button
               disabled={
                 isProcessing ||

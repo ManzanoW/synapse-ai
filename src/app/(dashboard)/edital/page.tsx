@@ -345,9 +345,10 @@ function PlannerContent() {
                 type="button"
                 onClick={() => setIsImportModalOpen(true)}
                 className="flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer"
+                title="Escolha uma carreira pronta ou gere uma personalizada com IA"
               >
-                <UploadCloud size={14} className="text-indigo-400" />
-                <span className="truncate">Importar Edital</span>
+                <Sparkles size={14} className="text-amber-400" />
+                <span className="truncate">Carreiras & Edital</span>
               </button>
 
               <button

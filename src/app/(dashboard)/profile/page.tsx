@@ -38,6 +38,8 @@ export default async function ProfilePage() {
       weeklyGoalHours: true,
       studyMode: true,
       targetExamDate: true, // <-- ADICIONADO AQUI
+      careerFocus: true,
+      targetRole: true,
       planTier: true,
       role: true,
     },
@@ -149,7 +151,7 @@ export default async function ProfilePage() {
               </span>
               <span className="flex items-center gap-1.5 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
                 <BookOpen size={14} className="text-purple-400" />
-                Ciência da Computação
+                {dbUser?.careerFocus || "Tecnologia da Informação & Dados"}
               </span>
             </div>
           </div>
@@ -246,7 +248,13 @@ export default async function ProfilePage() {
         </div>
 
         {/* Bloco 2: Novo Card de Objetivo da Prova */}
-        <ProfileTargetForm initialTargetDate={dbUser?.targetExamDate} />
+        <div className="md:col-span-2">
+          <ProfileTargetForm
+            initialTargetDate={dbUser?.targetExamDate}
+            initialCareerFocus={dbUser?.careerFocus}
+            initialTargetRole={dbUser?.targetRole}
+          />
+        </div>
 
         {/* Bloco 3: Configurações de Estudo */}
         <div className="bg-[#090d16] border border-slate-800/60 rounded-2xl p-6 space-y-4 backdrop-blur-xl md:col-span-2">
@@ -260,11 +268,11 @@ export default async function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
-                Foco Acadêmico
+                Foco Acadêmico / Carreira
               </label>
               <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl px-4 py-3 text-sm text-slate-200 font-medium flex items-center justify-between">
-                <span>Ciência da Computação</span>
-                <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold">
+                <span className="truncate pr-2">{dbUser?.careerFocus || "Tecnologia da Informação & Dados"}</span>
+                <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold shrink-0">
                   Definido
                 </span>
               </div>

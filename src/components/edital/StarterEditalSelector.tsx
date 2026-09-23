@@ -41,6 +41,9 @@ export function StarterEditalSelector({
   // Filtro por categorias
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
+  // Modo de importação: mesclar ou substituir grade existente
+  const [replaceExisting, setReplaceExisting] = useState<boolean>(false);
+
   // Personalização com IA
   const [customRoleInput, setCustomRoleInput] = useState<string>("");
   const [isGeneratingCustom, setIsGeneratingCustom] = useState<boolean>(false);
@@ -50,7 +53,7 @@ export function StarterEditalSelector({
     setErrorMessage(null);
 
     try {
-      const res = await importStarterEditalAction(templateId);
+      const res = await importStarterEditalAction(templateId, { replaceExisting });
 
       if (res.success && res.data) {
         confetti({
@@ -92,7 +95,7 @@ export function StarterEditalSelector({
     setErrorMessage(null);
 
     try {
-      const res = await generateCustomEditalAction(trimmed);
+      const res = await generateCustomEditalAction(trimmed, { replaceExisting });
 
       if (res.success && res.data) {
         confetti({
@@ -208,16 +211,36 @@ export function StarterEditalSelector({
         </div>
       </div>
 
+      {/* OPÇÃO DE MODO DE CARGA: SUBSTITUIR OU ADICIONAR */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
+        <label className="flex items-center gap-2 text-slate-300 hover:text-white cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={replaceExisting}
+            onChange={(e) => setReplaceExisting(e.target.checked)}
+            className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+          />
+          <span className="font-medium text-[11px] sm:text-xs">
+            Substituir matérias anteriores (limpar edital antes de carregar nova carreira)
+          </span>
+        </label>
+        {replaceExisting && (
+          <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 font-bold">
+            ⚠️ Modo Substituição Limpa Ativado
+          </span>
+        )}
+      </div>
+
       {/* FILTROS POR CATEGORIA DE CARREIRA */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
         {[
-          { id: "all", label: "🔥 Todas (10)" },
-          { id: "ti", label: "💻 TI & Dados" },
-          { id: "policial", label: "👮 Policial" },
-          { id: "fiscal_controle", label: "💰 Fiscal & Controle" },
-          { id: "administrativo", label: "🏛️ Tribunais & Adm" },
-          { id: "juridica", label: "⚖️ Jurídica" },
-          { id: "saude_educacao", label: "🩺 Saúde & Educação" },
+          { id: "all", label: `🔥 Todas (${allTemplates.length})` },
+          { id: "ti", label: `💻 TI & Dados (${allTemplates.filter((t) => t.category === "ti").length})` },
+          { id: "policial", label: `👮 Policial (${allTemplates.filter((t) => t.category === "policial").length})` },
+          { id: "fiscal_controle", label: `💰 Fiscal & Controle (${allTemplates.filter((t) => t.category === "fiscal_controle").length})` },
+          { id: "administrativo", label: `🏛️ Tribunais & Adm (${allTemplates.filter((t) => t.category === "administrativo").length})` },
+          { id: "juridica", label: `⚖️ Jurídica (${allTemplates.filter((t) => t.category === "juridica").length})` },
+          { id: "saude_educacao", label: `🩺 Saúde & Educação (${allTemplates.filter((t) => t.category === "saude_educacao").length})` },
         ].map((cat) => (
           <button
             key={cat.id}
