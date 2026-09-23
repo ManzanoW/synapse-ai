@@ -1020,8 +1020,14 @@ export default function QuestoesPage() {
           ? err.message
           : "Erro desconhecido ao gerar questões.";
       console.error("Erro ao gerar simulado:", msg);
+
+      // Notifica em tempo real a Sidebar para refletir a cota atingida
+      triggerAiQuotaRefresh();
+
+      // Mantém o modal aberto exibindo o aviso amigável e o botão de upgrade
       setSimuladoGenerationError(msg);
-      setIsSimuladoModalOpen(false);
+      setIsSimuladoModalOpen(true);
+      setIsAIModalOpen(false);
     } finally {
       setIsGenerating(false);
     }
@@ -1132,9 +1138,11 @@ export default function QuestoesPage() {
         });
       } catch (err: any) {
         console.error("Erro na geração rápida:", err);
+        triggerAiQuotaRefresh();
         setSimuladoGenerationError(
           err.message || "Não foi possível gerar as questões no momento.",
         );
+        setIsSimuladoModalOpen(true);
       } finally {
         setIsGenerating(false);
       }
