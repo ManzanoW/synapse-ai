@@ -165,6 +165,7 @@ export default async function FlashcardsPage() {
               <FlashcardsHeroActions
                 totalCards={totalCards}
                 totalDecks={totalDecks}
+                dueCardsCount={dueCardsCount}
                 decks={allUserDecks}
                 audioCards={audioCards}
               />

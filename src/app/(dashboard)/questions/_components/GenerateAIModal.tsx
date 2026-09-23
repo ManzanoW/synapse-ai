@@ -43,6 +43,10 @@ interface GenerateAIModalProps {
   onQtdQuestoesChange: (value: string) => void;
   isAdaptiveMode?: boolean;
   onAdaptiveModeChange?: (val: boolean) => void;
+  formatoQuestao?: "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos";
+  onFormatoQuestaoChange?: (val: "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos") => void;
+  nivelCargo?: "medio" | "superior" | "juridico";
+  onNivelCargoChange?: (val: "medio" | "superior" | "juridico") => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -68,6 +72,10 @@ export function GenerateAIModal({
   onQtdQuestoesChange,
   isAdaptiveMode = false,
   onAdaptiveModeChange,
+  formatoQuestao = "auto",
+  onFormatoQuestaoChange,
+  nivelCargo = "superior",
+  onNivelCargoChange,
   onSubmit,
 }: GenerateAIModalProps) {
   if (!isOpen) return null;
@@ -142,11 +150,15 @@ export function GenerateAIModal({
                   disabled={isGenerating}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer outline-none focus:border-indigo-500/50"
                 >
-                  <option value="Cebraspe">Cebraspe</option>
-                  <option value="FGV">FGV</option>
-                  <option value="FCC">FCC</option>
-                  <option value="IBAM">IBAM</option>
+                  <option value="Cebraspe">Cebraspe (Certo/Errado & Múltipla)</option>
+                  <option value="FGV">FGV (Fundação Getulio Vargas)</option>
+                  <option value="FCC">FCC (Fundação Carlos Chagas)</option>
+                  <option value="Cesgranrio">Cesgranrio (CNU / Caixa / BB)</option>
                   <option value="Vunesp">Vunesp</option>
+                  <option value="Quadrix">Quadrix (Conselhos Federais/Regionais)</option>
+                  <option value="AOCP">Instituto AOCP (Polícias & Tribunais)</option>
+                  <option value="IDECAN">IDECAN</option>
+                  <option value="IBAM">IBAM</option>
                 </select>
               </div>
 
@@ -167,6 +179,69 @@ export function GenerateAIModal({
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* SELETOR DE NÍVEL DO CARGO */}
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+                <span>Nível do Cargo Alvo</span>
+                <span className="text-[10px] text-indigo-400 font-normal">Calibra a profundidade da prova</span>
+              </label>
+              <div className="grid grid-cols-3 gap-1.5 bg-slate-950 border border-slate-800 p-1 rounded-xl items-center">
+                {[
+                  { id: "medio", label: "Nível Médio" },
+                  { id: "superior", label: "Nível Superior" },
+                  { id: "juridico", label: "Carreiras Jurídicas" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={isGenerating}
+                    onClick={() => onNivelCargoChange?.(item.id as "medio" | "superior" | "juridico")}
+                    className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
+                      nivelCargo === item.id
+                        ? "bg-indigo-600 text-slate-100 shadow-sm"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* SELETOR DE ESTILO / FORMATO DE QUESTÃO */}
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+                <span>Estilo de Questão</span>
+                <span className="text-[10px] text-indigo-400 font-normal">Padrão oficial da banca</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                {[
+                  { id: "auto", label: "Padrão Banca" },
+                  { id: "certo_errado", label: "Certo / Errado" },
+                  { id: "multipla_5", label: "Múltipla (A-E)" },
+                  { id: "casos_praticos", label: "Casos Práticos" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={isGenerating}
+                    onClick={() =>
+                      onFormatoQuestaoChange?.(
+                        item.id as "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos"
+                      )
+                    }
+                    className={`py-2 px-1 rounded-xl border font-bold text-[10px] transition-all cursor-pointer text-center ${
+                      formatoQuestao === item.id
+                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300 shadow-sm"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-300"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
             </div>
 

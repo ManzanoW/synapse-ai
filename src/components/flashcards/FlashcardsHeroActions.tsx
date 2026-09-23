@@ -20,6 +20,7 @@ import { AudioFlashcardItem } from "@/hooks/useAudioFlashcards";
 interface FlashcardsHeroActionsProps {
   totalCards: number;
   totalDecks: number;
+  dueCardsCount?: number;
   decks: Array<{ id: string; title: string }>;
   audioCards: AudioFlashcardItem[];
 }
@@ -27,6 +28,7 @@ interface FlashcardsHeroActionsProps {
 export function FlashcardsHeroActions({
   totalCards,
   totalDecks,
+  dueCardsCount = 0,
   decks,
   audioCards,
 }: FlashcardsHeroActionsProps) {
@@ -41,13 +43,23 @@ export function FlashcardsHeroActions({
         {totalCards > 0 ? (
           <Link
             href="/flashcards/study/all"
-            className="group relative inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs sm:text-sm font-bold px-6 py-3 rounded-xl transition-all duration-300 shadow-lg shadow-indigo-600/30 active:scale-95 border border-indigo-400/30 cursor-pointer w-full sm:w-auto"
+            className={`group relative inline-flex items-center justify-center gap-2.5 text-white text-xs sm:text-sm font-bold px-6 py-3.5 rounded-xl transition-all duration-300 shadow-xl active:scale-95 border cursor-pointer w-full sm:w-auto ${
+              dueCardsCount > 0
+                ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 border-amber-300/40 shadow-amber-500/25 animate-pulse"
+                : "bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-indigo-400/30 shadow-indigo-600/30"
+            }`}
           >
             <Zap
               size={16}
-              className="fill-white group-hover:scale-110 transition-transform"
+              className={`fill-white transition-transform ${
+                dueCardsCount > 0 ? "scale-110" : "group-hover:scale-110"
+              }`}
             />
-            <span>Iniciar Revisão Geral</span>
+            <span>
+              {dueCardsCount > 0
+                ? `Revisar ${dueCardsCount} Cards Vencidos Hoje`
+                : "Iniciar Revisão Geral"}
+            </span>
             <ArrowRight
               size={15}
               className="group-hover:translate-x-1 transition-transform"

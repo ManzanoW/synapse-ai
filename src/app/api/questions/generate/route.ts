@@ -36,6 +36,8 @@ export async function POST(request: Request) {
       textoBase,
       fonteConteudo,
       adaptiveMode,
+      formatoQuestao,
+      nivelCargo,
     } = body;
 
     if (!banca || !materia || !qtdQuestoes) {
@@ -58,6 +60,8 @@ export async function POST(request: Request) {
         textoBase,
         fonteConteudo,
         adaptiveMode: Boolean(adaptiveMode),
+        formatoQuestao,
+        nivelCargo,
       },
       userId,
     );

@@ -38,6 +38,8 @@ export interface GenerateSimuladoParams {
   textoBase?: string | null;
   fonteConteudo?: "banca" | "texto" | "pdf" | string;
   adaptiveMode?: boolean;
+  formatoQuestao?: "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos";
+  nivelCargo?: "medio" | "superior" | "juridico";
 }
 
 export interface GenerateSimuladoResult {
@@ -229,6 +231,8 @@ export async function generateSimuladoInParallel(
     dificuldade = "Média",
     textoBase,
     fonteConteudo = "banca",
+    formatoQuestao = "auto",
+    nivelCargo = "superior",
   } = params;
 
   if (!banca || !materia) {
@@ -367,6 +371,78 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
       batchContext += `Obrigatório basear as questões estritamente neste texto/lei:\n"${textoBase}"\n`;
     }
 
+    // Calibração do formato da questão
+    const isCebraspeStyle =
+      formatoQuestao === "certo_errado" ||
+      (formatoQuestao === "auto" && banca.toLowerCase().includes("cebraspe"));
+
+    const isCasosPraticos =
+      formatoQuestao === "casos_praticos" ||
+      (formatoQuestao === "auto" && banca.toLowerCase().includes("fgv"));
+
+    const use5Alternatives =
+      formatoQuestao === "multipla_5" ||
+      (!isCebraspeStyle &&
+        (banca.toLowerCase().includes("fcc") ||
+          banca.toLowerCase().includes("fgv") ||
+          banca.toLowerCase().includes("cesgranrio") ||
+          banca.toLowerCase().includes("vunesp") ||
+          banca.toLowerCase().includes("aocp") ||
+          banca.toLowerCase().includes("idecan")));
+
+    // Diretriz pedagógica da banca
+    let bancaProfileDirective = "";
+    const lowerBanca = banca.toLowerCase();
+    if (lowerBanca.includes("cesgranrio")) {
+      bancaProfileDirective = `
+        - ESTILO CESGRANRIO (CNU / Caixa / BB / Petrobras): Enunciados contextualizados com desafios reais de políticas públicas, gestão ética, inclusão e atendimento cidadão. Alternativas homogêneas e bem elaboradas, sem pegadinhas de mera decoreba mecânica.
+      `;
+    } else if (lowerBanca.includes("fgv") || isCasosPraticos) {
+      bancaProfileDirective = `
+        - ESTILO FGV (Casos Práticos Hipotéticos): Enunciados com situações concretas ('João, servidor público estável...', 'Determinada sociedade empresária...'), exigindo do aluno aplicação da regra a fatos, interpretação sistemática e julgados dos tribunais.
+      `;
+    } else if (lowerBanca.includes("fcc")) {
+      bancaProfileDirective = `
+        - ESTILO FCC: Redação técnica primorosa, literalidade de dispositivos de lei e súmulas consolidadas do STF e STJ, com 5 alternativas bem estruturadas.
+      `;
+    } else if (lowerBanca.includes("cebraspe")) {
+      bancaProfileDirective = `
+        - ESTILO CEBRASPE / UNB: Itens assertivos e categóricos, testando conceitos profundos, com distratores sutis baseados em termos restritivos ('apenas', 'sempre', 'salvo') e jurisprudência pacificada.
+      `;
+    } else if (lowerBanca.includes("quadrix")) {
+      bancaProfileDirective = `
+        - ESTILO INSTITUTO QUADRIX: Foco estrito na letra da lei, resoluções e normativas administrativas de conselhos profissionais federais/regionais.
+      `;
+    } else if (lowerBanca.includes("aocp")) {
+      bancaProfileDirective = `
+        - ESTILO INSTITUTO AOCP: Enunciados diretos, foco na literalidade de leis penais, processuais e constitucionais, com atenção a prazos legais e súmulas vinculantes.
+      `;
+    } else if (lowerBanca.includes("idecan")) {
+      bancaProfileDirective = `
+        - ESTILO IDECAN: Questões com densidade analítica, situações de segurança pública e carreiras administrativas, doutrina consolidada e súmulas.
+      `;
+    } else if (lowerBanca.includes("vunesp")) {
+      bancaProfileDirective = `
+        - ESTILO VUNESP: Apego à letra da lei ('lei seca'), precisão terminológica e 5 alternativas objetivas.
+      `;
+    }
+
+    // Diretriz do nível do cargo
+    let careerLevelDirective = "";
+    if (nivelCargo === "medio") {
+      careerLevelDirective = `
+        - PÚBLICO-ALVO: NÍVEL MÉDIO / TÉCNICO. Foque na letra da lei seca, conceitos basilares e regras gerais claras, evitando controvérsias doutrinárias excessivamente obscuras.
+      `;
+    } else if (nivelCargo === "juridico") {
+      careerLevelDirective = `
+        - PÚBLICO-ALVO: CARREIRAS JURÍDICAS & POLICIAIS (Delegado, Juiz, Promotor, Defensor, Perito). Exija profundidade técnica máxima, Informativos recentes do STF e STJ, súmulas vinculantes, teses de repercussão geral e distinções dogmáticas refinadas.
+      `;
+    } else {
+      careerLevelDirective = `
+        - PÚBLICO-ALVO: NÍVEL SUPERIOR / ANALISTA. Equilíbrio entre texto da lei, jurisprudência dominante e doutrina majoritária.
+      `;
+    }
+
     const batchPrompt = `
       Você é um professor PhD e especialista elaborador de provas para a banca "${banca}".
       ATENÇÃO CRÍTICA: Você DEVE gerar EXATAMENTE ${batchCount} questões distintas e completas dentro do array 'questoes'. Não gere menos que ${batchCount} itens.
@@ -377,7 +453,9 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
           ? `REQUISITO OBRIGATÓRIO DE ESCOPO: Todas as questões deste simulado DEVEM focar estritamente no seguinte recorte temático ou dispositivo legal: "${specificTopic.trim()}". Não gere questões genéricas fora desse assunto.\n`
           : ""
       }Nível de Dificuldade: "${dificuldade}". 
-      Estilo da Banca: "${banca}".
+      Banca Organizadora: "${banca}".
+      ${careerLevelDirective}
+      ${bancaProfileDirective}
       
       ${batchContext}
       ${adaptiveContext}
@@ -391,8 +469,13 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
          - Se for DIREITO/TEORIA: Fundamente na legislação vigente, jurisprudência dominante ou regras teóricas consolidadas.
 
       2. CRIAÇÃO DAS ALTERNATIVAS COM O VALOR EXATO:
-         - Pegue o RESULTADO EXATO obtido e coloque-o em UMA das opções (A, B, C ou D).
-         - Crie distratores plausíveis para as outras opções sem ambiguidades.
+         ${
+           isCebraspeStyle
+             ? '- Para formato Certo/Errado: elabore um item assertivo e defina se é "Certo" ou "Errado" com fundamentação sólida.'
+             : use5Alternatives
+               ? '- Crie exatamente 5 alternativas (A, B, C, D, E) com o gabarito exato em uma delas e distratores plausíveis nas demais.'
+               : '- Crie exatamente 4 alternativas (A, B, C, D) com o gabarito exato em uma delas e distratores plausíveis nas demais.'
+         }
          - É ESTRITAMENTE PROIBIDO criar alternativas em que o resultado exato calculado na justificativa não esteja presente.
 
       3. DISTRIBUIÇÃO RANDÔMICA E IMPARCIAL DOS GABARITOS:
@@ -400,23 +483,26 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
          - Distribua as respostas corretas de forma aleatória e equilibrada.
 
       4. VALIDAÇÃO CRUZADA DE GABARITO (RIGOROSO):
-         - Identifique explicitamente em qual LETRA ("A", "B", "C" ou "D") está o resultado exato calculado.
+         - Identifique explicitamente em qual LETRA está o resultado exato calculado.
          - Atribua ESTREITAMENTE essa LETRA ao campo "gabaritoCorreto".
 
       ===================================================================
       ⚡ REGRAS DE CONCISÃO E ALTA VELOCIDADE (MÁXIMO THROUGHPUT):
       ===================================================================
-      - Enunciado: Seja conciso, claro e direto ao ponto, evitando textos longos ou prolixos.
+      - Enunciado: Seja conciso, claro e direto ao ponto, evitando textos desnecessariamente prolixos.
       - explanation / justificativa: texto explicativo conciso (max 2 frases objetivas demonstrando a regra ou o cálculo).
       - Flashcards: Pergunta no 'flashcardFrente' e resposta no 'flashcardVerso' com no máximo 1 frase concisa cada.
-      - Elimine explicações desnecessárias para garantir resposta rápida em lote.
 
       ===================================================================
       FORMATO DAS RESPOSTAS:
       ===================================================================
-      - Se banca for "Cebraspe": formato "certo_errado" (gabaritoCorreto: "Certo" ou "Errado", alternativas: []).
-      - Outras bancas: formato "multipla" com exatamente 4 alternativas (ids: "A", "B", "C", "D").
-      - "gabaritoCorreto": deve conter APENAS a letra correspondente à opção correta ("A", "B", "C" ou "D") ou "Certo"/"Errado".
+      ${
+        isCebraspeStyle
+          ? '- formato "certo_errado" (gabaritoCorreto: "Certo" ou "Errado", alternativas: []).'
+          : use5Alternatives
+            ? '- formato "multipla" com exatamente 5 alternativas (ids: "A", "B", "C", "D", "E"). gabaritoCorreto deve ser uma letra entre "A" e "E".'
+            : '- formato "multipla" com exatamente 4 alternativas (ids: "A", "B", "C", "D"). gabaritoCorreto deve ser uma letra entre "A" e "D".'
+      }
     
       Além da questão e das alternativas, gere uma versão em Flashcard (Active Recall) para cada item: no 'flashcardFrente', elabore uma pergunta conceitual e direta sobre o cerne do tema; no 'flashcardVerso', responda com a definição/regra essencial de forma clara e sintética.
 

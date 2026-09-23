@@ -333,6 +333,12 @@ export default function QuestoesPage() {
     "banca",
   );
   const [dificuldade, setDificuldade] = useState("Média");
+  const [formatoQuestao, setFormatoQuestao] = useState<
+    "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos"
+  >("auto");
+  const [nivelCargo, setNivelCargo] = useState<
+    "medio" | "superior" | "juridico"
+  >("superior");
   const [textoBase, setTextoBase] = useState("");
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -974,6 +980,8 @@ export default function QuestoesPage() {
           textoBase,
           fonteConteudo,
           adaptiveMode: isAdaptiveMode,
+          formatoQuestao,
+          nivelCargo,
         }),
       });
 
@@ -2368,6 +2376,10 @@ export default function QuestoesPage() {
         onQtdQuestoesChange={setQtdQuestoes}
         isAdaptiveMode={isAdaptiveMode}
         onAdaptiveModeChange={setIsAdaptiveMode}
+        formatoQuestao={formatoQuestao}
+        onFormatoQuestaoChange={setFormatoQuestao}
+        nivelCargo={nivelCargo}
+        onNivelCargoChange={setNivelCargo}
         onSubmit={handleGenerateSimulado}
       />
 
