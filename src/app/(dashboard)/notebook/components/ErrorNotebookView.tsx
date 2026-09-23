@@ -26,6 +26,8 @@ import {
   ArrowRight,
   Zap,
   HelpCircle,
+  Brain,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -394,20 +396,58 @@ export function ErrorNotebookView({
           </div>
 
           {metrics.totalErrors === 0 ? (
-            <div className="space-y-2 max-w-md mx-auto">
-              <h3 className="text-lg font-bold text-white">
-                Seu Caderno de Erros está Limpo!
-              </h3>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Você ainda não possui erros registrados ou todas as suas questões foram acertadas. Realize simulados no Banco de Provas para mapear suas causas-raiz.
-              </p>
-              <div className="pt-4">
+            <div className="space-y-6 max-w-xl mx-auto">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                  <CheckCircle2 size={13} />
+                  <span>Caderno 100% Preparado</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Seu Caderno de Erros está Limpo!
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-lg mx-auto">
+                  Conforme você resolve simulados no Banco de Provas, as questões que você errar serão automaticamente catalogadas aqui para desarmar pegadinhas e fixar a teoria.
+                </p>
+              </div>
+
+              {/* 3 Passos do Método de Remediação */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1.5">
+                  <div className="flex items-center gap-2 text-violet-400 text-xs font-bold">
+                    <span className="w-5 h-5 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-[10px] font-mono">1</span>
+                    <span>Simulado Real</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    Resolva questões das principais bancas com seu edital ativo.
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1.5">
+                  <div className="flex items-center gap-2 text-amber-400 text-xs font-bold">
+                    <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-[10px] font-mono">2</span>
+                    <span>Diagnóstico IA</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    A IA classifica a causa-raiz: pegadinha, lacuna teórica ou tempo.
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1.5">
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
+                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-[10px] font-mono">3</span>
+                    <span>Remediação</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    Treine com micro-questões de fixação inéditas e supere seus erros.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
                 <Link
                   href="/questions"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-rose-600 hover:from-violet-500 hover:to-rose-500 text-white font-bold text-sm shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-rose-600 hover:from-violet-500 hover:to-rose-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-violet-600/30 border border-violet-400/30 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <FileStack size={16} />
-                  <span>Ir para o Banco de Provas</span>
+                  <span>Iniciar Simulado no Banco de Provas</span>
                   <ArrowRight size={14} />
                 </Link>
               </div>

@@ -10,6 +10,7 @@ import { trackQuestProgressAction } from "@/actions/quest-actions";
 import { revalidatePath } from "next/cache";
 import { SubmitQuizAttemptInput, SubjectDomainMetric, MentorGuidance } from "@/types/quiz";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { normalizeTaxonomy } from "@/lib/error-taxonomy";
 
 export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
   try {
@@ -108,29 +109,52 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
           : "UNCLASSIFIED";
 
       for (const item of incorrectAnswers) {
-        const errorReasonToSave =
+        const rawReason =
           item.errorReason && item.errorReason !== "UNCLASSIFIED"
             ? String(item.errorReason)
             : fallbackErrorReason;
+        const normalizedReason = normalizeTaxonomy(rawReason);
 
-        await prisma.questionError
-          .create({
-            data: {
+        try {
+          const existing = await prisma.questionError.findFirst({
+            where: {
               userId,
-              subjectId: item.subjectId || input.subjectId || null,
-              topicId: item.topicId || targetTopicId || null,
               questionText: item.questionText!,
-              options: (item.options as any) || [],
-              userAnswer: String(item.selectedOption || "Não informada"),
-              correctAnswer: String(item.correctAnswer || "A"),
-              explanation: item.explanation || null,
-              errorReason: errorReasonToSave,
-              status: "PENDING",
             },
-          })
-          .catch((e: unknown) =>
-            console.warn("Erro ao registrar questionError em submitQuizAttemptAction:", e)
-          );
+          });
+
+          if (existing) {
+            await prisma.questionError.update({
+              where: { id: existing.id },
+              data: {
+                userAnswer: String(item.selectedOption || "Não informada"),
+                correctAnswer: String(item.correctAnswer || "A"),
+                explanation: item.explanation || existing.explanation,
+                errorReason: normalizedReason !== "UNCLASSIFIED" ? normalizedReason : existing.errorReason,
+                status: "PENDING",
+                masteredAt: null,
+                updatedAt: new Date(),
+              },
+            });
+          } else {
+            await prisma.questionError.create({
+              data: {
+                userId,
+                subjectId: item.subjectId || input.subjectId || null,
+                topicId: item.topicId || targetTopicId || null,
+                questionText: item.questionText!,
+                options: (item.options as any) || [],
+                userAnswer: String(item.selectedOption || "Não informada"),
+                correctAnswer: String(item.correctAnswer || "A"),
+                explanation: item.explanation || null,
+                errorReason: normalizedReason,
+                status: "PENDING",
+              },
+            });
+          }
+        } catch (e: unknown) {
+          console.warn("Erro ao registrar questionError em submitQuizAttemptAction:", e);
+        }
       }
     }
 

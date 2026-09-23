@@ -1371,7 +1371,15 @@ export async function getRemediationQuestionsAction(
     }
 
     if (params?.taxonomy && params.taxonomy !== "ALL") {
-      whereClause.errorReason = params.taxonomy;
+      const normalized = normalizeTaxonomy(params.taxonomy);
+      whereClause.errorReason = {
+        in: [
+          normalized,
+          params.taxonomy,
+          params.taxonomy.toLowerCase(),
+          params.taxonomy.toUpperCase(),
+        ],
+      };
     }
 
     const takeLimit = Math.min(Math.max(params?.limit || 10, 1), 50);

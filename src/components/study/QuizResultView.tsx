@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
   Trophy,
   Clock,
@@ -18,9 +19,11 @@ import {
   Flame,
   Layers,
   ArrowLeft,
+  ArrowRight,
   Check,
   Loader2,
   BookmarkPlus,
+  BookOpenCheck,
   ShieldCheck,
   HelpCircle,
 } from "lucide-react";
@@ -565,7 +568,7 @@ export function QuizResultView({
             <div className="space-y-1.5 max-w-md">
               <div className="flex items-center gap-2">
                 <span className="p-2 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-300 shrink-0">
-                  <BookmarkPlus size={18} />
+                  <BookOpenCheck size={18} />
                 </span>
                 <div>
                   <h3 className="text-sm font-black text-white">
@@ -573,14 +576,15 @@ export function QuizResultView({
                   </h3>
                   <span className="text-[11px] font-mono text-slate-400">
                     {incorrectCount > 0
-                      ? `${incorrectCount} questão(ões) identificada(s) para retenção ativa.`
+                      ? `${incorrectCount} questão(ões) identificada(s) e salvas para remediação ativa.`
                       : "Gabarito 100% perfeito — sem erros pendentes!"}
                   </span>
                 </div>
               </div>
               <p className="text-xs text-slate-300/80 leading-relaxed pt-1">
-                Isole suas falhas no simulado para treinar com reclassificação de
-                pegadinhas e micro-questões de fixação formuladas pela IA.
+                {incorrectCount > 0
+                  ? "Suas falhas já foram registradas no Caderno de Erros. Você pode treinar causas-raiz, desarmar pegadinhas e gerar micro-questões de fixação com IA."
+                  : "Excelente aproveitamento! Continue praticando simulados para consolidar sua memória de longo prazo."}
               </p>
               {saveErrorMessage && (
                 <p className="text-xs text-rose-400 font-semibold pt-1">
@@ -589,36 +593,37 @@ export function QuizResultView({
               )}
             </div>
 
-            <div className="shrink-0 w-full sm:w-auto">
+            <div className="shrink-0 w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2.5">
               {incorrectCount === 0 ? (
                 <div className="px-5 py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-black flex items-center justify-center gap-2">
                   <Check size={16} />
                   <span>Sem Erros Registrados</span>
                 </div>
-              ) : isErrorsSaved ? (
-                <div className="px-5 py-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50">
-                  <Check size={16} />
-                  <span>{savedCount} Erro(s) no Caderno ✓</span>
-                </div>
               ) : (
-                <button
-                  onClick={handleSaveWrongQuestions}
-                  disabled={isSavingErrors}
-                  type="button"
-                  className="w-full sm:w-auto px-6 py-3.5 bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-violet-950/60 border border-violet-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
-                >
-                  {isSavingErrors ? (
-                    <>
-                      <Loader2 size={15} className="animate-spin" />
-                      <span>Salvando no Caderno...</span>
-                    </>
-                  ) : (
-                    <>
-                      <BookmarkPlus size={16} />
-                      <span>Adicionar Erros ao Caderno</span>
-                    </>
-                  )}
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      setFilterReview("incorrect");
+                      const reviewEl = document.getElementById("revisao-questoes-anchor");
+                      if (reviewEl) {
+                        reviewEl.scrollIntoView({ behavior: "smooth" });
+                      }
+                    }}
+                    type="button"
+                    className="w-full sm:w-auto px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <span>Revisar Erros ({incorrectCount})</span>
+                  </button>
+
+                  <Link
+                    href="/notebook"
+                    className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-rose-600 hover:from-violet-500 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-violet-950/60 border border-violet-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 group"
+                  >
+                    <BookOpenCheck size={15} className="group-hover:scale-110 transition-transform" />
+                    <span>Abrir Caderno de Erros</span>
+                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+                </>
               )}
             </div>
           </div>
@@ -670,7 +675,7 @@ export function QuizResultView({
         {/* ========================================================================= */}
         {/* 3. GABARITO DETALHADO E REVISÃO ATIVA (Accordion Interativo)              */}
         {/* ========================================================================= */}
-        <div className="space-y-4 pt-2">
+        <div id="revisao-questoes-anchor" className="space-y-4 pt-2 scroll-mt-6">
           {/* Header da Seção com Filtros */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
             <div>

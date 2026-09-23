@@ -1585,7 +1585,7 @@ export default function QuestoesPage() {
               className="py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 text-rose-300/90 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/30 group ml-auto"
             >
               <BookOpenCheck size={14} className="text-rose-400 group-hover:scale-110 transition-transform" />
-              <span className="hidden sm:inline">Caderno de Erros (Módulo VIP)</span>
+              <span className="hidden sm:inline">Caderno de Erros Inteligente</span>
               <span className="sm:hidden">Caderno de Erros</span>
               {errorNotebookMetrics.pendingErrors > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold border border-rose-500/30">
