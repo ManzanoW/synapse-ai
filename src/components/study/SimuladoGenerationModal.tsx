@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
-import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle, Crown } from "lucide-react";
+import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle, Crown, Gift } from "lucide-react";
+import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
+import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 
 export interface SimuladoGenerationModalProps {
   isOpen: boolean;
@@ -14,7 +17,9 @@ export interface SimuladoGenerationModalProps {
   error?: string | null;
   onComplete?: () => void;
   onClose?: () => void;
+  onRewardedBonusEarned?: () => void;
 }
+
 
 interface StepPhase {
   min: number;
@@ -59,9 +64,17 @@ export function SimuladoGenerationModal({
   error = null,
   onComplete,
   onClose,
+  onRewardedBonusEarned,
 }: SimuladoGenerationModalProps) {
+  const [mounted, setMounted] = useState(false);
+  const [isRewardedModalOpen, setIsRewardedModalOpen] = useState(false);
   const [targetProgress, setTargetProgress] = useState(0);
   const [hasTriggeredComplete, setHasTriggeredComplete] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
 
   // Mola para animação suave do percentual (spring physics)
   const springProgress = useSpring(0, {
@@ -146,11 +159,21 @@ export function SimuladoGenerationModal({
     );
   }, [displayValue]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
+  const isQuotaError = Boolean(
+    error &&
+      (error.toLowerCase().includes("limite") ||
+        error.toLowerCase().includes("cota") ||
+        error.toLowerCase().includes("premium") ||
+        error.includes("429")),
+  );
+
+  return createPortal(
+    <>
+      <AnimatePresence>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
+
         {/* Glows ambientais sutis */}
         <div className="pointer-events-none absolute -top-28 left-1/2 -translate-x-1/2 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl animate-pulse" />
         <div className="pointer-events-none absolute -bottom-28 left-1/2 -translate-x-1/2 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-3xl" />
@@ -323,17 +346,32 @@ export function SimuladoGenerationModal({
           {/* Ação de cancelamento ou CTA de upgrade em caso de erro */}
           {error && (
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5 w-full relative z-10">
-              {error.toLowerCase().includes("limite") ||
-              error.toLowerCase().includes("cota") ||
-              error.toLowerCase().includes("premium") ? (
-                <Link
-                  href="/pricing"
-                  onClick={onClose}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white text-xs font-black rounded-xl shadow-lg shadow-violet-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer group"
-                >
-                  <Crown size={15} className="fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform" />
-                  <span>Desbloquear IA Ilimitada 💎</span>
-                </Link>
+              {isQuotaError ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsRewardedModalOpen(true)}
+                    className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-white text-xs font-black rounded-xl shadow-lg shadow-amber-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer group"
+                  >
+                    <Gift
+                      size={15}
+                      className="text-white group-hover:scale-110 transition-transform"
+                    />
+                    <span>Assistir Vídeo (+1 Simulado)</span>
+                  </button>
+
+                  <Link
+                    href="/pricing"
+                    onClick={onClose}
+                    className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white text-xs font-black rounded-xl shadow-lg shadow-violet-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer group"
+                  >
+                    <Crown
+                      size={14}
+                      className="fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform"
+                    />
+                    <span>Virar Pro (Ilimitado)</span>
+                  </Link>
+                </>
               ) : null}
 
               {onClose && (
@@ -350,5 +388,23 @@ export function SimuladoGenerationModal({
         </motion.div>
       </div>
     </AnimatePresence>
-  );
+
+    <RewardedAdModal
+      isOpen={isRewardedModalOpen}
+      onClose={() => setIsRewardedModalOpen(false)}
+      onRewardClaimed={() => {
+        triggerAiQuotaRefresh();
+        setIsRewardedModalOpen(false);
+        if (onRewardedBonusEarned) {
+          onRewardedBonusEarned();
+        }
+        if (onClose) {
+          onClose();
+        }
+      }}
+      feature="SIMULADO"
+    />
+  </>,
+  document.body,
+);
 }

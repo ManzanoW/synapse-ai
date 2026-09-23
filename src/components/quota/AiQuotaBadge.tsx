@@ -4,11 +4,12 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, ShieldCheck, X, Crown, ChevronRight } from "lucide-react";
+import { Sparkles, ShieldCheck, X, Crown, ChevronRight, Gift } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 import { AI_QUOTA_UPDATED_EVENT } from "@/lib/quota-events";
 import type { UserQuotaStatus } from "@/types/quota";
+import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 
 interface AiQuotaBadgeProps {
   onNavigate?: () => void;
@@ -18,9 +19,11 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
   const pathname = usePathname();
   const [quota, setQuota] = useState<UserQuotaStatus | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [isRewardedModalOpen, setIsRewardedModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -185,20 +188,20 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
         {/* Glow de fundo */}
         <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
 
-        {/* Linha Superior: Ícone Coroa + Synapse Pro (sem quebra!) + Pílula de Cota */}
+        {/* Linha Superior: Plano Gratuito + Pílula de Cota */}
         <div className="flex items-center justify-between gap-2 relative z-10">
-          <Link
-            href="/pricing"
-            onClick={onNavigate}
-            className="flex items-center gap-2 group/title min-w-0"
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center gap-2 group/title min-w-0 text-left cursor-pointer"
           >
-            <div className="w-6 h-6 rounded-lg bg-amber-400/10 border border-amber-400/25 flex items-center justify-center text-amber-400 shrink-0 group-hover/title:scale-105 transition-transform shadow-xs">
-              <Crown size={13} className="text-amber-400 fill-amber-400/20" />
+            <div className="w-6 h-6 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 group-hover/title:scale-105 transition-transform shadow-xs">
+              <Sparkles size={12} className="text-indigo-400 fill-indigo-400/20" />
             </div>
-            <span className="text-[12px] font-bold text-white group-hover/title:text-amber-200 transition-colors whitespace-nowrap tracking-tight">
-              Synapse Pro
+            <span className="text-[12px] font-bold text-slate-200 group-hover/title:text-white transition-colors whitespace-nowrap tracking-tight">
+              Plano Gratuito
             </span>
-          </Link>
+          </button>
 
           {/* Botão de Cota Diária clicável com Popover */}
           <button
@@ -244,9 +247,10 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                 e.stopPropagation();
                 onNavigate?.();
               }}
-              className="text-amber-400 hover:text-amber-300 font-bold transition-colors flex items-center gap-0.5 shrink-0"
+              className="text-amber-400 hover:text-amber-300 font-bold transition-colors flex items-center gap-1 shrink-0 group/cta"
             >
-              <span>Upgrade</span>
+              <Crown size={11} className="fill-amber-400/20 text-amber-400 group-hover/cta:scale-110 transition-transform" />
+              <span>Virar Pro</span>
               <ChevronRight size={10} />
             </Link>
           </div>
@@ -296,12 +300,12 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                   {/* Cabeçalho */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/80 bg-slate-900/50 shrink-0">
                     <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        <ShieldCheck size={16} />
+                      <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        <Sparkles size={16} />
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-white tracking-wide">
-                          Cotas de Teste da IA
+                          Plano Gratuito • Cotas de IA
                         </h4>
                         <span className="text-[9px] font-mono text-slate-400 block leading-none mt-0.5">
                           Renovação diária às 00:00 (Brasília)
@@ -321,7 +325,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                   {/* Conteúdo */}
                   <div className="p-4 space-y-3.5">
                     <p className="text-[11px] text-slate-400 leading-relaxed">
-                      Limites diários para o período de testes e garantia de estabilidade da plataforma.
+                      Cotas diárias renovadas à meia-noite. Assista a um vídeo patrocinado ou assine o Synapse Pro para acesso ilimitado.
                     </p>
 
                     {/* Lista de Recursos e Usos */}
@@ -336,8 +340,13 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                         return (
                           <div key={key} className="space-y-1">
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-300 font-medium">
+                              <span className="text-slate-300 font-medium flex items-center gap-1.5">
                                 {item.label}
+                                {Boolean(item.bonusEarned && item.bonusEarned > 0) && (
+                                  <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-1 rounded border border-emerald-500/20">
+                                    +{item.bonusEarned} bônus
+                                  </span>
+                                )}
                               </span>
                               <span
                                 className={`font-mono text-[10px] font-bold ${
@@ -376,6 +385,21 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                       </span>
                     </div>
 
+                    {/* Opção de Vídeo Patrocinado para Desbloquear Bônus */}
+                    {quota.canWatchRewardedAd && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsOpen(false);
+                          setIsRewardedModalOpen(true);
+                        }}
+                        className="w-full py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer group"
+                      >
+                        <Gift size={14} className="text-amber-400 group-hover:scale-110 transition-transform" />
+                        <span>Assistir Vídeo (+1 Simulado Bônus)</span>
+                      </button>
+                    )}
+
                     {/* Botão de Upgrade / Premium */}
                     <Link
                       href="/pricing"
@@ -385,11 +409,11 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                       }}
                       className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-violet-950/60 transition-all cursor-pointer group"
                     >
-                      <Sparkles
+                      <Crown
                         size={14}
-                        className="text-amber-300 fill-amber-300 group-hover:scale-110 transition-transform"
+                        className="text-amber-300 fill-amber-300/30 group-hover:scale-110 transition-transform"
                       />
-                      <span>Ver Vantagens do Premium</span>
+                      <span>Desbloquear Synapse Pro (Ilimitado)</span>
                     </Link>
                   </div>
                 </motion.div>
@@ -398,6 +422,13 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
           </AnimatePresence>,
           document.body,
         )}
+
+      <RewardedAdModal
+        isOpen={isRewardedModalOpen}
+        onClose={() => setIsRewardedModalOpen(false)}
+        onRewardClaimed={fetchQuota}
+        feature="SIMULADO"
+      />
     </div>
   );
 }

@@ -1268,6 +1268,10 @@ export default function TimedQuizPage() {
           setIsSimuladoModalOpen(false);
           setErrorMessage(null);
         }}
+        onRewardedBonusEarned={() => {
+          setIsSimuladoModalOpen(false);
+          setErrorMessage(null);
+        }}
       />
     </div>
   );

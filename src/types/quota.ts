@@ -14,6 +14,7 @@ export interface QuotaCheckResult {
   isUnlimited: boolean;
   message?: string;
   resetsAt: string;
+  canWatchRewardedAd?: boolean;
 }
 
 export interface UserQuotaStatus {
@@ -23,6 +24,8 @@ export interface UserQuotaStatus {
   globalUsed: number;
   globalLimit: number;
   globalRemaining: number;
+  rewardedBonusToday?: number;
+  canWatchRewardedAd?: boolean;
   features: Record<
     AiFeatureType,
     {
@@ -30,6 +33,7 @@ export interface UserQuotaStatus {
       used: number;
       limit: number;
       remaining: number;
+      bonusEarned?: number;
     }
   >;
 }

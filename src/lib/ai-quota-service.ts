@@ -10,7 +10,10 @@ import type {
 export type { AiFeatureType, QuotaCheckResult, UserQuotaStatus };
 
 // Limites diários para usuários no plano gratuito (Freemium estratégico de alta conversão)
-export const AI_QUOTA_LIMITS: Record<AiFeatureType, { label: string; dailyLimit: number }> = {
+export const AI_QUOTA_LIMITS: Record<
+  AiFeatureType,
+  { label: string; dailyLimit: number }
+> = {
   SIMULADO: { label: "Simulados com IA", dailyLimit: 2 },
   ESSAY: { label: "Correções de Redação", dailyLimit: 1 },
   FLASHCARD: { label: "Baralhos de Flashcards", dailyLimit: 2 },
@@ -22,6 +25,9 @@ export const AI_QUOTA_LIMITS: Record<AiFeatureType, { label: string; dailyLimit:
 // Teto global diário para somatório de todas as requisições de IA no plano gratuito
 export const GLOBAL_DAILY_AI_LIMIT = 7;
 
+// Máximo de anúncios de vídeo recompensados permitidos por dia por usuário
+export const MAX_DAILY_REWARDED_ADS = 2;
+
 function getTodayKey(): string {
   // Retorna YYYY-MM-DD com base no horário de Brasília (UTC-3)
   const now = new Date();
@@ -32,6 +38,7 @@ function getTodayKey(): string {
 
 /**
  * Verifica se o usuário possui cota disponível para consumir uma funcionalidade com IA hoje.
+ * Leva em consideração bônus diários desbloqueados via vídeos patrocinados (Rewarded Ads).
  */
 export async function checkAiQuota(
   userId: string,
@@ -61,6 +68,7 @@ export async function checkAiQuota(
         used: 0,
         isUnlimited: true,
         resetsAt: "Ilimitado (Admin/Premium)",
+        canWatchRewardedAd: false,
       };
     }
 
@@ -70,74 +78,105 @@ export async function checkAiQuota(
       dailyLimit: 10,
     };
 
-    // Busca o consumo de hoje para esta funcionalidade e o total global
-    const [featureUsage, globalUsage] = await Promise.all([
-      prisma.aiDailyUsage.findUnique({
-        where: {
-          userId_date_feature: {
-            userId,
-            date: today,
-            feature,
+    const bonusFeatureKey = `BONUS_${feature}`;
+
+    // Busca consumo de hoje e bônus recebidos
+    const [featureUsage, globalUsage, featureBonus, globalBonus] =
+      await Promise.all([
+        prisma.aiDailyUsage.findUnique({
+          where: {
+            userId_date_feature: {
+              userId,
+              date: today,
+              feature,
+            },
           },
-        },
-        select: { count: true },
-      }),
-      prisma.aiDailyUsage.findUnique({
-        where: {
-          userId_date_feature: {
-            userId,
-            date: today,
-            feature: "ALL",
+          select: { count: true },
+        }),
+        prisma.aiDailyUsage.findUnique({
+          where: {
+            userId_date_feature: {
+              userId,
+              date: today,
+              feature: "ALL",
+            },
           },
-        },
-        select: { count: true },
-      }),
-    ]);
+          select: { count: true },
+        }),
+        prisma.aiDailyUsage.findUnique({
+          where: {
+            userId_date_feature: {
+              userId,
+              date: today,
+              feature: bonusFeatureKey,
+            },
+          },
+          select: { count: true },
+        }),
+        prisma.aiDailyUsage.findUnique({
+          where: {
+            userId_date_feature: {
+              userId,
+              date: today,
+              feature: "BONUS_ALL",
+            },
+          },
+          select: { count: true },
+        }),
+      ]);
 
     const usedFeature = featureUsage?.count ?? 0;
     const usedGlobal = globalUsage?.count ?? 0;
+    const bonusCount = featureBonus?.count ?? 0;
+    const bonusGlobalCount = globalBonus?.count ?? 0;
+
+    const effectiveFeatureLimit = featureConfig.dailyLimit + bonusCount;
+    const effectiveGlobalLimit = GLOBAL_DAILY_AI_LIMIT + bonusGlobalCount;
+    const canWatchRewardedAd = bonusCount < MAX_DAILY_REWARDED_ADS;
 
     // 1. Checa limite global
-    if (usedGlobal >= GLOBAL_DAILY_AI_LIMIT) {
+    if (usedGlobal >= effectiveGlobalLimit) {
       return {
         allowed: false,
         remaining: 0,
-        limit: GLOBAL_DAILY_AI_LIMIT,
+        limit: effectiveGlobalLimit,
         used: usedGlobal,
         isUnlimited: false,
-        message: `Você atingiu seu limite diário gratuito de IA (${usedGlobal}/${GLOBAL_DAILY_AI_LIMIT}). Desbloqueie o Synapse Premium para ter IA ilimitada e correções sem fila.`,
+        message: `Você atingiu seu limite diário gratuito de IA (${usedGlobal}/${effectiveGlobalLimit}). Desbloqueie o Synapse Premium para ter IA ilimitada.`,
         resetsAt: "à meia-noite",
+        canWatchRewardedAd,
       };
     }
 
     // 2. Checa limite da funcionalidade específica
-    if (usedFeature >= featureConfig.dailyLimit) {
+    if (usedFeature >= effectiveFeatureLimit) {
       return {
         allowed: false,
         remaining: 0,
-        limit: featureConfig.dailyLimit,
+        limit: effectiveFeatureLimit,
         used: usedFeature,
         isUnlimited: false,
-        message: `Você atingiu sua cota diária gratuita de ${featureConfig.label} (${usedFeature}/${featureConfig.dailyLimit}). Desbloqueie o Synapse Premium para ter acesso ilimitado.`,
+        message: `Você atingiu sua cota diária gratuita de ${featureConfig.label} (${usedFeature}/${effectiveFeatureLimit}). Desbloqueie o Synapse Premium para ter acesso ilimitado.`,
         resetsAt: "à meia-noite",
+        canWatchRewardedAd,
       };
     }
 
-    const remainingFeature = featureConfig.dailyLimit - usedFeature;
-    const remainingGlobal = GLOBAL_DAILY_AI_LIMIT - usedGlobal;
+    const remainingFeature = effectiveFeatureLimit - usedFeature;
+    const remainingGlobal = effectiveGlobalLimit - usedGlobal;
     const effectiveRemaining = Math.min(remainingFeature, remainingGlobal);
 
     return {
       allowed: true,
       remaining: effectiveRemaining,
-      limit: featureConfig.dailyLimit,
+      limit: effectiveFeatureLimit,
       used: usedFeature,
       isUnlimited: false,
       resetsAt: "à meia-noite",
+      canWatchRewardedAd,
     };
   } catch (err) {
     console.warn("[checkAiQuota] Erro ao verificar cota (liberando em fallback):", err);
-    // Em caso de falha transitória, permite a requisição para não travar o aluno
     return {
       allowed: true,
       remaining: 5,
@@ -145,6 +184,7 @@ export async function checkAiQuota(
       used: 0,
       isUnlimited: false,
       resetsAt: "à meia-noite",
+      canWatchRewardedAd: false,
     };
   }
 }
@@ -224,7 +264,9 @@ export async function consumeAiQuota(
 /**
  * Retorna o panorama completo de consumo de IA do usuário para hoje.
  */
-export async function getUserQuotaStatus(userId: string): Promise<UserQuotaStatus> {
+export async function getUserQuotaStatus(
+  userId: string,
+): Promise<UserQuotaStatus> {
   const defaultStatus: UserQuotaStatus = {
     isUnlimited: false,
     role: "USER",
@@ -232,13 +274,51 @@ export async function getUserQuotaStatus(userId: string): Promise<UserQuotaStatu
     globalUsed: 0,
     globalLimit: GLOBAL_DAILY_AI_LIMIT,
     globalRemaining: GLOBAL_DAILY_AI_LIMIT,
+    rewardedBonusToday: 0,
+    canWatchRewardedAd: true,
     features: {
-      SIMULADO: { label: AI_QUOTA_LIMITS.SIMULADO.label, used: 0, limit: AI_QUOTA_LIMITS.SIMULADO.dailyLimit, remaining: AI_QUOTA_LIMITS.SIMULADO.dailyLimit },
-      ESSAY: { label: AI_QUOTA_LIMITS.ESSAY.label, used: 0, limit: AI_QUOTA_LIMITS.ESSAY.dailyLimit, remaining: AI_QUOTA_LIMITS.ESSAY.dailyLimit },
-      FLASHCARD: { label: AI_QUOTA_LIMITS.FLASHCARD.label, used: 0, limit: AI_QUOTA_LIMITS.FLASHCARD.dailyLimit, remaining: AI_QUOTA_LIMITS.FLASHCARD.dailyLimit },
-      MINDMAP: { label: AI_QUOTA_LIMITS.MINDMAP.label, used: 0, limit: AI_QUOTA_LIMITS.MINDMAP.dailyLimit, remaining: AI_QUOTA_LIMITS.MINDMAP.dailyLimit },
-      REMEDIATION: { label: AI_QUOTA_LIMITS.REMEDIATION.label, used: 0, limit: AI_QUOTA_LIMITS.REMEDIATION.dailyLimit, remaining: AI_QUOTA_LIMITS.REMEDIATION.dailyLimit },
-      EDITAL: { label: AI_QUOTA_LIMITS.EDITAL.label, used: 0, limit: AI_QUOTA_LIMITS.EDITAL.dailyLimit, remaining: AI_QUOTA_LIMITS.EDITAL.dailyLimit },
+      SIMULADO: {
+        label: AI_QUOTA_LIMITS.SIMULADO.label,
+        used: 0,
+        limit: AI_QUOTA_LIMITS.SIMULADO.dailyLimit,
+        remaining: AI_QUOTA_LIMITS.SIMULADO.dailyLimit,
+        bonusEarned: 0,
+      },
+      ESSAY: {
+        label: AI_QUOTA_LIMITS.ESSAY.label,
+        used: 0,
+        limit: AI_QUOTA_LIMITS.ESSAY.dailyLimit,
+        remaining: AI_QUOTA_LIMITS.ESSAY.dailyLimit,
+        bonusEarned: 0,
+      },
+      FLASHCARD: {
+        label: AI_QUOTA_LIMITS.FLASHCARD.label,
+        used: 0,
+        limit: AI_QUOTA_LIMITS.FLASHCARD.dailyLimit,
+        remaining: AI_QUOTA_LIMITS.FLASHCARD.dailyLimit,
+        bonusEarned: 0,
+      },
+      MINDMAP: {
+        label: AI_QUOTA_LIMITS.MINDMAP.label,
+        used: 0,
+        limit: AI_QUOTA_LIMITS.MINDMAP.dailyLimit,
+        remaining: AI_QUOTA_LIMITS.MINDMAP.dailyLimit,
+        bonusEarned: 0,
+      },
+      REMEDIATION: {
+        label: AI_QUOTA_LIMITS.REMEDIATION.label,
+        used: 0,
+        limit: AI_QUOTA_LIMITS.REMEDIATION.dailyLimit,
+        remaining: AI_QUOTA_LIMITS.REMEDIATION.dailyLimit,
+        bonusEarned: 0,
+      },
+      EDITAL: {
+        label: AI_QUOTA_LIMITS.EDITAL.label,
+        used: 0,
+        limit: AI_QUOTA_LIMITS.EDITAL.dailyLimit,
+        remaining: AI_QUOTA_LIMITS.EDITAL.dailyLimit,
+        bonusEarned: 0,
+      },
     },
   };
 
@@ -266,6 +346,7 @@ export async function getUserQuotaStatus(userId: string): Promise<UserQuotaStatu
     if (isUnlimited) {
       defaultStatus.globalRemaining = 9999;
       defaultStatus.globalLimit = 9999;
+      defaultStatus.canWatchRewardedAd = false;
       return defaultStatus;
     }
 
@@ -275,22 +356,39 @@ export async function getUserQuotaStatus(userId: string): Promise<UserQuotaStatu
     });
 
     const usageMap = new Map<string, number>();
+    const bonusMap = new Map<string, number>();
+
     for (const u of usages) {
-      usageMap.set(u.feature, u.count);
+      if (u.feature.startsWith("BONUS_")) {
+        bonusMap.set(u.feature, u.count);
+      } else {
+        usageMap.set(u.feature, u.count);
+      }
     }
 
     const globalUsed = usageMap.get("ALL") ?? 0;
+    const globalBonus = bonusMap.get("BONUS_ALL") ?? 0;
+    const effectiveGlobalLimit = GLOBAL_DAILY_AI_LIMIT + globalBonus;
+
     defaultStatus.globalUsed = globalUsed;
-    defaultStatus.globalRemaining = Math.max(0, GLOBAL_DAILY_AI_LIMIT - globalUsed);
+    defaultStatus.globalLimit = effectiveGlobalLimit;
+    defaultStatus.globalRemaining = Math.max(0, effectiveGlobalLimit - globalUsed);
+    defaultStatus.rewardedBonusToday = globalBonus;
+
+    const simuladoBonus = bonusMap.get("BONUS_SIMULADO") ?? 0;
+    defaultStatus.canWatchRewardedAd = simuladoBonus < MAX_DAILY_REWARDED_ADS;
 
     (Object.keys(AI_QUOTA_LIMITS) as AiFeatureType[]).forEach((feature) => {
       const used = usageMap.get(feature) ?? 0;
-      const limit = AI_QUOTA_LIMITS[feature].dailyLimit;
+      const bonusEarned = bonusMap.get(`BONUS_${feature}`) ?? 0;
+      const limit = AI_QUOTA_LIMITS[feature].dailyLimit + bonusEarned;
+
       defaultStatus.features[feature] = {
         label: AI_QUOTA_LIMITS[feature].label,
         used,
         limit,
         remaining: Math.max(0, limit - used),
+        bonusEarned,
       };
     });
 
@@ -300,3 +398,90 @@ export async function getUserQuotaStatus(userId: string): Promise<UserQuotaStatu
     return defaultStatus;
   }
 }
+
+/**
+ * Concede +1 bônus de cota diária ao usuário após assistir a um anúncio em vídeo patrocinado.
+ */
+export async function addRewardedAdBonus(
+  userId: string,
+  feature: AiFeatureType = "SIMULADO",
+): Promise<{ success: boolean; newLimit?: number; message?: string }> {
+  try {
+    const today = getTodayKey();
+    const bonusFeatureKey = `BONUS_${feature}`;
+
+    const currentBonus = await prisma.aiDailyUsage.findUnique({
+      where: {
+        userId_date_feature: {
+          userId,
+          date: today,
+          feature: bonusFeatureKey,
+        },
+      },
+      select: { count: true },
+    });
+
+    const count = currentBonus?.count ?? 0;
+    if (count >= MAX_DAILY_REWARDED_ADS) {
+      return {
+        success: false,
+        message: `Você já atingiu o limite de ${MAX_DAILY_REWARDED_ADS} recompensas diárias por vídeo hoje.`,
+      };
+    }
+
+    await prisma.$transaction([
+      prisma.aiDailyUsage.upsert({
+        where: {
+          userId_date_feature: {
+            userId,
+            date: today,
+            feature: bonusFeatureKey,
+          },
+        },
+        create: {
+          userId,
+          date: today,
+          feature: bonusFeatureKey,
+          count: 1,
+        },
+        update: {
+          count: { increment: 1 },
+        },
+      }),
+      prisma.aiDailyUsage.upsert({
+        where: {
+          userId_date_feature: {
+            userId,
+            date: today,
+            feature: "BONUS_ALL",
+          },
+        },
+        create: {
+          userId,
+          date: today,
+          feature: "BONUS_ALL",
+          count: 1,
+        },
+        update: {
+          count: { increment: 1 },
+        },
+      }),
+    ]);
+
+    const baseLimit = AI_QUOTA_LIMITS[feature]?.dailyLimit ?? 2;
+    const newLimit = baseLimit + count + 1;
+
+    return {
+      success: true,
+      newLimit,
+      message: `Parabéns! +1 ${AI_QUOTA_LIMITS[feature]?.label || "Cota"} liberado com sucesso para hoje!`,
+    };
+  } catch (err) {
+    console.error("[addRewardedAdBonus] Erro ao conceder bônus de anúncio:", err);
+    return {
+      success: false,
+      message: "Falha ao processar recompensa do vídeo patrocinado.",
+    };
+  }
+}
+

@@ -2383,6 +2383,11 @@ export default function QuestoesPage() {
           setIsSimuladoModalOpen(false);
           setSimuladoGenerationError(null);
         }}
+        onRewardedBonusEarned={() => {
+          setIsSimuladoModalOpen(false);
+          setSimuladoGenerationError(null);
+          setIsAIModalOpen(true);
+        }}
       />
 
       {/* MODAIS DO MODO CRONOMETRADO INTEGRADO */}
