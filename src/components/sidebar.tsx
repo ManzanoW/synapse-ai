@@ -96,12 +96,6 @@ const NAV_GROUPS = [
   {
     label: "Conta",
     items: [
-      {
-        label: "Seja Premium",
-        href: "/pricing",
-        icon: Crown,
-        badge: "PRO",
-      },
       { label: "Perfil", href: "/profile", icon: UserCircle2 },
       { label: "Ajuda", href: "/help", icon: Info },
     ],
@@ -364,9 +358,9 @@ export default function Sidebar({ user }: SidebarProps) {
           </div>
         </div>
 
-        {/* Navegação com Rolagem Independente */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 space-y-4 pr-1 -mr-1 custom-scrollbar">
-          <nav className="space-y-4">
+        {/* Navegação com Rolagem Independente & Sem Scrollbar Feia */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 space-y-3.5 pr-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <nav className="space-y-3.5">
             {NAV_GROUPS.map((group) => (
               <div key={group.label} className="space-y-1">
                 <span className="px-2.5 text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500/80">
@@ -374,6 +368,13 @@ export default function Sidebar({ user }: SidebarProps) {
                 </span>
 
                 <div className="space-y-0.5">
+                  {/* Card Unificado: Synapse Pro + Cota Diária de IA */}
+                  {group.label.toLowerCase() === "conta" && (
+                    <div className="pb-1 px-0.5">
+                      <AiQuotaBadge onNavigate={closeSidebar} />
+                    </div>
+                  )}
+
                   {group.items.map((item) => {
                     const Icon = item.icon;
                     const isActive =
@@ -385,56 +386,48 @@ export default function Sidebar({ user }: SidebarProps) {
                     const isSpecial = item.isSpecial;
 
                     return (
-                      <React.Fragment key={item.href}>
-                        <Link
-                          href={getHref(item.href)}
-                          onClick={closeSidebar}
-                          className={`relative group flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] font-medium transition-all duration-200 ${
-                            isActive
-                              ? isSpecial
-                                ? "text-amber-200 bg-amber-500/10 font-semibold border border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
-                                : "text-indigo-200 bg-indigo-500/10 font-semibold"
-                              : "text-slate-400 hover:text-slate-200 hover:bg-white/3"
-                          }`}
-                        >
-                          {isActive && (
-                            <div
-                              className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full ${
-                                isSpecial
-                                  ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
-                                  : "bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
-                              }`}
-                            />
-                          )}
-
-                          <Icon
-                            size={16}
-                            strokeWidth={isActive ? 2 : 1.5}
-                            className={`transition-all duration-200 ${
-                              isActive
-                                ? isSpecial
-                                  ? "text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
-                                  : "text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]"
-                                : "text-slate-500 group-hover:text-slate-300"
+                      <Link
+                        key={item.href}
+                        href={getHref(item.href)}
+                        onClick={closeSidebar}
+                        className={`relative group flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] font-medium transition-all duration-200 ${
+                          isActive
+                            ? isSpecial
+                              ? "text-amber-200 bg-amber-500/10 font-semibold border border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                              : "text-indigo-200 bg-indigo-500/10 font-semibold"
+                            : "text-slate-400 hover:text-slate-200 hover:bg-white/3"
+                        }`}
+                      >
+                        {isActive && (
+                          <div
+                            className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full ${
+                              isSpecial
+                                ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
+                                : "bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
                             }`}
                           />
-
-                          <span className="tracking-wide">{item.label}</span>
-
-                          {"badge" in item && Boolean((item as any).badge) && (
-                            <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-tight">
-                              {(item as any).badge}
-                            </span>
-                          )}
-                        </Link>
-
-                        {/* Cota Diária de IA integrada na seção de Conta */}
-                        {item.href === "/pricing" && (
-                          <div className="pt-0.5 pb-1 px-1">
-                            <AiQuotaBadge />
-                          </div>
                         )}
-                      </React.Fragment>
+
+                        <Icon
+                          size={16}
+                          strokeWidth={isActive ? 2 : 1.5}
+                          className={`transition-all duration-200 ${
+                            isActive
+                              ? isSpecial
+                                ? "text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                                : "text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]"
+                              : "text-slate-500 group-hover:text-slate-300"
+                          }`}
+                        />
+
+                        <span className="tracking-wide">{item.label}</span>
+
+                        {"badge" in item && Boolean((item as any).badge) && (
+                          <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-tight">
+                            {(item as any).badge}
+                          </span>
+                        )}
+                      </Link>
                     );
                   })}
 

@@ -3,12 +3,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Sparkles, ShieldCheck, X } from "lucide-react";
+import { Sparkles, ShieldCheck, X, Crown, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 import type { UserQuotaStatus } from "@/types/quota";
 
-export function AiQuotaBadge() {
+interface AiQuotaBadgeProps {
+  onNavigate?: () => void;
+}
+
+export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
   const [quota, setQuota] = useState<UserQuotaStatus | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -99,58 +103,116 @@ export function AiQuotaBadge() {
 
   if (loading || !quota) return null;
 
+  // Estado para Usuário PRO / Ilimitado
   if (quota.isUnlimited) {
     return (
-      <div className="px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-between text-[10px]">
-        <div className="flex items-center gap-1.5 text-violet-300 font-bold">
-          <Sparkles size={11} className="text-violet-400" />
-          <span>IA Synapse: Ilimitada</span>
+      <div className="relative group overflow-hidden rounded-xl bg-gradient-to-r from-violet-950/40 via-indigo-950/40 to-slate-900/60 border border-violet-500/25 p-2.5 shadow-sm transition-all">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-amber-300">
+              <Crown size={13} className="fill-amber-400/30 text-amber-300" />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-white block leading-tight">
+                Synapse Pro
+              </span>
+              <span className="text-[9px] font-mono text-violet-300 block leading-tight">
+                Acesso Ilimitado
+              </span>
+            </div>
+          </div>
+          <span className="px-1.5 py-0.5 rounded-md bg-violet-500/20 text-violet-200 font-mono text-[8.5px] font-black uppercase tracking-wider border border-violet-500/30">
+            PRO
+          </span>
         </div>
-        <span className="px-1.5 py-0.5 rounded-md bg-violet-500/20 text-violet-200 font-mono text-[9px] font-black uppercase">
-          {quota.role === "ADMIN" ? "ADMIN" : "PRO"}
-        </span>
       </div>
     );
   }
 
+  // Estado para Usuário Free / Básico com Cota Diária
   const percentUsed = Math.min(
     100,
     Math.round((quota.globalUsed / quota.globalLimit) * 100),
   );
+  const remaining = Math.max(0, quota.globalLimit - quota.globalUsed);
 
   return (
     <div className="relative">
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-violet-500/30 transition-all text-left group cursor-pointer"
-        title="Clique para ver detalhes das cotas diárias de teste"
-      >
-        <div className="flex items-center justify-between text-[10px]">
-          <span className="flex items-center gap-1.5 text-slate-300 font-semibold group-hover:text-violet-300 transition-colors">
-            <Sparkles size={11} className="text-violet-400" />
-            <span>Cota Diária de IA</span>
-          </span>
-          <span className="font-mono text-slate-400 text-[10px] font-bold">
-            {quota.globalUsed}/{quota.globalLimit}
-          </span>
+      <div className="group relative overflow-hidden rounded-xl bg-gradient-to-b from-indigo-950/40 via-slate-900/60 to-slate-950/80 border border-indigo-500/20 hover:border-indigo-500/40 p-2.5 transition-all duration-300 shadow-md hover:shadow-indigo-950/40">
+        {/* Glow de fundo */}
+        <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
+
+        {/* Linha Superior: Título Synapse Pro com link para pricing + Botão da cota */}
+        <div className="flex items-center justify-between relative z-10">
+          <Link
+            href="/pricing"
+            onClick={onNavigate}
+            className="flex items-center gap-2 group/title"
+          >
+            <div className="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover/title:scale-105 transition-transform">
+              <Crown size={13} className="text-amber-400 fill-amber-400/20" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-black text-white group-hover/title:text-amber-200 transition-colors tracking-wide">
+                Synapse Pro
+              </span>
+              <span className="text-[8px] font-mono font-bold px-1 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                UPGRADE
+              </span>
+            </div>
+          </Link>
+
+          {/* Botão de Cota Diária clicável com Popover */}
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            title="Ver limites detalhados da IA"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-[9.5px] font-mono font-bold cursor-pointer"
+          >
+            <Sparkles size={10} className="text-violet-400" />
+            <span>
+              {quota.globalUsed}/{quota.globalLimit}
+            </span>
+          </button>
         </div>
 
-        {/* Barra de progresso sutil */}
-        <div className="h-1 w-full bg-slate-950 rounded-full mt-1.5 overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${
-              percentUsed > 80
-                ? "bg-rose-500"
-                : percentUsed > 50
-                  ? "bg-amber-400"
-                  : "bg-violet-500"
-            }`}
-            style={{ width: `${percentUsed}%` }}
-          />
+        {/* Barra de Progresso do Consumo Diário */}
+        <div
+          onClick={() => setIsOpen(true)}
+          className="mt-2 space-y-1 cursor-pointer group/bar"
+          title="Clique para ver o detalhamento do consumo"
+        >
+          <div className="h-1.5 w-full bg-slate-950 rounded-full border border-white/5 p-px overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                percentUsed > 80
+                  ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                  : percentUsed > 50
+                    ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]"
+                    : "bg-gradient-to-r from-violet-500 to-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.5)]"
+              }`}
+              style={{ width: `${Math.max(percentUsed, 5)}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-[9px] text-slate-400 pt-0.5">
+            <span className="group-hover/bar:text-slate-300 transition-colors">
+              {remaining} créditos restantes hoje
+            </span>
+            <Link
+              href="/pricing"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigate?.();
+              }}
+              className="text-amber-300 font-bold hover:text-amber-200 transition-colors flex items-center gap-0.5"
+            >
+              Ilimitado <ChevronRight size={10} />
+            </Link>
+          </div>
         </div>
-      </button>
+      </div>
 
       {/* Popover / Modal renderizado via Portal fora do container de scroll */}
       {mounted &&
@@ -278,7 +340,10 @@ export function AiQuotaBadge() {
                     {/* Botão de Upgrade / Premium */}
                     <Link
                       href="/pricing"
-                      onClick={() => setIsOpen(false)}
+                      onClick={() => {
+                        setIsOpen(false);
+                        onNavigate?.();
+                      }}
                       className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-violet-950/60 transition-all cursor-pointer group"
                     >
                       <Sparkles
