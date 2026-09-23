@@ -365,7 +365,7 @@ export default function Sidebar({ user }: SidebarProps) {
         </div>
 
         {/* Navegação com Rolagem Independente */}
-        <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1 -mr-1 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 space-y-4 pr-1 -mr-1 custom-scrollbar">
           <nav className="space-y-4">
             {NAV_GROUPS.map((group) => (
               <div key={group.label} className="space-y-1">
