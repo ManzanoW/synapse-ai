@@ -12,6 +12,7 @@ import LogoutModal from "@/components/logout/logout-modal";
 import { PrestigeModal } from "@/components/gamification/prestige-modal";
 import { useAudioContext } from "@/contexts/AudioContext";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
+import { AiQuotaBadge } from "@/components/quota/AiQuotaBadge";
 import {
   Sparkles,
   Layers,
@@ -510,6 +511,11 @@ export default function Sidebar({ user }: SidebarProps) {
                   </div>
                 </>
               )}
+
+              {/* 🛡️ Cota Diária de Testes da IA */}
+              <div className="pt-1">
+                <AiQuotaBadge />
+              </div>
 
               <div className="h-px w-full bg-linear-to-r from-transparent via-slate-800 to-transparent my-1" />
 

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { STARTER_EDITAL_TEMPLATES, EditalTemplateSubject } from "@/lib/edital-templates";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { Type } from "@google/genai";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 /**
  * Importa um modelo de edital pré-definido por carreira para a conta do usuário
@@ -143,6 +144,15 @@ export async function generateCustomEditalAction(targetRoleOrExam: string) {
       return { success: false, error: "Por favor, informe o cargo ou concurso desejado com mais detalhes (mínimo 3 caracteres)." };
     }
 
+    // 🛡️ Proteção de Cota Diária de IA para Personalização de Edital
+    const quota = await checkAiQuota(userId, "EDITAL");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Limite diário de personalização de editais com IA atingido.",
+      };
+    }
+
     const prompt = `Você é um coordenador pedagógico especialista em concursos públicos brasileiros.
 O concurseiro deseja se preparar para o seguinte concurso e/ou cargo:
 "${trimmedInput}"
@@ -232,6 +242,9 @@ Para cada matéria:
     } catch {
       // Ignora erro fora de contexto
     }
+
+    // Consome cota diária de Personalização de Edital com IA
+    await consumeAiQuota(userId, "EDITAL");
 
     return {
       success: true,

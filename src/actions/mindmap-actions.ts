@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 export interface MindMapNode {
   id: string;
@@ -63,6 +64,15 @@ export async function generateTopicMindMapAction(
           data: cachedTopic.mindMap as unknown as MindMapNode,
         };
       }
+    }
+
+    // 🛡️ Proteção de Cota Diária de IA para Mapas Mentais
+    const quota = await checkAiQuota(userId, "MINDMAP");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Limite diário de mapas mentais com IA atingido.",
+      };
     }
 
     const prompt = `Você é o arquiteto pedagógico e especialista em mapas conceituais do Synapse AI.
@@ -198,6 +208,9 @@ Retorne APENAS um JSON válido estrito sem blocos markdown adicionais no formato
     } catch (saveErr) {
       console.warn("[generateTopicMindMapAction] Aviso ao salvar mapa mental no banco:", saveErr);
     }
+
+    // Consome cota diária de Mapa Mental com IA
+    await consumeAiQuota(userId, "MINDMAP");
 
     return {
       success: true,

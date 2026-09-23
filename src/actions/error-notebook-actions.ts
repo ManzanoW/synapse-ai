@@ -18,6 +18,7 @@ import {
   Question,
 } from "@/types/quiz";
 import { TAXONOMY_METADATA, normalizeTaxonomy } from "@/lib/error-taxonomy";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 /**
  * Normaliza o texto de uma questão para comparação e deduplicação
@@ -818,6 +819,15 @@ export async function generateErrorRemediationAction(
     const reasonMeta =
       TAXONOMY_METADATA[normalizedReason] || TAXONOMY_METADATA.UNCLASSIFIED;
 
+    // 🛡️ Proteção de Cota Diária de IA para Remediação
+    const quota = await checkAiQuota(userId, "REMEDIATION");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Limite diário de remediações e mnemônicos com IA atingido.",
+      };
+    }
+
     // 2. Monta o prompt especializado de tutoria ativa para concursos
     const prompt = `
 Você é um Tutor Pedagógico Especialista em Aprendizado Ativo e Desarmamento de Pegadinhas em Concursos Públicos e Exames de Alto Desempenho.
@@ -913,6 +923,9 @@ Responda ESTRITAMENTE no formato JSON com os campos solicitados.
         },
       });
     }
+
+    // Consome cota diária de Remediação com IA
+    await consumeAiQuota(userId, "REMEDIATION");
 
     return { success: true, data: parsed };
   } catch (err) {

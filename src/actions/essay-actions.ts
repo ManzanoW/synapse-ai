@@ -6,6 +6,7 @@ import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { recordStudyActivityAction } from "./gamification-actions";
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
 import { evaluateDiscursivaEssay } from "@/lib/discursiva-evaluator";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 export interface MotivatingText {
   title: string;
@@ -189,6 +190,15 @@ export async function evaluateEssayAction(payload: {
       };
     }
 
+    // 🛡️ Proteção de Cota Diária de IA para Correções de Redação
+    const quota = await checkAiQuota(userId, "ESSAY");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Limite diário de correções de redação com IA atingido.",
+      };
+    }
+
     // 1. Executa avaliação calibrada oficial CEBRASPE
     const evaluation = await evaluateDiscursivaEssay({
       themeTitle,
@@ -233,8 +243,9 @@ export async function evaluateEssayAction(payload: {
     const sessionMinutes = Math.max(15, Math.round(durationSeconds / 60));
     try {
       await recordStudyActivityAction(userId, xpReward, "ESSAY", sessionMinutes);
+      await consumeAiQuota(userId, "ESSAY");
     } catch (xpErr) {
-      console.warn("[evaluateEssayAction] Aviso ao conceder XP:", xpErr);
+      console.warn("[evaluateEssayAction] Aviso ao conceder XP ou consumir cota:", xpErr);
     }
 
     return {

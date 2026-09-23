@@ -27,13 +27,18 @@ model User {
   accounts Account[]
   sessions Session[]
 
+  // 🛡️ Papel e Nível de Acesso (Controle de Cotas & Testes)
+  role              String   @default("USER") // "USER" | "ADMIN"
+  planTier          String   @default("FREE") // "FREE" | "PREMIUM"
+
   // Relações de Estudo
-  subjects      Subject[]
-  studySessions StudySession[]
-  quizzes       Quiz[]
-  decks         Deck[]
-  questionErrors QuestionError[]
-  essays        EssaySubmission[]
+  subjects          Subject[]
+  studySessions     StudySession[]
+  quizzes           Quiz[]
+  decks             Deck[]
+  questionErrors    QuestionError[]
+  essays            EssaySubmission[]
+  aiDailyUsages     AiDailyUsage[]
 
   // 🏆 Gamificação
   userStats     UserStats?
@@ -345,4 +350,20 @@ model EssaySubmission {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+// 🛡️ Registro de Cota e Consumo Diário de IA (Proteção de Custos e Rate-Limit)
+model AiDailyUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String   // "YYYY-MM-DD"
+  feature   String   // "ALL" | "SIMULADO" | "ESSAY" | "FLASHCARD" | "MINDMAP" | "REMEDIATION" | "EDITAL"
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, feature])
+  @@index([userId, date])
 }
