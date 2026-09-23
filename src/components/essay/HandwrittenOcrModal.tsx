@@ -15,6 +15,9 @@ import {
   Eye,
   Check,
   HelpCircle,
+  Lock,
+  Crown,
+  Film,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -22,6 +25,8 @@ import {
   TranscribeHandwrittenEssayResponse,
 } from "@/actions/essay-actions";
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
+import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
+import Link from "next/link";
 
 interface HandwrittenOcrModalProps {
   isOpen: boolean;
@@ -36,7 +41,9 @@ export function HandwrittenOcrModal({
 }: HandwrittenOcrModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<"upload" | "processing" | "review">("upload");
+  const [step, setStep] = useState<"upload" | "processing" | "review" | "quota">("upload");
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [showAdModal, setShowAdModal] = useState<boolean>(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [transcribedText, setTranscribedText] = useState<string>("");
   const [ocrData, setOcrData] = useState<TranscribeHandwrittenEssayResponse | null>(null);
@@ -71,6 +78,9 @@ export function HandwrittenOcrModal({
       return;
     }
 
+    // Armazena o arquivo para permitir retry após anúncio premiado
+    setCurrentFile(file);
+
     // Cria preview local da imagem
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
@@ -92,6 +102,12 @@ export function HandwrittenOcrModal({
       formData.append("file", file);
 
       const res = await transcribeHandwrittenEssayAction(formData);
+
+      if (res.isQuotaExceeded) {
+        setStep("quota");
+        setErrorMessage(null);
+        return;
+      }
 
       if (res.success && res.transcription) {
         setOcrData(res);
@@ -118,11 +134,21 @@ export function HandwrittenOcrModal({
   const handleReset = () => {
     setStep("upload");
     setImagePreview(null);
+    setCurrentFile(null);
     setTranscribedText("");
     setOcrData(null);
     setErrorMessage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRewardClaimed = () => {
+    setShowAdModal(false);
+    if (currentFile) {
+      processImageFile(currentFile);
+    } else {
+      setStep("upload");
     }
   };
 
@@ -325,16 +351,79 @@ export function HandwrittenOcrModal({
               )}
             </div>
           )}
+
+          {/* ETAPA 4: LIMITE DE COTA ATINGIDO (PAYWALL AMIGÁVEL) */}
+          {step === "quota" && (
+            <div className="py-6 px-2 flex flex-col items-center text-center space-y-5 animate-in fade-in duration-200">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-xl shadow-amber-500/10">
+                  <Lock size={30} />
+                </div>
+                <div className="absolute -top-1 -right-1 p-1 rounded-lg bg-amber-500 text-slate-950 font-bold">
+                  <Crown size={12} />
+                </div>
+              </div>
+
+              <div className="space-y-2 max-w-md">
+                <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Limite Semanal Atingido (1/1)
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-white">
+                  Você atingiu o teste gratuito semanal de OCR
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  A transcrição de folha manuscrita com IA Vision consome processamento de alta precisão.
+                  Sua foto continua carregada! Escolha como deseja continuar:
+                </p>
+              </div>
+
+              {imagePreview && (
+                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-300 max-w-sm w-full">
+                  <img
+                    src={imagePreview}
+                    alt="Folha enviada"
+                    className="w-10 h-10 object-cover rounded-lg border border-slate-700 shrink-0"
+                  />
+                  <div className="text-left overflow-hidden">
+                    <p className="font-semibold text-slate-200 truncate">Foto Salva e Pronta</p>
+                    <p className="text-[11px] text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 size={12} /> Não precisará enviar novamente
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="w-full max-w-sm space-y-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAdModal(true)}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all cursor-pointer group"
+                >
+                  <Film size={16} className="text-amber-300 group-hover:scale-110 transition-transform" />
+                  <span>Assistir Vídeo Curto (+1 Leitura Grátis)</span>
+                </button>
+
+                <Link
+                  href="/pricing"
+                  onClick={onClose}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
+                >
+                  <Crown size={15} />
+                  <span>Desbloquear OCR Ilimitado com Synapse Pro</span>
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RODAPÉ */}
         <div className="flex items-center justify-between p-4 border-t border-slate-800 bg-slate-950/60 shrink-0">
           <button
             type="button"
-            onClick={onClose}
+            onClick={step === "quota" ? handleReset : onClose}
             className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
-            Cancelar
+            {step === "quota" ? "Voltar ao Início" : "Cancelar"}
           </button>
 
           {step === "review" && (
@@ -349,6 +438,13 @@ export function HandwrittenOcrModal({
           )}
         </div>
       </motion.div>
+
+      <RewardedAdModal
+        isOpen={showAdModal}
+        onClose={() => setShowAdModal(false)}
+        onRewardClaimed={handleRewardClaimed}
+        feature="OCR_ESSAY"
+      />
     </div>
   );
 }

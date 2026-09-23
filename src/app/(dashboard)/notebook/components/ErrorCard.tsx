@@ -21,8 +21,13 @@ import {
   Check,
   X,
   Loader2,
+  Lock,
+  Crown,
+  Film,
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import Link from "next/link";
+import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import {
   ErrorNotebookItem,
   ErrorRemediationData,
@@ -65,6 +70,9 @@ export function ErrorCard({
   // Estados locais
   const [isExpanded, setIsExpanded] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [quotaErrorMessage, setQuotaErrorMessage] = useState<string | null>(null);
   const [remediation, setRemediation] = useState<ErrorRemediationData | null>(
     errorItem.aiExplanation && errorItem.mnemonic && errorItem.drillQuestion
       ? {
@@ -122,6 +130,7 @@ export function ErrorCard({
     if (remediation) return;
 
     setIsGeneratingAi(true);
+    setIsQuotaExceeded(false);
     try {
       const res = await analyzeSingleErrorAction({
         errorId: errorItem.id,
@@ -134,6 +143,14 @@ export function ErrorCard({
         topicTitle: errorItem.topic?.title,
       });
 
+      if (res.isQuotaExceeded) {
+        setIsQuotaExceeded(true);
+        setQuotaErrorMessage(
+          res.error || "Limite diário de remediações e mnemônicos com IA atingido."
+        );
+        return;
+      }
+
       if (res.success && res.data) {
         setRemediation(res.data);
         onItemUpdated({
@@ -145,6 +162,44 @@ export function ErrorCard({
       }
     } catch (err) {
       console.error("Erro ao gerar remediação:", err);
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
+  const handleRewardClaimed = async () => {
+    setShowAdModal(false);
+    setIsQuotaExceeded(false);
+    setIsGeneratingAi(true);
+    try {
+      const res = await analyzeSingleErrorAction({
+        errorId: errorItem.id,
+        questionText: errorItem.questionText,
+        userAnswer: errorItem.userAnswer,
+        correctAnswer: errorItem.correctAnswer,
+        explanation: errorItem.explanation || undefined,
+        errorReason: errorItem.errorReason,
+        subjectName: errorItem.subject?.name,
+        topicTitle: errorItem.topic?.title,
+      });
+
+      if (res.isQuotaExceeded) {
+        setIsQuotaExceeded(true);
+        setQuotaErrorMessage(res.error || "Limite diário atingido.");
+        return;
+      }
+
+      if (res.success && res.data) {
+        setRemediation(res.data);
+        onItemUpdated({
+          ...errorItem,
+          aiExplanation: res.data.microExplanation,
+          mnemonic: res.data.mnemonicOrRule,
+          drillQuestion: res.data.drillQuestion,
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao gerar remediação pós-bônus:", err);
     } finally {
       setIsGeneratingAi(false);
     }
@@ -585,9 +640,62 @@ export function ErrorCard({
                 )}
               </div>
             )}
+
+            {/* Paywall Amigável de Cota Atingida */}
+            {!isGeneratingAi && isQuotaExceeded && !remediation && (
+              <div className="py-6 px-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 flex flex-col items-center text-center space-y-4 shadow-xl">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <Lock size={26} />
+                  </div>
+                  <div className="absolute -top-1 -right-1 p-1 rounded-md bg-amber-500 text-slate-950">
+                    <Crown size={12} />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 max-w-md">
+                  <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    Limite Diário Atingido (1/1)
+                  </span>
+                  <h4 className="text-sm sm:text-base font-bold text-white">
+                    Você atingiu a cota diária de remediações com IA
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {quotaErrorMessage ||
+                      "A desconstrução pedagógica com IA é um recurso avançado. Desbloqueie remediação imediata assistindo a um vídeo rápido ou assine o Synapse Pro para acesso ilimitado."}
+                  </p>
+                </div>
+
+                <div className="w-full max-w-sm space-y-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdModal(true)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all cursor-pointer group"
+                  >
+                    <Film size={15} className="text-amber-300 group-hover:scale-110 transition-transform" />
+                    <span>Assistir Vídeo (+1 Remediação com IA)</span>
+                  </button>
+
+                  <Link
+                    href="/pricing"
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
+                  >
+                    <Crown size={14} />
+                    <span>Desbloquear Ilimitado com Synapse Pro</span>
+                  </Link>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      <RewardedAdModal
+        isOpen={showAdModal}
+        onClose={() => setShowAdModal(false)}
+        onRewardClaimed={handleRewardClaimed}
+        feature="REMEDIATION"
+      />
     </motion.div>
   );
 }

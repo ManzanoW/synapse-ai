@@ -779,7 +779,13 @@ export async function deleteErrorNotebookItemAction(errorId: string) {
  */
 export async function generateErrorRemediationAction(
   input: GenerateRemediationInput,
-): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
+): Promise<{
+  success: boolean;
+  data?: ErrorRemediationData;
+  error?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
+}> {
   try {
     const session = await auth();
     const userId = session?.user?.id;
@@ -825,6 +831,8 @@ export async function generateErrorRemediationAction(
       return {
         success: false,
         error: quota.message || "Limite diário de remediações e mnemônicos com IA atingido.",
+        isQuotaExceeded: true,
+        canWatchRewardedAd: quota.canWatchRewardedAd,
       };
     }
 
@@ -978,7 +986,13 @@ Responda ESTRITAMENTE no formato JSON com os campos solicitados.
  */
 export async function analyzeSingleErrorAction(
   inputOrErrorId: GenerateRemediationInput | string,
-): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
+): Promise<{
+  success: boolean;
+  data?: ErrorRemediationData;
+  error?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
+}> {
   if (typeof inputOrErrorId === "string") {
     const session = await auth();
     const userId = session?.user?.id;

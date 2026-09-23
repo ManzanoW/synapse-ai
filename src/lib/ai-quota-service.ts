@@ -12,14 +12,15 @@ export type { AiFeatureType, QuotaCheckResult, UserQuotaStatus };
 // Limites diários para usuários no plano gratuito (Freemium estratégico de alta conversão)
 export const AI_QUOTA_LIMITS: Record<
   AiFeatureType,
-  { label: string; dailyLimit: number }
+  { label: string; dailyLimit: number; isWeekly?: boolean }
 > = {
   SIMULADO: { label: "Simulados com IA", dailyLimit: 2 },
   ESSAY: { label: "Correções de Redação", dailyLimit: 1 },
   FLASHCARD: { label: "Baralhos de Flashcards", dailyLimit: 2 },
-  MINDMAP: { label: "Mapas Mentais", dailyLimit: 2 },
-  REMEDIATION: { label: "Remediação e Mnemônicos", dailyLimit: 4 },
+  MINDMAP: { label: "Mapas Mentais", dailyLimit: 1 },
+  REMEDIATION: { label: "Remediação e Mnemônicos", dailyLimit: 1 },
   EDITAL: { label: "Personalização de Edital", dailyLimit: 1 },
+  OCR_ESSAY: { label: "OCR de Foto Manuscrita", dailyLimit: 1, isWeekly: true },
 };
 
 // Teto global diário para somatório de todas as requisições de IA no plano gratuito
@@ -35,6 +36,22 @@ function getTodayKey(): string {
   const brDate = new Date(utc - 3 * 3600000);
   return brDate.toISOString().slice(0, 10);
 }
+
+function getUsagePeriodKey(feature: AiFeatureType): string {
+  if (AI_QUOTA_LIMITS[feature]?.isWeekly) {
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const brDate = new Date(utc - 3 * 3600000);
+    const oneJan = new Date(brDate.getFullYear(), 0, 1);
+    const numberOfDays = Math.floor(
+      (brDate.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000)
+    );
+    const weekNumber = Math.ceil((brDate.getDay() + 1 + numberOfDays) / 7);
+    return `${brDate.getFullYear()}-W${weekNumber}`;
+  }
+  return getTodayKey();
+}
+
 
 /**
  * Verifica se o usuário possui cota disponível para consumir uma funcionalidade com IA hoje.
@@ -73,21 +90,25 @@ export async function checkAiQuota(
     }
 
     const today = getTodayKey();
+    const featureDate = getUsagePeriodKey(feature);
     const featureConfig = AI_QUOTA_LIMITS[feature] || {
       label: feature,
       dailyLimit: 10,
     };
+    const resetsAt = featureConfig.isWeekly
+      ? "na próxima segunda-feira às 00:00"
+      : "à meia-noite";
 
     const bonusFeatureKey = `BONUS_${feature}`;
 
-    // Busca consumo de hoje e bônus recebidos
+    // Busca consumo e bônus recebidos
     const [featureUsage, globalUsage, featureBonus, globalBonus] =
       await Promise.all([
         prisma.aiDailyUsage.findUnique({
           where: {
             userId_date_feature: {
               userId,
-              date: today,
+              date: featureDate,
               feature,
             },
           },
@@ -107,7 +128,7 @@ export async function checkAiQuota(
           where: {
             userId_date_feature: {
               userId,
-              date: today,
+              date: featureDate,
               feature: bonusFeatureKey,
             },
           },
@@ -156,11 +177,14 @@ export async function checkAiQuota(
         limit: effectiveFeatureLimit,
         used: usedFeature,
         isUnlimited: false,
-        message: `Você atingiu sua cota diária gratuita de ${featureConfig.label} (${usedFeature}/${effectiveFeatureLimit}). Desbloqueie o Synapse Premium para ter acesso ilimitado.`,
-        resetsAt: "à meia-noite",
+        message: featureConfig.isWeekly
+          ? `Você atingiu seu limite gratuito semanal de ${featureConfig.label} (${usedFeature}/${effectiveFeatureLimit}). Desbloqueie com anúncio ou vire Synapse Pro.`
+          : `Você atingiu sua cota diária gratuita de ${featureConfig.label} (${usedFeature}/${effectiveFeatureLimit}). Desbloqueie o Synapse Premium para ter acesso ilimitado.`,
+        resetsAt,
         canWatchRewardedAd,
       };
     }
+
 
     const remainingFeature = effectiveFeatureLimit - usedFeature;
     const remainingGlobal = effectiveGlobalLimit - usedGlobal;
@@ -216,6 +240,7 @@ export async function consumeAiQuota(
     }
 
     const today = getTodayKey();
+    const featureDate = getUsagePeriodKey(feature);
 
     // Incrementa na feature específica e no total ALL
     await prisma.$transaction([
@@ -223,13 +248,13 @@ export async function consumeAiQuota(
         where: {
           userId_date_feature: {
             userId,
-            date: today,
+            date: featureDate,
             feature,
           },
         },
         create: {
           userId,
-          date: today,
+          date: featureDate,
           feature,
           count: 1,
         },
@@ -237,6 +262,7 @@ export async function consumeAiQuota(
           count: { increment: 1 },
         },
       }),
+
       prisma.aiDailyUsage.upsert({
         where: {
           userId_date_feature: {
@@ -319,6 +345,13 @@ export async function getUserQuotaStatus(
         remaining: AI_QUOTA_LIMITS.EDITAL.dailyLimit,
         bonusEarned: 0,
       },
+      OCR_ESSAY: {
+        label: AI_QUOTA_LIMITS.OCR_ESSAY.label,
+        used: 0,
+        limit: AI_QUOTA_LIMITS.OCR_ESSAY.dailyLimit,
+        remaining: AI_QUOTA_LIMITS.OCR_ESSAY.dailyLimit,
+        bonusEarned: 0,
+      },
     },
   };
 
@@ -351,8 +384,12 @@ export async function getUserQuotaStatus(
     }
 
     const today = getTodayKey();
+    const currentWeek = getUsagePeriodKey("OCR_ESSAY");
     const usages = await prisma.aiDailyUsage.findMany({
-      where: { userId, date: today },
+      where: {
+        userId,
+        date: { in: [today, currentWeek] },
+      },
     });
 
     const usageMap = new Map<string, number>();
@@ -408,13 +445,14 @@ export async function addRewardedAdBonus(
 ): Promise<{ success: boolean; newLimit?: number; message?: string }> {
   try {
     const today = getTodayKey();
+    const dateKey = getUsagePeriodKey(feature);
     const bonusFeatureKey = `BONUS_${feature}`;
 
     const currentBonus = await prisma.aiDailyUsage.findUnique({
       where: {
         userId_date_feature: {
           userId,
-          date: today,
+          date: dateKey,
           feature: bonusFeatureKey,
         },
       },
@@ -434,13 +472,13 @@ export async function addRewardedAdBonus(
         where: {
           userId_date_feature: {
             userId,
-            date: today,
+            date: dateKey,
             feature: bonusFeatureKey,
           },
         },
         create: {
           userId,
-          date: today,
+          date: dateKey,
           feature: bonusFeatureKey,
           count: 1,
         },
@@ -467,6 +505,7 @@ export async function addRewardedAdBonus(
         },
       }),
     ]);
+
 
     const baseLimit = AI_QUOTA_LIMITS[feature]?.dailyLimit ?? 2;
     const newLimit = baseLimit + count + 1;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   Upload,
@@ -14,7 +14,11 @@ import {
   HelpCircle,
   Play,
   Briefcase,
+  Crown,
+  Lock,
 } from "lucide-react";
+import Link from "next/link";
+import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 import { StarterEditalSelector } from "./StarterEditalSelector";
 
 interface TopicItem {
@@ -61,11 +65,22 @@ export function ImportEditalModal({
   onImportSuccess,
 }: ImportEditalModalProps) {
   const [step, setStep] = useState<"input" | "preview">("input");
-  const [activeTab, setActiveTab] = useState<"career" | "text" | "file">("career");
+  const [activeTab, setActiveTab] = useState<"career" | "text" | "file" | "pdf">("career");
   const [rawText, setRawText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      getAiQuotaStatusAction().then((res) => {
+        if (res.success && res.data) {
+          setIsPro(res.data.isUnlimited);
+        }
+      });
+    }
+  }, [isOpen]);
 
   const [parsedSubjects, setParsedSubjects] = useState<SubjectItem[]>([]);
   const [expandedSubjects, setExpandedSubjects] = useState<
@@ -387,6 +402,20 @@ export function ImportEditalModal({
                   <Upload size={14} />
                   <span>Enviar TXT</span>
                 </button>
+                <button
+                  onClick={() => setActiveTab("pdf")}
+                  className={`flex-1 min-w-[110px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    activeTab === "pdf"
+                      ? "bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <FileText size={14} className="text-amber-400" />
+                  <span>Arquivo PDF</span>
+                  <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-0.5">
+                    <Crown size={8} /> PRO
+                  </span>
+                </button>
               </div>
 
               {activeTab === "career" ? (
@@ -399,6 +428,74 @@ export function ImportEditalModal({
                     compact={true}
                   />
                 </div>
+              ) : activeTab === "pdf" ? (
+                !isPro ? (
+                  <div className="py-6 px-4 rounded-2xl bg-slate-900/60 border border-amber-500/30 flex flex-col items-center text-center space-y-4">
+                    <div className="relative">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-xl shadow-amber-500/10">
+                        <Crown size={28} />
+                      </div>
+                      <div className="absolute -top-1 -right-1 p-1 rounded-md bg-amber-500 text-slate-950 font-bold">
+                        <Lock size={12} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 max-w-md">
+                      <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        Recurso Exclusivo Synapse Pro
+                      </span>
+                      <h3 className="text-sm sm:text-base font-bold text-white">
+                        Leitor Inteligente de Editais em PDF
+                      </h3>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        Nossa IA Vision vasculha o PDF completo de 100+ páginas da banca (FGV, Cebraspe, FCC), detecta o anexo de Conteúdo Programático e organiza disciplinas e tópicos automaticamente com zero trabalho manual.
+                      </p>
+                    </div>
+
+                    <div className="w-full max-w-sm space-y-2 pt-2">
+                      <Link
+                        href="/pricing"
+                        onClick={onClose}
+                        className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all"
+                      >
+                        <Crown size={15} />
+                        <span>Desbloquear Leitor de PDF com Synapse Pro</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("text")}
+                        className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                      >
+                        Usar opção gratuita (Colar Texto do Edital)
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-amber-500/40 rounded-xl cursor-pointer bg-amber-500/5 hover:bg-amber-500/10 transition-all group">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+                      <div className="p-3 mb-2 rounded-full bg-amber-500/15 text-amber-400 group-hover:scale-110 transition-transform">
+                        <FileText size={24} />
+                      </div>
+                      <p className="text-xs font-bold text-slate-200">
+                        {selectedFile
+                          ? selectedFile.name
+                          : "Clique para enviar o PDF do Edital Oficial"}
+                      </p>
+                      <p className="text-[10px] text-amber-300/80 mt-1">
+                        Formatos PDF até 25MB • Processamento Synapse Pro
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf"
+                      onChange={(e) =>
+                        e.target.files && setSelectedFile(e.target.files[0])
+                      }
+                    />
+                  </label>
+                )
               ) : activeTab === "file" ? (
                 <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-white/10 rounded-xl cursor-pointer bg-white/5 hover:bg-white/10 hover:border-indigo-500/40 transition-all group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">

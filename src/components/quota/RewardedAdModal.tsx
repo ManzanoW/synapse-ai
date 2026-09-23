@@ -21,16 +21,27 @@ import {
 } from "lucide-react";
 import { claimRewardedAdBonusAction } from "@/actions/quota-actions";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+import type { AiFeatureType } from "@/types/quota";
 import Link from "next/link";
 
 interface RewardedAdModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRewardClaimed: () => void;
-  feature?: "SIMULADO" | "ESSAY" | "FLASHCARD" | "MINDMAP" | "REMEDIATION" | "EDITAL";
+  feature?: AiFeatureType;
 }
 
 const TOTAL_AD_SECONDS = 15;
+
+const FEATURE_REWARD_LABELS: Record<AiFeatureType, { single: string; cta: string }> = {
+  SIMULADO: { single: "Simulado", cta: "+1 Simulado Bônus" },
+  ESSAY: { single: "Correção de Redação", cta: "+1 Envio de Redação" },
+  OCR_ESSAY: { single: "Leitura de Foto da Folha", cta: "+1 Leitura de Redação Manuscrita" },
+  REMEDIATION: { single: "Remediação de Erro", cta: "+1 Remediação Cognitiva" },
+  MINDMAP: { single: "Mapa Mental com IA", cta: "+1 Mapa Mental" },
+  FLASHCARD: { single: "Geração de Flashcards", cta: "+1 Geração de Flashcards" },
+  EDITAL: { single: "Importação de Edital", cta: "+1 Análise de Edital" },
+};
 
 const SPONSOR_TIPS = [
   "Dica Synapse: Ciclos de estudo de 25 minutos aumentam a retenção em 60%.",
@@ -299,7 +310,9 @@ export function RewardedAdModal({
             {claimSuccess ? (
               <div className="w-full py-3 px-4 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-2">
                 <CheckCircle2 size={16} />
-                <span>+1 Simulado Bônus Adicionado! Carregando...</span>
+                <span>
+                  {FEATURE_REWARD_LABELS[feature]?.cta || "+1 Bônus"} Adicionado! Carregando...
+                </span>
               </div>
             ) : isCompleted ? (
               <button
@@ -316,13 +329,18 @@ export function RewardedAdModal({
                 ) : (
                   <>
                     <Sparkles size={16} className="text-amber-300 group-hover:scale-110 transition-transform" />
-                    <span>Resgatar +1 Simulado Bônus Agora 🎉</span>
+                    <span>
+                      Resgatar {FEATURE_REWARD_LABELS[feature]?.cta || "+1 Bônus"} Agora 🎉
+                    </span>
                   </>
                 )}
               </button>
             ) : (
               <div className="w-full py-3 px-4 rounded-xl bg-slate-800/80 border border-white/5 text-slate-400 font-medium text-xs flex items-center justify-center gap-2 select-none">
-                <span>Aguarde {secondsLeft}s para desbloquear seu simulado bônus</span>
+                <span>
+                  Aguarde {secondsLeft}s para desbloquear{" "}
+                  {FEATURE_REWARD_LABELS[feature]?.single.toLowerCase() || "seu bônus"}
+                </span>
               </div>
             )}
 

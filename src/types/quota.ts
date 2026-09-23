@@ -4,7 +4,9 @@ export type AiFeatureType =
   | "FLASHCARD"
   | "MINDMAP"
   | "REMEDIATION"
-  | "EDITAL";
+  | "EDITAL"
+  | "OCR_ESSAY";
+
 
 export interface QuotaCheckResult {
   allowed: boolean;
