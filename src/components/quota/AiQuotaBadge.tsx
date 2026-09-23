@@ -142,24 +142,19 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
         {/* Glow de fundo */}
         <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
 
-        {/* Linha Superior: Título Synapse Pro com link para pricing + Botão da cota */}
-        <div className="flex items-center justify-between relative z-10">
+        {/* Linha Superior: Ícone Coroa + Synapse Pro (sem quebra!) + Pílula de Cota */}
+        <div className="flex items-center justify-between gap-2 relative z-10">
           <Link
             href="/pricing"
             onClick={onNavigate}
-            className="flex items-center gap-2 group/title"
+            className="flex items-center gap-2 group/title min-w-0"
           >
-            <div className="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover/title:scale-105 transition-transform">
+            <div className="w-6 h-6 rounded-lg bg-amber-400/10 border border-amber-400/25 flex items-center justify-center text-amber-400 shrink-0 group-hover/title:scale-105 transition-transform shadow-xs">
               <Crown size={13} className="text-amber-400 fill-amber-400/20" />
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-black text-white group-hover/title:text-amber-200 transition-colors tracking-wide">
-                Synapse Pro
-              </span>
-              <span className="text-[8px] font-mono font-bold px-1 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
-                UPGRADE
-              </span>
-            </div>
+            <span className="text-[12px] font-bold text-white group-hover/title:text-amber-200 transition-colors whitespace-nowrap tracking-tight">
+              Synapse Pro
+            </span>
           </Link>
 
           {/* Botão de Cota Diária clicável com Popover */}
@@ -168,9 +163,9 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             title="Ver limites detalhados da IA"
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-[9.5px] font-mono font-bold cursor-pointer"
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/30 text-violet-300 hover:text-white transition-all text-[9.5px] font-mono font-bold cursor-pointer shrink-0"
           >
-            <Sparkles size={10} className="text-violet-400" />
+            <Sparkles size={9} className="text-violet-400" />
             <span>
               {quota.globalUsed}/{quota.globalLimit}
             </span>
@@ -183,22 +178,22 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
           className="mt-2 space-y-1 cursor-pointer group/bar"
           title="Clique para ver o detalhamento do consumo"
         >
-          <div className="h-1.5 w-full bg-slate-950 rounded-full border border-white/5 p-px overflow-hidden">
+          <div className="h-1 w-full bg-slate-950 rounded-full border border-white/5 p-px overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 percentUsed > 80
                   ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
                   : percentUsed > 50
                     ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]"
-                    : "bg-gradient-to-r from-violet-500 to-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.5)]"
+                    : "bg-gradient-to-r from-violet-500 via-indigo-400 to-amber-300 shadow-[0_0_8px_rgba(129,140,248,0.5)]"
               }`}
               style={{ width: `${Math.max(percentUsed, 5)}%` }}
             />
           </div>
 
-          <div className="flex items-center justify-between text-[9px] text-slate-400 pt-0.5">
-            <span className="group-hover/bar:text-slate-300 transition-colors">
-              {remaining} créditos restantes hoje
+          <div className="flex items-center justify-between text-[9.5px] text-slate-400 pt-0.5">
+            <span className="truncate group-hover/bar:text-slate-300 transition-colors">
+              {remaining} créditos restantes
             </span>
             <Link
               href="/pricing"
@@ -206,9 +201,10 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                 e.stopPropagation();
                 onNavigate?.();
               }}
-              className="text-amber-300 font-bold hover:text-amber-200 transition-colors flex items-center gap-0.5"
+              className="text-amber-400 hover:text-amber-300 font-bold transition-colors flex items-center gap-0.5 shrink-0"
             >
-              Ilimitado <ChevronRight size={10} />
+              <span>Upgrade</span>
+              <ChevronRight size={10} />
             </Link>
           </div>
         </div>

@@ -279,16 +279,16 @@ export default function Sidebar({ user }: SidebarProps) {
         `}
       >
         {/* Cabeçalho Fixo & Busca */}
-        <div className="shrink-0 space-y-4 pb-2">
+        <div className="shrink-0 space-y-3 pb-1.5">
           {/* Logo */}
-          <div className="flex flex-col items-center pt-1 px-2 text-center select-none">
+          <div className="flex flex-col items-center pt-0.5 px-2 text-center select-none">
             <div className="inline-flex items-center justify-center gap-2">
-              <h1 className="font-extrabold text-slate-50 text-[1.85rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
+              <h1 className="font-extrabold text-slate-50 text-[1.8rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
                 Synapse
               </h1>
 
               <div className="inline-flex items-center gap-1">
-                <span className="font-black text-[1.85rem] tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
+                <span className="font-black text-[1.8rem] tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
                   AI
                 </span>
 
@@ -304,7 +304,7 @@ export default function Sidebar({ user }: SidebarProps) {
               </div>
             </div>
 
-            <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-2.5 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+            <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-2 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
           </div>
 
           {/* Busca rápida, Notificações & Volume */}
@@ -315,7 +315,7 @@ export default function Sidebar({ user }: SidebarProps) {
                 closeSidebar();
                 window.dispatchEvent(new CustomEvent("open-command-palette"));
               }}
-              className="flex-1 min-w-0 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-slate-200 transition-all text-xs cursor-pointer group"
+              className="flex-1 min-w-0 flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-slate-200 transition-all text-xs cursor-pointer group"
             >
               <div className="flex items-center gap-2 truncate">
                 <Search
@@ -359,11 +359,11 @@ export default function Sidebar({ user }: SidebarProps) {
         </div>
 
         {/* Navegação com Rolagem Independente & Sem Scrollbar Feia */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 space-y-3.5 pr-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <nav className="space-y-3.5">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 space-y-2.5 pr-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <nav className="space-y-2.5">
             {NAV_GROUPS.map((group) => (
-              <div key={group.label} className="space-y-1">
-                <span className="px-2.5 text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500/80">
+              <div key={group.label} className="space-y-0.5">
+                <span className="px-2.5 text-[8.5px] font-mono font-bold uppercase tracking-widest text-slate-500/80 mb-0.5 block">
                   {group.label}
                 </span>
 
@@ -390,7 +390,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         key={item.href}
                         href={getHref(item.href)}
                         onClick={closeSidebar}
-                        className={`relative group flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] font-medium transition-all duration-200 ${
+                        className={`relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-all duration-200 ${
                           isActive
                             ? isSpecial
                               ? "text-amber-200 bg-amber-500/10 font-semibold border border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
@@ -400,7 +400,7 @@ export default function Sidebar({ user }: SidebarProps) {
                       >
                         {isActive && (
                           <div
-                            className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full ${
+                            className={`absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full ${
                               isSpecial
                                 ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
                                 : "bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
@@ -409,7 +409,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         )}
 
                         <Icon
-                          size={16}
+                          size={15}
                           strokeWidth={isActive ? 2 : 1.5}
                           className={`transition-all duration-200 ${
                             isActive
@@ -423,7 +423,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         <span className="tracking-wide">{item.label}</span>
 
                         {"badge" in item && Boolean((item as any).badge) && (
-                          <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-tight">
+                          <span className="ml-auto text-[8.5px] font-bold px-1.5 py-0.2 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-tight">
                             {(item as any).badge}
                           </span>
                         )}
@@ -439,16 +439,16 @@ export default function Sidebar({ user }: SidebarProps) {
                         closeSidebar();
                         setIsFeedbackModalOpen(true);
                       }}
-                      className="w-full relative group flex items-center justify-between px-2.5 py-2 rounded-md text-[12px] font-medium text-slate-400 hover:text-white hover:bg-white/3 transition-all duration-200 cursor-pointer"
+                      className="w-full relative group flex items-center justify-between px-2.5 py-1.5 rounded-md text-[12px] font-medium text-slate-400 hover:text-white hover:bg-white/3 transition-all duration-200 cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
                         <MessageSquarePlus
-                          size={16}
+                          size={15}
                           className="text-amber-400 group-hover:scale-110 transition-transform"
                         />
                         <span className="tracking-wide">Dar Feedback</span>
                       </div>
-                      <span className="text-[9px] font-mono font-bold text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded-md border border-amber-400/20">
+                      <span className="text-[8.5px] font-mono font-bold text-amber-300 bg-amber-400/10 px-1.5 py-0.2 rounded-md border border-amber-400/20">
                         BETA
                       </span>
                     </button>
@@ -460,12 +460,12 @@ export default function Sidebar({ user }: SidebarProps) {
         </div>
 
         {/* Rodapé Fixo: Card de Gamificação & Usuário (Idêntico à Imagem de Referência) */}
-        <div className="shrink-0 pt-2.5">
+        <div className="shrink-0 pt-2">
           <div className="group relative overflow-hidden rounded-2xl bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl transition-all duration-300 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.2)]">
             <div className="absolute -top-12 -left-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
             <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent shadow-[0_0_8px_#818cf8]" />
 
-            <div className="p-3.5 space-y-3 relative z-10">
+            <div className="p-3 space-y-2.5 relative z-10">
               {isLoading ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 size={16} className="animate-spin text-indigo-400" />
