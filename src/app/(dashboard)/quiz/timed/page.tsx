@@ -33,6 +33,7 @@ import { PacingBar } from "./_components/PacingBar";
 import { ExamSheetHUD } from "./_components/ExamSheetHUD";
 import { SubmitConfirmModal } from "./_components/SubmitConfirmModal";
 import { TimedExamResultView } from "./_components/TimedExamResultView";
+import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
 
 import {
@@ -425,6 +426,9 @@ export default function TimedQuizPage() {
           json.error || json.details || "Não foi possível gerar as questões do simulado."
         );
       }
+
+      // Notifica em tempo real a Sidebar e os badges de cota
+      triggerAiQuotaRefresh();
 
       setPendingTimedQuestions(json.data);
       setIsGenerating(false);

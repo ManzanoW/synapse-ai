@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Sparkles, ShieldCheck, X, Crown, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
+import { AI_QUOTA_UPDATED_EVENT } from "@/lib/quota-events";
 import type { UserQuotaStatus } from "@/types/quota";
 
 interface AiQuotaBadgeProps {
@@ -13,6 +15,7 @@ interface AiQuotaBadgeProps {
 }
 
 export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
+  const pathname = usePathname();
   const [quota, setQuota] = useState<UserQuotaStatus | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -26,19 +29,59 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-    getAiQuotaStatusAction().then((res) => {
-      if (isMounted && res.success && res.data) {
+  const fetchQuota = useCallback(async () => {
+    try {
+      const res = await getAiQuotaStatusAction();
+      if (res.success && res.data) {
         setQuota(res.data);
       }
-      if (isMounted) setLoading(false);
-    });
+    } catch (err) {
+      console.error("Erro ao sincronizar cota de IA:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 1. Carrega inicial
+  useEffect(() => {
+    fetchQuota();
+  }, [fetchQuota]);
+
+  // 2. Recarrega ao navegar entre páginas (SPA)
+  useEffect(() => {
+    fetchQuota();
+  }, [pathname, fetchQuota]);
+
+  // 3. Recarrega instantaneamente ao abrir o modal / popover
+  useEffect(() => {
+    if (isOpen) {
+      fetchQuota();
+    }
+  }, [isOpen, fetchQuota]);
+
+  // 4. Escuta eventos de consumo de IA, foco na janela e visibilidade da aba
+  useEffect(() => {
+    const handleUpdate = () => fetchQuota();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchQuota();
+      }
+    };
+
+    window.addEventListener(AI_QUOTA_UPDATED_EVENT, handleUpdate);
+    window.addEventListener("focus", handleUpdate);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    // 5. Polling suave a cada 15 segundos para garantir sincronia
+    const interval = setInterval(fetchQuota, 15000);
 
     return () => {
-      isMounted = false;
+      window.removeEventListener(AI_QUOTA_UPDATED_EVENT, handleUpdate);
+      window.removeEventListener("focus", handleUpdate);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(interval);
     };
-  }, []);
+  }, [fetchQuota]);
 
   const updatePosition = () => {
     if (!buttonRef.current) return;

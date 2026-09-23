@@ -56,6 +56,7 @@ import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
+import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 
 import {
   submitQuizAttemptAction,
@@ -984,6 +985,9 @@ export default function QuestoesPage() {
         );
       }
 
+      // Notifica em tempo real a Sidebar e os badges de cota
+      triggerAiQuotaRefresh();
+
       const targetId = data.id || data.simuladoId;
 
       setIsGenerating(false);
@@ -1118,6 +1122,9 @@ export default function QuestoesPage() {
         if (!response.ok || !data.success) {
           throw new Error(data.error || "Erro ao gerar simulado com IA.");
         }
+
+        // Notifica em tempo real a Sidebar e os badges de cota
+        triggerAiQuotaRefresh();
 
         setPendingSimuladoData({
           questions: data.data.questions,
