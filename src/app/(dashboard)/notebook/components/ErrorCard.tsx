@@ -373,11 +373,11 @@ export function ErrorCard({
       </div>
 
       {/* 3. Barra de Ações do Card */}
-      <div className="px-4 sm:px-5 py-3 bg-slate-900/90 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-4 sm:px-5 py-3 bg-slate-900/90 border-t border-white/5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         {/* Botão de Expansão IA */}
         <button
           onClick={handleToggleAiRemediation}
-          className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-md ${
+          className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-md min-h-[44px] ${
             isExpanded
               ? "bg-violet-600/30 border-violet-400 text-violet-200"
               : "bg-gradient-to-r from-violet-600/20 to-rose-600/20 hover:from-violet-600/30 hover:to-rose-600/30 border-violet-500/40 text-violet-200 hover:border-violet-400 hover:shadow-violet-500/15"
@@ -392,7 +392,7 @@ export function ErrorCard({
         <button
           onClick={handleToggleMastered}
           disabled={isUpdatingStatus}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
+          className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer border min-h-[44px] ${
             isMastered
               ? "bg-slate-800 text-slate-300 border-white/10 hover:bg-slate-700"
               : "bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-300"
@@ -520,7 +520,7 @@ export function ErrorCard({
                                 setIsDrillChecked(false);
                               }
                             }}
-                            className={`w-full p-3 rounded-xl border text-left text-xs sm:text-sm flex items-start gap-3 transition-all cursor-pointer ${itemStyle}`}
+                            className={`w-full p-3 sm:p-3.5 rounded-xl border text-left text-xs sm:text-sm flex items-start gap-3 transition-all cursor-pointer min-h-[48px] ${itemStyle}`}
                           >
                             <span
                               className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
@@ -575,7 +575,7 @@ export function ErrorCard({
                         <button
                           onClick={handleVerifyDrillAnswer}
                           disabled={!selectedDrillOption}
-                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer"
+                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer min-h-[44px] flex items-center justify-center"
                         >
                           Confirmar Resposta de Fixação
                         </button>

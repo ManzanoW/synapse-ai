@@ -206,7 +206,7 @@ export function QuestionCard({
       )}
 
       {/* HEADER DA QUESTÃO */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4 gap-2">
+      <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4 gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-black tracking-wider text-indigo-400 uppercase">
             QUESTÃO {index + 1}
@@ -225,7 +225,7 @@ export function QuestionCard({
           <button
             type="button"
             onClick={() => setIsMentorOpen(true)}
-            className="px-2.5 py-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 hover:border-violet-500/50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 shadow-xs"
+            className="px-2.5 py-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 hover:border-violet-500/50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 shadow-xs min-h-[36px]"
             title="Abrir Mentor IA Copilot (⌘J ou Ctrl+J)"
           >
             <Brain size={13} className="text-violet-400" />
@@ -238,7 +238,7 @@ export function QuestionCard({
           <button
             type="button"
             onClick={onToggleFlag}
-            className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 ${
+            className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 min-h-[36px] ${
               isFlagged
                 ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
                 : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
@@ -278,7 +278,7 @@ export function QuestionCard({
                     disabled={respondida}
                     onClick={() => !isEliminated && onSelectAnswer(alt.id)}
                     type="button"
-                    className={`w-full text-left px-3.5 py-3 sm:px-4 sm:py-3.5 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-12 ${
+                    className={`w-full text-left px-3.5 py-3.5 sm:px-4 sm:py-3.5 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] ${
                       isEliminated && !respondida
                         ? "opacity-30 line-through bg-slate-950/20 border-slate-900/50 text-slate-500"
                         : respondida
@@ -325,7 +325,7 @@ export function QuestionCard({
                           ? "Restaurar alternativa"
                           : "Riscar alternativa"
                       }
-                      className={`p-2 rounded-lg transition-all shrink-0 cursor-pointer ${
+                      className={`p-2 rounded-lg transition-all shrink-0 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center ${
                         isEliminated
                           ? "text-rose-400 hover:text-rose-300 opacity-100"
                           : "text-slate-600 hover:text-slate-300 sm:opacity-0 sm:group-hover:opacity-100"
@@ -347,7 +347,7 @@ export function QuestionCard({
                   disabled={respondida}
                   onClick={() => onSelectAnswer(opcao)}
                   type="button"
-                  className={`w-full text-left px-4 py-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-12 ${
+                  className={`w-full text-left px-4 py-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] ${
                     respondida
                       ? opcao === questao.gabaritoCorreto
                         ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 shadow-xs"
@@ -406,7 +406,7 @@ export function QuestionCard({
               disabled={!alternativaSelecionada}
               onClick={onAnswerQuestion}
               type="button"
-              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-indigo-950/50 ml-auto cursor-pointer min-h-11"
+              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-indigo-950/50 ml-auto cursor-pointer min-h-[48px]"
             >
               Responder Questão
             </button>
@@ -438,7 +438,7 @@ export function QuestionCard({
                   <button
                     type="button"
                     onClick={() => setShowErrorDiagnosis(true)}
-                    className={`w-full sm:w-auto px-3 py-2 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shadow-xs ${
+                    className={`w-full sm:w-auto px-3.5 py-2.5 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shadow-xs min-h-[44px] ${
                       selectedReason
                         ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
                         : "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300"
@@ -453,7 +453,7 @@ export function QuestionCard({
                     onClick={onCreateFlashcard}
                     disabled={isCreatingFlashcard || isFlashcardCreated}
                     type="button"
-                    className={`w-full sm:w-auto px-3 py-2 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer ${
+                    className={`w-full sm:w-auto px-3.5 py-2.5 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer min-h-[44px] ${
                       isFlashcardCreated
                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed opacity-90"
                         : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-300"

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { buildWeeklySchedule, buildStudyCycleBlocks } from "@/lib/study-cycle";
+import { recordStudyActivityAction } from "@/actions/gamification-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -186,6 +188,64 @@ export async function PATCH(request: Request) {
 
     // Lógica de avanço do ciclo
     if (cycleAction === "NEXT_BLOCK") {
+      try {
+        const rawSubjectsForCycle = await prisma.subject.findMany({
+          where: { userId },
+          include: {
+            topics: {
+              select: {
+                id: true,
+                title: true,
+                firstStudy: true,
+                relevance: true,
+                performance: true,
+                lastRev: true,
+              },
+            },
+          },
+          orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+        });
+
+        const currentCycleData = buildStudyCycleBlocks(
+          rawSubjectsForCycle,
+          currentUser.weeklyGoalHours ?? 10,
+          currentUser.cycleCurrentIndex ?? 0,
+          HIGH_CONTRAST_PALETTE,
+        );
+
+        const currentBlock =
+          currentCycleData.blocks.find((b) => b.status === "CURRENT") ||
+          currentCycleData.blocks[currentUser.cycleCurrentIndex ?? 0];
+
+        const durationMinutes = currentBlock?.durationMinutes || 50;
+
+        // Registra sessão de estudo e concede XP (+100 XP por bloco concluído)
+        await recordStudyActivityAction(
+          userId,
+          100,
+          "FOCUS",
+          durationMinutes,
+        );
+
+        // Marca tópicos mapeados no bloco como concluídos na semana
+        if (currentBlock?.assignedTopics?.length) {
+          const topicIds = currentBlock.assignedTopics
+            .map((t) => t.id)
+            .filter(Boolean);
+          if (topicIds.length > 0) {
+            await prisma.topic.updateMany({
+              where: { id: { in: topicIds }, subject: { userId } },
+              data: {
+                firstStudy: "Concluido",
+                lastRev: new Date(),
+              },
+            });
+          }
+        }
+      } catch (cycleLogErr) {
+        console.error("⚠️ Falha ao registrar sessão/XP do bloco de ciclo:", cycleLogErr);
+      }
+
       newIndex += 1;
     } else if (cycleAction === "PREV_BLOCK" && newIndex > 0) {
       newIndex -= 1;
@@ -306,6 +366,11 @@ export async function PATCH(request: Request) {
     );
 
     const missedDayName = await checkMissedDay(userId);
+
+    // Invalida caches das páginas chave para atualizar gráficos e estatísticas
+    revalidatePath("/dashboard");
+    revalidatePath("/week");
+    revalidatePath("/study-room");
 
     return NextResponse.json({
       message: "Configurações e ciclo atualizados com sucesso!",
