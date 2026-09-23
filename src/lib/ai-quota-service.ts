@@ -10,18 +10,18 @@ export type AiFeatureType =
   | "REMEDIATION"
   | "EDITAL";
 
-// Limites diários para usuários em fase de teste / plano gratuito
+// Limites diários para usuários no plano gratuito (Freemium estratégico de alta conversão)
 export const AI_QUOTA_LIMITS: Record<AiFeatureType, { label: string; dailyLimit: number }> = {
-  SIMULADO: { label: "Simulados com IA", dailyLimit: 10 },
-  ESSAY: { label: "Correções de Redação", dailyLimit: 5 },
-  FLASHCARD: { label: "Baralhos de Flashcards", dailyLimit: 10 },
-  MINDMAP: { label: "Mapas Mentais", dailyLimit: 8 },
-  REMEDIATION: { label: "Remediação e Mnemônicos", dailyLimit: 15 },
-  EDITAL: { label: "Personalização de Edital", dailyLimit: 5 },
+  SIMULADO: { label: "Simulados com IA", dailyLimit: 2 },
+  ESSAY: { label: "Correções de Redação", dailyLimit: 1 },
+  FLASHCARD: { label: "Baralhos de Flashcards", dailyLimit: 2 },
+  MINDMAP: { label: "Mapas Mentais", dailyLimit: 2 },
+  REMEDIATION: { label: "Remediação e Mnemônicos", dailyLimit: 4 },
+  EDITAL: { label: "Personalização de Edital", dailyLimit: 1 },
 };
 
-// Teto global diário para somatório de todas as requisições de IA
-export const GLOBAL_DAILY_AI_LIMIT = 25;
+// Teto global diário para somatório de todas as requisições de IA no plano gratuito
+export const GLOBAL_DAILY_AI_LIMIT = 7;
 
 export interface QuotaCheckResult {
   allowed: boolean;
@@ -134,7 +134,7 @@ export async function checkAiQuota(
         limit: GLOBAL_DAILY_AI_LIMIT,
         used: usedGlobal,
         isUnlimited: false,
-        message: `Você atingiu seu limite diário geral de testes de IA (${usedGlobal}/${GLOBAL_DAILY_AI_LIMIT}). Sua cota será renovada à meia-noite.`,
+        message: `Você atingiu seu limite diário gratuito de IA (${usedGlobal}/${GLOBAL_DAILY_AI_LIMIT}). Desbloqueie o Synapse Premium para ter IA ilimitada e correções sem fila.`,
         resetsAt: "à meia-noite",
       };
     }
@@ -147,7 +147,7 @@ export async function checkAiQuota(
         limit: featureConfig.dailyLimit,
         used: usedFeature,
         isUnlimited: false,
-        message: `Você atingiu a cota diária de ${featureConfig.label} (${usedFeature}/${featureConfig.dailyLimit}). Sua cota será renovada à meia-noite.`,
+        message: `Você atingiu sua cota diária gratuita de ${featureConfig.label} (${usedFeature}/${featureConfig.dailyLimit}). Desbloqueie o Synapse Premium para ter acesso ilimitado.`,
         resetsAt: "à meia-noite",
       };
     }

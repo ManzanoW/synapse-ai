@@ -13,10 +13,12 @@ import { PrestigeModal } from "@/components/gamification/prestige-modal";
 import { useAudioContext } from "@/contexts/AudioContext";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 import { AiQuotaBadge } from "@/components/quota/AiQuotaBadge";
+import { FeedbackModal } from "@/components/feedback/FeedbackModal";
 import {
   Sparkles,
   Layers,
   LogOut,
+  MessageSquarePlus,
   CalendarDays,
   LayoutDashboard,
   TrendingUp,
@@ -122,6 +124,7 @@ export default function Sidebar({ user }: SidebarProps) {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isPrestigeModalOpen, setIsPrestigeModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -226,6 +229,11 @@ export default function Sidebar({ user }: SidebarProps) {
         isLoading={isLoggingOut}
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={handleConfirmLogout}
+      />
+
+      <FeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
       />
 
       {user?.id && (
@@ -512,9 +520,26 @@ export default function Sidebar({ user }: SidebarProps) {
                 </>
               )}
 
-              {/* 🛡️ Cota Diária de Testes da IA */}
-              <div className="pt-1">
+              {/* 🛡️ Cota Diária de Testes da IA & Feedback */}
+              <div className="space-y-1.5 pt-1">
                 <AiQuotaBadge />
+                <button
+                  type="button"
+                  onClick={() => setIsFeedbackModalOpen(true)}
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-amber-500/30 text-slate-300 hover:text-white transition-all text-[11px] font-semibold cursor-pointer group"
+                  title="Envie uma sugestão ou reporte um problema"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <MessageSquarePlus
+                      size={12}
+                      className="text-amber-400 group-hover:scale-110 transition-transform"
+                    />
+                    <span>Dar Feedback</span>
+                  </div>
+                  <span className="text-[9px] font-mono font-bold text-amber-300/90 bg-amber-400/10 px-1.5 py-0.5 rounded-md border border-amber-400/20">
+                    BETA
+                  </span>
+                </button>
               </div>
 
               <div className="h-px w-full bg-linear-to-r from-transparent via-slate-800 to-transparent my-1" />

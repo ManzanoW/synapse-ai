@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Sparkles, ShieldCheck, Zap, Info, ChevronRight, X } from "lucide-react";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 import { UserQuotaStatus, GLOBAL_DAILY_AI_LIMIT } from "@/lib/ai-quota-service";
@@ -117,6 +118,17 @@ export function AiQuotaBadge() {
             <span className="font-bold text-slate-300">
               {quota.globalUsed}/{GLOBAL_DAILY_AI_LIMIT} requisições
             </span>
+          </div>
+
+          <div className="pt-2 border-t border-white/10">
+            <Link
+              href="/pricing"
+              onClick={() => setIsOpen(false)}
+              className="w-full py-1.5 px-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 shadow-md shadow-violet-950/50 transition-all cursor-pointer"
+            >
+              <Sparkles size={12} className="text-amber-300 fill-amber-300" />
+              <span>Ver Vantagens do Premium</span>
+            </Link>
           </div>
         </div>
       )}
