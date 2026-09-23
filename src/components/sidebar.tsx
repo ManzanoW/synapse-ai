@@ -95,6 +95,12 @@ const NAV_GROUPS = [
   {
     label: "Conta",
     items: [
+      {
+        label: "Seja Premium",
+        href: "/pricing",
+        icon: Crown,
+        badge: "PRO",
+      },
       { label: "Perfil", href: "/profile", icon: UserCircle2 },
       { label: "Ajuda", href: "/help", icon: Info },
     ],

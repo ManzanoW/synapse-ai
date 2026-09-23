@@ -38,8 +38,13 @@ export default async function ProfilePage() {
       weeklyGoalHours: true,
       studyMode: true,
       targetExamDate: true, // <-- ADICIONADO AQUI
+      planTier: true,
+      role: true,
     },
   });
+
+  const isPremiumUser =
+    dbUser?.role === "ADMIN" || dbUser?.planTier === "PREMIUM";
 
   const getInitials = (name?: string | null) => {
     if (!name) return "US";
@@ -110,13 +115,26 @@ export default async function ProfilePage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                 {dbUser?.name || "Estudante Synapse"}
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold tracking-wide shadow-xs">
-                <Award
-                  size={13}
-                  className="text-indigo-400 fill-indigo-400/20"
-                />
-                <span>PREMIUM</span>
-              </span>
+              {isPremiumUser ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-linear-to-r from-amber-500/20 to-indigo-500/20 border border-amber-400/40 text-amber-300 text-xs font-black tracking-wide shadow-xs">
+                  <Award
+                    size={13}
+                    className="text-amber-400 fill-amber-400/20"
+                  />
+                  <span>PRO / PREMIUM</span>
+                </span>
+              ) : (
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400/40 text-slate-300 hover:text-indigo-200 text-xs font-bold tracking-wide transition-all group shadow-xs"
+                >
+                  <Award size={13} className="text-slate-400" />
+                  <span>BÁSICO (GRÁTIS)</span>
+                  <span className="text-indigo-400 font-extrabold group-hover:translate-x-0.5 transition-transform">
+                    • Upgrade 💎
+                  </span>
+                </Link>
+              )}
             </div>
 
             <p className="text-slate-300 text-sm max-w-lg leading-relaxed">

@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
-import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle, Crown } from "lucide-react";
 
 export interface SimuladoGenerationModalProps {
   isOpen: boolean;
@@ -271,7 +272,11 @@ export function SimuladoGenerationModal({
                     {error}
                   </p>
                   <p className="text-[11px] text-slate-400">
-                    Ocorreu uma instabilidade na conexão com a IA.
+                    {error.toLowerCase().includes("limite") ||
+                    error.toLowerCase().includes("cota") ||
+                    error.toLowerCase().includes("premium")
+                      ? "Usuários do plano gratuito contam com cotas diárias calibradas."
+                      : "Ocorreu uma instabilidade na conexão com a IA."}
                   </p>
                 </motion.div>
               ) : (
@@ -294,16 +299,31 @@ export function SimuladoGenerationModal({
             </AnimatePresence>
           </div>
 
-          {/* Ação de cancelamento ou fechamento em caso de erro */}
-          {error && onClose && (
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold rounded-xl border border-slate-800 transition-all cursor-pointer"
-              >
-                Fechar
-              </button>
+          {/* Ação de cancelamento ou CTA de upgrade em caso de erro */}
+          {error && (
+            <div className="pt-3 flex flex-wrap items-center justify-center gap-2">
+              {error.toLowerCase().includes("limite") ||
+              error.toLowerCase().includes("cota") ||
+              error.toLowerCase().includes("premium") ? (
+                <Link
+                  href="/pricing"
+                  onClick={onClose}
+                  className="px-4 py-2.5 bg-linear-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-400 hover:to-pink-400 text-white text-xs font-black rounded-xl shadow-lg shadow-purple-600/30 flex items-center gap-1.5 transition-all"
+                >
+                  <Crown size={14} className="fill-white" />
+                  <span>Desbloquear IA Ilimitada 💎</span>
+                </Link>
+              ) : null}
+
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold rounded-xl border border-slate-800 transition-all cursor-pointer"
+                >
+                  Fechar
+                </button>
+              )}
             </div>
           )}
         </motion.div>
