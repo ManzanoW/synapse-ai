@@ -31,6 +31,7 @@ import {
   Maximize2,
   Minimize2,
   Printer,
+  BookOpen,
 } from "lucide-react";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 import { ErrorClassification } from "@/types/quiz";
@@ -70,48 +71,6 @@ export interface QuizResolutionViewProps {
   isCreatingFlashcard?: boolean;
   createdFlashcards?: Record<number, boolean>;
 }
-
-const ERROR_TAXONOMY: {
-  key: ErrorClassification;
-  label: string;
-  desc: string;
-  icon: React.ElementType;
-  color: string;
-  bgActive: string;
-}[] = [
-  {
-    key: "THEORY_GAP",
-    label: "Lacuna Teórica",
-    desc: "Não conhecia ou esqueci o conceito teórico cobrado.",
-    icon: Brain,
-    color: "text-violet-400 border-violet-500/30 bg-violet-500/10",
-    bgActive: "border-violet-500 bg-violet-500/20 text-violet-200",
-  },
-  {
-    key: "ATTENTION_LAPSE",
-    label: "Falta de Atenção",
-    desc: "Sabia a matéria, mas caí em pegadinha ou li com pressa.",
-    icon: Eye,
-    color: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-    bgActive: "border-amber-500 bg-amber-500/20 text-amber-200",
-  },
-  {
-    key: "MISINTERPRETATION",
-    label: "Erro de Interpretação",
-    desc: "Interpretei de forma errônea o comando da questão.",
-    icon: AlertCircle,
-    color: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10",
-    bgActive: "border-cyan-500 bg-cyan-500/20 text-cyan-200",
-  },
-  {
-    key: "TIME_PRESSURE",
-    label: "Pressão de Tempo",
-    desc: "Faltou tempo para calcular ou analisar as opções com calma.",
-    icon: Clock,
-    color: "text-rose-400 border-rose-500/30 bg-rose-500/10",
-    bgActive: "border-rose-500 bg-rose-500/20 text-rose-200",
-  },
-];
 
 const renderEnunciado = (texto: string) => {
   if (!texto) return null;
@@ -179,7 +138,6 @@ export function QuizResolutionView({
   // UI States
   const [feedbackTab, setFeedbackTab] = useState<"BANCA" | "DISTRATORES" | "MNEMONICO">("BANCA");
   const [isJustificationExpanded, setIsJustificationExpanded] = useState(true);
-  const [showErrorDiagnosisModal, setShowErrorDiagnosisModal] = useState(false);
   const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
   const [showFinishConfirmModal, setShowFinishConfirmModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -339,6 +297,20 @@ export function QuizResolutionView({
     const isCorrect =
       currentSelectedAlt === currentQuestion.gabaritoCorreto;
 
+    // Se errou, classifica automaticamente em background sem interromper o aluno
+    if (!isCorrect) {
+      setErrorClassifications((prev) => {
+        if (prev[activeQuestionIndex]) return prev;
+        const hasTrap =
+          Boolean(currentQuestion.pegadinhaBanca) ||
+          Boolean(currentQuestion.mentorGuidance?.trapWarning);
+        return {
+          ...prev,
+          [activeQuestionIndex]: hasTrap ? "ATTENTION_LAPSE" : "THEORY_GAP",
+        };
+      });
+    }
+
     if (onAnswerQuestion) {
       onAnswerQuestion(activeQuestionIndex, currentSelectedAlt, isCorrect);
     }
@@ -390,14 +362,6 @@ export function QuizResolutionView({
     }
   };
 
-  // Classificar erro cognitivo
-  const handleClassifyError = (reason: ErrorClassification) => {
-    setErrorClassifications((prev) => ({
-      ...prev,
-      [activeQuestionIndex]: reason,
-    }));
-  };
-
   // Finalizar Simulado
   const handleFinalize = () => {
     onFinishQuiz({
@@ -426,8 +390,7 @@ export function QuizResolutionView({
       if (
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
-        target.isContentEditable ||
-        showErrorDiagnosisModal
+        target.isContentEditable
       ) {
         return;
       }
@@ -506,7 +469,6 @@ export function QuizResolutionView({
     navigateTo,
     handleConfirmAnswer,
     handleSelectAnswer,
-    showErrorDiagnosisModal,
     totalQuestions,
   ]);
 
@@ -1050,21 +1012,15 @@ export function QuizResolutionView({
 
                       {/* Ações Rápidas (Chips de Feedback) */}
                       <div className="flex items-center gap-2 flex-wrap self-end sm:self-center">
-                        {/* Se errou: Por que errei? */}
+                        {/* Se errou: Indicador automático de Caderno de Erros */}
                         {!isCurrentCorrect && (
-                          <button
-                            type="button"
-                            onClick={() => setShowErrorDiagnosisModal(true)}
-                            className="px-3 py-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
-                            title="Classificar tipo de erro no caderno"
+                          <span
+                            className="px-2.5 py-1 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-semibold flex items-center gap-1.5"
+                            title="Questão catalogada automaticamente no seu Caderno de Erros"
                           >
-                            <Brain size={13} className="text-amber-400" />
-                            <span>
-                              {errorClassifications[activeQuestionIndex]
-                                ? "Diagnóstico Salvo ✓"
-                                : "Por que errei? 🧠"}
-                            </span>
-                          </button>
+                            <BookOpen size={12} className="text-rose-400" />
+                            <span>Caderno de Erros</span>
+                          </span>
                         )}
 
                         {/* Criar Flashcard */}
@@ -1174,6 +1130,45 @@ export function QuizResolutionView({
                         <div className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium bg-slate-900/60 border border-slate-800/80 p-4 rounded-2xl whitespace-pre-line">
                           {renderEnunciado(currentQuestion.justificativa)}
                         </div>
+
+                        {/* Alerta de Pegadinha da Banca (inline se errou) */}
+                        {!isCurrentCorrect &&
+                          (currentQuestion.pegadinhaBanca ||
+                            currentQuestion.mentorGuidance?.trapWarning) && (
+                            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs flex items-start gap-2.5">
+                              <AlertTriangle
+                                size={15}
+                                className="text-amber-400 shrink-0 mt-0.5"
+                              />
+                              <div>
+                                <span className="font-bold text-amber-300 block mb-0.5">
+                                  ⚠️ Pegadinha Clássica da Banca:
+                                </span>
+                                <p className="leading-relaxed text-amber-100/90 font-medium">
+                                  {currentQuestion.pegadinhaBanca ||
+                                    currentQuestion.mentorGuidance?.trapWarning}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                        {/* Ponto Cego & Explicação do Erro (inline se errou) */}
+                        {!isCurrentCorrect && currentQuestion.explicacaoErro && (
+                          <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-xs flex items-start gap-2.5">
+                            <Target
+                              size={15}
+                              className="text-indigo-400 shrink-0 mt-0.5"
+                            />
+                            <div>
+                              <span className="font-bold text-indigo-300 block mb-0.5">
+                                🎯 Ponto Cego & Análise do Erro:
+                              </span>
+                              <p className="leading-relaxed text-indigo-100/90 font-medium">
+                                {currentQuestion.explicacaoErro}
+                              </p>
+                            </div>
+                          </div>
+                        )}
 
                         {!currentDeepExplanation && (
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs text-slate-400">
@@ -1623,158 +1618,7 @@ export function QuizResolutionView({
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* 5. MODAL DE DIAGNÓSTICO COGNITIVO DE ERRO */}
-      {/* ========================================================================= */}
-      <AnimatePresence>
-        {showErrorDiagnosisModal && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
-            onClick={() => setShowErrorDiagnosisModal(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#0c101d] border border-amber-500/30 rounded-3xl w-full max-w-xl shadow-2xl shadow-amber-950/20 overflow-hidden flex flex-col max-h-[90vh]"
-            >
-              {/* HEADER DO MODAL */}
-              <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-900/60">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-xs">
-                    <Brain size={22} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                      Diagnóstico de Erro & Ponto Cego 🧠
-                    </h3>
-                    <p className="text-xs text-slate-400 font-medium">
-                      Questão {activeQuestionIndex + 1} • Classifique seu motivo
-                      para calibrar seu treino
-                    </p>
-                  </div>
-                </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowErrorDiagnosisModal(false)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* CORPO DO MODAL */}
-              <div className="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
-                {/* Resumo de Resposta vs Gabarito */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-medium">
-                      Sua resposta:
-                    </span>
-                    <span className="font-bold text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-md border border-rose-500/20">
-                      {currentSelectedAlt || "Nenhuma"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-medium">
-                      Gabarito correto:
-                    </span>
-                    <span className="font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
-                      {currentQuestion.gabaritoCorreto}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Seleção do Motivo */}
-                <div className="space-y-2">
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 block">
-                    Qual foi a causa principal do erro?
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {ERROR_TAXONOMY.map((reason) => {
-                      const Icon = reason.icon;
-                      const isChosen =
-                        errorClassifications[activeQuestionIndex] ===
-                        reason.key;
-                      return (
-                        <button
-                          key={reason.key}
-                          type="button"
-                          onClick={() => handleClassifyError(reason.key)}
-                          className={`cursor-pointer p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3 ${
-                            isChosen
-                              ? reason.bgActive
-                              : "border-white/5 bg-slate-950/60 hover:bg-slate-900/60 hover:border-white/15"
-                          }`}
-                        >
-                          <div
-                            className={`p-2 rounded-xl border shrink-0 ${reason.color}`}
-                          >
-                            <Icon size={16} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-slate-100 leading-tight">
-                                {reason.label}
-                              </span>
-                              {isChosen && (
-                                <Check
-                                  size={14}
-                                  className="text-emerald-400 shrink-0"
-                                />
-                              )}
-                            </div>
-                            <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                              {reason.desc}
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Pegadinha da Banca */}
-                <div className="rounded-2xl p-4 bg-amber-950/15 border border-amber-500/25 space-y-2">
-                  <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
-                    <AlertTriangle size={15} />
-                    <span>Pegadinha da Banca / Armadilha</span>
-                  </div>
-                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
-                    {currentQuestion.pegadinhaBanca ||
-                      "A banca utilizou distratores formulados para desviar a atenção do núcleo do comando e induzir o candidato ao erro conceitual."}
-                  </p>
-                </div>
-
-                {/* Ponto Cego & Explicação do Erro */}
-                <div className="rounded-2xl p-4 bg-indigo-950/20 border border-indigo-500/25 space-y-2">
-                  <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wider">
-                    <Target size={15} />
-                    <span>Ponto Cego & Por que você errou</span>
-                  </div>
-                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
-                    {currentQuestion.explicacaoErro ||
-                      "Confusão comum na interpretação das regras ou detalhes do enunciado. Revise os conceitos-chave e as exceções associadas a este tópico."}
-                  </p>
-                </div>
-              </div>
-
-              {/* MODAL FOOTER */}
-              <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-800/80 bg-slate-900/40">
-                <button
-                  type="button"
-                  onClick={() => setShowErrorDiagnosisModal(false)}
-                  className="px-6 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md shadow-violet-950/40 active:scale-95"
-                >
-                  Entendi o erro
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* ========================================================================= */}
       {/* 6. MODAL DE CONFIRMAÇÃO: SAIR DO SIMULADO */}
