@@ -370,14 +370,15 @@ export default function Sidebar({ user }: SidebarProps) {
           <nav className="space-y-2.5">
             {NAV_GROUPS.map((group) => (
               <div key={group.label} className="space-y-0.5">
-                <span className="px-2.5 text-[8.5px] font-mono font-bold uppercase tracking-widest text-slate-500/80 mb-0.5 block">
+                <span className="px-2.5 text-[11px] font-sans font-bold uppercase tracking-wider text-slate-300 mt-3 mb-1.5 block select-none">
                   {group.label}
                 </span>
 
                 <div className="space-y-0.5">
                   {/* Card Unificado: Synapse Pro + Cota Diária de IA */}
-                  {group.label.toLowerCase() === "conta" && (
-                    <div className="pb-1 px-0.5">
+                  {(group.label.toLowerCase().includes("conta") ||
+                    group.label.toLowerCase().includes("planos")) && (
+                    <div className="pb-1.5 px-0.5">
                       <AiQuotaBadge onNavigate={closeSidebar} />
                     </div>
                   )}
