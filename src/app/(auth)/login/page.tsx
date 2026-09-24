@@ -25,12 +25,12 @@ export default function LoginPage() {
 
       {/* ================= COLUNA ESQUERDA: SHOWCASE INTERATIVO ================= */}
       <div className="hidden lg:flex flex-col justify-between p-12 lg:p-16 relative overflow-hidden w-full border-r border-white/[0.06] bg-[#030509]/80 backdrop-blur-3xl">
-        {/* Canvas de Partículas Neurais */}
+        {/* Canvas de Partículas Neurais Otimizado */}
         <DotDistortionCanvas
           dotColor="rgba(99, 102, 241, 0.22)"
           activeColor="rgba(192, 132, 252, 0.95)"
-          spacing={24}
-          distortionRadius={150}
+          spacing={28}
+          distortionRadius={140}
         />
 
         <div className="pointer-events-none absolute inset-0 bg-radial from-transparent via-[#030509]/40 to-[#030509]/95 z-1" />
