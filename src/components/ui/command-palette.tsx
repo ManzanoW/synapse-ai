@@ -31,7 +31,10 @@ import {
   BookOpenCheck,
   Headphones,
   Brain,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface SubjectItem {
   id: string;
@@ -293,6 +296,7 @@ const STATIC_ACTIONS: Omit<PaletteItem, "id">[] = [
 
 export function CommandPalette() {
   const router = useRouter();
+  const { isLight, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -383,10 +387,30 @@ export function CommandPalette() {
       id: `page-${i}`,
     }));
 
-    const actions: PaletteItem[] = STATIC_ACTIONS.map((a, i) => ({
-      ...a,
-      id: `action-${i}`,
-    }));
+    const themeAction: PaletteItem = {
+      id: "action-theme-toggle",
+      title: isLight ? "Ativar Modo Escuro" : "Ativar Modo Claro (Slate Ice)",
+      subtitle: isLight
+        ? "Retornar ao visual clássico escuro com alto contraste"
+        : "Fundo suave gelo para descanso visual em longas sessões",
+      icon: isLight ? Moon : Sun,
+      iconColor: isLight ? "text-indigo-400" : "text-amber-500",
+      iconBg: isLight ? "bg-indigo-500/10 border-indigo-500/30" : "bg-amber-500/10 border-amber-500/30",
+      badge: "TEMA",
+      badgeColor: isLight ? "text-indigo-300 bg-indigo-500/20 border-indigo-500/40" : "text-amber-500 bg-amber-500/20 border-amber-500/40",
+      category: "Ações Rápidas",
+      href: "#",
+      keywords: ["tema", "light", "dark", "modo claro", "modo escuro", "claro", "escuro", "slate ice"],
+      action: () => toggleTheme(),
+    };
+
+    const actions: PaletteItem[] = [
+      themeAction,
+      ...STATIC_ACTIONS.map((a, i) => ({
+        ...a,
+        id: `action-${i}`,
+      })),
+    ];
 
     const subjectItems: PaletteItem[] = subjects.map((sub) => ({
       id: `subject-${sub.id}`,
@@ -403,7 +427,7 @@ export function CommandPalette() {
     }));
 
     return [...actions, ...pages, ...subjectItems];
-  }, [subjects]);
+  }, [subjects, isLight, toggleTheme]);
 
   // Filtra itens com base na query
   const filteredItems = useMemo(() => {

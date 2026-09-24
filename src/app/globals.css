@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --background: #030712;
+  --foreground: #f8fafc;
+}
+
+html.light, [data-theme="light"] {
+  color-scheme: light;
+  --background: #f1f5f9;
+  --foreground: #0f172a;
 }
 
 @theme inline {
@@ -38,18 +45,169 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow: hidden; /* Mantém container fixo da aplicação */
+}
+
+/* ==========================================================================
+   TEMA CLARO: SLATE ICE (GELO SUAVE & ALTO CONTRASTE)
+   ========================================================================== */
+html.light body {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Fundo da aplicação e containers principais */
+html.light .bg-\[\#030712\] {
+  background-color: #f1f5f9 !important;
+}
+
+/* Sidebar e Menus */
+html.light .bg-\[\#07090e\],
+html.light aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Cards com glassmorphism adaptados para elevação clara */
+html.light .glass-card {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04) !important;
+}
+
+html.light .glass-card-hover:hover {
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  box-shadow: 0 10px 30px -5px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Cards escuros convertidos para cards brancos elevados */
+html.light .bg-slate-950,
+html.light .bg-zinc-950,
+html.light .bg-slate-900,
+html.light .bg-zinc-900 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/90,
+html.light .bg-slate-950\/50,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/90,
+html.light .bg-zinc-900\/80,
+html.light .bg-zinc-900\/90 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Modais de card principal (mantendo o backdrop escuro intacto) */
+html.light div:not(.fixed) > .bg-black\/85,
+html.light div:not(.fixed) > .bg-black\/90,
+html.light .bg-black\/85.rounded-2xl,
+html.light .bg-black\/85.rounded-3xl {
+  background-color: rgba(255, 255, 255, 0.97) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Superfícies translúcidas secundárias (ex: inputs, pills neutros) */
+html.light .bg-white\/5 {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+html.light .bg-white\/10 {
+  background-color: rgba(15, 23, 42, 0.08) !important;
+}
+html.light .hover\:bg-white\/10:hover {
+  background-color: rgba(15, 23, 42, 0.07) !important;
+}
+html.light .hover\:bg-white\/5:hover {
+  background-color: rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Bordas suaves */
+html.light .border-white\/5,
+html.light .border-white\/6,
+html.light .border-white\/10,
+html.light .border-white\/15,
+html.light .border-slate-800,
+html.light .border-slate-800\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Tipografia de Alto Contraste */
+html.light .text-slate-100,
+html.light .text-slate-200 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-300 {
+  color: #1e293b !important;
+}
+
+html.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light .text-zinc-400 {
+  color: #64748b !important;
+}
+
+html.light .text-zinc-300 {
+  color: #1e293b !important;
+}
+
+html.light .text-zinc-200 {
+  color: #0f172a !important;
+}
+
+/* Textos brancos em títulos e parágrafos sem botão/fundo colorido */
+html.light h1.text-white,
+html.light h2.text-white,
+html.light h3.text-white,
+html.light h4.text-white,
+html.light h5.text-white,
+html.light p.text-white,
+html.light span.text-white:not([class*="bg-"]):not(button *):not(a.bg-*) {
+  color: #0f172a !important;
+}
+
+/* Scrollbars no Modo Claro */
+html.light * {
+  scrollbar-color: #cbd5e1 transparent !important;
+}
+html.light *::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+}
+html.light *::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+/* Seleção de texto no Modo Claro */
+html.light ::selection {
+  background-color: rgba(99, 102, 241, 0.25) !important;
+  color: #0f172a !important;
+}
+
+/* Bottom Navigation Mobile */
+html.light .bg-\[\#07090e\]\/95,
+html.light .bg-slate-950\/95,
+html.light .bg-\[\#030712\]\/90 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Ajustes de contraste para links e ícones roxos/índigo no modo claro */
+html.light .text-indigo-300:not(button *):not([class*="bg-indigo-"]) {
+  color: #4f46e5 !important;
+}
+html.light .text-violet-300:not(button *):not([class*="bg-violet-"]) {
+  color: #7c3aed !important;
 }
 
 /* Seleção de texto moderna e elegante */

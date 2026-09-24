@@ -44,8 +44,11 @@ import {
   PenTool,
   Scale,
   Mic,
+  Sun,
+  Moon,
   X,
 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface SidebarProps {
   user?: {
@@ -138,6 +141,7 @@ export default function Sidebar({ user }: SidebarProps) {
   const { isOpen, closeSidebar } = useSidebar();
   const { stats, isLoading, refreshStats } = useGamification();
   const { isMuted, toggleMute } = useAudioContext();
+  const { isLight, toggleTheme } = useTheme();
 
   const isDemo =
     searchParams?.get("demo") === "true" ||
@@ -467,6 +471,25 @@ export default function Sidebar({ user }: SidebarProps) {
                   size={15}
                   className="transition-transform active:scale-95"
                 />
+              )}
+            </button>
+
+            {/* Alternador de Tema (Modo Claro Slate Ice / Modo Escuro) */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={isLight ? "Ativar Modo Escuro" : "Ativar Modo Claro (Slate Ice)"}
+              aria-label={isLight ? "Ativar Modo Escuro" : "Ativar Modo Claro"}
+              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                isLight
+                  ? "bg-amber-500/15 border-amber-500/30 text-amber-600 hover:bg-amber-500/25 shadow-xs"
+                  : "bg-white/5 border-white/10 text-slate-400 hover:text-indigo-300 hover:bg-white/10 hover:border-indigo-500/30"
+              }`}
+            >
+              {isLight ? (
+                <Sun size={15} className="transition-transform active:scale-95 text-amber-500" />
+              ) : (
+                <Moon size={15} className="transition-transform active:scale-95" />
               )}
             </button>
           </div>
