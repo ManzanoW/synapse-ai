@@ -323,34 +323,22 @@ html.light [class*="via-slate-800"] {
 }
 
 /* 8. TIPOGRAFIA DE ALTO CONTRASTE */
-html.light .text-slate-50,
-html.light .text-slate-100,
-html.light .text-slate-200 {
+html.light [class*="text-slate-50"],
+html.light [class*="text-slate-100"],
+html.light [class*="text-slate-200"],
+html.light [class*="text-slate-300"],
+html.light [class*="text-zinc-100"],
+html.light [class*="text-zinc-200"],
+html.light [class*="text-zinc-300"] {
   color: #0f172a !important;
 }
 
-html.light .text-slate-300 {
-  color: #1e293b !important;
-}
-
-html.light .text-slate-400 {
-  color: #64748b !important;
-}
-
-html.light .text-slate-500 {
-  color: #64748b !important;
-}
-
-html.light .text-zinc-400 {
-  color: #64748b !important;
-}
-
-html.light .text-zinc-300 {
-  color: #1e293b !important;
-}
-
-html.light .text-zinc-200 {
-  color: #0f172a !important;
+/* Textos secundários, legendas e rótulos agora usam Slate-700 para leitura confortável e nítida */
+html.light [class*="text-slate-400"],
+html.light [class*="text-slate-500"],
+html.light [class*="text-zinc-400"],
+html.light [class*="text-zinc-500"] {
+  color: #334155 !important;
 }
 
 /* Textos brancos em títulos e parágrafos sem botão sólido */
@@ -361,43 +349,51 @@ html.light h4.text-white,
 html.light h5.text-white,
 html.light p.text-white,
 html.light strong.text-white,
-html.light span.text-white:not([class*="bg-indigo"]):not([class*="bg-violet"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-amber"]):not([class*="bg-cyan"]):not(button[class*="bg-indigo"] *):not(button[class*="bg-violet"] *):not(a[class*="bg-indigo"] *):not(a[class*="bg-violet"] *) {
+html.light span.text-white:not([class*="bg-indigo-600"]):not([class*="bg-violet-600"]):not([class*="bg-emerald-600"]):not([class*="bg-rose-600"]):not([class*="bg-amber-600"]):not([class*="bg-cyan-600"]):not(button[class*="from-indigo-600"] *):not(button[class*="from-violet-600"] *):not(a[class*="from-indigo-600"] *):not(a[class*="from-violet-600"] *) {
   color: #0f172a !important;
 }
 
 /* 9. CORES DE DESTAQUE REFINADAS PARA FUNDO CLARO */
 /* Tons pastéis escurecidos para legibilidade perfeita no branco */
-html.light .text-cyan-300,
-html.light .text-cyan-400 {
-  color: #0891b2 !important;
+html.light [class*="text-cyan-300"],
+html.light [class*="text-cyan-400"] {
+  color: #0284c7 !important;
 }
 
-html.light .text-amber-300,
-html.light .text-amber-400 {
-  color: #d97706 !important;
+html.light [class*="text-amber-300"],
+html.light [class*="text-amber-400"] {
+  color: #b45309 !important;
 }
 
-html.light .text-indigo-300,
-html.light .text-indigo-400 {
-  color: #4f46e5 !important;
+html.light [class*="text-indigo-300"],
+html.light [class*="text-indigo-400"] {
+  color: #4338ca !important;
 }
 
-html.light .text-violet-300,
-html.light .text-violet-400 {
-  color: #7c3aed !important;
+html.light [class*="text-violet-300"],
+html.light [class*="text-violet-400"] {
+  color: #6d28d9 !important;
 }
 
-html.light .text-emerald-300,
-html.light .text-emerald-400 {
-  color: #059669 !important;
+html.light [class*="text-emerald-300"],
+html.light [class*="text-emerald-400"] {
+  color: #047857 !important;
 }
 
-html.light .text-rose-300,
-html.light .text-rose-400 {
-  color: #e11d48 !important;
+html.light [class*="text-rose-300"],
+html.light [class*="text-rose-400"] {
+  color: #be123c !important;
 }
 
 /* Badges e pílulas de status */
+html.light [class*="bg-white/5"],
+html.light [class*="bg-white/10"],
+html.light [class*="bg-white/[0.015]"],
+html.light [class*="bg-white/[0.03]"] {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
 html.light [class*="bg-cyan-500\/10"],
 html.light [class*="bg-cyan-500\/15"],
 html.light [class*="bg-cyan-500\/20"] {
