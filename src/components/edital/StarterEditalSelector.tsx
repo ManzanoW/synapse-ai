@@ -158,57 +158,55 @@ export function StarterEditalSelector({
       )}
 
       {/* CARD PROMINENTE: PERSONALIZAR MEU FOCO COM IA */}
-      <div className="relative overflow-hidden rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-950/40 via-purple-950/30 to-indigo-950/40 p-4 shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
-              <Wand2 size={20} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-black text-white">
-                  Personalizar meu Foco com IA
-                </span>
-                <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  Qualquer Concurso / Cargo
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Digite o concurso ou cargo desejado e a IA pesquisa e estrutura as disciplinas e tópicos oficiais em segundos.
-              </p>
-            </div>
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-500/40 bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-indigo-950/40 p-4 shadow-xl space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
+            <Wand2 size={18} />
           </div>
-
-          <form
-            onSubmit={handleGenerateCustom}
-            className="flex items-center gap-2 w-full md:w-auto shrink-0"
-          >
-            <input
-              type="text"
-              value={customRoleInput}
-              onChange={(e) => setCustomRoleInput(e.target.value)}
-              placeholder="Ex: Analista de TI - Caixa, Perito Criminal..."
-              className="flex-1 md:w-72 bg-slate-900/90 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={isGeneratingCustom || !customRoleInput.trim()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-            >
-              {isGeneratingCustom ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" />
-                  <span>Gerando...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={13} />
-                  <span>Gerar com IA</span>
-                </>
-              )}
-            </button>
-          </form>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-black text-white">
+                Personalizar meu Foco com IA
+              </span>
+              <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Qualquer Concurso / Cargo
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Digite o concurso ou cargo desejado e a IA pesquisa e estrutura as disciplinas e tópicos oficiais em segundos.
+            </p>
+          </div>
         </div>
+
+        <form
+          onSubmit={handleGenerateCustom}
+          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full pt-0.5"
+        >
+          <input
+            type="text"
+            value={customRoleInput}
+            onChange={(e) => setCustomRoleInput(e.target.value)}
+            placeholder="Ex: Analista de TI - Caixa, Perito Criminal, SEFAZ..."
+            className="flex-1 min-w-0 bg-slate-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-colors"
+          />
+          <button
+            type="submit"
+            disabled={isGeneratingCustom || !customRoleInput.trim()}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          >
+            {isGeneratingCustom ? (
+              <>
+                <Loader2 size={13} className="animate-spin" />
+                <span>Gerando com IA...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={13} />
+                <span>Gerar com IA</span>
+              </>
+            )}
+          </button>
+        </form>
       </div>
 
       {/* OPÇÃO DE MODO DE CARGA: SUBSTITUIR OU ADICIONAR */}
@@ -267,17 +265,19 @@ export function StarterEditalSelector({
       >
         {filteredTemplates.map((tpl) => {
           const isLoading = loadingTemplateId === tpl.id;
+          const visibleMaterias = tpl.materias.slice(0, 3);
+          const remainingCount = tpl.materias.length - visibleMaterias.length;
 
           return (
             <div
               key={tpl.id}
-              className="relative group p-4 rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-3"
+              className="relative group p-3.5 rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-2.5"
             >
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{tpl.icon}</span>
-                    <span className="text-xs font-bold text-white leading-tight">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xl shrink-0">{tpl.icon}</span>
+                    <span className="text-xs font-bold text-white leading-tight truncate">
                       {tpl.title}
                     </span>
                   </div>
@@ -286,20 +286,25 @@ export function StarterEditalSelector({
                   </span>
                 </div>
 
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-slate-400 leading-snug line-clamp-2">
                   {tpl.shortDescription}
                 </p>
 
-                {/* Resumo das Matérias */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {tpl.materias.map((m, idx) => (
+                {/* Resumo das Matérias (Compacto e Elegante) */}
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {visibleMaterias.map((m, idx) => (
                     <span
                       key={idx}
-                      className="text-[9px] font-semibold px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300"
+                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 truncate max-w-[140px]"
                     >
                       {m.name}
                     </span>
                   ))}
+                  {remainingCount > 0 && (
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+                      +{remainingCount} matérias
+                    </span>
+                  )}
                 </div>
               </div>
 
