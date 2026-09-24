@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AudioProvider } from "@/contexts/AudioContext";
@@ -15,11 +15,27 @@ const monoFont = JetBrains_Mono({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#030712",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
-  title: "Synapse AI",
+  title: "Synapse AI • Estudos de Alta Performance",
   description: "Plataforma inteligente de estudos, memorização espaçada, cronogramas e simulados com IA.",
-  openGraph: {
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
     title: "Synapse AI",
+  },
+  icons: {
+    icon: "/Synapse-icon.png",
+    apple: "/Synapse-icon.png",
+  },
+  openGraph: {
+    title: "Synapse AI • Concursos & Alta Performance",
     description: "Plataforma inteligente de estudos, memorização espaçada, cronogramas e simulados com IA.",
   },
 };

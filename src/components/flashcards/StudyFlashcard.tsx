@@ -26,6 +26,8 @@ import {
   TouchpadIcon,
   HelpCircle,
   Lightbulb,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -42,6 +44,12 @@ import {
   isLeechCard,
 } from "@/lib/spaced-repetition";
 import { generateFlashcardMnemonicAction } from "@/actions/flashcard-actions";
+import {
+  useOfflineSync,
+  enqueueOfflineReview,
+  cacheOfflineDeck,
+  getCachedOfflineDeck,
+} from "@/lib/offline-sync";
 
 interface Flashcard {
   id: string;
@@ -75,10 +83,12 @@ interface OptimisticState {
 }
 
 export default function StudyFlashcard({
-  cards,
+  cards: initialCards,
   deckTitle,
+  deckId,
   userId,
 }: StudyFlashcardProps) {
+  const [cards, setCards] = useState<Flashcard[]>(initialCards || []);
   const [index, setIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -86,6 +96,21 @@ export default function StudyFlashcard({
   const [showEbbinghausCurve, setShowEbbinghausCurve] = useState(false);
   const isDraggingRef = useRef(false);
   const cardStartTimeRef = useRef(0);
+
+  const { isOnline, pendingCount, isSyncing, triggerSync } = useOfflineSync();
+
+  useEffect(() => {
+    const currentDeckId = deckId || initialCards?.[0]?.deckId || "all";
+    if (initialCards && initialCards.length > 0) {
+      setCards(initialCards);
+      cacheOfflineDeck(currentDeckId, initialCards);
+    } else {
+      const cached = getCachedOfflineDeck<Flashcard[]>(currentDeckId);
+      if (cached?.cards && cached.cards.length > 0) {
+        setCards(cached.cards);
+      }
+    }
+  }, [initialCards, deckId]);
 
   useEffect(() => {
     cardStartTimeRef.current = Date.now();
@@ -260,51 +285,62 @@ export default function StudyFlashcard({
 
       const responseTimeMs = Math.max(0, Date.now() - cardStartTimeRef.current);
 
+      const reviewPayload = {
+        cardId: currentCard.id,
+        grade,
+        rating: grade,
+        responseTimeMs,
+      };
+
       try {
-        const previousLevel = gamificationStats?.gamification?.level ?? 1;
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          enqueueOfflineReview(reviewPayload);
+        } else {
+          try {
+            const previousLevel = gamificationStats?.gamification?.level ?? 1;
 
-        const resReview = await fetch("/api/flashcards/review", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cardId: currentCard.id,
-            grade,
-            rating: grade,
-            responseTimeMs,
-          }),
-        });
-
-        if (resReview.ok) {
-          const data = await resReview.json();
-
-          window.dispatchEvent(
-            new CustomEvent("xp-updated", {
-              detail: {
-                totalXp: data.totalXp,
-                earnedXp: data.earnedXp,
-                levelInfo: data.levelInfo,
-              },
-            }),
-          );
-
-          if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
-            const newLevel = data.levelInfo.level;
-            const newTitle = data.levelInfo.title || "Mestre da Retenção";
-
-            setLevelUpData({
-              leveledUp: true,
-              newLevel,
-              title: newTitle,
+            const resReview = await fetch("/api/flashcards/review", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(reviewPayload),
             });
+
+            if (resReview.ok) {
+              const data = await resReview.json();
+
+              window.dispatchEvent(
+                new CustomEvent("xp-updated", {
+                  detail: {
+                    totalXp: data.totalXp,
+                    earnedXp: data.earnedXp,
+                    levelInfo: data.levelInfo,
+                  },
+                }),
+              );
+
+              if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
+                const newLevel = data.levelInfo.level;
+                const newTitle = data.levelInfo.title || "Mestre da Retenção";
+
+                setLevelUpData({
+                  leveledUp: true,
+                  newLevel,
+                  title: newTitle,
+                });
+              }
+            } else {
+              enqueueOfflineReview(reviewPayload);
+            }
+
+            if (userId) {
+              await invalidateUserCacheAction(userId);
+            }
+            await refreshStats();
+          } catch (error) {
+            console.warn("Sem conexão estável. Revisão enfileirada offline:", error);
+            enqueueOfflineReview(reviewPayload);
           }
         }
-
-        if (userId) {
-          await invalidateUserCacheAction(userId);
-        }
-        await refreshStats();
-      } catch (error) {
-        console.error("Erro ao sincronizar revisão do flashcard:", error);
       } finally {
         setIndex((prev) => prev + 1);
         if (grade < 3) {
@@ -573,13 +609,35 @@ export default function StudyFlashcard({
                 </span>
               </Link>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[10px] sm:text-[11px] font-mono shadow-inner shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                <span className="font-bold text-indigo-400">
-                  {currentIndex + 1}
-                </span>
-                <span className="text-slate-600">/</span>
-                <span className="text-slate-400">{cards.length}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                {(!isOnline || pendingCount > 0) && (
+                  <button
+                    type="button"
+                    onClick={triggerSync}
+                    disabled={isSyncing || !isOnline}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono text-amber-300 transition-colors disabled:opacity-50 cursor-pointer"
+                    title={
+                      !isOnline
+                        ? "Sem conexão: revisões salvas localmente no dispositivo"
+                        : "Clique para sincronizar com o servidor"
+                    }
+                  >
+                    <WifiOff size={11} className="text-amber-400" />
+                    <span>{!isOnline ? "Offline" : `${pendingCount} na fila`}</span>
+                    {isSyncing && (
+                      <RefreshCw size={10} className="animate-spin text-amber-300" />
+                    )}
+                  </button>
+                )}
+
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[10px] sm:text-[11px] font-mono shadow-inner">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="font-bold text-indigo-400">
+                    {currentIndex + 1}
+                  </span>
+                  <span className="text-slate-600">/</span>
+                  <span className="text-slate-400">{cards.length}</span>
+                </div>
               </div>
             </div>
 

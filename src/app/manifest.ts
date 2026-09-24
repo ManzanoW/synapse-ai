@@ -2,18 +2,14 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Synapse AI - Preparação Inteligente para Concursos",
+    name: "Synapse AI • Concursos & Alta Performance",
     short_name: "Synapse AI",
-    description:
-      "Plataforma inteligente para concursos públicos com IA pedagógica, simulados de bancas reais, OCR de redação e repetição espaçada FSRS.",
+    description: "Plataforma inteligente de preparação para concursos públicos com IA, FSRS e simulação real.",
     start_url: "/dashboard",
-    scope: "/",
     display: "standalone",
-    orientation: "portrait-primary",
-    background_color: "#060810",
+    background_color: "#030712",
     theme_color: "#4f46e5",
-    categories: ["education", "productivity"],
-    lang: "pt-BR",
+    orientation: "portrait-primary",
     icons: [
       {
         src: "/Synapse-icon.png",
@@ -23,7 +19,7 @@ export default function manifest(): MetadataRoute.Manifest {
       },
       {
         src: "/Synapse-icon.png",
-        sizes: "512x512",
+        sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },

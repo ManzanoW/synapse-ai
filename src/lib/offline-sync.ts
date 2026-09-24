@@ -49,6 +49,36 @@ export function enqueueOfflineReview(input: ReviewFlashcardInput): void {
   }
 }
 
+const DECK_CACHE_PREFIX = "synapse_offline_deck_";
+
+export function cacheOfflineDeck(deckId: string, cards: unknown): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      `${DECK_CACHE_PREFIX}${deckId}`,
+      JSON.stringify({
+        savedAt: Date.now(),
+        cards,
+      })
+    );
+  } catch (err) {
+    console.warn("[offline-sync] Falha ao salvar deck offline:", err);
+  }
+}
+
+export function getCachedOfflineDeck<T = unknown>(
+  deckId: string
+): { cards: T; savedAt: number } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(`${DECK_CACHE_PREFIX}${deckId}`);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export async function flushOfflineReviews(): Promise<{
   syncedCount: number;
   remainingCount: number;
