@@ -27,16 +27,15 @@ export function DotDistortionCanvas({
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
-    // Respeita preferência do sistema por animações reduzidas
     const prefersReducedMotion =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    let animationFrameId: number;
-    let time = 0;
-    const mouse = { x: -3000, y: -3000, targetX: -3000, targetY: -3000 };
+    let animationFrameId: number | null = null;
+    let isRunning = false;
+    let lastMoveTime = 0;
+    const mouse = { x: -3000, y: -3000 };
 
-    // Dimensões em cache para evitar reflows síncronos (getBoundingClientRect no loop)
     let width = 0;
     let height = 0;
     let rectLeft = 0;
@@ -50,108 +49,79 @@ export function DotDistortionCanvas({
       width = rect.width;
       height = rect.height;
 
-      // Limita DPR a no máximo 1.5 para evitar sobrecarga de renderização em telas 4K/Retina
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      // Limita DPR a 1.25 em telas de alta resolução para garantir fluidez total
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
-      ctx.setTransform(1, 0, 0, 1, 0, 0); // Reseta matriz
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
+
+      drawFrame();
     };
-
-    updateDimensions();
-
-    const handleMouseMove = (e: MouseEvent) => {
-      mouse.targetX = e.clientX - rectLeft;
-      mouse.targetY = e.clientY - rectTop;
-    };
-
-    const handleMouseLeave = () => {
-      mouse.targetX = -3000;
-      mouse.targetY = -3000;
-    };
-
-    window.addEventListener("resize", updateDimensions);
-    window.addEventListener("scroll", updateDimensions, { passive: true });
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    document.addEventListener("mouseleave", handleMouseLeave);
 
     const radiusSq = distortionRadius * distortionRadius;
 
-    // Se preferir movimento reduzido, desenha apenas um frame estático e encerra
-    if (prefersReducedMotion) {
-      ctx.clearRect(0, 0, width, height);
-      const cols = Math.ceil(width / spacing) + 1;
-      const rows = Math.ceil(height / spacing) + 1;
-      ctx.beginPath();
-      for (let i = 0; i <= cols; i++) {
-        const x = i * spacing;
-        for (let j = 0; j <= rows; j++) {
-          const y = j * spacing;
-          ctx.moveTo(x + dotSize, y);
-          ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-        }
-      }
-      ctx.fillStyle = dotColor;
-      ctx.fill();
-      return () => {
-        window.removeEventListener("resize", updateDimensions);
-        window.removeEventListener("scroll", updateDimensions);
-        window.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseleave", handleMouseLeave);
-      };
-    }
-
-    const render = () => {
-      if (!canvas || document.hidden) {
-        animationFrameId = requestAnimationFrame(render);
-        return;
-      }
-
-      time += 0.015;
-
-      // Interpolação suave de posição do mouse (amortecimento)
-      mouse.x += (mouse.targetX - mouse.x) * 0.12;
-      mouse.y += (mouse.targetY - mouse.y) * 0.12;
-
+    // Renderiza um frame com resposta 1:1 imediata e busca espacial O(1)
+    const drawFrame = () => {
+      if (!canvas) return;
       ctx.clearRect(0, 0, width, height);
 
       const cols = Math.ceil(width / spacing) + 1;
       const rows = Math.ceil(height / spacing) + 1;
       const activeNodes: { x: number; y: number; factor: number; size: number }[] = [];
 
-      // 1. LOTE ÚNICO DE PONTOS PASSIVOS (98% da tela desenhada em 1 único draw call)
+      const hasMouse = mouse.x > -1000 && mouse.y > -1000;
+
+      // Bounding Box local do cursor (calcula distâncias apenas para ~30 a 50 pontos próximos)
+      const minCol = hasMouse
+        ? Math.max(0, Math.floor((mouse.x - distortionRadius) / spacing))
+        : -1;
+      const maxCol = hasMouse
+        ? Math.min(cols, Math.ceil((mouse.x + distortionRadius) / spacing))
+        : -1;
+      const minRow = hasMouse
+        ? Math.max(0, Math.floor((mouse.y - distortionRadius) / spacing))
+        : -1;
+      const maxRow = hasMouse
+        ? Math.min(rows, Math.ceil((mouse.y + distortionRadius) / spacing))
+        : -1;
+
+      // Lote único de pontos passivos (sem nenhuma conta matemática trigonométrica)
       ctx.beginPath();
 
       for (let i = 0; i <= cols; i++) {
         const baseX = i * spacing;
+        const inColRange = i >= minCol && i <= maxCol;
+
         for (let j = 0; j <= rows; j++) {
           const baseY = j * spacing;
 
-          // Onda contínua sutil
-          const wave = Math.sin(time + (i * 0.2 + j * 0.3)) * 1.5;
-          const origX = baseX + wave;
-          const origY = baseY + wave;
+          // Se estiver fora do quadrante do cursor, desenha ponto estático imediatamente
+          if (!inColRange || j < minRow || j > maxRow) {
+            ctx.moveTo(baseX + dotSize, baseY);
+            ctx.arc(baseX, baseY, dotSize, 0, Math.PI * 2);
+            continue;
+          }
 
-          const dx = mouse.x - origX;
-          const dy = mouse.y - origY;
+          // Apenas pontos dentro da vizinhança do mouse sofrem cálculo de distorção
+          const dx = mouse.x - baseX;
+          const dy = mouse.y - baseY;
           const distSq = dx * dx + dy * dy;
 
-          // Verificação rápida por raio ao quadrado (evita Math.sqrt para pontos distantes)
           if (distSq < radiusSq) {
             const dist = Math.sqrt(distSq);
             const factor = Math.cos((dist / distortionRadius) * (Math.PI / 2));
-            const force = factor * 28;
+            const force = factor * 26;
             const angle = Math.atan2(dy, dx);
 
-            const drawX = origX - Math.cos(angle) * force;
-            const drawY = origY - Math.sin(angle) * force;
+            const drawX = baseX - Math.cos(angle) * force;
+            const drawY = baseY - Math.sin(angle) * force;
             const currentSize = dotSize + factor * 2;
 
             activeNodes.push({ x: drawX, y: drawY, factor, size: currentSize });
           } else {
-            // Ponto estático/passivo adicionado ao lote
-            ctx.moveTo(origX + dotSize, origY);
-            ctx.arc(origX, origY, dotSize, 0, Math.PI * 2);
+            ctx.moveTo(baseX + dotSize, baseY);
+            ctx.arc(baseX, baseY, dotSize, 0, Math.PI * 2);
           }
         }
       }
@@ -159,10 +129,9 @@ export function DotDistortionCanvas({
       ctx.fillStyle = dotColor;
       ctx.fill();
 
-      // 2. DESENHO APENAS DOS PONTOS ATIVOS (Próximos ao cursor - máx ~20-30 pontos)
+      // Desenha nós ativos sob o cursor com resposta instantânea
       if (activeNodes.length > 0) {
-        // Conexões de malha neural limitada a no máximo 25 nós para evitar pico quadrático O(N²)
-        const maxNodesForLines = Math.min(activeNodes.length, 25);
+        const maxNodesForLines = Math.min(activeNodes.length, 20);
         const maxLineDist = spacing * 1.6;
         const maxLineDistSq = maxLineDist * maxLineDist;
 
@@ -190,33 +159,84 @@ export function DotDistortionCanvas({
           }
         }
 
-        // Renderiza brilho e pontos ativos SEM usar ctx.shadowBlur (que causa lag pesado em CPUs fracas)
+        // Halo suave concêntrico acelerado por hardware
         for (const node of activeNodes) {
-          // Halo circular externo suave
           ctx.beginPath();
           ctx.arc(node.x, node.y, node.size + 1.8 * node.factor, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(168, 85, 247, ${0.25 * node.factor})`;
           ctx.fill();
 
-          // Ponto central nítido
           ctx.beginPath();
           ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
           ctx.fillStyle = activeColor;
           ctx.fill();
         }
       }
-
-      animationFrameId = requestAnimationFrame(render);
     };
 
-    animationFrameId = requestAnimationFrame(render);
+    // Loop de renderização ativo apenas enquanto o cursor está em movimento
+    const loop = (timestamp: number) => {
+      drawFrame();
+
+      // Se o mouse parou de se mover há mais de 100ms, encerra o loop para poupar 100% de CPU
+      if (timestamp - lastMoveTime > 120) {
+        isRunning = false;
+        animationFrameId = null;
+        return;
+      }
+
+      animationFrameId = requestAnimationFrame(loop);
+    };
+
+    const startLoop = () => {
+      lastMoveTime = performance.now();
+      if (!isRunning) {
+        isRunning = true;
+        animationFrameId = requestAnimationFrame(loop);
+      }
+    };
+
+    updateDimensions();
+
+    if (prefersReducedMotion) {
+      drawFrame();
+      return;
+    }
+
+    // 1:1 Instantâneo (0ms Delay artificial)
+    const handleMouseMove = (e: MouseEvent) => {
+      mouse.x = e.clientX - rectLeft;
+      mouse.y = e.clientY - rectTop;
+      startLoop();
+    };
+
+    const handleMouseLeave = () => {
+      mouse.x = -3000;
+      mouse.y = -3000;
+      drawFrame();
+      isRunning = false;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+    };
+
+    window.addEventListener("resize", updateDimensions);
+    window.addEventListener("scroll", updateDimensions, { passive: true });
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    document.addEventListener("mouseleave", handleMouseLeave);
+
+    // Primeiro frame estático
+    drawFrame();
 
     return () => {
       window.removeEventListener("resize", updateDimensions);
       window.removeEventListener("scroll", updateDimensions);
       window.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseleave", handleMouseLeave);
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
   }, [dotColor, activeColor, dotSize, spacing, distortionRadius]);
 
