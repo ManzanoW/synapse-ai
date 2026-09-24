@@ -163,30 +163,30 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
           ref={buttonRef}
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full text-left relative group overflow-hidden rounded-xl bg-gradient-to-r from-violet-950/40 via-indigo-950/40 to-slate-900/60 border border-violet-500/25 hover:border-violet-500/50 p-2.5 shadow-sm hover:shadow-violet-500/10 transition-all cursor-pointer"
+          className="w-full text-left relative group overflow-hidden rounded-xl bg-violet-50 dark:bg-gradient-to-r dark:from-violet-950/40 dark:via-indigo-950/40 dark:to-slate-900/60 border border-violet-200 dark:border-violet-500/25 hover:border-violet-300 dark:hover:border-violet-500/50 p-2.5 shadow-xs transition-all cursor-pointer"
           title="Clique para ver os limites e benefícios do Synapse Pro"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-amber-300 group-hover:scale-105 transition-transform">
-                <Crown size={13} className="fill-amber-400/30 text-amber-300" />
+              <div className="w-6 h-6 rounded-lg bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-amber-500 dark:text-amber-300 group-hover:scale-105 transition-transform">
+                <Crown size={13} className="fill-amber-400/30 text-amber-500 dark:text-amber-300" />
               </div>
               <div>
-                <span className="text-[11.5px] font-bold text-white block leading-tight">
+                <span className="text-[11.5px] font-bold text-slate-900 dark:text-white block leading-tight">
                   Synapse Pro
                 </span>
-                <span className="text-[9px] font-mono text-violet-300 block leading-tight">
+                <span className="text-[9px] font-mono text-violet-700 dark:text-violet-300 block leading-tight">
                   Acesso Ilimitado • Ver Cotas
                 </span>
               </div>
             </div>
-            <span className="px-1.5 py-0.5 rounded-md bg-violet-500/20 text-violet-200 font-mono text-[8.5px] font-black uppercase tracking-wider border border-violet-500/30">
+            <span className="px-1.5 py-0.5 rounded-md bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-200 font-mono text-[8.5px] font-black uppercase tracking-wider border border-violet-200 dark:border-violet-500/30">
               PRO
             </span>
           </div>
         </button>
       ) : (
-        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-b from-indigo-950/40 via-slate-900/60 to-slate-950/80 border border-indigo-500/20 hover:border-indigo-500/40 p-2.5 transition-all duration-300 shadow-md hover:shadow-indigo-950/40">
+        <div className="group relative overflow-hidden rounded-xl bg-slate-50 dark:bg-gradient-to-b dark:from-indigo-950/40 dark:via-slate-900/60 dark:to-slate-950/80 border border-slate-200 dark:border-indigo-500/20 p-2.5 transition-all duration-300 shadow-xs">
           {/* Glow de fundo */}
           <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
 
@@ -197,10 +197,10 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
               onClick={() => setIsOpen(!isOpen)}
               className="flex items-center gap-2 group/title min-w-0 text-left cursor-pointer"
             >
-              <div className="w-6 h-6 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 group-hover/title:scale-105 transition-transform shadow-xs">
-                <Sparkles size={12} className="text-indigo-400 fill-indigo-400/20" />
+              <div className="w-6 h-6 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shrink-0 group-hover/title:scale-105 transition-transform shadow-xs">
+                <Sparkles size={12} className="text-indigo-500 dark:text-indigo-400 fill-indigo-400/20" />
               </div>
-              <span className="text-[12px] font-bold text-slate-200 group-hover/title:text-white transition-colors whitespace-nowrap tracking-tight">
+              <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200 group-hover/title:text-slate-900 dark:group-hover/title:text-white transition-colors whitespace-nowrap tracking-tight">
                 Plano Gratuito
               </span>
             </button>

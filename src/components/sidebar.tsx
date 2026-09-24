@@ -599,7 +599,11 @@ export default function Sidebar({ user }: SidebarProps) {
 
           {/* Rodapé: Card de Gamificação & Usuário (com mt-auto para fixar embaixo no desktop e rolar suavemente no mobile) */}
           <div className="mt-auto pt-3 shrink-0 pb-[max(env(safe-area-inset-bottom),14px)]">
-            <div className="group relative overflow-hidden rounded-2xl bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl transition-all duration-300 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.2)]">
+            <div className={`group relative overflow-hidden rounded-2xl ${
+              isLight
+                ? "bg-slate-50 border border-slate-200 shadow-xs"
+                : "bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl"
+            } transition-all duration-300 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.2)]`}>
               <div className="absolute -top-12 -left-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
               <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent shadow-[0_0_8px_#818cf8]" />
 
@@ -630,7 +634,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         </div>
                         <div className="flex flex-col justify-center min-w-0 pr-1">
                           <div className="flex items-center gap-1 min-w-0">
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 leading-none truncate block max-w-[100px]">
+                            <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"} leading-none truncate block max-w-[100px]`}>
                               {gamification?.title || "NEÓFITO DOS ESTUDOS"}
                             </span>
                             {currentPrestige > 0 && (
@@ -639,7 +643,7 @@ export default function Sidebar({ user }: SidebarProps) {
                               </span>
                             )}
                           </div>
-                          <span className="text-sm font-black text-white tracking-tight leading-none mt-1">
+                          <span className={`text-sm font-black ${isLight ? "text-slate-900" : "text-white"} tracking-tight leading-none mt-1`}>
                             Nível {currentLevel}
                           </span>
                         </div>
@@ -694,7 +698,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         </span>
                       </div>
 
-                      <div className="h-1.5 w-full bg-slate-950/90 rounded-full border border-white/10 p-px shadow-inner overflow-hidden">
+                      <div className={`h-1.5 w-full ${isLight ? "bg-slate-200" : "bg-slate-950/90"} rounded-full border ${isLight ? "border-slate-300/60" : "border-white/10"} p-px shadow-inner overflow-hidden`}>
                         <div
                           className="h-full bg-gradient-to-r from-amber-400 via-indigo-500 to-indigo-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(129,140,248,0.8)] relative"
                           style={{
@@ -710,7 +714,7 @@ export default function Sidebar({ user }: SidebarProps) {
                     </div>
 
                     {/* Linha Divisória */}
-                    <div className="h-px w-full bg-linear-to-r from-transparent via-slate-800 to-transparent my-1" />
+                    <div className={`h-px w-full ${isLight ? "bg-slate-200" : "bg-linear-to-r from-transparent via-slate-800 to-transparent"} my-1`} />
 
                     {/* Linha Inferior: Usuário, Avatar Teal, Plano & Sair (Alvo de toque acessível no mobile) */}
                     <div className="flex items-center justify-between pt-0.5">
@@ -735,7 +739,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         )}
 
                         <div className="truncate min-w-0 pr-1">
-                          <p className="text-[12px] font-bold text-slate-100 group-hover/user:text-teal-300 transition-colors truncate leading-snug">
+                          <p className={`text-[12px] font-bold ${isLight ? "text-slate-900" : "text-slate-100"} group-hover/user:text-teal-600 dark:group-hover/user:text-teal-300 transition-colors truncate leading-snug`}>
                             {user?.name || "Johnny Plays"}
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
@@ -758,8 +762,8 @@ export default function Sidebar({ user }: SidebarProps) {
                             <span
                               className={`text-[9px] font-mono font-bold ${
                                 userPlan === "PRO MEMBER"
-                                  ? "text-amber-400"
-                                  : "text-indigo-300"
+                                  ? "text-amber-500 dark:text-amber-400"
+                                  : "text-indigo-600 dark:text-indigo-300"
                               } uppercase tracking-wider leading-none`}
                             >
                               {userPlan}
@@ -776,7 +780,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         }}
                         aria-label="Sair da conta"
                         title="Sair da conta"
-                        className="p-2 sm:p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 transition-all shrink-0 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95"
+                        className={`p-2 sm:p-1.5 rounded-xl ${isLight ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50" : "text-slate-400 hover:text-rose-400 hover:bg-rose-500/15"} transition-all shrink-0 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95`}
                       >
                         <LogOut size={17} />
                       </button>

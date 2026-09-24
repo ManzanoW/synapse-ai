@@ -47,10 +47,9 @@ export default function SubjectCard({
       style={{
         borderLeftColor: hexColor,
       }}
-      // 🟢 Ajustado: p-4.5 alterado para p-4 (ou p-5)
-      className="bg-[#070b12] border border-slate-900/80 border-l-4 rounded-xl p-4 
+      className="bg-white dark:bg-[#070b12] border border-slate-200 dark:border-slate-900/80 border-l-4 rounded-xl p-4 
                  cursor-pointer group relative overflow-hidden transition-all duration-300
-                 hover:border-slate-800"
+                 hover:border-slate-300 dark:hover:border-slate-800 shadow-xs"
     >
       {/* Brilho suave no fundo ao passar o mouse */}
       <div
@@ -61,13 +60,13 @@ export default function SubjectCard({
       {/* Cabeçalho */}
       <div className="flex items-center justify-between relative z-10">
         <h3
-          className="font-semibold transition-colors duration-300 text-slate-100"
+          className="font-bold transition-colors duration-300 text-slate-800 dark:text-slate-100"
           style={{ color: hexColor }}
         >
           {title}
         </h3>
         <span
-          className="text-slate-500 group-hover:translate-x-1 transition-transform duration-300 text-base"
+          className="text-slate-400 dark:text-slate-500 group-hover:translate-x-1 transition-transform duration-300 text-base"
           style={{ color: hexColor }}
         >
           &rsaquo;
@@ -76,10 +75,10 @@ export default function SubjectCard({
 
       {/* Corpo / Métricas */}
       <div className="mt-3.5 space-y-2 relative z-10">
-        <div className="flex justify-between text-[11px] text-slate-400 tracking-wide">
+        <div className="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 tracking-wide">
           <div className="flex gap-1">
             <span className="text-slate-500">Progresso:</span>
-            <span className="font-medium text-slate-300 font-mono">
+            <span className="font-medium text-slate-700 dark:text-slate-300 font-mono">
               {progress}%
             </span>
           </div>
@@ -92,7 +91,7 @@ export default function SubjectCard({
         </div>
 
         {/* Barra de progresso */}
-        <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden">
+        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-1000 ease-out"
             style={{
@@ -106,7 +105,7 @@ export default function SubjectCard({
         {/* Rodapé do Card */}
         <div className="flex justify-between items-center text-[11px] pt-1.5 text-slate-500">
           <p>{totalCards} cards agendados</p>
-          <p className="font-mono text-slate-400 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-900/40">
+          <p className="font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-900/40">
             {timeSpent}
           </p>
         </div>

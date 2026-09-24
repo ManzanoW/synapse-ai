@@ -226,23 +226,23 @@ export function DailyQuestsPanel() {
   const completedCount = quests.filter((q) => q.completed).length;
 
   return (
-    <div className="relative flex flex-col justify-start overflow-hidden rounded-3xl border border-violet-500/20 bg-linear-to-br from-[#0c0f1d] via-[#080b16] to-[#04060d] p-4 sm:p-5 shadow-2xl backdrop-blur-2xl transition-all duration-300 group hover:border-violet-500/35">
+    <div className="relative flex flex-col justify-start overflow-hidden rounded-3xl border border-violet-500/20 bg-white dark:bg-linear-to-br dark:from-[#0c0f1d] dark:via-[#080b16] dark:to-[#04060d] p-4 sm:p-5 shadow-2xl backdrop-blur-2xl transition-all duration-300 group hover:border-violet-500/35">
       {/* Glow de ambientação no topo */}
       <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/50 to-transparent" />
       <div className="pointer-events-none absolute -top-20 -left-20 h-40 w-40 rounded-full bg-violet-600/10 blur-3xl" />
 
       {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-white/5 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-200 dark:border-white/5 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/15 text-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.2)] group-hover:scale-105 transition-transform">
-            <Trophy size={16} className="text-violet-300" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/15 text-violet-600 dark:text-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.2)] group-hover:scale-105 transition-transform">
+            <Trophy size={16} className="text-violet-600 dark:text-violet-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-black text-white tracking-wide uppercase">
+              <h3 className="text-xs font-black text-slate-900 dark:text-white tracking-wide uppercase">
                 Missões Diárias
               </h3>
-              <span className="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+              <span className="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/30">
                 {completedCount}/{Math.min(3, quests.length || 3)} Feito
               </span>
             </div>
@@ -280,10 +280,10 @@ export function DailyQuestsPanel() {
                 key={quest.id}
                 className={`relative overflow-hidden p-2.5 sm:p-3 rounded-xl border transition-all duration-300 ${
                   quest.claimed
-                    ? "bg-white/[0.015] border-white/5 opacity-55"
+                    ? "bg-slate-100/60 dark:bg-white/[0.015] border-slate-200 dark:border-white/5 opacity-55"
                     : quest.completed
-                      ? "bg-linear-to-r from-violet-950/30 via-slate-900/60 to-indigo-950/20 border-violet-500/40 shadow-[0_0_20px_rgba(139,92,246,0.12)]"
-                      : "bg-[#060911]/80 hover:bg-[#070b16] border-white/5 hover:border-white/10"
+                      ? "bg-violet-50 dark:bg-linear-to-r dark:from-violet-950/30 dark:via-slate-900/60 dark:to-indigo-950/20 border-violet-200 dark:border-violet-500/40 shadow-xs dark:shadow-[0_0_20px_rgba(139,92,246,0.12)]"
+                      : "bg-slate-50 hover:bg-slate-100/80 dark:bg-[#060911]/80 dark:hover:bg-[#070b16] border-slate-200/90 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
                 }`}
               >
                 {/* Floating XP Toast */}
@@ -307,15 +307,15 @@ export function DailyQuestsPanel() {
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-slate-100 tracking-tight">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100 tracking-tight">
                           {quest.title}
                         </span>
-                        <span className="text-[9px] font-mono font-black text-amber-400 flex items-center gap-0.5 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-md">
+                        <span className="text-[9px] font-mono font-black text-amber-500 dark:text-amber-400 flex items-center gap-0.5 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-md">
                           <Flame size={10} className="fill-amber-400 text-amber-400" />
                           +{quest.xpReward} XP
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed font-normal">
+                      <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed font-normal">
                         {quest.description}
                       </p>
 
@@ -363,7 +363,7 @@ export function DailyQuestsPanel() {
 
                 {/* Barra de Progresso com Gradiente Fluido */}
                 {!quest.claimed && (
-                  <div className="mt-2 w-full bg-slate-950/80 rounded-full h-1 overflow-hidden border border-white/5">
+                  <div className="mt-2 w-full bg-slate-200 dark:bg-slate-950/80 rounded-full h-1 overflow-hidden border border-slate-300/40 dark:border-white/5">
                     <div
                       className={`h-full transition-all duration-500 rounded-full ${
                         quest.completed
@@ -382,7 +382,7 @@ export function DailyQuestsPanel() {
 
       {/* ================= BAÚ DE MAESTRIA DIÁRIA (BÔNUS 3/3) ================= */}
       {dailyChest && (
-        <div className="pt-2.5 border-t border-white/5">
+        <div className="pt-2.5 border-t border-slate-200 dark:border-white/5">
           {dailyChest.claimed ? (
             <div className="rounded-xl border border-emerald-500/25 bg-emerald-950/20 p-2.5 flex items-center justify-between gap-2.5 text-xs">
               <div className="flex items-center gap-2">
@@ -433,13 +433,13 @@ export function DailyQuestsPanel() {
               </button>
             </div>
           ) : (
-            <div className="rounded-xl border border-white/5 bg-slate-950/50 p-2.5 flex items-center justify-between gap-2.5 text-xs">
+            <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-950/50 p-2.5 flex items-center justify-between gap-2.5 text-xs">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="p-1 rounded-lg bg-white/5 text-slate-400 border border-white/5">
+                <div className="p-1 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5">
                   <Lock size={12} />
                 </div>
                 <div className="min-w-0">
-                  <span className="font-bold text-slate-300 text-[10px] block truncate">
+                  <span className="font-bold text-slate-700 dark:text-slate-300 text-[10px] block truncate">
                     Baú de Maestria Diária (+100 XP)
                   </span>
                   <span className="text-[9px] text-slate-500 font-medium block truncate">
@@ -447,7 +447,7 @@ export function DailyQuestsPanel() {
                   </span>
                 </div>
               </div>
-              <span className="font-mono text-[9px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-md shrink-0">
+              <span className="font-mono text-[9px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-md shrink-0">
                 {dailyChest.completedQuests}/{dailyChest.totalQuests}
               </span>
             </div>

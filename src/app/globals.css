@@ -152,6 +152,26 @@ html.light [class*="bg-zinc-900"]:not([class*="fixed inset-0"]):not([class*="ins
   border-color: #e2e8f0 !important;
 }
 
+/* Cobertura Universal para todas as superfícies com cores hex escurecidas (#0... e #1...) */
+html.light [class*="bg-[#0"]:not(body):not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]):not([class*="fixed inset-0 bg-black"]):not([class*="bg-black/"]),
+html.light [class*="bg-[#1"]:not(body):not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]):not([class*="fixed inset-0 bg-black"]):not([class*="bg-black/"]),
+html.light [class*="hover:bg-[#0"]:hover,
+html.light [class*="hover:bg-[#1"]:hover {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Quando aninhado dentro de um card, use a superfície suave Slate Ice (#f8fafc) */
+html.light [class*="rounded-3xl"] [class*="bg-[#0"],
+html.light [class*="rounded-3xl"] [class*="bg-[#1"],
+html.light [class*="rounded-2xl"] [class*="bg-[#0"],
+html.light [class*="rounded-2xl"] [class*="bg-[#1"] {
+  background-color: #f8fafc !important;
+  background-image: none !important;
+  border-color: #e2e8f0 !important;
+}
+
 /* Suaviza efeitos glow coloridos de blur que ficam manchados no modo claro */
 html.light .blur-3xl,
 html.light .blur-2xl {
