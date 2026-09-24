@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Zap, Sparkles } from "lucide-react";
 
 interface DotDistortionProps {
   dotColor?: string;
@@ -9,7 +10,10 @@ interface DotDistortionProps {
   spacing?: number;
   distortionRadius?: number;
   className?: string;
+  showQualityToggle?: boolean;
 }
+
+export type CanvasQualityMode = "fluid" | "performance";
 
 export function DotDistortionCanvas({
   dotColor = "rgba(99, 102, 241, 0.2)",
@@ -18,8 +22,50 @@ export function DotDistortionCanvas({
   spacing = 28,
   distortionRadius = 140,
   className = "",
+  showQualityToggle = true,
 }: DotDistortionProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Inicializa o modo de qualidade com base no hardware do usuário
+  const [qualityMode, setQualityMode] = useState<CanvasQualityMode>("fluid");
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    // 1. Verifica preferência salva pelo usuário
+    const saved = localStorage.getItem("synapse_canvas_quality") as CanvasQualityMode | null;
+    if (saved === "fluid" || saved === "performance") {
+      setQualityMode(saved);
+      return;
+    }
+
+    // 2. Detecção automática de hardware:
+    // - Cores de CPU <= 4 (Celeron, Pentium, i3 antigo ou dual-core)
+    // - Memória RAM estimada <= 4GB
+    // - Preferência do SO por movimento reduzido
+    const isLowPowerHardware =
+      typeof navigator !== "undefined" &&
+      ((navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+        // @ts-expect-error deviceMemory pode não constar em tipos padrão
+        (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+        (window.matchMedia &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches));
+
+    if (isLowPowerHardware) {
+      setQualityMode("performance");
+    } else {
+      setQualityMode("fluid");
+    }
+  }, []);
+
+  const toggleQuality = () => {
+    const nextMode: CanvasQualityMode =
+      qualityMode === "fluid" ? "performance" : "fluid";
+    setQualityMode(nextMode);
+    try {
+      localStorage.setItem("synapse_canvas_quality", nextMode);
+    } catch {}
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -27,19 +73,23 @@ export function DotDistortionCanvas({
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
     let animationFrameId: number | null = null;
     let isRunning = false;
     let lastMoveTime = 0;
-    const mouse = { x: -3000, y: -3000 };
+    let time = 0;
 
+    // Coordenadas
+    const mouse = { x: -3000, y: -3000, targetX: -3000, targetY: -3000 };
+
+    // Dimensões em cache (zero layout thrashing)
     let width = 0;
     let height = 0;
     let rectLeft = 0;
     let rectTop = 0;
+
+    // Sentinela de queda de FPS em tempo real (Auto-Downgrade se engasgar no modo Fluido)
+    let droppedFramesCount = 0;
+    let lastFrameTimestamp = performance.now();
 
     const updateDimensions = () => {
       if (!canvas) return;
@@ -49,20 +99,26 @@ export function DotDistortionCanvas({
       width = rect.width;
       height = rect.height;
 
-      // Limita DPR a 1.25 em telas de alta resolução para garantir fluidez total
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+      // Limita DPR: 1.0 no modo desempenho / 1.25 no modo fluido
+      const maxDpr = qualityMode === "performance" ? 1.0 : 1.25;
+      const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
 
-      drawFrame();
+      if (qualityMode === "performance") {
+        drawPerformanceFrame();
+      }
     };
 
     const radiusSq = distortionRadius * distortionRadius;
 
-    // Renderiza um frame com resposta 1:1 imediata e busca espacial O(1)
-    const drawFrame = () => {
+    // =========================================================================
+    // MODO 1: ALTO DESEMPENHO (PCs modestos, notebooks, 0ms input lag, 0% CPU idle)
+    // =========================================================================
+    const drawPerformanceFrame = () => {
       if (!canvas) return;
       ctx.clearRect(0, 0, width, height);
 
@@ -72,7 +128,7 @@ export function DotDistortionCanvas({
 
       const hasMouse = mouse.x > -1000 && mouse.y > -1000;
 
-      // Bounding Box local do cursor (calcula distâncias apenas para ~30 a 50 pontos próximos)
+      // Bounding box espacial: calcula física apenas para nós sob o cursor
       const minCol = hasMouse
         ? Math.max(0, Math.floor((mouse.x - distortionRadius) / spacing))
         : -1;
@@ -86,7 +142,6 @@ export function DotDistortionCanvas({
         ? Math.min(rows, Math.ceil((mouse.y + distortionRadius) / spacing))
         : -1;
 
-      // Lote único de pontos passivos (sem nenhuma conta matemática trigonométrica)
       ctx.beginPath();
 
       for (let i = 0; i <= cols; i++) {
@@ -96,14 +151,13 @@ export function DotDistortionCanvas({
         for (let j = 0; j <= rows; j++) {
           const baseY = j * spacing;
 
-          // Se estiver fora do quadrante do cursor, desenha ponto estático imediatamente
+          // Ponto fora da caixa: estático instantâneo
           if (!inColRange || j < minRow || j > maxRow) {
             ctx.moveTo(baseX + dotSize, baseY);
             ctx.arc(baseX, baseY, dotSize, 0, Math.PI * 2);
             continue;
           }
 
-          // Apenas pontos dentro da vizinhança do mouse sofrem cálculo de distorção
           const dx = mouse.x - baseX;
           const dy = mouse.y - baseY;
           const distSq = dx * dx + dy * dy;
@@ -129,7 +183,7 @@ export function DotDistortionCanvas({
       ctx.fillStyle = dotColor;
       ctx.fill();
 
-      // Desenha nós ativos sob o cursor com resposta instantânea
+      // Nós ativos e conexões (apenas se o cursor estiver sobre a malha)
       if (activeNodes.length > 0) {
         const maxNodesForLines = Math.min(activeNodes.length, 20);
         const maxLineDist = spacing * 1.6;
@@ -159,7 +213,6 @@ export function DotDistortionCanvas({
           }
         }
 
-        // Halo suave concêntrico acelerado por hardware
         for (const node of activeNodes) {
           ctx.beginPath();
           ctx.arc(node.x, node.y, node.size + 1.8 * node.factor, 0, Math.PI * 2);
@@ -174,50 +227,172 @@ export function DotDistortionCanvas({
       }
     };
 
-    // Loop de renderização ativo apenas enquanto o cursor está em movimento
-    const loop = (timestamp: number) => {
-      drawFrame();
+    const performanceLoop = (timestamp: number) => {
+      drawPerformanceFrame();
 
-      // Se o mouse parou de se mover há mais de 100ms, encerra o loop para poupar 100% de CPU
+      // Pausa inteligente após 120ms sem movimento para garantir 0% de CPU
       if (timestamp - lastMoveTime > 120) {
         isRunning = false;
         animationFrameId = null;
         return;
       }
 
-      animationFrameId = requestAnimationFrame(loop);
+      animationFrameId = requestAnimationFrame(performanceLoop);
     };
 
-    const startLoop = () => {
-      lastMoveTime = performance.now();
-      if (!isRunning) {
-        isRunning = true;
-        animationFrameId = requestAnimationFrame(loop);
+    // =========================================================================
+    // MODO 2: FLUIDO CINEMATOGRÁFICO (PCs rápidos, física elástica, onda contínua)
+    // =========================================================================
+    const fluidLoop = (timestamp: number) => {
+      if (!canvas || document.hidden) {
+        animationFrameId = requestAnimationFrame(fluidLoop);
+        return;
       }
+
+      // Sentinela de performance: se o frame demorar mais de 28ms (<35 FPS) 6x, migra para o modo performance
+      const delta = timestamp - lastFrameTimestamp;
+      lastFrameTimestamp = timestamp;
+      if (delta > 28) {
+        droppedFramesCount++;
+        if (droppedFramesCount >= 6) {
+          console.warn("[Synapse AI] Queda de frames detectada. Ajustando automaticamente para Modo Desempenho.");
+          setQualityMode("performance");
+          return;
+        }
+      } else {
+        droppedFramesCount = Math.max(0, droppedFramesCount - 1);
+      }
+
+      time += 0.015;
+
+      // Amortecimento elástico orgânico (interpolação suave refinada)
+      mouse.x += (mouse.targetX - mouse.x) * 0.18;
+      mouse.y += (mouse.targetY - mouse.y) * 0.18;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const cols = Math.ceil(width / spacing) + 1;
+      const rows = Math.ceil(height / spacing) + 1;
+      const activeNodes: { x: number; y: number; factor: number; size: number }[] = [];
+
+      ctx.beginPath();
+
+      for (let i = 0; i <= cols; i++) {
+        const baseX = i * spacing;
+        for (let j = 0; j <= rows; j++) {
+          const baseY = j * spacing;
+
+          // Onda orgânica contínua viva
+          const wave = Math.sin(time + (i * 0.2 + j * 0.3)) * 1.6;
+          const origX = baseX + wave;
+          const origY = baseY + wave;
+
+          const dx = mouse.x - origX;
+          const dy = mouse.y - origY;
+          const distSq = dx * dx + dy * dy;
+
+          if (distSq < radiusSq) {
+            const dist = Math.sqrt(distSq);
+            const factor = Math.cos((dist / distortionRadius) * (Math.PI / 2));
+            const force = factor * 30;
+            const angle = Math.atan2(dy, dx);
+
+            const drawX = origX - Math.cos(angle) * force;
+            const drawY = origY - Math.sin(angle) * force;
+            const currentSize = dotSize + factor * 2.2;
+
+            activeNodes.push({ x: drawX, y: drawY, factor, size: currentSize });
+          } else {
+            ctx.moveTo(origX + dotSize, origY);
+            ctx.arc(origX, origY, dotSize, 0, Math.PI * 2);
+          }
+        }
+      }
+
+      ctx.fillStyle = dotColor;
+      ctx.fill();
+
+      // Conexões e partículas vivas
+      if (activeNodes.length > 0) {
+        const maxNodesForLines = Math.min(activeNodes.length, 28);
+        const maxLineDist = spacing * 1.6;
+        const maxLineDistSq = maxLineDist * maxLineDist;
+
+        for (let m = 0; m < maxNodesForLines; m++) {
+          for (let n = m + 1; n < maxNodesForLines; n++) {
+            const p1 = activeNodes[m];
+            const p2 = activeNodes[n];
+            const ndx = p1.x - p2.x;
+            const ndy = p1.y - p2.y;
+            const nodeDistSq = ndx * ndx + ndy * ndy;
+
+            if (nodeDistSq < maxLineDistSq) {
+              const nodeDist = Math.sqrt(nodeDistSq);
+              const alpha =
+                (1 - nodeDist / maxLineDist) *
+                Math.min(p1.factor, p2.factor) *
+                0.45;
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.strokeStyle = `rgba(168, 85, 247, ${alpha})`;
+              ctx.lineWidth = 0.7;
+              ctx.stroke();
+            }
+          }
+        }
+
+        for (const node of activeNodes) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.size + 2.0 * node.factor, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(168, 85, 247, ${0.28 * node.factor})`;
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
+          ctx.fillStyle = activeColor;
+          ctx.fill();
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(fluidLoop);
     };
 
     updateDimensions();
 
-    if (prefersReducedMotion) {
-      drawFrame();
-      return;
-    }
-
-    // 1:1 Instantâneo (0ms Delay artificial)
     const handleMouseMove = (e: MouseEvent) => {
-      mouse.x = e.clientX - rectLeft;
-      mouse.y = e.clientY - rectTop;
-      startLoop();
+      const targetX = e.clientX - rectLeft;
+      const targetY = e.clientY - rectTop;
+
+      if (qualityMode === "performance") {
+        // Resposta 1:1 direta (0ms lag)
+        mouse.x = targetX;
+        mouse.y = targetY;
+        lastMoveTime = performance.now();
+        if (!isRunning) {
+          isRunning = true;
+          animationFrameId = requestAnimationFrame(performanceLoop);
+        }
+      } else {
+        // Modo Fluido: interpolação elástica contínua
+        mouse.targetX = targetX;
+        mouse.targetY = targetY;
+      }
     };
 
     const handleMouseLeave = () => {
-      mouse.x = -3000;
-      mouse.y = -3000;
-      drawFrame();
-      isRunning = false;
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
+      mouse.targetX = -3000;
+      mouse.targetY = -3000;
+
+      if (qualityMode === "performance") {
+        mouse.x = -3000;
+        mouse.y = -3000;
+        drawPerformanceFrame();
+        isRunning = false;
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
       }
     };
 
@@ -226,8 +401,11 @@ export function DotDistortionCanvas({
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     document.addEventListener("mouseleave", handleMouseLeave);
 
-    // Primeiro frame estático
-    drawFrame();
+    if (qualityMode === "performance") {
+      drawPerformanceFrame();
+    } else {
+      animationFrameId = requestAnimationFrame(fluidLoop);
+    }
 
     return () => {
       window.removeEventListener("resize", updateDimensions);
@@ -238,12 +416,42 @@ export function DotDistortionCanvas({
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [dotColor, activeColor, dotSize, spacing, distortionRadius]);
+  }, [dotColor, activeColor, dotSize, spacing, distortionRadius, qualityMode]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={`pointer-events-none absolute inset-0 z-0 h-full w-full ${className}`}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        className={`pointer-events-none absolute inset-0 z-0 h-full w-full ${className}`}
+      />
+
+      {/* Seletor Discreto de Modo de Qualidade */}
+      {showQualityToggle && isClient && (
+        <div className="absolute top-4 right-4 z-20 hidden lg:block">
+          <button
+            type="button"
+            onClick={toggleQuality}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-white/10 text-[10px] font-mono text-slate-400 hover:text-white transition-all shadow-md backdrop-blur-md cursor-pointer group"
+            title={
+              qualityMode === "fluid"
+                ? "Modo Fluido ativo (física elástica). Clique para mudar para o Modo Leve (ideal para notebooks ou PCs mais lentos)."
+                : "Modo Leve ativo (0ms delay, baixo uso de CPU). Clique para ativar o Modo Fluido original."
+            }
+          >
+            {qualityMode === "fluid" ? (
+              <>
+                <Sparkles size={11} className="text-violet-400 group-hover:animate-spin" />
+                <span>Efeito Fluido</span>
+              </>
+            ) : (
+              <>
+                <Zap size={11} className="text-amber-400" />
+                <span>Modo Leve (0ms)</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </>
   );
 }
