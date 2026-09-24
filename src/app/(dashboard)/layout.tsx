@@ -27,7 +27,7 @@ export default async function DashboardLayout({
       <GamificationProvider userId={session?.user?.id}>
         <AchievementProvider>
           <AudioProvider>
-            <div className="flex h-screen w-full bg-[#030712] overflow-hidden relative">
+            <div className="flex h-screen h-[100dvh] w-full bg-[#030712] overflow-hidden relative">
               {/* Mini-HUD de Áudio Zen & Foco Global */}
               <SoundscapeFloatingWidget />
 
@@ -38,7 +38,7 @@ export default async function DashboardLayout({
               <Sidebar user={session.user} />
 
               {/* Área principal com margem inferior para o menu mobile */}
-              <main className="flex-1 min-w-0 h-full overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
+              <main className="flex-1 min-w-0 h-full overflow-y-auto p-3 sm:p-4 md:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] md:pb-6">
                 {children}
               </main>
 

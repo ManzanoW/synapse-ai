@@ -40,6 +40,7 @@ import {
   Shield,
   Headphones,
   PenTool,
+  X,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -279,7 +280,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
       <aside
         className={`
-          w-64 h-screen bg-[#07090e] border-r border-white/6 
+          w-72 sm:w-64 max-w-[85vw] h-screen h-[100dvh] max-h-[100dvh] bg-[#07090e] border-r border-white/6 
           text-slate-200 flex flex-col p-3.5 font-sans antialiased shrink-0 select-none
           fixed md:sticky top-0 left-0 z-50 transition-transform duration-300 ease-in-out 
           ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
@@ -288,7 +289,18 @@ export default function Sidebar({ user }: SidebarProps) {
         {/* Cabeçalho Fixo & Busca */}
         <div className="shrink-0 space-y-3 pb-1.5">
           {/* Logo */}
-          <div className="flex flex-col items-center pt-0.5 px-2 text-center select-none">
+          <div className="relative flex flex-col items-center pt-0.5 px-2 text-center select-none">
+            {/* Botão de Fechar no Mobile */}
+            <button
+              type="button"
+              onClick={closeSidebar}
+              className="md:hidden absolute right-0 top-0 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Fechar menu"
+              aria-label="Fechar menu"
+            >
+              <X size={18} />
+            </button>
+
             <div className="inline-flex items-center justify-center gap-2">
               <h1 className="font-extrabold text-slate-50 text-[1.8rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
                 Synapse
@@ -365,9 +377,9 @@ export default function Sidebar({ user }: SidebarProps) {
           </div>
         </div>
 
-        {/* Navegação com Rolagem Independente & Sem Scrollbar Feia */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 space-y-2.5 pr-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <nav className="space-y-2.5">
+        {/* Conteúdo com Rolagem Fluida: Navegação + Card de Gamificação & Usuário */}
+        <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-h-0 pr-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain">
+          <nav className="space-y-2.5 pb-2">
             {NAV_GROUPS.map((group) => (
               <div key={group.label} className="space-y-0.5">
                 <span className="px-2.5 text-[11px] font-sans font-bold uppercase tracking-wider text-slate-300 mt-3 mb-1.5 block select-none">
@@ -440,7 +452,8 @@ export default function Sidebar({ user }: SidebarProps) {
                   })}
 
                   {/* Botão de Dar Feedback integrado na seção Conta */}
-                  {group.label.toLowerCase() === "conta" && (
+                  {(group.label.toLowerCase().includes("conta") ||
+                    group.label.toLowerCase().includes("planos")) && (
                     <button
                       type="button"
                       onClick={() => {
@@ -465,176 +478,176 @@ export default function Sidebar({ user }: SidebarProps) {
               </div>
             ))}
           </nav>
-        </div>
 
-        {/* Rodapé Fixo: Card de Gamificação & Usuário (Idêntico à Imagem de Referência) */}
-        <div className="shrink-0 pt-2">
-          <div className="group relative overflow-hidden rounded-2xl bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl transition-all duration-300 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.2)]">
-            <div className="absolute -top-12 -left-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
-            <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent shadow-[0_0_8px_#818cf8]" />
+          {/* Rodapé: Card de Gamificação & Usuário (com mt-auto para fixar embaixo no desktop e rolar suavemente no mobile) */}
+          <div className="mt-auto pt-3 shrink-0 pb-[max(env(safe-area-inset-bottom),14px)]">
+            <div className="group relative overflow-hidden rounded-2xl bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl transition-all duration-300 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.2)]">
+              <div className="absolute -top-12 -left-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
+              <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent shadow-[0_0_8px_#818cf8]" />
 
-            <div className="p-3 space-y-2.5 relative z-10">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 size={16} className="animate-spin text-indigo-400" />
-                </div>
-              ) : (
-                <>
-                  {/* Linha Superior: Ícone da Patente + Nível + Ofensiva */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 ${
-                          gamification?.prestigeTier?.badgeColor ||
-                          "bg-indigo-500/15 border-indigo-500/30 text-indigo-400"
-                        }`}
-                      >
-                        <Award
-                          size={17}
-                          strokeWidth={2.2}
-                          className={
-                            gamification?.prestigeTier?.iconColor ||
-                            "text-indigo-400"
-                          }
-                        />
-                      </div>
-                      <div className="flex flex-col justify-center min-w-0 pr-1">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 leading-none truncate block max-w-[100px]">
-                            {gamification?.title || "NEÓFITO DOS ESTUDOS"}
-                          </span>
-                          {currentPrestige > 0 && (
-                            <span className="text-[7.5px] font-mono font-black px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
-                              P{currentPrestige}
-                            </span>
-                          )}
+              <div className="p-3 space-y-2.5 relative z-10">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 size={16} className="animate-spin text-indigo-400" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Linha Superior: Ícone da Patente + Nível + Ofensiva */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 ${
+                            gamification?.prestigeTier?.badgeColor ||
+                            "bg-indigo-500/15 border-indigo-500/30 text-indigo-400"
+                          }`}
+                        >
+                          <Award
+                            size={17}
+                            strokeWidth={2.2}
+                            className={
+                              gamification?.prestigeTier?.iconColor ||
+                              "text-indigo-400"
+                            }
+                          />
                         </div>
-                        <span className="text-sm font-black text-white tracking-tight leading-none mt-1">
-                          Nível {currentLevel}
+                        <div className="flex flex-col justify-center min-w-0 pr-1">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 leading-none truncate block max-w-[100px]">
+                              {gamification?.title || "NEÓFITO DOS ESTUDOS"}
+                            </span>
+                            {currentPrestige > 0 && (
+                              <span className="text-[7.5px] font-mono font-black px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
+                                P{currentPrestige}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-sm font-black text-white tracking-tight leading-none mt-1">
+                            Nível {currentLevel}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {canAscendPrestige && (
+                          <button
+                            type="button"
+                            onClick={() => setIsPrestigeModalOpen(true)}
+                            title="Ascender Prestígio!"
+                            className="cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[10px] font-black font-mono animate-bounce"
+                          >
+                            <Crown size={11} />
+                            <span>ASCENDER</span>
+                          </button>
+                        )}
+
+                        {Boolean(streak?.streakFreezes && streak.streakFreezes > 0) && (
+                          <div
+                            className="flex items-center gap-1 px-2 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                            title={`${streak?.streakFreezes} Congelamento(s) de Ofensiva ativo(s) — seu streak está protegido contra faltas acidentais!`}
+                          >
+                            <Shield size={11} className="fill-cyan-400/30 text-cyan-400" />
+                            <span>{streak?.streakFreezes}</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs font-bold font-mono shadow-[0_0_12px_rgba(244,63,94,0.18)]">
+                          <Flame
+                            size={13}
+                            className="fill-rose-500 text-rose-500 animate-pulse"
+                          />
+                          <span>{streak?.currentDays || 0}d</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Linha Central: Barra de XP */}
+                    <div className="space-y-1.5 pt-0.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono">
+                        <span className="flex items-center gap-1 font-bold text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]">
+                          <Zap
+                            size={12}
+                            className="fill-amber-400 text-amber-400"
+                          />
+                          {gamification?.totalXp || 0}{" "}
+                          <span className="text-slate-500 font-normal">XP</span>
+                        </span>
+                        <span className="text-slate-400 font-bold text-[10px]">
+                          {gamification?.progressPercentage ?? 0}%
                         </span>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {canAscendPrestige && (
-                        <button
-                          type="button"
-                          onClick={() => setIsPrestigeModalOpen(true)}
-                          title="Ascender Prestígio!"
-                          className="cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[10px] font-black font-mono animate-bounce"
-                        >
-                          <Crown size={11} />
-                          <span>ASCENDER</span>
-                        </button>
-                      )}
-
-                      {Boolean(streak?.streakFreezes && streak.streakFreezes > 0) && (
+                      <div className="h-1.5 w-full bg-slate-950/90 rounded-full border border-white/10 p-px shadow-inner overflow-hidden">
                         <div
-                          className="flex items-center gap-1 px-2 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                          title={`${streak?.streakFreezes} Congelamento(s) de Ofensiva ativo(s) — seu streak está protegido contra faltas acidentais!`}
+                          className="h-full bg-gradient-to-r from-amber-400 via-indigo-500 to-indigo-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(129,140,248,0.8)] relative"
+                          style={{
+                            width: `${Math.max(
+                              gamification?.progressPercentage ?? 0,
+                              4,
+                            )}%`,
+                          }}
                         >
-                          <Shield size={11} className="fill-cyan-400/30 text-cyan-400" />
-                          <span>{streak?.streakFreezes}</span>
+                          <div className="absolute inset-0 bg-white/25 animate-pulse rounded-full" />
                         </div>
-                      )}
-
-                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs font-bold font-mono shadow-[0_0_12px_rgba(244,63,94,0.18)]">
-                        <Flame
-                          size={13}
-                          className="fill-rose-500 text-rose-500 animate-pulse"
-                        />
-                        <span>{streak?.currentDays || 0}d</span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Linha Central: Barra de XP */}
-                  <div className="space-y-1.5 pt-0.5">
-                    <div className="flex items-center justify-between text-[11px] font-mono">
-                      <span className="flex items-center gap-1 font-bold text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]">
-                        <Zap
-                          size={12}
-                          className="fill-amber-400 text-amber-400"
-                        />
-                        {gamification?.totalXp || 0}{" "}
-                        <span className="text-slate-500 font-normal">XP</span>
-                      </span>
-                      <span className="text-slate-400 font-bold text-[10px]">
-                        {gamification?.progressPercentage ?? 0}%
-                      </span>
-                    </div>
+                    {/* Linha Divisória */}
+                    <div className="h-px w-full bg-linear-to-r from-transparent via-slate-800 to-transparent my-1" />
 
-                    <div className="h-1.5 w-full bg-slate-950/90 rounded-full border border-white/10 p-px shadow-inner overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-amber-400 via-indigo-500 to-indigo-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(129,140,248,0.8)] relative"
-                        style={{
-                          width: `${Math.max(
-                            gamification?.progressPercentage ?? 0,
-                            4,
-                          )}%`,
-                        }}
+                    {/* Linha Inferior: Usuário, Avatar Teal, Plano & Sair (Alvo de toque acessível no mobile) */}
+                    <div className="flex items-center justify-between pt-0.5">
+                      <Link
+                        href={getHref("/profile")}
+                        onClick={closeSidebar}
+                        className="flex items-center gap-2.5 min-w-0 group/user cursor-pointer"
+                        title="Ver seu perfil"
                       >
-                        <div className="absolute inset-0 bg-white/25 animate-pulse rounded-full" />
-                      </div>
+                        {user?.image ? (
+                          <Image
+                            src={user.image}
+                            alt={user.name || "Avatar"}
+                            width={36}
+                            height={36}
+                            className="w-9 h-9 rounded-xl object-cover border border-teal-400/40 shrink-0 shadow-md shadow-teal-950/40"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-xl bg-teal-500 hover:bg-teal-400 transition-colors flex items-center justify-center text-white text-sm font-black shrink-0 shadow-md shadow-teal-950/50">
+                            {getInitials(user?.name)}
+                          </div>
+                        )}
+
+                        <div className="truncate min-w-0 pr-1">
+                          <p className="text-[12px] font-bold text-slate-100 group-hover/user:text-teal-300 transition-colors truncate leading-snug">
+                            {user?.name || "Johnny Plays"}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="relative flex h-1.5 w-1.5 shrink-0">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-400" />
+                            </span>
+                            <span className="text-[9px] font-mono font-bold text-indigo-300 uppercase tracking-wider leading-none">
+                              {userPlan}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          closeSidebar();
+                          setIsLogoutModalOpen(true);
+                        }}
+                        aria-label="Sair da conta"
+                        title="Sair da conta"
+                        className="p-2 sm:p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 transition-all shrink-0 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95"
+                      >
+                        <LogOut size={17} />
+                      </button>
                     </div>
-                  </div>
-
-                  {/* Linha Divisória */}
-                  <div className="h-px w-full bg-linear-to-r from-transparent via-slate-800 to-transparent my-1" />
-
-                  {/* Linha Inferior: Usuário, Avatar Teal, Plano & Sair (Idêntico à Imagem 3) */}
-                  <div className="flex items-center justify-between pt-0.5">
-                    <Link
-                      href={getHref("/profile")}
-                      onClick={closeSidebar}
-                      className="flex items-center gap-2.5 min-w-0 group/user cursor-pointer"
-                      title="Ver seu perfil"
-                    >
-                      {user?.image ? (
-                        <Image
-                          src={user.image}
-                          alt={user.name || "Avatar"}
-                          width={36}
-                          height={36}
-                          className="w-9 h-9 rounded-xl object-cover border border-teal-400/40 shrink-0 shadow-md shadow-teal-950/40"
-                        />
-                      ) : (
-                        <div className="w-9 h-9 rounded-xl bg-teal-500 hover:bg-teal-400 transition-colors flex items-center justify-center text-white text-sm font-black shrink-0 shadow-md shadow-teal-950/50">
-                          {getInitials(user?.name)}
-                        </div>
-                      )}
-
-                      <div className="truncate min-w-0 pr-1">
-                        <p className="text-[12px] font-bold text-slate-100 group-hover/user:text-teal-300 transition-colors truncate leading-snug">
-                          {user?.name || "Johnny Plays"}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="relative flex h-1.5 w-1.5 shrink-0">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-400" />
-                          </span>
-                          <span className="text-[9px] font-mono font-bold text-indigo-300 uppercase tracking-wider leading-none">
-                            {userPlan}
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        closeSidebar();
-                        setIsLogoutModalOpen(true);
-                      }}
-                      aria-label="Sair"
-                      title="Sair da conta"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 transition-all shrink-0 cursor-pointer"
-                    >
-                      <LogOut size={16} />
-                    </button>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

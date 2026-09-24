@@ -551,7 +551,7 @@ export function QuestionCard({
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#0c101d] border border-amber-500/30 rounded-2xl w-full max-w-xl shadow-2xl shadow-amber-950/20 overflow-hidden flex flex-col max-h-[90vh]"
+              className="bg-[#0c101d] border border-amber-500/30 rounded-2xl w-full max-w-xl shadow-2xl shadow-amber-950/20 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]"
             >
               {/* MODAL HEADER */}
               <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800/80 bg-slate-900/60">
@@ -580,7 +580,7 @@ export function QuestionCard({
               </div>
 
               {/* MODAL CONTENT */}
-              <div className="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+              <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain space-y-4 text-xs sm:text-sm">
                 {/* Resumo da resposta */}
                 <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs">
                   <div className="flex items-center gap-2">

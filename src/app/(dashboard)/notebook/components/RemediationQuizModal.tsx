@@ -340,14 +340,14 @@ export function RemediationQuizModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-2xl bg-slate-900 border border-violet-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-2xl bg-slate-900 border border-violet-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]"
       >
         {/* Glow de fundo */}
         <div className="pointer-events-none absolute -top-20 -right-20 w-64 h-64 bg-violet-600/15 rounded-full blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-20 w-64 h-64 bg-indigo-600/15 rounded-full blur-3xl" />
 
         {/* CABEÇALHO DO MODAL */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-950/40 relative z-10">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-white/10 bg-slate-950/40 relative z-10">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-600/30">
               <Zap size={18} className="fill-white" />
@@ -374,7 +374,7 @@ export function RemediationQuizModal({
         </div>
 
         {/* CORPO DINÂMICO CONFORME A FASE */}
-        <div className="p-6 overflow-y-auto flex-1 relative z-10 space-y-6">
+        <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 relative z-10 space-y-6">
           {/* FASE 1: CONFIGURAÇÃO DO SIMULADO */}
           {phase === "SETUP" && (
             <div className="space-y-6">

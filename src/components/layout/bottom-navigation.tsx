@@ -31,7 +31,7 @@ export function BottomNavigation() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#030712]/90 border-t border-indigo-500/20 shadow-[0_-8px_32px_rgba(0,0,0,0.6)] backdrop-blur-2xl md:hidden pb-[max(env(safe-area-inset-bottom),6px)]">
+    <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#030712]/90 border-t border-indigo-500/20 shadow-[0_-8px_32px_rgba(0,0,0,0.6)] backdrop-blur-2xl md:hidden pb-[max(env(safe-area-inset-bottom),6px)]">
       <nav className="flex items-center justify-around h-15 px-2 relative">
         {navItems.map((item) => {
           const Icon = item.icon;

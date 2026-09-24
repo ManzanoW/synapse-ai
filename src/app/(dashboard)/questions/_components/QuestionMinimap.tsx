@@ -37,7 +37,7 @@ export function QuestionMinimap({
   }, [focusedIndex]);
 
   return (
-    <div className="fixed bottom-18 sm:bottom-6 left-0 right-0 z-30 px-3 pointer-events-none flex justify-center">
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.75rem)] sm:bottom-6 left-0 right-0 z-30 px-3 pointer-events-none flex justify-center">
       <div className="bg-[#090d16]/95 border border-white/10 backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl flex items-center justify-between gap-2 pointer-events-auto max-w-lg w-full">
         {onOpenOpticalSheet && (
           <button
