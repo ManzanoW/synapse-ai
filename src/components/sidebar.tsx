@@ -15,6 +15,8 @@ import { NotificationsPopover } from "@/components/notifications/NotificationsPo
 import { AiQuotaBadge } from "@/components/quota/AiQuotaBadge";
 import { FeedbackModal } from "@/components/feedback/FeedbackModal";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
+import { getUserCareerFocusAction } from "@/actions/edital-templates-actions";
+import { isLawFocused } from "@/lib/career-utils";
 import {
   Sparkles,
   Layers,
@@ -51,6 +53,8 @@ interface SidebarProps {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    careerFocus?: string | null;
+    targetRole?: string | null;
   };
 }
 
@@ -174,6 +178,35 @@ export default function Sidebar({ user }: SidebarProps) {
   const canAscendPrestige = currentLevel >= 50;
 
   const [userPlan, setUserPlan] = useState<string>("PRO MEMBER");
+  const [hasLawFocus, setHasLawFocus] = useState<boolean>(() =>
+    isLawFocused(user?.careerFocus, user?.targetRole)
+  );
+
+  useEffect(() => {
+    setHasLawFocus(isLawFocused(user?.careerFocus, user?.targetRole));
+  }, [user?.careerFocus, user?.targetRole]);
+
+  useEffect(() => {
+    // Se a prop não estiver populada, consulta a Server Action
+    if (!user?.careerFocus) {
+      getUserCareerFocusAction().then((res) => {
+        if (res.success) {
+          setHasLawFocus(isLawFocused(res.careerFocus, res.targetRole));
+        }
+      });
+    }
+
+    const handleCareerUpdate = () => {
+      getUserCareerFocusAction().then((res) => {
+        if (res.success) {
+          setHasLawFocus(isLawFocused(res.careerFocus, res.targetRole));
+        }
+      });
+    };
+
+    window.addEventListener("career-updated", handleCareerUpdate);
+    return () => window.removeEventListener("career-updated", handleCareerUpdate);
+  }, [user?.careerFocus]);
 
   useEffect(() => {
     getAiQuotaStatusAction()
@@ -261,6 +294,22 @@ export default function Sidebar({ user }: SidebarProps) {
       setIsLoggingOut(false);
     }
   };
+
+  // Filtra módulos de Direito/Carreiras Jurídicas (Jurisprudência e Prova Oral) apenas para usuários com foco na área
+  const filteredNavGroups = NAV_GROUPS.map((group) => {
+    if (group.label === "Prática & Performance") {
+      return {
+        ...group,
+        items: group.items.filter((item) => {
+          if (item.href === "/jurisprudencia" || item.href === "/prova-oral") {
+            return hasLawFocus;
+          }
+          return true;
+        }),
+      };
+    }
+    return group;
+  });
 
   return (
     <>
@@ -394,7 +443,7 @@ export default function Sidebar({ user }: SidebarProps) {
         {/* Conteúdo com Rolagem Fluida: Navegação + Card de Gamificação & Usuário */}
         <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-h-0 pr-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain">
           <nav className="space-y-2.5 pb-2">
-            {NAV_GROUPS.map((group) => (
+            {filteredNavGroups.map((group) => (
               <div key={group.label} className="space-y-0.5">
                 <span className="px-2.5 text-[11px] font-sans font-bold uppercase tracking-wider text-slate-300 mt-3 mb-1.5 block select-none">
                   {group.label}

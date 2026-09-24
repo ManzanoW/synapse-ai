@@ -19,6 +19,7 @@ import {
   Loader2,
   ExternalLink,
   Gavel,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -30,13 +31,21 @@ import {
   searchJurisprudenceAction,
   createJurisprudenceFlashcardAction,
 } from "@/actions/jurisprudence-actions";
+import { updateUserCareerFocusAction } from "@/actions/edital-templates-actions";
+import { enableLawModuleInTargetRole } from "@/lib/career-utils";
 
 interface JurisprudenciaClientProps {
   initialItems: JurisprudenceItem[];
+  isLawUser?: boolean;
+  userCareer?: string;
+  userRole?: string;
 }
 
 export default function JurisprudenciaClient({
   initialItems,
+  isLawUser = true,
+  userCareer = "Concurso Geral",
+  userRole = "Concurso Geral",
 }: JurisprudenciaClientProps) {
   const [items, setItems] = useState<JurisprudenceItem[]>(initialItems || CURATED_JURISPRUDENCE);
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,6 +59,32 @@ export default function JurisprudenciaClient({
   const [savingFlashcardId, setSavingFlashcardId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showOriginalMap, setShowOriginalMap] = useState<Record<string, boolean>>({});
+
+  // Banner para usuários com foco em outra carreira
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [isPinning, setIsPinning] = useState(false);
+  const [isPinnedSuccess, setIsPinnedSuccess] = useState(false);
+
+  const handlePinToSidebar = async () => {
+    try {
+      setIsPinning(true);
+      const newRole = enableLawModuleInTargetRole(userRole);
+      const res = await updateUserCareerFocusAction({
+        targetRole: newRole,
+        careerFocus: userCareer,
+      });
+      if (res.success) {
+        setIsPinnedSuccess(true);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("career-updated"));
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao fixar módulo de direito:", err);
+    } finally {
+      setIsPinning(false);
+    }
+  };
 
   const tribunais = ["TODOS", "STF", "STJ", "TST"];
   const disciplinas = [
@@ -141,6 +176,50 @@ export default function JurisprudenciaClient({
       <div className="absolute top-1/3 left-10 w-96 h-96 rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
 
       <div className="max-w-5xl mx-auto space-y-6 relative">
+        {/* ================= BANNER DE MÓDULO JURÍDICO PARA OUTRAS CARREIRAS ================= */}
+        {!isLawUser && !bannerDismissed && (
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
+                <Scale size={18} />
+              </div>
+              <div className="space-y-0.5">
+                <span className="font-bold text-amber-200 block">
+                  Você está acessando o Módulo de Direito (Seu foco atual: {userCareer.split("(")[0].trim()})
+                </span>
+                <p className="text-slate-400 text-[11px]">
+                  Os atalhos de Jurisprudência e Prova Oral ficam ocultos por padrão para concurseiros de TI, Bancário e Fiscal. Deseja fixá-los na sua barra lateral?
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+              {isPinnedSuccess ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                  <Check size={13} /> Fixado no menu!
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isPinning}
+                  onClick={handlePinToSidebar}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isPinning ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                  <span>Fixar no Menu Lateral</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setBannerDismissed(true)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Fechar aviso"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ================= HERO HEADER ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
           <div className="flex items-start sm:items-center gap-3.5">

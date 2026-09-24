@@ -12,7 +12,15 @@ import {
   Briefcase,
   ChevronRight,
   Clock,
+  Scale,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import {
+  isLawFocused,
+  enableLawModuleInTargetRole,
+  disableLawModule,
+} from "@/lib/career-utils";
 
 interface ProfileTargetFormProps {
   initialTargetDate?: Date | null;
@@ -28,7 +36,7 @@ const CAREER_PRESETS = [
   { label: "👮 Carreiras Policiais (PF, PRF e PC)", value: "Carreiras Policiais (PF, PRF e PC)" },
   { label: "💰 Carreiras Fiscais & Auditoria", value: "Carreiras Fiscais & Auditoria (Receita Federal, SEFAZ e ISS)" },
   { label: "🏛️ Tribunais & Administrativo", value: "Tribunais & Administrativo (TJ, TRT, TRF, INSS e CNU)" },
-  { label: "⚖️ Carreiras Jurídicas & Delegado", value: "Carreiras Jurídicas & Delegado (Magistratura, MP, DPU e PC)" },
+  { label: "⚖️ Direito & Carreiras Jurídicas (Magistratura, MP, Delegado, OAB)", value: "Direito & Carreiras Jurídicas (Magistratura, MP, Delegado, Defensoria e OAB)" },
   { label: "🏦 Carreiras Bancárias & Financeiras", value: "Carreiras Bancárias & Financeiras (Caixa, BB e BACEN)" },
 ];
 
@@ -96,10 +104,58 @@ export default function ProfileTargetForm({
       }
 
       setSuccess(true);
+      // Notifica componentes dinâmicos (como a sidebar) sobre a alteração de carreira
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("career-updated"));
+      }
       router.refresh();
       setTimeout(() => setSuccess(false), 3500);
     } catch (err) {
       console.error("Erro na atualização:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const isLaw = isLawFocused(careerFocus, targetRole);
+
+  const handleToggleLawModule = async () => {
+    let nextCareer = careerFocus;
+    let nextRole = targetRole;
+
+    if (isLaw) {
+      const res = disableLawModule(careerFocus, targetRole);
+      nextCareer = res.careerFocus;
+      nextRole = res.targetRole;
+      setIsCustomCareer(!CAREER_PRESETS.some((p) => p.value === nextCareer));
+    } else {
+      nextRole = enableLawModuleInTargetRole(targetRole);
+    }
+
+    setCareerFocus(nextCareer);
+    setTargetRole(nextRole);
+
+    try {
+      setIsSaving(true);
+      await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetExamDate: targetDate ? targetDate : null,
+          careerFocus: nextCareer.trim(),
+          targetRole: nextRole.trim(),
+        }),
+      });
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("career-updated"));
+      }
+
+      setSuccess(true);
+      router.refresh();
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error("Erro ao alternar módulo jurídico:", err);
     } finally {
       setIsSaving(false);
     }
@@ -213,6 +269,67 @@ export default function ProfileTargetForm({
               )}
             </div>
           )}
+        </div>
+
+        {/* MÓDULO DE DIREITO & CARREIRAS JURÍDICAS */}
+        <div className="md:col-span-2 p-4 sm:p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div
+              className={`p-2.5 rounded-xl border mt-0.5 shrink-0 ${
+                isLaw
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                  : "bg-slate-800/80 border-slate-700/60 text-slate-400"
+              }`}
+            >
+              <Scale size={20} />
+            </div>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-bold text-white">
+                  Módulo de Direito (Jurisprudência & Prova Oral)
+                </span>
+                {isLaw ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    <CheckCircle2 size={11} />
+                    Ativo no Menu Lateral
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">
+                    <EyeOff size={11} />
+                    Oculto no Menu Lateral
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
+                {isLaw
+                  ? "Recursos exclusivos de Jurisprudência (acórdãos do STF/STJ, súmulas e teses) e Simulador de Prova Oral com IA estão visíveis na barra lateral."
+                  : "Os atalhos de Jurisprudência e Prova Oral ficam ocultos por padrão para concurseiros de TI, Bancário e Fiscal Geral, mantendo o menu limpo e focado."}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={handleToggleLawModule}
+            className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer border disabled:opacity-50 ${
+              isLaw
+                ? "bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700 hover:text-white"
+                : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30 hover:border-amber-500/50"
+            }`}
+          >
+            {isLaw ? (
+              <>
+                <EyeOff size={14} />
+                <span>Ocultar do Menu</span>
+              </>
+            ) : (
+              <>
+                <Eye size={14} />
+                <span>Ativar Módulo no Menu</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 

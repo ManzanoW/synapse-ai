@@ -5,6 +5,9 @@ import { Metadata } from "next";
 import JurisprudenciaClient from "./jurisprudencia-client";
 import { CURATED_JURISPRUDENCE } from "@/lib/jurisprudence-data";
 
+import { prisma } from "@/lib/prisma";
+import { isLawFocused } from "@/lib/career-utils";
+
 export const metadata: Metadata = {
   title: "Raio-X de Jurisprudência & Súmulas | Synapse AI",
   description:
@@ -18,6 +21,15 @@ export default async function JurisprudenciaPage() {
     redirect("/login");
   }
 
+  const dbUser = session.user.id
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { careerFocus: true, targetRole: true },
+      })
+    : null;
+
+  const isLaw = isLawFocused(dbUser?.careerFocus, dbUser?.targetRole);
+
   return (
     <Suspense
       fallback={
@@ -26,7 +38,12 @@ export default async function JurisprudenciaPage() {
         </div>
       }
     >
-      <JurisprudenciaClient initialItems={CURATED_JURISPRUDENCE} />
+      <JurisprudenciaClient
+        initialItems={CURATED_JURISPRUDENCE}
+        isLawUser={isLaw}
+        userCareer={dbUser?.careerFocus || "Concurso Geral"}
+        userRole={dbUser?.targetRole || "Concurso Geral"}
+      />
     </Suspense>
   );
 }

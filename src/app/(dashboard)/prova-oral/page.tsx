@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import ProvaOralClient from "./prova-oral-client";
 
+import { prisma } from "@/lib/prisma";
+import { isLawFocused } from "@/lib/career-utils";
+
 export const metadata: Metadata = {
   title: "Simulador de Prova Oral com IA | Synapse AI",
   description:
@@ -17,6 +20,15 @@ export default async function ProvaOralPage() {
     redirect("/login");
   }
 
+  const dbUser = session.user.id
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { careerFocus: true, targetRole: true },
+      })
+    : null;
+
+  const isLaw = isLawFocused(dbUser?.careerFocus, dbUser?.targetRole);
+
   return (
     <Suspense
       fallback={
@@ -25,7 +37,11 @@ export default async function ProvaOralPage() {
         </div>
       }
     >
-      <ProvaOralClient />
+      <ProvaOralClient
+        isLawUser={isLaw}
+        userCareer={dbUser?.careerFocus || "Concurso Geral"}
+        userRole={dbUser?.targetRole || "Concurso Geral"}
+      />
     </Suspense>
   );
 }
