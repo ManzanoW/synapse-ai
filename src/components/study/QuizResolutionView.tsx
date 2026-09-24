@@ -883,6 +883,20 @@ export function QuizResolutionView({
                                   {atalhoNum}
                                 </kbd>
                               )}
+
+                              {isCurrentAnswered && alt.id === currentQuestion.gabaritoCorreto && (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-1 rounded-lg shrink-0 self-center shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+                                  <Check size={13} className="stroke-[3] text-emerald-400" />
+                                  <span>Gabarito</span>
+                                </span>
+                              )}
+
+                              {isCurrentAnswered && isSelected && alt.id !== currentQuestion.gabaritoCorreto && (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 rounded-lg shrink-0 self-center shadow-[0_0_12px_rgba(244,63,94,0.25)]">
+                                  <X size={13} className="stroke-[3] text-rose-400" />
+                                  <span>Sua escolha</span>
+                                </span>
+                              )}
                             </button>
 
                             {/* Botão de riscar alternativa */}
@@ -957,6 +971,20 @@ export function QuizResolutionView({
                               <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-violet-300 border border-slate-800 group-hover:border-violet-500/40 px-2 py-0.5 rounded-lg transition-colors">
                                 {atalhoNum}
                               </kbd>
+                            )}
+
+                            {isCurrentAnswered && opcao === currentQuestion.gabaritoCorreto && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-1 rounded-lg shrink-0 self-center shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+                                <Check size={13} className="stroke-[3] text-emerald-400" />
+                                <span>Gabarito</span>
+                              </span>
+                            )}
+
+                            {isCurrentAnswered && isSelected && opcao !== currentQuestion.gabaritoCorreto && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 rounded-lg shrink-0 self-center shadow-[0_0_12px_rgba(244,63,94,0.25)]">
+                                <X size={13} className="stroke-[3] text-rose-400" />
+                                <span>Sua escolha</span>
+                              </span>
                             )}
                           </button>
                         );

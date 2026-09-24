@@ -6,6 +6,7 @@ import { AudioProvider } from "@/contexts/AudioContext";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { DemoSessionSync } from "@/components/auth/demo-session-sync";
+import { SoundscapeFloatingWidget } from "@/components/audio/SoundscapeFloatingWidget";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
@@ -26,7 +27,10 @@ export default async function DashboardLayout({
       <GamificationProvider userId={session?.user?.id}>
         <AchievementProvider>
           <AudioProvider>
-            <div className="flex h-screen w-full bg-[#030712] overflow-hidden">
+            <div className="flex h-screen w-full bg-[#030712] overflow-hidden relative">
+              {/* Mini-HUD de Áudio Zen & Foco Global */}
+              <SoundscapeFloatingWidget />
+
               {/* Paleta de Comandos Global (Cmd+K / Ctrl+K) */}
               <CommandPalette />
 
