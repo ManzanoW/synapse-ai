@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useTransition, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -255,20 +255,18 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
     (s) => !s.hasActivity || s.accuracy === null,
   ).length;
 
-  const filteredSubjects = useMemo(() => {
-    return allSubjects.filter((s) => {
-      if (subjectSearch.trim()) {
-        const q = subjectSearch.toLowerCase();
-        if (!s.subject.toLowerCase().includes(q)) return false;
-      }
-      if (subjectFilter === "active") return s.hasActivity && s.accuracy !== null;
-      if (subjectFilter === "critical")
-        return s.hasActivity && s.accuracy !== null && s.accuracy < 60;
-      if (subjectFilter === "pending")
-        return !s.hasActivity || s.accuracy === null;
-      return true;
-    });
-  }, [allSubjects, subjectSearch, subjectFilter]);
+  const filteredSubjects = allSubjects.filter((s) => {
+    if (subjectSearch.trim()) {
+      const q = subjectSearch.toLowerCase();
+      if (!s.subject.toLowerCase().includes(q)) return false;
+    }
+    if (subjectFilter === "active") return s.hasActivity && s.accuracy !== null;
+    if (subjectFilter === "critical")
+      return s.hasActivity && s.accuracy !== null && s.accuracy < 60;
+    if (subjectFilter === "pending")
+      return !s.hasActivity || s.accuracy === null;
+    return true;
+  });
 
   if (isLoading) {
     return (
