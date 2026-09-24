@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
-import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle, Crown, Gift, ArrowRight } from "lucide-react";
+import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle, Crown, Gift, ArrowRight, X } from "lucide-react";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 
@@ -169,6 +169,16 @@ export function SimuladoGenerationModal({
     return () => clearTimeout(timer);
   }, [isOpen, isGenerating, error, springProgress]);
 
+  // Se o display atingir 100% e a geração já concluiu, garante o avanço imediato
+  useEffect(() => {
+    if (isOpen && !isGenerating && !error && displayValue >= 100 && !hasTriggeredRef.current) {
+      const immediateTimer = setTimeout(() => {
+        triggerCompletion();
+      }, 350);
+      return () => clearTimeout(immediateTimer);
+    }
+  }, [isOpen, isGenerating, error, displayValue]);
+
   // Determina a etapa textual atual com base no progresso visual
   const currentPhase = useMemo(() => {
     const val = displayValue;
@@ -205,6 +215,19 @@ export function SimuladoGenerationModal({
           transition={{ duration: 0.25, ease: "easeOut" }}
           className="bg-black/85 backdrop-blur-md border border-violet-500/20 rounded-2xl p-6 sm:p-8 max-w-lg w-full relative overflow-hidden shadow-2xl shadow-violet-950/40 text-center space-y-6"
         >
+          {/* Botão Fechar (X) - garante que o usuário nunca fique preso */}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors z-30 cursor-pointer"
+              title="Fechar"
+              aria-label="Fechar modal de geração"
+            >
+              <X size={18} />
+            </button>
+          )}
+
           {/* Header com badge de contexto */}
           <div className="space-y-2 relative z-10">
             {error ? (

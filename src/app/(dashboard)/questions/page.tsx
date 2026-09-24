@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -333,6 +333,10 @@ export default function QuestoesPage() {
   const [isSimuladoModalOpen, setIsSimuladoModalOpen] = useState(false);
   const [simuladoGenerationError, setSimuladoGenerationError] = useState<string | null>(null);
   const [pendingSimuladoData, setPendingSimuladoData] = useState<{
+    questions: QuestaoIA[];
+    quizId: string | null;
+  } | null>(null);
+  const pendingSimuladoDataRef = useRef<{
     questions: QuestaoIA[];
     quizId: string | null;
   } | null>(null);
@@ -984,6 +988,7 @@ export default function QuestoesPage() {
     setIsGenerating(true);
     setSimuladoGenerationError(null);
     setPendingSimuladoData(null);
+    pendingSimuladoDataRef.current = null;
     setIsSimuladoModalOpen(true);
 
     try {
@@ -1072,13 +1077,15 @@ export default function QuestoesPage() {
   const handleSimuladoModalComplete = useCallback(() => {
     setIsSimuladoModalOpen(false);
 
+    const currentData = pendingSimuladoDataRef.current || pendingSimuladoData;
+
     if (
-      pendingSimuladoData?.questions &&
-      Array.isArray(pendingSimuladoData.questions) &&
-      pendingSimuladoData.questions.length > 0
+      currentData?.questions &&
+      Array.isArray(currentData.questions) &&
+      currentData.questions.length > 0
     ) {
-      setQuestions(pendingSimuladoData.questions);
-      setCurrentQuizId(pendingSimuladoData.quizId || null);
+      setQuestions(currentData.questions);
+      setCurrentQuizId(currentData.quizId || null);
       setSelectedAnswers({});
       setCheckedQuestions({});
       setFlaggedQuestions({});
@@ -1090,6 +1097,7 @@ export default function QuestoesPage() {
       setIsTimerRunning(true);
       setActiveTab("create");
       setPendingSimuladoData(null);
+      pendingSimuladoDataRef.current = null;
 
       if (pendingLaunchSpeedQuiz) {
         setPendingLaunchSpeedQuiz(false);
@@ -1154,6 +1162,7 @@ export default function QuestoesPage() {
       setIsGenerating(true);
       setSimuladoGenerationError(null);
       setPendingSimuladoData(null);
+      pendingSimuladoDataRef.current = null;
       setIsSimuladoModalOpen(true);
 
       try {
@@ -1195,10 +1204,13 @@ export default function QuestoesPage() {
 
         const quizId = data.id || data.quizId || data.simuladoId || null;
 
-        setPendingSimuladoData({
+        const payload = {
           questions: questionsList,
           quizId: quizId,
-        });
+        };
+
+        pendingSimuladoDataRef.current = payload;
+        setPendingSimuladoData(payload);
       } catch (err: any) {
         console.error("Erro na geração rápida:", err);
         triggerAiQuotaRefresh();
