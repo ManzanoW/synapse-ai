@@ -16,8 +16,11 @@ import {
   Briefcase,
   Crown,
   Lock,
+  CalendarDays,
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
+import confetti from "canvas-confetti";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 import { StarterEditalSelector } from "./StarterEditalSelector";
 
@@ -64,7 +67,11 @@ export function ImportEditalModal({
   onClose,
   onImportSuccess,
 }: ImportEditalModalProps) {
-  const [step, setStep] = useState<"input" | "preview">("input");
+  const [step, setStep] = useState<"input" | "preview" | "success">("input");
+  const [importedSummary, setImportedSummary] = useState<{
+    subjectsCount: number;
+    topicsCount: number;
+  }>({ subjectsCount: 0, topicsCount: 0 });
   const [activeTab, setActiveTab] = useState<"text" | "career" | "file" | "pdf">("text");
   const [rawText, setRawText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -282,8 +289,19 @@ export function ImportEditalModal({
         throw new Error(result.error || "Erro no servidor");
       }
 
+      const totalTopicsCount = finalData.reduce((acc, s) => acc + s.topics.length, 0);
+      setImportedSummary({
+        subjectsCount: finalData.length,
+        topicsCount: totalTopicsCount,
+      });
+
       onImportSuccess?.(result);
-      handleClose();
+      setStep("success");
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
     } catch (error) {
       console.error("Erro na importação:", error);
     } finally {
@@ -296,6 +314,7 @@ export function ImportEditalModal({
     setRawText("");
     setSelectedFile(null);
     setParsedSubjects([]);
+    setImportedSummary({ subjectsCount: 0, topicsCount: 0 });
     onClose();
   };
 
@@ -318,14 +337,18 @@ export function ImportEditalModal({
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-100">
-                {step === "input"
-                  ? "Importar Edital com IA"
-                  : "Revisar Matérias e Tópicos"}
+                {step === "success"
+                  ? "Edital Mapeado com Sucesso"
+                  : step === "input"
+                    ? "Importar Edital com IA"
+                    : "Revisar Matérias e Tópicos"}
               </h2>
               <p className="text-xs text-slate-400">
-                {step === "input"
-                  ? "Extraia a estrutura de estudos do seu concurso automaticamente"
-                  : "Selecione o que deseja adicionar ao seu Planner"}
+                {step === "success"
+                  ? "Disciplinas mapeadas e prontas para o seu plano"
+                  : step === "input"
+                    ? "Extraia a estrutura de estudos do seu concurso automaticamente"
+                    : "Selecione o que deseja adicionar ao seu Planner"}
               </p>
             </div>
           </div>
@@ -453,9 +476,18 @@ export function ImportEditalModal({
               {activeTab === "career" ? (
                 <div className="pt-2">
                   <StarterEditalSelector
-                    onSuccess={() => {
+                    onSuccess={(data) => {
                       onImportSuccess({ materias: [] });
-                      onClose();
+                      setImportedSummary({
+                        subjectsCount: data?.subjectsCount || 5,
+                        topicsCount: data?.topicsCount || 25,
+                      });
+                      setStep("success");
+                      confetti({
+                        particleCount: 80,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                      });
                     }}
                     compact={true}
                     showCustomLink={false}
@@ -564,7 +596,7 @@ export function ImportEditalModal({
                 />
               )}
             </div>
-          ) : (
+          ) : step === "preview" ? (
             /* PREVIEW STEP */
             <div className="space-y-3">
               {parsedSubjects.map((sub) => {
@@ -684,73 +716,150 @@ export function ImportEditalModal({
                 );
               })}
             </div>
+          ) : (
+            /* ETAPA DE SUCESSO & INTEGRAÇÃO COM PLANNER */
+            <div className="py-8 px-4 flex flex-col items-center text-center space-y-6 max-w-lg mx-auto animate-fade-in">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/10">
+                  <Check size={32} />
+                </div>
+                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center border-2 border-slate-950 text-xs shadow-md">
+                  <Sparkles size={12} className="text-amber-300" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-bold font-mono">
+                  Mapeamento Concluído com Sucesso
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Edital Integrado ao Synapse! 🎉
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md">
+                  Foram cadastradas{" "}
+                  <strong className="text-white font-semibold">
+                    {importedSummary.subjectsCount} disciplinas
+                  </strong>{" "}
+                  e{" "}
+                  <strong className="text-white font-semibold">
+                    {importedSummary.topicsCount} tópicos
+                  </strong>{" "}
+                  no seu plano de estudos.
+                </p>
+              </div>
+
+              {/* Card Destaque: Próximo Passo Recomendado */}
+              <div className="w-full p-4 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900/80 border border-indigo-500/30 text-left space-y-2.5 shadow-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    Próximo Passo Recomendado
+                  </span>
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                    <CalendarDays size={16} className="text-indigo-400" />
+                    <span>Distribuir Matérias no Cronograma Semanal</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
+                    Nosso algoritmo calcula a prioridade e os pesos das disciplinas para montar seu ciclo semanal de estudos automaticamente.
+                  </p>
+                </div>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="w-full space-y-2.5 pt-1">
+                <Link
+                  href="/week"
+                  onClick={() => {
+                    handleClose();
+                  }}
+                  className="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl shadow-indigo-950/70 transition-all cursor-pointer group active:scale-95"
+                >
+                  <CalendarDays size={16} />
+                  <span>Montar Cronograma Semanal Agora</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold border border-white/5 transition-all cursor-pointer"
+                >
+                  Ver Edital Verticalizado
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Rodapé */}
-        <div className="flex items-center justify-between gap-3 px-6 py-4 bg-slate-900/40 border-t border-white/5 shrink-0">
-          <div className="text-xs text-slate-400">
-            {activeTab === "career" && step === "input" && (
-              <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                <Sparkles size={13} className="text-amber-400 shrink-0" />
-                <span>Ative uma carreira acima ou digite seu cargo com IA</span>
-              </span>
-            )}
-          </div>
+        {/* Rodapé (apenas para input e preview) */}
+        {step !== "success" && (
+          <div className="flex items-center justify-between gap-3 px-6 py-4 bg-slate-900/40 border-t border-white/5 shrink-0">
+            <div className="text-xs text-slate-400">
+              {activeTab === "career" && step === "input" && (
+                <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-amber-400 shrink-0" />
+                  <span>Ative uma carreira acima ou digite seu cargo com IA</span>
+                </span>
+              )}
+            </div>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-            >
-              {activeTab === "career" && step === "input" ? "Fechar" : "Cancelar"}
-            </button>
-
-            {step === "input" && activeTab !== "career" && (
+            <div className="flex items-center gap-2.5">
               <button
-                disabled={
-                  isProcessing ||
-                  (activeTab === "file" && !selectedFile) ||
-                  (activeTab === "text" && !rawText.trim())
-                }
-                onClick={handleProcessEdital}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_25px_rgba(99,102,241,0.6)] disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                onClick={handleClose}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
               >
-                {isProcessing ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>Analisando com IA...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={14} />
-                    <span>Analisar Edital com IA</span>
-                  </>
-                )}
+                {activeTab === "career" && step === "input" ? "Fechar" : "Cancelar"}
               </button>
-            )}
 
-            {step === "preview" && (
-              <button
-                disabled={isSaving}
-                onClick={handleConfirmImport}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all cursor-pointer disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>Salvando no Planner...</span>
-                  </>
-                ) : (
-                  <>
-                    <Check size={14} />
-                    <span>Confirmar e Importar</span>
-                  </>
-                )}
-              </button>
-            )}
+              {step === "input" && activeTab !== "career" && (
+                <button
+                  disabled={
+                    isProcessing ||
+                    (activeTab === "file" && !selectedFile) ||
+                    (activeTab === "text" && !rawText.trim())
+                  }
+                  onClick={handleProcessEdital}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_25px_rgba(99,102,241,0.6)] disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Analisando com IA...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      <span>Analisar Edital com IA</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {step === "preview" && (
+                <button
+                  disabled={isSaving}
+                  onClick={handleConfirmImport}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Salvando no Planner...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      <span>Confirmar e Importar</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

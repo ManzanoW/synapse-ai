@@ -23,7 +23,7 @@ import {
 } from "@/actions/edital-templates-actions";
 
 interface StarterEditalSelectorProps {
-  onSuccess?: () => void;
+  onSuccess?: (data?: { subjectsCount?: number; topicsCount?: number }) => void;
   showCustomLink?: boolean;
   compact?: boolean;
 }
@@ -68,7 +68,10 @@ export function StarterEditalSelector({
 
         if (onSuccess) {
           setTimeout(() => {
-            onSuccess();
+            onSuccess({
+              subjectsCount: res.data.subjectsCount,
+              topicsCount: res.data.topicsCount,
+            });
           }, 800);
         } else {
           setTimeout(() => {
@@ -111,7 +114,10 @@ export function StarterEditalSelector({
 
         if (onSuccess) {
           setTimeout(() => {
-            onSuccess();
+            onSuccess({
+              subjectsCount: res.data.subjectsCount,
+              topicsCount: res.data.topicsCount,
+            });
           }, 800);
         } else {
           setTimeout(() => {

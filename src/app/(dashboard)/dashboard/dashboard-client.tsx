@@ -1084,19 +1084,39 @@ export default function DashboardClient({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
-                <span>Status:</span>
-                <span className="inline-flex items-center gap-1.5 font-bold text-indigo-300">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-                  {isLoading
-                    ? "Carregando..."
-                    : !hasEditalSubjects
-                      ? "Não Iniciado"
-                      : stats?.journey?.percentage === 100
-                        ? "Edital Completo"
-                        : "Em Andamento"}
-                </span>
-              </div>
+              {isLoading ? (
+                <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+                  <span>Status:</span>
+                  <div className="h-4 w-20 rounded bg-white/10 animate-pulse" />
+                </div>
+              ) : !hasEditalSubjects ? (
+                <Link
+                  href="/edital?import=true"
+                  className="group/cta flex items-center justify-between rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-3 py-2 text-xs font-semibold text-cyan-300 transition-all hover:scale-[1.02]"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-amber-400" />
+                    <span>Importar com IA</span>
+                  </div>
+                  <ArrowRight size={13} className="transition-transform group-hover/cta:translate-x-1" />
+                </Link>
+              ) : (
+                <Link
+                  href="/edital"
+                  className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400 hover:text-cyan-300 transition-colors group/link"
+                >
+                  <span className="flex items-center gap-1 font-medium">
+                    Ver Edital
+                    <ArrowRight size={12} className="transition-transform group-hover/link:translate-x-1 text-cyan-400" />
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 font-bold text-indigo-300">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
+                    {stats?.journey?.percentage === 100
+                      ? "Edital Completo"
+                      : "Em Andamento"}
+                  </span>
+                </Link>
+              )}
             </div>
           </div>
         </section>
