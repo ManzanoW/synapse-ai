@@ -13,18 +13,18 @@ export function useSoundscape() {
   const [currentSoundscape, setCurrentSoundscape] =
     useState<SoundscapeType>("none");
   const [volume, setVolumeState] = useState<number>(50);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
 
-  // Sincroniza com mute global
+  const isPlaying = !isMuted && currentSoundscape !== "none" && !isPaused;
+
+  // Sincroniza áudio com o engine externo
   useEffect(() => {
-    if (isMuted) {
+    if (isMuted || currentSoundscape === "none" || isPaused) {
       soundscapeEngine.stop();
-      setIsPlaying(false);
-    } else if (currentSoundscape !== "none") {
+    } else {
       soundscapeEngine.play(currentSoundscape);
-      setIsPlaying(true);
     }
-  }, [isMuted, currentSoundscape]);
+  }, [isMuted, currentSoundscape, isPaused]);
 
   // Limpeza ao desmontar o componente
   useEffect(() => {
@@ -38,13 +38,12 @@ export function useSoundscape() {
       if (type === "none" || isMuted) {
         soundscapeEngine.stop();
         setCurrentSoundscape("none");
-        setIsPlaying(false);
+        setIsPaused(false);
         return;
       }
 
       setCurrentSoundscape(type);
-      soundscapeEngine.play(type);
-      setIsPlaying(true);
+      setIsPaused(false);
     },
     [isMuted]
   );
@@ -52,12 +51,11 @@ export function useSoundscape() {
   const togglePlay = useCallback(() => {
     if (isPlaying) {
       soundscapeEngine.stop();
-      setIsPlaying(false);
+      setIsPaused(true);
     } else {
+      setIsPaused(false);
       const target = currentSoundscape === "none" ? "alpha_binaural" : currentSoundscape;
       setCurrentSoundscape(target);
-      soundscapeEngine.play(target);
-      setIsPlaying(true);
     }
   }, [isPlaying, currentSoundscape]);
 

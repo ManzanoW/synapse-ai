@@ -186,6 +186,7 @@ export function QuizResolutionView({
   >({});
   const [isDeepeningLoading, setIsDeepeningLoading] = useState(false);
   const [isMentorOpen, setIsMentorOpen] = useState(false);
+  const [mentorGuidanceMap, setMentorGuidanceMap] = useState<Record<number, any>>({});
   const [isPrintMode, setIsPrintMode] = useState(false);
 
   // Atalho global ⌘J / Ctrl+J para alternar o Mentor IA
@@ -1718,9 +1719,12 @@ export function QuizResolutionView({
           explanation={currentQuestion.justificativa}
           banca={banca}
           subject={subject}
-          mentorGuidance={currentQuestion.mentorGuidance}
+          mentorGuidance={mentorGuidanceMap[activeQuestionIndex] ?? currentQuestion.mentorGuidance}
           onGuidanceGenerated={(newGuidance) => {
-            currentQuestion.mentorGuidance = newGuidance;
+            setMentorGuidanceMap((prev) => ({
+              ...prev,
+              [activeQuestionIndex]: newGuidance,
+            }));
           }}
         />
       )}

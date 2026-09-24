@@ -65,27 +65,6 @@ export function SpeedQuizModal({
     }
   }, [isOpen]);
 
-  // Contagem regressiva de 45s
-  useEffect(() => {
-    if (!isOpen || isCompleted || isAnswered) return;
-
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          // Tempo esgotado para a questão atual
-          handleAnswer(null, true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isOpen, currentIndex, isAnswered, isCompleted]);
-
   const currentQuestion = quizItems[currentIndex];
 
   const getMultiplier = (currentStreak: number) => {
@@ -138,6 +117,27 @@ export function SpeedQuizModal({
       }
     }, 1400);
   };
+
+  // Contagem regressiva de 45s
+  useEffect(() => {
+    if (!isOpen || isCompleted || isAnswered) return;
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          // Tempo esgotado para a questão atual
+          handleAnswer(null, true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isOpen, currentIndex, isAnswered, isCompleted]);
 
   if (!isOpen || quizItems.length === 0) return null;
 

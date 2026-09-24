@@ -273,7 +273,7 @@ export function GoldenVersionSplitView({
                   <AlertCircle size={13} className="text-amber-400" />
                   <span>{lineErrors.length} {lineErrors.length === 1 ? "apontamento formal" : "apontamentos formais"} pela banca</span>
                 </span>
-                <span className="text-[10px] text-slate-500 font-mono">Consulte na aba "Parecer"</span>
+                <span className="text-[10px] text-slate-500 font-mono">Consulte na aba &quot;Parecer&quot;</span>
               </div>
             )}
           </div>

@@ -244,6 +244,32 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
     });
   };
 
+  const allSubjects = data?.subjectStats || [];
+  const activeSubjectsCount = allSubjects.filter(
+    (s) => s.hasActivity && s.accuracy !== null,
+  ).length;
+  const criticalSubjectsCount = allSubjects.filter(
+    (s) => s.hasActivity && s.accuracy !== null && s.accuracy < 60,
+  ).length;
+  const pendingSubjectsCount = allSubjects.filter(
+    (s) => !s.hasActivity || s.accuracy === null,
+  ).length;
+
+  const filteredSubjects = useMemo(() => {
+    return allSubjects.filter((s) => {
+      if (subjectSearch.trim()) {
+        const q = subjectSearch.toLowerCase();
+        if (!s.subject.toLowerCase().includes(q)) return false;
+      }
+      if (subjectFilter === "active") return s.hasActivity && s.accuracy !== null;
+      if (subjectFilter === "critical")
+        return s.hasActivity && s.accuracy !== null && s.accuracy < 60;
+      if (subjectFilter === "pending")
+        return !s.hasActivity || s.accuracy === null;
+      return true;
+    });
+  }, [allSubjects, subjectSearch, subjectFilter]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#02050e] text-slate-100 flex flex-col items-center justify-center gap-3">
@@ -292,32 +318,6 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
   const mastery = data.metrics.cognitiveMastery;
   const fsrsMaturity = data.metrics.fsrsMaturity;
   const retentionStatus = data.metrics.retentionStatus;
-
-  const allSubjects = data.subjectStats || [];
-  const activeSubjectsCount = allSubjects.filter(
-    (s) => s.hasActivity && s.accuracy !== null,
-  ).length;
-  const criticalSubjectsCount = allSubjects.filter(
-    (s) => s.hasActivity && s.accuracy !== null && s.accuracy < 60,
-  ).length;
-  const pendingSubjectsCount = allSubjects.filter(
-    (s) => !s.hasActivity || s.accuracy === null,
-  ).length;
-
-  const filteredSubjects = useMemo(() => {
-    return allSubjects.filter((s) => {
-      if (subjectSearch.trim()) {
-        const q = subjectSearch.toLowerCase();
-        if (!s.subject.toLowerCase().includes(q)) return false;
-      }
-      if (subjectFilter === "active") return s.hasActivity && s.accuracy !== null;
-      if (subjectFilter === "critical")
-        return s.hasActivity && s.accuracy !== null && s.accuracy < 60;
-      if (subjectFilter === "pending")
-        return !s.hasActivity || s.accuracy === null;
-      return true;
-    });
-  }, [allSubjects, subjectSearch, subjectFilter]);
 
   return (
     <div className="relative min-h-screen bg-[#02050e] text-slate-100 p-4 md:p-8 font-sans antialiased selection:bg-indigo-500/30 overflow-hidden">

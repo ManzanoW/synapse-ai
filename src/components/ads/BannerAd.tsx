@@ -24,11 +24,10 @@ export function BannerAd({
   const adRef = useRef<HTMLModElement | null>(null);
   const isPushedRef = useRef(false);
 
-  // Usuários Pro são 100% livres de anúncios
-  if (isUserPro) return null;
-  if (!config.enabled) return null;
+  const shouldRenderAd = !isUserPro && config.enabled;
 
   useEffect(() => {
+    if (!shouldRenderAd) return;
     if (config.provider === "GOOGLE_ADSENSE" && config.adSenseClientId && slotId) {
       loadGoogleAdSenseSdk().then((loaded) => {
         if (loaded && !isPushedRef.current && window.adsbygoogle) {
@@ -41,7 +40,10 @@ export function BannerAd({
         }
       });
     }
-  }, [config.provider, config.adSenseClientId, slotId]);
+  }, [shouldRenderAd, config.provider, config.adSenseClientId, slotId]);
+
+  // Usuários Pro ou anúncios desativados
+  if (!shouldRenderAd) return null;
 
   // Se Google AdSense estiver ativo com slot configurado
   if (config.provider === "GOOGLE_ADSENSE" && config.adSenseClientId && slotId) {

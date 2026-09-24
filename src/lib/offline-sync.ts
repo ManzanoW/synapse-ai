@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import { reviewFlashcardAction, ReviewFlashcardInput } from "@/actions/flashcard-actions";
 
 const STORAGE_KEY = "synapse_offline_reviews_queue";
@@ -97,8 +97,26 @@ export async function flushOfflineReviews(): Promise<{
   return { syncedCount: synced, remainingCount: remaining.length };
 }
 
+function subscribeOnline(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
+  return () => {
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
+  };
+}
+
+function getOnlineSnapshot() {
+  return typeof navigator !== "undefined" ? navigator.onLine : true;
+}
+
+function getServerSnapshot() {
+  return true;
+}
+
 export function useOfflineSync() {
-  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const isOnline = useSyncExternalStore(subscribeOnline, getOnlineSnapshot, getServerSnapshot);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
@@ -107,7 +125,8 @@ export function useOfflineSync() {
   }, []);
 
   const triggerSync = useCallback(async () => {
-    if (!navigator.onLine || isSyncing) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+    if (isSyncing) return;
     setIsSyncing(true);
     try {
       const result = await flushOfflineReviews();
@@ -118,34 +137,12 @@ export function useOfflineSync() {
   }, [isSyncing]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    setIsOnline(navigator.onLine);
     refreshPendingCount();
 
-    const handleOnline = () => {
-      setIsOnline(true);
-      triggerSync();
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      refreshPendingCount();
-    };
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    // Tenta sincronizar na inicialização se estiver online
-    if (navigator.onLine) {
+    if (isOnline) {
       triggerSync();
     }
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, [triggerSync, refreshPendingCount]);
+  }, [isOnline, triggerSync, refreshPendingCount]);
 
   return {
     isOnline,
