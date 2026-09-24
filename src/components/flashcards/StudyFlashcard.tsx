@@ -602,7 +602,7 @@ export default function StudyFlashcard({
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onClick={handleCardClick}
-              className="relative w-full min-h-[420px] sm:min-h-[480px] md:min-h-[520px] mb-5 cursor-grab active:cursor-grabbing group flex flex-col select-none touch-none"
+              className="relative w-full min-h-[350px] sm:min-h-[440px] md:min-h-[500px] mb-4 sm:mb-5 cursor-grab active:cursor-grabbing group flex flex-col select-none touch-none"
             >
               {/* BADGE ERREI: Arrasto para a esquerda (< 0px) -> Grade 1 */}
               <motion.div
@@ -641,7 +641,7 @@ export default function StudyFlashcard({
               >
                 {/* FRENTE DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors duration-300 border-t-indigo-400/40"
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors duration-300 border-t-indigo-400/40"
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",
@@ -807,7 +807,7 @@ export default function StudyFlashcard({
 
                 {/* VERSO DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",

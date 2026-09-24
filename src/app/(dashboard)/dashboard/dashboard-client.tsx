@@ -792,9 +792,9 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* ================= ATALHOS RÁPIDOS ================= */}
+        {/* ================= ATALHOS RÁPIDOS (2x2 no mobile, 4 colunas no desktop) ================= */}
         {visibleCards.quickActions && (
-          <div className="hidden md:grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
             {[
               {
                 title: "Resolver Questões",

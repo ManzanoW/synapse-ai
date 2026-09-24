@@ -113,7 +113,7 @@ export function OpticalAnswerSheetModal({
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.22, ease: "easeOut" }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border border-indigo-500/30 bg-[#090d18] shadow-2xl shadow-indigo-950/40 overflow-hidden font-sans"
+          className="relative w-full max-w-4xl max-h-[calc(100dvh-2rem)] flex flex-col rounded-3xl border border-indigo-500/30 bg-[#090d18] shadow-2xl shadow-indigo-950/40 overflow-hidden font-sans"
         >
           {/* TOPO: CABEÇALHO OFICIAL DO CARTÃO-RESPOSTA */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-indigo-500/20 bg-linear-to-r from-indigo-950/40 via-slate-900/60 to-slate-950/80 p-4 sm:p-6">
@@ -196,7 +196,7 @@ export function OpticalAnswerSheetModal({
           </div>
 
           {/* ÁREA CENTRAL: GRADE DAS BOLINHAS DE GABARITO (ESTILO CONCURSO REAL) */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 custom-scrollbar max-h-[58vh]">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 custom-scrollbar max-h-[55dvh] overscroll-contain">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {questions.map((q, idx) => {
                 const isAnswered = checkedQuestions[idx];
@@ -294,7 +294,7 @@ export function OpticalAnswerSheetModal({
           </div>
 
           {/* RODAPÉ DO MODAL */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 bg-slate-950/80 p-3 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 bg-slate-950/80 p-3 sm:px-6 pb-[max(env(safe-area-inset-bottom),12px)] sm:pb-3">
             <div className="flex items-center gap-2 text-xs text-slate-400">
               <Sparkles size={13} className="text-amber-400" />
               <span>Clique no número da questão para navegar ou preencha as bolinhas diretamente.</span>

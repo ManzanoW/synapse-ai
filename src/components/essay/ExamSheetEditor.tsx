@@ -209,7 +209,7 @@ export function ExamSheetEditor({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Botão Ver Textos Motivadores */}
           <button
             type="button"
@@ -280,7 +280,7 @@ export function ExamSheetEditor({
             type="button"
             onClick={handleOpenSubmitModal}
             disabled={isEvaluating}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-violet-950/60 transition-all cursor-pointer active:scale-95 ml-2"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 sm:py-1.5 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-violet-950/60 transition-all cursor-pointer active:scale-95 sm:ml-2"
           >
             {isEvaluating ? (
               <>
@@ -451,7 +451,7 @@ export function ExamSheetEditor({
               onChange={(e) => setContent(e.target.value)}
               placeholder="Inicie sua redação aqui. Use o botão '⇥ Parágrafo' ou pressione espaço para dar o recuo obrigatório de início de parágrafo..."
               rows={Math.max(30, lineCount)}
-              className="relative w-full h-full bg-transparent text-slate-100 text-[14px] sm:text-[14.5px] font-serif leading-[34px] px-3 sm:px-4 py-3 resize-none focus:outline-hidden placeholder:text-slate-600 placeholder:font-sans placeholder:text-xs z-10 break-words whitespace-pre-wrap overflow-x-hidden"
+              className="relative w-full h-full bg-transparent text-slate-100 text-[16px] sm:text-[14.5px] font-serif leading-[34px] px-3 sm:px-4 py-3 resize-none focus:outline-hidden placeholder:text-slate-600 placeholder:font-sans placeholder:text-xs z-10 break-words whitespace-pre-wrap overflow-x-hidden"
               style={{
                 lineHeight: "34px",
                 caretColor: "#818cf8",

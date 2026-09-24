@@ -84,7 +84,7 @@ export function GenerateAIModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-[#090d16] border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl p-5 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 custom-scrollbar">
+      <div className="bg-[#090d16] border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl p-5 sm:p-6 pb-[max(env(safe-area-inset-bottom),20px)] sm:pb-6 space-y-4 sm:space-y-5 shadow-2xl relative max-h-[88dvh] overflow-y-auto overscroll-contain animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 custom-scrollbar">
         {/* Handle visual no celular */}
         <div className="w-full flex justify-center pt-1 pb-2 sm:hidden">
           <div className="w-12 h-1.5 rounded-full bg-slate-700/80" />
