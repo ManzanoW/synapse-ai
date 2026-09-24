@@ -110,10 +110,7 @@ export function FlashcardsHeroActions({
             className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-950/70 via-teal-950/60 to-emerald-950/70 hover:from-emerald-900/80 hover:to-teal-900/80 text-emerald-200 border border-emerald-500/40 hover:border-emerald-400 text-xs font-semibold px-4 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-sm"
           >
             <FileUp size={14} className="text-emerald-400" />
-            <span>Importar PDF com IA</span>
-            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/30 text-emerald-200">
-              0 TOKENS
-            </span>
+            <span>Importar PDF</span>
           </button>
 
           {/* Botão Extrator Turbo por IA */}
@@ -123,10 +120,7 @@ export function FlashcardsHeroActions({
             className="inline-flex items-center justify-center gap-2 bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-200 border border-indigo-500/40 text-xs font-semibold px-4 py-2.5 rounded-xl transition-all hover:border-indigo-400 active:scale-95 cursor-pointer shadow-sm"
           >
             <Sparkles size={14} className="text-indigo-400" />
-            <span>Extrator Turbo IA</span>
-            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-indigo-500/30 text-indigo-200">
-              NOVO
-            </span>
+            <span>Extrator de Conteúdo</span>
           </button>
 
           {/* Botão Synapse Audio Hands-Free */}

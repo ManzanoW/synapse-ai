@@ -728,7 +728,7 @@ export default function TimedQuizPage() {
             <p className="text-sm font-bold text-violet-200">
               Carregando caderno para o modo cronometrado...
             </p>
-            <p className="text-xs text-slate-400">Zero tokens consumidos • Início instantâneo</p>
+            <p className="text-xs text-slate-400">Preparando ambiente de prova...</p>
           </div>
         ) : (
         <div className="max-w-3xl mx-auto space-y-6 pt-4 pb-16">

@@ -181,18 +181,13 @@ export function MentorCopilotDrawer({
           </div>
 
           {/* BANNER DE CONTEXTO DA QUESTÃO */}
-          <div className="mt-3.5 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-400 block">
-                {typeof questionIndex === "number" ? `Questão ${questionIndex + 1}` : "Questão Atual"} • {banca}
-              </span>
-              <p className="text-slate-300 text-[11px] font-medium truncate mt-0.5">
-                {subject}
-              </p>
-            </div>
-            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md font-mono shrink-0">
-              {initialGuidance ? "0ms Instantâneo" : "IA Sob Demanda"}
+          <div className="mt-3.5 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-400 block">
+              {typeof questionIndex === "number" ? `Questão ${questionIndex + 1}` : "Questão Atual"} • {banca}
             </span>
+            <p className="text-slate-300 text-[11px] font-medium truncate mt-0.5">
+              {subject}
+            </p>
           </div>
 
           {/* TABS SELECTOR */}
@@ -453,8 +448,8 @@ export function MentorCopilotDrawer({
 
         {/* FOOTER DO DRAWER */}
         <div className="p-4 border-t border-white/10 bg-[#0c1020]/90 backdrop-blur-md flex items-center justify-between text-xs text-slate-400 relative z-10">
-          <span className="font-mono text-[11px]">
-            Synapse Copilot • 0 requisições extras
+          <span className="text-[11px] text-slate-500 font-medium">
+            Synapse Copilot • Mentor Cognitivo
           </span>
           <button
             type="button"

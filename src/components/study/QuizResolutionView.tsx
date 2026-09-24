@@ -1095,9 +1095,6 @@ export function QuizResolutionView({
                           className={feedbackTab === "DISTRATORES" ? "text-violet-300" : "text-slate-400"}
                         />
                         <span>Dissecação das Alternativas</span>
-                        <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-violet-500/20 text-violet-300 border border-violet-500/30 font-black">
-                          IA
-                        </span>
                       </button>
 
                       <button

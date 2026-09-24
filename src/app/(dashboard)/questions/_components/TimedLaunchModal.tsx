@@ -97,7 +97,7 @@ export function TimedLaunchModal({
 
           <p className="text-xs text-slate-300 relative z-10 -mt-2 leading-relaxed">
             Selecione uma base de questões para treinar com Pacing Bar e HUD de
-            prova real. Zero espera e zero consumo de tokens.
+            prova real em alta intensidade.
           </p>
 
           <div className="space-y-4 overflow-y-auto pr-1 flex-1 relative z-10">
@@ -194,7 +194,7 @@ export function TimedLaunchModal({
                   </p>
                   <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
                     Gere seu primeiro caderno na aba &quot;Início&quot; para
-                    desbloquear o modo cronometrado com zero tokens.
+                    desbloquear o modo cronometrado.
                   </p>
                 </div>
               ) : filteredQuizzes.length === 0 ? (
