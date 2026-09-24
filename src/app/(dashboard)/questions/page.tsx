@@ -1069,10 +1069,16 @@ export default function QuestoesPage() {
     }
   };
 
-  const handleSimuladoModalComplete = () => {
-    if (pendingSimuladoData) {
+  const handleSimuladoModalComplete = useCallback(() => {
+    setIsSimuladoModalOpen(false);
+
+    if (
+      pendingSimuladoData?.questions &&
+      Array.isArray(pendingSimuladoData.questions) &&
+      pendingSimuladoData.questions.length > 0
+    ) {
       setQuestions(pendingSimuladoData.questions);
-      setCurrentQuizId(pendingSimuladoData.quizId);
+      setCurrentQuizId(pendingSimuladoData.quizId || null);
       setSelectedAnswers({});
       setCheckedQuestions({});
       setFlaggedQuestions({});
@@ -1082,7 +1088,7 @@ export default function QuestoesPage() {
       setTimerSeconds(0);
       setFocusedQuestionIndex(0); // Transição direta para a 1ª questão
       setIsTimerRunning(true);
-      setIsSimuladoModalOpen(false);
+      setActiveTab("create");
       setPendingSimuladoData(null);
 
       if (pendingLaunchSpeedQuiz) {
@@ -1097,7 +1103,7 @@ export default function QuestoesPage() {
           ?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 150);
     }
-  };
+  }, [pendingSimuladoData, pendingLaunchSpeedQuiz]);
 
   const handleLoadSavedQuiz = useCallback(
     (savedQ: QuestaoIA[], savedBanca: string, id: string) => {
@@ -1173,9 +1179,25 @@ export default function QuestoesPage() {
         // Notifica em tempo real a Sidebar e os badges de cota
         triggerAiQuotaRefresh();
 
+        const questionsList: QuestaoIA[] = Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.questions)
+          ? data.questions
+          : Array.isArray(data.data?.questions)
+          ? data.data.questions
+          : [];
+
+        if (questionsList.length === 0) {
+          throw new Error(
+            data.error || "Nenhuma questão foi retornada pela IA.",
+          );
+        }
+
+        const quizId = data.id || data.quizId || data.simuladoId || null;
+
         setPendingSimuladoData({
-          questions: data.data.questions,
-          quizId: data.data.quizId || null,
+          questions: questionsList,
+          quizId: quizId,
         });
       } catch (err: any) {
         console.error("Erro na geração rápida:", err);

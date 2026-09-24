@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
-import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle, Crown, Gift } from "lucide-react";
+import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle, Crown, Gift, ArrowRight } from "lucide-react";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 
@@ -71,10 +71,20 @@ export function SimuladoGenerationModal({
   const [targetProgress, setTargetProgress] = useState(0);
   const [hasTriggeredComplete, setHasTriggeredComplete] = useState(false);
 
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const hasTriggeredRef = useRef(false);
+
+  const triggerCompletion = () => {
+    if (hasTriggeredRef.current) return;
+    hasTriggeredRef.current = true;
+    setHasTriggeredComplete(true);
+    onCompleteRef.current?.();
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
-
 
   // Mola para animação suave do percentual (spring physics)
   const springProgress = useSpring(0, {
@@ -98,6 +108,7 @@ export function SimuladoGenerationModal({
     if (!isOpen) {
       setTargetProgress(0);
       springProgress.set(0);
+      hasTriggeredRef.current = false;
       setHasTriggeredComplete(false);
       return;
     }
@@ -109,6 +120,8 @@ export function SimuladoGenerationModal({
     let intervalId: NodeJS.Timeout;
 
     if (isGenerating) {
+      hasTriggeredRef.current = false;
+      setHasTriggeredComplete(false);
       // Inicia progressão suave até ~90% enquanto aguarda a API
       intervalId = setInterval(() => {
         setTargetProgress((current) => {
@@ -127,6 +140,7 @@ export function SimuladoGenerationModal({
     } else {
       // Concluiu: pula direto para 100%
       setTargetProgress(100);
+      springProgress.set(100);
     }
 
     return () => {
@@ -139,16 +153,21 @@ export function SimuladoGenerationModal({
     springProgress.set(targetProgress);
   }, [targetProgress, springProgress]);
 
-  // Ao atingir 100%, aguarda um breve instante para o usuário ver o sucesso e dispara a transição
+  // Quando a geração termina com sucesso, agenda a transição sem depender de displayValue (evita cancelamento da mola)
   useEffect(() => {
-    if (!isGenerating && displayValue >= 98 && !hasTriggeredComplete && !error) {
-      setHasTriggeredComplete(true);
-      const timer = setTimeout(() => {
-        if (onComplete) onComplete();
-      }, 500);
-      return () => clearTimeout(timer);
+    if (!isOpen || isGenerating || error || hasTriggeredRef.current) {
+      return;
     }
-  }, [isGenerating, displayValue, hasTriggeredComplete, onComplete, error]);
+
+    setTargetProgress(100);
+    springProgress.set(100);
+
+    const timer = setTimeout(() => {
+      triggerCompletion();
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [isOpen, isGenerating, error, springProgress]);
 
   // Determina a etapa textual atual com base no progresso visual
   const currentPhase = useMemo(() => {
@@ -340,6 +359,20 @@ export function SimuladoGenerationModal({
                   </p>
                 </motion.div>
               </AnimatePresence>
+            </div>
+          )}
+
+          {/* Botão de ação imediata ao concluir */}
+          {!error && !isGenerating && (
+            <div className="pt-1 flex justify-center relative z-10 animate-in fade-in duration-300">
+              <button
+                type="button"
+                onClick={() => triggerCompletion()}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-950/60 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+              >
+                <span>Acessar Simulado Agora</span>
+                <ArrowRight size={14} />
+              </button>
             </div>
           )}
 

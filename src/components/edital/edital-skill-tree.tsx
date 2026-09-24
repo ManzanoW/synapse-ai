@@ -831,7 +831,11 @@ export function EditalSkillTree({
                 {/* Ações Táticas Rápidas para o Nó */}
                 <div className="space-y-2 pt-2 relative z-10">
                   <Link
-                    href="/questions"
+                    href={
+                      selectedTopic.subjectId
+                        ? `/questions?subjectId=${encodeURIComponent(selectedTopic.subjectId)}&topicId=${encodeURIComponent(selectedTopic.id)}`
+                        : "/questions"
+                    }
                     onClick={() => setSelectedTopic(null)}
                     className="w-full py-3 px-4 rounded-xl text-white text-xs font-bold transition-all shadow-md flex items-center justify-between cursor-pointer active:scale-95 group"
                     style={{
