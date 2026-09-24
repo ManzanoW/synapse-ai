@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import JurisprudenciaClient from "./jurisprudencia-client";
-import { CURATED_JURISPRUDENCE } from "@/actions/jurisprudence-actions";
+import { CURATED_JURISPRUDENCE } from "@/lib/jurisprudence-data";
 
 export const metadata: Metadata = {
   title: "Raio-X de Jurisprudência & Súmulas | Synapse AI",

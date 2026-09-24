@@ -23,8 +23,10 @@ import {
 import Link from "next/link";
 import confetti from "canvas-confetti";
 import {
-  JurisprudenceItem,
+  type JurisprudenceItem,
   CURATED_JURISPRUDENCE,
+} from "@/lib/jurisprudence-data";
+import {
   searchJurisprudenceAction,
   createJurisprudenceFlashcardAction,
 } from "@/actions/jurisprudence-actions";
