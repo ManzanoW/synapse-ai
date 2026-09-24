@@ -81,6 +81,7 @@ export function SpeedQuizModal({
 
     const isCorrect = !isTimeout && altId === currentQuestion?.gabaritoCorreto;
 
+    let questionXp = 0;
     if (isCorrect) {
       const newStreak = streak + 1;
       setStreak(newStreak);
@@ -88,13 +89,13 @@ export function SpeedQuizModal({
       setCorrectCount((prev) => prev + 1);
 
       const multiplier = getMultiplier(newStreak);
-      const questionXp = Math.round(30 * multiplier);
+      questionXp = Math.round(30 * multiplier);
       setEarnedXp((prev) => prev + questionXp);
     } else {
       setStreak(0);
     }
 
-    // Avança automaticamente após 1.5s
+    // Avança automaticamente após 1.4s
     setTimeout(() => {
       if (currentIndex + 1 < quizItems.length) {
         setCurrentIndex((prev) => prev + 1);
@@ -103,7 +104,20 @@ export function SpeedQuizModal({
         setIsAnswered(false);
       } else {
         setIsCompleted(true);
-        if (isCorrect || correctCount >= 3) {
+        const finalXp = earnedXp + questionXp;
+        const finalCorrect = isCorrect ? correctCount + 1 : correctCount;
+
+        if (finalXp > 0 && typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("xp-updated", {
+              detail: {
+                earnedXp: finalXp,
+              },
+            })
+          );
+        }
+
+        if (isCorrect || finalCorrect >= 3) {
           confetti({
             particleCount: 80,
             spread: 70,
@@ -111,8 +125,8 @@ export function SpeedQuizModal({
           });
         }
         onFinish?.({
-          correctCount: isCorrect ? correctCount + 1 : correctCount,
-          totalXp: earnedXp,
+          correctCount: finalCorrect,
+          totalXp: finalXp,
         });
       }
     }, 1400);
@@ -156,7 +170,7 @@ export function SpeedQuizModal({
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.2 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-xl rounded-3xl border border-amber-500/40 bg-[#090c16] shadow-2xl shadow-amber-950/30 overflow-hidden font-sans flex flex-col"
+          className="relative w-full max-w-xl max-h-[calc(100dvh-2rem)] rounded-3xl border border-amber-500/40 bg-[#090c16] shadow-2xl shadow-amber-950/30 overflow-hidden font-sans flex flex-col"
         >
           {/* HEADER DO SPEED QUIZ */}
           <div className="flex items-center justify-between border-b border-amber-500/20 bg-linear-to-r from-amber-950/40 via-orange-950/30 to-slate-950 p-4 sm:p-5">
@@ -227,7 +241,7 @@ export function SpeedQuizModal({
               </div>
 
               {/* CONTEÚDO DA QUESTÃO */}
-              <div className="p-4 sm:p-6 space-y-4">
+              <div className="p-4 sm:p-6 space-y-4 overflow-y-auto overscroll-contain max-h-[60dvh] custom-scrollbar">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-mono text-zinc-400">Tempo restante:</span>
                   <span

@@ -13,6 +13,7 @@ import {
   ChevronUp,
   Timer,
   FileSpreadsheet,
+  Zap,
 } from "lucide-react";
 
 interface FloatingTimerProps {
@@ -24,6 +25,7 @@ interface FloatingTimerProps {
   onToggleTimer: () => void;
   totalTimeLimitSeconds?: number;
   onOpenOpticalSheet?: () => void;
+  onOpenSpeedQuiz?: () => void;
 }
 
 export function FloatingTimer({
@@ -35,6 +37,7 @@ export function FloatingTimer({
   onToggleTimer,
   totalTimeLimitSeconds,
   onOpenOpticalSheet,
+  onOpenSpeedQuiz,
 }: FloatingTimerProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -148,6 +151,17 @@ export function FloatingTimer({
                 title="Abrir Folha Óptica de Respostas (Cartão-Resposta)"
               >
                 <FileSpreadsheet size={13} />
+              </button>
+            )}
+
+            {onOpenSpeedQuiz && (
+              <button
+                onClick={onOpenSpeedQuiz}
+                type="button"
+                className="p-1 hover:bg-amber-500/20 rounded-md text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+                title="Desafio Relâmpago 45s (Speed Quiz)"
+              >
+                <Zap size={13} className="fill-amber-400" />
               </button>
             )}
 

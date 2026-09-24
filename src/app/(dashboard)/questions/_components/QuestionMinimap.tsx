@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Zap } from "lucide-react";
 import { QuestaoIA } from "../page";
 
 interface QuestionMinimapProps {
@@ -12,6 +12,7 @@ interface QuestionMinimapProps {
   focusedIndex: number;
   onSelectQuestion: (index: number) => void;
   onOpenOpticalSheet?: () => void;
+  onOpenSpeedQuiz?: () => void;
 }
 
 export function QuestionMinimap({
@@ -22,6 +23,7 @@ export function QuestionMinimap({
   focusedIndex,
   onSelectQuestion,
   onOpenOpticalSheet,
+  onOpenSpeedQuiz,
 }: QuestionMinimapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLButtonElement>(null);
@@ -48,6 +50,18 @@ export function QuestionMinimap({
           >
             <FileSpreadsheet size={14} className="text-indigo-400" />
             <span className="hidden sm:inline text-[11px]">Folha Óptica</span>
+          </button>
+        )}
+
+        {onOpenSpeedQuiz && (
+          <button
+            type="button"
+            onClick={onOpenSpeedQuiz}
+            className="shrink-0 px-2 sm:px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-xs"
+            title="Desafio Relâmpago 45s (Speed Quiz)"
+          >
+            <Zap size={14} className="text-amber-400 fill-amber-400" />
+            <span className="hidden sm:inline text-[11px]">Speed Quiz</span>
           </button>
         )}
 

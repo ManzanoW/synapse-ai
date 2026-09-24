@@ -323,6 +323,7 @@ export default function QuestoesPage() {
   const [isOpticalSheetOpen, setIsOpticalSheetOpen] = useState(false);
   // Modal de Desafio Relâmpago 45s (Speed Quiz)
   const [isSpeedQuizOpen, setIsSpeedQuizOpen] = useState(false);
+  const [pendingLaunchSpeedQuiz, setPendingLaunchSpeedQuiz] = useState(false);
 
   // Modal de Feedback Visual Premium de Geração com IA
   const [isSimuladoModalOpen, setIsSimuladoModalOpen] = useState(false);
@@ -488,6 +489,15 @@ export default function QuestoesPage() {
     const paramTopicId = searchParams.get("topicId");
     const paramSubjectId = searchParams.get("subjectId");
     const paramQuizId = searchParams.get("quizId");
+    const paramMode = searchParams.get("mode");
+
+    if (paramMode === "speed") {
+      queueMicrotask(() => {
+        setPendingLaunchSpeedQuiz(true);
+        handleQuickQuiz({ qtd: 5 });
+      });
+      return;
+    }
 
     if (paramQuizId) {
       fetch(`/api/questions/${paramQuizId}`)
@@ -1065,6 +1075,11 @@ export default function QuestoesPage() {
       setIsSimuladoModalOpen(false);
       setPendingSimuladoData(null);
 
+      if (pendingLaunchSpeedQuiz) {
+        setPendingLaunchSpeedQuiz(false);
+        setIsSpeedQuizOpen(true);
+      }
+
       // Rola suavemente até o primeiro card de questão
       setTimeout(() => {
         document
@@ -1521,6 +1536,7 @@ export default function QuestoesPage() {
           isRunning={isTimerRunning}
           onToggleTimer={() => setIsTimerRunning((prev) => !prev)}
           onOpenOpticalSheet={() => setIsOpticalSheetOpen(true)}
+          onOpenSpeedQuiz={() => setIsSpeedQuizOpen(true)}
         />
       )}
 
@@ -1566,8 +1582,8 @@ export default function QuestoesPage() {
                   if (questions.length >= 5) {
                     setIsSpeedQuizOpen(true);
                   } else {
+                    setPendingLaunchSpeedQuiz(true);
                     handleQuickQuiz({ qtd: 5 });
-                    setTimeout(() => setIsSpeedQuizOpen(true), 800);
                   }
                 }}
                 className="w-full sm:w-auto justify-center bg-amber-500/15 border border-amber-500/40 hover:bg-amber-500/25 text-amber-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-amber-500/10 active:scale-95"
@@ -2359,6 +2375,7 @@ export default function QuestoesPage() {
           flaggedQuestions={flaggedQuestions}
           focusedIndex={focusedQuestionIndex}
           onOpenOpticalSheet={() => setIsOpticalSheetOpen(true)}
+          onOpenSpeedQuiz={() => setIsSpeedQuizOpen(true)}
           onSelectQuestion={(idx) => {
             setFocusedQuestionIndex(idx);
             document
