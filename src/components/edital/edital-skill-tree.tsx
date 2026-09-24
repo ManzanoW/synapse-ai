@@ -166,6 +166,205 @@ function getTopicMastery(t: SkillTreeTopic): TopicMasteryInfo {
   };
 }
 
+function hexToRgba(hex?: string | null, alpha = 1): string {
+  if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
+    return `rgba(99, 102, 241, ${alpha})`;
+  }
+  let clean = hex.slice(1);
+  if (clean.length === 3) {
+    clean = clean.split("").map((c) => c + c).join("");
+  }
+  if (clean.length !== 6) {
+    return `rgba(99, 102, 241, ${alpha})`;
+  }
+  const num = parseInt(clean, 16);
+  if (isNaN(num)) {
+    return `rgba(99, 102, 241, ${alpha})`;
+  }
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+interface SkillTreeTopicCardProps {
+  topic: SkillTreeTopic;
+  subColor: string;
+  isSelected: boolean;
+  isPro: boolean;
+  onSelect: () => void;
+  onOpenProIncidence: () => void;
+  index: number;
+}
+
+function SkillTreeTopicCard({
+  topic,
+  subColor,
+  isSelected,
+  isPro,
+  onSelect,
+  onOpenProIncidence,
+  index,
+}: SkillTreeTopicCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const mastery = getTopicMastery(topic);
+  const inc = getTopicIncidence(topic, index);
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={onSelect}
+      className="p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer relative overflow-hidden flex flex-col justify-between group"
+      style={{
+        borderColor: isSelected
+          ? subColor
+          : isHovered
+          ? hexToRgba(subColor, 0.75)
+          : "rgba(30, 41, 59, 0.8)",
+        backgroundColor: isSelected
+          ? "rgba(15, 23, 42, 0.95)"
+          : isHovered
+          ? "rgba(15, 23, 42, 0.85)"
+          : "rgba(2, 6, 23, 0.6)",
+        boxShadow: isSelected
+          ? `0 0 20px ${hexToRgba(subColor, 0.4)}`
+          : isHovered
+          ? `0 8px 24px -4px ${hexToRgba(subColor, 0.25)}, 0 0 12px ${hexToRgba(subColor, 0.15)}`
+          : undefined,
+      }}
+    >
+      {/* Brilho suave da cor da matéria ao passar o mouse */}
+      <div
+        className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+        style={{
+          backgroundColor: subColor,
+          opacity: isSelected ? 0.12 : isHovered ? 0.08 : 0,
+        }}
+      />
+
+      {/* Alerta de Ebbinghaus (Borda pulsante âmbar) */}
+      {mastery.isDecaying && (
+        <div className="absolute inset-0 rounded-2xl border-2 border-amber-400/80 animate-pulse pointer-events-none" />
+      )}
+
+      {/* Topo do Nó: Nível RPG + % de Domínio */}
+      <div className="flex items-center justify-between gap-2 mb-3 relative z-10">
+        <div className="flex items-center gap-1.5">
+          {mastery.tier === "DIAMOND" && (
+            <Crown size={14} className="text-cyan-400 fill-cyan-400/20" />
+          )}
+          {mastery.tier === "GOLD" && (
+            <Trophy size={14} className="text-amber-400 fill-amber-400/20" />
+          )}
+          {mastery.tier === "SILVER" && (
+            <Shield size={14} className="text-slate-300 fill-slate-300/20" />
+          )}
+          {mastery.tier === "BRONZE" && (
+            <Shield size={14} className="text-orange-500 fill-orange-500/20" />
+          )}
+          {mastery.tier === "LOCKED" && (
+            <Lock size={13} className="text-slate-500" />
+          )}
+          <span
+            className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${mastery.badgeColor}`}
+          >
+            {mastery.label.split("•")[0]}
+          </span>
+        </div>
+
+        <span
+          className="font-mono text-xs font-bold transition-colors duration-200"
+          style={{
+            color: isHovered || isSelected ? subColor : "rgb(203, 213, 225)",
+          }}
+        >
+          {topic.performance || 0}%
+        </span>
+      </div>
+
+      {/* Título do Tópico */}
+      <div className="space-y-1.5 mb-3 relative z-10">
+        <h4
+          className="text-xs font-bold transition-colors duration-200 line-clamp-2"
+          style={{
+            color: isHovered || isSelected ? subColor : "#ffffff",
+          }}
+        >
+          {topic.title}
+        </h4>
+
+        {/* Raio-X de Incidência da Banca */}
+        <div className="pt-0.5">
+          {isPro ? (
+            <span
+              className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+                inc.level === "HIGH"
+                  ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                  : inc.level === "MEDIUM"
+                  ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                  : "bg-cyan-500/10 text-cyan-300 border-cyan-500/20"
+              }`}
+            >
+              {inc.level === "HIGH" && <Flame size={10} className="text-rose-400" />}
+              {inc.level === "MEDIUM" && <Zap size={10} className="text-amber-400" />}
+              <span>{inc.label}</span>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenProIncidence();
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-800/90 hover:bg-amber-500/10 text-amber-300/80 hover:text-amber-200 border border-amber-500/30 hover:border-amber-400 transition-all cursor-pointer"
+              title="Raio-X de Incidência da Banca (Exclusivo Synapse Pro)"
+            >
+              <Lock size={9} className="text-amber-400" />
+              <span>Raio-X Banca</span>
+              <Crown size={9} className="text-amber-400 fill-amber-400" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Rodapé do Nó: Status e Declínio */}
+      <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] relative z-10">
+        {mastery.isDecaying ? (
+          <span className="text-amber-400 font-bold flex items-center gap-1">
+            <Clock size={11} />
+            Revisar Urgente
+          </span>
+        ) : topic.firstStudy && topic.firstStudy !== "Pendente" ? (
+          <span className="text-emerald-400 font-medium flex items-center gap-1">
+            <Sparkles size={11} />
+            {topic.firstStudy}
+          </span>
+        ) : (
+          <span className="text-slate-500">Pendente de estudo</span>
+        )}
+
+        <span
+          className="transition-colors duration-200 flex items-center gap-0.5"
+          style={{
+            color: isHovered || isSelected ? subColor : "rgb(100, 116, 139)",
+          }}
+        >
+          <span>Ver nó</span>
+          <ChevronRight
+            size={12}
+            className={`transition-transform duration-200 ${
+              isHovered ? "translate-x-0.5" : ""
+            }`}
+          />
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
 export function EditalSkillTree({
   subjects,
   topics,
@@ -485,132 +684,18 @@ export function EditalSkillTree({
 
               {/* Grade de Nós Estelares da Disciplina */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 relative z-10">
-                {group.topics.map((t, idx) => {
-                  const mastery = getTopicMastery(t);
-                  const isSelected = selectedTopic?.id === t.id;
-
-                  return (
-                    <motion.div
-                      key={t.id}
-                      whileHover={{ scale: 1.02, y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setSelectedTopic(t)}
-                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between group ${
-                        isSelected
-                          ? "bg-slate-900/90 border-cyan-400 shadow-lg shadow-cyan-500/20"
-                          : "bg-slate-950/60 hover:bg-slate-900/70 border-slate-800/80 hover:border-slate-700"
-                      }`}
-                      style={{
-                        boxShadow: isSelected
-                          ? `0 0 20px ${mastery.glowColor}`
-                          : undefined,
-                      }}
-                    >
-                      {/* Alerta de Ebbinghaus (Borda pulsante âmbar) */}
-                      {mastery.isDecaying && (
-                        <div className="absolute inset-0 rounded-2xl border-2 border-amber-400/80 animate-pulse pointer-events-none" />
-                      )}
-
-                      {/* Topo do Nó: Nível RPG + % de Domínio */}
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-1.5">
-                          {mastery.tier === "DIAMOND" && (
-                            <Crown size={14} className="text-cyan-400 fill-cyan-400/20" />
-                          )}
-                          {mastery.tier === "GOLD" && (
-                            <Trophy size={14} className="text-amber-400 fill-amber-400/20" />
-                          )}
-                          {mastery.tier === "SILVER" && (
-                            <Shield size={14} className="text-slate-300 fill-slate-300/20" />
-                          )}
-                          {mastery.tier === "BRONZE" && (
-                            <Shield size={14} className="text-orange-500 fill-orange-500/20" />
-                          )}
-                          {mastery.tier === "LOCKED" && (
-                            <Lock size={13} className="text-slate-500" />
-                          )}
-                          <span
-                            className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${mastery.badgeColor}`}
-                          >
-                            {mastery.label.split("•")[0]}
-                          </span>
-                        </div>
-
-                        <span className="font-mono text-xs font-bold text-slate-300">
-                          {t.performance || 0}%
-                        </span>
-                      </div>
-
-                      {/* Título do Tópico */}
-                      <div className="space-y-1.5 mb-3">
-                        <h4 className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors line-clamp-2">
-                          {t.title}
-                        </h4>
-
-                        {/* Raio-X de Incidência da Banca */}
-                        <div className="pt-0.5">
-                          {(() => {
-                            const inc = getTopicIncidence(t, idx);
-                            if (isPro) {
-                              return (
-                                <span
-                                  className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
-                                    inc.level === "HIGH"
-                                      ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
-                                      : inc.level === "MEDIUM"
-                                      ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                                      : "bg-cyan-500/10 text-cyan-300 border-cyan-500/20"
-                                  }`}
-                                >
-                                  {inc.level === "HIGH" && <Flame size={10} className="text-rose-400" />}
-                                  {inc.level === "MEDIUM" && <Zap size={10} className="text-amber-400" />}
-                                  <span>{inc.label}</span>
-                                </span>
-                              );
-                            } else {
-                              return (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowProIncidenceModal(true);
-                                  }}
-                                  className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-800/90 hover:bg-amber-500/10 text-amber-300/80 hover:text-amber-200 border border-amber-500/30 hover:border-amber-400 transition-all cursor-pointer"
-                                  title="Raio-X de Incidência da Banca (Exclusivo Synapse Pro)"
-                                >
-                                  <Lock size={9} className="text-amber-400" />
-                                  <span>Raio-X Banca</span>
-                                  <Crown size={9} className="text-amber-400 fill-amber-400" />
-                                </button>
-                              );
-                            }
-                          })()}
-                        </div>
-                      </div>
-
-                      {/* Rodapé do Nó: Status e Declínio */}
-                      <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px]">
-                        {mastery.isDecaying ? (
-                          <span className="text-amber-400 font-bold flex items-center gap-1">
-                            <Clock size={11} />
-                            Revisar Urgente
-                          </span>
-                        ) : t.firstStudy && t.firstStudy !== "Pendente" ? (
-                          <span className="text-emerald-400 font-medium flex items-center gap-1">
-                            <Sparkles size={11} />
-                            {t.firstStudy}
-                          </span>
-                        ) : (
-                          <span className="text-slate-500">Pendente de estudo</span>
-                        )}
-
-                        <span className="text-slate-500 group-hover:text-cyan-400 transition-colors flex items-center">
-                          Ver nó <ChevronRight size={12} />
-                        </span>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                {group.topics.map((t, idx) => (
+                  <SkillTreeTopicCard
+                    key={t.id}
+                    topic={t}
+                    subColor={subColor}
+                    isSelected={selectedTopic?.id === t.id}
+                    isPro={isPro}
+                    onSelect={() => setSelectedTopic(t)}
+                    onOpenProIncidence={() => setShowProIncidenceModal(true)}
+                    index={idx}
+                  />
+                ))}
               </div>
             </div>
           );
@@ -619,175 +704,200 @@ export function EditalSkillTree({
 
       {/* MODAL / DRAWER DE INSPEÇÃO DO NÓ SELECIONADO */}
       <AnimatePresence>
-        {selectedTopic && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-lg bg-[#080c16] border border-cyan-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 overflow-hidden"
-            >
-              {/* Glow do Modal */}
-              <div className="absolute -top-24 -right-24 w-60 h-60 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+        {selectedTopic && (() => {
+          const activeSubject = subjects.find(
+            (s) =>
+              s.id === selectedTopic.subjectId ||
+              s.name.toLowerCase() === selectedTopic.subjectName?.toLowerCase(),
+          );
+          const activeColor =
+            activeSubject?.color || selectedTopic.subjectColor || "#6366f1";
+          const m = getTopicMastery(selectedTopic);
 
-              {/* Cabeçalho */}
-              <div className="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-4">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono uppercase font-bold text-cyan-400">
-                    {selectedTopic.subjectName || "Disciplina"}
-                  </span>
-                  <h3 className="text-base font-bold text-white leading-snug">
-                    {selectedTopic.title}
-                  </h3>
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="relative w-full max-w-lg bg-[#080c16] rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 overflow-hidden border"
+                style={{
+                  borderColor: hexToRgba(activeColor, 0.45),
+                  boxShadow: `0 0 40px ${hexToRgba(activeColor, 0.18)}, 0 20px 50px -10px rgba(0, 0, 0, 0.85)`,
+                }}
+              >
+                {/* Glow do Modal na Cor da Matéria */}
+                <div
+                  className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl pointer-events-none"
+                  style={{
+                    backgroundColor: activeColor,
+                    opacity: 0.18,
+                  }}
+                />
+
+                {/* Cabeçalho */}
+                <div className="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-4 relative z-10">
+                  <div className="space-y-1">
+                    <span
+                      className="text-[10px] font-mono uppercase font-bold tracking-wider"
+                      style={{ color: activeColor }}
+                    >
+                      {selectedTopic.subjectName || activeSubject?.name || "Disciplina"}
+                    </span>
+                    <h3 className="text-base font-bold text-white leading-snug">
+                      {selectedTopic.title}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setSelectedTopic(null)}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setSelectedTopic(null)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  <X size={16} />
-                </button>
-              </div>
 
-              {/* Status de Domínio RPG */}
-              {(() => {
-                const m = getTopicMastery(selectedTopic);
-                return (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                          Patente do Nó
-                        </span>
-                        <p className="text-xs font-bold text-white flex items-center gap-1.5 mt-0.5">
-                          {m.tier === "DIAMOND" && <Crown size={14} className="text-cyan-400" />}
-                          {m.tier === "GOLD" && <Trophy size={14} className="text-amber-400" />}
-                          {m.tier === "SILVER" && <Shield size={14} className="text-slate-300" />}
-                          {m.tier === "BRONZE" && <Shield size={14} className="text-orange-500" />}
-                          {m.tier === "LOCKED" && <Lock size={14} className="text-slate-500" />}
-                          <span>{m.label}</span>
-                        </p>
-                      </div>
-
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                          Desempenho
-                        </span>
-                        <p className="text-sm font-mono font-black text-cyan-300">
-                          {selectedTopic.performance || 0}%
-                        </p>
-                      </div>
+                {/* Status de Domínio RPG */}
+                <div className="space-y-3 relative z-10">
+                  <div
+                    className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-950/80 border"
+                    style={{ borderColor: hexToRgba(activeColor, 0.25) }}
+                  >
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        Patente do Nó
+                      </span>
+                      <p className="text-xs font-bold text-white flex items-center gap-1.5 mt-0.5">
+                        {m.tier === "DIAMOND" && <Crown size={14} className="text-cyan-400" />}
+                        {m.tier === "GOLD" && <Trophy size={14} className="text-amber-400" />}
+                        {m.tier === "SILVER" && <Shield size={14} className="text-slate-300" />}
+                        {m.tier === "BRONZE" && <Shield size={14} className="text-orange-500" />}
+                        {m.tier === "LOCKED" && <Lock size={14} className="text-slate-500" />}
+                        <span>{m.label}</span>
+                      </p>
                     </div>
 
-                    {m.isDecaying && (
-                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
-                        <Clock size={16} className="shrink-0 text-amber-400" />
-                        <span>
-                          <strong>Alerta Ebbinghaus:</strong> Este conceito atingiu a data crítica de declínio na memória. Reforce agora para não esquecer!
-                        </span>
-                      </div>
-                    )}
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        Desempenho
+                      </span>
+                      <p
+                        className="text-sm font-mono font-black"
+                        style={{ color: activeColor }}
+                      >
+                        {selectedTopic.performance || 0}%
+                      </p>
+                    </div>
+                  </div>
 
-                    {/* Raio-X da Banca no Modal */}
-                    <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
-                          <Flame size={12} className="text-amber-400" />
-                          Raio-X de Incidência da Banca
-                        </span>
-                        {isPro ? (
-                          <p className="text-xs font-bold text-amber-300">
-                            {getTopicIncidence(selectedTopic, 0).label} nas últimas provas oficiais
-                          </p>
-                        ) : (
-                          <p className="text-xs text-slate-400">
-                            Estatística oculta no plano gratuito
-                          </p>
-                        )}
-                      </div>
-                      {!isPro && (
-                        <button
-                          type="button"
-                          onClick={() => setShowProIncidenceModal(true)}
-                          className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold flex items-center gap-1 hover:bg-amber-500/30 transition-colors cursor-pointer"
-                        >
-                          <Crown size={11} />
-                          <span>Desbloquear</span>
-                        </button>
+                  {m.isDecaying && (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
+                      <Clock size={16} className="shrink-0 text-amber-400" />
+                      <span>
+                        <strong>Alerta Ebbinghaus:</strong> Este conceito atingiu a data crítica de declínio na memória. Reforce agora para não esquecer!
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Raio-X da Banca no Modal */}
+                  <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
+                        <Flame size={12} className="text-amber-400" />
+                        Raio-X de Incidência da Banca
+                      </span>
+                      {isPro ? (
+                        <p className="text-xs font-bold text-amber-300">
+                          {getTopicIncidence(selectedTopic, 0).label} nas últimas provas oficiais
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400">
+                          Estatística oculta no plano gratuito
+                        </p>
                       )}
                     </div>
+                    {!isPro && (
+                      <button
+                        type="button"
+                        onClick={() => setShowProIncidenceModal(true)}
+                        className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold flex items-center gap-1 hover:bg-amber-500/30 transition-colors cursor-pointer"
+                      >
+                        <Crown size={11} />
+                        <span>Desbloquear</span>
+                      </button>
+                    )}
                   </div>
-                );
-              })()}
+                </div>
 
-              {/* Ações Táticas Rápidas para o Nó */}
-              <div className="space-y-2 pt-2">
-                <Link
-                  href="/questions"
-                  onClick={() => setSelectedTopic(null)}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/30 flex items-center justify-between cursor-pointer active:scale-95"
-                >
-                  <div className="flex items-center gap-2">
-                    <Zap size={15} className="fill-white" />
-                    <span>Fazer Questões deste Tópico</span>
-                  </div>
-                  <ArrowRight size={14} />
-                </Link>
+                {/* Ações Táticas Rápidas para o Nó */}
+                <div className="space-y-2 pt-2 relative z-10">
+                  <Link
+                    href="/questions"
+                    onClick={() => setSelectedTopic(null)}
+                    className="w-full py-3 px-4 rounded-xl text-white text-xs font-bold transition-all shadow-md flex items-center justify-between cursor-pointer active:scale-95 group"
+                    style={{
+                      background: `linear-gradient(135deg, #4f46e5 0%, ${activeColor} 100%)`,
+                      boxShadow: `0 4px 14px ${hexToRgba(activeColor, 0.35)}`,
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Zap size={15} className="fill-white" />
+                      <span>Fazer Questões deste Tópico</span>
+                    </div>
+                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
 
-                <Link
-                  href="/flashcards"
-                  onClick={() => setSelectedTopic(null)}
-                  className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-200 text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95"
-                >
-                  <div className="flex items-center gap-2">
-                    <Layers size={15} className="text-indigo-400" />
-                    <span>Revisar Flashcards Vinculados</span>
-                  </div>
-                  <ArrowRight size={14} />
-                </Link>
+                  <Link
+                    href="/flashcards"
+                    onClick={() => setSelectedTopic(null)}
+                    className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border text-slate-200 text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95 group"
+                    style={{ borderColor: hexToRgba(activeColor, 0.25) }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Layers size={15} style={{ color: activeColor }} />
+                      <span>Revisar Flashcards Vinculados</span>
+                    </div>
+                    <ArrowRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
 
-                {/* Botão de Mapa Mental Neural */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const parentSubject = subjects.find(
-                      (s) =>
-                        s.id === selectedTopic.subjectId ||
-                        s.name.toLowerCase() === selectedTopic.subjectName?.toLowerCase(),
-                    );
-                    setMindMapTarget({
-                      topicTitle: selectedTopic.title,
-                      subjectName: parentSubject?.name || selectedTopic.subjectName || "Edital",
-                      topicId: selectedTopic.id,
-                      color: parentSubject?.color || "#8b5cf6",
-                    });
-                  }}
-                  className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-violet-600/25 to-indigo-600/25 hover:from-violet-600/40 hover:to-indigo-600/40 border border-violet-500/40 text-violet-200 hover:text-white text-xs font-bold transition-all shadow-md shadow-violet-950/40 flex items-center justify-between cursor-pointer active:scale-95"
-                >
-                  <div className="flex items-center gap-2">
-                    <Brain size={15} className="text-violet-400" />
-                    <span>Ver Mapa Mental do Tópico (SVG)</span>
-                  </div>
-                  <ArrowRight size={14} />
-                </button>
-
-                {onReviewClick && (
+                  {/* Botão de Mapa Mental Neural */}
                   <button
                     type="button"
                     onClick={() => {
-                      const topicId = selectedTopic.id;
-                      setSelectedTopic(null);
-                      onReviewClick(topicId);
+                      setMindMapTarget({
+                        topicTitle: selectedTopic.title,
+                        subjectName: activeSubject?.name || selectedTopic.subjectName || "Edital",
+                        topicId: selectedTopic.id,
+                        color: activeColor,
+                      });
                     }}
-                    className="w-full py-2.5 px-4 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-violet-600/25 to-indigo-600/25 hover:from-violet-600/40 hover:to-indigo-600/40 border border-violet-500/40 text-violet-200 hover:text-white text-xs font-bold transition-all shadow-md shadow-violet-950/40 flex items-center justify-between cursor-pointer active:scale-95"
                   >
-                    <Calendar size={13} />
-                    <span>Registrar Estudo Manual</span>
+                    <div className="flex items-center gap-2">
+                      <Brain size={15} className="text-violet-400" />
+                      <span>Ver Mapa Mental do Tópico (SVG)</span>
+                    </div>
+                    <ArrowRight size={14} />
                   </button>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
+
+                  {onReviewClick && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const topicId = selectedTopic.id;
+                        setSelectedTopic(null);
+                        onReviewClick(topicId);
+                      }}
+                      className="w-full py-2.5 px-4 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Calendar size={13} />
+                      <span>Registrar Estudo Manual</span>
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
       </AnimatePresence>
 
       {/* MODAL INTERATIVO DE MAPA MENTAL NEURAL */}
