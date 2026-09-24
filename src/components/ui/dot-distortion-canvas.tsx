@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Zap, Sparkles } from "lucide-react";
 
 interface DotDistortionProps {
   dotColor?: string;
@@ -10,7 +9,6 @@ interface DotDistortionProps {
   spacing?: number;
   distortionRadius?: number;
   className?: string;
-  showQualityToggle?: boolean;
 }
 
 export type CanvasQualityMode = "fluid" | "performance";
@@ -22,16 +20,13 @@ export function DotDistortionCanvas({
   spacing = 28,
   distortionRadius = 140,
   className = "",
-  showQualityToggle = true,
 }: DotDistortionProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Inicializa o modo de qualidade com base no hardware do usuário
   const [qualityMode, setQualityMode] = useState<CanvasQualityMode>("fluid");
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     // 1. Verifica preferência salva pelo usuário
     const saved = localStorage.getItem("synapse_canvas_quality") as CanvasQualityMode | null;
     if (saved === "fluid" || saved === "performance") {
@@ -57,15 +52,6 @@ export function DotDistortionCanvas({
       setQualityMode("fluid");
     }
   }, []);
-
-  const toggleQuality = () => {
-    const nextMode: CanvasQualityMode =
-      qualityMode === "fluid" ? "performance" : "fluid";
-    setQualityMode(nextMode);
-    try {
-      localStorage.setItem("synapse_canvas_quality", nextMode);
-    } catch {}
-  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -419,39 +405,9 @@ export function DotDistortionCanvas({
   }, [dotColor, activeColor, dotSize, spacing, distortionRadius, qualityMode]);
 
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        className={`pointer-events-none absolute inset-0 z-0 h-full w-full ${className}`}
-      />
-
-      {/* Seletor Discreto de Modo de Qualidade */}
-      {showQualityToggle && isClient && (
-        <div className="absolute top-4 right-4 z-20 hidden lg:block">
-          <button
-            type="button"
-            onClick={toggleQuality}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-white/10 text-[10px] font-mono text-slate-400 hover:text-white transition-all shadow-md backdrop-blur-md cursor-pointer group"
-            title={
-              qualityMode === "fluid"
-                ? "Modo Fluido ativo (física elástica). Clique para mudar para o Modo Leve (ideal para notebooks ou PCs mais lentos)."
-                : "Modo Leve ativo (0ms delay, baixo uso de CPU). Clique para ativar o Modo Fluido original."
-            }
-          >
-            {qualityMode === "fluid" ? (
-              <>
-                <Sparkles size={11} className="text-violet-400 group-hover:animate-spin" />
-                <span>Efeito Fluido</span>
-              </>
-            ) : (
-              <>
-                <Zap size={11} className="text-amber-400" />
-                <span>Modo Leve (0ms)</span>
-              </>
-            )}
-          </button>
-        </div>
-      )}
-    </>
+    <canvas
+      ref={canvasRef}
+      className={`pointer-events-none absolute inset-0 z-0 h-full w-full ${className}`}
+    />
   );
 }
