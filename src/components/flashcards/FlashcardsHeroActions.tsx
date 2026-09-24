@@ -10,7 +10,10 @@ import {
   Headphones,
   Sparkles,
   FileUp,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
+import { useOfflineSync } from "@/lib/offline-sync";
 import { TurboFlashcardExtractorModal } from "./TurboFlashcardExtractorModal";
 import { PdfFlashcardImportModal } from "./PdfFlashcardImportModal";
 import { AudioFlashcardPlayerModal } from "./AudioFlashcardPlayerModal";
@@ -36,10 +39,34 @@ export function FlashcardsHeroActions({
   const [isExtractorOpen, setIsExtractorOpen] = useState(false);
   const [isAudioOpen, setIsAudioOpen] = useState(false);
   const [isSpeedRunOpen, setIsSpeedRunOpen] = useState(false);
+  const { isOnline, pendingCount, isSyncing, triggerSync } = useOfflineSync();
 
   return (
     <>
       <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 w-full sm:w-auto">
+        {(!isOnline || pendingCount > 0) && (
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-amber-500/30 text-[11px] text-amber-300 shadow-md">
+            <div className="flex items-center gap-1.5">
+              <WifiOff size={13} className="text-amber-400 shrink-0" />
+              <span>
+                {!isOnline ? "Modo Offline Ativo" : "Revisões em Fila"}
+              </span>
+            </div>
+            {pendingCount > 0 && (
+              <button
+                type="button"
+                onClick={triggerSync}
+                disabled={isSyncing || !isOnline}
+                className="flex items-center gap-1 font-mono text-[10px] bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 hover:bg-amber-500/30 transition-colors disabled:opacity-50 cursor-pointer"
+                title="Sincronizar com o servidor"
+              >
+                <RefreshCw size={10} className={isSyncing ? "animate-spin" : ""} />
+                <span>{pendingCount} salvos</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {totalCards > 0 ? (
           <Link
             href="/flashcards/study/all"

@@ -36,6 +36,7 @@ import {
   Compass,
   Layers,
   Calendar,
+  FileSpreadsheet,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -53,6 +54,8 @@ import { TimedLaunchModal } from "./_components/TimedLaunchModal";
 import { TimedPacingModal } from "./_components/TimedPacingModal";
 import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
 import { QuizResolutionView } from "@/components/study/QuizResolutionView";
+import { OpticalAnswerSheetModal } from "@/components/questions/OpticalAnswerSheetModal";
+import { SpeedQuizModal } from "@/components/questions/SpeedQuizModal";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
@@ -315,6 +318,11 @@ export default function QuestoesPage() {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [isSyncingSM2, setIsSyncingSM2] = useState(false);
   const [lastEarnedXp, setLastEarnedXp] = useState(0);
+
+  // Modal de Folha Óptica de Respostas (Modo Dia D)
+  const [isOpticalSheetOpen, setIsOpticalSheetOpen] = useState(false);
+  // Modal de Desafio Relâmpago 45s (Speed Quiz)
+  const [isSpeedQuizOpen, setIsSpeedQuizOpen] = useState(false);
 
   // Modal de Feedback Visual Premium de Geração com IA
   const [isSimuladoModalOpen, setIsSimuladoModalOpen] = useState(false);
@@ -1512,6 +1520,7 @@ export default function QuestoesPage() {
           totalQuestions={questions.length}
           isRunning={isTimerRunning}
           onToggleTimer={() => setIsTimerRunning((prev) => !prev)}
+          onOpenOpticalSheet={() => setIsOpticalSheetOpen(true)}
         />
       )}
 
@@ -1550,7 +1559,24 @@ export default function QuestoesPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  if (questions.length >= 5) {
+                    setIsSpeedQuizOpen(true);
+                  } else {
+                    handleQuickQuiz({ qtd: 5 });
+                    setTimeout(() => setIsSpeedQuizOpen(true), 800);
+                  }
+                }}
+                className="w-full sm:w-auto justify-center bg-amber-500/15 border border-amber-500/40 hover:bg-amber-500/25 text-amber-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-amber-500/10 active:scale-95"
+                title="Desafio de 5 questões com 45s por questão e combo de XP"
+              >
+                <Zap size={15} className="text-amber-400 fill-amber-400" />
+                <span>Desafio Relâmpago ⚡</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -2332,6 +2358,7 @@ export default function QuestoesPage() {
           selectedAnswers={selectedAnswers}
           flaggedQuestions={flaggedQuestions}
           focusedIndex={focusedQuestionIndex}
+          onOpenOpticalSheet={() => setIsOpticalSheetOpen(true)}
           onSelectQuestion={(idx) => {
             setFocusedQuestionIndex(idx);
             document
@@ -2340,6 +2367,39 @@ export default function QuestoesPage() {
           }}
         />
       )}
+
+      {/* MODAL FOLHA ÓPTICA DE RESPOSTAS (MODO DIA D) */}
+      <OpticalAnswerSheetModal
+        isOpen={isOpticalSheetOpen}
+        onClose={() => setIsOpticalSheetOpen(false)}
+        questions={questions}
+        selectedAnswers={selectedAnswers}
+        checkedQuestions={checkedQuestions}
+        flaggedQuestions={flaggedQuestions}
+        banca={banca}
+        onSelectAnswer={(qIdx, altId) => {
+          setSelectedAnswers((prev) => ({
+            ...prev,
+            [qIdx]: altId,
+          }));
+        }}
+        onJumpToQuestion={(idx) => {
+          setFocusedQuestionIndex(idx);
+          document
+            .getElementById(`question-card-${idx}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }}
+      />
+
+      {/* MODAL DESAFIO RELÂMPAGO 45s (SPEED QUIZ) */}
+      <SpeedQuizModal
+        isOpen={isSpeedQuizOpen}
+        onClose={() => setIsSpeedQuizOpen(false)}
+        questions={questions}
+        onFinish={(stats) => {
+          setLastEarnedXp(stats.totalXp);
+        }}
+      />
 
       {/* MODAL IA */}
       <GenerateAIModal

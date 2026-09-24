@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { FileSpreadsheet } from "lucide-react";
 import { QuestaoIA } from "../page";
 
 interface QuestionMinimapProps {
@@ -10,6 +11,7 @@ interface QuestionMinimapProps {
   flaggedQuestions: Record<number, boolean>;
   focusedIndex: number;
   onSelectQuestion: (index: number) => void;
+  onOpenOpticalSheet?: () => void;
 }
 
 export function QuestionMinimap({
@@ -19,6 +21,7 @@ export function QuestionMinimap({
   flaggedQuestions,
   focusedIndex,
   onSelectQuestion,
+  onOpenOpticalSheet,
 }: QuestionMinimapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLButtonElement>(null);
@@ -35,7 +38,19 @@ export function QuestionMinimap({
 
   return (
     <div className="fixed bottom-18 sm:bottom-6 left-0 right-0 z-30 px-3 pointer-events-none flex justify-center">
-      <div className="bg-[#090d16]/95 border border-white/10 backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl flex items-center justify-between gap-2 pointer-events-auto max-w-md w-full">
+      <div className="bg-[#090d16]/95 border border-white/10 backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl flex items-center justify-between gap-2 pointer-events-auto max-w-lg w-full">
+        {onOpenOpticalSheet && (
+          <button
+            type="button"
+            onClick={onOpenOpticalSheet}
+            className="shrink-0 px-2 sm:px-2.5 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-xs"
+            title="Abrir Folha Óptica de Respostas (Cartão-Resposta)"
+          >
+            <FileSpreadsheet size={14} className="text-indigo-400" />
+            <span className="hidden sm:inline text-[11px]">Folha Óptica</span>
+          </button>
+        )}
+
         <div
           ref={containerRef}
           className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5 px-1 scroll-smooth w-full"
