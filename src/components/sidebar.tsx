@@ -40,6 +40,7 @@ import {
   Shield,
   Headphones,
   PenTool,
+  Scale,
   X,
 } from "lucide-react";
 
@@ -75,6 +76,12 @@ const NAV_GROUPS = [
         label: "Caderno de Erros",
         href: "/notebook",
         icon: BookOpenCheck,
+        badge: "IA",
+      },
+      {
+        label: "Jurisprudência",
+        href: "/jurisprudencia",
+        icon: Scale,
         badge: "IA",
       },
       {
