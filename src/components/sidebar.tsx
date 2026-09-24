@@ -56,14 +56,14 @@ const NAV_GROUPS = [
     label: "Estudos",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Edital", href: "/edital", icon: FileSpreadsheet },
-      { label: "Cronograma", href: "/week", icon: Sparkles },
+      { label: "Edital Verticalizado", href: "/edital", icon: FileSpreadsheet },
+      { label: "Cronograma Semanal", href: "/week", icon: Sparkles },
     ],
   },
   {
     label: "Prática & Performance",
     items: [
-      { label: "Banco de Provas", href: "/questions", icon: FileStack },
+      { label: "Simulados & Questões", href: "/questions", icon: FileStack },
       {
         label: "Redação Oficial",
         href: "/redacao",
@@ -82,7 +82,7 @@ const NAV_GROUPS = [
         icon: Headphones,
         badge: "ZEN",
       },
-      { label: "Cards", href: "/flashcards", icon: Layers },
+      { label: "Flashcards FSRS", href: "/flashcards", icon: Layers },
       { label: "Performance", href: "/performance", icon: TrendingUp },
       {
         label: "Conquistas",
@@ -94,8 +94,15 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Conta",
+    label: "Conta & Planos",
     items: [
+      {
+        label: "Planos & Synapse Pro",
+        href: "/pricing",
+        icon: Crown,
+        isSpecial: true,
+        badge: "PRO",
+      },
       { label: "Perfil", href: "/profile", icon: UserCircle2 },
       { label: "Ajuda", href: "/help", icon: Info },
     ],
