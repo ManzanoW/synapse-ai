@@ -14,9 +14,11 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 
 interface EssayQuotaModalProps {
   isOpen: boolean;
@@ -35,10 +37,33 @@ export function EssayQuotaModal({
 }: EssayQuotaModalProps) {
   const [mounted, setMounted] = useState(false);
   const [isRewardedAdOpen, setIsRewardedAdOpen] = useState(false);
+  const [canWatchAd, setCanWatchAd] = useState<boolean | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setCanWatchAd(null);
+      return;
+    }
+
+    let isCurrent = true;
+    getAiQuotaStatusAction()
+      .then((res) => {
+        if (!isCurrent) return;
+        if (res.success && res.data) {
+          const bonusEssay = res.data.features?.ESSAY?.bonusEarned ?? 0;
+          setCanWatchAd(Boolean(res.data.canWatchRewardedAd && bonusEssay < 2));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isOpen]);
 
   if (!isOpen || !mounted) return null;
 
@@ -95,14 +120,21 @@ export function EssayQuotaModal({
             {/* Botões de Ação Principais */}
             <div className="space-y-2.5 pt-1 relative z-10">
               {/* Opção 1: Assistir Vídeo (+1 Correção Bônus) */}
-              <button
-                type="button"
-                onClick={() => setIsRewardedAdOpen(true)}
-                className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-amber-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer group"
-              >
-                <Gift size={16} className="text-white group-hover:scale-110 transition-transform" />
-                <span>🎬 Assistir Vídeo (+1 Correção Bônus)</span>
-              </button>
+              {canWatchAd !== false ? (
+                <button
+                  type="button"
+                  onClick={() => setIsRewardedAdOpen(true)}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-amber-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer group"
+                >
+                  <Gift size={16} className="text-white group-hover:scale-110 transition-transform" />
+                  <span>🎬 Assistir Vídeo (+1 Correção Bônus)</span>
+                </button>
+              ) : (
+                <div className="w-full py-2.5 px-4 bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-bold rounded-xl flex items-center justify-center gap-2 select-none">
+                  <Clock size={15} className="text-amber-400 shrink-0" />
+                  <span>Vídeos diários esgotados (2/2)</span>
+                </div>
+              )}
 
               {/* Opção 2: Desbloquear Synapse Pro (Ilimitado) */}
               <Link

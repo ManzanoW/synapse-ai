@@ -4,9 +4,10 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
-import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle, Crown, Gift, ArrowRight, X } from "lucide-react";
+import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle, Crown, Gift, ArrowRight, X, Clock } from "lucide-react";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 
 export interface SimuladoGenerationModalProps {
   isOpen: boolean;
@@ -68,6 +69,7 @@ export function SimuladoGenerationModal({
 }: SimuladoGenerationModalProps) {
   const [mounted, setMounted] = useState(false);
   const [isRewardedModalOpen, setIsRewardedModalOpen] = useState(false);
+  const [canWatchAd, setCanWatchAd] = useState<boolean | null>(null);
   const [targetProgress, setTargetProgress] = useState(0);
   const [hasTriggeredComplete, setHasTriggeredComplete] = useState(false);
 
@@ -188,8 +190,6 @@ export function SimuladoGenerationModal({
     );
   }, [displayValue]);
 
-  if (!isOpen || !mounted) return null;
-
   const isQuotaError = Boolean(
     error &&
       (error.toLowerCase().includes("limite") ||
@@ -197,6 +197,31 @@ export function SimuladoGenerationModal({
         error.toLowerCase().includes("premium") ||
         error.includes("429")),
   );
+
+  // Consulta de integridade: checa se usuário ainda pode assistir anúncio hoje
+  useEffect(() => {
+    if (!isOpen || !isQuotaError) {
+      setCanWatchAd(null);
+      return;
+    }
+
+    let isCurrent = true;
+    getAiQuotaStatusAction()
+      .then((res) => {
+        if (!isCurrent) return;
+        if (res.success && res.data) {
+          const bonusSimulado = res.data.features?.SIMULADO?.bonusEarned ?? 0;
+          setCanWatchAd(Boolean(res.data.canWatchRewardedAd && bonusSimulado < 2));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isOpen, isQuotaError]);
+
+  if (!isOpen || !mounted) return null;
 
   return createPortal(
     <>
@@ -404,17 +429,24 @@ export function SimuladoGenerationModal({
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5 w-full relative z-10">
               {isQuotaError ? (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => setIsRewardedModalOpen(true)}
-                    className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-white text-xs font-black rounded-xl shadow-lg shadow-amber-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer group"
-                  >
-                    <Gift
-                      size={15}
-                      className="text-white group-hover:scale-110 transition-transform"
-                    />
-                    <span>Assistir Vídeo (+1 Simulado)</span>
-                  </button>
+                  {canWatchAd !== false ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsRewardedModalOpen(true)}
+                      className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-white text-xs font-black rounded-xl shadow-lg shadow-amber-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer group"
+                    >
+                      <Gift
+                        size={15}
+                        className="text-white group-hover:scale-110 transition-transform"
+                      />
+                      <span>Assistir Vídeo (+1 Simulado)</span>
+                    </button>
+                  ) : (
+                    <div className="w-full sm:w-auto px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 select-none">
+                      <Clock size={14} className="text-amber-400 shrink-0" />
+                      <span>Vídeos diários esgotados (2/2)</span>
+                    </div>
+                  )}
 
                   <Link
                     href="/pricing"
