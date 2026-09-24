@@ -41,6 +41,7 @@ import {
   Headphones,
   PenTool,
   Scale,
+  Mic,
   X,
 } from "lucide-react";
 
@@ -83,6 +84,12 @@ const NAV_GROUPS = [
         href: "/jurisprudencia",
         icon: Scale,
         badge: "IA",
+      },
+      {
+        label: "Prova Oral",
+        href: "/prova-oral",
+        icon: Mic,
+        badge: "VOZ",
       },
       {
         label: "Sala de Foco",
