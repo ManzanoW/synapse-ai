@@ -61,7 +61,10 @@ html.light body {
 }
 
 /* Fundo da aplicação e containers principais */
-html.light .bg-\[\#030712\] {
+html.light .bg-\[\#030712\],
+html.light .bg-\[\#020408\],
+html.light .bg-\[\#030509\],
+html.light .bg-\[\#02050e\] {
   background-color: #f1f5f9 !important;
 }
 
@@ -94,6 +97,12 @@ html.light .bg-zinc-900 {
   border-color: #e2e8f0 !important;
 }
 
+/* Cobertura abrangente para todas as superfícies e modais com cores hex escuras customizadas (#0...) */
+html.light [class*="bg-[#0"]:not(body):not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]) {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
 html.light .bg-slate-900\/60,
 html.light .bg-slate-900\/80,
 html.light .bg-slate-900\/90,
@@ -110,9 +119,43 @@ html.light .bg-zinc-900\/90 {
 html.light div:not(.fixed) > .bg-black\/85,
 html.light div:not(.fixed) > .bg-black\/90,
 html.light .bg-black\/85.rounded-2xl,
-html.light .bg-black\/85.rounded-3xl {
+html.light .bg-black\/85.rounded-3xl,
+html.light .bg-black\/80.rounded-2xl,
+html.light .bg-black\/80.rounded-3xl {
   background-color: rgba(255, 255, 255, 0.97) !important;
   border-color: #e2e8f0 !important;
+}
+
+/* Formulários: Inputs, Selects e Textareas */
+html.light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([class*="bg-"]),
+html.light input.bg-slate-900,
+html.light input.bg-slate-950,
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Tabelas */
+html.light table th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+html.light table td {
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
 }
 
 /* Superfícies translúcidas secundárias (ex: inputs, pills neutros) */
@@ -127,6 +170,15 @@ html.light .hover\:bg-white\/10:hover {
 }
 html.light .hover\:bg-white\/5:hover {
   background-color: rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Badges e tags secundárias neutras */
+html.light .bg-slate-800,
+html.light .bg-slate-800\/60,
+html.light .bg-slate-800\/80 {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
 }
 
 /* Bordas suaves */
