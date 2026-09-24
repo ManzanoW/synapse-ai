@@ -46,7 +46,14 @@ export default async function ProfilePage() {
   });
 
   const isPremiumUser =
-    dbUser?.role === "ADMIN" || dbUser?.planTier === "PREMIUM";
+    dbUser?.role === "ADMIN" ||
+    dbUser?.planTier === "PREMIUM" ||
+    Boolean(
+      (dbUser?.email || userSession?.email) &&
+        process.env.ADMIN_EMAIL &&
+        (dbUser?.email || userSession?.email)!.toLowerCase() ===
+          process.env.ADMIN_EMAIL.toLowerCase(),
+    );
 
   const getInitials = (name?: string | null) => {
     if (!name) return "US";

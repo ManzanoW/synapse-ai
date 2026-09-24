@@ -25,9 +25,25 @@ export default async function DashboardLayout({
   const dbUser = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { careerFocus: true, targetRole: true },
+        select: {
+          careerFocus: true,
+          targetRole: true,
+          planTier: true,
+          role: true,
+          email: true,
+        },
       })
     : null;
+
+  const isPro =
+    dbUser?.planTier === "PREMIUM" ||
+    dbUser?.role === "ADMIN" ||
+    Boolean(
+      (dbUser?.email || session?.user?.email) &&
+        process.env.ADMIN_EMAIL &&
+        (dbUser?.email || session?.user?.email)!.toLowerCase() ===
+          process.env.ADMIN_EMAIL.toLowerCase(),
+    );
 
   return (
     <SidebarProvider>
@@ -48,6 +64,9 @@ export default async function DashboardLayout({
                   ...session.user,
                   careerFocus: dbUser?.careerFocus,
                   targetRole: dbUser?.targetRole,
+                  planTier: dbUser?.planTier,
+                  role: dbUser?.role,
+                  isPro,
                 }}
               />
 

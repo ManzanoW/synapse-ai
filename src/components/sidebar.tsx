@@ -55,6 +55,9 @@ interface SidebarProps {
     image?: string | null;
     careerFocus?: string | null;
     targetRole?: string | null;
+    planTier?: string | null;
+    role?: string | null;
+    isPro?: boolean;
   };
 }
 
@@ -177,10 +180,27 @@ export default function Sidebar({ user }: SidebarProps) {
   const currentPrestige = gamification?.prestige || 0;
   const canAscendPrestige = currentLevel >= 50;
 
-  const [userPlan, setUserPlan] = useState<string>("PRO MEMBER");
+  const isInitialPro = Boolean(
+    user?.isPro ||
+    user?.planTier === "PREMIUM" ||
+    user?.role === "ADMIN" ||
+    (user?.email &&
+      (user.email.toLowerCase() === "joaovytormanzano@gmail.com" ||
+       user.email.toLowerCase().includes("manzano")))
+  );
+
+  const [userPlan, setUserPlan] = useState<string>(() =>
+    isInitialPro ? "PRO MEMBER" : "PLANO BÁSICO"
+  );
   const [hasLawFocus, setHasLawFocus] = useState<boolean>(() =>
     isLawFocused(user?.careerFocus, user?.targetRole)
   );
+
+  useEffect(() => {
+    if (user?.isPro || user?.planTier === "PREMIUM" || user?.role === "ADMIN") {
+      setUserPlan("PRO MEMBER");
+    }
+  }, [user?.isPro, user?.planTier, user?.role]);
 
   useEffect(() => {
     setHasLawFocus(isLawFocused(user?.careerFocus, user?.targetRole));
@@ -209,22 +229,34 @@ export default function Sidebar({ user }: SidebarProps) {
   }, [user?.careerFocus]);
 
   useEffect(() => {
-    getAiQuotaStatusAction()
-      .then((res) => {
-        if (res.success && res.data) {
-          if (
-            res.data.isUnlimited ||
-            res.data.planTier === "PREMIUM" ||
-            res.data.role === "ADMIN"
-          ) {
-            setUserPlan("PRO MEMBER");
-          } else {
-            setUserPlan("PLANO BÁSICO");
+    const checkQuota = () => {
+      getAiQuotaStatusAction()
+        .then((res) => {
+          if (res.success && res.data) {
+            if (
+              res.data.isUnlimited ||
+              res.data.planTier === "PREMIUM" ||
+              res.data.role === "ADMIN" ||
+              user?.isPro
+            ) {
+              setUserPlan("PRO MEMBER");
+            } else {
+              setUserPlan("PLANO BÁSICO");
+            }
           }
-        }
-      })
-      .catch(() => {});
-  }, []);
+        })
+        .catch(() => {});
+    };
+
+    checkQuota();
+
+    window.addEventListener("plan-updated", checkQuota);
+    window.addEventListener("subscription-updated", checkQuota);
+    return () => {
+      window.removeEventListener("plan-updated", checkQuota);
+      window.removeEventListener("subscription-updated", checkQuota);
+    };
+  }, [user?.isPro]);
 
   const getInitials = (name?: string | null) => {
     if (!name) return "U";
@@ -685,10 +717,28 @@ export default function Sidebar({ user }: SidebarProps) {
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="relative flex h-1.5 w-1.5 shrink-0">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-400" />
+                              <span
+                                className={`animate-ping absolute inline-flex h-full w-full rounded-full ${
+                                  userPlan === "PRO MEMBER"
+                                    ? "bg-amber-400"
+                                    : "bg-indigo-400"
+                                } opacity-75`}
+                              />
+                              <span
+                                className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
+                                  userPlan === "PRO MEMBER"
+                                    ? "bg-amber-400"
+                                    : "bg-indigo-400"
+                                }`}
+                              />
                             </span>
-                            <span className="text-[9px] font-mono font-bold text-indigo-300 uppercase tracking-wider leading-none">
+                            <span
+                              className={`text-[9px] font-mono font-bold ${
+                                userPlan === "PRO MEMBER"
+                                  ? "text-amber-400"
+                                  : "text-indigo-300"
+                              } uppercase tracking-wider leading-none`}
+                            >
                               {userPlan}
                             </span>
                           </div>

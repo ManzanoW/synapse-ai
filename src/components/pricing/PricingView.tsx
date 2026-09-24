@@ -57,6 +57,9 @@ export function PricingView({
         setCurrentTier(res.newPlanTier);
         setIsUnlimited(res.newPlanTier === "PREMIUM");
         setToggleFeedback(res.message);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("plan-updated"));
+        }
       }
     } catch {
       setToggleFeedback("Erro ao alternar plano.");

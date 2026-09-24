@@ -63,6 +63,10 @@ export function CheckoutLeadModal({
           // Fallback silencioso
         }
 
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("plan-updated"));
+        }
+
         if (onSuccess) {
           onSuccess();
         }
