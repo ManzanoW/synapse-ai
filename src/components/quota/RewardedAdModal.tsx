@@ -35,6 +35,7 @@ const FEATURE_REWARD_LABELS: Record<AiFeatureType, { single: string; cta: string
   MINDMAP: { single: "Mapa Mental com IA", cta: "+1 Mapa Mental" },
   FLASHCARD: { single: "Geração de Flashcards", cta: "+1 Geração de Flashcards" },
   EDITAL: { single: "Importação de Edital", cta: "+1 Análise de Edital" },
+  OCR_QUESTION: { single: "Scanner de Questões", cta: "+1 Leitura de Questão OCR" },
 };
 
 export function RewardedAdModal({

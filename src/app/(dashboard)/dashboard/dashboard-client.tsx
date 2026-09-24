@@ -60,6 +60,7 @@ import {
   CheckSquare,
   Square,
   Eye,
+  Camera,
 } from "lucide-react";
 import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
 import type { ApprovalOddsData } from "@/actions/analytics-actions";
@@ -792,15 +793,22 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* ================= ATALHOS RÁPIDOS (2x2 no mobile, 4 colunas no desktop) ================= */}
+        {/* ================= ATALHOS RÁPIDOS (2x2 no mobile, 5 colunas no desktop) ================= */}
         {visibleCards.quickActions && (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
             {[
               {
                 title: "Resolver Questões",
                 icon: HelpCircle,
                 color: "text-amber-400",
                 href: "/questions",
+              },
+              {
+                title: "Scanner OCR",
+                icon: Camera,
+                color: "text-rose-400",
+                href: "/questions?scan=true",
+                badge: "IA",
               },
               {
                 title: "Praticar Cards",

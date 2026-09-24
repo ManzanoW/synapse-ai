@@ -5,7 +5,8 @@ export type AiFeatureType =
   | "MINDMAP"
   | "REMEDIATION"
   | "EDITAL"
-  | "OCR_ESSAY";
+  | "OCR_ESSAY"
+  | "OCR_QUESTION";
 
 
 export interface QuotaCheckResult {

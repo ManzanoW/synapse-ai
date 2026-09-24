@@ -21,6 +21,7 @@ export const AI_QUOTA_LIMITS: Record<
   REMEDIATION: { label: "Remediação e Mnemônicos", dailyLimit: 1 },
   EDITAL: { label: "Personalização de Edital", dailyLimit: 1 },
   OCR_ESSAY: { label: "OCR de Foto Manuscrita", dailyLimit: 1, isWeekly: true },
+  OCR_QUESTION: { label: "Scanner OCR de Questões", dailyLimit: 3 },
 };
 
 // Teto global diário para somatório de todas as requisições de IA no plano gratuito
@@ -350,6 +351,13 @@ export async function getUserQuotaStatus(
         used: 0,
         limit: AI_QUOTA_LIMITS.OCR_ESSAY.dailyLimit,
         remaining: AI_QUOTA_LIMITS.OCR_ESSAY.dailyLimit,
+        bonusEarned: 0,
+      },
+      OCR_QUESTION: {
+        label: AI_QUOTA_LIMITS.OCR_QUESTION.label,
+        used: 0,
+        limit: AI_QUOTA_LIMITS.OCR_QUESTION.dailyLimit,
+        remaining: AI_QUOTA_LIMITS.OCR_QUESTION.dailyLimit,
         bonusEarned: 0,
       },
     },

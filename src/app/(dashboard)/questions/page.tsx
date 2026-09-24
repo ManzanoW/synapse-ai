@@ -37,6 +37,7 @@ import {
   Layers,
   Calendar,
   FileSpreadsheet,
+  Camera,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -56,6 +57,7 @@ import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationMo
 import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 import { OpticalAnswerSheetModal } from "@/components/questions/OpticalAnswerSheetModal";
 import { SpeedQuizModal } from "@/components/questions/SpeedQuizModal";
+import { QuestionScannerModal } from "@/components/questions/QuestionScannerModal";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
@@ -324,6 +326,8 @@ export default function QuestoesPage() {
   // Modal de Desafio Relâmpago 45s (Speed Quiz)
   const [isSpeedQuizOpen, setIsSpeedQuizOpen] = useState(false);
   const [pendingLaunchSpeedQuiz, setPendingLaunchSpeedQuiz] = useState(false);
+  // Modal de Scanner OCR de Questões com Visão Computacional
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
 
   // Modal de Feedback Visual Premium de Geração com IA
   const [isSimuladoModalOpen, setIsSimuladoModalOpen] = useState(false);
@@ -497,6 +501,12 @@ export default function QuestoesPage() {
         handleQuickQuiz({ qtd: 5 });
       });
       return;
+    }
+
+    if (paramMode === "scan" || searchParams.get("scan") === "true") {
+      queueMicrotask(() => {
+        setIsScannerModalOpen(true);
+      });
     }
 
     if (paramQuizId) {
@@ -1578,6 +1588,16 @@ export default function QuestoesPage() {
             <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0 flex-wrap">
               <button
                 type="button"
+                onClick={() => setIsScannerModalOpen(true)}
+                className="w-full sm:w-auto justify-center bg-cyan-500/15 border border-cyan-500/40 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-cyan-500/10 active:scale-95"
+                title="Fotografe ou envie uma imagem de questão para resolver com IA"
+              >
+                <Camera size={15} className="text-cyan-400" />
+                <span>Scanner OCR 📸</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => {
                   if (questions.length >= 5) {
                     setIsSpeedQuizOpen(true);
@@ -2376,6 +2396,7 @@ export default function QuestoesPage() {
           focusedIndex={focusedQuestionIndex}
           onOpenOpticalSheet={() => setIsOpticalSheetOpen(true)}
           onOpenSpeedQuiz={() => setIsSpeedQuizOpen(true)}
+          onOpenScanner={() => setIsScannerModalOpen(true)}
           onSelectQuestion={(idx) => {
             setFocusedQuestionIndex(idx);
             document
@@ -2415,6 +2436,21 @@ export default function QuestoesPage() {
         questions={questions}
         onFinish={(stats) => {
           setLastEarnedXp(stats.totalXp);
+        }}
+      />
+
+      {/* MODAL SCANNER OCR DE QUESTÕES (VISÃO COMPUTACIONAL) */}
+      <QuestionScannerModal
+        isOpen={isScannerModalOpen}
+        onClose={() => setIsScannerModalOpen(false)}
+        onAddQuestionToQuiz={(scannedQ) => {
+          setQuestions((prev) => [scannedQ, ...prev]);
+          setIsScannerModalOpen(false);
+          setTimeout(() => {
+            document
+              .getElementById("question-card-0")
+              ?.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 150);
         }}
       />
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { FileSpreadsheet, Zap } from "lucide-react";
+import { FileSpreadsheet, Zap, Camera } from "lucide-react";
 import { QuestaoIA } from "../page";
 
 interface QuestionMinimapProps {
@@ -13,6 +13,7 @@ interface QuestionMinimapProps {
   onSelectQuestion: (index: number) => void;
   onOpenOpticalSheet?: () => void;
   onOpenSpeedQuiz?: () => void;
+  onOpenScanner?: () => void;
 }
 
 export function QuestionMinimap({
@@ -24,6 +25,7 @@ export function QuestionMinimap({
   onSelectQuestion,
   onOpenOpticalSheet,
   onOpenSpeedQuiz,
+  onOpenScanner,
 }: QuestionMinimapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLButtonElement>(null);
@@ -61,7 +63,19 @@ export function QuestionMinimap({
             title="Desafio Relâmpago 45s (Speed Quiz)"
           >
             <Zap size={14} className="text-amber-400 fill-amber-400" />
-            <span className="hidden sm:inline text-[11px]">Speed Quiz</span>
+            <span className="hidden sm:inline text-[11px]">Speed</span>
+          </button>
+        )}
+
+        {onOpenScanner && (
+          <button
+            type="button"
+            onClick={onOpenScanner}
+            className="shrink-0 px-2 sm:px-2.5 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-xs"
+            title="Scanner OCR de Questões (Visão IA)"
+          >
+            <Camera size={14} className="text-cyan-400" />
+            <span className="hidden sm:inline text-[11px]">Scanner</span>
           </button>
         )}
 
