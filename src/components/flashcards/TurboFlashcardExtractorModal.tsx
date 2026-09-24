@@ -213,7 +213,7 @@ export function TurboFlashcardExtractorModal({
                       </span>
                       {c.details && (
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                          Mnemônico
+                          Macete
                         </span>
                       )}
                     </div>

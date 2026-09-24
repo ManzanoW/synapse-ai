@@ -87,7 +87,7 @@ export function PricingView({
     },
     {
       q: "O que ganho ao assinar o Synapse Concurseiro Pro?",
-      a: "Você tem acesso 100% ilimitado a todas as ferramentas com IA (sem fila nem bloqueio diário), OCR de redações manuscritas ilimitado, remediação cognitiva de erros com mnemônicos, mapas mentais com aprofundamento neural e exportação HD/PDF A4, leitor de editais em PDF e exportação para o Anki (.apkg).",
+      a: "Você tem acesso 100% ilimitado a todas as ferramentas com IA (sem fila nem bloqueio diário), OCR de redações manuscritas ilimitado, revisão de erros com macetes práticos, mapas mentais com aprofundamento neural e exportação HD/PDF A4, leitor de editais em PDF e exportação para o Anki (.apkg).",
     },
     {
       q: "A IA é calibrada para as principais bancas do Brasil?",
@@ -288,7 +288,7 @@ export function PricingView({
                 {[
                   "IA 100% Ilimitada & Zero Anúncios (foco total sem interrupções)",
                   "OCR de Redação Manuscrita Ilimitado (foto da folha de prova real)",
-                  "Remediação Cognitiva & Mnemônicos no Caderno de Erros ilimitados",
+                  "Revisão de Erros & Macetes de Memorização no Caderno de Erros ilimitados",
                   "Mapas Mentais Neurais: Aprofundamento de nós com IA e exportação em PDF A4 / PNG HD",
                   "Raio-X de Incidência da Banca no Edital Verticalizado (Cebraspe, FGV, FCC)",
                   "Importador de Edital em PDF (extração automática por IA)",
@@ -443,11 +443,11 @@ export function PricingView({
               </tr>
               <tr>
                 <td className="p-4 text-slate-200 font-medium">
-                  Remediação Cognitiva no Caderno de Erros
+                  Explicação e Macetes no Caderno de Erros
                 </td>
                 <td className="p-4 text-center text-slate-400">1 por dia (+1 via anúncio)</td>
                 <td className="p-4 text-center text-indigo-300 font-bold bg-indigo-500/5 border-l border-r border-indigo-500/20">
-                  Ilimitada + Mnemônicos por IA 🧠
+                  Ilimitada + Macetes de Memorização por IA 🧠
                 </td>
               </tr>
 

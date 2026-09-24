@@ -169,7 +169,7 @@ export function ErrorCard({
       if (res.isQuotaExceeded) {
         setIsQuotaExceeded(true);
         setQuotaErrorMessage(
-          res.error || "Limite diário de remediações e mnemônicos com IA atingido."
+          res.error || "Limite diário de ajudas e macetes com IA atingido."
         );
         return;
       }
@@ -532,12 +532,12 @@ export function ErrorCard({
                   </div>
                 </div>
 
-                {/* 4.2 Mnemônico ou Regra Prática de Memorização */}
+                {/* 4.2 Macete ou Regra Prática de Memorização */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-amber-300 text-xs font-bold uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                       <Lightbulb size={15} />
-                      <span>Mnemônico / Regra de Ouro</span>
+                      <span>Macete / Regra de Ouro</span>
                     </div>
 
                     <button
@@ -548,7 +548,7 @@ export function ErrorCard({
                           ? "bg-amber-500/20 border-amber-400 text-amber-200"
                           : "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
                       }`}
-                      title={isSpeakingMnemonic ? "Pausar leitura de áudio" : "Ouvir mnemônico em voz alta"}
+                      title={isSpeakingMnemonic ? "Pausar leitura de áudio" : "Ouvir macete em voz alta"}
                     >
                       {isSpeakingMnemonic ? (
                         <VolumeX size={13} className="text-amber-400 animate-pulse" />

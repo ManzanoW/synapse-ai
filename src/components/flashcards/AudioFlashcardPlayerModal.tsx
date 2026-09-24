@@ -196,7 +196,7 @@ export function AudioFlashcardPlayerModal({
             {currentPhase === "answer" && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
                 <CheckCircle2 size={13} />
-                Revelando Gabarito & Mnemônico
+                Revelando Gabarito & Macete
               </span>
             )}
             {currentPhase === "idle" && (

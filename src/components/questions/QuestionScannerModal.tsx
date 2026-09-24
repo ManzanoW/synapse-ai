@@ -69,7 +69,7 @@ export function QuestionScannerModal({
     "Estruturando enunciado e isolando alternativas...",
     "Consultando jurisprudência do STF/STJ e legislação seca...",
     "Mapeando armadilhas e pegadinhas da banca examinadora...",
-    "Gerando mnemônico e flashcard para retenção acelerada...",
+    "Gerando macete e flashcard para memorização rápida...",
   ];
 
   // Alterna mensagens do scanner durante o loading

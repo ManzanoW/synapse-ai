@@ -460,7 +460,7 @@ export function PdfFlashcardImportModal({
                       <span>Exportação para o Anki</span>
                     </div>
                     <p className="text-[11px] text-slate-400 leading-relaxed">
-                      Exporte os cards para o Anki em 1 clique com suporte a mnemônicos e tags.
+                      Exporte os cards para o Anki em 1 clique com suporte a macetes e tags.
                     </p>
                   </div>
                 </div>

@@ -202,7 +202,7 @@ export function MindMapModal({
                   Sintetizando Mapa Mental Neural...
                 </h3>
                 <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-                  A IA está mapeando a doutrina, ramificações de regras, prazos e mnemônicos do tópico <strong>&ldquo;{topicTitle}&rdquo;</strong>.
+                  A IA está mapeando a doutrina, ramificações de regras, prazos e macetes do tópico <strong>&ldquo;{topicTitle}&rdquo;</strong>.
                 </p>
               </div>
 

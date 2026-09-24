@@ -1204,7 +1204,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                           {fsrsMaturity.leechCards}
                         </span>
                         <span className="text-[10px] text-slate-400 block">
-                          3+ lapsos (precisa de mnemônico)
+                          3+ erros seguidos (precisa de macete)
                         </span>
                       </div>
                     </div>

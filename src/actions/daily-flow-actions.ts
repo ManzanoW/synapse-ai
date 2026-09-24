@@ -188,7 +188,7 @@ export async function getDailyFlowRecommendationAction(): Promise<{
         title:
           pendingErrorsCount > 0
             ? `Curar ${pendingErrorsCount} Erro(s) Pendente(s)`
-            : "Cura Cognitiva & Mnemônicos",
+            : "Revisão de Erros & Macetes",
         subtitle: isRemediationCompleted
           ? "✓ Etapa concluída hoje! Ponto cego desarmado."
           : pendingErrorsCount > 0

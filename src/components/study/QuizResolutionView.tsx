@@ -1094,7 +1094,7 @@ export function QuizResolutionView({
                           size={13}
                           className={feedbackTab === "DISTRATORES" ? "text-violet-300" : "text-slate-400"}
                         />
-                        <span>Dissecação das Alternativas</span>
+                        <span>Análise das Alternativas</span>
                       </button>
 
                       <button
@@ -1115,7 +1115,7 @@ export function QuizResolutionView({
                           size={13}
                           className={feedbackTab === "MNEMONICO" ? "text-amber-400" : "text-slate-400"}
                         />
-                        <span>Dica & Mnemônico</span>
+                        <span>Macetes de Prova</span>
                       </button>
                     </div>
 
@@ -1178,7 +1178,7 @@ export function QuizResolutionView({
                               }}
                               className="text-violet-400 hover:text-violet-300 font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
                             >
-                              <span>Ver Dissecação com IA</span>
+                              <span>Ver Análise das Alternativas</span>
                               <ChevronRight size={13} />
                             </button>
                           </div>
@@ -1187,7 +1187,7 @@ export function QuizResolutionView({
                     )}
 
                     {/* ========================================================== */}
-                    {/* CONTEÚDO DA ABA 2: DISSECAÇÃO DAS ALTERNATIVAS (IA)        */}
+                    {/* CONTEÚDO DA ABA 2: ANÁLISE DAS ALTERNATIVAS (IA)           */}
                     {/* ========================================================== */}
                     {feedbackTab === "DISTRATORES" && (
                       <div className="space-y-3 pt-1 animate-fadeIn">
@@ -1195,7 +1195,7 @@ export function QuizResolutionView({
                           <div className="p-8 rounded-2xl bg-slate-900/40 border border-white/5 flex flex-col items-center justify-center gap-3 text-center">
                             <Loader2 size={24} className="text-violet-400 animate-spin" />
                             <p className="text-xs font-bold text-slate-300">
-                              A IA está dissecando o enunciado e mapeando os distratores da banca...
+                              A IA está analisando cada alternativa e os truques da banca...
                             </p>
                           </div>
                         ) : currentDeepExplanation ? (
@@ -1276,7 +1276,7 @@ export function QuizResolutionView({
                         ) : (
                           <div className="p-6 rounded-2xl bg-slate-900/40 border border-white/5 text-center space-y-3">
                             <p className="text-xs text-slate-300 max-w-md mx-auto">
-                              Disseque o raciocínio da banca {banca}, os fundamentos e o erro específico de cada alternativa com inteligência artificial.
+                              Analise em detalhes o raciocínio da banca {banca} e o erro de cada alternativa com inteligência artificial.
                             </p>
                             <button
                               type="button"
@@ -1284,7 +1284,7 @@ export function QuizResolutionView({
                               className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-950/50 cursor-pointer transition-all inline-flex items-center gap-2"
                             >
                               <Sparkles size={13} />
-                              <span>Dissecar Alternativas com IA</span>
+                              <span>Analisar Alternativas com IA</span>
                             </button>
                           </div>
                         )}
@@ -1292,7 +1292,7 @@ export function QuizResolutionView({
                     )}
 
                     {/* ========================================================== */}
-                    {/* CONTEÚDO DA ABA 3: DICA & MNEMÔNICO                        */}
+                    {/* CONTEÚDO DA ABA 3: MACETES DE PROVA                        */}
                     {/* ========================================================== */}
                     {feedbackTab === "MNEMONICO" && (
                       <div className="space-y-3 pt-1 animate-fadeIn">
@@ -1300,14 +1300,14 @@ export function QuizResolutionView({
                           <div className="p-8 rounded-2xl bg-slate-900/40 border border-white/5 flex flex-col items-center justify-center gap-3 text-center">
                             <Loader2 size={24} className="text-amber-400 animate-spin" />
                             <p className="text-xs font-bold text-slate-300">
-                              Gerando mnemônico e regra prática de memorização...
+                              Gerando macete e regra prática para memorizar...
                             </p>
                           </div>
                         ) : currentDeepExplanation?.mnemonicTip ? (
                           <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2">
                             <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs uppercase tracking-wider">
                               <Sparkles size={14} className="text-amber-400" />
-                              <span>Regra de Ouro & Mnemônico para Prova</span>
+                              <span>Macete de Ouro para a Prova</span>
                             </div>
                             <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
                               {currentDeepExplanation.mnemonicTip}
@@ -1316,7 +1316,7 @@ export function QuizResolutionView({
                         ) : (
                           <div className="p-6 rounded-2xl bg-slate-900/40 border border-white/5 text-center space-y-3">
                             <p className="text-xs text-slate-300 max-w-md mx-auto">
-                              Gere uma regra prática, macete ou mnemônico mental para fixar o conceito e nunca mais errar.
+                              Gere um macete ou dica prática para fixar o conceito e nunca mais errar na prova.
                             </p>
                             <button
                               type="button"
@@ -1324,7 +1324,7 @@ export function QuizResolutionView({
                               className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 font-bold text-xs shadow-lg shadow-amber-950/50 cursor-pointer transition-all inline-flex items-center gap-2"
                             >
                               <Sparkles size={13} />
-                              <span>Gerar Mnemônico com IA</span>
+                              <span>Gerar Macete com IA</span>
                             </button>
                           </div>
                         )}

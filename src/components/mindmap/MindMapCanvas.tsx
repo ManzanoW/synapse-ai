@@ -1170,7 +1170,7 @@ export function MindMapCanvas({
               <p className="text-xs text-slate-300 leading-relaxed">
                 {proFeatureReason === "export"
                   ? "Exporte seus mapas mentais em Ultra Definição A4 ou PNG Retina 2x para imprimir ou usar no GoodNotes/Notion sem perda de nitidez."
-                  : "Desdobre qualquer ramo com jurisprudência, pegadinhas de bancas examinadoras e mnemônicos inéditos gerados pelo Gemini Pro."}
+                  : "Desdobre qualquer ramo com jurisprudência, pegadinhas de bancas examinadoras e macetes inéditos gerados pelo Gemini Pro."}
               </p>
             </div>
 

@@ -155,12 +155,12 @@ export function MentorCopilotDrawer({
                   <h2 className="text-base font-black text-white tracking-tight flex items-center gap-1.5">
                     Copilot Mentor IA
                     <span className="text-[10px] bg-violet-500/20 border border-violet-400/40 text-violet-300 font-mono px-2 py-0.5 rounded-full font-bold">
-                      Tutor Socrático
+                      Ajuda na Questão
                     </span>
                   </h2>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Orientação cognitiva para desbloquear seu raciocínio
+                  Dicas inteligentes para te guiar até a resposta certa
                 </p>
               </div>
             </div>
@@ -202,7 +202,7 @@ export function MentorCopilotDrawer({
               }`}
             >
               <Lightbulb size={13} />
-              <span className="truncate">Socrático</span>
+              <span className="truncate">Dica Rápida</span>
             </button>
 
             <button
@@ -215,7 +215,7 @@ export function MentorCopilotDrawer({
               }`}
             >
               <Scale size={13} />
-              <span className="truncate">Lei Seca</span>
+              <span className="truncate">Letra da Lei</span>
             </button>
 
             <button
@@ -228,7 +228,7 @@ export function MentorCopilotDrawer({
               }`}
             >
               <Zap size={13} />
-              <span className="truncate">Mnemônico</span>
+              <span className="truncate">Macete de Memória</span>
             </button>
           </div>
         </div>
@@ -283,7 +283,7 @@ export function MentorCopilotDrawer({
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 text-violet-300 text-xs font-bold">
                         <Lightbulb size={16} className="text-violet-400" />
-                        <span>Dica Socrática (Sem Spoilers)</span>
+                        <span>Dica para Resolver (Sem Spoilers)</span>
                       </div>
                       <button
                         type="button"
@@ -319,7 +319,7 @@ export function MentorCopilotDrawer({
                   {/* Resumo pedagógico do comando */}
                   <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/5 space-y-2">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
-                      Instrução do Tutor:
+                      Dica do Professor:
                     </span>
                     <p className="text-xs text-slate-300 leading-relaxed">
                       Repare se o comando da questão pede a alternativa <strong>CORRETA</strong> ou a <strong>INCORRETA</strong>, e desconfie de expressões restritivas como <em>&ldquo;sempre&rdquo;</em>, <em>&ldquo;nunca&rdquo;</em> ou <em>&ldquo;exclusivamente&rdquo;</em>.
@@ -341,7 +341,7 @@ export function MentorCopilotDrawer({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold">
                         <Scale size={16} className="text-indigo-400" />
-                        <span>Tradutor de Lei Seca & Juridiquês</span>
+                        <span>A Lei em Linguagem Simples</span>
                       </div>
                       <button
                         type="button"
@@ -385,12 +385,12 @@ export function MentorCopilotDrawer({
                   transition={{ duration: 0.18 }}
                   className="space-y-4"
                 >
-                  {/* Bloco Mnemônico */}
+                  {/* Bloco Mnemônico / Macete */}
                   <div className="p-4 rounded-2xl bg-linear-to-b from-amber-950/30 to-amber-950/10 border border-amber-500/30 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
                         <Zap size={16} className="text-amber-400" />
-                        <span>Fábrica de Mnemônicos & Gatilhos</span>
+                        <span>Macete para Não Esquecer na Prova</span>
                       </div>
                       <button
                         type="button"
@@ -398,7 +398,7 @@ export function MentorCopilotDrawer({
                           copyToClipboard(guidance.mnemonic, "mnemonic")
                         }
                         className="text-slate-400 hover:text-white p-1 rounded-md text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                        title="Copiar mnemônico"
+                        title="Copiar macete"
                       >
                         {hasCopied === "mnemonic" ? (
                           <Check size={13} className="text-emerald-400" />

@@ -969,7 +969,7 @@ export function QuizResultView({
                                       size={14}
                                       className="animate-spin"
                                     />
-                                    <span>Dissecando questão com IA...</span>
+                                    <span>Analisando questão com IA...</span>
                                   </>
                                 ) : (
                                   <>
@@ -993,7 +993,7 @@ export function QuizResultView({
                                     className="text-violet-400 animate-pulse"
                                   />
                                   <span>
-                                    Análise Cognitiva Aprofundada (Synapse AI)
+                                    Análise Detalhada com IA
                                   </span>
                                 </div>
 
@@ -1007,12 +1007,12 @@ export function QuizResultView({
                                   </p>
                                 </div>
 
-                                {/* Dissecação dos Distratores */}
+                                {/* Análise de Cada Alternativa */}
                                 {deepData.alternativesAnalysis &&
                                   deepData.alternativesAnalysis.length > 0 && (
                                     <div className="space-y-2 pt-1">
                                       <span className="text-[10px] font-mono font-bold text-violet-300 uppercase block">
-                                        Dissecação dos Distratores:
+                                        Por que cada alternativa está certa ou errada:
                                       </span>
                                       <div className="space-y-1.5">
                                         {deepData.alternativesAnalysis.map(
@@ -1052,11 +1052,11 @@ export function QuizResultView({
                                   </div>
                                 )}
 
-                                {/* Regra de Ouro & Mnemônico */}
+                                {/* Regra de Ouro & Macete */}
                                 {deepData.mnemonicTip && (
                                   <div className="text-xs p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-1">
                                     <span className="font-bold text-amber-300 block uppercase tracking-wider text-[10px]">
-                                      💡 Dica de Ouro & Mnemônico:
+                                      💡 Macete de Ouro para a Prova:
                                     </span>
                                     <p className="text-slate-200">
                                       {deepData.mnemonicTip}

@@ -815,7 +815,7 @@ export default function StudyFlashcard({
                     <div className="relative z-10 my-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-center justify-between gap-2 max-w-lg mx-auto">
                       <div className="flex items-center gap-2 text-left">
                         <AlertCircle size={14} className="shrink-0 text-amber-400" />
-                        <span className="text-[11px] leading-tight">Card com falhas repetidas. Fixe com gatilho mnemônico!</span>
+                        <span className="text-[11px] leading-tight">Card com falhas repetidas. Fixe com um macete prático!</span>
                       </div>
                       <button
                         onClick={handleGenerateMnemonic}
@@ -827,7 +827,7 @@ export default function StudyFlashcard({
                         ) : (
                           <Sparkles size={11} className="text-amber-400" />
                         )}
-                        <span>Mnemônico IA</span>
+                        <span>Macete IA</span>
                       </button>
                     </div>
                   )}
@@ -891,11 +891,11 @@ export default function StudyFlashcard({
                     {/* Mnemônico / Detalhes de Aprendizagem */}
                     {currentDetails ? (
                       <div className="text-[11px] sm:text-xs text-slate-200 bg-slate-900/90 border border-indigo-500/30 p-3.5 rounded-xl leading-relaxed text-left shadow-inner space-y-2">
-                        {currentDetails.includes("💡 Mnemônico IA:") ? (
+                        {currentDetails.includes("💡 Mnemônico IA:") || currentDetails.includes("💡 Macete IA:") ? (
                           <>
                             <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs border-b border-white/10 pb-1.5">
                               <Lightbulb size={14} className="text-amber-400" />
-                              <span>Regra Mnemônica Inteligente</span>
+                              <span>Macete de Memorização</span>
                             </div>
                             <div className="whitespace-pre-line text-indigo-100 font-medium">
                               {currentDetails}
@@ -919,7 +919,7 @@ export default function StudyFlashcard({
                           ) : (
                             <Sparkles size={12} className="text-indigo-400" />
                           )}
-                          <span>Criar Mnemônico com IA</span>
+                          <span>Criar Macete com IA</span>
                         </button>
                       </div>
                     )}
