@@ -18,6 +18,7 @@ import {
   EyeOff,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   AlertTriangle,
   Target,
   AlertCircle,
@@ -176,6 +177,7 @@ export function QuizResolutionView({
   const [isTimerRunning, setIsTimerRunning] = useState(isInitialTimerRunning);
 
   // UI States
+  const [feedbackTab, setFeedbackTab] = useState<"BANCA" | "DISTRATORES" | "MNEMONICO">("BANCA");
   const [isJustificationExpanded, setIsJustificationExpanded] = useState(true);
   const [showErrorDiagnosisModal, setShowErrorDiagnosisModal] = useState(false);
   const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
@@ -281,6 +283,10 @@ export function QuizResolutionView({
         inline: "center",
       });
     }
+  }, [activeQuestionIndex]);
+
+  useEffect(() => {
+    setFeedbackTab("BANCA");
   }, [activeQuestionIndex]);
 
   // Navegação entre questões com direção da animação
@@ -994,72 +1000,65 @@ export function QuizResolutionView({
                 {/* ================================================================= */}
                 {/* BOX DE JUSTIFICATIVA EXPANSÍVEL + APROFUNDAR COM IA */}
                 {/* ================================================================= */}
+                {/* ================================================================= */}
+                {/* CARD DE FEEDBACK ERGONÔMICO (ABAS + PROGRESSIVE DISCLOSURE) */}
+                {/* ================================================================= */}
                 {isCurrentAnswered && (
                   <motion.div
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="mt-6 rounded-2xl p-5 sm:p-6 bg-slate-950/80 border border-white/10 shadow-xl space-y-4 relative z-10"
+                    className={`mt-6 rounded-3xl p-5 sm:p-6 border shadow-2xl space-y-4 relative z-10 transition-colors backdrop-blur-xl ${
+                      isCurrentCorrect
+                        ? "bg-slate-950/85 border-emerald-500/30 shadow-[0_0_35px_rgba(16,185,129,0.06)]"
+                        : "bg-slate-950/85 border-rose-500/30 shadow-[0_0_35px_rgba(244,63,94,0.06)]"
+                    }`}
                   >
-                    {/* Linha de resultado e botões de ação */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-                      <div className="flex items-center gap-2.5 font-bold text-sm">
+                    {/* Linha de resultado e status */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                      <div className="flex items-center gap-3 flex-wrap">
                         {isCurrentCorrect ? (
-                          <span className="text-emerald-400 flex items-center gap-1.5 font-black">
-                            <CheckCircle2 size={18} /> Parabéns, você acertou!
-                          </span>
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-black text-xs sm:text-sm shadow-xs">
+                            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                            <span>Parabéns, você acertou!</span>
+                          </div>
                         ) : (
-                          <span className="text-rose-400 flex items-center gap-1.5 font-black">
-                            <XCircle size={18} /> Resposta incorreta
-                          </span>
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 font-black text-xs sm:text-sm shadow-xs">
+                            <XCircle size={16} className="text-rose-400 shrink-0" />
+                            <span>Resposta incorreta</span>
+                          </div>
                         )}
-                        <span className="text-slate-600">•</span>
-                        <span className="text-slate-300 font-mono text-xs">
-                          Gabarito Oficial:{" "}
-                          <strong className="text-emerald-400 text-sm">
-                            {currentQuestion.gabaritoCorreto}
-                          </strong>
-                        </span>
-                      </div>
 
-                      <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
-                        {/* Botão Aprofundar Explicação com IA */}
-                        <button
-                          onClick={handleDeepenExplanation}
-                          disabled={isDeepeningLoading || Boolean(currentDeepExplanation)}
-                          type="button"
-                          className={`w-full sm:w-auto px-4 py-2 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer ${
-                            currentDeepExplanation
-                              ? "bg-violet-500/20 border-violet-500/40 text-violet-200"
-                              : "bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-950/50 border-violet-400/40"
-                          }`}
-                        >
-                          {isDeepeningLoading ? (
+                        {/* Comparativo de Gabarito */}
+                        <div className="flex items-center gap-1.5 text-xs font-mono">
+                          {!isCurrentCorrect && currentSelectedAlt && (
                             <>
-                              <Loader2 size={13} className="animate-spin" />
-                              <span>Dissecando questão com IA...</span>
-                            </>
-                          ) : currentDeepExplanation ? (
-                            <>
-                              <Sparkles size={13} className="text-violet-300" />
-                              <span>Explicação Aprofundada ✓</span>
-                            </>
-                          ) : (
-                            <>
-                              <BrainCircuit size={14} className="text-violet-200" />
-                              <span>Aprofundar Explicação com IA ✨</span>
+                              <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">
+                                Sua escolha: {currentSelectedAlt}
+                              </span>
+                              <span className="text-slate-500">➔</span>
                             </>
                           )}
-                        </button>
+                          <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
+                            Gabarito:{" "}
+                            <strong className="text-white text-sm">
+                              {currentQuestion.gabaritoCorreto}
+                            </strong>
+                          </span>
+                        </div>
+                      </div>
 
+                      {/* Ações Rápidas (Chips de Feedback) */}
+                      <div className="flex items-center gap-2 flex-wrap self-end sm:self-center">
                         {/* Se errou: Por que errei? */}
                         {!isCurrentCorrect && (
                           <button
                             type="button"
                             onClick={() => setShowErrorDiagnosisModal(true)}
-                            className="w-full sm:w-auto px-3.5 py-2 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                            className="px-3 py-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+                            title="Classificar tipo de erro no caderno"
                           >
-                            <Brain size={13} />
+                            <Brain size={13} className="text-amber-400" />
                             <span>
                               {errorClassifications[activeQuestionIndex]
                                 ? "Diagnóstico Salvo ✓"
@@ -1077,11 +1076,12 @@ export function QuizResolutionView({
                               Boolean(createdFlashcards[activeQuestionIndex])
                             }
                             type="button"
-                            className={`w-full sm:w-auto px-3 py-2 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer ${
                               createdFlashcards[activeQuestionIndex]
                                 ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300 cursor-default"
                                 : "bg-white/5 border-white/10 hover:bg-white/10 text-slate-300"
                             }`}
+                            title="Salvar questão como Flashcard"
                           >
                             {isCreatingFlashcard ? (
                               <Loader2 size={12} className="animate-spin" />
@@ -1092,7 +1092,7 @@ export function QuizResolutionView({
                             )}
                             <span>
                               {createdFlashcards[activeQuestionIndex]
-                                ? "Card Criado!"
+                                ? "Card Salvo!"
                                 : "🎴 Flashcard"}
                             </span>
                           </button>
@@ -1100,112 +1100,275 @@ export function QuizResolutionView({
                       </div>
                     </div>
 
-                    {/* Bloco de Justificativa Base Expansível */}
-                    <div className="space-y-2">
+                    {/* ========================================================== */}
+                    {/* SELETOR DE ABAS COMPACTO (GABARITO / IA / MNEMÔNICO)       */}
+                    {/* ========================================================== */}
+                    <div className="flex items-center gap-1.5 border-b border-white/10 pb-2 overflow-x-auto">
                       <button
-                        onClick={() =>
-                          setIsJustificationExpanded((prev) => !prev)
-                        }
                         type="button"
-                        className="flex items-center justify-between w-full text-xs font-bold uppercase tracking-wider text-violet-300 hover:text-violet-200 transition-colors cursor-pointer"
+                        onClick={() => setFeedbackTab("BANCA")}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                          feedbackTab === "BANCA"
+                            ? "bg-violet-600/30 border border-violet-500/50 text-white shadow-xs"
+                            : "text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent"
+                        }`}
                       >
-                        <span className="flex items-center gap-1.5">
-                          <Award size={14} /> Justificativa da Banca
-                        </span>
-                        {isJustificationExpanded ? (
-                          <ChevronUp size={16} />
-                        ) : (
-                          <ChevronDown size={16} />
-                        )}
+                        <Award
+                          size={13}
+                          className={feedbackTab === "BANCA" ? "text-violet-300" : "text-slate-400"}
+                        />
+                        <span>Gabarito da Banca</span>
                       </button>
 
-                      {isJustificationExpanded && (
-                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium bg-slate-900/60 border border-slate-800/80 p-4 rounded-xl whitespace-pre-line">
-                          {renderEnunciado(currentQuestion.justificativa)}
-                        </p>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFeedbackTab("DISTRATORES");
+                          if (!currentDeepExplanation && !isDeepeningLoading) {
+                            handleDeepenExplanation();
+                          }
+                        }}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                          feedbackTab === "DISTRATORES"
+                            ? "bg-violet-600/30 border border-violet-500/50 text-white shadow-xs"
+                            : "text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent"
+                        }`}
+                      >
+                        <BrainCircuit
+                          size={13}
+                          className={feedbackTab === "DISTRATORES" ? "text-violet-300" : "text-slate-400"}
+                        />
+                        <span>Dissecação das Alternativas</span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-violet-500/20 text-violet-300 border border-violet-500/30 font-black">
+                          IA
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFeedbackTab("MNEMONICO");
+                          if (!currentDeepExplanation && !isDeepeningLoading) {
+                            handleDeepenExplanation();
+                          }
+                        }}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                          feedbackTab === "MNEMONICO"
+                            ? "bg-amber-500/20 border border-amber-500/40 text-amber-200 shadow-xs"
+                            : "text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent"
+                        }`}
+                      >
+                        <Sparkles
+                          size={13}
+                          className={feedbackTab === "MNEMONICO" ? "text-amber-400" : "text-slate-400"}
+                        />
+                        <span>Dica & Mnemônico</span>
+                      </button>
                     </div>
 
-                    {/* Exibição da Explicação Aprofundada com IA */}
-                    {currentDeepExplanation && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-4 sm:p-5 rounded-2xl bg-linear-to-br from-violet-950/40 via-[#0a0e1c] to-[#080b16] border border-violet-500/40 space-y-4 shadow-xl"
-                      >
-                        <div className="flex items-center gap-2 text-violet-300 font-bold text-xs uppercase tracking-wider border-b border-violet-500/20 pb-2">
-                          <Sparkles size={14} className="text-violet-400 animate-pulse" />
-                          <span>Análise Cognitiva Aprofundada (Synapse AI)</span>
+                    {/* ========================================================== */}
+                    {/* CONTEÚDO DA ABA 1: JUSTIFICATIVA DA BANCA                   */}
+                    {/* ========================================================== */}
+                    {feedbackTab === "BANCA" && (
+                      <div className="space-y-3 pt-1 animate-fadeIn">
+                        <div className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium bg-slate-900/60 border border-slate-800/80 p-4 rounded-2xl whitespace-pre-line">
+                          {renderEnunciado(currentQuestion.justificativa)}
                         </div>
 
-                        {/* Visão Geral */}
-                        <div className="space-y-1">
-                          <span className="text-[11px] font-mono font-bold text-violet-300 uppercase">
-                            Raciocínio Central do Examinador:
-                          </span>
-                          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-                            {currentDeepExplanation.overview}
-                          </p>
-                        </div>
-
-                        {/* Análise das Alternativas */}
-                        {currentDeepExplanation.alternativesAnalysis &&
-                          currentDeepExplanation.alternativesAnalysis.length > 0 && (
-                            <div className="space-y-2 pt-1">
-                              <span className="text-[11px] font-mono font-bold text-violet-300 uppercase block">
-                                Dissecação dos Distratores:
-                              </span>
-                              <div className="space-y-1.5">
-                                {currentDeepExplanation.alternativesAnalysis.map(
-                                  (altDetail, idx) => (
-                                    <div
-                                      key={`alt-detail-${idx}`}
-                                      className="text-xs p-2.5 rounded-xl bg-slate-950/60 border border-white/5 flex items-start gap-2.5"
-                                    >
-                                      <span
-                                        className={`font-black px-2 py-0.5 rounded-md text-[10px] shrink-0 ${
-                                          altDetail.isCorrect
-                                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                            : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                                        }`}
-                                      >
-                                        {altDetail.letter}
-                                      </span>
-                                      <span className="text-slate-300 leading-relaxed">
-                                        {altDetail.explanation}
-                                      </span>
-                                    </div>
-                                  ),
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                        {/* Fundamento Legal */}
-                        {currentDeepExplanation.legalBasis && (
-                          <div className="text-xs p-3 rounded-xl bg-violet-500/10 border border-violet-500/25 space-y-1">
-                            <span className="font-bold text-violet-200 block uppercase tracking-wider text-[10px]">
-                              ⚖️ Fundamento Legal / Doutrinário:
-                            </span>
-                            <p className="text-slate-200">
-                              {currentDeepExplanation.legalBasis}
-                            </p>
+                        {!currentDeepExplanation && (
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs text-slate-400">
+                            <span>Deseja entender as pegadinhas e o erro de cada distrator?</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFeedbackTab("DISTRATORES");
+                                handleDeepenExplanation();
+                              }}
+                              className="text-violet-400 hover:text-violet-300 font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                            >
+                              <span>Ver Dissecação com IA</span>
+                              <ChevronRight size={13} />
+                            </button>
                           </div>
                         )}
+                      </div>
+                    )}
 
-                        {/* Mnemônico / Regra de Ouro */}
-                        {currentDeepExplanation.mnemonicTip && (
-                          <div className="text-xs p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-1">
-                            <span className="font-bold text-amber-300 block uppercase tracking-wider text-[10px]">
-                              💡 Dica de Ouro & Mnemônico:
-                            </span>
-                            <p className="text-slate-200">
+                    {/* ========================================================== */}
+                    {/* CONTEÚDO DA ABA 2: DISSECAÇÃO DAS ALTERNATIVAS (IA)        */}
+                    {/* ========================================================== */}
+                    {feedbackTab === "DISTRATORES" && (
+                      <div className="space-y-3 pt-1 animate-fadeIn">
+                        {isDeepeningLoading ? (
+                          <div className="p-8 rounded-2xl bg-slate-900/40 border border-white/5 flex flex-col items-center justify-center gap-3 text-center">
+                            <Loader2 size={24} className="text-violet-400 animate-spin" />
+                            <p className="text-xs font-bold text-slate-300">
+                              A IA está dissecando o enunciado e mapeando os distratores da banca...
+                            </p>
+                          </div>
+                        ) : currentDeepExplanation ? (
+                          <div className="space-y-3">
+                            {/* Raciocínio Central */}
+                            <div className="p-3.5 rounded-2xl bg-violet-500/10 border border-violet-500/20 text-xs">
+                              <span className="text-[10px] font-mono font-bold text-violet-300 uppercase block mb-1">
+                                Raciocínio Central do Examinador ({banca}):
+                              </span>
+                              <p className="text-slate-200 leading-relaxed">
+                                {currentDeepExplanation.overview}
+                              </p>
+                            </div>
+
+                            {/* Alternativas */}
+                            <div className="space-y-2">
+                              {currentDeepExplanation.alternativesAnalysis?.map(
+                                (alt, idx) => {
+                                  const isUserChoice =
+                                    !isCurrentCorrect &&
+                                    alt.letter === currentSelectedAlt;
+                                  return (
+                                    <div
+                                      key={`alt-tab-${idx}`}
+                                      className={`text-xs p-3 rounded-2xl border transition-all flex items-start gap-2.5 ${
+                                        alt.isCorrect
+                                          ? "bg-emerald-950/20 border-emerald-500/30"
+                                          : isUserChoice
+                                          ? "bg-rose-950/20 border-rose-500/40"
+                                          : "bg-slate-950/60 border-white/5"
+                                      }`}
+                                    >
+                                      <div className="flex flex-col items-center gap-1 shrink-0">
+                                        <span
+                                          className={`font-black px-2 py-0.5 rounded-md text-[10px] ${
+                                            alt.isCorrect
+                                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                              : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                          }`}
+                                        >
+                                          {alt.letter}
+                                        </span>
+                                        {isUserChoice && (
+                                          <span className="text-[8px] font-black text-rose-400 uppercase tracking-tight">
+                                            Sua
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="space-y-0.5 flex-1 min-w-0">
+                                        {isUserChoice && (
+                                          <span className="text-[10px] font-bold text-rose-300 block">
+                                            ⚠️ Pegadinha da banca onde você caiu:
+                                          </span>
+                                        )}
+                                        <span className="text-slate-300 leading-relaxed block">
+                                          {alt.explanation}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                },
+                              )}
+                            </div>
+
+                            {/* Fundamento Legal */}
+                            {currentDeepExplanation.legalBasis && (
+                              <div className="text-xs p-3 rounded-2xl bg-violet-500/10 border border-violet-500/20 space-y-1">
+                                <span className="font-bold text-violet-200 block uppercase tracking-wider text-[10px]">
+                                  ⚖️ Fundamento Legal / Doutrinário:
+                                </span>
+                                <p className="text-slate-200">
+                                  {currentDeepExplanation.legalBasis}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-6 rounded-2xl bg-slate-900/40 border border-white/5 text-center space-y-3">
+                            <p className="text-xs text-slate-300 max-w-md mx-auto">
+                              Disseque o raciocínio da banca {banca}, os fundamentos e o erro específico de cada alternativa com inteligência artificial.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={handleDeepenExplanation}
+                              className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-950/50 cursor-pointer transition-all inline-flex items-center gap-2"
+                            >
+                              <Sparkles size={13} />
+                              <span>Dissecar Alternativas com IA</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ========================================================== */}
+                    {/* CONTEÚDO DA ABA 3: DICA & MNEMÔNICO                        */}
+                    {/* ========================================================== */}
+                    {feedbackTab === "MNEMONICO" && (
+                      <div className="space-y-3 pt-1 animate-fadeIn">
+                        {isDeepeningLoading ? (
+                          <div className="p-8 rounded-2xl bg-slate-900/40 border border-white/5 flex flex-col items-center justify-center gap-3 text-center">
+                            <Loader2 size={24} className="text-amber-400 animate-spin" />
+                            <p className="text-xs font-bold text-slate-300">
+                              Gerando mnemônico e regra prática de memorização...
+                            </p>
+                          </div>
+                        ) : currentDeepExplanation?.mnemonicTip ? (
+                          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2">
+                            <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs uppercase tracking-wider">
+                              <Sparkles size={14} className="text-amber-400" />
+                              <span>Regra de Ouro & Mnemônico para Prova</span>
+                            </div>
+                            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
                               {currentDeepExplanation.mnemonicTip}
                             </p>
                           </div>
+                        ) : (
+                          <div className="p-6 rounded-2xl bg-slate-900/40 border border-white/5 text-center space-y-3">
+                            <p className="text-xs text-slate-300 max-w-md mx-auto">
+                              Gere uma regra prática, macete ou mnemônico mental para fixar o conceito e nunca mais errar.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={handleDeepenExplanation}
+                              className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 font-bold text-xs shadow-lg shadow-amber-950/50 cursor-pointer transition-all inline-flex items-center gap-2"
+                            >
+                              <Sparkles size={13} />
+                              <span>Gerar Mnemônico com IA</span>
+                            </button>
+                          </div>
                         )}
-                      </motion.div>
+                      </div>
                     )}
+
+                    {/* ========================================================== */}
+                    {/* ATALHO E BOTÃO DE AVANÇO RÁPIDO NO PRÓPRIO CARD           */}
+                    {/* ========================================================== */}
+                    <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-3 text-xs">
+                      <span className="text-slate-400 text-[11px] hidden sm:inline-block">
+                        Dica: Pressione{" "}
+                        <kbd className="px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-800 font-mono text-slate-300 font-bold">
+                          Enter
+                        </kbd>{" "}
+                        para avançar
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (activeQuestionIndex < totalQuestions - 1) {
+                            navigateTo(activeQuestionIndex + 1);
+                          } else {
+                            handlePromptFinalize();
+                          }
+                        }}
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-violet-950/40 active:scale-95 ml-auto"
+                      >
+                        <span>
+                          {activeQuestionIndex < totalQuestions - 1
+                            ? "Próxima Questão"
+                            : "Finalizar Simulado"}
+                        </span>
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
                   </motion.div>
                 )}
 
