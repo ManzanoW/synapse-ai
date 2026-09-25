@@ -24,11 +24,68 @@ export const AI_QUOTA_LIMITS: Record<
   OCR_QUESTION: { label: "Scanner OCR de Questões", dailyLimit: 3 },
 };
 
+// Limites diários de Uso Justo (Fair Use) para assinantes do plano Pro.
+// Valores generosos que garantem liberdade total para concurseiros humanos reais,
+// mas bloqueiam scripts, bots, loops e compartilhamento abusivo de contas.
+export const PRO_FAIR_USE_LIMITS: Record<
+  AiFeatureType,
+  { label: string; dailyLimit: number; isWeekly?: boolean }
+> = {
+  SIMULADO: { label: "Simulados com IA", dailyLimit: 30 },
+  ESSAY: { label: "Correções de Redação", dailyLimit: 6 },
+  FLASHCARD: { label: "Baralhos de Flashcards", dailyLimit: 30 },
+  MINDMAP: { label: "Mapas Mentais", dailyLimit: 20 },
+  REMEDIATION: { label: "Remediação e Mnemônicos", dailyLimit: 30 },
+  EDITAL: { label: "Personalização de Edital", dailyLimit: 10 },
+  OCR_ESSAY: { label: "OCR de Foto Manuscrita", dailyLimit: 10 },
+  OCR_QUESTION: { label: "Scanner OCR de Questões", dailyLimit: 30 },
+};
+
 // Teto global diário para somatório de todas as requisições de IA no plano gratuito
 export const GLOBAL_DAILY_AI_LIMIT = 7;
 
+// Teto global diário para somatório de requisições de IA no plano Pro (Fair Use)
+export const GLOBAL_DAILY_PRO_AI_LIMIT = 100;
+
+// Trava anti-loop e anti-bot por minuto por usuário
+export const MAX_REQUESTS_PER_MINUTE_PER_USER = 10;
+
 // Máximo de anúncios de vídeo recompensados permitidos por dia por usuário
 export const MAX_DAILY_REWARDED_ADS = 2;
+
+// Rate limiter em memória por usuário (janela deslizante de 60 segundos)
+const userRequestTimestamps = new Map<string, number[]>();
+
+export function checkRateLimitPerMinute(userId: string): boolean {
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  const timestamps = userRequestTimestamps.get(userId) || [];
+
+  // Remove timestamps mais antigos que 60 segundos
+  const validTimestamps = timestamps.filter((t) => now - t < windowMs);
+
+  if (validTimestamps.length >= MAX_REQUESTS_PER_MINUTE_PER_USER) {
+    userRequestTimestamps.set(userId, validTimestamps);
+    return false;
+  }
+
+  validTimestamps.push(now);
+  userRequestTimestamps.set(userId, validTimestamps);
+
+  // Limpeza preventiva se o Map exceder 5000 entradas
+  if (userRequestTimestamps.size > 5000) {
+    for (const [uid, tsList] of userRequestTimestamps.entries()) {
+      const filtered = tsList.filter((t) => now - t < windowMs);
+      if (filtered.length === 0) {
+        userRequestTimestamps.delete(uid);
+      } else {
+        userRequestTimestamps.set(uid, filtered);
+      }
+    }
+  }
+
+  return true;
+}
 
 function getTodayKey(): string {
   // Retorna YYYY-MM-DD com base no horário de Brasília (UTC-3)
@@ -53,10 +110,10 @@ function getUsagePeriodKey(feature: AiFeatureType): string {
   return getTodayKey();
 }
 
-
 /**
  * Verifica se o usuário possui cota disponível para consumir uma funcionalidade com IA hoje.
- * Leva em consideração bônus diários desbloqueados via vídeos patrocinados (Rewarded Ads).
+ * Leva em consideração bônus diários desbloqueados via vídeos patrocinados (Rewarded Ads)
+ * e aplica a Política de Uso Justo (Fair Use) e Rate Limiting para assinantes Pro.
  */
 export async function checkAiQuota(
   userId: string,
@@ -68,24 +125,114 @@ export async function checkAiQuota(
       select: { role: true, planTier: true, email: true },
     });
 
-    // Administradores e assinantes Premium possuem acesso ilimitado
-    const isUnlimited =
+    const isAdmin =
       user?.role === "ADMIN" ||
-      user?.planTier === "PREMIUM" ||
       Boolean(
         user?.email &&
           process.env.ADMIN_EMAIL &&
           user.email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase(),
       );
 
-    if (isUnlimited) {
+    // Administradores possuem acesso 100% irrestrito
+    if (isAdmin) {
       return {
         allowed: true,
         remaining: 9999,
         limit: 9999,
         used: 0,
         isUnlimited: true,
-        resetsAt: "Ilimitado (Admin/Premium)",
+        resetsAt: "Ilimitado (Admin)",
+        canWatchRewardedAd: false,
+      };
+    }
+
+    // 1. Checagem de Rate Limit por minuto (proteção anti-loop e anti-bot)
+    if (!checkRateLimitPerMinute(userId)) {
+      return {
+        allowed: false,
+        remaining: 0,
+        limit: MAX_REQUESTS_PER_MINUTE_PER_USER,
+        used: MAX_REQUESTS_PER_MINUTE_PER_USER,
+        isUnlimited: user?.planTier === "PREMIUM",
+        resetsAt: "em 1 minuto",
+        message:
+          "Muitas requisições em sequência. Aguarde alguns segundos antes de solicitar uma nova geração de IA.",
+        canWatchRewardedAd: false,
+      };
+    }
+
+    // 2. Assinantes Pro: Política de Uso Justo (Fair Use)
+    const isPro = user?.planTier === "PREMIUM";
+    if (isPro) {
+      const today = getTodayKey();
+      const proFeatureConfig = PRO_FAIR_USE_LIMITS[feature] || {
+        label: feature,
+        dailyLimit: 30,
+      };
+
+      const [featureUsage, globalUsage] = await Promise.all([
+        prisma.aiDailyUsage.findUnique({
+          where: {
+            userId_date_feature: {
+              userId,
+              date: today,
+              feature,
+            },
+          },
+          select: { count: true },
+        }),
+        prisma.aiDailyUsage.findUnique({
+          where: {
+            userId_date_feature: {
+              userId,
+              date: today,
+              feature: "ALL",
+            },
+          },
+          select: { count: true },
+        }),
+      ]);
+
+      const usedFeature = featureUsage?.count ?? 0;
+      const usedGlobal = globalUsage?.count ?? 0;
+
+      // Checa teto global do Pro (100 chamadas/dia)
+      if (usedGlobal >= GLOBAL_DAILY_PRO_AI_LIMIT) {
+        return {
+          allowed: false,
+          remaining: 0,
+          limit: GLOBAL_DAILY_PRO_AI_LIMIT,
+          used: usedGlobal,
+          isUnlimited: true,
+          resetsAt: "à meia-noite",
+          message:
+            "Você atingiu o teto diário de uso justo da sua conta Pro (100 gerações/dia). Seu limite será renovado automaticamente à meia-noite.",
+          canWatchRewardedAd: false,
+        };
+      }
+
+      // Checa teto da funcionalidade específica no Pro
+      if (usedFeature >= proFeatureConfig.dailyLimit) {
+        return {
+          allowed: false,
+          remaining: 0,
+          limit: proFeatureConfig.dailyLimit,
+          used: usedFeature,
+          isUnlimited: true,
+          resetsAt: "à meia-noite",
+          message: `Você atingiu o teto diário de uso justo para ${proFeatureConfig.label} (${proFeatureConfig.dailyLimit}/dia). Seu limite será renovado à meia-noite.`,
+          canWatchRewardedAd: false,
+        };
+      }
+
+      const remaining = Math.max(0, proFeatureConfig.dailyLimit - usedFeature);
+      return {
+        allowed: true,
+        remaining,
+        limit: proFeatureConfig.dailyLimit,
+        used: usedFeature,
+        isUnlimited: true,
+        resetsAt: "Ilimitado (Uso Pessoal)",
         canWatchRewardedAd: false,
       };
     }
@@ -227,16 +374,15 @@ export async function consumeAiQuota(
       select: { role: true, planTier: true, email: true },
     });
 
-    const isUnlimited =
+    const isAdmin =
       user?.role === "ADMIN" ||
-      user?.planTier === "PREMIUM" ||
       Boolean(
         user?.email &&
           process.env.ADMIN_EMAIL &&
           user.email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase(),
       );
 
-    if (isUnlimited) {
+    if (isAdmin) {
       return; // Admins não consomem cota
     }
 
@@ -371,9 +517,8 @@ export async function getUserQuotaStatus(
 
     if (!user) return defaultStatus;
 
-    const isUnlimited =
+    const isAdmin =
       user.role === "ADMIN" ||
-      user.planTier === "PREMIUM" ||
       Boolean(
         user.email &&
           process.env.ADMIN_EMAIL &&
@@ -382,12 +527,51 @@ export async function getUserQuotaStatus(
 
     defaultStatus.role = user.role;
     defaultStatus.planTier = user.planTier;
-    defaultStatus.isUnlimited = Boolean(isUnlimited);
+    defaultStatus.isUnlimited = Boolean(isAdmin || user.planTier === "PREMIUM");
 
-    if (isUnlimited) {
+    if (isAdmin) {
       defaultStatus.globalRemaining = 9999;
       defaultStatus.globalLimit = 9999;
       defaultStatus.canWatchRewardedAd = false;
+      return defaultStatus;
+    }
+
+    // Assinantes Pro: exibe status ilimitado com teto de uso justo nos bastidores
+    const isPro = user.planTier === "PREMIUM";
+    if (isPro) {
+      defaultStatus.globalLimit = GLOBAL_DAILY_PRO_AI_LIMIT;
+      defaultStatus.canWatchRewardedAd = false;
+
+      const today = getTodayKey();
+      const usages = await prisma.aiDailyUsage.findMany({
+        where: {
+          userId,
+          date: today,
+        },
+      });
+
+      const usageMap = new Map<string, number>();
+      for (const u of usages) {
+        usageMap.set(u.feature, u.count);
+      }
+
+      const globalUsed = usageMap.get("ALL") ?? 0;
+      defaultStatus.globalUsed = globalUsed;
+      defaultStatus.globalRemaining = Math.max(0, GLOBAL_DAILY_PRO_AI_LIMIT - globalUsed);
+
+      (Object.keys(PRO_FAIR_USE_LIMITS) as AiFeatureType[]).forEach((feature) => {
+        const used = usageMap.get(feature) ?? 0;
+        const limit = PRO_FAIR_USE_LIMITS[feature].dailyLimit;
+
+        defaultStatus.features[feature] = {
+          label: PRO_FAIR_USE_LIMITS[feature].label,
+          used,
+          limit,
+          remaining: Math.max(0, limit - used),
+          bonusEarned: 0,
+        };
+      });
+
       return defaultStatus;
     }
 
