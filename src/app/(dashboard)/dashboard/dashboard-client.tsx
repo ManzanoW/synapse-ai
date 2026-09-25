@@ -1339,41 +1339,41 @@ export default function DashboardClient({
                 <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400">
+                    <div className="rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 p-2">
                       <Sparkles size={18} />
                     </div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
                       Sugestões Inteligentes da IA
                     </h3>
                   </div>
-                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[9px] font-bold text-cyan-300">
+                  <span className="rounded-full border border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 px-2.5 py-0.5 font-mono text-[9px] font-bold">
                     Synapse Neural
                   </span>
                 </div>
 
                 <div className="space-y-3">
                   {suggestions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-xs text-slate-400">
+                    <div className="rounded-2xl border border-dashed border-slate-200 dark:border-white/10 p-4 text-center text-xs text-slate-500 dark:text-slate-400">
                       Seu cronograma está 100% otimizado!
                     </div>
                   ) : (
                     suggestions.map((item: Suggestion) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3 hover:border-white/10 transition-colors"
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100/80 hover:border-slate-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:border-white/10 p-3 transition-colors"
                       >
                         <Link
                           href={getSuggestionUrl(item)}
                           className="flex items-center gap-3 flex-1 min-w-0"
                         >
-                          <div className="shrink-0 rounded-xl p-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                          <div className="shrink-0 rounded-xl p-2 bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
                             <BrainCircuit size={16} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h4 className="text-xs font-bold text-slate-200 truncate">
+                            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">
                               {item.title}
                             </h4>
-                            <p className="text-[11px] text-slate-400 truncate">
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
                               {item.description}
                             </p>
                           </div>
@@ -1388,15 +1388,15 @@ export default function DashboardClient({
                   disabled={isOptimizing}
                   className={`mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-bold transition-all ${
                     isOptimized
-                      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-                      : "border-cyan-500/20 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300 shadow-2xs"
+                      : "border-cyan-200 bg-cyan-50/90 text-cyan-800 hover:bg-cyan-100 hover:border-cyan-300 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20 shadow-2xs"
                   }`}
                 >
                   {isOptimizing ? (
                     <span>Otimizando Cronograma com IA...</span>
                   ) : isOptimized ? (
                     <>
-                      <Check size={14} className="text-emerald-400" />
+                      <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
                       <span>Cronograma e Metas Otimizados!</span>
                     </>
                   ) : (

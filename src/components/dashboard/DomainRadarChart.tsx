@@ -216,19 +216,19 @@ export default function DomainRadarChart({
   if (isLoading) {
     return (
       <div
-        className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-6 shadow-2xl ${className}`}
+        className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200 bg-white dark:border-white/10 dark:bg-linear-to-br dark:from-[#090d16] dark:to-[#05070e] p-6 shadow-sm dark:shadow-2xl ${className}`}
       >
-        <div className="flex items-center justify-between border-b border-white/5 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-4">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 animate-pulse rounded-xl bg-white/5" />
+            <div className="h-8 w-8 animate-pulse rounded-xl bg-slate-100 dark:bg-white/5" />
             <div className="space-y-1.5">
-              <div className="h-3 w-32 animate-pulse rounded bg-white/5" />
-              <div className="h-2 w-48 animate-pulse rounded bg-white/5" />
+              <div className="h-3 w-32 animate-pulse rounded bg-slate-100 dark:bg-white/5" />
+              <div className="h-2 w-48 animate-pulse rounded bg-slate-100 dark:bg-white/5" />
             </div>
           </div>
         </div>
         <div className="flex h-72 items-center justify-center">
-          <div className="h-44 w-44 animate-pulse rounded-full border border-indigo-500/20 bg-indigo-500/5" />
+          <div className="h-44 w-44 animate-pulse rounded-full border border-indigo-200 bg-indigo-50 dark:border-indigo-500/20 dark:bg-indigo-500/5" />
         </div>
       </div>
     );
@@ -236,47 +236,47 @@ export default function DomainRadarChart({
 
   return (
     <div
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] via-[#070b14] to-[#04060c] p-5 sm:p-6 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30 ${className}`}
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:border-white/10 dark:bg-linear-to-br dark:from-[#090d16] dark:via-[#070b14] dark:to-[#04060c] p-5 sm:p-6 shadow-sm dark:shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-400/40 dark:hover:border-indigo-500/30 ${className}`}
     >
       {/* Glow de fundo */}
       <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-violet-600/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-emerald-600/10 blur-3xl" />
 
       {/* ================= CABEÇALHO DO COMPONENTE ================= */}
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/70 dark:border-white/5 pb-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 shadow-inner shadow-indigo-500/20">
-            <Radar size={20} className="animate-pulse text-indigo-400" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-indigo-200 bg-indigo-50 text-indigo-600 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-400 shadow-inner shadow-indigo-500/20">
+            <Radar size={20} className="animate-pulse text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-100">
+              <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
                 {title}
               </h3>
-              <span className="rounded-full border border-indigo-500/30 bg-indigo-500/15 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase text-indigo-300">
+              <span className="rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-300 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase">
                 Neural Radar
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">{subtitle}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{subtitle}</p>
           </div>
         </div>
 
         {/* CONTROLES E LEGENDA */}
         <div className="flex items-center gap-2.5 self-start sm:self-center">
-          <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[11px] font-bold text-emerald-300">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+          <div className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50/90 text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/5 dark:text-emerald-300 px-2.5 py-1 text-[11px] font-bold">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-xs" />
             <span>Seu Acerto %</span>
           </div>
 
-          <div className="flex items-center gap-1.5 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-2.5 py-1 text-[11px] font-bold text-indigo-300">
-            <span className="h-2 w-2 rounded-full border border-dashed border-indigo-400 bg-indigo-500/60 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
+          <div className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/90 text-indigo-800 dark:border-indigo-500/20 dark:bg-indigo-500/5 dark:text-indigo-300 px-2.5 py-1 text-[11px] font-bold">
+            <span className="h-2 w-2 rounded-full border border-dashed border-indigo-500 bg-indigo-500/60 shadow-xs" />
             <span>Peso na Prova %</span>
           </div>
 
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="p-1.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20 transition-all cursor-pointer"
+            className="p-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:text-white dark:hover:border-white/20 transition-all cursor-pointer"
             title="Recarregar Métricas do Banco"
           >
             <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
@@ -422,18 +422,17 @@ export default function DomainRadarChart({
                   <g key={`ring-${lvlIdx}`}>
                     <polygon
                       points={ringPoints}
-                      fill={lvlIdx % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent"}
-                      stroke="rgba(148, 163, 184, 0.15)"
+                      fill={lvlIdx % 2 === 0 ? "rgba(99,102,241,0.03)" : "transparent"}
+                      stroke="currentColor"
+                      className="text-slate-300 dark:text-slate-700/60"
                       strokeWidth={lvlIdx === levels.length - 1 ? "1.5" : "0.8"}
                       strokeDasharray={lvlIdx === levels.length - 1 ? "" : "3 3"}
                     />
                     <text
                       x={cx + 4}
                       y={cy - radius * levelRatio - 2}
-                      fill="rgba(148, 163, 184, 0.4)"
-                      fontSize="8"
-                      fontFamily="monospace"
-                      fontWeight="bold"
+                      fill="currentColor"
+                      className="text-slate-400 dark:text-slate-500 font-mono font-bold text-[8px]"
                     >
                       {Math.round(levelRatio * 100)}%
                     </text>
@@ -451,7 +450,8 @@ export default function DomainRadarChart({
                     y1={cy}
                     x2={x}
                     y2={y}
-                    stroke="rgba(148, 163, 184, 0.18)"
+                    stroke="currentColor"
+                    className="text-slate-300 dark:text-slate-700/60"
                     strokeWidth="1"
                     strokeDasharray="2 2"
                   />
@@ -515,10 +515,10 @@ export default function DomainRadarChart({
                       cx={wtCoord.x}
                       cy={wtCoord.y}
                       r={isHovered ? 5 : 3.5}
-                      fill="#090d16"
+                      fill="currentColor"
                       stroke="#818cf8"
                       strokeWidth="2"
-                      className="transition-all duration-200"
+                      className="text-white dark:text-[#090d16] transition-all duration-200"
                     />
 
                     <circle
@@ -574,16 +574,14 @@ export default function DomainRadarChart({
                       y={ly}
                       textAnchor={textAnchor}
                       dominantBaseline="central"
-                      fill={
+                      fill="currentColor"
+                      className={`text-[10px] sm:text-[11px] font-bold transition-all duration-200 select-none ${
                         isHovered
-                          ? "#ffffff"
+                          ? "text-slate-950 dark:text-white font-extrabold text-[11px]"
                           : isBlindSpot
-                            ? "#fda4af"
-                            : "#cbd5e1"
-                      }
-                      fontSize={isHovered ? "11" : "10"}
-                      fontWeight={isHovered || isBlindSpot ? "bold" : "600"}
-                      className="transition-all duration-200"
+                            ? "text-rose-700 dark:text-rose-300 font-extrabold"
+                            : "text-slate-700 dark:text-slate-300 font-semibold"
+                      }`}
                     >
                       {displayName}
                     </text>
@@ -592,16 +590,14 @@ export default function DomainRadarChart({
                       y={ly + 11}
                       textAnchor={textAnchor}
                       dominantBaseline="central"
-                      fill={
+                      fill="currentColor"
+                      className={`text-[9px] font-mono font-bold select-none ${
                         isBlindSpot
-                          ? "#f43f5e"
+                          ? "text-rose-700 dark:text-rose-400 font-extrabold"
                           : isHovered
-                            ? "#10b981"
-                            : "rgba(148, 163, 184, 0.7)"
-                      }
-                      fontSize="8.5"
-                      fontFamily="monospace"
-                      fontWeight="bold"
+                            ? "text-emerald-700 dark:text-emerald-400"
+                            : "text-slate-500 dark:text-slate-400"
+                      }`}
                     >
                       {item.domain}% / {item.weight}%
                     </text>
@@ -617,19 +613,19 @@ export default function DomainRadarChart({
                   initial={{ opacity: 0, scale: 0.95, y: 5 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 5 }}
-                  className="pointer-events-none absolute bottom-2 rounded-2xl border border-indigo-500/40 bg-slate-950/95 p-3.5 shadow-2xl backdrop-blur-xl max-w-xs z-30"
+                  className="pointer-events-none absolute bottom-2 rounded-2xl border border-slate-200 dark:border-indigo-500/40 bg-white/95 dark:bg-slate-950/95 p-3.5 shadow-xl dark:shadow-2xl backdrop-blur-xl max-w-xs z-30"
                 >
-                  <div className="flex items-center justify-between gap-3 mb-2 pb-1.5 border-b border-white/10">
-                    <span className="text-xs font-black text-white truncate">
+                  <div className="flex items-center justify-between gap-3 mb-2 pb-1.5 border-b border-slate-200 dark:border-white/10">
+                    <span className="text-xs font-black text-slate-900 dark:text-white truncate">
                       {hoveredSubject.name}
                     </span>
                     <span
                       className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
                         hoveredSubject.status === "blind_spot"
-                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                          ? "bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30"
                           : hoveredSubject.status === "mastered"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                            : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                            ? "bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30"
+                            : "bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30"
                       }`}
                     >
                       {hoveredSubject.status === "blind_spot"
@@ -641,50 +637,50 @@ export default function DomainRadarChart({
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2">
-                      <span className="block text-[9px] uppercase font-bold text-emerald-400">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300 p-2">
+                      <span className="block text-[9px] uppercase font-bold text-emerald-800 dark:text-emerald-400">
                         Domínio Real
                       </span>
-                      <strong className="font-mono text-sm text-emerald-300">
+                      <strong className="font-mono text-sm text-emerald-700 dark:text-emerald-300">
                         {hoveredSubject.domain}%
                       </strong>
                     </div>
 
-                    <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-2">
-                      <span className="block text-[9px] uppercase font-bold text-indigo-400">
+                    <div className="rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300 p-2">
+                      <span className="block text-[9px] uppercase font-bold text-indigo-800 dark:text-indigo-400">
                         Peso Ideal
                       </span>
-                      <strong className="font-mono text-sm text-indigo-300">
+                      <strong className="font-mono text-sm text-indigo-700 dark:text-indigo-300">
                         {hoveredSubject.weight}%
                       </strong>
                     </div>
                   </div>
 
                   {hoveredSubject.totalAnswered > 0 && (
-                    <div className="mt-2 text-[10px] text-slate-400 border-t border-white/5 pt-1.5 flex justify-between">
+                    <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-white/5 pt-1.5 flex justify-between">
                       <span>Tentativas:</span>
-                      <strong className="text-slate-200">
+                      <strong className="text-slate-900 dark:text-slate-200 font-bold">
                         {hoveredSubject.correctCount}/{hoveredSubject.totalAnswered} acertos
                       </strong>
                     </div>
                   )}
 
-                  <div className="mt-1.5 text-[10px] text-slate-400 flex items-center gap-1.5">
+                  <div className="mt-1.5 text-[10px] text-slate-600 dark:text-slate-400 flex items-center gap-1.5 font-medium">
                     {hoveredSubject.gap < 0 ? (
                       <>
-                        <TrendingDown size={13} className="text-rose-400 shrink-0" />
-                        <span className="text-rose-300">
+                        <TrendingDown size={13} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                        <span className="text-rose-700 dark:text-rose-300 font-medium">
                           Déficit de{" "}
-                          <strong>{Math.abs(hoveredSubject.gap)}%</strong> em
+                          <strong className="font-bold text-rose-900 dark:text-rose-200">{Math.abs(hoveredSubject.gap)}%</strong> em
                           relação ao peso.
                         </span>
                       </>
                     ) : (
                       <>
-                        <ShieldCheck size={13} className="text-emerald-400 shrink-0" />
-                        <span className="text-emerald-300">
+                        <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span className="text-emerald-700 dark:text-emerald-300 font-medium">
                           Domínio superior ao peso em +
-                          <strong>{hoveredSubject.gap}%</strong>.
+                          <strong className="font-bold text-emerald-900 dark:text-emerald-200">{hoveredSubject.gap}%</strong>.
                         </span>
                       </>
                     )}
@@ -698,33 +694,33 @@ export default function DomainRadarChart({
 
       {/* ================= BANNER INFORMATIVO ================= */}
       {criticalBlindSpot && (
-        <div className="relative z-10 mt-2 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3.5 transition-all">
-          <div className="rounded-xl border border-rose-500/30 bg-rose-500/20 p-2 text-rose-400 shrink-0">
+        <div className="relative z-10 mt-2 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50/90 dark:border-rose-500/30 dark:bg-rose-500/10 p-3.5 transition-all shadow-xs">
+          <div className="rounded-xl border border-rose-300 bg-rose-100 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/20 dark:text-rose-400 p-2 shrink-0">
             <AlertTriangle size={16} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h4 className="text-xs font-black uppercase tracking-wider text-rose-200">
+              <h4 className="text-xs font-black uppercase tracking-wider text-rose-950 dark:text-rose-200">
                 Atenção: Matéria Prioritária
               </h4>
-              <span className="rounded-full border border-rose-500/40 bg-rose-500/20 px-2 py-0.5 font-mono text-[9px] font-bold text-rose-300">
+              <span className="rounded-full border border-rose-300 bg-rose-100 px-2 py-0.5 font-mono text-[9px] font-bold text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/20 dark:text-rose-300">
                 Foco Recomendado
               </span>
             </div>
-            <p className="mt-0.5 text-[11px] text-rose-200/80 leading-relaxed">
-              <strong>{criticalBlindSpot.name}</strong> possui peso elevado na prova (<strong>{criticalBlindSpot.weight}%</strong>), porém seu índice de acertos atual está em <strong>{criticalBlindSpot.domain}%</strong>. Dedicar mais tempo a esta matéria trará o maior ganho de pontos na sua nota!
+            <p className="mt-0.5 text-[11px] text-rose-900/90 dark:text-rose-200/80 leading-relaxed font-medium">
+              <strong className="text-rose-950 dark:text-white font-bold">{criticalBlindSpot.name}</strong> possui peso elevado na prova (<strong className="text-rose-950 dark:text-white font-bold">{criticalBlindSpot.weight}%</strong>), porém seu índice de acertos atual está em <strong className="text-rose-950 dark:text-white font-bold">{criticalBlindSpot.domain}%</strong>. Dedicar mais tempo a esta matéria trará o maior ganho de pontos na sua nota!
             </p>
           </div>
         </div>
       )}
 
       {!criticalBlindSpot && processedData.length >= 3 && (
-        <div className="relative z-10 mt-2 flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-2 text-emerald-400 shrink-0">
+        <div className="relative z-10 mt-2 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/90 dark:border-emerald-500/20 dark:bg-emerald-500/5 p-3">
+          <div className="rounded-xl border border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400 p-2 shrink-0">
             <Sparkles size={16} />
           </div>
-          <p className="text-xs text-emerald-200/90">
-            <strong>Excelente Alinhamento:</strong> Seu domínio real acompanha ou
+          <p className="text-xs text-emerald-950 dark:text-emerald-200/90">
+            <strong className="text-emerald-950 dark:text-emerald-100 font-bold">Excelente Alinhamento:</strong> Seu domínio real acompanha ou
             supera o peso exigido pelo edital em todas as matérias cadastradas.
           </p>
         </div>
