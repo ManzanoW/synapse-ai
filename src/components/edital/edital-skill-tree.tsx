@@ -107,7 +107,7 @@ function getTopicMastery(t: SkillTreeTopic): TopicMasteryInfo {
     return {
       tier: "LOCKED",
       label: "Não Iniciado",
-      badgeColor: "bg-slate-800/80 text-slate-400 border-slate-700/80",
+      badgeColor: "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700/80",
       glowColor: "rgba(100, 116, 139, 0.15)",
       textColor: "text-slate-500",
       borderColor: "border-slate-800",
@@ -221,7 +221,7 @@ function SkillTreeTopicCard({
       onClick={onSelect}
       className={`p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer relative overflow-hidden flex flex-col justify-between group ${
         isLight
-          ? "bg-white border-slate-200 hover:border-slate-300 shadow-xs"
+          ? "bg-white border-slate-200/90 hover:border-slate-300 shadow-xs hover:shadow-md"
           : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
       }`}
       style={{
@@ -230,7 +230,7 @@ function SkillTreeTopicCard({
           : isHovered
           ? hexToRgba(subColor, 0.75)
           : isLight
-          ? "#e2e8f0"
+          ? "#cbd5e1"
           : "rgba(30, 41, 59, 0.8)",
         backgroundColor: isSelected
           ? isLight
@@ -249,9 +249,20 @@ function SkillTreeTopicCard({
           ? isLight
             ? `0 6px 20px -4px ${hexToRgba(subColor, 0.2)}, 0 2px 6px -1px rgba(15, 23, 42, 0.05)`
             : `0 8px 24px -4px ${hexToRgba(subColor, 0.25)}, 0 0 12px ${hexToRgba(subColor, 0.15)}`
+          : isLight
+          ? "0 1px 3px 0 rgba(0, 0, 0, 0.05)"
           : undefined,
       }}
     >
+      {/* Faixa colorida da disciplina no topo para dar destaque e identidade aos cards */}
+      <div
+        className="absolute top-0 inset-x-0 h-1 rounded-t-2xl pointer-events-none transition-opacity"
+        style={{
+          backgroundColor: subColor,
+          opacity: isLight ? 0.9 : 0.6,
+        }}
+      />
+
       {/* Brilho suave da cor da matéria ao passar o mouse */}
       <div
         className="absolute inset-0 pointer-events-none transition-opacity duration-300"
@@ -386,6 +397,7 @@ export function EditalSkillTree({
   topics,
   onReviewClick,
 }: EditalSkillTreeProps) {
+  const { isLight } = useTheme();
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("ALL");
   const [selectedTopic, setSelectedTopic] = useState<SkillTreeTopic | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -660,26 +672,39 @@ export function EditalSkillTree({
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-4 relative z-10">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base text-white shadow-lg relative overflow-hidden border border-white/20"
-                    style={{ backgroundColor: subColor }}
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shadow-md relative overflow-hidden border border-slate-200 dark:border-white/20"
+                    style={{
+                      backgroundColor: isLight ? hexToRgba(subColor, 0.15) : subColor,
+                      color: isLight ? subColor : "#ffffff",
+                    }}
                   >
-                    <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                    <Sparkles size={20} className="relative z-10" />
+                    <div
+                      className="absolute inset-0 animate-pulse pointer-events-none"
+                      style={{
+                        backgroundColor: subColor,
+                        opacity: isLight ? 0.25 : 0.3,
+                      }}
+                    />
+                    <Sparkles
+                      size={20}
+                      className="relative z-10"
+                      style={{ color: isLight ? subColor : "#ffffff" }}
+                    />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                      <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
                         {group.subject.name}
                       </h3>
                       {group.subject.weight && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300 font-bold">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 dark:bg-white/5 dark:border-white/10 dark:text-slate-300 font-bold">
                           Peso {group.subject.weight.toFixed(1)}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       {group.topics.length} tópicos mapeados • Domínio médio:{" "}
-                      <strong className="text-indigo-300 font-bold">
+                      <strong className="text-indigo-600 dark:text-indigo-300 font-bold">
                         {group.averagePerformance}%
                       </strong>
                     </p>
@@ -687,7 +712,7 @@ export function EditalSkillTree({
                 </div>
 
                 <div className="text-right">
-                  <span className="text-xs font-mono font-bold text-slate-400">
+                  <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-400">
                     {
                       group.topics.filter(
                         (t) => (t.performance || 0) >= 70

@@ -1794,44 +1794,44 @@ export default function QuestoesPage() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="backdrop-blur-xl bg-gradient-to-br from-violet-950/35 via-zinc-900/70 to-black/85 border border-violet-500/25 rounded-2xl p-6 sm:p-7 relative overflow-hidden shadow-2xl hover:border-violet-500/35 transition-all duration-300"
+                        className="backdrop-blur-xl bg-white dark:bg-gradient-to-br dark:from-violet-950/35 dark:via-zinc-900/70 dark:to-black/85 border border-slate-200 dark:border-violet-500/25 rounded-2xl p-6 sm:p-7 relative overflow-hidden shadow-xs dark:shadow-2xl hover:border-slate-300 dark:hover:border-violet-500/35 transition-all duration-300"
                       >
                         <div className="pointer-events-none absolute -top-16 -right-16 w-72 h-72 bg-violet-600/15 rounded-full blur-3xl" />
 
                         <div className="relative z-10 space-y-5">
                           {/* Badge futurista */}
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 backdrop-blur-md shadow-[0_0_12px_rgba(139,92,246,0.15)]">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-800 dark:bg-violet-500/10 dark:border-violet-500/30 dark:text-violet-300 backdrop-blur-md shadow-xs">
                             <Sparkles
                               size={12}
-                              className="text-violet-400 animate-pulse"
+                              className="text-violet-600 dark:text-violet-400 animate-pulse"
                             />
-                            <span className="text-[10px] font-mono font-bold tracking-widest text-violet-300 uppercase">
+                            <span className="text-[10px] font-mono font-bold tracking-widest text-violet-700 dark:text-violet-300 uppercase">
                               CENTRAL DE TREINO INTELIGENTE • QUESTÕES ADAPTATIVAS
                             </span>
                           </div>
 
                           {/* Título & Descrição */}
                           <div className="space-y-2 max-w-2xl">
-                            <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent leading-tight">
+                            <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900 dark:text-transparent dark:bg-gradient-to-r dark:from-white dark:via-zinc-200 dark:to-zinc-400 dark:bg-clip-text leading-tight">
                               Pratique com foco na sua aprovação
                             </h2>
-                            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl">
+                            <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 leading-relaxed max-w-xl">
                               Simulados cronometrados, filtros por banca e regeneração cirúrgica dos seus pontos fracos potencializados por Inteligência Artificial.
                             </p>
                           </div>
 
                           {/* 4 Métricas Integradas no Cockpit */}
-                          <div className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 border-t border-white/5">
+                          <div className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 border-t border-slate-100 dark:border-white/5">
                             {/* 1. Precisão Média */}
-                            <div className="flex flex-col p-3 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md">
-                              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
-                                <span className="text-[11px]">Precisão Média</span>
-                                <Target size={13} className="text-violet-400" />
+                            <div className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200 dark:border-violet-500/20 backdrop-blur-md shadow-2xs">
+                              <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400 text-xs mb-1">
+                                <span className="text-[11px] font-medium">Precisão Média</span>
+                                <Target size={13} className="text-violet-600 dark:text-violet-400" />
                               </div>
-                              <span className="text-white font-bold font-mono text-base sm:text-lg">
+                              <span className="text-slate-900 dark:text-white font-bold font-mono text-base sm:text-lg">
                                 {practiceMetrics.averageAccuracy}%
                               </span>
-                              <div className="w-full bg-white/5 h-1 rounded-full mt-2 overflow-hidden">
+                              <div className="w-full bg-slate-200/80 dark:bg-white/5 h-1 rounded-full mt-2 overflow-hidden">
                                 <div
                                   className="h-full bg-gradient-to-r from-violet-500 to-emerald-400 rounded-full transition-all duration-500"
                                   style={{ width: `${practiceMetrics.averageAccuracy}%` }}
@@ -1840,30 +1840,30 @@ export default function QuestoesPage() {
                             </div>
 
                             {/* 2. Questões Resolvidas */}
-                            <div className="flex flex-col p-3 rounded-xl bg-zinc-900/60 border border-violet-500/20 backdrop-blur-md">
-                              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
-                                <span className="text-[11px]">Resolvidas</span>
-                                <Zap size={13} className="text-violet-400" />
+                            <div className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200 dark:border-violet-500/20 backdrop-blur-md shadow-2xs">
+                              <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400 text-xs mb-1">
+                                <span className="text-[11px] font-medium">Resolvidas</span>
+                                <Zap size={13} className="text-violet-600 dark:text-violet-400" />
                               </div>
-                              <span className="text-white font-bold font-mono text-base sm:text-lg">
+                              <span className="text-slate-900 dark:text-white font-bold font-mono text-base sm:text-lg">
                                 {practiceMetrics.totalAnswered}
                               </span>
-                              <span className="text-[10px] text-zinc-400 mt-1">questões registradas</span>
+                              <span className="text-[10px] text-slate-500 dark:text-zinc-400 mt-1">questões registradas</span>
                             </div>
 
                             {/* 3. Sequência Ativa */}
-                            <div className="flex flex-col p-3 rounded-xl bg-zinc-900/60 border border-amber-500/20 backdrop-blur-md">
-                              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
-                                <span className="text-[11px]">Ofensiva</span>
-                                <Flame size={13} className="text-amber-400" />
+                            <div className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-zinc-900/60 border border-amber-200 dark:border-amber-500/20 backdrop-blur-md shadow-2xs">
+                              <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400 text-xs mb-1">
+                                <span className="text-[11px] font-medium">Ofensiva</span>
+                                <Flame size={13} className="text-amber-500 dark:text-amber-400" />
                               </div>
-                              <span className="text-amber-400 font-bold font-mono text-base sm:text-lg">
+                              <span className="text-amber-600 dark:text-amber-400 font-bold font-mono text-base sm:text-lg">
                                 {gamificationStats?.streak?.currentDays ?? 0}{" "}
-                                <span className="text-xs font-normal text-zinc-400">
+                                <span className="text-xs font-normal text-slate-500 dark:text-zinc-400">
                                   {gamificationStats?.streak?.currentDays === 1 ? "dia" : "dias"}
                                 </span>
                               </span>
-                              <span className="text-[10px] text-zinc-400 mt-1">ritmo contínuo</span>
+                              <span className="text-[10px] text-slate-500 dark:text-zinc-400 mt-1">ritmo contínuo</span>
                             </div>
 
                             {/* 4. Caderno de Erros */}
@@ -1875,17 +1875,17 @@ export default function QuestoesPage() {
                                   router.push("/notebook");
                                 }
                               }}
-                              className="flex flex-col p-3 rounded-xl bg-zinc-900/60 border border-rose-500/20 backdrop-blur-md cursor-pointer hover:border-rose-500/40 hover:bg-rose-950/10 transition-all"
+                              className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-zinc-900/60 border border-rose-200 dark:border-rose-500/20 hover:border-rose-300 dark:hover:border-rose-500/40 hover:bg-rose-50/50 dark:hover:bg-rose-950/10 backdrop-blur-md cursor-pointer transition-all shadow-2xs"
                             >
-                              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
-                                <span className="text-[11px]">Caderno de Erros</span>
-                                <ShieldAlert size={13} className="text-rose-400" />
+                              <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400 text-xs mb-1">
+                                <span className="text-[11px] font-medium">Caderno de Erros</span>
+                                <ShieldAlert size={13} className="text-rose-500 dark:text-rose-400" />
                               </div>
-                              <span className="text-rose-400 font-bold font-mono text-base sm:text-lg">
+                              <span className="text-rose-600 dark:text-rose-400 font-bold font-mono text-base sm:text-lg">
                                 {errorNotebookMetrics.pendingErrors}{" "}
-                                <span className="text-xs font-normal text-zinc-400">pendentes</span>
+                                <span className="text-xs font-normal text-slate-500 dark:text-zinc-400">pendentes</span>
                               </span>
-                              <span className="text-[10px] text-rose-400/80 mt-1 flex items-center gap-1">
+                              <span className="text-[10px] text-rose-600/90 dark:text-rose-400/80 mt-1 flex items-center gap-1 font-semibold">
                                 Treinar erros <ChevronRight size={10} />
                               </span>
                             </div>
@@ -1896,11 +1896,11 @@ export default function QuestoesPage() {
                       {/* 2. GRID DE 4 MODOS DE TREINO RÁPIDO */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-                            <Sparkles size={16} className="text-violet-400" />
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-200 flex items-center gap-2">
+                            <Sparkles size={16} className="text-violet-600 dark:text-violet-400" />
                             Modos de Treino Rápido
                           </h3>
-                          <span className="text-[11px] text-zinc-400 font-mono">
+                          <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono">
                             Escolha uma modalidade para começar
                           </span>
                         </div>
@@ -1910,27 +1910,27 @@ export default function QuestoesPage() {
                           <motion.div
                             whileHover={{ y: -3, transition: { duration: 0.15 } }}
                             onClick={() => handleQuickQuiz({ qtd: 10 })}
-                            className="group relative backdrop-blur-xl bg-gradient-to-b from-amber-950/20 via-zinc-900/60 to-zinc-950 border border-amber-500/20 hover:border-amber-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-lg flex flex-col justify-between"
+                            className="group relative backdrop-blur-xl bg-white dark:bg-gradient-to-b dark:from-amber-950/20 dark:via-zinc-900/60 dark:to-zinc-950 border border-amber-200 dark:border-amber-500/20 hover:border-amber-300 dark:hover:border-amber-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
                           >
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
-                                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                                <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-xs">
                                   <Zap size={18} />
                                 </div>
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300">
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-300">
                                   10 Questões
                                 </span>
                               </div>
                               <div>
-                                <h4 className="text-sm font-bold text-white group-hover:text-amber-200 transition-colors">
+                                <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-200 transition-colors">
                                   Simulado Relâmpago
                                 </h4>
-                                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed">
                                   Aquecimento ágil com 10 questões gerais do seu edital em 1 clique.
                                 </p>
                               </div>
                             </div>
-                            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-amber-400 font-semibold">
+                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs text-amber-600 dark:text-amber-400 font-bold">
                               <span>Iniciar Agora</span>
                               <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
                             </div>
@@ -1946,27 +1946,27 @@ export default function QuestoesPage() {
                                 router.push("/notebook");
                               }
                             }}
-                            className="group relative backdrop-blur-xl bg-gradient-to-b from-rose-950/20 via-zinc-900/60 to-zinc-950 border border-rose-500/20 hover:border-rose-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-lg flex flex-col justify-between"
+                            className="group relative backdrop-blur-xl bg-white dark:bg-gradient-to-b dark:from-rose-950/20 dark:via-zinc-900/60 dark:to-zinc-950 border border-rose-200 dark:border-rose-500/20 hover:border-rose-300 dark:hover:border-rose-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
                           >
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
-                                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.2)]">
+                                <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 shadow-xs">
                                   <ShieldAlert size={18} />
                                 </div>
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300">
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-800 dark:text-rose-300">
                                   {errorNotebookMetrics.pendingErrors} Pendentes
                                 </span>
                               </div>
                               <div>
-                                <h4 className="text-sm font-bold text-white group-hover:text-rose-200 transition-colors">
+                                <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-200 transition-colors">
                                   Exterminador de Erros
                                 </h4>
-                                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed">
                                   Zere as pendências do seu Caderno de Erros e supere suas fraquezas.
                                 </p>
                               </div>
                             </div>
-                            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-rose-400 font-semibold">
+                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs text-rose-600 dark:text-rose-400 font-bold">
                               <span>Bateria de Erros</span>
                               <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
                             </div>
@@ -1976,27 +1976,27 @@ export default function QuestoesPage() {
                           <motion.div
                             whileHover={{ y: -3, transition: { duration: 0.15 } }}
                             onClick={() => setIsAIModalOpen(true)}
-                            className="group relative backdrop-blur-xl bg-gradient-to-b from-violet-950/25 via-zinc-900/60 to-zinc-950 border border-violet-500/20 hover:border-violet-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-lg flex flex-col justify-between"
+                            className="group relative backdrop-blur-xl bg-white dark:bg-gradient-to-b dark:from-violet-950/25 dark:via-zinc-900/60 dark:to-zinc-950 border border-violet-200 dark:border-violet-500/20 hover:border-violet-300 dark:hover:border-violet-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
                           >
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
-                                <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.2)]">
+                                <div className="p-2.5 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30 text-violet-600 dark:text-violet-400 shadow-xs">
                                   <Sparkles size={18} />
                                 </div>
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300">
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30 text-violet-800 dark:text-violet-300">
                                   Customizado
                                 </span>
                               </div>
                               <div>
-                                <h4 className="text-sm font-bold text-white group-hover:text-violet-200 transition-colors">
+                                <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-200 transition-colors">
                                   Gerador por IA
                                 </h4>
-                                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed">
                                   Filtre por matéria, tópico específico, banca, quantidade e nível.
                                 </p>
                               </div>
                             </div>
-                            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-violet-400 font-semibold">
+                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs text-violet-600 dark:text-violet-400 font-bold">
                               <span>Configurar Filtros</span>
                               <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
                             </div>
@@ -2006,27 +2006,27 @@ export default function QuestoesPage() {
                           <motion.div
                             whileHover={{ y: -3, transition: { duration: 0.15 } }}
                             onClick={() => setIsTimedLaunchModalOpen(true)}
-                            className="group relative backdrop-blur-xl bg-gradient-to-b from-emerald-950/20 via-zinc-900/60 to-zinc-950 border border-emerald-500/20 hover:border-emerald-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-lg flex flex-col justify-between"
+                            className="group relative backdrop-blur-xl bg-white dark:bg-gradient-to-b dark:from-emerald-950/20 dark:via-zinc-900/60 dark:to-zinc-950 border border-emerald-200 dark:border-emerald-500/20 hover:border-emerald-300 dark:hover:border-emerald-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
                           >
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
-                                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                                <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs">
                                   <Timer size={18} />
                                 </div>
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300">
                                   Pacing Estrito
                                 </span>
                               </div>
                               <div>
-                                <h4 className="text-sm font-bold text-white group-hover:text-emerald-200 transition-colors">
+                                <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-200 transition-colors">
                                   Modo Prova Real
                                 </h4>
-                                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed">
                                   Simule as condições de prova com limite de tempo e bloqueio de distrações.
                                 </p>
                               </div>
                             </div>
-                            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-emerald-400 font-semibold">
+                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-bold">
                               <span>Definir Ritmo</span>
                               <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
                             </div>
@@ -2037,11 +2037,11 @@ export default function QuestoesPage() {
                       {/* 3. SELETOR DE GRANDES BANCAS EXAMINADORAS */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-                            <Compass size={16} className="text-violet-400" />
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-200 flex items-center gap-2">
+                            <Compass size={16} className="text-violet-600 dark:text-violet-400" />
                             Treinar por Banca Examinadora
                           </h3>
-                          <span className="text-[11px] text-zinc-400">
+                          <span className="text-[11px] text-slate-500 dark:text-zinc-400">
                             Padrão de cobrança e estilo calibrados
                           </span>
                         </div>
@@ -2083,22 +2083,22 @@ export default function QuestoesPage() {
                                 setBanca(b.sigla);
                                 setIsAIModalOpen(true);
                               }}
-                              className={`p-4 rounded-xl bg-[#0b0f19]/70 border border-white/10 ${b.border} hover:bg-white/[0.04] transition-all cursor-pointer group flex flex-col justify-between space-y-3`}
+                              className={`p-4 rounded-xl bg-white dark:bg-[#0b0f19]/70 border border-slate-200 dark:border-white/10 ${b.border} hover:border-violet-500 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all cursor-pointer group flex flex-col justify-between space-y-3 shadow-xs hover:shadow-md`}
                             >
                               <div className="space-y-1">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm font-bold font-mono text-white group-hover:text-violet-300 transition-colors">
+                                  <span className="text-sm font-bold font-mono text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">
                                     {b.sigla}
                                   </span>
-                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400">
+                                  <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600 dark:bg-white/5 dark:border-white/10 dark:text-zinc-400">
                                     {b.badge}
                                   </span>
                                 </div>
-                                <p className="text-[11px] text-zinc-400 leading-snug pt-0.5">
+                                <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-snug pt-0.5">
                                   {b.desc}
                                 </p>
                               </div>
-                              <div className="flex items-center justify-between text-[11px] text-zinc-400 group-hover:text-zinc-200 pt-1 border-t border-white/5">
+                              <div className="flex items-center justify-between text-[11px] text-slate-500 group-hover:text-slate-900 dark:text-zinc-400 dark:group-hover:text-zinc-200 pt-1 border-t border-slate-100 dark:border-white/5 font-medium">
                                 <span>Filtrar questões</span>
                                 <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                               </div>
@@ -2110,13 +2110,13 @@ export default function QuestoesPage() {
                       {/* 4. DISCIPLINAS DO SEU EDITAL (MINI-RADAR) */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-                            <Layers size={16} className="text-violet-400" />
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-200 flex items-center gap-2">
+                            <Layers size={16} className="text-violet-600 dark:text-violet-400" />
                             Disciplinas do seu Edital
                           </h3>
                           <Link
                             href="/edital"
-                            className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+                            className="text-[11px] text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 font-semibold transition-colors flex items-center gap-1"
                           >
                             Gerenciar Edital <ChevronRight size={12} />
                           </Link>
@@ -2138,7 +2138,7 @@ export default function QuestoesPage() {
                               return (
                                 <div
                                   key={sub.id}
-                                  className="p-4 rounded-xl bg-[#0b0f19]/70 border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between space-y-3 group"
+                                  className="p-4 rounded-xl bg-white dark:bg-[#0b0f19]/70 border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all flex flex-col justify-between space-y-3 group shadow-xs hover:shadow-md"
                                 >
                                   <div>
                                     <div className="flex items-center justify-between gap-2">
@@ -2147,23 +2147,23 @@ export default function QuestoesPage() {
                                           className="w-2.5 h-2.5 rounded-full shrink-0"
                                           style={{ backgroundColor: subColor }}
                                         />
-                                        <h4 className="text-xs sm:text-sm font-semibold text-white truncate">
+                                        <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate">
                                           {sub.name}
                                         </h4>
                                       </div>
-                                      <span className="text-[10px] text-zinc-400 shrink-0 font-mono">
+                                      <span className="text-[10px] text-slate-500 dark:text-zinc-400 shrink-0 font-mono">
                                         {sub.topics?.length ?? 0} tópicos
                                       </span>
                                     </div>
 
                                     {/* Aproveitamento na disciplina */}
-                                    <div className="mt-2.5 flex items-center justify-between text-[11px] text-zinc-400">
+                                    <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-600 dark:text-zinc-400">
                                       <span>Aproveitamento</span>
-                                      <span className="text-white font-mono font-bold">
+                                      <span className="text-slate-900 dark:text-white font-mono font-bold">
                                         {totalAnsweredSub > 0 ? `${accSub}%` : "Não iniciado"}
                                       </span>
                                     </div>
-                                    <div className="w-full bg-white/5 h-1 rounded-full mt-1.5 overflow-hidden">
+                                    <div className="w-full bg-slate-100 dark:bg-white/5 h-1 rounded-full mt-1.5 overflow-hidden">
                                       <div
                                         className="h-full rounded-full transition-all duration-500"
                                         style={{
@@ -2174,11 +2174,11 @@ export default function QuestoesPage() {
                                     </div>
                                   </div>
 
-                                  <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-2">
+                                  <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2">
                                     <button
                                       type="button"
                                       onClick={() => handleQuickQuiz({ materia: sub.name, qtd: 5 })}
-                                      className="flex-1 py-1.5 px-3 rounded-lg bg-white/5 hover:bg-violet-600 hover:text-white text-zinc-300 text-xs font-semibold transition-all text-center cursor-pointer"
+                                      className="flex-1 py-1.5 px-3 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200/80 hover:border-indigo-600 dark:bg-white/5 dark:hover:bg-violet-600 dark:text-zinc-300 dark:hover:text-white dark:border-white/10 text-xs font-bold transition-all text-center cursor-pointer shadow-2xs"
                                     >
                                       Treinar 5 questões
                                     </button>
@@ -2188,7 +2188,7 @@ export default function QuestoesPage() {
                                         setMateria(sub.name);
                                         setIsAIModalOpen(true);
                                       }}
-                                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 dark:text-zinc-400 dark:hover:text-white transition-colors cursor-pointer"
                                       title="Configurar simulado detalhado"
                                     >
                                       <Sparkles size={14} />
@@ -2199,12 +2199,12 @@ export default function QuestoesPage() {
                             })}
                           </div>
                         ) : (
-                          <div className="p-6 rounded-2xl bg-violet-950/20 border border-violet-500/20 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4">
+                          <div className="p-6 rounded-2xl bg-violet-50/70 border border-violet-200 dark:bg-violet-950/20 dark:border-violet-500/20 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="space-y-1 text-center sm:text-left">
-                              <h4 className="text-sm font-bold text-white">
+                              <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                                 Comece cadastrando o edital do seu concurso
                               </h4>
-                              <p className="text-xs text-zinc-400 max-w-lg">
+                              <p className="text-xs text-slate-600 dark:text-zinc-400 max-w-lg">
                                 Importe disciplinas e tópicos para que a IA crie simulados 100% alinhados ao seu objetivo.
                               </p>
                             </div>
@@ -2221,14 +2221,14 @@ export default function QuestoesPage() {
                       {/* 5. ÚLTIMOS SIMULADOS REALIZADOS */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-                            <RotateCcw size={16} className="text-violet-400" />
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-200 flex items-center gap-2">
+                            <RotateCcw size={16} className="text-violet-600 dark:text-violet-400" />
                             Últimos Simulados Realizados
                           </h3>
                           <button
                             type="button"
                             onClick={() => handleTabChange("history")}
-                            className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1 cursor-pointer font-medium"
+                            className="text-[11px] text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 transition-colors flex items-center gap-1 cursor-pointer font-semibold"
                           >
                             Ver histórico completo ({quizHistory.length}) <ChevronRight size={12} />
                           </button>
@@ -2250,11 +2250,11 @@ export default function QuestoesPage() {
                               return (
                                 <div
                                   key={quiz.id}
-                                  className="p-4 rounded-xl bg-[#0b0f19]/70 border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between space-y-3 group"
+                                  className="p-4 rounded-xl bg-white dark:bg-[#0b0f19]/70 border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all flex flex-col justify-between space-y-3 group shadow-xs hover:shadow-md"
                                 >
                                   <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                                      <span className="font-mono font-semibold text-violet-300 px-2 py-0.5 rounded bg-violet-500/10 border border-violet-500/20">
+                                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400">
+                                      <span className="font-mono font-bold text-violet-800 dark:text-violet-300 px-2 py-0.5 rounded bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20">
                                         {quiz.banca || "Banca Geral"}
                                       </span>
                                       <span className="flex items-center gap-1">
@@ -2263,16 +2263,16 @@ export default function QuestoesPage() {
                                     </div>
 
                                     <div>
-                                      <h4 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-violet-200 transition-colors">
+                                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-violet-600 dark:group-hover:text-violet-200 transition-colors">
                                         {quiz.subject || "Simulado Geral"}
                                       </h4>
-                                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                                      <p className="text-[11px] text-slate-600 dark:text-zinc-400 truncate mt-0.5">
                                         {quiz.topic?.title || "Tópicos variados"} • {qCount} questões
                                       </p>
                                     </div>
                                   </div>
 
-                                  <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-2">
+                                  <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2">
                                     <button
                                       type="button"
                                       disabled={loadingQuizId === quiz.id}
@@ -2283,7 +2283,7 @@ export default function QuestoesPage() {
                                           quiz.id,
                                         )
                                       }
-                                      className="w-full py-1.5 px-3 rounded-lg bg-white/5 hover:bg-violet-600 hover:text-white text-zinc-200 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                      className="w-full py-1.5 px-3 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200/80 hover:border-indigo-600 dark:bg-white/5 dark:hover:bg-violet-600 dark:text-zinc-200 dark:hover:text-white dark:border-white/10 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
                                     >
                                       {loadingQuizId === quiz.id ? (
                                         <>
@@ -2303,8 +2303,8 @@ export default function QuestoesPage() {
                             })}
                           </div>
                         ) : (
-                          <div className="p-5 rounded-xl bg-zinc-900/40 border border-white/5 text-center">
-                            <p className="text-xs text-zinc-400">
+                          <div className="p-5 rounded-xl bg-slate-50 dark:bg-zinc-900/40 border border-slate-200 dark:border-white/5 text-center">
+                            <p className="text-xs text-slate-600 dark:text-zinc-400">
                               Nenhum simulado finalizado ainda. Escolha um dos modos acima para iniciar sua primeira sessão!
                             </p>
                           </div>
