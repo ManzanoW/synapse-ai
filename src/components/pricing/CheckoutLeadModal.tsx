@@ -41,6 +41,12 @@ export function CheckoutLeadModal({
     setStatusMessage("");
 
     try {
+      const externalCheckoutUrl = process.env.NEXT_PUBLIC_CHECKOUT_URL;
+      if (externalCheckoutUrl) {
+        window.location.href = externalCheckoutUrl;
+        return;
+      }
+
       const result = await submitSubscriptionLeadAction({
         plan: "Synapse Concurseiro Pro",
         billingCycle: cycle,
@@ -207,12 +213,12 @@ export function CheckoutLeadModal({
                   {isSubmitting ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
-                      <span>Ativando Acesso VIP...</span>
+                      <span>Ativando Desconto & Acesso Pro...</span>
                     </>
                   ) : (
                     <>
                       <Sparkles size={16} className="fill-white" />
-                      <span>Ativar Acesso VIP Grátis por 7 Dias</span>
+                      <span>Garantir Vaga com 50% OFF • 7 Dias Grátis</span>
                       <ArrowRight size={16} />
                     </>
                   )}

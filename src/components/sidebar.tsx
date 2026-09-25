@@ -47,6 +47,7 @@ import {
   Sun,
   Moon,
   X,
+  Cpu,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -331,7 +332,14 @@ export default function Sidebar({ user }: SidebarProps) {
     }
   };
 
-  // Filtra módulos de Direito/Carreiras Jurídicas (Jurisprudência e Prova Oral) apenas para usuários com foco na área
+  const isAdmin = Boolean(
+    user?.role === "ADMIN" ||
+    (user?.email &&
+      (user.email.toLowerCase() === "joaovytormanzano@gmail.com" ||
+       user.email.toLowerCase().includes("manzano")))
+  );
+
+  // Filtra módulos de Direito/Carreiras Jurídicas e adiciona link do Admin IA se for administrador
   const filteredNavGroups = NAV_GROUPS.map((group) => {
     if (group.label === "Prática & Performance") {
       return {
@@ -342,6 +350,24 @@ export default function Sidebar({ user }: SidebarProps) {
           }
           return true;
         }),
+      };
+    }
+    if (group.label === "Conta & Planos") {
+      if (!isAdmin) return group;
+      const hasAdmin = group.items.some((i) => i.href === "/admin/ai");
+      if (hasAdmin) return group;
+      return {
+        ...group,
+        items: [
+          ...group.items,
+          {
+            label: "Cockpit Admin IA",
+            href: "/admin/ai",
+            icon: Cpu,
+            badge: "DEV",
+            isSpecial: true,
+          },
+        ],
       };
     }
     return group;

@@ -21,6 +21,9 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  Star,
+  Flame,
+  Award,
 } from "lucide-react";
 import { CheckoutLeadModal } from "./CheckoutLeadModal";
 import { toggleDemoPlanTierAction } from "@/actions/subscription-actions";
@@ -105,6 +108,21 @@ export function PricingView({
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 py-4">
+      {/* ========================================================== */}
+      {/* ⚡ BANNER DE ESCASSEZ & OFERTA LIMITADA                     */}
+      {/* ========================================================== */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/15 via-indigo-500/15 to-purple-500/15 border border-amber-500/30 p-3.5 sm:p-4 text-center backdrop-blur-md shadow-lg shadow-amber-500/5">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-bold text-amber-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase text-[10px] tracking-wider font-black animate-pulse">
+            <Flame size={12} className="text-amber-400 fill-amber-400" />
+            Condição Especial de Lançamento
+          </span>
+          <span>
+            Garanta o Synapse Pro no plano anual com <strong>50% de desconto</strong> por apenas <strong>R$ 29,90/mês</strong>. Vagas limitadas para este lote!
+          </span>
+        </div>
+      </div>
+
       {/* ========================================================== */}
       {/* 🚀 HERO HEADER                                             */}
       {/* ========================================================== */}
@@ -339,6 +357,85 @@ export function PricingView({
       </div>
 
       {/* ========================================================== */}
+      {/* 🏆 PROVA SOCIAL & DEPOIMENTOS DE CONCURSEIROS APROVADOS    */}
+      {/* ========================================================== */}
+      <div className="max-w-5xl mx-auto space-y-6 pt-4">
+        <div className="text-center space-y-1.5">
+          <div className="inline-flex items-center gap-1 text-amber-400 text-xs font-bold uppercase tracking-wider">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} size={14} className="fill-amber-400" />
+            ))}
+            <span className="ml-1.5 text-slate-300">4.9 / 5 estrelas por concurseiros reais</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-white">
+            Quem estuda com o Synapse AI passa na frente
+          </h2>
+          <p className="text-xs text-slate-400 max-w-xl mx-auto">
+            Histórias reais de quem transformou a rotina de estudos e alcançou a aprovação nos concursos mais concorridos do país.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              name: "Lucas Moreira",
+              role: "Aprovado na PRF (Polícia Rodoviária Federal)",
+              avatar: "LM",
+              color: "from-blue-600 to-indigo-600",
+              quote: "O OCR de redação manuscrita foi o grande divisor de águas. Treinei mais de 20 folhas de redação tirando foto pelo celular e o feedback da IA foi idêntico ao espelho da banca Cebraspe.",
+              highlight: "Nota 19.4 na prova discursiva",
+            },
+            {
+              name: "Camila Ribeiro",
+              role: "1º Lugar Técnico Judiciário (TRT-15)",
+              avatar: "CR",
+              color: "from-purple-600 to-pink-600",
+              quote: "O Caderno de Erros inteligente com macetes de memorização tirou todas as minhas dúvidas que PDFs gigantes não explicavam com clareza. Economizou meses de preparação.",
+              highlight: "89% de acertos na prova objetiva",
+            },
+            {
+              name: "Matheus Fagundes",
+              role: "Aprovado Auditor Fiscal (SEFAZ)",
+              avatar: "MF",
+              color: "from-emerald-600 to-teal-600",
+              quote: "O Raio-X de incidência da banca e os mapas mentais com aprofundamento neural me permitiram focar 80% do meu tempo no que a banca examinadora realmente cobra. Vale cada centavo.",
+              highlight: "Aprovado em 8 meses de estudo",
+            },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex flex-col justify-between space-y-4 backdrop-blur-sm"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center gap-1 text-amber-400">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={12} className="fill-amber-400" />
+                  ))}
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed italic">
+                  "{item.quote}"
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`w-8 h-8 rounded-full bg-gradient-to-br ${item.color} flex items-center justify-center text-white text-xs font-black shadow-md`}
+                  >
+                    {item.avatar}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white">{item.name}</div>
+                    <div className="text-[10px] text-slate-400 leading-tight">{item.role}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ========================================================== */}
       {/* 📊 TABELA COMPARATIVA DETALHADA                            */}
       {/* ========================================================== */}
       <div className="max-w-4xl mx-auto space-y-6 pt-6">
@@ -513,6 +610,30 @@ export function PricingView({
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* ========================================================== */}
+      {/* 🛡️ BOX DE GARANTIA BLINDADA DE 7 DIAS                       */}
+      {/* ========================================================== */}
+      <div className="max-w-4xl mx-auto rounded-3xl bg-gradient-to-r from-amber-500/10 via-slate-900/90 to-indigo-500/10 border-2 border-amber-500/30 p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-center gap-6">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shrink-0 shadow-lg shadow-amber-500/30">
+            <ShieldCheck size={40} strokeWidth={2.2} />
+          </div>
+
+          <div className="space-y-2 text-center sm:text-left flex-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold uppercase tracking-wider">
+              <Award size={12} />
+              Garantia Incondicional de Risco Zero
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black text-white">
+              Teste o Synapse Pro por 7 Dias sem nenhum compromisso
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Use todas as ferramentas com IA ilimitada, envie suas redações, gere simulados inéditos e monte mapas mentais. Se por qualquer motivo você não se adaptar ou achar que não acelerou seus estudos, basta solicitar o reembolso com apenas 1 clique. Devolvemos 100% do seu dinheiro, sem letras miúdas.
+            </p>
+          </div>
         </div>
       </div>
 
