@@ -886,7 +886,7 @@ export default function WeekPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               <div className="lg:col-span-2 space-y-6">
                 {activeDaySchedule && (
-                  <div className="bg-white dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-950 dark:to-indigo-950/30 border border-slate-200 dark:border-slate-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-5 backdrop-blur-xl shadow-xs dark:shadow-2xl relative overflow-hidden">
+                  <div className="bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-950 dark:to-indigo-950/30 border border-slate-200 dark:border-slate-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-5 backdrop-blur-xl shadow-xs dark:shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800/60 pb-4 relative z-10">

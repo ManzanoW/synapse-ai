@@ -1794,7 +1794,7 @@ export default function QuestoesPage() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="backdrop-blur-xl bg-white dark:bg-gradient-to-br dark:from-violet-950/35 dark:via-zinc-900/70 dark:to-black/85 border border-slate-200 dark:border-violet-500/25 rounded-2xl p-6 sm:p-7 relative overflow-hidden shadow-xs dark:shadow-2xl hover:border-slate-300 dark:hover:border-violet-500/35 transition-all duration-300"
+                        className="backdrop-blur-xl bg-white dark:bg-black dark:bg-gradient-to-br dark:from-violet-950/35 dark:via-zinc-900/70 dark:to-black/85 border border-slate-200 dark:border-violet-500/25 rounded-2xl p-6 sm:p-7 relative overflow-hidden shadow-xs dark:shadow-2xl hover:border-slate-300 dark:hover:border-violet-500/35 transition-all duration-300"
                       >
                         <div className="pointer-events-none absolute -top-16 -right-16 w-72 h-72 bg-violet-600/15 rounded-full blur-3xl" />
 
@@ -1910,7 +1910,7 @@ export default function QuestoesPage() {
                           <motion.div
                             whileHover={{ y: -3, transition: { duration: 0.15 } }}
                             onClick={() => handleQuickQuiz({ qtd: 10 })}
-                            className="group relative backdrop-blur-xl bg-white dark:bg-gradient-to-b dark:from-amber-950/20 dark:via-zinc-900/60 dark:to-zinc-950 border border-amber-200 dark:border-amber-500/20 hover:border-amber-300 dark:hover:border-amber-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                            className="group relative backdrop-blur-xl bg-white dark:bg-zinc-950 dark:bg-gradient-to-b dark:from-amber-950/20 dark:via-zinc-900/60 dark:to-zinc-950 border border-amber-200 dark:border-amber-500/20 hover:border-amber-300 dark:hover:border-amber-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
                           >
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
@@ -1946,7 +1946,7 @@ export default function QuestoesPage() {
                                 router.push("/notebook");
                               }
                             }}
-                            className="group relative backdrop-blur-xl bg-white dark:bg-gradient-to-b dark:from-rose-950/20 dark:via-zinc-900/60 dark:to-zinc-950 border border-rose-200 dark:border-rose-500/20 hover:border-rose-300 dark:hover:border-rose-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                            className="group relative backdrop-blur-xl bg-white dark:bg-zinc-950 dark:bg-gradient-to-b dark:from-rose-950/20 dark:via-zinc-900/60 dark:to-zinc-950 border border-rose-200 dark:border-rose-500/20 hover:border-rose-300 dark:hover:border-rose-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
                           >
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
@@ -1976,7 +1976,7 @@ export default function QuestoesPage() {
                           <motion.div
                             whileHover={{ y: -3, transition: { duration: 0.15 } }}
                             onClick={() => setIsAIModalOpen(true)}
-                            className="group relative backdrop-blur-xl bg-white dark:bg-gradient-to-b dark:from-violet-950/25 dark:via-zinc-900/60 dark:to-zinc-950 border border-violet-200 dark:border-violet-500/20 hover:border-violet-300 dark:hover:border-violet-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                            className="group relative backdrop-blur-xl bg-white dark:bg-zinc-950 dark:bg-gradient-to-b dark:from-violet-950/25 dark:via-zinc-900/60 dark:to-zinc-950 border border-violet-200 dark:border-violet-500/20 hover:border-violet-300 dark:hover:border-violet-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
                           >
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
@@ -2006,7 +2006,7 @@ export default function QuestoesPage() {
                           <motion.div
                             whileHover={{ y: -3, transition: { duration: 0.15 } }}
                             onClick={() => setIsTimedLaunchModalOpen(true)}
-                            className="group relative backdrop-blur-xl bg-white dark:bg-gradient-to-b dark:from-emerald-950/20 dark:via-zinc-900/60 dark:to-zinc-950 border border-emerald-200 dark:border-emerald-500/20 hover:border-emerald-300 dark:hover:border-emerald-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                            className="group relative backdrop-blur-xl bg-white dark:bg-zinc-950 dark:bg-gradient-to-b dark:from-emerald-950/20 dark:via-zinc-900/60 dark:to-zinc-950 border border-emerald-200 dark:border-emerald-500/20 hover:border-emerald-300 dark:hover:border-emerald-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
                           >
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">

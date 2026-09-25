@@ -80,7 +80,7 @@ export function EmergencyRescheduleModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white dark:bg-gradient-to-b dark:from-[#101424] dark:via-[#090d18] dark:to-[#04060c] border border-slate-200 dark:border-rose-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-[#04060c] dark:bg-gradient-to-b dark:from-[#101424] dark:via-[#090d18] dark:to-[#04060c] border border-slate-200 dark:border-rose-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
         {/* Glow Superior Vermelho/Âmbar */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-rose-500/10 dark:bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
 

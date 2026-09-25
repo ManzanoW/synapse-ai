@@ -163,7 +163,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
           ref={buttonRef}
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full text-left relative group overflow-hidden rounded-xl bg-violet-50/90 dark:bg-gradient-to-r dark:from-violet-950/40 dark:via-indigo-950/40 dark:to-slate-900/60 border border-violet-300/80 dark:border-violet-500/25 hover:border-violet-400 dark:hover:border-violet-500/50 p-2.5 shadow-xs transition-all cursor-pointer"
+          className="w-full text-left relative group overflow-hidden rounded-xl bg-violet-50/90 dark:bg-slate-950 dark:bg-gradient-to-r dark:from-violet-950/40 dark:via-indigo-950/40 dark:to-slate-900/60 border border-violet-300/80 dark:border-violet-500/25 hover:border-violet-400 dark:hover:border-violet-500/50 p-2.5 shadow-xs transition-all cursor-pointer"
           title="Clique para ver os limites e benefícios do Synapse Pro"
         >
           <div className="flex items-center justify-between">
@@ -186,7 +186,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
           </div>
         </button>
       ) : (
-        <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-gradient-to-b dark:from-indigo-950/40 dark:via-slate-900/60 dark:to-slate-950/80 border border-slate-200 dark:border-indigo-500/20 p-2.5 transition-all duration-300 shadow-xs">
+        <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-slate-950 dark:bg-gradient-to-b dark:from-indigo-950/40 dark:via-slate-900/60 dark:to-slate-950/80 border border-slate-200 dark:border-indigo-500/20 p-2.5 transition-all duration-300 shadow-xs">
           {/* Glow de fundo */}
           <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
 

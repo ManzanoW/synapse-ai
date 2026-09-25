@@ -322,7 +322,7 @@ export function CycleView({
     <div className="space-y-10 animate-in fade-in duration-300">
       {/* 1. PAINEL DE TELEMETRIA SUPERIOR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white dark:bg-gradient-to-br dark:from-slate-900/95 dark:via-slate-950 dark:to-indigo-950/50 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 sm:p-8 relative overflow-hidden backdrop-blur-xl shadow-xs dark:shadow-2xl flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-900/95 dark:via-slate-950 dark:to-indigo-950/50 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 sm:p-8 relative overflow-hidden backdrop-blur-xl shadow-xs dark:shadow-2xl flex flex-col justify-between">
           <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
