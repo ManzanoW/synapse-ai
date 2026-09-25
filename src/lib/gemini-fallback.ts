@@ -220,3 +220,65 @@ export async function generateContentWithFallback(
     `Todos os ${MODELS_CASCADE.length} modelos Gemini e ${slots.length} chaves de API falharam ou atingiram o limite: ${lastError}`,
   );
 }
+
+/**
+ * Retorna o status operacional e a capacidade estimada do pool de chaves.
+ */
+export function getGeminiPoolStatus() {
+  const slots = initializeKeySlots();
+  const now = Date.now();
+
+  return {
+    totalKeys: slots.length,
+    activeKeys: slots.filter((s) => s.cooldownUntil <= now).length,
+    slots: slots.map((s, idx) => ({
+      index: idx,
+      maskedKey: s.maskedKey,
+      inCooldown: s.cooldownUntil > now,
+      cooldownRemainingSeconds:
+        s.cooldownUntil > now ? Math.ceil((s.cooldownUntil - now) / 1000) : 0,
+    })),
+    estimatedDailyQuota: `${slots.length * 1500} requisições gratuitas/dia (cota combinada)`,
+    estimatedThroughput: `${slots.length * 15} requisições/minuto (RPM combinado)`,
+  };
+}
+
+/**
+ * Executa um teste de conectividade (ping) individual em cada chave do pool.
+ */
+export async function testGeminiPoolKeys() {
+  const slots = initializeKeySlots();
+  const results = [];
+
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i];
+    const startTime = Date.now();
+    try {
+      const response = await slot.client.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: "Responda apenas: PONG",
+        config: { maxOutputTokens: 5, temperature: 0.1 },
+      });
+
+      results.push({
+        index: i,
+        maskedKey: slot.maskedKey,
+        success: Boolean(response.text),
+        model: "gemini-3.5-flash-lite",
+        latencyMs: Date.now() - startTime,
+      });
+    } catch (err: unknown) {
+      results.push({
+        index: i,
+        maskedKey: slot.maskedKey,
+        success: false,
+        model: "gemini-3.5-flash-lite",
+        latencyMs: Date.now() - startTime,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return results;
+}
+
