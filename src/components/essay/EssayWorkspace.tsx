@@ -168,19 +168,19 @@ export function EssayWorkspace() {
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* SELETOR SUPERIOR DE ABAS */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-linear-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-950/50">
+          <div className="p-2.5 rounded-2xl bg-linear-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/25 dark:shadow-violet-950/50">
             <PenTool size={22} />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
               <span>Analista de Redação</span>
-              <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[11px] font-mono border border-violet-500/30">
+              <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-500/30 text-[11px] font-mono font-bold">
                 PADRÃO BANCA
               </span>
             </h1>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Prática em folha oficial de prova, temas quentes e correção honesta e rigorosa com IA
             </p>
           </div>
@@ -197,21 +197,21 @@ export function EssayWorkspace() {
             <button
               type="button"
               onClick={() => setIsThemeModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-950/50 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-600/25 dark:shadow-violet-950/50 transition-all cursor-pointer"
             >
               <Sparkles size={14} />
               <span>Mudar Tema / Banca</span>
             </button>
           )}
 
-          <div className="flex rounded-xl bg-slate-900 border border-white/10 p-1">
+          <div className="flex rounded-xl bg-slate-100 border border-slate-200 dark:bg-slate-900 dark:border-white/10 p-1 shadow-2xs">
             <button
               type="button"
               onClick={() => setViewMode("write")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 viewMode === "write"
-                  ? "bg-slate-800 text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-slate-900 shadow-xs border border-slate-200 dark:bg-slate-800 dark:text-white dark:border-transparent dark:shadow-sm"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               <PenTool size={13} />
@@ -222,8 +222,8 @@ export function EssayWorkspace() {
               onClick={() => setViewMode("history")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 viewMode === "history"
-                  ? "bg-slate-800 text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-slate-900 shadow-xs border border-slate-200 dark:bg-slate-800 dark:text-white dark:border-transparent dark:shadow-sm"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               <History size={13} />

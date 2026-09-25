@@ -93,20 +93,20 @@ export function EssayEvolutionChart({ history }: EssayEvolutionChartProps) {
   const cutoffY = chartHeight - paddingY - (60 / 100) * (chartHeight - paddingY * 2);
 
   return (
-    <div className="p-5 sm:p-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl shadow-xl space-y-6">
+    <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-xl shadow-sm dark:shadow-xl space-y-6">
       {/* CABEÇALHO COM CARDS DE KPI */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-black text-white flex items-center gap-2">
-              <TrendingUp size={18} className="text-violet-400" />
+            <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <TrendingUp size={18} className="text-violet-600 dark:text-violet-400" />
               <span>Evolução da Nota Discursiva</span>
             </h3>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-500/10 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/20 dark:border-violet-500/30">
               PROGRESSÃO
             </span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Acompanhe o seu avanço nos critérios de conteúdo, coesão e gramática
           </p>
         </div>
@@ -116,8 +116,8 @@ export function EssayEvolutionChart({ history }: EssayEvolutionChartProps) {
             <span
               className={`text-xs font-bold px-3 py-1 rounded-xl border flex items-center gap-1.5 ${
                 scoreEvolution >= 0
-                  ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
-                  : "bg-rose-500/10 text-rose-300 border-rose-500/30"
+                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                  : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30"
               }`}
             >
               <TrendingUp size={13} className={scoreEvolution < 0 ? "rotate-180" : ""} />
@@ -131,38 +131,38 @@ export function EssayEvolutionChart({ history }: EssayEvolutionChartProps) {
 
       {/* MÉTRICAS CHAVE */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-            <BarChart3 size={12} className="text-violet-400" /> Média Geral
+        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <BarChart3 size={12} className="text-violet-600 dark:text-violet-400" /> Média Geral
           </span>
-          <p className="text-lg sm:text-xl font-black text-white">
+          <p className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
             {averageScore} <span className="text-xs font-normal text-slate-400">/ 100</span>
           </p>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-            <Award size={12} className="text-amber-400" /> Nota Mais Alta
+        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <Award size={12} className="text-amber-500 dark:text-amber-400" /> Nota Mais Alta
           </span>
-          <p className="text-lg sm:text-xl font-black text-amber-300">
+          <p className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-300">
             {highestScore} <span className="text-xs font-normal text-slate-400">pts</span>
           </p>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-            <CheckCircle2 size={12} className="text-emerald-400" /> Taxa de Aprovação
+        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <CheckCircle2 size={12} className="text-emerald-500 dark:text-emerald-400" /> Taxa de Aprovação
           </span>
-          <p className="text-lg sm:text-xl font-black text-emerald-400">
+          <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
             {approvalRate}%
           </p>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-            <Target size={12} className="text-indigo-400" /> Última Nota
+        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <Target size={12} className="text-indigo-600 dark:text-indigo-400" /> Última Nota
           </span>
-          <p className="text-lg sm:text-xl font-black text-indigo-300">
+          <p className="text-lg sm:text-xl font-black text-indigo-600 dark:text-indigo-300">
             {latestScore} <span className="text-xs font-normal text-slate-400">pts</span>
           </p>
         </div>
@@ -189,14 +189,14 @@ export function EssayEvolutionChart({ history }: EssayEvolutionChartProps) {
                 y1={paddingY}
                 x2={chartWidth - paddingX}
                 y2={paddingY}
-                stroke="#334155"
+                className="stroke-slate-200 dark:stroke-slate-800"
                 strokeDasharray="3 3"
                 strokeWidth="0.8"
               />
               <text
                 x={paddingX - 8}
                 y={paddingY + 3}
-                fill="#64748b"
+                className="fill-slate-400 dark:fill-slate-500"
                 fontSize="9"
                 textAnchor="end"
                 fontFamily="monospace"
@@ -232,13 +232,13 @@ export function EssayEvolutionChart({ history }: EssayEvolutionChartProps) {
                 y1={chartHeight - paddingY}
                 x2={chartWidth - paddingX}
                 y2={chartHeight - paddingY}
-                stroke="#334155"
+                className="stroke-slate-200 dark:stroke-slate-800"
                 strokeWidth="1"
               />
               <text
                 x={paddingX - 8}
                 y={chartHeight - paddingY + 3}
-                fill="#64748b"
+                className="fill-slate-400 dark:fill-slate-500"
                 fontSize="9"
                 textAnchor="end"
                 fontFamily="monospace"
@@ -253,7 +253,7 @@ export function EssayEvolutionChart({ history }: EssayEvolutionChartProps) {
               <path
                 d={pathD}
                 fill="none"
-                stroke="#a78bfa"
+                stroke="#8b5cf6"
                 strokeWidth="2.5"
                 strokeLinecap="round"
               />
@@ -268,7 +268,7 @@ export function EssayEvolutionChart({ history }: EssayEvolutionChartProps) {
                       cy={pt.y}
                       r="4.5"
                       fill={isApproved ? "#10b981" : "#f43f5e"}
-                      stroke="#0f172a"
+                      className="stroke-white dark:stroke-slate-900"
                       strokeWidth="2"
                     />
 
@@ -277,9 +277,8 @@ export function EssayEvolutionChart({ history }: EssayEvolutionChartProps) {
                       x={pt.x}
                       y={pt.y - 9}
                       textAnchor="middle"
-                      fill="#f8fafc"
+                      className="fill-slate-800 dark:fill-slate-100 font-bold"
                       fontSize="9"
-                      fontWeight="bold"
                       fontFamily="monospace"
                     >
                       {pt.score}
@@ -290,7 +289,7 @@ export function EssayEvolutionChart({ history }: EssayEvolutionChartProps) {
                       x={pt.x}
                       y={chartHeight - paddingY + 16}
                       textAnchor="middle"
-                      fill="#94a3b8"
+                      className="fill-slate-400 dark:fill-slate-500"
                       fontSize="9"
                       fontFamily="monospace"
                     >
@@ -303,8 +302,8 @@ export function EssayEvolutionChart({ history }: EssayEvolutionChartProps) {
           </div>
         </div>
       ) : (
-        <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 text-center space-y-1.5">
-          <p className="text-xs text-slate-300 font-medium">
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-center space-y-1.5">
+          <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
             🎯 Pratique mais uma redação para desbloquear a linha completa de evolução de notas!
           </p>
           <p className="text-[11px] text-slate-500">

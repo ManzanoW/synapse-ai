@@ -188,23 +188,23 @@ export function ExamSheetEditor({
       }`}
     >
       {/* BARRA SUPERIOR DE FERRAMENTAS E SIMULADO */}
-      <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-xl">
+      <div className="bg-white dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs dark:shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-bold font-mono">
-            <Clock size={14} className="animate-pulse text-violet-400" />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-500/10 dark:border-violet-500/20 dark:text-violet-300 text-xs font-bold font-mono">
+            <Clock size={14} className="animate-pulse text-violet-600 dark:text-violet-400" />
             <span>{formattedTime}</span>
           </div>
 
           <button
             type="button"
             onClick={() => setIsTimerRunning(!isTimerRunning)}
-            className="text-[11px] font-semibold text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+            className="text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
           >
             {isTimerRunning ? "Pausar" : "Retomar"}
           </button>
 
           <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold">
-            <span className="text-slate-400">Status:</span>
+            <span className="text-slate-500 dark:text-slate-400">Status:</span>
             <span className={lineStatus.color}>{lineStatus.label}</span>
           </div>
         </div>
@@ -214,10 +214,10 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={onOpenMotivatingTexts}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-white/10 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-white/10 transition-colors cursor-pointer shadow-2xs"
             title="Abrir proposta e textos motivadores"
           >
-            <BookOpen size={13} className="text-indigo-400" />
+            <BookOpen size={13} className="text-indigo-600 dark:text-indigo-400" />
             <span>Proposta & Textos</span>
           </button>
 
@@ -225,10 +225,10 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={() => setIsOcrModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-950/60 hover:bg-violet-900/60 text-violet-200 text-xs font-semibold border border-violet-500/30 hover:border-violet-400 transition-all cursor-pointer shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:hover:bg-violet-900/60 dark:text-violet-200 text-xs font-semibold dark:border-violet-500/30 dark:hover:border-violet-400 transition-all cursor-pointer shadow-2xs"
             title="Digitalizar foto da folha manuscrita com IA"
           >
-            <Camera size={13} className="text-violet-400" />
+            <Camera size={13} className="text-violet-600 dark:text-violet-400" />
             <span className="hidden sm:inline">Foto Manuscrito</span>
             <span className="sm:hidden">OCR</span>
           </button>
@@ -237,10 +237,10 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={() => setIsPrintModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold border border-white/10 hover:border-violet-500/40 transition-all cursor-pointer shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:hover:text-white text-xs font-semibold border border-slate-200 dark:border-white/10 dark:hover:border-violet-500/40 transition-all cursor-pointer shadow-2xs"
             title="Imprimir folha oficial pautada A4 no formato de concurso (Cebraspe/FGV)"
           >
-            <Printer size={13} className="text-violet-400" />
+            <Printer size={13} className="text-violet-600 dark:text-violet-400" />
             <span className="hidden sm:inline">Imprimir Folha A4</span>
             <span className="sm:hidden">Imprimir</span>
           </button>
@@ -249,7 +249,7 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={handleIndentParagraph}
-            className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium border border-white/10 transition-colors cursor-pointer"
+            className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:hover:text-white text-xs font-medium border border-slate-200 dark:border-white/10 transition-colors cursor-pointer shadow-2xs"
             title="Inserir recuo de parágrafo oficial (6 espaços)"
           >
             <span>⇥ Parágrafo</span>
@@ -259,7 +259,7 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={() => setIsClearModalOpen(true)}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:text-rose-400 dark:hover:bg-rose-500/10 transition-colors cursor-pointer"
             title="Limpar Folha"
           >
             <RotateCcw size={15} />
@@ -269,7 +269,7 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
             title={isFullscreen ? "Sair da Tela Cheia" : "Modo Foco em Tela Cheia"}
           >
             {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
@@ -338,36 +338,36 @@ export function ExamSheetEditor({
 
 
       {/* CABEÇALHO DO TEMA E PADRÃO DE RESPOSTA */}
-      <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col gap-2">
+      <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col gap-2 shadow-xs">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-violet-400">
-            <span className="px-2 py-0.5 rounded-md bg-violet-500/10 border border-violet-500/20">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+            <span className="px-2 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-500/10 dark:border-violet-500/20 dark:text-violet-400">
               Banca {theme.banca}
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+            <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:border-indigo-500/20 dark:text-indigo-300">
               Área {theme.subjectArea}
             </span>
           </div>
-          <span className="text-[11px] text-slate-400 font-mono">
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
             {wordCount} palavras • {lineCount} linhas
           </span>
         </div>
 
-        <h2 className="text-base sm:text-lg font-bold text-white leading-snug">
+        <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-snug">
           {theme.title}
         </h2>
 
         {/* Tópicos esperados pela banca (se houver) */}
         {theme.expectedTopics && theme.expectedTopics.length > 0 && (
-          <div className="mt-2 pt-2 border-t border-white/5">
-            <span className="text-[11px] font-bold text-slate-300 block mb-1">
+          <div className="mt-2 pt-2 border-t border-slate-100 dark:border-white/5">
+            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-300 block mb-1">
               Aspectos que a banca exige abordar:
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {theme.expectedTopics.map((top, idx) => (
                 <div
                   key={idx}
-                  className="text-[11px] text-slate-300 bg-white/5 border border-white/5 rounded-lg p-2.5 leading-relaxed break-words whitespace-normal"
+                  className="text-[11px] text-slate-700 dark:text-slate-300 bg-slate-50 border border-slate-200 dark:bg-white/5 dark:border-white/5 rounded-lg p-2.5 leading-relaxed break-words whitespace-normal shadow-2xs"
                 >
                   {top}
                 </div>
@@ -378,32 +378,32 @@ export function ExamSheetEditor({
       </div>
 
       {/* FOLHA DE REDAÇÃO OFICIAL DIGITAL */}
-      <div className="relative bg-[#0d121f] border-2 border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative bg-white dark:bg-[#0d121f] border-2 border-slate-300 dark:border-slate-700/80 rounded-2xl shadow-xl dark:shadow-2xl overflow-hidden flex flex-col">
         {/* Cabeçalho Oficial da Folha */}
-        <div className="bg-[#131b2e] border-b border-slate-700/80 p-3 sm:p-4 flex items-center justify-between text-center select-none">
+        <div className="bg-slate-100 dark:bg-[#131b2e] border-b border-slate-300 dark:border-slate-700/80 p-3 sm:p-4 flex items-center justify-between text-center select-none">
           <div className="text-left">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-slate-400">
+            <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Folha de Texto Definitivo • Prova Discursiva
             </div>
-            <div className="text-xs font-bold text-slate-200">
+            <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
               {theme.banca} • Concurso Público
             </div>
           </div>
 
-          <div className="hidden sm:block text-[10px] font-mono text-slate-400 border border-slate-600/40 rounded-lg px-2.5 py-1">
+          <div className="hidden sm:block text-[10px] font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-600/40 bg-white/50 dark:bg-transparent rounded-lg px-2.5 py-1">
             Mín: 20 linhas | Máx: 30 linhas
           </div>
 
-          <div className="text-right text-[10px] font-mono text-slate-400">
-            {hasSavedDraft && <span className="text-emerald-400">✓ Rascunho salvo</span>}
+          <div className="text-right text-[10px] font-mono text-slate-500 dark:text-slate-400">
+            {hasSavedDraft && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">✓ Rascunho salvo</span>}
           </div>
         </div>
 
         {/* ÁREA DE ESCRITA PAUTADA (1 A 30 LINHAS) */}
-        <div className="relative flex bg-[#0d121f] min-h-[680px]">
+        <div className="relative flex bg-white dark:bg-[#0d121f] min-h-[680px]">
           {/* Coluna Numérica da Margem Esquerda (Linhas 01 a 30) */}
           <div
-            className="w-10 sm:w-12 bg-[#090d17] border-r border-slate-700/60 select-none py-3 flex flex-col items-center shrink-0 font-mono text-[12px] font-semibold text-slate-500"
+            className="w-10 sm:w-12 bg-slate-50 dark:bg-[#090d17] border-r border-slate-200 dark:border-slate-700/60 select-none py-3 flex flex-col items-center shrink-0 font-mono text-[12px] font-semibold text-slate-400 dark:text-slate-500"
             style={{ lineHeight: "34px" }}
           >
             {Array.from({ length: Math.max(30, lineCount) }).map((_, i) => {
@@ -418,8 +418,8 @@ export function ExamSheetEditor({
                     isOverLimit
                       ? "text-rose-500 font-bold"
                       : isActive
-                      ? "text-indigo-400 font-bold"
-                      : "text-slate-600"
+                      ? "text-indigo-600 dark:text-indigo-400 font-bold"
+                      : "text-slate-400 dark:text-slate-600"
                   }`}
                 >
                   {lineNum.toString().padStart(2, "0")}
@@ -435,7 +435,7 @@ export function ExamSheetEditor({
               className="absolute inset-0 pointer-events-none"
               style={{
                 backgroundImage:
-                  "linear-gradient(to bottom, transparent 33px, rgba(99, 102, 241, 0.12) 34px)",
+                  "linear-gradient(to bottom, transparent 33px, rgba(99, 102, 241, 0.15) 34px)",
                 backgroundSize: "100% 34px",
                 top: "12px",
               }}
@@ -451,10 +451,10 @@ export function ExamSheetEditor({
               onChange={(e) => setContent(e.target.value)}
               placeholder="Inicie sua redação aqui. Use o botão '⇥ Parágrafo' ou pressione espaço para dar o recuo obrigatório de início de parágrafo..."
               rows={Math.max(30, lineCount)}
-              className="relative w-full h-full bg-transparent text-slate-100 text-[16px] sm:text-[14.5px] font-serif leading-[34px] px-3 sm:px-4 py-3 resize-none focus:outline-hidden placeholder:text-slate-600 placeholder:font-sans placeholder:text-xs z-10 break-words whitespace-pre-wrap overflow-x-hidden"
+              className="relative w-full h-full bg-transparent text-slate-900 dark:text-slate-100 text-[16px] sm:text-[14.5px] font-serif leading-[34px] px-3 sm:px-4 py-3 resize-none focus:outline-hidden placeholder:text-slate-400 dark:placeholder:text-slate-600 placeholder:font-sans placeholder:text-xs z-10 break-words whitespace-pre-wrap overflow-x-hidden"
               style={{
                 lineHeight: "34px",
-                caretColor: "#818cf8",
+                caretColor: "#6366f1",
               }}
               spellCheck={false}
             />
@@ -462,11 +462,11 @@ export function ExamSheetEditor({
         </div>
 
         {/* Rodapé da Folha Oficial */}
-        <div className="bg-[#131b2e] border-t border-slate-700/80 px-4 py-2.5 flex flex-wrap items-center justify-between text-[11px] text-slate-400">
+        <div className="bg-slate-100 dark:bg-[#131b2e] border-t border-slate-300 dark:border-slate-700/80 px-4 py-2.5 flex flex-wrap items-center justify-between text-[11px] text-slate-600 dark:text-slate-400">
           <span>
             Espaço para texto definitivo. Não assine nem coloque identificadores no corpo do texto.
           </span>
-          <span className="font-mono text-slate-300">
+          <span className="font-mono text-slate-800 dark:text-slate-300">
             {wordCount} palavras • {lineCount} / 30 linhas
           </span>
         </div>
