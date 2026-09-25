@@ -35,8 +35,7 @@ export default async function DashboardLayout({
       })
     : null;
 
-  const isPro =
-    dbUser?.planTier === "PREMIUM" ||
+  const isAdmin =
     dbUser?.role === "ADMIN" ||
     Boolean(
       (dbUser?.email || session?.user?.email) &&
@@ -44,6 +43,10 @@ export default async function DashboardLayout({
         (dbUser?.email || session?.user?.email)!.toLowerCase() ===
           process.env.ADMIN_EMAIL.toLowerCase(),
     );
+
+  const isPro =
+    dbUser?.planTier === "PREMIUM" ||
+    isAdmin;
 
   return (
     <SidebarProvider>
@@ -67,6 +70,7 @@ export default async function DashboardLayout({
                   planTier: dbUser?.planTier,
                   role: dbUser?.role,
                   isPro,
+                  isAdmin,
                 }}
               />
 
