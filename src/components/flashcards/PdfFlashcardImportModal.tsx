@@ -151,7 +151,7 @@ export function PdfFlashcardImportModal({
       formData.append("file", file);
 
       setTimeout(() => {
-        setParsingStatus("Higienizando ruídos, cabeçalhos e rodapés (0 tokens)...");
+        setParsingStatus("Higienizando ruídos, cabeçalhos e rodapés...");
       }, 700);
 
       setTimeout(() => {
@@ -349,14 +349,9 @@ export function PdfFlashcardImportModal({
                 <FileUp size={20} />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
-                    Importador Inteligente de PDF
-                  </h2>
-                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                    <ShieldCheck size={11} /> 0 Tokens Desperdiçados
-                  </span>
-                </div>
+                <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+                  Importador Inteligente de PDF
+                </h2>
                 <p className="text-xs text-slate-400">
                   Higienização no servidor com extração para Flashcards ou Simulado
                 </p>
@@ -442,7 +437,7 @@ export function PdfFlashcardImportModal({
                   <div className="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 text-left space-y-1">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
                       <ShieldCheck size={14} className="text-indigo-400" />
-                      <span>0 Tokens Gastos no PDF</span>
+                      <span>Higienização Automática</span>
                     </div>
                     <p className="text-[11px] text-slate-400 leading-relaxed">
                       Capas, sumários e rodapés repetidos são expurgados no backend.
@@ -465,7 +460,7 @@ export function PdfFlashcardImportModal({
                       <span>Exportação para o Anki</span>
                     </div>
                     <p className="text-[11px] text-slate-400 leading-relaxed">
-                      Exporte os cards para o Anki em 1 clique com suporte a mnemônicos e tags.
+                      Exporte os cards para o Anki em 1 clique com suporte a macetes e tags.
                     </p>
                   </div>
                 </div>
@@ -489,7 +484,7 @@ export function PdfFlashcardImportModal({
                         <strong>{totalPages}</strong> páginas lidas •{" "}
                         <strong>{topics.length}</strong> tópicos detectados •{" "}
                         <span className="text-emerald-400 font-semibold">
-                          ~{Math.round(totalCleanChars / 4)} tokens economizados
+                          Conteúdo pronto para estudo
                         </span>
                       </p>
                     </div>

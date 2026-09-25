@@ -11,15 +11,19 @@ import {
   BookOpen,
   FileText,
   ShieldAlert,
+  Wand2,
 } from "lucide-react";
 import {
   STARTER_EDITAL_TEMPLATES,
   EditalTemplate,
 } from "@/lib/edital-templates";
-import { importStarterEditalAction } from "@/actions/edital-templates-actions";
+import {
+  importStarterEditalAction,
+  generateCustomEditalAction,
+} from "@/actions/edital-templates-actions";
 
 interface StarterEditalSelectorProps {
-  onSuccess?: () => void;
+  onSuccess?: (data?: { subjectsCount?: number; topicsCount?: number }) => void;
   showCustomLink?: boolean;
   compact?: boolean;
 }
@@ -34,12 +38,22 @@ export function StarterEditalSelector({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Filtro por categorias
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  // Modo de importação: mesclar ou substituir grade existente
+  const [replaceExisting, setReplaceExisting] = useState<boolean>(false);
+
+  // Personalização com IA
+  const [customRoleInput, setCustomRoleInput] = useState<string>("");
+  const [isGeneratingCustom, setIsGeneratingCustom] = useState<boolean>(false);
+
   const handleSelectTemplate = async (templateId: string) => {
     setLoadingTemplateId(templateId);
     setErrorMessage(null);
 
     try {
-      const res = await importStarterEditalAction(templateId);
+      const res = await importStarterEditalAction(templateId, { replaceExisting });
 
       if (res.success && res.data) {
         confetti({
@@ -54,7 +68,10 @@ export function StarterEditalSelector({
 
         if (onSuccess) {
           setTimeout(() => {
-            onSuccess();
+            onSuccess({
+              subjectsCount: res.data.subjectsCount,
+              topicsCount: res.data.topicsCount,
+            });
           }, 800);
         } else {
           setTimeout(() => {
@@ -72,12 +89,68 @@ export function StarterEditalSelector({
     }
   };
 
-  const templatesList = Object.values(STARTER_EDITAL_TEMPLATES);
+  const handleGenerateCustom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = customRoleInput.trim();
+    if (!trimmed) return;
+
+    setIsGeneratingCustom(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await generateCustomEditalAction(trimmed, { replaceExisting });
+
+      if (res.success && res.data) {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+
+        setSuccessMessage(
+          `Plano de estudos para "${res.data.targetRole}" gerado com IA! (${res.data.subjectsCount} disciplinas e ${res.data.topicsCount} tópicos criados)`
+        );
+        setCustomRoleInput("");
+
+        if (onSuccess) {
+          setTimeout(() => {
+            onSuccess({
+              subjectsCount: res.data.subjectsCount,
+              topicsCount: res.data.topicsCount,
+            });
+          }, 800);
+        } else {
+          setTimeout(() => {
+            router.refresh();
+          }, 800);
+        }
+      } else {
+        setErrorMessage(res.error || "Falha ao gerar disciplinas com IA.");
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage("Erro de conexão ao comunicar com a IA.");
+    } finally {
+      setIsGeneratingCustom(false);
+    }
+  };
+
+  const allTemplates = Object.values(STARTER_EDITAL_TEMPLATES);
+  const filteredTemplates = allTemplates.filter((tpl) => {
+    if (activeCategory === "all") return true;
+    if (activeCategory === "ti") return tpl.category === "ti";
+    if (activeCategory === "policial") return tpl.category === "policial";
+    if (activeCategory === "fiscal_controle") return tpl.category === "fiscal_controle";
+    if (activeCategory === "administrativo") return tpl.category === "administrativo";
+    if (activeCategory === "juridica") return tpl.category === "juridica";
+    if (activeCategory === "saude_educacao") return tpl.category === "saude_educacao";
+    return true;
+  });
 
   return (
     <div className="space-y-4 w-full">
       {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
           <ShieldAlert size={16} className="shrink-0" />
           <span>{errorMessage}</span>
         </div>
@@ -90,6 +163,105 @@ export function StarterEditalSelector({
         </div>
       )}
 
+      {/* CARD PROMINENTE: PERSONALIZAR MEU FOCO COM IA */}
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-500/40 bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-indigo-950/40 p-4 shadow-xl space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
+            <Wand2 size={18} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-black text-white">
+                Personalizar meu Foco com IA
+              </span>
+              <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Qualquer Concurso / Cargo
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Digite o concurso ou cargo desejado e a IA pesquisa e estrutura as disciplinas e tópicos oficiais em segundos.
+            </p>
+          </div>
+        </div>
+
+        <form
+          onSubmit={handleGenerateCustom}
+          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full pt-0.5"
+        >
+          <input
+            type="text"
+            value={customRoleInput}
+            onChange={(e) => setCustomRoleInput(e.target.value)}
+            placeholder="Ex: Analista de TI - Caixa, Perito Criminal, SEFAZ..."
+            className="flex-1 min-w-0 bg-slate-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-colors"
+          />
+          <button
+            type="submit"
+            disabled={isGeneratingCustom || !customRoleInput.trim()}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          >
+            {isGeneratingCustom ? (
+              <>
+                <Loader2 size={13} className="animate-spin" />
+                <span>Gerando com IA...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={13} />
+                <span>Gerar com IA</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+
+      {/* OPÇÃO DE MODO DE CARGA: SUBSTITUIR OU ADICIONAR */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
+        <label className="flex items-center gap-2 text-slate-300 hover:text-white cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={replaceExisting}
+            onChange={(e) => setReplaceExisting(e.target.checked)}
+            className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+          />
+          <span className="font-medium text-[11px] sm:text-xs">
+            Substituir matérias anteriores (limpar edital antes de carregar nova carreira)
+          </span>
+        </label>
+        {replaceExisting && (
+          <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 font-bold">
+            ⚠️ Modo Substituição Limpa Ativado
+          </span>
+        )}
+      </div>
+
+      {/* FILTROS POR CATEGORIA DE CARREIRA */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+        {[
+          { id: "all", label: `🔥 Todas (${allTemplates.length})` },
+          { id: "ti", label: `💻 TI & Dados (${allTemplates.filter((t) => t.category === "ti").length})` },
+          { id: "policial", label: `👮 Policial (${allTemplates.filter((t) => t.category === "policial").length})` },
+          { id: "fiscal_controle", label: `💰 Fiscal & Controle (${allTemplates.filter((t) => t.category === "fiscal_controle").length})` },
+          { id: "administrativo", label: `🏛️ Tribunais & Adm (${allTemplates.filter((t) => t.category === "administrativo").length})` },
+          { id: "juridica", label: `⚖️ Jurídica (${allTemplates.filter((t) => t.category === "juridica").length})` },
+          { id: "saude_educacao", label: `🩺 Saúde & Educação (${allTemplates.filter((t) => t.category === "saude_educacao").length})` },
+        ].map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => setActiveCategory(cat.id)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              activeCategory === cat.id
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* GRID DE CARREIRAS PRONTAS */}
       <div
         className={`grid gap-3 ${
           compact
@@ -97,19 +269,21 @@ export function StarterEditalSelector({
             : "grid-cols-1 md:grid-cols-2"
         }`}
       >
-        {templatesList.map((tpl) => {
+        {filteredTemplates.map((tpl) => {
           const isLoading = loadingTemplateId === tpl.id;
+          const visibleMaterias = tpl.materias.slice(0, 3);
+          const remainingCount = tpl.materias.length - visibleMaterias.length;
 
           return (
             <div
               key={tpl.id}
-              className="relative group p-4 rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-3"
+              className="relative group p-3.5 rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-2.5"
             >
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{tpl.icon}</span>
-                    <span className="text-xs font-bold text-white leading-tight">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xl shrink-0">{tpl.icon}</span>
+                    <span className="text-xs font-bold text-white leading-tight truncate">
                       {tpl.title}
                     </span>
                   </div>
@@ -118,20 +292,25 @@ export function StarterEditalSelector({
                   </span>
                 </div>
 
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-slate-400 leading-snug line-clamp-2">
                   {tpl.shortDescription}
                 </p>
 
-                {/* Resumo das Matérias */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {tpl.materias.map((m, idx) => (
+                {/* Resumo das Matérias (Compacto e Elegante) */}
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {visibleMaterias.map((m, idx) => (
                     <span
                       key={idx}
-                      className="text-[9px] font-semibold px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300"
+                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 truncate max-w-[140px]"
                     >
                       {m.name}
                     </span>
                   ))}
+                  {remainingCount > 0 && (
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+                      +{remainingCount} matérias
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -142,7 +321,7 @@ export function StarterEditalSelector({
 
                 <button
                   type="button"
-                  disabled={loadingTemplateId !== null}
+                  disabled={loadingTemplateId !== null || isGeneratingCustom}
                   onClick={() => handleSelectTemplate(tpl.id)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-md shadow-indigo-950/50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >

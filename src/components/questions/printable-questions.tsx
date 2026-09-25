@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ArrowLeft,
   Printer,
@@ -80,6 +80,16 @@ export function PrintableQuestions({
   const qrImageUrl = qrUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=1&data=${encodeURIComponent(qrUrl)}`
     : "";
+
+  const registrationNumber = useMemo(() => {
+    if (quizId) {
+      const hash = Math.abs(
+        quizId.split("").reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) | 0, 0)
+      );
+      return "SYN-" + String(100000 + (hash % 900000));
+    }
+    return "SYN-849201";
+  }, [quizId]);
 
   return (
     <>
@@ -352,7 +362,7 @@ export function PrintableQuestions({
                       Número de Inscrição:
                     </span>
                     <div className="border-b-[1.5pt] border-black h-7 font-mono font-bold text-center pt-0.5 text-slate-900">
-                      SYN-{Math.floor(100000 + Math.random() * 900000)}
+                      {registrationNumber}
                     </div>
                   </div>
                   <div>

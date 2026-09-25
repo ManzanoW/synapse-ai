@@ -16,6 +16,7 @@ import {
   Sparkles,
   ArrowRight,
   Scale,
+  CalendarDays,
 } from "lucide-react";
 import PendingSubjects from "./PendingSubjects";
 import { Topic } from "@/types";
@@ -80,6 +81,13 @@ function PlannerContent() {
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
   // Modo de visualização: Tabela vs Árvore RPG
   const [viewMode, setViewMode] = useState<"table" | "skill-tree">("table");
+
+  // Auto-abrir modal de importação se vier do dashboard com ?import=true
+  useEffect(() => {
+    if (searchParams.get("import") === "true") {
+      setIsImportModalOpen(true);
+    }
+  }, [searchParams]);
 
   async function refreshData() {
     try {
@@ -338,6 +346,15 @@ function PlannerContent() {
                     <Scale size={14} className="text-amber-400" />
                     <span className="truncate">Calibrar Pesos</span>
                   </button>
+
+                  <Link
+                    href="/week"
+                    className="flex items-center justify-center gap-1.5 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-cyan-500/50 text-slate-200 hover:text-cyan-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+                    title="Distribuir matérias do edital na sua grade semanal de estudos"
+                  >
+                    <CalendarDays size={14} className="text-cyan-400" />
+                    <span className="truncate">Cronograma Semanal</span>
+                  </Link>
                 </>
               )}
 
@@ -345,9 +362,10 @@ function PlannerContent() {
                 type="button"
                 onClick={() => setIsImportModalOpen(true)}
                 className="flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer"
+                title="Escolha uma carreira pronta ou gere uma personalizada com IA"
               >
-                <UploadCloud size={14} className="text-indigo-400" />
-                <span className="truncate">Importar Edital</span>
+                <Sparkles size={14} className="text-amber-400" />
+                <span className="truncate">Carreiras & Edital</span>
               </button>
 
               <button

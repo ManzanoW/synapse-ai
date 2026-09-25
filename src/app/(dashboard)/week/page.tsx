@@ -638,14 +638,14 @@ export default function WeekPage() {
         </div>
 
         {/* Mode Selector Header Bar */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-2 bg-slate-950/80 border border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-2xl">
-          <div className="inline-flex items-center bg-slate-900/60 p-1 rounded-xl border border-slate-800/80 w-full md:w-auto">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-2 bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-xs dark:shadow-2xl">
+          <div className="inline-flex items-center bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80 w-full md:w-auto">
             <button
               onClick={() => handleToggleMode("WEEKLY")}
               className={`relative flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none cursor-pointer ${
                 studyMode === "WEEKLY"
-                  ? "bg-slate-800/90 text-white font-semibold shadow-lg shadow-indigo-950/20 border border-indigo-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200 dark:bg-slate-800/90 dark:text-white dark:border-indigo-500/30 dark:shadow-lg dark:shadow-indigo-950/20"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/30"
               }`}
             >
               {studyMode === "WEEKLY" && (
@@ -657,7 +657,7 @@ export default function WeekPage() {
               <CalendarDays
                 size={14}
                 className={
-                  studyMode === "WEEKLY" ? "text-cyan-400" : "text-slate-500"
+                  studyMode === "WEEKLY" ? "text-cyan-600 dark:text-cyan-400" : "text-slate-500"
                 }
               />
               <span>Cronograma Semanal</span>
@@ -667,8 +667,8 @@ export default function WeekPage() {
               onClick={() => handleToggleMode("CYCLE")}
               className={`relative flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex-1 md:flex-none cursor-pointer ${
                 studyMode === "CYCLE"
-                  ? "bg-slate-800/90 text-white font-semibold shadow-lg shadow-indigo-950/20 border border-indigo-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200 dark:bg-slate-800/90 dark:text-white dark:border-indigo-500/30 dark:shadow-lg dark:shadow-indigo-950/20"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/30"
               }`}
             >
               {studyMode === "CYCLE" && (
@@ -680,29 +680,29 @@ export default function WeekPage() {
               <RefreshCw
                 size={13}
                 className={
-                  studyMode === "CYCLE" ? "text-indigo-400" : "text-slate-500"
+                  studyMode === "CYCLE" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500"
                 }
               />
               <span>Ciclo de Estudos</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-900/40 rounded-xl border border-slate-800/50 text-xs font-mono text-slate-400 self-end md:self-auto w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800/50 text-xs font-mono text-slate-600 dark:text-slate-400 self-end md:self-auto w-full md:w-auto justify-between md:justify-start shadow-2xs">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-slate-500 font-sans tracking-wider uppercase">
+              <span className="text-[10px] text-slate-500 font-sans tracking-wider uppercase font-semibold">
                 Meta
               </span>
-              <span className="text-slate-200 font-bold">
+              <span className="text-slate-900 dark:text-slate-200 font-bold">
                 {data?.weeklyGoalHours ?? 10}h
               </span>
-              <span className="text-slate-600 text-[10px]">/sem</span>
+              <span className="text-slate-400 dark:text-slate-600 text-[10px]">/sem</span>
             </div>
-            <span className="text-slate-800">|</span>
+            <span className="text-slate-300 dark:text-slate-800">|</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-slate-200 font-bold">
+              <span className="text-slate-900 dark:text-slate-200 font-bold">
                 {data?.activeDaysPerWeek ?? 5}
               </span>
-              <span className="text-[10px] text-slate-500 font-sans tracking-wider uppercase">
+              <span className="text-[10px] text-slate-500 font-sans tracking-wider uppercase font-semibold">
                 dias úteis
               </span>
             </div>
@@ -710,14 +710,14 @@ export default function WeekPage() {
         </div>
 
         {/* Title Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800/60 pb-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
               {studyMode === "CYCLE"
                 ? "Seu Ciclo de Estudos"
                 : "Seu Planejamento Semanal"}
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
               {studyMode === "CYCLE"
                 ? `${data?.cycle?.totalBlocks || 0} blocos • Total: ${formatMinutes(
                     data?.cycle?.totalMinutes || 0
@@ -725,8 +725,8 @@ export default function WeekPage() {
                 : "Selecione o dia do planejamento e execute seus alvos com prioridade dinâmica."}
             </p>
           </div>
-          <span className="self-start sm:self-auto text-[11px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5 shadow-sm">
-            <Sparkles size={13} className="text-indigo-400 animate-pulse" />
+          <span className="self-start sm:self-auto text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
+            <Sparkles size={13} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
             Rebalanceador Adaptativo Ativo
           </span>
         </div>
@@ -819,38 +819,55 @@ export default function WeekPage() {
                     onClick={() => setSelectedDayIndex(day.dayIndex)}
                     className={`flex flex-col items-start min-w-[130px] sm:min-w-[145px] p-3 rounded-2xl border transition-all duration-200 relative text-left shrink-0 cursor-pointer ${
                       isSelected
-                        ? "bg-indigo-950/50 border-indigo-500/80 text-white ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-950/30"
-                        : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/70 hover:text-slate-200"
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20 dark:bg-indigo-950/50 dark:border-indigo-500/80 dark:text-white dark:ring-1 dark:ring-indigo-500/50 dark:shadow-indigo-950/30"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:bg-slate-900/40 dark:border-slate-800/80 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-900/70 dark:hover:text-slate-200 shadow-2xs"
                     }`}
                   >
                     <div className="flex items-center justify-between w-full mb-1">
                       <div className="flex items-center gap-1.5">
                         <span
                           className={`text-xs font-black uppercase tracking-wider ${
-                            isSelected ? "text-white" : "text-slate-300"
+                            isSelected ? "text-white" : "text-slate-800 dark:text-slate-300"
                           }`}
                         >
                           {day.dayName}
                         </span>
                         {isToday && (
-                          <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                          <span
+                            className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
+                              isSelected
+                                ? "bg-white/20 text-white border border-white/30"
+                                : "bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30"
+                            }`}
+                          >
                             Hoje
                           </span>
                         )}
                       </div>
                       {isDayDone && (
-                        <CheckCircle2 size={13} className="text-emerald-400" />
+                        <CheckCircle2
+                          size={13}
+                          className={isSelected ? "text-white" : "text-emerald-500 dark:text-emerald-400"}
+                        />
                       )}
                     </div>
 
-                    <span className="text-[10px] font-mono font-semibold text-slate-400">
+                    <span
+                      className={`text-[10px] font-mono font-semibold ${
+                        isSelected ? "text-indigo-100" : "text-slate-500 dark:text-slate-400"
+                      }`}
+                    >
                       {formatMinutes(day.totalMinutes)}
                     </span>
 
-                    <div className="w-full h-1 bg-slate-950 rounded-full mt-2.5 overflow-hidden">
+                    <div
+                      className={`w-full h-1 rounded-full mt-2.5 overflow-hidden ${
+                        isSelected ? "bg-indigo-800/40" : "bg-slate-100 dark:bg-slate-950"
+                      }`}
+                    >
                       <div
                         className={`h-full transition-all duration-300 ${
-                          isSelected ? "bg-indigo-400" : "bg-indigo-500/60"
+                          isSelected ? "bg-white" : "bg-indigo-500"
                         }`}
                         style={{
                           width: `${
@@ -869,32 +886,32 @@ export default function WeekPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               <div className="lg:col-span-2 space-y-6">
                 {activeDaySchedule && (
-                  <div className="bg-gradient-to-br from-slate-900/90 via-slate-950 to-indigo-950/30 border border-slate-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-5 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                  <div className="bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-950 dark:to-indigo-950/30 border border-slate-200 dark:border-slate-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-5 backdrop-blur-xl shadow-xs dark:shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-4 relative z-10">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800/60 pb-4 relative z-10">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[10px] uppercase tracking-widest px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                          <span className="bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:border-indigo-500/20 dark:text-indigo-400 font-mono text-[10px] uppercase tracking-widest px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
                             <Flame
                               size={11}
-                              className="text-indigo-400 animate-pulse"
+                              className="text-indigo-600 dark:text-indigo-400 animate-pulse"
                             />
                             Foco do Dia
                           </span>
-                          <span className="text-xs text-slate-400 font-mono">
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                             Meta: {formatMinutes(activeDaySchedule.totalMinutes)}
                           </span>
                         </div>
-                        <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase flex items-center gap-2">
-                          <Target size={20} className="text-indigo-400" />
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase flex items-center gap-2">
+                          <Target size={20} className="text-indigo-600 dark:text-indigo-400" />
                           {activeDaySchedule.dayName}
                         </h2>
                       </div>
 
-                      <div className="bg-slate-950/80 border border-slate-800 px-3.5 py-2 rounded-2xl flex items-center gap-3 shrink-0 self-stretch sm:self-auto justify-between sm:justify-start">
+                      <div className="bg-slate-50 border border-slate-200 dark:bg-slate-950/80 dark:border-slate-800 px-3.5 py-2 rounded-2xl flex items-center gap-3 shrink-0 self-stretch sm:self-auto justify-between sm:justify-start shadow-2xs">
                         <div className="text-right">
-                          <span className="text-xs font-mono font-bold text-indigo-400 block">
+                          <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 block">
                             {activeDayCompletedTopicsCount}/
                             {activeDayTotalTopicsCount} tópicos
                           </span>
@@ -902,15 +919,15 @@ export default function WeekPage() {
                             Concluídos ({activeDayProgressPercent}%)
                           </span>
                         </div>
-                        <div className="w-8 h-8 rounded-full border-2 border-indigo-500/40 flex items-center justify-center font-mono text-[10px] font-bold text-indigo-300">
+                        <div className="w-8 h-8 rounded-full border-2 border-indigo-200 dark:border-indigo-500/40 bg-indigo-50 dark:bg-transparent flex items-center justify-center font-mono text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
                           {activeDayProgressPercent}%
                         </div>
                       </div>
                     </div>
 
                     <div className="space-y-4 relative z-10">
-                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                        <BookOpen size={14} className="text-indigo-400" />
+                      <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <BookOpen size={14} className="text-indigo-600 dark:text-indigo-400" />
                         Matérias Alocadas para {activeDaySchedule.dayName}
                       </h3>
 
@@ -935,7 +952,7 @@ export default function WeekPage() {
                           return (
                             <div
                               key={`subject-${subject.id}-${sIdx}`}
-                              className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 sm:p-5 space-y-3 relative overflow-hidden group/card hover:border-slate-700 transition-all shadow-md"
+                              className="bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 space-y-3 relative overflow-hidden group/card hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs hover:shadow-md"
                             >
                               <div
                                 className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl"
@@ -956,7 +973,7 @@ export default function WeekPage() {
                                     }}
                                   />
                                   <div className="min-w-0">
-                                    <h4 className="text-sm sm:text-base font-bold text-white tracking-tight truncate">
+                                    <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight truncate">
                                       {subject.name}
                                     </h4>
                                     <span className="text-[10px] text-slate-500 font-mono block">
@@ -966,8 +983,8 @@ export default function WeekPage() {
                                   </div>
                                 </div>
 
-                                <div className="flex items-center justify-between sm:justify-end gap-2 border-t sm:border-t-0 border-slate-800/60 pt-2 sm:pt-0">
-                                  <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-2.5 py-1 rounded-xl">
+                                <div className="flex items-center justify-between sm:justify-end gap-2 border-t sm:border-t-0 border-slate-100 dark:border-slate-800/60 pt-2 sm:pt-0">
+                                  <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 dark:text-indigo-300 dark:bg-indigo-950/60 dark:border-indigo-800/50 px-2.5 py-1 rounded-xl shadow-2xs">
                                     {formatMinutes(
                                       subject.dailyMinutesAllocated
                                     )}
@@ -978,7 +995,7 @@ export default function WeekPage() {
                                       type="button"
                                       onClick={() => startFocusSession(subject)}
                                       title="Iniciar sessão de estudo focada"
-                                      className="p-1.5 px-3 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all active:scale-95 flex items-center gap-1 text-[11px] font-semibold cursor-pointer shadow-sm"
+                                      className="p-1.5 px-3 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:border-emerald-500/20 transition-all active:scale-95 flex items-center gap-1 text-[11px] font-semibold cursor-pointer shadow-2xs"
                                     >
                                       <Play size={12} className="fill-current" />
                                       <span>Iniciar</span>
@@ -991,7 +1008,7 @@ export default function WeekPage() {
                                         setSwapModalOpen(true);
                                       }}
                                       title="Adiar / Trocar por matéria de outro dia"
-                                      className="p-1.5 rounded-lg bg-slate-900/80 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 border border-slate-800/80 transition-all active:scale-95 flex items-center gap-1 text-[11px] font-medium cursor-pointer"
+                                      className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 border border-slate-200 dark:bg-slate-900/80 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-slate-800 dark:border-slate-800/80 transition-all active:scale-95 flex items-center gap-1 text-[11px] font-medium cursor-pointer shadow-2xs"
                                     >
                                       <ArrowRightLeft size={13} />
                                       <span className="hidden sm:inline">
@@ -1002,7 +1019,7 @@ export default function WeekPage() {
                                 </div>
                               </div>
 
-                              <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden ml-2 pr-2">
+                              <div className="w-full h-1 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden ml-2 pr-2">
                                 <div
                                   className="h-full transition-all duration-300 rounded-full"
                                   style={{
@@ -1030,15 +1047,15 @@ export default function WeekPage() {
                                         }
                                         className={`flex items-center justify-between text-xs px-3 py-2.5 rounded-xl border transition-all cursor-pointer group/topic ${
                                           isDone
-                                            ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-300"
-                                            : "bg-slate-900/60 border-slate-800/60 hover:bg-slate-800/50 text-slate-200"
+                                            ? "bg-emerald-50/80 border-emerald-200 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-500/30 dark:text-emerald-300"
+                                            : "bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700 dark:bg-slate-900/60 dark:border-slate-800/60 dark:hover:bg-slate-800/50 dark:text-slate-200 shadow-2xs"
                                         }`}
                                       >
                                         <span
                                           className={`truncate pr-2 font-medium transition-all ${
                                             isDone
-                                              ? "line-through text-slate-500"
-                                              : "group-hover/topic:text-white"
+                                              ? "line-through text-slate-400 dark:text-slate-500"
+                                              : "text-slate-800 dark:text-slate-200 group-hover/topic:text-indigo-600 dark:group-hover/topic:text-white"
                                           }`}
                                         >
                                           • {topic.title}
@@ -1053,15 +1070,15 @@ export default function WeekPage() {
                                           }
                                           className={`transition-colors shrink-0 ${
                                             isDone
-                                              ? "text-emerald-400 hover:text-emerald-300"
-                                              : "text-slate-600 hover:text-emerald-400"
+                                              ? "text-emerald-500 dark:text-emerald-400 hover:text-emerald-600"
+                                              : "text-slate-400 hover:text-emerald-500 dark:text-slate-600 dark:hover:text-emerald-400"
                                           }`}
                                         >
                                           <CheckCircle2
                                             size={16}
                                             className={
                                               isDone
-                                                ? "fill-emerald-500/20"
+                                                ? "fill-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                                                 : ""
                                             }
                                           />
@@ -1070,11 +1087,11 @@ export default function WeekPage() {
                                     );
                                   })
                                 ) : (
-                                  <div className="flex items-center justify-between text-xs text-slate-500 italic py-2 bg-slate-900/20 px-3 rounded-xl border border-slate-900">
+                                  <div className="flex items-center justify-between text-xs text-slate-500 italic py-2 bg-slate-50 dark:bg-slate-900/20 px-3 rounded-xl border border-slate-200 dark:border-slate-900">
                                     <span>Nenhum tópico mapeado</span>
                                     <Link
                                       href="/edital"
-                                      className="text-indigo-400 hover:underline not-italic font-sans text-xs font-semibold"
+                                      className="text-indigo-600 dark:text-indigo-400 hover:underline not-italic font-sans text-xs font-semibold"
                                     >
                                       + Gerenciar Edital
                                     </Link>
@@ -1091,13 +1108,13 @@ export default function WeekPage() {
               </div>
 
               {/* Sidebar Distribuição */}
-              <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-5 sm:p-6 space-y-5 lg:sticky lg:top-6 backdrop-blur-md shadow-2xl">
+              <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-6 space-y-5 lg:sticky lg:top-6 backdrop-blur-md shadow-xs dark:shadow-2xl">
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                    <TrendingUp size={16} className="text-indigo-400" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                    <TrendingUp size={16} className="text-indigo-600 dark:text-indigo-400" />
                     Distribuição Semanal de Carga
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Proporção calculada e ajustada adaptativamente com base no seu desempenho.
                   </p>
                 </div>
@@ -1109,7 +1126,7 @@ export default function WeekPage() {
                       viewBox="0 0 36 36"
                     >
                       <path
-                        className="text-slate-950"
+                        className="text-slate-100 dark:text-slate-950"
                         strokeWidth="3.8"
                         stroke="currentColor"
                         fill="none"
@@ -1134,17 +1151,17 @@ export default function WeekPage() {
                     </svg>
 
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+                      <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
                         {data?.weeklyGoalHours}h
                       </span>
-                      <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase">
+                      <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase">
                         na semana
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-3 border-t border-slate-800/80 max-h-56 overflow-y-auto pr-1">
+                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 max-h-56 overflow-y-auto pr-1">
                   {data?.subjectOverview?.map((subject, sIdx) => {
                     const subjectColor = getSubjectColor(subject, sIdx);
 
@@ -1162,21 +1179,21 @@ export default function WeekPage() {
                                 boxShadow: `0 0 8px ${subjectColor}`,
                               }}
                             />
-                            <span className="text-slate-300 font-semibold truncate">
+                            <span className="text-slate-800 dark:text-slate-300 font-semibold truncate">
                               {subject.name}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 shrink-0 font-mono">
-                            <span className="text-slate-400 text-[11px]">
+                            <span className="text-slate-500 dark:text-slate-400 text-[11px]">
                               {subject.percentageOfTotal}%
                             </span>
-                            <span className="text-slate-100 font-semibold">
+                            <span className="text-slate-900 dark:text-slate-100 font-semibold">
                               {formatMinutes(subject.weeklyMinutesAllocated)}
                             </span>
                           </div>
                         </div>
 
-                        <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden">
+                        <div className="w-full h-1 bg-slate-100 dark:bg-slate-950 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
@@ -1190,9 +1207,9 @@ export default function WeekPage() {
                   })}
                 </div>
 
-                <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-3 flex gap-2 items-start">
-                  <Info size={15} className="text-indigo-400 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/60 rounded-xl p-3 flex gap-2 items-start shadow-2xs">
+                  <Info size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
                     O tempo de estudo é rebalanceado automaticamente para reforçar matérias com menor taxa de acerto (&lt; 65%).
                   </p>
                 </div>
@@ -1204,24 +1221,24 @@ export default function WeekPage() {
 
       {/* Focus Timer Modal */}
       {focusSubject && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-sm w-full p-6 space-y-6 shadow-2xl text-center relative overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm w-full p-6 space-y-6 shadow-2xl text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 left-0 h-1 bg-emerald-500" />
 
             <div>
-              <span className="text-[10px] uppercase tracking-widest font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+              <span className="text-[10px] uppercase tracking-widest font-mono text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20 font-bold px-2.5 py-1 rounded-full border">
                 Sessão em Andamento
               </span>
-              <h3 className="text-lg font-bold text-white mt-3 truncate">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-3 truncate">
                 {focusSubject.name}
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Mantenha o foco total durante esse bloco.
               </p>
             </div>
 
             <div className="py-2">
-              <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white drop-shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+              <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-slate-900 dark:text-white drop-shadow-xs dark:drop-shadow-[0_0_20px_rgba(16,185,129,0.3)]">
                 {formatTimer(focusTimeLeft)}
               </div>
             </div>
@@ -1244,13 +1261,13 @@ export default function WeekPage() {
                   );
                   setFocusTimeLeft(initial);
                 }}
-                className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer"
+                className="p-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer"
               >
                 <RotateCcw size={18} />
               </button>
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={handleFinishSessionAndComplete}
@@ -1266,7 +1283,7 @@ export default function WeekPage() {
                   setFocusSubject(null);
                   setIsTimerRunning(false);
                 }}
-                className="w-full py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="w-full py-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
               >
                 Sair sem concluir
               </button>
@@ -1277,14 +1294,14 @@ export default function WeekPage() {
 
       {/* Settings Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                <Settings2 size={18} className="text-indigo-400" />
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Settings2 size={18} className="text-indigo-600 dark:text-indigo-400" />
                 Configurar Meta de Estudo
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Ajuste sua disponibilidade semanal para recalcular o cronograma dinâmico.
               </p>
             </div>
@@ -1292,11 +1309,11 @@ export default function WeekPage() {
             <div className="space-y-5">
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <label className="text-slate-300 font-medium flex items-center gap-1.5">
-                    <Clock size={13} className="text-slate-400" /> Meta Semanal
+                  <label className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5">
+                    <Clock size={13} className="text-slate-400 dark:text-slate-500" /> Meta Semanal
                     (Horas)
                   </label>
-                  <span className="text-indigo-400 font-bold font-mono text-sm">
+                  <span className="text-indigo-600 dark:text-indigo-400 font-bold font-mono text-sm">
                     {goalHours}h / semana
                   </span>
                 </div>
@@ -1307,9 +1324,9 @@ export default function WeekPage() {
                   step={1}
                   value={goalHours}
                   onChange={(e) => setGoalHours(Number(e.target.value))}
-                  className="w-full accent-indigo-500 bg-slate-800 rounded-lg h-2 cursor-pointer"
+                  className="w-full accent-indigo-500 bg-slate-200 dark:bg-slate-800 rounded-lg h-2 cursor-pointer"
                 />
-                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                   <span>2h</span>
                   <span>30h</span>
                   <span>60h</span>
@@ -1318,11 +1335,11 @@ export default function WeekPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <label className="text-slate-300 font-medium flex items-center gap-1.5">
-                    <Calendar size={13} className="text-slate-400" /> Dias
+                  <label className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5">
+                    <Calendar size={13} className="text-slate-400 dark:text-slate-500" /> Dias
                     Ativos na Semana
                   </label>
-                  <span className="text-indigo-400 font-bold font-mono text-sm">
+                  <span className="text-indigo-600 dark:text-indigo-400 font-bold font-mono text-sm">
                     {activeDays} dias
                   </span>
                 </div>
@@ -1335,7 +1352,7 @@ export default function WeekPage() {
                       className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                         activeDays === num
                           ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
-                          : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:border-slate-700"
                       }`}
                     >
                       {num}d
@@ -1345,11 +1362,11 @@ export default function WeekPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800/80">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800/80">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -1378,17 +1395,17 @@ export default function WeekPage() {
 
       {/* Swap Modal */}
       {swapModalOpen && subjectToSwap && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <ArrowRightLeft size={16} className="text-indigo-400" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <ArrowRightLeft size={16} className="text-indigo-600 dark:text-indigo-400" />
                   Reorganizar Matéria
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Escolha por qual matéria você quer trocar{" "}
-                  <strong className="text-indigo-300">
+                  <strong className="text-indigo-600 dark:text-indigo-300">
                     {subjectToSwap.name}
                   </strong>
                   .
@@ -1399,14 +1416,14 @@ export default function WeekPage() {
                   setSwapModalOpen(false);
                   setSubjectToSwap(null);
                 }}
-                className="text-slate-500 hover:text-white transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-2">
                 Selecione a matéria para trocar de posição:
               </span>
 
@@ -1424,19 +1441,19 @@ export default function WeekPage() {
                           targetSubjectId: s.id,
                         })
                       }
-                      className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-indigo-500/50 transition-all text-left group cursor-pointer"
+                      className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-indigo-300 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 dark:border-slate-800/80 dark:hover:border-indigo-500/50 transition-all text-left group cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
                         <span
                           className="w-2.5 h-2.5 rounded-full"
                           style={{ backgroundColor: color }}
                         />
-                        <span className="text-xs font-semibold text-slate-200 group-hover:text-white">
+                        <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-white">
                           {s.name}
                         </span>
                       </div>
 
-                      <span className="text-[10px] font-mono text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
+                      <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
                         Trocar →
                       </span>
                     </button>
@@ -1444,14 +1461,14 @@ export default function WeekPage() {
                 })}
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex justify-end">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex justify-end">
               <button
                 type="button"
                 onClick={() => {
                   setSwapModalOpen(false);
                   setSubjectToSwap(null);
                 }}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
               >
                 Cancelar
               </button>

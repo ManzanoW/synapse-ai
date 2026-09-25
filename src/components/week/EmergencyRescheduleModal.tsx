@@ -80,26 +80,26 @@ export function EmergencyRescheduleModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-gradient-to-b from-[#101424] via-[#090d18] to-[#04060c] border border-rose-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-[#04060c] dark:bg-gradient-to-b dark:from-[#101424] dark:via-[#090d18] dark:to-[#04060c] border border-slate-200 dark:border-rose-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
         {/* Glow Superior Vermelho/Âmbar */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-rose-500/10 dark:bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* TOP BAR */}
-        <div className="relative z-10 flex items-center justify-between px-5 py-4 border-b border-slate-800/80 bg-slate-900/40">
+        <div className="relative z-10 flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/40">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shadow-md shadow-rose-500/10">
+            <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-500/20 dark:border-rose-500/30 dark:text-rose-400 flex items-center justify-center shadow-xs">
               <AlertTriangle size={18} />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black tracking-wider uppercase text-rose-400">
+                <span className="text-xs font-black tracking-wider uppercase text-rose-600 dark:text-rose-400">
                   SOS Rotina • IA Adaptativa
                 </span>
-                <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30">
                   EMERGÊNCIA
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Reorganize sua semana em segundos sem quebrar a consistência
               </p>
             </div>
@@ -108,7 +108,7 @@ export function EmergencyRescheduleModal({
           <button
             type="button"
             onClick={handleResetAndClose}
-            className="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60 transition-all cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200 dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:text-slate-400 dark:hover:text-white dark:border-slate-700/60 transition-all cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -119,29 +119,29 @@ export function EmergencyRescheduleModal({
           {resultMessage ? (
             /* FEEDBACK DE SUCESSO */
             <div className="text-center py-6 space-y-5 animate-in zoom-in-95 duration-200">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/10">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-100 border border-emerald-300 text-emerald-600 dark:bg-emerald-500/20 dark:border-emerald-500/30 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-md">
                 <CheckCircle2 size={32} />
               </div>
 
               <div className="space-y-2 max-w-lg mx-auto">
-                <h3 className="text-xl font-black text-white tracking-tight">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
                   Cronograma Reajustado com Sucesso!
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                   {resultMessage}
                 </p>
               </div>
 
               {affectedList.length > 0 && (
-                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 max-w-md mx-auto text-left space-y-2">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 dark:bg-slate-900/60 dark:border-slate-800 max-w-md mx-auto text-left space-y-2 shadow-2xs">
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                     Disciplinas Impactadas:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {affectedList.map((name, idx) => (
                       <span
                         key={idx}
-                        className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/20"
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/20"
                       >
                         {name}
                       </span>
@@ -165,10 +165,10 @@ export function EmergencyRescheduleModal({
             /* SELETOR DE CENÁRIOS */
             <>
               <div className="space-y-1">
-                <h3 className="text-base sm:text-lg font-black text-white">
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
                   O que aconteceu hoje?
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Escolha o cenário que melhor descreve seu imprevisto. A IA cuidará da redistribuição matemática.
                 </p>
               </div>
@@ -179,23 +179,23 @@ export function EmergencyRescheduleModal({
                   onClick={() => setSelectedScenario("MISSED_TODAY")}
                   className={
                     selectedScenario === "MISSED_TODAY"
-                      ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-rose-950/40 border-rose-500/80 ring-1 ring-rose-500/50 shadow-lg shadow-rose-950/20"
-                      : "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/70"
+                      ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-rose-50/70 border-rose-300 ring-2 ring-rose-500/30 shadow-md dark:bg-rose-950/40 dark:border-rose-500/80 dark:ring-1 dark:ring-rose-500/50 dark:shadow-lg dark:shadow-rose-950/20"
+                      : "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:bg-slate-900/40 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-900/70 shadow-2xs"
                   }
                 >
                   <div className="flex items-start justify-between">
-                    <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
+                    <div className="p-2 rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
                       <ShieldAlert size={18} />
                     </div>
-                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300">
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30">
                       0 MIN HOJE
                     </span>
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-sm">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">
                       Perdi o Dia Inteiro
                     </h4>
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                       Imprevisto total. Transfere a carga de hoje para os próximos dias da semana suavemente.
                     </p>
                   </div>
@@ -206,23 +206,23 @@ export function EmergencyRescheduleModal({
                   onClick={() => setSelectedScenario("SURVIVAL_MICRO")}
                   className={
                     selectedScenario === "SURVIVAL_MICRO"
-                      ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-amber-950/40 border-amber-500/80 ring-1 ring-amber-500/50 shadow-lg shadow-amber-950/20"
-                      : "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/70"
+                      ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-amber-50/70 border-amber-300 ring-2 ring-amber-500/30 shadow-md dark:bg-amber-950/40 dark:border-amber-500/80 dark:ring-1 dark:ring-amber-500/50 dark:shadow-lg dark:shadow-amber-950/20"
+                      : "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:bg-slate-900/40 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-900/70 shadow-2xs"
                   }
                 >
                   <div className="flex items-start justify-between">
-                    <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+                    <div className="p-2 rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
                       <Flame size={18} />
                     </div>
-                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300">
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
                       SALVA OFENSIVA
                     </span>
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-sm">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">
                       Micro-Revisão Rápida
                     </h4>
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                       Tenho pouco tempo hoje. Condensa em 1 matéria prioritária e adia o restante.
                     </p>
                   </div>
@@ -233,23 +233,23 @@ export function EmergencyRescheduleModal({
                   onClick={() => setSelectedScenario("REDUCE_LOAD")}
                   className={
                     selectedScenario === "REDUCE_LOAD"
-                      ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-cyan-950/40 border-cyan-500/80 ring-1 ring-cyan-500/50 shadow-lg shadow-cyan-950/20"
-                      : "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/70"
+                      ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-cyan-50/70 border-cyan-300 ring-2 ring-cyan-500/30 shadow-md dark:bg-cyan-950/40 dark:border-cyan-500/80 dark:ring-1 dark:ring-cyan-500/50 dark:shadow-lg dark:shadow-cyan-950/20"
+                      : "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:bg-slate-900/40 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-900/70 shadow-2xs"
                   }
                 >
                   <div className="flex items-start justify-between">
-                    <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
+                    <div className="p-2 rounded-xl bg-cyan-100 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400">
                       <TrendingDown size={18} />
                     </div>
-                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300">
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-800 border border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30">
                       -30% CARGA
                     </span>
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-sm">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">
                       Semana Muito Corrida
                     </h4>
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                       Reduz a meta semanal temporariamente para evitar estresse e manter consistência.
                     </p>
                   </div>
@@ -260,23 +260,23 @@ export function EmergencyRescheduleModal({
                   onClick={() => setSelectedScenario("CORE_FOCUS")}
                   className={
                     selectedScenario === "CORE_FOCUS"
-                      ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-indigo-950/40 border-indigo-500/80 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-950/20"
-                      : "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/70"
+                      ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/30 shadow-md dark:bg-indigo-950/40 dark:border-indigo-500/80 dark:ring-1 dark:ring-indigo-500/50 dark:shadow-lg dark:shadow-indigo-950/20"
+                      : "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:bg-slate-900/40 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-900/70 shadow-2xs"
                   }
                 >
                   <div className="flex items-start justify-between">
-                    <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+                    <div className="p-2 rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
                       <Target size={18} />
                     </div>
-                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300">
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30">
                       PESO MÁXIMO
                     </span>
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-sm">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">
                       Blindagem de Edital
                     </h4>
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                       Foca 100% nas matérias mais cobradas da prova e pausa disciplinas secundárias.
                     </p>
                   </div>
@@ -285,13 +285,13 @@ export function EmergencyRescheduleModal({
 
               {/* OPÇÃO EXTRA: TEMPO PARA MICRO-REVISÃO */}
               {selectedScenario === "SURVIVAL_MICRO" && (
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3 animate-in fade-in duration-200">
+                <div className="p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 space-y-3 animate-in fade-in duration-200 shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-200 flex items-center gap-1.5">
-                      <Clock size={14} className="text-amber-400" />
+                    <span className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                      <Clock size={14} className="text-amber-600 dark:text-amber-400" />
                       Quanto tempo você tem disponível hoje?
                     </span>
-                    <span className="text-xs font-mono font-bold text-amber-300">
+                    <span className="text-xs font-mono font-bold text-amber-900 dark:text-amber-300">
                       {microMinutes} minutos
                     </span>
                   </div>
@@ -305,7 +305,7 @@ export function EmergencyRescheduleModal({
                         className={
                           microMinutes === mins
                             ? "py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20"
-                            : "py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer bg-slate-900/80 text-slate-300 border border-slate-700/60 hover:bg-slate-800"
+                            : "py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer bg-white text-slate-700 border border-amber-200 hover:bg-amber-100/60 dark:bg-slate-900/80 dark:text-slate-300 dark:border-slate-700/60 dark:hover:bg-slate-800 shadow-2xs"
                         }
                       >
                         ⚡ {mins} min
@@ -316,13 +316,13 @@ export function EmergencyRescheduleModal({
               )}
 
               {/* PREVIEW DO IMPACTO */}
-              <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 text-xs text-slate-300 flex items-start gap-3">
-                <Sparkles size={16} className="text-indigo-400 shrink-0 mt-0.5" />
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 flex items-start gap-3 shadow-2xs">
+                <Sparkles size={16} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-white block mb-0.5">
+                  <span className="font-bold text-slate-900 dark:text-white block mb-0.5">
                     Como a IA atuará:
                   </span>
-                  <p className="text-slate-400 leading-relaxed">
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                     {selectedScenario === "MISSED_TODAY" &&
                       "As matérias previstas para hoje serão agendadas nos próximos dias úteis. Nenhuma matéria será excluída e o sábado/domingo não serão sobrecarregados."}
                     {selectedScenario === "SURVIVAL_MICRO" &&
@@ -341,7 +341,7 @@ export function EmergencyRescheduleModal({
                   type="button"
                   onClick={handleResetAndClose}
                   disabled={loading}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>

@@ -38,8 +38,22 @@ export default async function ProfilePage() {
       weeklyGoalHours: true,
       studyMode: true,
       targetExamDate: true, // <-- ADICIONADO AQUI
+      careerFocus: true,
+      targetRole: true,
+      planTier: true,
+      role: true,
     },
   });
+
+  const isPremiumUser =
+    dbUser?.role === "ADMIN" ||
+    dbUser?.planTier === "PREMIUM" ||
+    Boolean(
+      (dbUser?.email || userSession?.email) &&
+        process.env.ADMIN_EMAIL &&
+        (dbUser?.email || userSession?.email)!.toLowerCase() ===
+          process.env.ADMIN_EMAIL.toLowerCase(),
+    );
 
   const getInitials = (name?: string | null) => {
     if (!name) return "US";
@@ -110,13 +124,26 @@ export default async function ProfilePage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                 {dbUser?.name || "Estudante Synapse"}
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold tracking-wide shadow-xs">
-                <Award
-                  size={13}
-                  className="text-indigo-400 fill-indigo-400/20"
-                />
-                <span>PREMIUM</span>
-              </span>
+              {isPremiumUser ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-linear-to-r from-amber-500/20 to-indigo-500/20 border border-amber-400/40 text-amber-300 text-xs font-black tracking-wide shadow-xs">
+                  <Award
+                    size={13}
+                    className="text-amber-400 fill-amber-400/20"
+                  />
+                  <span>PRO / PREMIUM</span>
+                </span>
+              ) : (
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400/40 text-slate-300 hover:text-indigo-200 text-xs font-bold tracking-wide transition-all group shadow-xs"
+                >
+                  <Award size={13} className="text-slate-400" />
+                  <span>BÁSICO (GRÁTIS)</span>
+                  <span className="text-indigo-400 font-extrabold group-hover:translate-x-0.5 transition-transform">
+                    • Upgrade 💎
+                  </span>
+                </Link>
+              )}
             </div>
 
             <p className="text-slate-300 text-sm max-w-lg leading-relaxed">
@@ -131,7 +158,7 @@ export default async function ProfilePage() {
               </span>
               <span className="flex items-center gap-1.5 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
                 <BookOpen size={14} className="text-purple-400" />
-                Ciência da Computação
+                {dbUser?.careerFocus || "Tecnologia da Informação & Dados"}
               </span>
             </div>
           </div>
@@ -228,7 +255,13 @@ export default async function ProfilePage() {
         </div>
 
         {/* Bloco 2: Novo Card de Objetivo da Prova */}
-        <ProfileTargetForm initialTargetDate={dbUser?.targetExamDate} />
+        <div className="md:col-span-2">
+          <ProfileTargetForm
+            initialTargetDate={dbUser?.targetExamDate}
+            initialCareerFocus={dbUser?.careerFocus}
+            initialTargetRole={dbUser?.targetRole}
+          />
+        </div>
 
         {/* Bloco 3: Configurações de Estudo */}
         <div className="bg-[#090d16] border border-slate-800/60 rounded-2xl p-6 space-y-4 backdrop-blur-xl md:col-span-2">
@@ -242,11 +275,11 @@ export default async function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
-                Foco Acadêmico
+                Foco Acadêmico / Carreira
               </label>
               <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl px-4 py-3 text-sm text-slate-200 font-medium flex items-center justify-between">
-                <span>Ciência da Computação</span>
-                <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold">
+                <span className="truncate pr-2">{dbUser?.careerFocus || "Tecnologia da Informação & Dados"}</span>
+                <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold shrink-0">
                   Definido
                 </span>
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
@@ -21,8 +21,16 @@ import {
   Check,
   X,
   Loader2,
+  Lock,
+  Crown,
+  Film,
+  Headphones,
+  VolumeX,
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import Link from "next/link";
+import { tts } from "@/lib/tts-engine";
+import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import {
   ErrorNotebookItem,
   ErrorRemediationData,
@@ -65,6 +73,9 @@ export function ErrorCard({
   // Estados locais
   const [isExpanded, setIsExpanded] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [quotaErrorMessage, setQuotaErrorMessage] = useState<string | null>(null);
   const [remediation, setRemediation] = useState<ErrorRemediationData | null>(
     errorItem.aiExplanation && errorItem.mnemonic && errorItem.drillQuestion
       ? {
@@ -85,6 +96,26 @@ export function ErrorCard({
   // Estado de mutação
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSpeakingMnemonic, setIsSpeakingMnemonic] = useState(false);
+
+  const handleToggleSpeakMnemonic = (text: string) => {
+    if (isSpeakingMnemonic) {
+      tts.stop();
+      setIsSpeakingMnemonic(false);
+    } else {
+      setIsSpeakingMnemonic(true);
+      tts.speak(text, {
+        onEnd: () => setIsSpeakingMnemonic(false),
+        onError: () => setIsSpeakingMnemonic(false),
+      });
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      tts.stop();
+    };
+  }, []);
 
   const normalizedReason = normalizeTaxonomy(errorItem.errorReason);
   const meta = TAXONOMY_METADATA[normalizedReason] || TAXONOMY_METADATA.UNCLASSIFIED;
@@ -122,6 +153,7 @@ export function ErrorCard({
     if (remediation) return;
 
     setIsGeneratingAi(true);
+    setIsQuotaExceeded(false);
     try {
       const res = await analyzeSingleErrorAction({
         errorId: errorItem.id,
@@ -134,6 +166,14 @@ export function ErrorCard({
         topicTitle: errorItem.topic?.title,
       });
 
+      if (res.isQuotaExceeded) {
+        setIsQuotaExceeded(true);
+        setQuotaErrorMessage(
+          res.error || "Limite diário de ajudas e macetes com IA atingido."
+        );
+        return;
+      }
+
       if (res.success && res.data) {
         setRemediation(res.data);
         onItemUpdated({
@@ -145,6 +185,44 @@ export function ErrorCard({
       }
     } catch (err) {
       console.error("Erro ao gerar remediação:", err);
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
+  const handleRewardClaimed = async () => {
+    setShowAdModal(false);
+    setIsQuotaExceeded(false);
+    setIsGeneratingAi(true);
+    try {
+      const res = await analyzeSingleErrorAction({
+        errorId: errorItem.id,
+        questionText: errorItem.questionText,
+        userAnswer: errorItem.userAnswer,
+        correctAnswer: errorItem.correctAnswer,
+        explanation: errorItem.explanation || undefined,
+        errorReason: errorItem.errorReason,
+        subjectName: errorItem.subject?.name,
+        topicTitle: errorItem.topic?.title,
+      });
+
+      if (res.isQuotaExceeded) {
+        setIsQuotaExceeded(true);
+        setQuotaErrorMessage(res.error || "Limite diário atingido.");
+        return;
+      }
+
+      if (res.success && res.data) {
+        setRemediation(res.data);
+        onItemUpdated({
+          ...errorItem,
+          aiExplanation: res.data.microExplanation,
+          mnemonic: res.data.mnemonicOrRule,
+          drillQuestion: res.data.drillQuestion,
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao gerar remediação pós-bônus:", err);
     } finally {
       setIsGeneratingAi(false);
     }
@@ -373,11 +451,11 @@ export function ErrorCard({
       </div>
 
       {/* 3. Barra de Ações do Card */}
-      <div className="px-4 sm:px-5 py-3 bg-slate-900/90 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-4 sm:px-5 py-3 bg-slate-900/90 border-t border-white/5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         {/* Botão de Expansão IA */}
         <button
           onClick={handleToggleAiRemediation}
-          className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-md ${
+          className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-md min-h-[44px] ${
             isExpanded
               ? "bg-violet-600/30 border-violet-400 text-violet-200"
               : "bg-gradient-to-r from-violet-600/20 to-rose-600/20 hover:from-violet-600/30 hover:to-rose-600/30 border-violet-500/40 text-violet-200 hover:border-violet-400 hover:shadow-violet-500/15"
@@ -392,7 +470,7 @@ export function ErrorCard({
         <button
           onClick={handleToggleMastered}
           disabled={isUpdatingStatus}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
+          className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer border min-h-[44px] ${
             isMastered
               ? "bg-slate-800 text-slate-300 border-white/10 hover:bg-slate-700"
               : "bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-300"
@@ -454,11 +532,31 @@ export function ErrorCard({
                   </div>
                 </div>
 
-                {/* 4.2 Mnemônico ou Regra Prática de Memorização */}
+                {/* 4.2 Macete ou Regra Prática de Memorização */}
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-amber-300 text-xs font-bold uppercase tracking-wider">
-                    <Lightbulb size={15} />
-                    <span>Mnemônico / Regra de Ouro</span>
+                  <div className="flex items-center justify-between text-amber-300 text-xs font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <Lightbulb size={15} />
+                      <span>Macete / Regra de Ouro</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSpeakMnemonic(remediation.mnemonicOrRule)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer ${
+                        isSpeakingMnemonic
+                          ? "bg-amber-500/20 border-amber-400 text-amber-200"
+                          : "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
+                      }`}
+                      title={isSpeakingMnemonic ? "Pausar leitura de áudio" : "Ouvir macete em voz alta"}
+                    >
+                      {isSpeakingMnemonic ? (
+                        <VolumeX size={13} className="text-amber-400 animate-pulse" />
+                      ) : (
+                        <Headphones size={13} className="text-amber-400" />
+                      )}
+                      <span>{isSpeakingMnemonic ? "Pausar" : "Ouvir Áudio"}</span>
+                    </button>
                   </div>
                   <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-transparent border border-amber-500/30 text-sm text-amber-200 font-medium leading-relaxed flex items-start gap-3 shadow-inner">
                     <Zap className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
@@ -520,7 +618,7 @@ export function ErrorCard({
                                 setIsDrillChecked(false);
                               }
                             }}
-                            className={`w-full p-3 rounded-xl border text-left text-xs sm:text-sm flex items-start gap-3 transition-all cursor-pointer ${itemStyle}`}
+                            className={`w-full p-3 sm:p-3.5 rounded-xl border text-left text-xs sm:text-sm flex items-start gap-3 transition-all cursor-pointer min-h-[48px] ${itemStyle}`}
                           >
                             <span
                               className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
@@ -575,7 +673,7 @@ export function ErrorCard({
                         <button
                           onClick={handleVerifyDrillAnswer}
                           disabled={!selectedDrillOption}
-                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer"
+                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer min-h-[44px] flex items-center justify-center"
                         >
                           Confirmar Resposta de Fixação
                         </button>
@@ -585,9 +683,62 @@ export function ErrorCard({
                 )}
               </div>
             )}
+
+            {/* Paywall Amigável de Cota Atingida */}
+            {!isGeneratingAi && isQuotaExceeded && !remediation && (
+              <div className="py-6 px-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 flex flex-col items-center text-center space-y-4 shadow-xl">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <Lock size={26} />
+                  </div>
+                  <div className="absolute -top-1 -right-1 p-1 rounded-md bg-amber-500 text-slate-950">
+                    <Crown size={12} />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 max-w-md">
+                  <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    Limite Diário Atingido (1/1)
+                  </span>
+                  <h4 className="text-sm sm:text-base font-bold text-white">
+                    Você atingiu a cota diária de remediações com IA
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {quotaErrorMessage ||
+                      "A desconstrução pedagógica com IA é um recurso avançado. Desbloqueie remediação imediata assistindo a um vídeo rápido ou assine o Synapse Pro para acesso ilimitado."}
+                  </p>
+                </div>
+
+                <div className="w-full max-w-sm space-y-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdModal(true)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all cursor-pointer group"
+                  >
+                    <Film size={15} className="text-amber-300 group-hover:scale-110 transition-transform" />
+                    <span>Assistir Vídeo (+1 Remediação com IA)</span>
+                  </button>
+
+                  <Link
+                    href="/pricing"
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
+                  >
+                    <Crown size={14} />
+                    <span>Desbloquear Ilimitado com Synapse Pro</span>
+                  </Link>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      <RewardedAdModal
+        isOpen={showAdModal}
+        onClose={() => setShowAdModal(false)}
+        onRewardClaimed={handleRewardClaimed}
+        feature="REMEDIATION"
+      />
     </motion.div>
   );
 }

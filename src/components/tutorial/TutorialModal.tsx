@@ -113,7 +113,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     iconBg: "bg-cyan-500/10 border-cyan-500/30",
     headline: "Repetição espaçada com algoritmo FSRS e IA em PDFs",
     description:
-      "Transforme apostilas PDF em baralhos inteligentes sem gastar tokens, estude em áudio no trânsito e exporte tudo para o Anki oficial.",
+      "Transforme apostilas PDF em baralhos inteligentes com extração rápida, estude em áudio no trânsito e exporte tudo para o Anki oficial.",
     highlights: [
       {
         title: "Importação de PDFs",

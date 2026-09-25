@@ -165,7 +165,7 @@ export async function parsePdfAndExtractTopicsAction(
 
     pageLinesList.forEach((lines, idx) => {
       const pageNum = idx + 1;
-      let filteredLines = [...lines];
+      const filteredLines = [...lines];
 
       // Remove header e footer detectados
       if (filteredLines.length > 0) {

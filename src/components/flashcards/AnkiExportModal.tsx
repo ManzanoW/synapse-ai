@@ -150,7 +150,7 @@ export function AnkiExportModal({
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-center">
               <Loader2 size={32} className="text-indigo-400 animate-spin" />
               <p className="text-xs text-slate-400">
-                Formatando flashcards e mnemônicos para a sintaxe do Anki...
+                Formatando flashcards e macetes para o Anki...
               </p>
             </div>
           ) : errorMessage ? (
@@ -229,7 +229,7 @@ export function AnkiExportModal({
                 </ol>
 
                 <div className="pt-1 text-[11px] text-slate-400 border-t border-blue-500/20">
-                  💡 <em>Os mnemônicos e bizús de banca aparecem destacados com estilo visual exclusivo no verso de cada card.</em>
+                  💡 <em>Os macetes e bizús de banca aparecem destacados com estilo visual exclusivo no verso de cada card.</em>
                 </div>
               </div>
             </>

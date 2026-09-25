@@ -8,18 +8,30 @@ import React, {
 } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import SubjectCard from "@/components/subject-card";
-import { NewContentModal } from "@/components/create-subject-modal";
 import SubjectCardSkeleton from "@/components/subject-card-skeleton";
 import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { DashboardSubject } from "@/types";
-import { LevelUpModal } from "@/components/gamification/level-up-modal";
 import { DailyQuestsPanel } from "@/components/dashboard/DailyQuestsPanel";
 import { GamificationCockpitCard } from "@/components/dashboard/GamificationCockpitCard";
 import { KeyMetricsCard } from "@/components/dashboard/KeyMetricsCard";
-import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
 import { useGamification } from "@/context/GamificationContext";
+
+// Lazy-loaded Modais & Overlays pesados para otimização de bundle e LCP
+const NewContentModal = dynamic(
+  () => import("@/components/create-subject-modal").then((m) => m.NewContentModal),
+  { ssr: false }
+);
+const LevelUpModal = dynamic(
+  () => import("@/components/gamification/level-up-modal").then((m) => m.LevelUpModal),
+  { ssr: false }
+);
+const ZenModeOverlay = dynamic(
+  () => import("@/components/dashboard/ZenModeOverlay").then((m) => m.ZenModeOverlay),
+  { ssr: false }
+);
 import {
   Menu,
   BookOpen,
@@ -48,19 +60,38 @@ import {
   CheckSquare,
   Square,
   Eye,
+  Camera,
 } from "lucide-react";
-import Heatmap from "@/components/analytics/Heatmap";
-import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
-import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
 import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
 import type { ApprovalOddsData } from "@/actions/analytics-actions";
-import { TutorialModal } from "@/components/tutorial/TutorialModal";
-import { CustomizeCardsModal } from "@/components/dashboard/CustomizeCardsModal";
-import {
-  WelcomeQuizModal,
-  type OnboardingQuizResult,
-} from "@/components/onboarding/WelcomeQuizModal";
+import { type OnboardingQuizResult } from "@/components/onboarding/WelcomeQuizModal";
+
+const Heatmap = dynamic(() => import("@/components/analytics/Heatmap"), {
+  ssr: false,
+});
+const DomainRadarChart = dynamic(
+  () => import("@/components/dashboard/DomainRadarChart"),
+  { ssr: false }
+);
+const StreakFreezeModal = dynamic(
+  () => import("@/components/dashboard/StreakFreezeModal").then((m) => m.StreakFreezeModal),
+  { ssr: false }
+);
+const TutorialModal = dynamic(
+  () => import("@/components/tutorial/TutorialModal").then((m) => m.TutorialModal),
+  { ssr: false }
+);
+const CustomizeCardsModal = dynamic(
+  () => import("@/components/dashboard/CustomizeCardsModal").then((m) => m.CustomizeCardsModal),
+  { ssr: false }
+);
+const WelcomeQuizModal = dynamic(
+  () => import("@/components/onboarding/WelcomeQuizModal").then((m) => m.WelcomeQuizModal),
+  { ssr: false }
+);
 import { FirstStepsChecklistCard } from "@/components/dashboard/FirstStepsChecklistCard";
+import { DailyFlowCard } from "@/components/dashboard/DailyFlowCard";
+import type { DailyFlowData } from "@/actions/daily-flow-actions";
 import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
@@ -182,11 +213,13 @@ interface DashboardClientProps {
     image?: string | null;
   };
   initialApprovalOdds?: ApprovalOddsData | null;
+  initialDailyFlow?: DailyFlowData | null;
 }
 
 export default function DashboardClient({
   user,
   initialApprovalOdds,
+  initialDailyFlow,
 }: DashboardClientProps) {
   const { openSidebar } = useSidebar();
   const searchParams = useSearchParams();
@@ -273,7 +306,7 @@ export default function DashboardClient({
       localStorage.setItem("synapse_daily_study_hours", String(result.dailyHours));
     } catch {}
     handleSwitchMode(result.profileMode);
-    if (result.startAction === "edital" && result.careerTemplate && result.careerTemplate !== "custom") {
+    if (result.startAction === "edital" || (result.careerTemplate && result.careerTemplate !== "custom")) {
       loadDashboardData();
     }
   };
@@ -760,15 +793,22 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* ================= ATALHOS RÁPIDOS ================= */}
+        {/* ================= ATALHOS RÁPIDOS (2x2 no mobile, 5 colunas no desktop) ================= */}
         {visibleCards.quickActions && (
-          <div className="hidden md:grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
             {[
               {
                 title: "Resolver Questões",
                 icon: HelpCircle,
                 color: "text-amber-400",
                 href: "/questions",
+              },
+              {
+                title: "Scanner OCR",
+                icon: Camera,
+                color: "text-rose-400",
+                href: "/questions?scan=true",
+                badge: "IA",
               },
               {
                 title: "Praticar Cards",
@@ -1044,22 +1084,47 @@ export default function DashboardClient({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
-                <span>Status:</span>
-                <span className="inline-flex items-center gap-1.5 font-bold text-indigo-300">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-                  {isLoading
-                    ? "Carregando..."
-                    : !hasEditalSubjects
-                      ? "Não Iniciado"
-                      : stats?.journey?.percentage === 100
-                        ? "Edital Completo"
-                        : "Em Andamento"}
-                </span>
-              </div>
+              {isLoading ? (
+                <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+                  <span>Status:</span>
+                  <div className="h-4 w-20 rounded bg-white/10 animate-pulse" />
+                </div>
+              ) : !hasEditalSubjects ? (
+                <Link
+                  href="/edital?import=true"
+                  className="group/cta flex items-center justify-between rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-3 py-2 text-xs font-semibold text-cyan-300 transition-all hover:scale-[1.02]"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-amber-400" />
+                    <span>Importar com IA</span>
+                  </div>
+                  <ArrowRight size={13} className="transition-transform group-hover/cta:translate-x-1" />
+                </Link>
+              ) : (
+                <Link
+                  href="/edital"
+                  className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400 hover:text-cyan-300 transition-colors group/link"
+                >
+                  <span className="flex items-center gap-1 font-medium">
+                    Ver Edital
+                    <ArrowRight size={12} className="transition-transform group-hover/link:translate-x-1 text-cyan-400" />
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 font-bold text-indigo-300">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
+                    {stats?.journey?.percentage === 100
+                      ? "Edital Completo"
+                      : "Em Andamento"}
+                  </span>
+                </Link>
+              )}
             </div>
           </div>
         </section>
+        )}
+
+        {/* ================= SESSÃO RECOMENDADA DE HOJE (DAILY FLOW 1-CLIQUE) ================= */}
+        {!isLoading && (
+          <DailyFlowCard flowData={initialDailyFlow || null} />
         )}
 
         {/* ================= 3. PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS) ================= */}
@@ -1274,41 +1339,41 @@ export default function DashboardClient({
                 <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400">
+                    <div className="rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 p-2">
                       <Sparkles size={18} />
                     </div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
                       Sugestões Inteligentes da IA
                     </h3>
                   </div>
-                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[9px] font-bold text-cyan-300">
+                  <span className="rounded-full border border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 px-2.5 py-0.5 font-mono text-[9px] font-bold">
                     Synapse Neural
                   </span>
                 </div>
 
                 <div className="space-y-3">
                   {suggestions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-xs text-slate-400">
+                    <div className="rounded-2xl border border-dashed border-slate-200 dark:border-white/10 p-4 text-center text-xs text-slate-500 dark:text-slate-400">
                       Seu cronograma está 100% otimizado!
                     </div>
                   ) : (
                     suggestions.map((item: Suggestion) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3 hover:border-white/10 transition-colors"
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100/80 hover:border-slate-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:border-white/10 p-3 transition-colors"
                       >
                         <Link
                           href={getSuggestionUrl(item)}
                           className="flex items-center gap-3 flex-1 min-w-0"
                         >
-                          <div className="shrink-0 rounded-xl p-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                          <div className="shrink-0 rounded-xl p-2 bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
                             <BrainCircuit size={16} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h4 className="text-xs font-bold text-slate-200 truncate">
+                            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">
                               {item.title}
                             </h4>
-                            <p className="text-[11px] text-slate-400 truncate">
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
                               {item.description}
                             </p>
                           </div>
@@ -1323,15 +1388,15 @@ export default function DashboardClient({
                   disabled={isOptimizing}
                   className={`mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-bold transition-all ${
                     isOptimized
-                      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-                      : "border-cyan-500/20 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300 shadow-2xs"
+                      : "border-cyan-200 bg-cyan-50/90 text-cyan-800 hover:bg-cyan-100 hover:border-cyan-300 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20 shadow-2xs"
                   }`}
                 >
                   {isOptimizing ? (
                     <span>Otimizando Cronograma com IA...</span>
                   ) : isOptimized ? (
                     <>
-                      <Check size={14} className="text-emerald-400" />
+                      <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
                       <span>Cronograma e Metas Otimizados!</span>
                     </>
                   ) : (

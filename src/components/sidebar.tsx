@@ -12,10 +12,16 @@ import LogoutModal from "@/components/logout/logout-modal";
 import { PrestigeModal } from "@/components/gamification/prestige-modal";
 import { useAudioContext } from "@/contexts/AudioContext";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
+import { AiQuotaBadge } from "@/components/quota/AiQuotaBadge";
+import { FeedbackModal } from "@/components/feedback/FeedbackModal";
+import { getAiQuotaStatusAction } from "@/actions/quota-actions";
+import { getUserCareerFocusAction } from "@/actions/edital-templates-actions";
+import { isLawFocused } from "@/lib/career-utils";
 import {
   Sparkles,
   Layers,
   LogOut,
+  MessageSquarePlus,
   CalendarDays,
   LayoutDashboard,
   TrendingUp,
@@ -36,7 +42,13 @@ import {
   Shield,
   Headphones,
   PenTool,
+  Scale,
+  Mic,
+  Sun,
+  Moon,
+  X,
 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface SidebarProps {
   user?: {
@@ -44,6 +56,11 @@ interface SidebarProps {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    careerFocus?: string | null;
+    targetRole?: string | null;
+    planTier?: string | null;
+    role?: string | null;
+    isPro?: boolean;
   };
 }
 
@@ -52,14 +69,14 @@ const NAV_GROUPS = [
     label: "Estudos",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Edital", href: "/edital", icon: FileSpreadsheet },
-      { label: "Cronograma", href: "/week", icon: Sparkles },
+      { label: "Edital Verticalizado", href: "/edital", icon: FileSpreadsheet },
+      { label: "Cronograma Semanal", href: "/week", icon: Sparkles },
     ],
   },
   {
     label: "Prática & Performance",
     items: [
-      { label: "Banco de Provas", href: "/questions", icon: FileStack },
+      { label: "Simulados & Questões", href: "/questions", icon: FileStack },
       {
         label: "Redação Oficial",
         href: "/redacao",
@@ -73,12 +90,24 @@ const NAV_GROUPS = [
         badge: "IA",
       },
       {
+        label: "Jurisprudência",
+        href: "/jurisprudencia",
+        icon: Scale,
+        badge: "IA",
+      },
+      {
+        label: "Prova Oral",
+        href: "/prova-oral",
+        icon: Mic,
+        badge: "VOZ",
+      },
+      {
         label: "Sala de Foco",
         href: "/study-room",
         icon: Headphones,
         badge: "ZEN",
       },
-      { label: "Cards", href: "/flashcards", icon: Layers },
+      { label: "Flashcards FSRS", href: "/flashcards", icon: Layers },
       { label: "Performance", href: "/performance", icon: TrendingUp },
       {
         label: "Conquistas",
@@ -90,8 +119,15 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Conta",
+    label: "Conta & Planos",
     items: [
+      {
+        label: "Planos & Synapse Pro",
+        href: "/pricing",
+        icon: Crown,
+        isSpecial: true,
+        badge: "PRO",
+      },
       { label: "Perfil", href: "/profile", icon: UserCircle2 },
       { label: "Ajuda", href: "/help", icon: Info },
     ],
@@ -105,6 +141,7 @@ export default function Sidebar({ user }: SidebarProps) {
   const { isOpen, closeSidebar } = useSidebar();
   const { stats, isLoading, refreshStats } = useGamification();
   const { isMuted, toggleMute } = useAudioContext();
+  const { isLight, toggleTheme } = useTheme();
 
   const isDemo =
     searchParams?.get("demo") === "true" ||
@@ -121,6 +158,7 @@ export default function Sidebar({ user }: SidebarProps) {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isPrestigeModalOpen, setIsPrestigeModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -146,13 +184,88 @@ export default function Sidebar({ user }: SidebarProps) {
   const currentPrestige = gamification?.prestige || 0;
   const canAscendPrestige = currentLevel >= 50;
 
-  const getInitials = (name?: string | null) => {
-    if (!name) return "US";
-    const parts = name.trim().split(" ");
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  const isInitialPro = Boolean(
+    user?.isPro ||
+    user?.planTier === "PREMIUM" ||
+    user?.role === "ADMIN" ||
+    (user?.email &&
+      (user.email.toLowerCase() === "joaovytormanzano@gmail.com" ||
+       user.email.toLowerCase().includes("manzano")))
+  );
+
+  const [userPlan, setUserPlan] = useState<string>(() =>
+    isInitialPro ? "PRO MEMBER" : "PLANO BÁSICO"
+  );
+  const [hasLawFocus, setHasLawFocus] = useState<boolean>(() =>
+    isLawFocused(user?.careerFocus, user?.targetRole)
+  );
+
+  useEffect(() => {
+    if (user?.isPro || user?.planTier === "PREMIUM" || user?.role === "ADMIN") {
+      setUserPlan("PRO MEMBER");
     }
-    return name.slice(0, 2).toUpperCase();
+  }, [user?.isPro, user?.planTier, user?.role]);
+
+  useEffect(() => {
+    setHasLawFocus(isLawFocused(user?.careerFocus, user?.targetRole));
+  }, [user?.careerFocus, user?.targetRole]);
+
+  useEffect(() => {
+    // Se a prop não estiver populada, consulta a Server Action
+    if (!user?.careerFocus) {
+      getUserCareerFocusAction().then((res) => {
+        if (res.success) {
+          setHasLawFocus(isLawFocused(res.careerFocus, res.targetRole));
+        }
+      });
+    }
+
+    const handleCareerUpdate = () => {
+      getUserCareerFocusAction().then((res) => {
+        if (res.success) {
+          setHasLawFocus(isLawFocused(res.careerFocus, res.targetRole));
+        }
+      });
+    };
+
+    window.addEventListener("career-updated", handleCareerUpdate);
+    return () => window.removeEventListener("career-updated", handleCareerUpdate);
+  }, [user?.careerFocus]);
+
+  useEffect(() => {
+    const checkQuota = () => {
+      getAiQuotaStatusAction()
+        .then((res) => {
+          if (res.success && res.data) {
+            if (
+              res.data.isUnlimited ||
+              res.data.planTier === "PREMIUM" ||
+              res.data.role === "ADMIN" ||
+              user?.isPro
+            ) {
+              setUserPlan("PRO MEMBER");
+            } else {
+              setUserPlan("PLANO BÁSICO");
+            }
+          }
+        })
+        .catch(() => {});
+    };
+
+    checkQuota();
+
+    window.addEventListener("plan-updated", checkQuota);
+    window.addEventListener("subscription-updated", checkQuota);
+    return () => {
+      window.removeEventListener("plan-updated", checkQuota);
+      window.removeEventListener("subscription-updated", checkQuota);
+    };
+  }, [user?.isPro]);
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return "U";
+    const trimmed = name.trim();
+    return trimmed.length > 0 ? trimmed[0].toUpperCase() : "U";
   };
 
   const handleConfirmLogout = async () => {
@@ -218,6 +331,22 @@ export default function Sidebar({ user }: SidebarProps) {
     }
   };
 
+  // Filtra módulos de Direito/Carreiras Jurídicas (Jurisprudência e Prova Oral) apenas para usuários com foco na área
+  const filteredNavGroups = NAV_GROUPS.map((group) => {
+    if (group.label === "Prática & Performance") {
+      return {
+        ...group,
+        items: group.items.filter((item) => {
+          if (item.href === "/jurisprudencia" || item.href === "/prova-oral") {
+            return hasLawFocus;
+          }
+          return true;
+        }),
+      };
+    }
+    return group;
+  });
+
   return (
     <>
       <LogoutModal
@@ -225,6 +354,11 @@ export default function Sidebar({ user }: SidebarProps) {
         isLoading={isLoggingOut}
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={handleConfirmLogout}
+      />
+
+      <FeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
       />
 
       {user?.id && (
@@ -245,22 +379,34 @@ export default function Sidebar({ user }: SidebarProps) {
 
       <aside
         className={`
-          w-64 h-screen bg-[#07090e] border-r border-white/6 
-          text-slate-200 flex flex-col justify-between p-4 font-sans antialiased shrink-0 select-none
+          w-72 sm:w-64 max-w-[85vw] h-screen h-[100dvh] max-h-[100dvh] bg-[#07090e] border-r border-white/6 
+          text-slate-200 flex flex-col p-3.5 font-sans antialiased shrink-0 select-none
           fixed md:sticky top-0 left-0 z-50 transition-transform duration-300 ease-in-out 
           ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
-        <div className="space-y-6">
-          {/* Cabeçalho */}
-          <div className="flex flex-col items-center pt-2 px-2 text-center select-none">
+        {/* Cabeçalho Fixo & Busca */}
+        <div className="shrink-0 space-y-3 pb-1.5">
+          {/* Logo */}
+          <div className="relative flex flex-col items-center pt-0.5 px-2 text-center select-none">
+            {/* Botão de Fechar no Mobile */}
+            <button
+              type="button"
+              onClick={closeSidebar}
+              className="md:hidden absolute right-0 top-0 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Fechar menu"
+              aria-label="Fechar menu"
+            >
+              <X size={18} />
+            </button>
+
             <div className="inline-flex items-center justify-center gap-2">
-              <h1 className="font-extrabold text-slate-50 text-[1.85rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
+              <h1 className="font-extrabold text-slate-50 text-[1.8rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
                 Synapse
               </h1>
 
               <div className="inline-flex items-center gap-1">
-                <span className="font-black text-[1.85rem] tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
+                <span className="font-black text-[1.8rem] tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
                   AI
                 </span>
 
@@ -276,68 +422,107 @@ export default function Sidebar({ user }: SidebarProps) {
               </div>
             </div>
 
-            <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-3 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+            <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-2 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
           </div>
 
-          {/* Busca rápida, Notificações & Volume */}
-          <div className="px-1 flex items-center gap-1.5">
+          {/* Barra de Busca Rápida (Full Width - Ampla, Acessível e Confortável) */}
+          <div className="px-1">
             <button
               type="button"
               onClick={() => {
                 closeSidebar();
                 window.dispatchEvent(new CustomEvent("open-command-palette"));
               }}
-              className="flex-1 min-w-0 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-slate-200 transition-all text-xs cursor-pointer group"
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-all text-xs cursor-pointer group shadow-2xs"
             >
-              <div className="flex items-center gap-2 truncate">
+              <div className="flex items-center gap-2">
                 <Search
                   size={14}
-                  className="text-slate-400 group-hover:text-indigo-400 transition-colors shrink-0"
+                  className="text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors shrink-0"
                 />
-                <span className="font-medium truncate">Busca...</span>
+                <span className="font-medium text-xs">Buscar no Synapse...</span>
               </div>
-              <kbd className="font-mono text-[10px] text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded shrink-0">
+              <kbd className="font-mono text-[10px] text-slate-500 dark:text-slate-400 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded shadow-2xs shrink-0">
                 ⌘K
               </kbd>
             </button>
-
-            {/* Central de Notificações Inteligentes */}
-            <NotificationsPopover onNavigate={closeSidebar} />
-
-            <button
-              type="button"
-              onClick={toggleMute}
-              title={isMuted ? "Ativar som" : "Silenciar som"}
-              aria-label={isMuted ? "Ativar som" : "Silenciar som"}
-              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
-                isMuted
-                  ? "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/30"
-                  : "bg-white/5 border-white/10 text-slate-400 hover:text-indigo-300 hover:bg-white/10 hover:border-indigo-500/30"
-              }`}
-            >
-              {isMuted ? (
-                <VolumeX
-                  size={15}
-                  className="transition-transform active:scale-95"
-                />
-              ) : (
-                <Volume2
-                  size={15}
-                  className="transition-transform active:scale-95"
-                />
-              )}
-            </button>
           </div>
 
-          {/* Navegação */}
-          <nav className="space-y-5">
-            {NAV_GROUPS.map((group) => (
-              <div key={group.label} className="space-y-1">
-                <span className="px-2.5 text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500/80">
+          {/* Barra de Ações Rápidas & Utilidades (Notificações, Som & Tema) */}
+          <div className="px-1 flex items-center justify-between gap-1.5 pt-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 pl-1 select-none">
+              Acesso Rápido
+            </span>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Central de Notificações Inteligentes */}
+              <NotificationsPopover onNavigate={closeSidebar} />
+
+              {/* Botão de Som */}
+              <button
+                type="button"
+                onClick={toggleMute}
+                title={isMuted ? "Ativar som" : "Silenciar som"}
+                aria-label={isMuted ? "Ativar som" : "Silenciar som"}
+                className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                  isMuted
+                    ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400 dark:hover:bg-rose-500/20"
+                    : "bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-500 hover:text-indigo-600 dark:bg-white/5 dark:border-white/10 dark:text-slate-400 dark:hover:text-indigo-300 dark:hover:bg-white/10"
+                }`}
+              >
+                {isMuted ? (
+                  <VolumeX
+                    size={15}
+                    className="transition-transform active:scale-95"
+                  />
+                ) : (
+                  <Volume2
+                    size={15}
+                    className="transition-transform active:scale-95"
+                  />
+                )}
+              </button>
+
+              {/* Alternador de Tema (Modo Claro Slate Ice / Modo Escuro) */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                title={isLight ? "Ativar Modo Escuro" : "Ativar Modo Claro (Slate Ice)"}
+                aria-label={isLight ? "Ativar Modo Escuro" : "Ativar Modo Claro"}
+                className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                  isLight
+                    ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100 shadow-2xs"
+                    : "bg-white/5 border-white/10 text-slate-400 hover:text-indigo-300 hover:bg-white/10 hover:border-indigo-500/30"
+                }`}
+              >
+                {isLight ? (
+                  <Sun size={15} className="transition-transform active:scale-95 text-amber-500" />
+                ) : (
+                  <Moon size={15} className="transition-transform active:scale-95" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Conteúdo com Rolagem Fluida: Navegação + Card de Gamificação & Usuário */}
+        <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-h-0 pr-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain">
+          <nav className="space-y-2.5 pb-2">
+            {filteredNavGroups.map((group) => (
+              <div key={group.label} className="space-y-0.5">
+                <span className="px-2.5 text-[11px] font-sans font-bold uppercase tracking-wider text-slate-300 mt-3 mb-1.5 block select-none">
                   {group.label}
                 </span>
 
                 <div className="space-y-0.5">
+                  {/* Card Unificado: Synapse Pro + Cota Diária de IA */}
+                  {(group.label.toLowerCase().includes("conta") ||
+                    group.label.toLowerCase().includes("planos")) && (
+                    <div className="pb-1.5 px-0.5">
+                      <AiQuotaBadge onNavigate={closeSidebar} />
+                    </div>
+                  )}
+
                   {group.items.map((item) => {
                     const Icon = item.icon;
                     const isActive =
@@ -353,7 +538,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         key={item.href}
                         href={getHref(item.href)}
                         onClick={closeSidebar}
-                        className={`relative group flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] font-medium transition-all duration-200 ${
+                        className={`relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-all duration-200 ${
                           isActive
                             ? isSpecial
                               ? "text-amber-200 bg-amber-500/10 font-semibold border border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
@@ -363,7 +548,7 @@ export default function Sidebar({ user }: SidebarProps) {
                       >
                         {isActive && (
                           <div
-                            className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full ${
+                            className={`absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full ${
                               isSpecial
                                 ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
                                 : "bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
@@ -372,7 +557,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         )}
 
                         <Icon
-                          size={16}
+                          size={15}
                           strokeWidth={isActive ? 2 : 1.5}
                           className={`transition-all duration-200 ${
                             isActive
@@ -386,177 +571,219 @@ export default function Sidebar({ user }: SidebarProps) {
                         <span className="tracking-wide">{item.label}</span>
 
                         {"badge" in item && Boolean((item as any).badge) && (
-                          <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-tight">
+                          <span className="ml-auto text-[8.5px] font-bold px-1.5 py-0.2 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-tight">
                             {(item as any).badge}
                           </span>
                         )}
                       </Link>
                     );
                   })}
+
+                  {/* Botão de Dar Feedback integrado na seção Conta */}
+                  {(group.label.toLowerCase().includes("conta") ||
+                    group.label.toLowerCase().includes("planos")) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeSidebar();
+                        setIsFeedbackModalOpen(true);
+                      }}
+                      className="w-full relative group flex items-center justify-between px-2.5 py-1.5 rounded-md text-[12px] font-medium text-slate-400 hover:text-white hover:bg-white/3 transition-all duration-200 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <MessageSquarePlus
+                          size={15}
+                          className="text-amber-400 group-hover:scale-110 transition-transform"
+                        />
+                        <span className="tracking-wide">Dar Feedback</span>
+                      </div>
+                      <span className="text-[8.5px] font-mono font-bold text-amber-300 bg-amber-400/10 px-1.5 py-0.2 rounded-md border border-amber-400/20">
+                        BETA
+                      </span>
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </nav>
-        </div>
 
-        {/* Rodapé de Gamificação, Nível e Prestígio */}
-        <div className="pt-2">
-          <div className="group relative overflow-hidden rounded-2xl bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl transition-all duration-300 hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.2)]">
-            <div className="absolute -top-12 -left-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
-            <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent shadow-[0_0_8px_#818cf8]" />
+          {/* Rodapé: Card de Gamificação & Usuário (com mt-auto para fixar embaixo no desktop e rolar suavemente no mobile) */}
+          <div className="mt-auto pt-3 shrink-0 pb-[max(env(safe-area-inset-bottom),14px)]">
+            <div className={`group relative overflow-hidden rounded-2xl ${
+              isLight
+                ? "bg-white border border-slate-200/90 shadow-xs"
+                : "bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl"
+            } transition-all duration-300 hover:border-indigo-400/40 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-8px_rgba(99,102,241,0.18)]`}>
+              <div className="absolute -top-12 -left-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
+              <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent shadow-[0_0_8px_#818cf8]" />
 
-            <div className="p-3.5 space-y-3 relative z-10">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 size={16} className="animate-spin text-indigo-400" />
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 ${
-                          gamification?.prestigeTier?.badgeColor ||
-                          "bg-indigo-500/10 border-indigo-500/30 text-indigo-300"
-                        }`}
-                      >
-                        <Award
-                          size={16}
-                          strokeWidth={2.2}
-                          className={
-                            gamification?.prestigeTier?.iconColor ||
-                            "text-indigo-400"
-                          }
-                        />
-                      </div>
-                      <div className="flex flex-col justify-center min-w-0 pr-1">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-indigo-300/70 leading-none truncate block">
-                            {gamification?.title || "Sua Patente"}
-                          </span>
-                          {currentPrestige > 0 && (
-                            <span className="text-[7.5px] font-mono font-black px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
-                              P{currentPrestige}
-                            </span>
-                          )}
+              <div className="p-3 space-y-2.5 relative z-10">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 size={16} className="animate-spin text-indigo-400" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Linha Superior: Ícone da Patente + Nível + Ofensiva */}
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div
+                          className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 ${
+                            gamification?.prestigeTier?.badgeColor ||
+                            (isLight
+                              ? "bg-indigo-50 border-indigo-200 text-indigo-600"
+                              : "bg-indigo-500/15 border-indigo-500/30 text-indigo-400")
+                          }`}
+                        >
+                          <Award
+                            size={17}
+                            strokeWidth={2.2}
+                            className={
+                              gamification?.prestigeTier?.iconColor ||
+                              (isLight ? "text-indigo-600" : "text-indigo-400")
+                            }
+                          />
                         </div>
-                        <span className="text-xs font-black text-white tracking-tight leading-none mt-0.5">
-                          Nível {currentLevel}
+                        <div className="flex flex-col justify-center min-w-0 pr-1 flex-1">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"} leading-none truncate block`}>
+                              {gamification?.title || "NEÓFITO DOS ESTUDOS"}
+                            </span>
+                            {currentPrestige > 0 && (
+                              <span className="text-[7.5px] font-mono font-black px-1 py-0.2 rounded bg-cyan-100 text-cyan-800 border border-cyan-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30 shrink-0">
+                                P{currentPrestige}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-sm font-black ${isLight ? "text-slate-900" : "text-white"} tracking-tight leading-none mt-1`}>
+                            Nível {currentLevel}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {canAscendPrestige && (
+                          <button
+                            type="button"
+                            onClick={() => setIsPrestigeModalOpen(true)}
+                            title="Ascender Prestígio!"
+                            className="cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-100 border border-cyan-300 text-cyan-800 dark:bg-cyan-500/20 dark:border-cyan-500/40 dark:text-cyan-300 text-[10px] font-black font-mono animate-bounce"
+                          >
+                            <Crown size={11} />
+                            <span>ASCENDER</span>
+                          </button>
+                        )}
+
+                        {Boolean(streak?.streakFreezes && streak.streakFreezes > 0) && (
+                          <div
+                            className="flex items-center gap-1 px-2 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-700 dark:bg-cyan-500/10 dark:border-cyan-500/30 dark:text-cyan-300 text-[11px] font-bold font-mono shadow-2xs"
+                            title={`${streak?.streakFreezes} Congelamento(s) de Ofensiva ativo(s) — seu streak está protegido contra faltas acidentais!`}
+                          >
+                            <Shield size={11} className="fill-cyan-500/20 text-cyan-600 dark:fill-cyan-400/30 dark:text-cyan-400" />
+                            <span>{streak?.streakFreezes}</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/25 dark:text-rose-400 text-xs font-bold font-mono shadow-2xs">
+                          <Flame
+                            size={13}
+                            className="fill-rose-500 text-rose-500 animate-pulse"
+                          />
+                          <span>{streak?.currentDays || 0}d</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Linha Central: Barra de XP */}
+                    <div className="space-y-1.5 pt-0.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono">
+                        <span className="flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400">
+                          <Zap
+                            size={12}
+                            className="fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400"
+                          />
+                          {gamification?.totalXp || 0}{" "}
+                          <span className="text-slate-500 dark:text-slate-400 font-normal">XP</span>
+                        </span>
+                        <span className="text-slate-500 dark:text-slate-400 font-bold text-[10px]">
+                          {gamification?.progressPercentage ?? 0}%
                         </span>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {canAscendPrestige && (
-                        <button
-                          type="button"
-                          onClick={() => setIsPrestigeModalOpen(true)}
-                          title="Ascender Prestígio!"
-                          className="cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[10px] font-black font-mono animate-bounce"
-                        >
-                          <Crown size={11} />
-                          <span>ASCENDER</span>
-                        </button>
-                      )}
-
-                      {Boolean(streak?.streakFreezes && streak.streakFreezes > 0) && (
+                      <div className={`h-1.5 w-full ${isLight ? "bg-slate-100 border border-slate-200" : "bg-slate-950/90 border border-white/10"} rounded-full p-px shadow-inner overflow-hidden`}>
                         <div
-                          className="flex items-center gap-1 px-2 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                          title={`${streak?.streakFreezes} Congelamento(s) de Ofensiva ativo(s) — seu streak está protegido contra faltas acidentais!`}
+                          className="h-full bg-linear-to-r from-amber-400 via-indigo-500 to-indigo-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(129,140,248,0.8)] relative"
+                          style={{
+                            width: `${Math.max(
+                              gamification?.progressPercentage ?? 0,
+                              4,
+                            )}%`,
+                          }}
                         >
-                          <Shield size={11} className="fill-cyan-400/30 text-cyan-400" />
-                          <span>{streak?.streakFreezes}</span>
+                          <div className="absolute inset-0 bg-white/25 animate-pulse rounded-full" />
                         </div>
-                      )}
-
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold font-mono shadow-[0_0_12px_rgba(244,63,94,0.18)]">
-                        <Flame
-                          size={13}
-                          className="fill-rose-500 text-rose-500 animate-pulse"
-                        />
-                        <span>{streak?.currentDays || 0}d</span>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-1.5 pt-0.5">
-                    <div className="flex items-center justify-between text-[10px] font-mono">
-                      <span className="flex items-center gap-1.5 font-bold text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]">
-                        <Zap
-                          size={11}
-                          className="fill-amber-400 text-amber-400"
-                        />
-                        {gamification?.totalXp || 0}{" "}
-                        <span className="text-slate-500 font-normal">XP</span>
-                      </span>
-                      <span className="text-slate-400 font-bold">
-                        {gamification?.progressPercentage ?? 0}%
-                      </span>
-                    </div>
+                    {/* Linha Divisória */}
+                    <div className={`h-px w-full ${isLight ? "bg-slate-200/80" : "bg-linear-to-r from-transparent via-slate-800 to-transparent"} my-1`} />
 
-                    <div className="h-2 w-full bg-slate-950/90 rounded-full border border-white/10 p-px shadow-inner overflow-hidden">
-                      <div
-                        className="h-full bg-linear-to-r from-amber-400 via-indigo-500 to-indigo-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(129,140,248,0.8)] relative"
-                        style={{
-                          width: `${Math.max(
-                            gamification?.progressPercentage ?? 0,
-                            4,
-                          )}%`,
-                        }}
+                    {/* Linha Inferior: Usuário, Avatar Teal, Plano & Sair */}
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
+                      <Link
+                        href={getHref("/profile")}
+                        onClick={closeSidebar}
+                        className="flex items-center gap-2.5 min-w-0 flex-1 group/user cursor-pointer"
+                        title="Ver seu perfil"
                       >
-                        <div className="absolute inset-0 bg-white/25 animate-pulse rounded-full" />
-                      </div>
+                        {user?.image ? (
+                          <Image
+                            src={user.image}
+                            alt={user.name || "Avatar"}
+                            width={36}
+                            height={36}
+                            className="w-9 h-9 rounded-xl object-cover border border-teal-500/30 dark:border-teal-400/40 shrink-0 shadow-2xs"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-xl bg-teal-500 hover:bg-teal-400 transition-colors flex items-center justify-center text-white text-sm font-black shrink-0 shadow-2xs">
+                            {getInitials(user?.name)}
+                          </div>
+                        )}
+
+                        <div className="truncate min-w-0 flex-1">
+                          <p className={`text-[12px] font-bold ${isLight ? "text-slate-900" : "text-slate-100"} group-hover/user:text-teal-600 dark:group-hover/user:text-teal-300 transition-colors truncate leading-tight`}>
+                            {user?.name || "Johnny Plays"}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md font-mono text-[8.5px] font-extrabold uppercase tracking-wider leading-none ${
+                              userPlan === "PRO MEMBER"
+                                ? "bg-amber-100 border border-amber-300/80 text-amber-800 dark:bg-amber-500/20 dark:border-amber-500/30 dark:text-amber-300"
+                                : "bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/15 dark:border-indigo-500/30 dark:text-indigo-300"
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                userPlan === "PRO MEMBER" ? "bg-amber-500 animate-pulse" : "bg-indigo-500"
+                              }`} />
+                              {userPlan}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          closeSidebar();
+                          setIsLogoutModalOpen(true);
+                        }}
+                        aria-label="Sair da conta"
+                        title="Sair da conta"
+                        className={`w-8 h-8 rounded-xl ${isLight ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200" : "text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 border border-transparent hover:border-rose-500/20"} transition-all shrink-0 cursor-pointer flex items-center justify-center active:scale-95`}
+                      >
+                        <LogOut size={16} />
+                      </button>
                     </div>
-                  </div>
-                </>
-              )}
-
-              <div className="h-px w-full bg-linear-to-r from-transparent via-slate-800 to-transparent my-1" />
-
-              <div className="flex items-center justify-between pt-0.5">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {user?.image ? (
-                    <Image
-                      src={user.image}
-                      alt={user.name || "Avatar"}
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-xl object-cover border border-indigo-400/30 shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.3)]"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-xl bg-indigo-950/90 flex items-center justify-center border border-indigo-400/30 text-indigo-300 text-[10px] font-bold shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.3)]">
-                      {getInitials(user?.name)}
-                    </div>
-                  )}
-
-                  <div className="truncate min-w-0 pr-1">
-                    <p className="text-[11px] font-bold text-slate-100 truncate leading-snug">
-                      {user?.name || "Estudante Synapse"}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="relative flex h-1.5 w-1.5 shrink-0">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-400" />
-                      </span>
-                      <span className="text-[8.5px] font-mono font-bold text-indigo-300 uppercase tracking-wider leading-none">
-                        PRO MEMBER
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    closeSidebar();
-                    setIsLogoutModalOpen(true);
-                  }}
-                  aria-label="Sair"
-                  title="Sair da conta"
-                  className="p-1.5 rounded-lg hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 transition-all shrink-0 cursor-pointer"
-                >
-                  <LogOut size={14} />
-                </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

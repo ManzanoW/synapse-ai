@@ -12,6 +12,8 @@ import {
   ChevronDown,
   ChevronUp,
   Timer,
+  FileSpreadsheet,
+  Zap,
 } from "lucide-react";
 
 interface FloatingTimerProps {
@@ -21,6 +23,9 @@ interface FloatingTimerProps {
   totalQuestions?: number;
   isRunning: boolean;
   onToggleTimer: () => void;
+  totalTimeLimitSeconds?: number;
+  onOpenOpticalSheet?: () => void;
+  onOpenSpeedQuiz?: () => void;
 }
 
 export function FloatingTimer({
@@ -30,6 +35,9 @@ export function FloatingTimer({
   totalQuestions = 0,
   isRunning,
   onToggleTimer,
+  totalTimeLimitSeconds,
+  onOpenOpticalSheet,
+  onOpenSpeedQuiz,
 }: FloatingTimerProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -75,6 +83,12 @@ export function FloatingTimer({
       alert: null,
     };
   }, [currentQuestionSeconds]);
+
+  const isFinal15Minutes = useMemo(() => {
+    if (!totalTimeLimitSeconds) return false;
+    const remaining = totalTimeLimitSeconds - seconds;
+    return remaining <= 900 && remaining > 0;
+  }, [totalTimeLimitSeconds, seconds]);
 
   return (
     <div className="fixed top-5 right-4 sm:right-8 z-50 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -129,6 +143,28 @@ export function FloatingTimer({
 
           {/* Ações de Controle */}
           <div className="flex items-center gap-0.5">
+            {onOpenOpticalSheet && (
+              <button
+                onClick={onOpenOpticalSheet}
+                type="button"
+                className="p-1 hover:bg-white/10 rounded-md text-slate-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                title="Abrir Folha Óptica de Respostas (Cartão-Resposta)"
+              >
+                <FileSpreadsheet size={13} />
+              </button>
+            )}
+
+            {onOpenSpeedQuiz && (
+              <button
+                onClick={onOpenSpeedQuiz}
+                type="button"
+                className="p-1 hover:bg-amber-500/20 rounded-md text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+                title="Desafio Relâmpago 45s (Speed Quiz)"
+              >
+                <Zap size={13} className="fill-amber-400" />
+              </button>
+            )}
+
             <button
               onClick={onToggleTimer}
               type="button"
@@ -148,6 +184,18 @@ export function FloatingTimer({
             </button>
           </div>
         </div>
+
+        {/* Banner de Aviso dos 15 Minutos Finais */}
+        {isFinal15Minutes && (
+          <div
+            onClick={onOpenOpticalSheet}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[11px] font-bold shadow-lg shadow-amber-950/40 cursor-pointer animate-pulse hover:bg-amber-500/25 transition-all"
+            title="Clique para abrir a Folha Óptica"
+          >
+            <AlertTriangle size={13} className="text-amber-400 shrink-0" />
+            <span>Faltam menos de 15 min! Preencha a Folha Óptica</span>
+          </div>
+        )}
 
         {/* Painel Expansível de Pacing Real-Time */}
         {isVisible && isExpanded && (

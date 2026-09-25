@@ -5,8 +5,6 @@ import {
   useEffect,
   useCallback,
   useRef,
-  useOptimistic,
-  useTransition,
   useMemo,
 } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from "framer-motion";
@@ -26,6 +24,8 @@ import {
   TouchpadIcon,
   HelpCircle,
   Lightbulb,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -42,6 +42,12 @@ import {
   isLeechCard,
 } from "@/lib/spaced-repetition";
 import { generateFlashcardMnemonicAction } from "@/actions/flashcard-actions";
+import {
+  useOfflineSync,
+  enqueueOfflineReview,
+  cacheOfflineDeck,
+  getCachedOfflineDeck,
+} from "@/lib/offline-sync";
 
 interface Flashcard {
   id: string;
@@ -68,24 +74,34 @@ interface StudyFlashcardProps {
   userId?: string;
 }
 
-interface OptimisticState {
-  index: number;
-  acertos: number;
-  erros: number;
-}
-
 export default function StudyFlashcard({
-  cards,
+  cards: initialCards,
   deckTitle,
+  deckId,
   userId,
 }: StudyFlashcardProps) {
+  const [cards, setCards] = useState<Flashcard[]>(initialCards || []);
   const [index, setIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-  const [selectedGrade, setSelectedGrade] = useState<ReviewGrade | null>(null);
   const [showEbbinghausCurve, setShowEbbinghausCurve] = useState(false);
   const isDraggingRef = useRef(false);
   const cardStartTimeRef = useRef(0);
+
+  const { isOnline, pendingCount, isSyncing, triggerSync } = useOfflineSync();
+
+  useEffect(() => {
+    const currentDeckId = deckId || initialCards?.[0]?.deckId || "all";
+    if (initialCards && initialCards.length > 0) {
+      setCards(initialCards);
+      cacheOfflineDeck(currentDeckId, initialCards);
+    } else {
+      const cached = getCachedOfflineDeck<Flashcard[]>(currentDeckId);
+      if (cached?.cards && cached.cards.length > 0) {
+        setCards(cached.cards);
+      }
+    }
+  }, [initialCards, deckId]);
 
   useEffect(() => {
     cardStartTimeRef.current = Date.now();
@@ -111,28 +127,12 @@ export default function StudyFlashcard({
   const facilOpacity = useTransform(x, [75, 90, 140], [0, 0.6, 1]);
   const facilScale = useTransform(x, [75, 90, 140], [0.8, 1, 1.1]);
 
-  const [, startTransition] = useTransition();
   const { playCorrect, playError, playFlip } = useSound();
 
   const [performanceStats, setPerformanceStats] = useState({
     erros: 0,
     acertos: 0,
   });
-
-  const [optimisticState, setOptimisticState] = useOptimistic<
-    OptimisticState,
-    { grade: ReviewGrade }
-  >(
-    { index, acertos: performanceStats.acertos, erros: performanceStats.erros },
-    (currentState, action) => {
-      const isSuccess = action.grade >= 3;
-      return {
-        index: Math.min(currentState.index + 1, cards.length),
-        acertos: isSuccess ? currentState.acertos + 1 : currentState.acertos,
-        erros: !isSuccess ? currentState.erros + 1 : currentState.erros,
-      };
-    },
-  );
 
   const { stats: gamificationStats, refreshStats } = useGamification();
   const { notifyAchievement } = useAchievement();
@@ -143,7 +143,7 @@ export default function StudyFlashcard({
     title?: string;
   } | null>(null);
 
-  const currentIndex = optimisticState.index;
+  const currentIndex = index;
   const currentCard = cards[currentIndex];
   const progress =
     cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
@@ -237,10 +237,10 @@ export default function StudyFlashcard({
   }, [playFlip]);
 
   const handleAnswer = useCallback(
-    async (grade: ReviewGrade) => {
+    (grade: ReviewGrade) => {
       if (!currentCard) return;
 
-      // Efeito sonoro imediato
+      // 1. Efeito sonoro imediato
       if (grade >= 3) {
         playCorrect();
       } else if (grade === 1) {
@@ -249,73 +249,21 @@ export default function StudyFlashcard({
         playFlip();
       }
 
-      setSelectedGrade(grade);
-      setIsFlipped(false);
-
+      const targetCard = currentCard;
       const isLastCard = index >= cards.length - 1;
-
-      startTransition(() => {
-        setOptimisticState({ grade });
-      });
-
       const responseTimeMs = Math.max(0, Date.now() - cardStartTimeRef.current);
 
-      try {
-        const previousLevel = gamificationStats?.gamification?.level ?? 1;
+      // 2. Transição instantânea (0ms) para o próximo card
+      setIsFlipped(false);
+      setIndex((prev) => prev + 1);
 
-        const resReview = await fetch("/api/flashcards/review", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cardId: currentCard.id,
-            grade,
-            rating: grade,
-            responseTimeMs,
-          }),
-        });
-
-        if (resReview.ok) {
-          const data = await resReview.json();
-
-          window.dispatchEvent(
-            new CustomEvent("xp-updated", {
-              detail: {
-                totalXp: data.totalXp,
-                earnedXp: data.earnedXp,
-                levelInfo: data.levelInfo,
-              },
-            }),
-          );
-
-          if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
-            const newLevel = data.levelInfo.level;
-            const newTitle = data.levelInfo.title || "Mestre da Retenção";
-
-            setLevelUpData({
-              leveledUp: true,
-              newLevel,
-              title: newTitle,
-            });
-          }
-        }
-
-        if (userId) {
-          await invalidateUserCacheAction(userId);
-        }
-        await refreshStats();
-      } catch (error) {
-        console.error("Erro ao sincronizar revisão do flashcard:", error);
-      } finally {
-        setIndex((prev) => prev + 1);
-        if (grade < 3) {
-          setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
-        } else {
-          setPerformanceStats((prev) => ({
-            ...prev,
-            acertos: prev.acertos + 1,
-          }));
-        }
-        setSelectedGrade(null);
+      if (grade < 3) {
+        setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
+      } else {
+        setPerformanceStats((prev) => ({
+          ...prev,
+          acertos: prev.acertos + 1,
+        }));
       }
 
       if (isLastCard) {
@@ -329,19 +277,78 @@ export default function StudyFlashcard({
 
         checkNewAchievements(notifyAchievement);
       }
+
+      // 3. Sincronização em background com a API / banco sem travar a navegação
+      const reviewPayload = {
+        cardId: targetCard.id,
+        grade,
+        rating: grade,
+        responseTimeMs,
+      };
+
+      (async () => {
+        try {
+          if (typeof navigator !== "undefined" && !navigator.onLine) {
+            enqueueOfflineReview(reviewPayload);
+            return;
+          }
+
+          const previousLevel = gamificationStats?.gamification?.level ?? 1;
+
+          const resReview = await fetch("/api/flashcards/review", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reviewPayload),
+          });
+
+          if (resReview.ok) {
+            const data = await resReview.json();
+
+            window.dispatchEvent(
+              new CustomEvent("xp-updated", {
+                detail: {
+                  totalXp: data.totalXp,
+                  earnedXp: data.earnedXp,
+                  levelInfo: data.levelInfo,
+                },
+              }),
+            );
+
+            if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
+              const newLevel = data.levelInfo.level;
+              const newTitle = data.levelInfo.title || "Mestre da Retenção";
+
+              setLevelUpData({
+                leveledUp: true,
+                newLevel,
+                title: newTitle,
+              });
+            }
+
+            if (userId) {
+              invalidateUserCacheAction(userId).catch(() => {});
+            }
+            refreshStats().catch(() => {});
+          } else {
+            enqueueOfflineReview(reviewPayload);
+          }
+        } catch (error) {
+          console.warn("Sem conexão estável. Revisão enfileirada offline:", error);
+          enqueueOfflineReview(reviewPayload);
+        }
+      })();
     },
     [
-      index,
-      cards,
+      cards.length,
       currentCard,
-      gamificationStats,
-      refreshStats,
+      gamificationStats?.gamification?.level,
+      index,
       notifyAchievement,
-      setOptimisticState,
-      userId,
       playCorrect,
       playError,
       playFlip,
+      refreshStats,
+      userId,
     ],
   );
 
@@ -511,7 +518,7 @@ export default function StudyFlashcard({
                   Dominados
                 </span>
                 <span className="text-lg sm:text-xl font-black text-emerald-400 font-mono tracking-tight">
-                  {optimisticState.acertos}
+                  {performanceStats.acertos}
                 </span>
               </div>
               <div className="pl-2">
@@ -519,7 +526,7 @@ export default function StudyFlashcard({
                   Revisar
                 </span>
                 <span className="text-lg sm:text-xl font-black text-rose-400 font-mono tracking-tight">
-                  {optimisticState.erros}
+                  {performanceStats.erros}
                 </span>
               </div>
             </div>
@@ -573,13 +580,35 @@ export default function StudyFlashcard({
                 </span>
               </Link>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[10px] sm:text-[11px] font-mono shadow-inner shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                <span className="font-bold text-indigo-400">
-                  {currentIndex + 1}
-                </span>
-                <span className="text-slate-600">/</span>
-                <span className="text-slate-400">{cards.length}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                {(!isOnline || pendingCount > 0) && (
+                  <button
+                    type="button"
+                    onClick={triggerSync}
+                    disabled={isSyncing || !isOnline}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono text-amber-300 transition-colors disabled:opacity-50 cursor-pointer"
+                    title={
+                      !isOnline
+                        ? "Sem conexão: revisões salvas localmente no dispositivo"
+                        : "Clique para sincronizar com o servidor"
+                    }
+                  >
+                    <WifiOff size={11} className="text-amber-400" />
+                    <span>{!isOnline ? "Offline" : `${pendingCount} na fila`}</span>
+                    {isSyncing && (
+                      <RefreshCw size={10} className="animate-spin text-amber-300" />
+                    )}
+                  </button>
+                )}
+
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[10px] sm:text-[11px] font-mono shadow-inner">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="font-bold text-indigo-400">
+                    {currentIndex + 1}
+                  </span>
+                  <span className="text-slate-600">/</span>
+                  <span className="text-slate-400">{cards.length}</span>
+                </div>
               </div>
             </div>
 
@@ -602,7 +631,7 @@ export default function StudyFlashcard({
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onClick={handleCardClick}
-              className="relative w-full min-h-[420px] sm:min-h-[480px] md:min-h-[520px] mb-5 cursor-grab active:cursor-grabbing group flex flex-col select-none touch-none"
+              className="relative w-full min-h-[350px] sm:min-h-[440px] md:min-h-[500px] mb-4 sm:mb-5 cursor-grab active:cursor-grabbing group flex flex-col select-none touch-none"
             >
               {/* BADGE ERREI: Arrasto para a esquerda (< 0px) -> Grade 1 */}
               <motion.div
@@ -641,7 +670,7 @@ export default function StudyFlashcard({
               >
                 {/* FRENTE DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors duration-300 border-t-indigo-400/40"
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors duration-300 border-t-indigo-400/40"
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",
@@ -757,7 +786,7 @@ export default function StudyFlashcard({
                     <div className="relative z-10 my-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-center justify-between gap-2 max-w-lg mx-auto">
                       <div className="flex items-center gap-2 text-left">
                         <AlertCircle size={14} className="shrink-0 text-amber-400" />
-                        <span className="text-[11px] leading-tight">Card com falhas repetidas. Fixe com gatilho mnemônico!</span>
+                        <span className="text-[11px] leading-tight">Card com falhas repetidas. Fixe com um macete prático!</span>
                       </div>
                       <button
                         onClick={handleGenerateMnemonic}
@@ -769,7 +798,7 @@ export default function StudyFlashcard({
                         ) : (
                           <Sparkles size={11} className="text-amber-400" />
                         )}
-                        <span>Mnemônico IA</span>
+                        <span>Macete IA</span>
                       </button>
                     </div>
                   )}
@@ -807,7 +836,7 @@ export default function StudyFlashcard({
 
                 {/* VERSO DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",
@@ -833,11 +862,11 @@ export default function StudyFlashcard({
                     {/* Mnemônico / Detalhes de Aprendizagem */}
                     {currentDetails ? (
                       <div className="text-[11px] sm:text-xs text-slate-200 bg-slate-900/90 border border-indigo-500/30 p-3.5 rounded-xl leading-relaxed text-left shadow-inner space-y-2">
-                        {currentDetails.includes("💡 Mnemônico IA:") ? (
+                        {currentDetails.includes("💡 Mnemônico IA:") || currentDetails.includes("💡 Macete IA:") ? (
                           <>
                             <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs border-b border-white/10 pb-1.5">
                               <Lightbulb size={14} className="text-amber-400" />
-                              <span>Regra Mnemônica Inteligente</span>
+                              <span>Macete de Memorização</span>
                             </div>
                             <div className="whitespace-pre-line text-indigo-100 font-medium">
                               {currentDetails}
@@ -861,7 +890,7 @@ export default function StudyFlashcard({
                           ) : (
                             <Sparkles size={12} className="text-indigo-400" />
                           )}
-                          <span>Criar Mnemônico com IA</span>
+                          <span>Criar Macete com IA</span>
                         </button>
                       </div>
                     )}
@@ -947,14 +976,10 @@ export default function StudyFlashcard({
                     {btn.key}
                   </span>
 
-                  {selectedGrade === btn.grade ? (
-                    <Loader2 size={18} className="animate-spin my-1" />
-                  ) : (
-                    <btn.icon
-                      size={18}
-                      className="group-hover:scale-110 transition-transform my-0.5"
-                    />
-                  )}
+                  <btn.icon
+                    size={18}
+                    className="group-hover:scale-110 transition-transform my-0.5"
+                  />
 
                   <span className="font-black text-[11px] sm:text-xs tracking-wider">
                     {btn.label}

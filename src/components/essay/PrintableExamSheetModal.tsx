@@ -312,27 +312,27 @@ export function PrintableExamSheetModal({
         )}
 
       {/* MODAL WEB DE VISUALIZAÇÃO E CONFIGURAÇÃO NA TELA */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans">
-        <div className="relative w-full max-w-4xl flex flex-col bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh]">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans">
+        <div className="relative w-full max-w-4xl flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh]">
           {/* CABEÇALHO DO MODAL */}
-          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 bg-slate-950/60 shrink-0">
+          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-slate-950/60 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-300">
+              <div className="p-2.5 rounded-xl bg-violet-500/10 dark:bg-violet-500/20 border border-violet-500/20 dark:border-violet-500/30 text-violet-600 dark:text-violet-300">
                 <Printer size={20} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                     Imprimir Folha de Redação Oficial
                   </h3>
-                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 dark:border-emerald-500/30">
                     A4 Concurso
                   </span>
-                  <span className="hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                  <span className="hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/20 dark:border-violet-500/30">
                     1 Página Exata
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Simule a prova real: imprima a folha pautada padrão Cebraspe/FGV/FCC, redija à caneta e envie a foto para correção.
                 </p>
               </div>
@@ -341,23 +341,23 @@ export function PrintableExamSheetModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
           </div>
 
           {/* BARRA DE OPÇÕES RÁPIDAS */}
-          <div className="bg-slate-950/40 border-b border-white/5 p-3 sm:px-6 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="bg-slate-100/70 dark:bg-slate-950/40 border-b border-slate-200 dark:border-white/5 p-3 sm:px-6 flex flex-wrap items-center justify-between gap-3 shrink-0">
             {/* Toggle Tipo de Folha */}
-            <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-white/10 text-xs">
+            <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-900 p-1 rounded-xl border border-slate-300 dark:border-white/10 text-xs">
               <button
                 type="button"
                 onClick={() => setSheetMode("with-theme")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                   sheetMode === "with-theme"
                     ? "bg-violet-600 text-white shadow"
-                    : "text-slate-400 hover:text-white"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 Com Proposta e Tópicos ({theme.banca || "CEBRASPE"})
@@ -367,8 +367,8 @@ export function PrintableExamSheetModal({
                 onClick={() => setSheetMode("blank")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                   sheetMode === "blank"
-                    ? "bg-slate-800 text-white shadow"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 Folha Universal Pautada (Em Branco)
@@ -387,7 +387,7 @@ export function PrintableExamSheetModal({
           </div>
 
           {/* PRÉVIA VISUAL DA FOLHA DE REDAÇÃO A4 */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-950 flex flex-col items-center">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-200/80 dark:bg-slate-950 flex flex-col items-center">
             <ExamSheetPaper
               theme={theme}
               sheetMode={sheetMode}

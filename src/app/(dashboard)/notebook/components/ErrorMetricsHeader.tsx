@@ -78,7 +78,7 @@ export function ErrorMetricsHeader({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full sm:w-auto shrink-0">
           {onToggleSpotlight && (
             <SpotlightTriggerButton
               accentColor="emerald"
@@ -91,7 +91,7 @@ export function ErrorMetricsHeader({
             <button
               type="button"
               onClick={onOpenRemediationModal}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-violet-600 to-rose-600 hover:from-amber-400 hover:via-violet-500 hover:to-rose-500 text-white text-xs md:text-sm font-extrabold shadow-lg shadow-violet-600/30 border border-amber-400/40 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer group"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-violet-600 to-rose-600 hover:from-amber-400 hover:via-violet-500 hover:to-rose-500 text-white text-xs md:text-sm font-extrabold shadow-lg shadow-violet-600/30 border border-amber-400/40 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer group min-h-[44px]"
             >
               <Zap size={16} className="text-amber-300 fill-amber-300 animate-pulse group-hover:scale-110 transition-transform" />
               <span>Treinar Questões que Errei</span>
@@ -103,7 +103,7 @@ export function ErrorMetricsHeader({
 
           <Link
             href="/questions"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-white text-xs md:text-sm font-semibold shadow-md border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-white text-xs md:text-sm font-semibold shadow-md border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] min-h-[44px]"
           >
             <FileStack size={16} />
             <span>Treinar em Simulado</span>

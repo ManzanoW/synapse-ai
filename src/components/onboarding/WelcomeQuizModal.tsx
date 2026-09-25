@@ -25,8 +25,13 @@ import {
   FileText,
   Check,
   Loader2,
+  Wand2,
 } from "lucide-react";
-import { importStarterEditalAction } from "@/actions/edital-templates-actions";
+import {
+  importStarterEditalAction,
+  generateCustomEditalAction,
+  saveOnboardingPreferencesAction,
+} from "@/actions/edital-templates-actions";
 import { STARTER_EDITAL_TEMPLATES } from "@/lib/edital-templates";
 
 export type OnboardingProfileMode = "minimal" | "practice" | "full";
@@ -36,6 +41,7 @@ export interface OnboardingQuizResult {
   dailyHours: number;
   startAction: "dashboard" | "flashcards" | "questions" | "redacao" | "edital";
   careerTemplate?: string | null;
+  customRole?: string | null;
 }
 
 interface WelcomeQuizModalProps {
@@ -63,8 +69,11 @@ export function WelcomeQuizModal({
   const [selectedAction, setSelectedAction] = useState<
     "dashboard" | "flashcards" | "questions" | "redacao" | "edital"
   >("edital");
-  const [selectedCareerTemplate, setSelectedCareerTemplate] = useState<string>("comum");
+  const [selectedCareerTemplate, setSelectedCareerTemplate] = useState<string>("ti");
+  const [customRoleInput, setCustomRoleInput] = useState<string>("");
+  const [careerCategoryFilter, setCareerCategoryFilter] = useState<string>("all");
   const [isActivatingEdital, setIsActivatingEdital] = useState(false);
+  const [activationError, setActivationError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -74,7 +83,6 @@ export function WelcomeQuizModal({
     if (step < 3) {
       setStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
     } else if (step === 3) {
-      // Vai para a tela de confirmação e resumo
       setStep(4);
     }
   };
@@ -87,10 +95,26 @@ export function WelcomeQuizModal({
 
   const handleFinish = async () => {
     setIsActivatingEdital(true);
+    setActivationError(null);
 
     try {
-      if (selectedAction === "edital" && selectedCareerTemplate && selectedCareerTemplate !== "custom") {
-        await importStarterEditalAction(selectedCareerTemplate);
+      // 1. Salva preferências e meta de horas diretamente no banco de dados do usuário (PostgreSQL)
+      await saveOnboardingPreferencesAction({
+        dailyHours: selectedHours,
+        profileMode: selectedMode,
+      });
+
+      // 2. Se escolheu cadastrar edital / carreira
+      if (selectedAction === "edital") {
+        if (selectedCareerTemplate === "ai-custom" && customRoleInput.trim()) {
+          const res = await generateCustomEditalAction(customRoleInput.trim());
+          if (!res.success) {
+            console.warn("Erro ao gerar edital com IA, prosseguindo:", res.error);
+          }
+        } else if (selectedCareerTemplate && selectedCareerTemplate !== "custom" && selectedCareerTemplate !== "ai-custom") {
+          await importStarterEditalAction(selectedCareerTemplate);
+        }
+
         confetti({
           particleCount: 80,
           spread: 70,
@@ -98,7 +122,7 @@ export function WelcomeQuizModal({
         });
       }
     } catch (err) {
-      console.error("Erro ao ativar modelo de edital no onboarding:", err);
+      console.error("Erro ao ativar preferências e edital no onboarding:", err);
     } finally {
       setIsActivatingEdital(false);
     }
@@ -108,6 +132,7 @@ export function WelcomeQuizModal({
       dailyHours: selectedHours,
       startAction: selectedAction,
       careerTemplate: selectedCareerTemplate,
+      customRole: customRoleInput.trim() || null,
     };
 
     onComplete(result);
@@ -125,8 +150,23 @@ export function WelcomeQuizModal({
       router.push("/questions");
     } else if (selectedAction === "redacao") {
       router.push("/redacao");
+    } else {
+      router.push("/dashboard");
     }
   };
+
+  // Filtragem de templates de carreiras
+  const allTemplates = Object.values(STARTER_EDITAL_TEMPLATES);
+  const filteredTemplates = allTemplates.filter((t) => {
+    if (careerCategoryFilter === "all") return true;
+    if (careerCategoryFilter === "ti") return t.category === "ti";
+    if (careerCategoryFilter === "policial") return t.category === "policial";
+    if (careerCategoryFilter === "fiscal_controle") return t.category === "fiscal_controle";
+    if (careerCategoryFilter === "administrativo") return t.category === "administrativo";
+    if (careerCategoryFilter === "juridica") return t.category === "juridica";
+    if (careerCategoryFilter === "saude_educacao") return t.category === "saude_educacao";
+    return true;
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
@@ -352,7 +392,7 @@ export function WelcomeQuizModal({
                         1 a 2 horas
                       </span>
                       <span className="text-[11px] text-slate-400 mt-0.5 block">
-                        Conciliando com trabalho ou faculdade. Sessões curtas de 30-45 min.
+                        Conciliando com trabalho ou faculdade. Sessões de 30-45 min.
                       </span>
                     </div>
                   </button>
@@ -416,7 +456,7 @@ export function WelcomeQuizModal({
               </motion.div>
             )}
 
-            {/* ETAPA 3: PONTO DE PARTIDA */}
+            {/* ETAPA 3: PONTO DE PARTIDA & SELEÇÃO DE CARREIRA */}
             {step === 3 && (
               <motion.div
                 key="step3"
@@ -431,7 +471,7 @@ export function WelcomeQuizModal({
                     Por onde você gostaria de começar hoje?
                   </h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    Definir sua área de estudo é o passo mais importante para liberar simulados, flashcards e seu cronograma adaptativo.
+                    Definir seu foco carrega disciplinas, simulados, flashcards e seu cronograma adaptativo.
                   </p>
                 </div>
 
@@ -462,19 +502,75 @@ export function WelcomeQuizModal({
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                          Escolha sua carreira para carregar as matérias essenciais em 1 clique e liberar todos os simulados e flashcards sem travas.
+                          Escolha sua carreira pronta ou personalize com IA para carregar as matérias essenciais em 1 clique.
                         </p>
                       </div>
                     </button>
 
                     {/* Sub-seletor de carreiras quando Edital está selecionado */}
                     {selectedAction === "edital" && (
-                      <div className="mt-4 pt-3 border-t border-white/10 space-y-2.5">
-                        <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
-                          Selecione sua carreira para carregar as disciplinas:
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {Object.values(STARTER_EDITAL_TEMPLATES).map((tpl) => (
+                      <div className="mt-4 pt-3 border-t border-white/10 space-y-3">
+                        {/* Filtro de Categorias de Carreira */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                          {[
+                            { id: "all", label: `🔥 Todas (${allTemplates.length})` },
+                            { id: "ti", label: `💻 TI & Dados (${allTemplates.filter((t) => t.category === "ti").length})` },
+                            { id: "policial", label: `👮 Policial (${allTemplates.filter((t) => t.category === "policial").length})` },
+                            { id: "fiscal_controle", label: `💰 Fiscal & Controle (${allTemplates.filter((t) => t.category === "fiscal_controle").length})` },
+                            { id: "administrativo", label: `🏛️ Tribunais & Adm (${allTemplates.filter((t) => t.category === "administrativo").length})` },
+                            { id: "juridica", label: `⚖️ Jurídica (${allTemplates.filter((t) => t.category === "juridica").length})` },
+                            { id: "saude_educacao", label: `🩺 Saúde & Educação (${allTemplates.filter((t) => t.category === "saude_educacao").length})` },
+                          ].map((cat) => (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => setCareerCategoryFilter(cat.id)}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                                careerCategoryFilter === cat.id
+                                  ? "bg-amber-500 text-slate-950 shadow-sm"
+                                  : "bg-white/5 text-slate-400 hover:text-white"
+                              }`}
+                            >
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Grid de Carreiras */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+                          {/* Opção 1: Personalizar com IA */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCareerTemplate("ai-custom")}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 sm:col-span-2 ${
+                              selectedCareerTemplate === "ai-custom"
+                                ? "border-indigo-400/80 bg-indigo-500/20 text-white ring-1 ring-indigo-400/60 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                                : "border-indigo-500/30 bg-indigo-950/30 text-slate-200 hover:border-indigo-400/50"
+                            }`}
+                          >
+                            <span className="p-1.5 rounded-lg bg-indigo-500/30 text-indigo-300 shrink-0">
+                              <Wand2 size={16} />
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-black block text-indigo-200">
+                                  Personalizar com IA (Meu Cargo/Foco)
+                                </span>
+                                <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.2 rounded-md bg-indigo-400/20 text-indigo-300 border border-indigo-400/30">
+                                  Novo ✨
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-slate-400 block truncate">
+                                Digite o cargo/concurso desejado e a IA cria sua grade na hora
+                              </span>
+                            </div>
+                            {selectedCareerTemplate === "ai-custom" && (
+                              <Check size={14} className="text-indigo-400 shrink-0" />
+                            )}
+                          </button>
+
+                          {/* Templates oficiais */}
+                          {filteredTemplates.map((tpl) => (
                             <button
                               key={tpl.id}
                               type="button"
@@ -487,9 +583,16 @@ export function WelcomeQuizModal({
                             >
                               <span className="text-lg">{tpl.icon}</span>
                               <div className="flex-1 min-w-0">
-                                <span className="text-xs font-bold block truncate">
-                                  {tpl.title.split("(")[0].trim()}
-                                </span>
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-xs font-bold block truncate">
+                                    {tpl.title.split("(")[0].trim()}
+                                  </span>
+                                  {tpl.badge && (
+                                    <span className="text-[8.5px] px-1 py-0.2 rounded bg-white/5 text-amber-300 shrink-0 font-medium">
+                                      {tpl.badge}
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-[10px] text-slate-400 block truncate">
                                   {tpl.materias.length} matérias base
                                 </span>
@@ -500,6 +603,7 @@ export function WelcomeQuizModal({
                             </button>
                           ))}
 
+                          {/* Opção Edital Próprio */}
                           <button
                             type="button"
                             onClick={() => setSelectedCareerTemplate("custom")}
@@ -523,13 +627,36 @@ export function WelcomeQuizModal({
                             )}
                           </button>
                         </div>
+
+                        {/* Input quando a opção "Personalizar com IA" está ativa */}
+                        {selectedCareerTemplate === "ai-custom" && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-3 rounded-xl border border-indigo-500/30 bg-indigo-950/40 space-y-1.5"
+                          >
+                            <label className="text-[11px] font-bold text-indigo-300 block">
+                              Qual é o concurso e/ou cargo desejado?
+                            </label>
+                            <input
+                              type="text"
+                              value={customRoleInput}
+                              onChange={(e) => setCustomRoleInput(e.target.value)}
+                              placeholder="Ex: Analista de TI - Banco Central, Perito Criminal Forense, Auditor Fiscal..."
+                              className="w-full bg-slate-900 border border-indigo-500/30 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-colors"
+                            />
+                            <p className="text-[10px] text-slate-400 leading-tight">
+                              💡 A IA do Synapse vai pesquisar as matérias oficiais e tópicos mais cobrados para este cargo e cadastrar tudo no seu plano.
+                            </p>
+                          </motion.div>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* 4 Outras Ferramentas */}
+                  {/* 4 Outras Opções Rápidas */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {/* Ponto: Simulados */}
+                    {/* Simulados */}
                     <button
                       type="button"
                       onClick={() => setSelectedAction("questions")}
@@ -552,53 +679,53 @@ export function WelcomeQuizModal({
                       </div>
                     </button>
 
-                    {/* Ponto: Flashcards */}
+                    {/* Flashcards */}
                     <button
                       type="button"
                       onClick={() => setSelectedAction("flashcards")}
                       className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                         selectedAction === "flashcards"
-                          ? "border-indigo-500/60 bg-indigo-950/25 ring-1 ring-indigo-500/30"
-                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
-                      }`}
-                    >
-                      <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
-                        <Layers size={16} />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-white block">
-                          Praticar Flashcards
-                        </span>
-                        <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                          Revise com repetição espaçada e áudio neural.
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* Ponto: Redação */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAction("redacao")}
-                      className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                        selectedAction === "redacao"
                           ? "border-cyan-500/60 bg-cyan-950/25 ring-1 ring-cyan-500/30"
                           : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
                       }`}
                     >
                       <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0">
-                        <PenTool size={16} />
+                        <Layers size={16} />
                       </div>
                       <div>
                         <span className="text-xs font-bold text-white block">
-                          Corretor de Redação
+                          Praticar com Flashcards
                         </span>
                         <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                          Envie foto manuscrita ou texto e receba parecer.
+                          Repetição espaçada com algoritmo neural ativo.
                         </span>
                       </div>
                     </button>
 
-                    {/* Ponto: Dashboard Direto */}
+                    {/* Redação */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction("redacao")}
+                      className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        selectedAction === "redacao"
+                          ? "border-pink-500/60 bg-pink-950/25 ring-1 ring-pink-500/30"
+                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
+                      }`}
+                    >
+                      <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/30 shrink-0">
+                        <PenTool size={16} />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">
+                          Redação & Discursivas
+                        </span>
+                        <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
+                          Correção estilo Cebraspe com IA e Padrão Ouro.
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Dashboard */}
                     <button
                       type="button"
                       onClick={() => setSelectedAction("dashboard")}
@@ -643,7 +770,7 @@ export function WelcomeQuizModal({
                     Tudo pronto para sua aprovação!
                   </h2>
                   <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                    Seu ambiente foi configurado com sucesso e está calibrado para o seu ritmo.
+                    Seu ambiente foi configurado com sucesso e sua meta diária foi salva no seu perfil.
                   </p>
                 </div>
 
@@ -664,28 +791,29 @@ export function WelcomeQuizModal({
 
                   <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02]">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">
-                      Meta Diária
+                      Meta Semanal
                     </span>
                     <span className="text-xs font-black text-white mt-0.5 block">
-                      {selectedHours === 2
-                        ? "1 a 2 horas/dia"
-                        : selectedHours === 3
-                          ? "2 a 4 horas/dia"
-                          : "4h+ intensivo"}
+                      {selectedHours * 5}h semanais
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      ({selectedHours}h/dia em 5 dias)
                     </span>
                   </div>
 
                   <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02]">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">
-                      Primeiro Passo
+                      Foco Inicial
                     </span>
                     <span className="text-xs font-black text-white mt-0.5 block truncate">
                       {selectedAction === "edital"
-                        ? selectedCareerTemplate === "custom"
-                          ? "Importar Edital"
-                          : `${STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.icon || "📚"} ${
-                              STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.title.split("(")[0].trim() || "Edital"
-                            }`
+                        ? selectedCareerTemplate === "ai-custom"
+                          ? `🤖 ${customRoleInput.trim() || "Foco com IA"}`
+                          : selectedCareerTemplate === "custom"
+                            ? "Importar Edital"
+                            : `${STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.icon || "📚"} ${
+                                STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.title.split("(")[0].trim() || "Edital"
+                              }`
                         : selectedAction === "flashcards"
                           ? "Flashcards"
                           : selectedAction === "questions"
@@ -706,7 +834,7 @@ export function WelcomeQuizModal({
                     {isActivatingEdital ? (
                       <>
                         <Loader2 size={15} className="animate-spin" />
-                        <span>Carregando seu Edital...</span>
+                        <span>Configurando seu plano...</span>
                       </>
                     ) : (
                       <>

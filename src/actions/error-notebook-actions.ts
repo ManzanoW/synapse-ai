@@ -18,6 +18,7 @@ import {
   Question,
 } from "@/types/quiz";
 import { TAXONOMY_METADATA, normalizeTaxonomy } from "@/lib/error-taxonomy";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 /**
  * Normaliza o texto de uma questão para comparação e deduplicação
@@ -778,7 +779,13 @@ export async function deleteErrorNotebookItemAction(errorId: string) {
  */
 export async function generateErrorRemediationAction(
   input: GenerateRemediationInput,
-): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
+): Promise<{
+  success: boolean;
+  data?: ErrorRemediationData;
+  error?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
+}> {
   try {
     const session = await auth();
     const userId = session?.user?.id;
@@ -817,6 +824,17 @@ export async function generateErrorRemediationAction(
     const normalizedReason = normalizeTaxonomy(input.errorReason);
     const reasonMeta =
       TAXONOMY_METADATA[normalizedReason] || TAXONOMY_METADATA.UNCLASSIFIED;
+
+    // 🛡️ Proteção de Cota Diária de IA para Remediação
+    const quota = await checkAiQuota(userId, "REMEDIATION");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Limite diário de remediações e mnemônicos com IA atingido.",
+        isQuotaExceeded: true,
+        canWatchRewardedAd: quota.canWatchRewardedAd,
+      };
+    }
 
     // 2. Monta o prompt especializado de tutoria ativa para concursos
     const prompt = `
@@ -914,6 +932,9 @@ Responda ESTRITAMENTE no formato JSON com os campos solicitados.
       });
     }
 
+    // Consome cota diária de Remediação com IA
+    await consumeAiQuota(userId, "REMEDIATION");
+
     return { success: true, data: parsed };
   } catch (err) {
     console.error("[generateErrorRemediationAction] Erro:", err);
@@ -965,7 +986,13 @@ Responda ESTRITAMENTE no formato JSON com os campos solicitados.
  */
 export async function analyzeSingleErrorAction(
   inputOrErrorId: GenerateRemediationInput | string,
-): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
+): Promise<{
+  success: boolean;
+  data?: ErrorRemediationData;
+  error?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
+}> {
   if (typeof inputOrErrorId === "string") {
     const session = await auth();
     const userId = session?.user?.id;
@@ -1371,7 +1398,15 @@ export async function getRemediationQuestionsAction(
     }
 
     if (params?.taxonomy && params.taxonomy !== "ALL") {
-      whereClause.errorReason = params.taxonomy;
+      const normalized = normalizeTaxonomy(params.taxonomy);
+      whereClause.errorReason = {
+        in: [
+          normalized,
+          params.taxonomy,
+          params.taxonomy.toLowerCase(),
+          params.taxonomy.toUpperCase(),
+        ],
+      };
     }
 
     const takeLimit = Math.min(Math.max(params?.limit || 10, 1), 50);

@@ -17,12 +17,42 @@ import {
   FileText,
   ChevronDown,
   Check,
+  Crown,
+  Lock,
+  Loader2,
+  X,
 } from "lucide-react";
-import { MindMapNode } from "@/actions/mindmap-actions";
+import Link from "next/link";
+import { MindMapNode, deepenMindMapNodeAction } from "@/actions/mindmap-actions";
 
 export interface MindMapCanvasProps {
   rootNode: MindMapNode;
   subjectColor?: string;
+  isPro?: boolean;
+  topicTitle?: string;
+  subjectName?: string;
+}
+
+function addSubNodesToTree(
+  node: MindMapNode,
+  targetId: string,
+  newChildren: MindMapNode[],
+  newExplanation?: string,
+): MindMapNode {
+  if (node.id === targetId) {
+    return {
+      ...node,
+      description: newExplanation || node.description,
+      children: [...(node.children || []), ...newChildren],
+    };
+  }
+  if (!node.children || node.children.length === 0) return node;
+  return {
+    ...node,
+    children: node.children.map((child) =>
+      addSubNodesToTree(child, targetId, newChildren, newExplanation),
+    ),
+  };
 }
 
 interface LayoutNode {
@@ -223,7 +253,11 @@ function generateStandaloneSvg(
 export function MindMapCanvas({
   rootNode,
   subjectColor = "#8b5cf6",
+  isPro = false,
+  topicTitle,
+  subjectName,
 }: MindMapCanvasProps) {
+  const [currentNode, setCurrentNode] = useState<MindMapNode>(rootNode);
   const [zoom, setZoom] = useState<number>(0.85);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 60, y: 60 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -236,8 +270,17 @@ export function MindMapCanvas({
   const [isExportMenuOpen, setIsExportMenuOpen] = useState<boolean>(false);
   const [exportSuccessMsg, setExportSuccessMsg] = useState<string | null>(null);
 
+  const [isProModalOpen, setIsProModalOpen] = useState<boolean>(false);
+  const [proFeatureReason, setProFeatureReason] = useState<"export" | "deepen">("export");
+  const [isDeepening, setIsDeepening] = useState<boolean>(false);
+
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
+
+  useEffect(() => {
+    setCurrentNode(rootNode);
+    setSelectedNode(rootNode);
+  }, [rootNode]);
 
   // Fecha menu de exportação ao clicar fora
   useEffect(() => {
@@ -259,6 +302,50 @@ export function MindMapCanvas({
       ...prev,
       [id]: !prev[id],
     }));
+  };
+
+  const handleDeepenNode = async (node: MindMapNode) => {
+    if (!isPro) {
+      setProFeatureReason("deepen");
+      setIsProModalOpen(true);
+      return;
+    }
+
+    setIsDeepening(true);
+    try {
+      const res = await deepenMindMapNodeAction({
+        nodeId: node.id,
+        nodeLabel: node.label,
+        nodeDescription: node.description,
+        topicTitle: topicTitle || currentNode.label,
+        subjectName: subjectName || "Geral",
+      });
+
+      if (res.success && res.data) {
+        const updated = addSubNodesToTree(
+          currentNode,
+          node.id,
+          res.data.subNodes,
+          res.data.expandedExplanation,
+        );
+        setCurrentNode(updated);
+        setSelectedNode((prev) =>
+          prev && prev.id === node.id
+            ? {
+                ...prev,
+                description: res.data!.expandedExplanation || prev.description,
+                children: [...(prev.children || []), ...res.data!.subNodes],
+              }
+            : prev,
+        );
+        setExportSuccessMsg("Nó aprofundado com sucesso!");
+        setTimeout(() => setExportSuccessMsg(null), 3000);
+      }
+    } catch (err) {
+      console.error("Erro ao aprofundar nó:", err);
+    } finally {
+      setIsDeepening(false);
+    }
   };
 
   // Cálculo da árvore de nós posicionados com alturas dinâmicas
@@ -304,8 +391,8 @@ export function MindMapCanvas({
       return layout;
     };
 
-    return buildTree(rootNode, 0);
-  }, [rootNode, collapsedIds]);
+    return buildTree(currentNode, 0);
+  }, [currentNode, collapsedIds]);
 
   // Lista linear de nós e conexões para renderização
   const { nodes, connections, bounds } = useMemo(() => {
@@ -417,6 +504,11 @@ export function MindMapCanvas({
   const handleDownloadPng = useCallback(
     (mode: "dark" | "light" = "dark") => {
       setIsExportMenuOpen(false);
+      if (!isPro) {
+        setProFeatureReason("export");
+        setIsProModalOpen(true);
+        return;
+      }
       const svgString = generateStandaloneSvg(
         nodes,
         connections,
@@ -485,6 +577,11 @@ export function MindMapCanvas({
   const handlePrint = useCallback(
     (mode: "light" | "dark" = "light") => {
       setIsExportMenuOpen(false);
+      if (!isPro) {
+        setProFeatureReason("export");
+        setIsProModalOpen(true);
+        return;
+      }
       const svgString = generateStandaloneSvg(
         nodes,
         connections,
@@ -663,37 +760,37 @@ export function MindMapCanvas({
   const getNodeIcon = (type: MindMapNode["type"]) => {
     switch (type) {
       case "root":
-        return <Brain className="w-4 h-4 text-violet-300" />;
+        return <Brain className="w-4 h-4 text-violet-600 dark:text-violet-300" />;
       case "branch":
-        return <BookOpen className="w-3.5 h-3.5 text-indigo-300" />;
+        return <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-300" />;
       case "rule":
-        return <Scale className="w-3.5 h-3.5 text-cyan-300" />;
+        return <Scale className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-300" />;
       case "mnemonic":
-        return <Lightbulb className="w-3.5 h-3.5 text-amber-300" />;
+        return <Lightbulb className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />;
       case "leaf":
       default:
-        return <Zap className="w-3.5 h-3.5 text-emerald-300" />;
+        return <Zap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />;
     }
   };
 
   const getNodeStyle = (type: MindMapNode["type"], isSelected: boolean) => {
-    let base = "border rounded-2xl p-3 cursor-pointer transition-all backdrop-blur-md ";
+    let base = "border rounded-2xl p-3 cursor-pointer transition-all backdrop-blur-md shadow-xs ";
     if (isSelected) {
-      base += "ring-2 ring-violet-400 shadow-2xl scale-[1.02] z-30 ";
+      base += "ring-2 ring-violet-500 shadow-2xl scale-[1.02] z-30 ";
     }
 
     switch (type) {
       case "root":
-        return base + "bg-linear-to-br from-violet-950/80 via-indigo-950/60 to-slate-900/90 border-violet-400/50 shadow-violet-900/30";
+        return base + "bg-white dark:bg-linear-to-br dark:from-violet-950/80 dark:via-indigo-950/60 dark:to-slate-900/90 border-violet-300 dark:border-violet-400/50 shadow-md dark:shadow-violet-900/30";
       case "branch":
-        return base + "bg-linear-to-br from-indigo-950/70 via-slate-900/70 to-slate-950/80 border-indigo-500/30 hover:border-indigo-400";
+        return base + "bg-white dark:bg-linear-to-br dark:from-indigo-950/70 dark:via-slate-900/70 dark:to-slate-950/80 border-slate-300 dark:border-indigo-500/30 hover:border-indigo-400 shadow-xs";
       case "rule":
-        return base + "bg-linear-to-br from-cyan-950/70 via-slate-900/70 to-slate-950/80 border-cyan-500/30 hover:border-cyan-400";
+        return base + "bg-cyan-50/90 dark:bg-linear-to-br dark:from-cyan-950/70 dark:via-slate-900/70 dark:to-slate-950/80 border-cyan-200 dark:border-cyan-500/30 hover:border-cyan-400 shadow-xs";
       case "mnemonic":
-        return base + "bg-linear-to-br from-amber-950/70 via-slate-900/70 to-slate-950/80 border-amber-500/40 hover:border-amber-400 shadow-amber-950/20";
+        return base + "bg-amber-50/90 dark:bg-linear-to-br dark:from-amber-950/70 dark:via-slate-900/70 dark:to-slate-950/80 border-amber-200 dark:border-amber-500/40 hover:border-amber-400 shadow-xs dark:shadow-amber-950/20";
       case "leaf":
       default:
-        return base + "bg-slate-900/80 border-emerald-500/25 hover:border-emerald-400";
+        return base + "bg-white dark:bg-slate-900/80 border-slate-300 dark:border-emerald-500/25 hover:border-emerald-500 shadow-xs";
     }
   };
 
@@ -710,34 +807,34 @@ export function MindMapCanvas({
       />
 
       {/* BARRA DE FERRAMENTAS SUPERIOR FLUTUANTE */}
-      <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-white/10 p-1.5 rounded-xl shadow-xl">
+      <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-white/90 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-white/10 p-1.5 rounded-xl shadow-lg">
         <button
           type="button"
           onClick={() => setZoom((z) => Math.min(2.0, z + 0.15))}
-          className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
           title="Aumentar Zoom"
         >
           <Plus size={15} />
         </button>
-        <span className="text-[11px] font-mono font-bold text-slate-300 px-1">
+        <span className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300 px-1">
           {Math.round(zoom * 100)}%
         </span>
         <button
           type="button"
           onClick={() => setZoom((z) => Math.max(0.4, z - 0.15))}
-          className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
           title="Diminuir Zoom"
         >
           <Minus size={15} />
         </button>
-        <div className="w-px h-4 bg-white/10 mx-1" />
+        <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-1" />
         <button
           type="button"
           onClick={() => {
             setZoom(1);
             setPan({ x: 50, y: 50 });
           }}
-          className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+          className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
           title="Centralizar"
         >
           <RotateCcw size={13} />
@@ -752,8 +849,8 @@ export function MindMapCanvas({
       >
         {/* Notificação toast de feedback */}
         {exportSuccessMsg && (
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">
-            <Check size={13} className="text-emerald-400" />
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-800 dark:bg-emerald-500/20 dark:border-emerald-500/40 dark:text-emerald-300 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">
+            <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
             <span>{exportSuccessMsg}</span>
           </div>
         )}
@@ -762,11 +859,16 @@ export function MindMapCanvas({
         <button
           type="button"
           onClick={() => handlePrint("light")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-white/10 font-bold text-xs backdrop-blur-md shadow-lg transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:text-slate-200 dark:hover:text-white border border-slate-200 dark:border-white/10 font-bold text-xs backdrop-blur-md shadow-md transition-all cursor-pointer active:scale-95"
           title="Imprimir mapa mental ou Salvar em PDF (Formato A4 Paisagem)"
         >
-          <Printer size={13} className="text-violet-400" />
+          <Printer size={13} className="text-violet-600 dark:text-violet-400" />
           <span className="hidden sm:inline">Imprimir / PDF</span>
+          {!isPro && (
+            <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 flex items-center gap-0.5">
+              <Crown size={8} /> PRO
+            </span>
+          )}
         </button>
 
         {/* Menu Dropdown de Exportação */}
@@ -788,19 +890,19 @@ export function MindMapCanvas({
           </button>
 
           {isExportMenuOpen && (
-            <div className="absolute right-0 mt-2 w-64 rounded-xl bg-slate-900/95 border border-violet-500/30 backdrop-blur-xl shadow-2xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="absolute right-0 mt-2 w-64 rounded-xl bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-violet-500/30 backdrop-blur-xl shadow-2xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Formato Vetorial (SVG)
               </div>
               <button
                 type="button"
                 onClick={() => handleDownloadSvg("dark")}
-                className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-violet-600/20 hover:text-white transition-colors cursor-pointer"
+                className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-700 dark:text-slate-200 hover:bg-violet-50 hover:text-violet-900 dark:hover:bg-violet-600/20 dark:hover:text-white transition-colors cursor-pointer"
               >
-                <Download size={13} className="text-violet-400 shrink-0" />
+                <Download size={13} className="text-violet-600 dark:text-violet-400 shrink-0" />
                 <div>
                   <div className="font-semibold">SVG Vetorial (Tema Escuro)</div>
-                  <div className="text-[10px] text-slate-400">
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
                     Nitidez infinita com visual Cyber Dark
                   </div>
                 </div>
@@ -808,45 +910,63 @@ export function MindMapCanvas({
               <button
                 type="button"
                 onClick={() => handleDownloadSvg("light")}
-                className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-violet-600/20 hover:text-white transition-colors cursor-pointer"
+                className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-700 dark:text-slate-200 hover:bg-violet-50 hover:text-violet-900 dark:hover:bg-violet-600/20 dark:hover:text-white transition-colors cursor-pointer"
               >
-                <Download size={13} className="text-indigo-400 shrink-0" />
+                <Download size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
                 <div>
                   <div className="font-semibold">SVG Vetorial (Tema Claro)</div>
-                  <div className="text-[10px] text-slate-400">
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
                     Fundo branco, ideal para Illustrator/Canva
                   </div>
                 </div>
               </button>
 
-              <div className="my-1 border-t border-white/10" />
+              <div className="my-1 border-t border-slate-100 dark:border-white/10" />
 
-              <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Imagem e Impressão
               </div>
               <button
                 type="button"
                 onClick={() => handleDownloadPng("dark")}
-                className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-violet-600/20 hover:text-white transition-colors cursor-pointer"
+                className="w-full text-left flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-700 dark:text-slate-200 hover:bg-violet-50 hover:text-violet-900 dark:hover:bg-violet-600/20 dark:hover:text-white transition-colors cursor-pointer"
               >
-                <FileImage size={13} className="text-emerald-400 shrink-0" />
-                <div>
-                  <div className="font-semibold">PNG Alta Resolução (HD 2x)</div>
-                  <div className="text-[10px] text-slate-400">
-                    Imagem nítida pronta para slides e celular
+                <div className="flex items-center gap-2.5">
+                  <FileImage size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div>
+                    <div className="font-semibold flex items-center gap-1.5">
+                      <span>PNG Alta Resolução (HD 2x)</span>
+                      {!isPro && (
+                        <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 flex items-center gap-0.5">
+                          <Crown size={8} /> PRO
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Imagem nítida pronta para slides e celular
+                    </div>
                   </div>
                 </div>
               </button>
               <button
                 type="button"
                 onClick={() => handlePrint("light")}
-                className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-violet-600/20 hover:text-white transition-colors cursor-pointer"
+                className="w-full text-left flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-700 dark:text-slate-200 hover:bg-violet-50 hover:text-violet-900 dark:hover:bg-violet-600/20 dark:hover:text-white transition-colors cursor-pointer"
               >
-                <Printer size={13} className="text-amber-400 shrink-0" />
-                <div>
-                  <div className="font-semibold">Imprimir / Salvar PDF</div>
-                  <div className="text-[10px] text-slate-400">
-                    Otimizado para folha A4 em modo paisagem
+                <div className="flex items-center gap-2.5">
+                  <Printer size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                  <div>
+                    <div className="font-semibold flex items-center gap-1.5">
+                      <span>Imprimir / Salvar PDF</span>
+                      {!isPro && (
+                        <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 flex items-center gap-0.5">
+                          <Crown size={8} /> PRO
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Otimizado para folha A4 em modo paisagem
+                    </div>
                   </div>
                 </div>
               </button>
@@ -926,7 +1046,7 @@ export function MindMapCanvas({
                       <div className="shrink-0 mt-0.5">
                         {getNodeIcon(node.type)}
                       </div>
-                      <span className="text-xs font-bold text-slate-100 leading-snug break-words">
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug break-words">
                         {node.label}
                       </span>
                     </div>
@@ -935,33 +1055,33 @@ export function MindMapCanvas({
                       <button
                         type="button"
                         onClick={(e) => toggleCollapse(node.id, e)}
-                        className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0 mt-[-2px]"
+                        className="p-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0 mt-[-2px]"
                         title={layoutNode.collapsed ? "Expandir" : "Recolher"}
                       >
                         {layoutNode.collapsed ? (
-                          <Plus size={12} className="text-cyan-400" />
+                          <Plus size={12} className="text-indigo-600 dark:text-cyan-400" />
                         ) : (
-                          <Minus size={12} className="text-slate-400" />
+                          <Minus size={12} className="text-slate-500 dark:text-slate-400" />
                         )}
                       </button>
                     )}
                   </div>
 
                   {node.description && (
-                    <p className="text-[10.5px] text-slate-300/90 leading-relaxed break-words mb-1">
+                    <p className="text-[10.5px] text-slate-600 dark:text-slate-300/90 leading-relaxed break-words mb-1">
                       {node.description}
                     </p>
                   )}
 
                   {node.ruleOrLaw && (
-                    <div className="mt-1 text-[9.5px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-md break-words flex items-start gap-1">
+                    <div className="mt-1 text-[9.5px] font-mono text-cyan-800 dark:text-cyan-300 bg-cyan-100/70 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/20 px-2 py-0.5 rounded-md break-words flex items-start gap-1">
                       <span className="shrink-0">⚖️</span>
                       <span className="leading-snug">{node.ruleOrLaw}</span>
                     </div>
                   )}
 
                   {node.mnemonic && (
-                    <div className="mt-1 text-[9.5px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md break-words flex items-start gap-1">
+                    <div className="mt-1 text-[9.5px] font-mono text-amber-800 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 px-2 py-0.5 rounded-md break-words flex items-start gap-1">
                       <span className="shrink-0">💡</span>
                       <span className="leading-snug">{node.mnemonic}</span>
                     </div>
@@ -975,32 +1095,103 @@ export function MindMapCanvas({
 
       {/* PAINEL DE DETALHES DO NÓ SELECIONADO (RODAPÉ) */}
       {selectedNode && (
-        <div className="p-3.5 border-t border-white/10 bg-slate-900/90 backdrop-blur-md flex items-center justify-between gap-4 text-xs z-20">
+        <div className="p-3.5 border-t border-slate-200 dark:border-white/10 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between gap-4 text-xs z-20">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-2 rounded-xl bg-white/5 border border-white/10">
+            <div className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
               {getNodeIcon(selectedNode.type)}
             </div>
             <div className="min-w-0">
-              <span className="text-xs font-bold text-white block truncate">
+              <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                 {selectedNode.label}
               </span>
-              <p className="text-[11px] text-slate-300 truncate">
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate">
                 {selectedNode.description || "Nenhum detalhe adicional."}
               </p>
             </div>
           </div>
 
-          {selectedNode.ruleOrLaw && (
-            <div className="hidden sm:block text-[11px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-lg shrink-0 max-w-xs truncate">
-              ⚖️ {selectedNode.ruleOrLaw}
-            </div>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {selectedNode.ruleOrLaw && (
+              <div className="hidden md:block text-[11px] font-mono text-cyan-800 dark:text-cyan-300 bg-cyan-100/70 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/20 px-2.5 py-1 rounded-lg shrink-0 max-w-xs truncate">
+                ⚖️ {selectedNode.ruleOrLaw}
+              </div>
+            )}
 
-          {selectedNode.mnemonic && (
-            <div className="hidden sm:block text-[11px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg shrink-0 max-w-xs truncate">
-              💡 {selectedNode.mnemonic}
+            {selectedNode.mnemonic && (
+              <div className="hidden md:block text-[11px] font-mono text-amber-800 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 px-2.5 py-1 rounded-lg shrink-0 max-w-xs truncate">
+                💡 {selectedNode.mnemonic}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => handleDeepenNode(selectedNode)}
+              disabled={isDeepening}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer shrink-0 disabled:opacity-50"
+              title="Aprofundar com IA (Exclusivo Synapse Pro)"
+            >
+              {isDeepening ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Sparkles size={13} />
+              )}
+              <span className="hidden sm:inline">Aprofundar com IA</span>
+              <Crown size={12} className="fill-slate-950/30" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE RECURSO EXCLUSIVO SYNAPSE PRO */}
+      {isProModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#090d1c] border border-amber-500/40 rounded-3xl w-full max-w-md p-6 shadow-2xl text-center space-y-4 relative">
+            <button
+              type="button"
+              onClick={() => setIsProModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/10">
+              <Crown size={28} />
             </div>
-          )}
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                Recurso Synapse Pro
+              </span>
+              <h3 className="text-base font-bold text-white">
+                {proFeatureReason === "export"
+                  ? "Exportação em Alta Resolução (PDF & PNG HD)"
+                  : "Aprofundamento de Conceitos com IA"}
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {proFeatureReason === "export"
+                  ? "Exporte seus mapas mentais em Ultra Definição A4 ou PNG Retina 2x para imprimir ou usar no GoodNotes/Notion sem perda de nitidez."
+                  : "Desdobre qualquer ramo com jurisprudência, pegadinhas de bancas examinadoras e macetes inéditos gerados pelo Gemini Pro."}
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2">
+              <Link
+                href="/pricing"
+                onClick={() => setIsProModalOpen(false)}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all"
+              >
+                <Crown size={15} />
+                <span>Desbloquear Acesso Ilimitado Pro</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setIsProModalOpen(false)}
+                className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                Continuar no Plano Gratuito
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

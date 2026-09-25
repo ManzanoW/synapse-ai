@@ -45,19 +45,19 @@ export function SubmitConfirmationModal({
   const isInConformity = !isTooShortWords && !isBelowMinLines && !isAboveMaxLines;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-violet-500/30 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-500/30 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
         {/* CABEÇALHO */}
-        <div className="p-5 border-b border-white/10 flex items-center justify-between bg-slate-900/90">
+        <div className="p-5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-white dark:bg-slate-900/90">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400">
+            <div className="p-2 rounded-xl bg-violet-50 border border-violet-200 text-violet-700 dark:bg-violet-500/10 dark:border-violet-500/20 dark:text-violet-400">
               <Send size={18} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white leading-tight">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
                 Entrega da Prova Discursiva
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Confirmar envio para a banca examinadora
               </p>
             </div>
@@ -67,7 +67,7 @@ export function SubmitConfirmationModal({
             type="button"
             onClick={onClose}
             disabled={isEvaluating}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -76,69 +76,69 @@ export function SubmitConfirmationModal({
         {/* CORPO DO MODAL */}
         <div className="p-5 sm:p-6 flex flex-col gap-4">
           {/* IDENTIFICAÇÃO DA PROVA */}
-          <div className="bg-slate-800/60 p-3.5 rounded-2xl border border-white/5 flex flex-col gap-1">
-            <div className="flex items-center justify-between text-[11px] font-mono font-bold text-violet-400 uppercase">
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-col gap-1 shadow-2xs">
+            <div className="flex items-center justify-between text-[11px] font-mono font-bold text-violet-700 dark:text-violet-400 uppercase">
               <span>Banca {banca}</span>
-              <span className="text-slate-400 font-normal">Folha Definitiva</span>
+              <span className="text-slate-500 dark:text-slate-400 font-normal">Folha Definitiva</span>
             </div>
-            <p className="text-xs font-bold text-slate-200 line-clamp-2 leading-snug">
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2 leading-snug">
               {themeTitle}
             </p>
           </div>
 
           {/* MÉTRICAS DA SUBMISSÃO */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="bg-slate-800/40 border border-white/5 rounded-xl p-3 text-center flex flex-col items-center justify-center">
-              <Clock size={15} className="text-violet-400 mb-1" />
-              <div className="text-xs font-mono font-bold text-white">
+            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-xl p-3 text-center flex flex-col items-center justify-center shadow-2xs">
+              <Clock size={15} className="text-violet-600 dark:text-violet-400 mb-1" />
+              <div className="text-xs font-mono font-bold text-slate-900 dark:text-white">
                 {formattedTime}
               </div>
-              <div className="text-[10px] text-slate-400">Tempo de Prova</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Tempo de Prova</div>
             </div>
 
-            <div className="bg-slate-800/40 border border-white/5 rounded-xl p-3 text-center flex flex-col items-center justify-center">
+            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-xl p-3 text-center flex flex-col items-center justify-center shadow-2xs">
               <FileText
                 size={15}
                 className={
                   isBelowMinLines
-                    ? "text-amber-400"
+                    ? "text-amber-500 dark:text-amber-400"
                     : isAboveMaxLines
-                    ? "text-rose-400"
-                    : "text-emerald-400"
+                    ? "text-rose-500 dark:text-rose-400"
+                    : "text-emerald-600 dark:text-emerald-400"
                 }
               />
               <div
                 className={`text-xs font-mono font-bold ${
                   isBelowMinLines
-                    ? "text-amber-300"
+                    ? "text-amber-600 dark:text-amber-300"
                     : isAboveMaxLines
-                    ? "text-rose-300"
-                    : "text-emerald-300"
+                    ? "text-rose-600 dark:text-rose-300"
+                    : "text-emerald-600 dark:text-emerald-300"
                 }`}
               >
                 {lineCount} / 30
               </div>
-              <div className="text-[10px] text-slate-400">Linhas</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Linhas</div>
             </div>
 
-            <div className="bg-slate-800/40 border border-white/5 rounded-xl p-3 text-center flex flex-col items-center justify-center">
-              <Sparkles size={15} className="text-indigo-400 mb-1" />
-              <div className="text-xs font-mono font-bold text-white">
+            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-xl p-3 text-center flex flex-col items-center justify-center shadow-2xs">
+              <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400 mb-1" />
+              <div className="text-xs font-mono font-bold text-slate-900 dark:text-white">
                 {wordCount}
               </div>
-              <div className="text-[10px] text-slate-400">Palavras</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Palavras</div>
             </div>
           </div>
 
           {/* ESTADO 1: TEXTO INSUFICIENTE (< 30 PALAVRAS) */}
           {isTooShortWords && (
-            <div className="bg-rose-950/30 border border-rose-500/30 rounded-2xl p-4 flex items-start gap-3">
-              <XCircle className="text-rose-400 shrink-0 mt-0.5" size={18} />
+            <div className="bg-rose-50 border border-rose-200 dark:bg-rose-950/30 dark:border-rose-500/30 rounded-2xl p-4 flex items-start gap-3 shadow-2xs">
+              <XCircle className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" size={18} />
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-rose-300">
+                <span className="text-xs font-bold text-rose-800 dark:text-rose-300">
                   Texto Muito Curto para Avaliação
                 </span>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                   Sua redação possui apenas {wordCount} palavras. São necessárias pelo menos 30 palavras para que o examinador possa avaliar estrutura, gramática e coerência.
                 </p>
               </div>
@@ -147,16 +147,16 @@ export function SubmitConfirmationModal({
 
           {/* ESTADO 2: ABAIXO DO LIMITE MÍNIMO DE LINHAS (< 20 LINHAS) */}
           {!isTooShortWords && isBelowMinLines && (
-            <div className="bg-amber-950/30 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3">
-              <AlertTriangle className="text-amber-400 shrink-0 mt-0.5" size={18} />
+            <div className="bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-500/30 rounded-2xl p-4 flex items-start gap-3 shadow-2xs">
+              <AlertTriangle className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" size={18} />
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-amber-300">
+                <span className="text-xs font-bold text-amber-800 dark:text-amber-300">
                   Abaixo do Mínimo Oficial de Linhas
                 </span>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                   Seu texto possui <strong>{lineCount} linhas</strong>. Bancas oficiais como o <strong>{banca}</strong> exigem entre <strong>20 e 30 linhas</strong>. Redações com menos de 20 linhas costumam sofrer descontos severos ou nota zero no critério de estrutura.
                 </p>
-                <p className="text-[11px] text-amber-200/80 mt-1">
+                <p className="text-[11px] text-amber-800 dark:text-amber-200/80 mt-1 font-semibold">
                   Deseja enviar mesmo assim para receber a nota real e o feedback da banca?
                 </p>
               </div>
@@ -165,13 +165,13 @@ export function SubmitConfirmationModal({
 
           {/* ESTADO 3: ACIMA DO LIMITE MÁXIMO (> 30 LINHAS) */}
           {!isTooShortWords && isAboveMaxLines && (
-            <div className="bg-rose-950/30 border border-rose-500/30 rounded-2xl p-4 flex items-start gap-3">
-              <ShieldAlert className="text-rose-400 shrink-0 mt-0.5" size={18} />
+            <div className="bg-rose-50 border border-rose-200 dark:bg-rose-950/30 dark:border-rose-500/30 rounded-2xl p-4 flex items-start gap-3 shadow-2xs">
+              <ShieldAlert className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" size={18} />
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-rose-300">
+                <span className="text-xs font-bold text-rose-800 dark:text-rose-300">
                   Limite Máximo de 30 Linhas Ultrapassado
                 </span>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                   Seu texto tem <strong>{lineCount} linhas</strong>. Qualquer trecho escrito além da linha 30 será totalmente desconsiderado pelo examinador.
                 </p>
               </div>
@@ -180,13 +180,13 @@ export function SubmitConfirmationModal({
 
           {/* ESTADO 4: CONFORMIDADE PERFEITA (20 a 30 LINHAS) */}
           {isInConformity && (
-            <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 flex items-start gap-3">
-              <CheckCircle2 className="text-emerald-400 shrink-0 mt-0.5" size={18} />
+            <div className="bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-500/30 rounded-2xl p-4 flex items-start gap-3 shadow-2xs">
+              <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" size={18} />
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-emerald-300">
+                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
                   Conformidade com os Padrões da Banca
                 </span>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                   Excelente! Sua redação atinge a extensão oficial exigida ({lineCount} linhas). O examinador de IA avaliará rigorosamente sua gramática, repertório e coesão.
                 </p>
               </div>
@@ -195,12 +195,12 @@ export function SubmitConfirmationModal({
         </div>
 
         {/* BOTÕES DE AÇÃO */}
-        <div className="p-5 border-t border-white/10 bg-slate-900/90 flex items-center justify-end gap-3">
+        <div className="p-5 border-t border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-slate-900/90 flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
             disabled={isEvaluating}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 transition-colors cursor-pointer"
           >
             {isTooShortWords ? "Voltar e Escrever Mais" : "Voltar à Folha"}
           </button>
@@ -212,8 +212,8 @@ export function SubmitConfirmationModal({
               disabled={isEvaluating}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white shadow-lg transition-all cursor-pointer ${
                 isBelowMinLines
-                  ? "bg-amber-600 hover:bg-amber-500 shadow-amber-950/60"
-                  : "bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-950/60"
+                  ? "bg-amber-600 hover:bg-amber-500 shadow-amber-600/30 dark:shadow-amber-950/60"
+                  : "bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-600/30 dark:shadow-violet-950/60"
               }`}
             >
               {isEvaluating ? (

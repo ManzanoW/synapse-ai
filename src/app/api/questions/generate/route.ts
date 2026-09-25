@@ -1,11 +1,28 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { generateSimuladoInParallel } from "@/lib/simulado-generator";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 export async function POST(request: Request) {
   try {
     const session = await auth();
     const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Faça login para gerar simulados com IA." },
+        { status: 401 },
+      );
+    }
+
+    // 🛡️ Proteção Leve de Cota Diária de IA
+    const quota = await checkAiQuota(userId, "SIMULADO");
+    if (!quota.allowed) {
+      return NextResponse.json(
+        { error: quota.message || "Limite diário de simulados com IA atingido." },
+        { status: 429 },
+      );
+    }
 
     const body = await request.json();
     const {
@@ -19,6 +36,8 @@ export async function POST(request: Request) {
       textoBase,
       fonteConteudo,
       adaptiveMode,
+      formatoQuestao,
+      nivelCargo,
     } = body;
 
     if (!banca || !materia || !qtdQuestoes) {
@@ -41,12 +60,17 @@ export async function POST(request: Request) {
         textoBase,
         fonteConteudo,
         adaptiveMode: Boolean(adaptiveMode),
+        formatoQuestao,
+        nivelCargo,
       },
       userId,
     );
 
     const simuladoId = result.quizId || result.sessionId;
     const questions = result.data || [];
+
+    // Consome cota diária de Simulado com IA
+    await consumeAiQuota(userId, "SIMULADO");
 
     return NextResponse.json({
       success: true,

@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { checkAiQuota, consumeAiQuota, getUserQuotaStatus } from "@/lib/ai-quota-service";
 
 export interface MindMapNode {
   id: string;
@@ -25,6 +26,8 @@ export interface GenerateMindMapResult {
   success: boolean;
   data?: MindMapNode;
   error?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
 }
 
 export async function generateTopicMindMapAction(
@@ -63,6 +66,17 @@ export async function generateTopicMindMapAction(
           data: cachedTopic.mindMap as unknown as MindMapNode,
         };
       }
+    }
+
+    // 🛡️ Proteção de Cota Diária de IA para Mapas Mentais
+    const quota = await checkAiQuota(userId, "MINDMAP");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Limite de mapas mentais com IA atingido.",
+        isQuotaExceeded: true,
+        canWatchRewardedAd: quota.canWatchRewardedAd,
+      };
     }
 
     const prompt = `Você é o arquiteto pedagógico e especialista em mapas conceituais do Synapse AI.
@@ -199,6 +213,9 @@ Retorne APENAS um JSON válido estrito sem blocos markdown adicionais no formato
       console.warn("[generateTopicMindMapAction] Aviso ao salvar mapa mental no banco:", saveErr);
     }
 
+    // Consome cota diária de Mapa Mental com IA
+    await consumeAiQuota(userId, "MINDMAP");
+
     return {
       success: true,
       data: parsed,
@@ -211,3 +228,88 @@ Retorne APENAS um JSON válido estrito sem blocos markdown adicionais no formato
     };
   }
 }
+
+/**
+ * Aprofundamento pedagógico e expansão de sub-nó com IA (Recurso Exclusivo Synapse Pro)
+ */
+export async function deepenMindMapNodeAction(input: {
+  nodeId: string;
+  nodeLabel: string;
+  nodeDescription?: string;
+  topicTitle: string;
+  subjectName: string;
+}): Promise<{
+  success: boolean;
+  data?: {
+    expandedExplanation: string;
+    subNodes: MindMapNode[];
+  };
+  error?: string;
+  isProRequired?: boolean;
+}> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const userId = session.user.id;
+    const userQuota = await getUserQuotaStatus(userId);
+
+    // 👑 Verificação de Exclusividade Synapse Pro
+    if (!userQuota.isUnlimited) {
+      return {
+        success: false,
+        error:
+          "O Aprofundamento Neural de Nós com IA é um recurso exclusivo do plano Synapse Pro.",
+        isProRequired: true,
+      };
+    }
+
+    const prompt = `Você é um tutor de alta performance para concursos públicos e vestibulares de elite.
+Sua missão é APROFUNDAR o seguinte nó do mapa mental de "${input.topicTitle}" (${input.subjectName}):
+- Conceito/Ramo: "${input.nodeLabel}"
+- Descrição atual: "${input.nodeDescription || "Sem descrição"}"
+
+Forneça:
+1. "expandedExplanation": Um parágrafo denso e didático explicando as pegadinhas doutrinárias, exceções e como a banca examinadora aborda esse conceito específico.
+2. "subNodes": Um array com 2 a 3 nós filhos mais específicos (tipo "leaf", "rule" ou "mnemonic") com 'id', 'label' curto (2 a 4 palavras) e 'description'.
+
+Retorne APENAS um JSON válido no formato:
+{
+  "expandedExplanation": "Texto detalhado com jurisprudência/doutrina...",
+  "subNodes": [
+    {
+      "id": "${input.nodeId}-sub-1",
+      "label": "Rótulo Curto",
+      "type": "leaf",
+      "description": "Detalhe da regra",
+      "ruleOrLaw": "Artigo ou súmula se aplicável"
+    }
+  ]
+}`;
+
+    const aiRes = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+      },
+    });
+
+    const cleaned = aiRes.text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+
+    return {
+      success: true,
+      data: parsed,
+    };
+  } catch (err) {
+    console.error("[deepenMindMapNodeAction] Erro:", err);
+    return {
+      success: false,
+      error: "Não foi possível aprofundar o nó com IA.",
+    };
+  }
+}
+

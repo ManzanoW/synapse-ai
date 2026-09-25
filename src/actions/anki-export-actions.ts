@@ -12,15 +12,6 @@ export interface AnkiExportResult {
   cardCount?: number;
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 function formatForAnkiField(text: string): string {
   if (!text) return "";
   // Escapa tabulações para não quebrar as colunas do Anki
@@ -89,7 +80,7 @@ export async function exportDeckToAnkiAction(
     ];
 
     for (const card of deck.flashcards) {
-      let front = formatForAnkiField(card.question);
+      const front = formatForAnkiField(card.question);
       let back = formatForAnkiField(card.answer);
 
       // Se houver anotações ou bizús/mnemônicos, adiciona ao verso com formatação destacada

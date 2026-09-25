@@ -16,6 +16,10 @@ import {
   MindMapNode,
   generateTopicMindMapAction,
 } from "@/actions/mindmap-actions";
+import { getAiQuotaStatusAction } from "@/actions/quota-actions";
+import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
+import { Lock, Crown, Film } from "lucide-react";
+import Link from "next/link";
 import { MindMapCanvas } from "./MindMapCanvas";
 
 export interface MindMapModalProps {
@@ -38,6 +42,9 @@ export function MindMapModal({
   const [data, setData] = useState<MindMapNode | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState<boolean>(false);
+  const [showAdModal, setShowAdModal] = useState<boolean>(false);
+  const [isPro, setIsPro] = useState<boolean>(false);
   const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState<boolean>(false);
 
   // Fecha com ESC
@@ -58,6 +65,7 @@ export function MindMapModal({
     if (!topicTitle) return;
     setIsLoading(true);
     setError(null);
+    setIsQuotaExceeded(false);
 
     try {
       const res = await generateTopicMindMapAction({
@@ -66,6 +74,12 @@ export function MindMapModal({
         topicId,
         forceRegenerate: force,
       });
+
+      if (res.isQuotaExceeded) {
+        setIsQuotaExceeded(true);
+        setError(res.error || "Limite de mapas mentais atingido.");
+        return;
+      }
 
       if (res.success && res.data) {
         setData(res.data);
@@ -82,12 +96,24 @@ export function MindMapModal({
 
   useEffect(() => {
     if (isOpen) {
+      getAiQuotaStatusAction().then((res) => {
+        if (res.success && res.data) {
+          setIsPro(res.data.isUnlimited);
+        }
+      });
       loadMindMap();
     } else {
       setData(null);
       setError(null);
+      setIsQuotaExceeded(false);
     }
   }, [isOpen, topicTitle, subjectName]);
+
+  const handleRewardClaimed = () => {
+    setShowAdModal(false);
+    setIsQuotaExceeded(false);
+    loadMindMap(true);
+  };
 
   if (!isOpen) return null;
 
@@ -176,13 +202,56 @@ export function MindMapModal({
                   Sintetizando Mapa Mental Neural...
                 </h3>
                 <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-                  A IA está mapeando a doutrina, ramificações de regras, prazos e mnemônicos do tópico <strong>&ldquo;{topicTitle}&rdquo;</strong>.
+                  A IA está mapeando a doutrina, ramificações de regras, prazos e macetes do tópico <strong>&ldquo;{topicTitle}&rdquo;</strong>.
                 </p>
               </div>
 
               <div className="flex items-center gap-2 text-xs text-violet-300 font-mono">
                 <Loader2 size={14} className="animate-spin" />
                 <span>Calculando árvore vetorial hierárquica...</span>
+              </div>
+            </div>
+          ) : isQuotaExceeded ? (
+            <div className="h-[550px] flex flex-col items-center justify-center text-center p-6 space-y-5 animate-in fade-in duration-200">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-xl shadow-amber-500/10">
+                  <Lock size={30} />
+                </div>
+                <div className="absolute -top-1 -right-1 p-1 rounded-lg bg-amber-500 text-slate-950 font-bold">
+                  <Crown size={12} />
+                </div>
+              </div>
+
+              <div className="space-y-2 max-w-md">
+                <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Limite Diário Atingido (1/1)
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-white">
+                  Você atingiu o limite gratuito de Mapas Mentais com IA
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Mapas mentais neurais gerados por IA exigem alta computação para sintetizar a doutrina e criar a árvore vetorial. Assista a um anúncio em vídeo para desbloquear um mapa bônus ou faça upgrade para o Synapse Pro.
+                </p>
+              </div>
+
+              <div className="w-full max-w-sm space-y-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAdModal(true)}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all cursor-pointer group"
+                >
+                  <Film size={16} className="text-amber-300 group-hover:scale-110 transition-transform" />
+                  <span>Assistir Vídeo Curto (+1 Mapa Mental Bônus)</span>
+                </button>
+
+                <Link
+                  href="/pricing"
+                  onClick={onClose}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
+                >
+                  <Crown size={15} />
+                  <span>Desbloquear Mapas Ilimitados com Synapse Pro</span>
+                </Link>
               </div>
             </div>
           ) : error ? (
@@ -197,7 +266,13 @@ export function MindMapModal({
               </button>
             </div>
           ) : data ? (
-            <MindMapCanvas rootNode={data} subjectColor={subjectColor} />
+            <MindMapCanvas
+              rootNode={data}
+              subjectColor={subjectColor}
+              isPro={isPro}
+              topicTitle={topicTitle}
+              subjectName={subjectName}
+            />
           ) : null}
         </div>
 
@@ -230,7 +305,7 @@ export function MindMapModal({
                   </div>
                   <div className="font-semibold text-white truncate">{topicTitle}</div>
                   <div className="text-[11px] text-amber-300/90 font-mono mt-1">
-                    ⚡ Esta ação consumirá tokens de IA para estruturar um novo mapa.
+                    ⚡ Esta ação consumirá cota de IA para estruturar um novo mapa.
                   </div>
                 </div>
 
@@ -259,6 +334,13 @@ export function MindMapModal({
           )}
         </AnimatePresence>
       </motion.div>
+
+      <RewardedAdModal
+        isOpen={showAdModal}
+        onClose={() => setShowAdModal(false)}
+        onRewardClaimed={handleRewardClaimed}
+        feature="MINDMAP"
+      />
     </div>
   );
 }

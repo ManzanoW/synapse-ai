@@ -245,26 +245,6 @@ export function FlashcardSpeedRunModal({
     }
   }, [isOpen, selectedDeckId, loadCards]);
 
-  // Cronômetro de Sobrevivência
-  useEffect(() => {
-    if (gameState === "PLAYING") {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            handleGameOver();
-            return 0;
-          }
-          return prev - 1;
-        });
-        setTotalPlayTime((prev) => prev + 1);
-      }, 1000);
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [gameState]);
-
   // Iniciar partida
   const handleStartGame = () => {
     if (cards.length === 0) return;
@@ -308,6 +288,26 @@ export function FlashcardSpeedRunModal({
       setSubmittingResult(false);
     }
   };
+
+  // Cronômetro de Sobrevivência
+  useEffect(() => {
+    if (gameState === "PLAYING") {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            handleGameOver();
+            return 0;
+          }
+          return prev - 1;
+        });
+        setTotalPlayTime((prev) => prev + 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [gameState]);
 
   // Trigger floating bonus text
   const triggerTimeBonus = (text: string) => {

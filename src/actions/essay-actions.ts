@@ -6,6 +6,7 @@ import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { recordStudyActivityAction } from "./gamification-actions";
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
 import { evaluateDiscursivaEssay } from "@/lib/discursiva-evaluator";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 export interface MotivatingText {
   title: string;
@@ -161,7 +162,13 @@ export async function evaluateEssayAction(payload: {
   lineCount: number;
   wordCount: number;
   durationSeconds: number;
-}): Promise<{ success: boolean; data?: EssayEvaluationResult; error?: string }> {
+}): Promise<{
+  success: boolean;
+  data?: EssayEvaluationResult;
+  error?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
+}> {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -186,6 +193,17 @@ export async function evaluateEssayAction(payload: {
       return {
         success: false,
         error: "A redação precisa conter texto suficiente para ser avaliada pela banca.",
+      };
+    }
+
+    // 🛡️ Proteção de Cota Diária de IA para Correções de Redação
+    const quota = await checkAiQuota(userId, "ESSAY");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Limite diário de correções de redação com IA atingido.",
+        isQuotaExceeded: true,
+        canWatchRewardedAd: quota.canWatchRewardedAd,
       };
     }
 
@@ -233,8 +251,9 @@ export async function evaluateEssayAction(payload: {
     const sessionMinutes = Math.max(15, Math.round(durationSeconds / 60));
     try {
       await recordStudyActivityAction(userId, xpReward, "ESSAY", sessionMinutes);
+      await consumeAiQuota(userId, "ESSAY");
     } catch (xpErr) {
-      console.warn("[evaluateEssayAction] Aviso ao conceder XP:", xpErr);
+      console.warn("[evaluateEssayAction] Aviso ao conceder XP ou consumir cota:", xpErr);
     }
 
     return {
@@ -417,6 +436,8 @@ export interface TranscribeHandwrittenEssayResponse {
   detectedLines?: number;
   legibility?: "Alta" | "Média" | "Baixa";
   observations?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
 }
 
 /**
@@ -430,6 +451,22 @@ export async function transcribeHandwrittenEssayAction(
     if (!session?.user?.id) {
       return { success: false, error: "Usuário não autenticado." };
     }
+
+    const userId = session.user.id;
+
+    // 🛡️ Proteção de Cota de OCR Manuscrito (1 gratuito por semana / bônus via anúncio / ilimitado Pro)
+    const quota = await checkAiQuota(userId, "OCR_ESSAY");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error:
+          quota.message ||
+          "Você atingiu seu limite semanal de 1 leitura manuscrita gratuita com IA.",
+        isQuotaExceeded: true,
+        canWatchRewardedAd: quota.canWatchRewardedAd,
+      };
+    }
+
 
     const file = formData.get("file") as File | null;
     if (!file) {
@@ -541,6 +578,9 @@ Retorne em formato JSON estrito:
     };
 
     const sanitizedTranscription = sanitizeOcrTranscription(parsed.transcription);
+
+    // Consumir a cota de leitura manuscrita após sucesso da IA
+    await consumeAiQuota(userId, "OCR_ESSAY");
 
     return {
       success: true,

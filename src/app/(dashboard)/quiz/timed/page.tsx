@@ -33,6 +33,7 @@ import { PacingBar } from "./_components/PacingBar";
 import { ExamSheetHUD } from "./_components/ExamSheetHUD";
 import { SubmitConfirmModal } from "./_components/SubmitConfirmModal";
 import { TimedExamResultView } from "./_components/TimedExamResultView";
+import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
 
 import {
@@ -84,6 +85,7 @@ export default function TimedQuizPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSimuladoModalOpen, setIsSimuladoModalOpen] = useState(false);
   const [pendingTimedQuestions, setPendingTimedQuestions] = useState<TimedQuizQuestion[] | null>(null);
+  const pendingTimedQuestionsRef = useRef<TimedQuizQuestion[] | null>(null);
 
   // Estado do Exame Ativo
   const [questions, setQuestions] = useState<TimedQuizQuestion[]>([]);
@@ -398,6 +400,7 @@ export default function TimedQuizPage() {
     setIsGenerating(true);
     setIsSimuladoModalOpen(true);
     setPendingTimedQuestions(null);
+    pendingTimedQuestionsRef.current = null;
 
     try {
       const count = parseInt(qtdQuestoes, 10) || 10;
@@ -426,6 +429,10 @@ export default function TimedQuizPage() {
         );
       }
 
+      // Notifica em tempo real a Sidebar e os badges de cota
+      triggerAiQuotaRefresh();
+
+      pendingTimedQuestionsRef.current = json.data;
       setPendingTimedQuestions(json.data);
       setIsGenerating(false);
     } catch (err: unknown) {
@@ -437,10 +444,13 @@ export default function TimedQuizPage() {
   };
 
   const handleSimuladoModalComplete = () => {
-    if (!pendingTimedQuestions) return;
+    setIsSimuladoModalOpen(false);
 
-    const count = pendingTimedQuestions.length;
-    setQuestions(pendingTimedQuestions);
+    const questionsToLoad = pendingTimedQuestionsRef.current || pendingTimedQuestions;
+    if (!questionsToLoad || questionsToLoad.length === 0) return;
+
+    const count = questionsToLoad.length;
+    setQuestions(questionsToLoad);
     setCurrentIndex(0);
     setSelectedAnswers({});
     setFlaggedQuestions({});
@@ -461,8 +471,8 @@ export default function TimedQuizPage() {
     setIsPaused(false);
     setIsFocusMode(strictAntiDistraction);
     setPhase("exam");
-    setIsSimuladoModalOpen(false);
     setPendingTimedQuestions(null);
+    pendingTimedQuestionsRef.current = null;
   };
 
   // 5. SUBMISSÃO FINAL DO SIMULADO
@@ -724,7 +734,7 @@ export default function TimedQuizPage() {
             <p className="text-sm font-bold text-violet-200">
               Carregando caderno para o modo cronometrado...
             </p>
-            <p className="text-xs text-slate-400">Zero tokens consumidos • Início instantâneo</p>
+            <p className="text-xs text-slate-400">Preparando ambiente de prova...</p>
           </div>
         ) : (
         <div className="max-w-3xl mx-auto space-y-6 pt-4 pb-16">
@@ -1261,6 +1271,10 @@ export default function TimedQuizPage() {
         error={errorMessage}
         onComplete={handleSimuladoModalComplete}
         onClose={() => {
+          setIsSimuladoModalOpen(false);
+          setErrorMessage(null);
+        }}
+        onRewardedBonusEarned={() => {
           setIsSimuladoModalOpen(false);
           setErrorMessage(null);
         }}

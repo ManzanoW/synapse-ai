@@ -38,6 +38,8 @@ export interface GenerateSimuladoParams {
   textoBase?: string | null;
   fonteConteudo?: "banca" | "texto" | "pdf" | string;
   adaptiveMode?: boolean;
+  formatoQuestao?: "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos";
+  nivelCargo?: "medio" | "superior" | "juridico";
 }
 
 export interface GenerateSimuladoResult {
@@ -121,6 +123,119 @@ export function calculateBatchSizes(total: number, maxBatchSize = 5): number[] {
   }
 
   return batches;
+}
+
+/**
+ * Busca questões elegíveis já geradas anteriormente no banco de dados para a mesma banca e matéria/tópico.
+ * Garante que:
+ * 1. O aluno atual nunca veja questões que ele já respondeu/viu em quizzes anteriores.
+ * 2. As questões tenham validação estrutural completa (enunciado, alternativas/gabarito, justificativa).
+ * 3. O formato (Certo/Errado vs Múltipla Escolha) seja estritamente compatível.
+ * 4. O limite respeite a proporção máxima de cache (até 40% do total) para garantir frescor da IA.
+ */
+async function fetchCachedQuestionsForSimulado(params: {
+  banca: string;
+  materia: string;
+  targetTopicUuid?: string | null;
+  dificuldade?: string;
+  isCebraspeStyle: boolean;
+  maxToReuse: number;
+  userId?: string | null;
+}): Promise<QuestaoGerada[]> {
+  const {
+    banca,
+    materia,
+    targetTopicUuid,
+    dificuldade,
+    isCebraspeStyle,
+    maxToReuse,
+    userId,
+  } = params;
+
+  if (maxToReuse <= 0) return [];
+
+  try {
+    const seenQuestionTexts = new Set<string>();
+
+    if (userId) {
+      const userQuizzes = await prisma.quiz.findMany({
+        where: { userId },
+        select: { questions: true },
+        take: 30,
+        orderBy: { createdAt: "desc" },
+      });
+
+      for (const qz of userQuizzes) {
+        if (Array.isArray(qz.questions)) {
+          for (const item of qz.questions as unknown as QuestaoGerada[]) {
+            if (item?.enunciado) {
+              seenQuestionTexts.add(item.enunciado.trim().toLowerCase());
+            }
+          }
+        }
+      }
+    }
+
+    const candidateQuizzes = await prisma.quiz.findMany({
+      where: {
+        banca: { equals: banca, mode: "insensitive" },
+        ...(dificuldade ? { difficulty: { equals: dificuldade, mode: "insensitive" } } : {}),
+        subject: { contains: materia, mode: "insensitive" },
+        ...(targetTopicUuid ? { topicId: targetTopicUuid } : {}),
+      },
+      select: { questions: true },
+      take: 25,
+      orderBy: { createdAt: "desc" },
+    });
+
+    const pool: QuestaoGerada[] = [];
+
+    for (const cq of candidateQuizzes) {
+      if (!Array.isArray(cq.questions)) continue;
+
+      for (const rawQ of cq.questions as unknown as QuestaoGerada[]) {
+        if (
+          !rawQ ||
+          typeof rawQ.enunciado !== "string" ||
+          !rawQ.enunciado.trim() ||
+          typeof rawQ.gabaritoCorreto !== "string" ||
+          typeof rawQ.justificativa !== "string"
+        ) {
+          continue;
+        }
+
+        // Validação estrita de compatibilidade de formato:
+        if (isCebraspeStyle) {
+          const isItemValid =
+            rawQ.formato === "certo_errado" ||
+            ["Certo", "Errado"].includes(rawQ.gabaritoCorreto.trim());
+          if (!isItemValid) continue;
+        } else {
+          // Múltipla escolha
+          const isItemValid =
+            Array.isArray(rawQ.alternativas) && rawQ.alternativas.length >= 4;
+          if (!isItemValid) continue;
+        }
+
+        const normalized = rawQ.enunciado.trim().toLowerCase();
+        if (seenQuestionTexts.has(normalized)) continue;
+
+        seenQuestionTexts.add(normalized);
+        pool.push(rawQ);
+
+        if (pool.length >= maxToReuse * 3) break;
+      }
+
+      if (pool.length >= maxToReuse * 3) break;
+    }
+
+    if (pool.length === 0) return [];
+
+    return shuffleArray(pool).slice(0, maxToReuse);
+  } catch (error) {
+    console.warn("[simulado-generator] Erro não-bloqueante no cache híbrido:", error);
+    return [];
+  }
 }
 
 const geminiResponseSchema = {
@@ -229,6 +344,8 @@ export async function generateSimuladoInParallel(
     dificuldade = "Média",
     textoBase,
     fonteConteudo = "banca",
+    formatoQuestao = "auto",
+    nivelCargo = "superior",
   } = params;
 
   if (!banca || !materia) {
@@ -329,8 +446,56 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
     }
   }
 
-  // Divisão em lotes paralelos (chunks de no máximo 5)
-  const batches = calculateBatchSizes(quantidadeTotal, 5);
+  // Calibração do formato da questão
+  const isCebraspeStyle =
+    formatoQuestao === "certo_errado" ||
+    (formatoQuestao === "auto" && banca.toLowerCase().includes("cebraspe"));
+
+  const isCasosPraticos =
+    formatoQuestao === "casos_praticos" ||
+    (formatoQuestao === "auto" && banca.toLowerCase().includes("fgv"));
+
+  const use5Alternatives =
+    formatoQuestao === "multipla_5" ||
+    (!isCebraspeStyle &&
+      (banca.toLowerCase().includes("fcc") ||
+        banca.toLowerCase().includes("fgv") ||
+        banca.toLowerCase().includes("cesgranrio") ||
+        banca.toLowerCase().includes("vunesp") ||
+        banca.toLowerCase().includes("aocp") ||
+        banca.toLowerCase().includes("idecan")));
+
+  // ⚡ Estratégia de Cache Híbrido:
+  // Se for simulado padrão (não adaptativo, sem texto/lei avulsa e sem recorte restrito),
+  // reaproveitamos até 40% de questões inéditas para o aluno direto do banco, acelerando a resposta e economizando tokens da IA.
+  const isEligibleForCache =
+    !params.adaptiveMode &&
+    !params.textoBase &&
+    fonteConteudo !== "texto" &&
+    !specificTopic?.trim();
+
+  let cachedQuestions: QuestaoGerada[] = [];
+  if (isEligibleForCache) {
+    const maxToReuse = Math.floor(quantidadeTotal * 0.4);
+    if (maxToReuse > 0) {
+      cachedQuestions = await fetchCachedQuestionsForSimulado({
+        banca,
+        materia,
+        targetTopicUuid,
+        dificuldade,
+        isCebraspeStyle,
+        maxToReuse,
+        userId,
+      });
+    }
+  }
+
+  const quantidadeParaGerarNaIA = Math.max(0, quantidadeTotal - cachedQuestions.length);
+
+  // Divisão em lotes paralelos (chunks de no máximo 5) para a quantidade restante
+  const batches = quantidadeParaGerarNaIA > 0
+    ? calculateBatchSizes(quantidadeParaGerarNaIA, 5)
+    : [];
 
   // Mapeia cada lote com instrução focada e particionamento de tópicos
   const batchPromises = batches.map(async (batchCount, batchIndex) => {
@@ -367,6 +532,59 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
       batchContext += `Obrigatório basear as questões estritamente neste texto/lei:\n"${textoBase}"\n`;
     }
 
+    // Diretriz pedagógica da banca
+    let bancaProfileDirective = "";
+    const lowerBanca = banca.toLowerCase();
+    if (lowerBanca.includes("cesgranrio")) {
+      bancaProfileDirective = `
+        - ESTILO CESGRANRIO (CNU / Caixa / BB / Petrobras): Enunciados contextualizados com desafios reais de políticas públicas, gestão ética, inclusão e atendimento cidadão. Alternativas homogêneas e bem elaboradas, sem pegadinhas de mera decoreba mecânica.
+      `;
+    } else if (lowerBanca.includes("fgv") || isCasosPraticos) {
+      bancaProfileDirective = `
+        - ESTILO FGV (Casos Práticos Hipotéticos): Enunciados com situações concretas ('João, servidor público estável...', 'Determinada sociedade empresária...'), exigindo do aluno aplicação da regra a fatos, interpretação sistemática e julgados dos tribunais.
+      `;
+    } else if (lowerBanca.includes("fcc")) {
+      bancaProfileDirective = `
+        - ESTILO FCC: Redação técnica primorosa, literalidade de dispositivos de lei e súmulas consolidadas do STF e STJ, com 5 alternativas bem estruturadas.
+      `;
+    } else if (lowerBanca.includes("cebraspe")) {
+      bancaProfileDirective = `
+        - ESTILO CEBRASPE / UNB: Itens assertivos e categóricos, testando conceitos profundos, com distratores sutis baseados em termos restritivos ('apenas', 'sempre', 'salvo') e jurisprudência pacificada.
+      `;
+    } else if (lowerBanca.includes("quadrix")) {
+      bancaProfileDirective = `
+        - ESTILO INSTITUTO QUADRIX: Foco estrito na letra da lei, resoluções e normativas administrativas de conselhos profissionais federais/regionais.
+      `;
+    } else if (lowerBanca.includes("aocp")) {
+      bancaProfileDirective = `
+        - ESTILO INSTITUTO AOCP: Enunciados diretos, foco na literalidade de leis penais, processuais e constitucionais, com atenção a prazos legais e súmulas vinculantes.
+      `;
+    } else if (lowerBanca.includes("idecan")) {
+      bancaProfileDirective = `
+        - ESTILO IDECAN: Questões com densidade analítica, situações de segurança pública e carreiras administrativas, doutrina consolidada e súmulas.
+      `;
+    } else if (lowerBanca.includes("vunesp")) {
+      bancaProfileDirective = `
+        - ESTILO VUNESP: Apego à letra da lei ('lei seca'), precisão terminológica e 5 alternativas objetivas.
+      `;
+    }
+
+    // Diretriz do nível do cargo
+    let careerLevelDirective = "";
+    if (nivelCargo === "medio") {
+      careerLevelDirective = `
+        - PÚBLICO-ALVO: NÍVEL MÉDIO / TÉCNICO. Foque na letra da lei seca, conceitos basilares e regras gerais claras, evitando controvérsias doutrinárias excessivamente obscuras.
+      `;
+    } else if (nivelCargo === "juridico") {
+      careerLevelDirective = `
+        - PÚBLICO-ALVO: CARREIRAS JURÍDICAS & POLICIAIS (Delegado, Juiz, Promotor, Defensor, Perito). Exija profundidade técnica máxima, Informativos recentes do STF e STJ, súmulas vinculantes, teses de repercussão geral e distinções dogmáticas refinadas.
+      `;
+    } else {
+      careerLevelDirective = `
+        - PÚBLICO-ALVO: NÍVEL SUPERIOR / ANALISTA. Equilíbrio entre texto da lei, jurisprudência dominante e doutrina majoritária.
+      `;
+    }
+
     const batchPrompt = `
       Você é um professor PhD e especialista elaborador de provas para a banca "${banca}".
       ATENÇÃO CRÍTICA: Você DEVE gerar EXATAMENTE ${batchCount} questões distintas e completas dentro do array 'questoes'. Não gere menos que ${batchCount} itens.
@@ -377,7 +595,9 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
           ? `REQUISITO OBRIGATÓRIO DE ESCOPO: Todas as questões deste simulado DEVEM focar estritamente no seguinte recorte temático ou dispositivo legal: "${specificTopic.trim()}". Não gere questões genéricas fora desse assunto.\n`
           : ""
       }Nível de Dificuldade: "${dificuldade}". 
-      Estilo da Banca: "${banca}".
+      Banca Organizadora: "${banca}".
+      ${careerLevelDirective}
+      ${bancaProfileDirective}
       
       ${batchContext}
       ${adaptiveContext}
@@ -391,8 +611,13 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
          - Se for DIREITO/TEORIA: Fundamente na legislação vigente, jurisprudência dominante ou regras teóricas consolidadas.
 
       2. CRIAÇÃO DAS ALTERNATIVAS COM O VALOR EXATO:
-         - Pegue o RESULTADO EXATO obtido e coloque-o em UMA das opções (A, B, C ou D).
-         - Crie distratores plausíveis para as outras opções sem ambiguidades.
+         ${
+           isCebraspeStyle
+             ? '- Para formato Certo/Errado: elabore um item assertivo e defina se é "Certo" ou "Errado" com fundamentação sólida.'
+             : use5Alternatives
+               ? '- Crie exatamente 5 alternativas (A, B, C, D, E) com o gabarito exato em uma delas e distratores plausíveis nas demais.'
+               : '- Crie exatamente 4 alternativas (A, B, C, D) com o gabarito exato em uma delas e distratores plausíveis nas demais.'
+         }
          - É ESTRITAMENTE PROIBIDO criar alternativas em que o resultado exato calculado na justificativa não esteja presente.
 
       3. DISTRIBUIÇÃO RANDÔMICA E IMPARCIAL DOS GABARITOS:
@@ -400,23 +625,26 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
          - Distribua as respostas corretas de forma aleatória e equilibrada.
 
       4. VALIDAÇÃO CRUZADA DE GABARITO (RIGOROSO):
-         - Identifique explicitamente em qual LETRA ("A", "B", "C" ou "D") está o resultado exato calculado.
+         - Identifique explicitamente em qual LETRA está o resultado exato calculado.
          - Atribua ESTREITAMENTE essa LETRA ao campo "gabaritoCorreto".
 
       ===================================================================
       ⚡ REGRAS DE CONCISÃO E ALTA VELOCIDADE (MÁXIMO THROUGHPUT):
       ===================================================================
-      - Enunciado: Seja conciso, claro e direto ao ponto, evitando textos longos ou prolixos.
+      - Enunciado: Seja conciso, claro e direto ao ponto, evitando textos desnecessariamente prolixos.
       - explanation / justificativa: texto explicativo conciso (max 2 frases objetivas demonstrando a regra ou o cálculo).
       - Flashcards: Pergunta no 'flashcardFrente' e resposta no 'flashcardVerso' com no máximo 1 frase concisa cada.
-      - Elimine explicações desnecessárias para garantir resposta rápida em lote.
 
       ===================================================================
       FORMATO DAS RESPOSTAS:
       ===================================================================
-      - Se banca for "Cebraspe": formato "certo_errado" (gabaritoCorreto: "Certo" ou "Errado", alternativas: []).
-      - Outras bancas: formato "multipla" com exatamente 4 alternativas (ids: "A", "B", "C", "D").
-      - "gabaritoCorreto": deve conter APENAS a letra correspondente à opção correta ("A", "B", "C" ou "D") ou "Certo"/"Errado".
+      ${
+        isCebraspeStyle
+          ? '- formato "certo_errado" (gabaritoCorreto: "Certo" ou "Errado", alternativas: []).'
+          : use5Alternatives
+            ? '- formato "multipla" com exatamente 5 alternativas (ids: "A", "B", "C", "D", "E"). gabaritoCorreto deve ser uma letra entre "A" e "E".'
+            : '- formato "multipla" com exatamente 4 alternativas (ids: "A", "B", "C", "D"). gabaritoCorreto deve ser uma letra entre "A" e "D".'
+      }
     
       Além da questão e das alternativas, gere uma versão em Flashcard (Active Recall) para cada item: no 'flashcardFrente', elabore uma pergunta conceitual e direta sobre o cerne do tema; no 'flashcardVerso', responda com a definição/regra essencial de forma clara e sintética.
 
@@ -476,11 +704,11 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
     }
   });
 
-  // Execução 100% paralela com Promise.all
-  const results = await Promise.all(batchPromises);
+  // Execução 100% paralela com Promise.all (apenas se houver lotes pendentes para a IA)
+  const results = batches.length > 0 ? await Promise.all(batchPromises) : [];
 
-  // Consolidação dos arrays resultantes
-  const allRawQuestions: QuestaoGerada[] = [];
+  // Consolidação dos arrays resultantes (iniciando com as questões do cache)
+  const allRawQuestions: QuestaoGerada[] = [...cachedQuestions];
   let dominantModel = "gemini-3.5-flash-lite";
 
   results.forEach((r) => {
@@ -494,10 +722,18 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
     throw new Error("A IA não retornou nenhuma questão válida.");
   }
 
+  if (cachedQuestions.length > 0) {
+    const aiCount = allRawQuestions.length - cachedQuestions.length;
+    const economyPct = Math.round((cachedQuestions.length / Math.max(allRawQuestions.length, 1)) * 100);
+    console.log(
+      `[simulado-generator] 🚀 Cache Híbrido ativado: ${cachedQuestions.length} questões do banco + ${aiCount} geradas via IA. Economia de ~${economyPct}% de tokens/cota.`
+    );
+  }
+
   // Se gerou a mais ou a menos devido à variação de cada lote, ajusta para a quantidade pedida
   const slicedQuestions = allRawQuestions.slice(0, quantidadeTotal);
 
-  // Processa alternativas e embaralha a lista final para intercalar os lotes
+  // Processa alternativas e embaralha a lista final para intercalar perfeitamente as do cache com as da IA
   const questoesProcessadas = shuffleArray(shuffleAlternatives(slicedQuestions));
 
   // Persistência no Banco de Dados

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   Upload,
@@ -13,7 +13,16 @@ import {
   FileText,
   HelpCircle,
   Play,
+  Briefcase,
+  Crown,
+  Lock,
+  CalendarDays,
+  ArrowRight,
 } from "lucide-react";
+import Link from "next/link";
+import confetti from "canvas-confetti";
+import { getAiQuotaStatusAction } from "@/actions/quota-actions";
+import { StarterEditalSelector } from "./StarterEditalSelector";
 
 interface TopicItem {
   id: string;
@@ -58,12 +67,27 @@ export function ImportEditalModal({
   onClose,
   onImportSuccess,
 }: ImportEditalModalProps) {
-  const [step, setStep] = useState<"input" | "preview">("input");
-  const [activeTab, setActiveTab] = useState<"file" | "text">("text");
+  const [step, setStep] = useState<"input" | "preview" | "success">("input");
+  const [importedSummary, setImportedSummary] = useState<{
+    subjectsCount: number;
+    topicsCount: number;
+  }>({ subjectsCount: 0, topicsCount: 0 });
+  const [activeTab, setActiveTab] = useState<"text" | "career" | "file" | "pdf">("text");
   const [rawText, setRawText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      getAiQuotaStatusAction().then((res) => {
+        if (res.success && res.data) {
+          setIsPro(res.data.isUnlimited);
+        }
+      });
+    }
+  }, [isOpen]);
 
   const [parsedSubjects, setParsedSubjects] = useState<SubjectItem[]>([]);
   const [expandedSubjects, setExpandedSubjects] = useState<
@@ -265,8 +289,19 @@ export function ImportEditalModal({
         throw new Error(result.error || "Erro no servidor");
       }
 
+      const totalTopicsCount = finalData.reduce((acc, s) => acc + s.topics.length, 0);
+      setImportedSummary({
+        subjectsCount: finalData.length,
+        topicsCount: totalTopicsCount,
+      });
+
       onImportSuccess?.(result);
-      handleClose();
+      setStep("success");
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
     } catch (error) {
       console.error("Erro na importação:", error);
     } finally {
@@ -279,12 +314,13 @@ export function ImportEditalModal({
     setRawText("");
     setSelectedFile(null);
     setParsedSubjects([]);
+    setImportedSummary({ subjectsCount: 0, topicsCount: 0 });
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-slate-950 border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden text-slate-200 flex flex-col max-h-[88vh]">
+      <div className="relative w-full max-w-3xl lg:max-w-4xl bg-slate-950 border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden text-slate-200 flex flex-col max-h-[88vh]">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
           <div className="flex items-center gap-2">
@@ -301,14 +337,18 @@ export function ImportEditalModal({
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-100">
-                {step === "input"
-                  ? "Importar Edital com IA"
-                  : "Revisar Matérias e Tópicos"}
+                {step === "success"
+                  ? "Edital Mapeado com Sucesso"
+                  : step === "input"
+                    ? "Importar Edital com IA"
+                    : "Revisar Matérias e Tópicos"}
               </h2>
               <p className="text-xs text-slate-400">
-                {step === "input"
-                  ? "Extraia a estrutura de estudos do seu concurso automaticamente"
-                  : "Selecione o que deseja adicionar ao seu Planner"}
+                {step === "success"
+                  ? "Disciplinas mapeadas e prontas para o seu plano"
+                  : step === "input"
+                    ? "Extraia a estrutura de estudos do seu concurso automaticamente"
+                    : "Selecione o que deseja adicionar ao seu Planner"}
               </p>
             </div>
           </div>
@@ -323,60 +363,205 @@ export function ImportEditalModal({
         {/* Corpo */}
         <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
           {step === "input" ? (
-            <div className="space-y-5">
-              {/* Card Didático de Onde Pegar */}
-              <div className="p-4 rounded-2xl bg-linear-to-r from-indigo-950/40 to-slate-900/60 border border-indigo-500/20 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
-                    <HelpCircle size={15} />
-                    Como pegar do PDF do edital?
-                  </span>
+            <div className="space-y-4">
+              {/* Card Didático Contextual por Aba */}
+              {activeTab === "text" && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/40 to-slate-900/60 border border-indigo-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
+                      <HelpCircle size={15} />
+                      Como pegar do PDF do edital?
+                    </span>
+                    <button
+                      onClick={() => {
+                        setActiveTab("text");
+                        setRawText(DATAPREV_EXAMPLE);
+                      }}
+                      className="flex items-center gap-1 text-[11px] font-extrabold text-amber-400 hover:text-amber-300 transition-colors bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg cursor-pointer"
+                    >
+                      <Play size={11} className="fill-amber-400" />
+                      <span>Testar com Exemplo</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Abra o PDF do seu concurso (ex:{" "}
+                    <strong>DATAPREV, FGV, Cebraspe</strong>), vá na seção de{" "}
+                    <strong>CONHECIMENTOS ESPECÍFICOS</strong>, selecione o texto
+                    bruto dos tópicos e cole abaixo. Não precisa formatar nada!
+                  </p>
+                </div>
+              )}
+
+              {activeTab === "career" && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-slate-900/60 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-300 shrink-0">
+                      <Sparkles size={16} />
+                    </div>
+                    <div className="text-xs">
+                      <p className="font-bold text-slate-200">Escolha uma carreira pronta ou use a IA</p>
+                      <p className="text-[11px] text-slate-400">Ative o plano em 1 clique ou digite qualquer cargo no campo abaixo.</p>
+                    </div>
+                  </div>
                   <button
-                    onClick={() => {
-                      setActiveTab("text");
-                      setRawText(DATAPREV_EXAMPLE);
-                    }}
-                    className="flex items-center gap-1 text-[11px] font-extrabold text-amber-400 hover:text-amber-300 transition-colors bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg cursor-pointer"
+                    type="button"
+                    onClick={() => setActiveTab("text")}
+                    className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-2 shrink-0 cursor-pointer self-start sm:self-auto"
                   >
-                    <Play size={11} className="fill-amber-400" />
-                    <span>Testar com Exemplo</span>
+                    Colar edital próprio &rarr;
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-300 leading-relaxed">
-                  Abra o PDF do seu concurso (ex:{" "}
-                  <strong>DATAPREV, FGV, Cebraspe</strong>), vá na seção de{" "}
-                  <strong>CONHECIMENTOS ESPECÍFICOS</strong>, selecione o texto
-                  bruto dos tópicos e cole abaixo. Não precisa formatar nada!
-                </p>
-              </div>
+              )}
 
-              {/* Tabs */}
-              <div className="flex p-1 bg-slate-900/80 border border-white/5 rounded-xl">
+              {activeTab === "file" && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/40 to-slate-900/60 border border-indigo-500/20 text-xs text-slate-300 flex items-center gap-2.5">
+                  <Upload size={16} className="text-indigo-400 shrink-0" />
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Envie um arquivo <strong>.txt</strong> com o texto copiado do edital. A IA irá processar e montar o mapa de estudos.
+                  </p>
+                </div>
+              )}
+
+              {/* Tabs Reordenadas: Colar Texto Primeiro, Carreiras Segundo */}
+              <div className="flex flex-wrap p-1 bg-slate-900/80 border border-white/5 rounded-xl gap-1">
                 <button
                   onClick={() => setActiveTab("text")}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 min-w-[130px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     activeTab === "text"
-                      ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                      ? "bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   <FileText size={14} />
-                  <span>Colar Texto do Edital (Recomendado)</span>
+                  <span>Colar Texto do Edital</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("career")}
+                  className={`flex-1 min-w-[130px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    activeTab === "career"
+                      ? "bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Sparkles size={14} className="text-amber-400" />
+                  <span>Carreiras & IA (1 Clique)</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("file")}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 min-w-[100px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     activeTab === "file"
-                      ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                      ? "bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   <Upload size={14} />
                   <span>Enviar TXT</span>
                 </button>
+                <button
+                  onClick={() => setActiveTab("pdf")}
+                  className={`flex-1 min-w-[110px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    activeTab === "pdf"
+                      ? "bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <FileText size={14} className="text-amber-400" />
+                  <span>Arquivo PDF</span>
+                  <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-0.5">
+                    <Crown size={8} /> PRO
+                  </span>
+                </button>
               </div>
 
-              {activeTab === "file" ? (
+              {activeTab === "career" ? (
+                <div className="pt-2">
+                  <StarterEditalSelector
+                    onSuccess={(data) => {
+                      onImportSuccess({ materias: [] });
+                      setImportedSummary({
+                        subjectsCount: data?.subjectsCount || 5,
+                        topicsCount: data?.topicsCount || 25,
+                      });
+                      setStep("success");
+                      confetti({
+                        particleCount: 80,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                      });
+                    }}
+                    compact={true}
+                    showCustomLink={false}
+                  />
+                </div>
+              ) : activeTab === "pdf" ? (
+                !isPro ? (
+                  <div className="py-6 px-4 rounded-2xl bg-slate-900/60 border border-amber-500/30 flex flex-col items-center text-center space-y-4">
+                    <div className="relative">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-xl shadow-amber-500/10">
+                        <Crown size={28} />
+                      </div>
+                      <div className="absolute -top-1 -right-1 p-1 rounded-md bg-amber-500 text-slate-950 font-bold">
+                        <Lock size={12} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 max-w-md">
+                      <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        Recurso Exclusivo Synapse Pro
+                      </span>
+                      <h3 className="text-sm sm:text-base font-bold text-white">
+                        Leitor Inteligente de Editais em PDF
+                      </h3>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        Nossa IA Vision vasculha o PDF completo de 100+ páginas da banca (FGV, Cebraspe, FCC), detecta o anexo de Conteúdo Programático e organiza disciplinas e tópicos automaticamente com zero trabalho manual.
+                      </p>
+                    </div>
+
+                    <div className="w-full max-w-sm space-y-2 pt-2">
+                      <Link
+                        href="/pricing"
+                        onClick={onClose}
+                        className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all"
+                      >
+                        <Crown size={15} />
+                        <span>Desbloquear Leitor de PDF com Synapse Pro</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("text")}
+                        className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                      >
+                        Usar opção gratuita (Colar Texto do Edital)
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-amber-500/40 rounded-xl cursor-pointer bg-amber-500/5 hover:bg-amber-500/10 transition-all group">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+                      <div className="p-3 mb-2 rounded-full bg-amber-500/15 text-amber-400 group-hover:scale-110 transition-transform">
+                        <FileText size={24} />
+                      </div>
+                      <p className="text-xs font-bold text-slate-200">
+                        {selectedFile
+                          ? selectedFile.name
+                          : "Clique para enviar o PDF do Edital Oficial"}
+                      </p>
+                      <p className="text-[10px] text-amber-300/80 mt-1">
+                        Formatos PDF até 25MB • Processamento Synapse Pro
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf"
+                      onChange={(e) =>
+                        e.target.files && setSelectedFile(e.target.files[0])
+                      }
+                    />
+                  </label>
+                )
+              ) : activeTab === "file" ? (
                 <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-white/10 rounded-xl cursor-pointer bg-white/5 hover:bg-white/10 hover:border-indigo-500/40 transition-all group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
                     <div className="p-3 mb-2 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:scale-110 transition-transform">
@@ -403,15 +588,15 @@ export function ImportEditalModal({
                 </label>
               ) : (
                 <textarea
-                  rows={8}
+                  rows={9}
                   value={rawText}
                   onChange={(e) => setRawText(e.target.value)}
                   placeholder="Cole aqui o conteúdo programático copiado do edital PDF...&#10;&#10;Exemplo:&#10;MODULO II - CONHECIMENTOS ESPECÍFICOS:&#10;PERFIL 1: ANÁLISE DE NEGÓCIOS DE TI:&#10;1 Análise de negócios. 2 Gestão por processos..."
-                  className="w-full p-3.5 rounded-xl bg-slate-900/60 border border-white/10 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors resize-none leading-relaxed font-mono"
+                  className="w-full min-h-[220px] p-4 rounded-xl bg-slate-900/60 border border-white/10 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors resize-y leading-relaxed font-mono"
                 />
               )}
             </div>
-          ) : (
+          ) : step === "preview" ? (
             /* PREVIEW STEP */
             <div className="space-y-3">
               {parsedSubjects.map((sub) => {
@@ -531,60 +716,150 @@ export function ImportEditalModal({
                 );
               })}
             </div>
-          )}
-        </div>
-
-        {/* Rodapé */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-900/40 border-t border-white/5 shrink-0">
-          <button
-            onClick={handleClose}
-            className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-          >
-            Cancelar
-          </button>
-
-          {step === "input" ? (
-            <button
-              disabled={
-                isProcessing ||
-                (activeTab === "file" && !selectedFile) ||
-                (activeTab === "text" && !rawText.trim())
-              }
-              onClick={handleProcessEdital}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_25px_rgba(99,102,241,0.6)] disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>Analisando com IA...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={14} />
-                  <span>Analisar Edital com IA</span>
-                </>
-              )}
-            </button>
           ) : (
-            <button
-              disabled={isSaving}
-              onClick={handleConfirmImport}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all cursor-pointer disabled:opacity-50"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>Salvando no Planner...</span>
-                </>
-              ) : (
-                <>
-                  <Check size={14} />
-                  <span>Confirmar e Importar</span>
-                </>
-              )}
-            </button>
+            /* ETAPA DE SUCESSO & INTEGRAÇÃO COM PLANNER */
+            <div className="py-8 px-4 flex flex-col items-center text-center space-y-6 max-w-lg mx-auto animate-fade-in">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/10">
+                  <Check size={32} />
+                </div>
+                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center border-2 border-slate-950 text-xs shadow-md">
+                  <Sparkles size={12} className="text-amber-300" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-bold font-mono">
+                  Mapeamento Concluído com Sucesso
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Edital Integrado ao Synapse! 🎉
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md">
+                  Foram cadastradas{" "}
+                  <strong className="text-white font-semibold">
+                    {importedSummary.subjectsCount} disciplinas
+                  </strong>{" "}
+                  e{" "}
+                  <strong className="text-white font-semibold">
+                    {importedSummary.topicsCount} tópicos
+                  </strong>{" "}
+                  no seu plano de estudos.
+                </p>
+              </div>
+
+              {/* Card Destaque: Próximo Passo Recomendado */}
+              <div className="w-full p-4 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900/80 border border-indigo-500/30 text-left space-y-2.5 shadow-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    Próximo Passo Recomendado
+                  </span>
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                    <CalendarDays size={16} className="text-indigo-400" />
+                    <span>Distribuir Matérias no Cronograma Semanal</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
+                    Nosso algoritmo calcula a prioridade e os pesos das disciplinas para montar seu ciclo semanal de estudos automaticamente.
+                  </p>
+                </div>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="w-full space-y-2.5 pt-1">
+                <Link
+                  href="/week"
+                  onClick={() => {
+                    handleClose();
+                  }}
+                  className="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl shadow-indigo-950/70 transition-all cursor-pointer group active:scale-95"
+                >
+                  <CalendarDays size={16} />
+                  <span>Montar Cronograma Semanal Agora</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold border border-white/5 transition-all cursor-pointer"
+                >
+                  Ver Edital Verticalizado
+                </button>
+              </div>
+            </div>
           )}
         </div>
+
+        {/* Rodapé (apenas para input e preview) */}
+        {step !== "success" && (
+          <div className="flex items-center justify-between gap-3 px-6 py-4 bg-slate-900/40 border-t border-white/5 shrink-0">
+            <div className="text-xs text-slate-400">
+              {activeTab === "career" && step === "input" && (
+                <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-amber-400 shrink-0" />
+                  <span>Ative uma carreira acima ou digite seu cargo com IA</span>
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                {activeTab === "career" && step === "input" ? "Fechar" : "Cancelar"}
+              </button>
+
+              {step === "input" && activeTab !== "career" && (
+                <button
+                  disabled={
+                    isProcessing ||
+                    (activeTab === "file" && !selectedFile) ||
+                    (activeTab === "text" && !rawText.trim())
+                  }
+                  onClick={handleProcessEdital}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_25px_rgba(99,102,241,0.6)] disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Analisando com IA...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      <span>Analisar Edital com IA</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {step === "preview" && (
+                <button
+                  disabled={isSaving}
+                  onClick={handleConfirmImport}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Salvando no Planner...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      <span>Confirmar e Importar</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

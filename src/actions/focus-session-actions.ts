@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { recordStudyActivityAction } from "./gamification-actions";
@@ -63,6 +64,11 @@ export async function finishFocusSessionAction(
       "POMODORO",
       duration,
     );
+
+    // Invalida os caches das páginas afetadas
+    revalidatePath("/dashboard");
+    revalidatePath("/study-room");
+    revalidatePath("/week");
 
     return {
       success: true,

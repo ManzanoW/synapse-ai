@@ -95,6 +95,20 @@ export default function HelpPage() {
       tag: 'Métricas Inteligentes',
       icon: Target,
     },
+    {
+      q: 'O que é o Modo Dia D e a Folha Óptica de Respostas?',
+      a: 'O Modo Dia D simula com exatidão a tensão e as regras de uma prova real de concurso. Ele ativa um cronômetro regressivo com alerta visual e sonoro nos 15 minutos finais e disponibiliza a Folha Óptica (Cartão-Resposta oficial). Você pode preencher as bolinhas de marcação interativas, alternar entre questões em 1 clique e acompanhar em tempo real o cálculo de Nota Líquida (especialmente no modelo Cebraspe, onde 1 errada anula 1 certa), treinando o gerenciamento do tempo antes do grande dia.',
+      category: 'simulados',
+      tag: 'Modo Dia D',
+      icon: Target,
+    },
+    {
+      q: 'Posso usar o Synapse sem internet (Modo Offline / PWA)?',
+      a: 'Sim! O Synapse AI foi construído como um Progressive Web App (PWA). Você pode instalá-lo no celular ou computador (pelo menu do navegador "Adicionar à tela de início" ou "Instalar aplicativo"). Na revisão de Flashcards (algoritmo FSRS), todas as revisões feitas sem sinal (no metrô, ônibus ou avião) são salvas em fila local segura. Assim que sua conexão retornar, o sistema sincroniza automaticamente todas as suas métricas e intervalos na nuvem.',
+      category: 'revisao',
+      tag: 'PWA & Offline',
+      icon: Zap,
+    },
   ];
 
   const categories = [
