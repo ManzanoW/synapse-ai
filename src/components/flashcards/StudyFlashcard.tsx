@@ -5,8 +5,6 @@ import {
   useEffect,
   useCallback,
   useRef,
-  useOptimistic,
-  useTransition,
   useMemo,
 } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from "framer-motion";
@@ -76,12 +74,6 @@ interface StudyFlashcardProps {
   userId?: string;
 }
 
-interface OptimisticState {
-  index: number;
-  acertos: number;
-  erros: number;
-}
-
 export default function StudyFlashcard({
   cards: initialCards,
   deckTitle,
@@ -92,7 +84,6 @@ export default function StudyFlashcard({
   const [index, setIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-  const [selectedGrade, setSelectedGrade] = useState<ReviewGrade | null>(null);
   const [showEbbinghausCurve, setShowEbbinghausCurve] = useState(false);
   const isDraggingRef = useRef(false);
   const cardStartTimeRef = useRef(0);
@@ -136,28 +127,12 @@ export default function StudyFlashcard({
   const facilOpacity = useTransform(x, [75, 90, 140], [0, 0.6, 1]);
   const facilScale = useTransform(x, [75, 90, 140], [0.8, 1, 1.1]);
 
-  const [, startTransition] = useTransition();
   const { playCorrect, playError, playFlip } = useSound();
 
   const [performanceStats, setPerformanceStats] = useState({
     erros: 0,
     acertos: 0,
   });
-
-  const [optimisticState, setOptimisticState] = useOptimistic<
-    OptimisticState,
-    { grade: ReviewGrade }
-  >(
-    { index, acertos: performanceStats.acertos, erros: performanceStats.erros },
-    (currentState, action) => {
-      const isSuccess = action.grade >= 3;
-      return {
-        index: Math.min(currentState.index + 1, cards.length),
-        acertos: isSuccess ? currentState.acertos + 1 : currentState.acertos,
-        erros: !isSuccess ? currentState.erros + 1 : currentState.erros,
-      };
-    },
-  );
 
   const { stats: gamificationStats, refreshStats } = useGamification();
   const { notifyAchievement } = useAchievement();
@@ -168,7 +143,7 @@ export default function StudyFlashcard({
     title?: string;
   } | null>(null);
 
-  const currentIndex = optimisticState.index;
+  const currentIndex = index;
   const currentCard = cards[currentIndex];
   const progress =
     cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
@@ -262,10 +237,10 @@ export default function StudyFlashcard({
   }, [playFlip]);
 
   const handleAnswer = useCallback(
-    async (grade: ReviewGrade) => {
+    (grade: ReviewGrade) => {
       if (!currentCard) return;
 
-      // Efeito sonoro imediato
+      // 1. Efeito sonoro imediato
       if (grade >= 3) {
         playCorrect();
       } else if (grade === 1) {
@@ -274,84 +249,21 @@ export default function StudyFlashcard({
         playFlip();
       }
 
-      setSelectedGrade(grade);
-      setIsFlipped(false);
-
+      const targetCard = currentCard;
       const isLastCard = index >= cards.length - 1;
-
-      startTransition(() => {
-        setOptimisticState({ grade });
-      });
-
       const responseTimeMs = Math.max(0, Date.now() - cardStartTimeRef.current);
 
-      const reviewPayload = {
-        cardId: currentCard.id,
-        grade,
-        rating: grade,
-        responseTimeMs,
-      };
+      // 2. Transição instantânea (0ms) para o próximo card
+      setIsFlipped(false);
+      setIndex((prev) => prev + 1);
 
-      try {
-        if (typeof navigator !== "undefined" && !navigator.onLine) {
-          enqueueOfflineReview(reviewPayload);
-        } else {
-          try {
-            const previousLevel = gamificationStats?.gamification?.level ?? 1;
-
-            const resReview = await fetch("/api/flashcards/review", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(reviewPayload),
-            });
-
-            if (resReview.ok) {
-              const data = await resReview.json();
-
-              window.dispatchEvent(
-                new CustomEvent("xp-updated", {
-                  detail: {
-                    totalXp: data.totalXp,
-                    earnedXp: data.earnedXp,
-                    levelInfo: data.levelInfo,
-                  },
-                }),
-              );
-
-              if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
-                const newLevel = data.levelInfo.level;
-                const newTitle = data.levelInfo.title || "Mestre da Retenção";
-
-                setLevelUpData({
-                  leveledUp: true,
-                  newLevel,
-                  title: newTitle,
-                });
-              }
-            } else {
-              enqueueOfflineReview(reviewPayload);
-            }
-
-            if (userId) {
-              await invalidateUserCacheAction(userId);
-            }
-            await refreshStats();
-          } catch (error) {
-            console.warn("Sem conexão estável. Revisão enfileirada offline:", error);
-            enqueueOfflineReview(reviewPayload);
-          }
-        }
-      } finally {
-        setIndex((prev) => prev + 1);
-        if (grade < 3) {
-          setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
-        } else {
-          setPerformanceStats((prev) => ({
-            ...prev,
-            acertos: prev.acertos + 1,
-          }));
-        }
-        setSelectedGrade(null);
+      if (grade < 3) {
+        setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
+      } else {
+        setPerformanceStats((prev) => ({
+          ...prev,
+          acertos: prev.acertos + 1,
+        }));
       }
 
       if (isLastCard) {
@@ -365,19 +277,78 @@ export default function StudyFlashcard({
 
         checkNewAchievements(notifyAchievement);
       }
+
+      // 3. Sincronização em background com a API / banco sem travar a navegação
+      const reviewPayload = {
+        cardId: targetCard.id,
+        grade,
+        rating: grade,
+        responseTimeMs,
+      };
+
+      (async () => {
+        try {
+          if (typeof navigator !== "undefined" && !navigator.onLine) {
+            enqueueOfflineReview(reviewPayload);
+            return;
+          }
+
+          const previousLevel = gamificationStats?.gamification?.level ?? 1;
+
+          const resReview = await fetch("/api/flashcards/review", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reviewPayload),
+          });
+
+          if (resReview.ok) {
+            const data = await resReview.json();
+
+            window.dispatchEvent(
+              new CustomEvent("xp-updated", {
+                detail: {
+                  totalXp: data.totalXp,
+                  earnedXp: data.earnedXp,
+                  levelInfo: data.levelInfo,
+                },
+              }),
+            );
+
+            if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
+              const newLevel = data.levelInfo.level;
+              const newTitle = data.levelInfo.title || "Mestre da Retenção";
+
+              setLevelUpData({
+                leveledUp: true,
+                newLevel,
+                title: newTitle,
+              });
+            }
+
+            if (userId) {
+              invalidateUserCacheAction(userId).catch(() => {});
+            }
+            refreshStats().catch(() => {});
+          } else {
+            enqueueOfflineReview(reviewPayload);
+          }
+        } catch (error) {
+          console.warn("Sem conexão estável. Revisão enfileirada offline:", error);
+          enqueueOfflineReview(reviewPayload);
+        }
+      })();
     },
     [
-      index,
-      cards,
+      cards.length,
       currentCard,
-      gamificationStats,
-      refreshStats,
+      gamificationStats?.gamification?.level,
+      index,
       notifyAchievement,
-      setOptimisticState,
-      userId,
       playCorrect,
       playError,
       playFlip,
+      refreshStats,
+      userId,
     ],
   );
 
@@ -547,7 +518,7 @@ export default function StudyFlashcard({
                   Dominados
                 </span>
                 <span className="text-lg sm:text-xl font-black text-emerald-400 font-mono tracking-tight">
-                  {optimisticState.acertos}
+                  {performanceStats.acertos}
                 </span>
               </div>
               <div className="pl-2">
@@ -555,7 +526,7 @@ export default function StudyFlashcard({
                   Revisar
                 </span>
                 <span className="text-lg sm:text-xl font-black text-rose-400 font-mono tracking-tight">
-                  {optimisticState.erros}
+                  {performanceStats.erros}
                 </span>
               </div>
             </div>
@@ -1005,14 +976,10 @@ export default function StudyFlashcard({
                     {btn.key}
                   </span>
 
-                  {selectedGrade === btn.grade ? (
-                    <Loader2 size={18} className="animate-spin my-1" />
-                  ) : (
-                    <btn.icon
-                      size={18}
-                      className="group-hover:scale-110 transition-transform my-0.5"
-                    />
-                  )}
+                  <btn.icon
+                    size={18}
+                    className="group-hover:scale-110 transition-transform my-0.5"
+                  />
 
                   <span className="font-black text-[11px] sm:text-xs tracking-wider">
                     {btn.label}
