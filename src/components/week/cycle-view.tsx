@@ -322,17 +322,17 @@ export function CycleView({
     <div className="space-y-10 animate-in fade-in duration-300">
       {/* 1. PAINEL DE TELEMETRIA SUPERIOR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-gradient-to-br from-slate-900/95 via-slate-950 to-indigo-950/50 border border-slate-800/80 rounded-3xl p-6 sm:p-8 relative overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-white dark:bg-gradient-to-br dark:from-slate-900/95 dark:via-slate-950 dark:to-indigo-950/50 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 sm:p-8 relative overflow-hidden backdrop-blur-xl shadow-xs dark:shadow-2xl flex flex-col justify-between">
           <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[11px] uppercase tracking-widest px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
-                  <Flame size={13} className="text-indigo-400 animate-pulse" />
+                <span className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-mono text-[11px] uppercase tracking-widest px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
+                  <Flame size={13} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
                   Volta #{cycleLap}
                 </span>
-                <span className="text-xs text-slate-400 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   Ciclo Ativo
                 </span>
 
@@ -342,23 +342,23 @@ export function CycleView({
                     tabIndex={0}
                     role="note"
                     aria-label="Informações sobre calibração por IA do ciclo"
-                    className="cursor-help inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 text-[10px] font-mono font-bold tracking-wide text-violet-300 backdrop-blur-md transition-all hover:bg-violet-500/20 hover:border-violet-500/50 hover:text-violet-200 shadow-[0_0_12px_rgba(139,92,246,0.15)] focus:outline-none focus:ring-1 focus:ring-violet-400"
+                    className="cursor-help inline-flex items-center gap-1.5 rounded-full border border-violet-300 dark:border-violet-500/30 bg-violet-100 dark:bg-violet-500/10 px-2.5 py-1 text-[10px] font-mono font-bold tracking-wide text-violet-800 dark:text-violet-300 backdrop-blur-md transition-all hover:bg-violet-200 dark:hover:bg-violet-500/20 hover:border-violet-400 dark:hover:border-violet-500/50 shadow-xs focus:outline-none focus:ring-1 focus:ring-violet-400"
                   >
-                    <Sparkles size={11} className="text-cyan-400 animate-pulse" />
+                    <Sparkles size={11} className="text-cyan-600 dark:text-cyan-400 animate-pulse" />
                     <span>Ciclo Calibrado por IA</span>
                   </div>
 
                   {/* Tooltip Hover Simples e Elegante */}
-                  <div className="pointer-events-none absolute left-0 sm:left-1/2 sm:-translate-x-1/2 top-full mt-2 w-72 sm:w-80 rounded-2xl border border-violet-500/30 bg-[#0c1020]/95 p-3.5 text-xs text-slate-300 shadow-2xl shadow-violet-950/80 backdrop-blur-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 z-50 transform scale-95 group-hover:scale-100 group-focus-within:scale-100">
+                  <div className="pointer-events-none absolute left-0 sm:left-1/2 sm:-translate-x-1/2 top-full mt-2 w-72 sm:w-80 rounded-2xl border border-slate-200 dark:border-violet-500/30 bg-white dark:bg-[#0c1020]/95 p-3.5 text-xs text-slate-700 dark:text-slate-300 shadow-2xl backdrop-blur-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 z-50 transform scale-95 group-hover:scale-100 group-focus-within:scale-100">
                     <div className="flex items-start gap-2.5">
-                      <div className="p-1.5 rounded-lg bg-violet-500/15 text-violet-300 shrink-0 border border-violet-500/30">
-                        <Sparkles size={14} className="text-cyan-400" />
+                      <div className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 shrink-0 border border-violet-200 dark:border-violet-500/30">
+                        <Sparkles size={14} className="text-cyan-600 dark:text-cyan-400" />
                       </div>
                       <div className="space-y-1">
-                        <p className="font-semibold text-white text-[11px] flex items-center gap-1">
+                        <p className="font-semibold text-slate-900 dark:text-white text-[11px] flex items-center gap-1">
                           Intercalação & Reforço Adaptativo
                         </p>
-                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                        <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
                           A ordem dos blocos foi calculada com algoritmo de intercalação para evitar fadiga cognitiva e priorizar suas matérias com maior necessidade de retenção.
                         </p>
                       </div>
@@ -366,8 +366,8 @@ export function CycleView({
                   </div>
                 </div>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
-                <Compass className="text-indigo-400" size={26} />
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                <Compass className="text-indigo-600 dark:text-indigo-400" size={26} />
                 Navegação do Ciclo
               </h2>
             </div>
@@ -376,18 +376,18 @@ export function CycleView({
               {optimisticCompletedBlocks > 0 && (
                 <button
                   onClick={onUndoBlock}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 px-3.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-sm"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 px-3.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-xs"
                   title="Desfazer bloco anterior"
                 >
                   <RotateCcw size={14} />
                   <span>Desfazer</span>
                 </button>
               )}
-              <div className="bg-indigo-950/80 border border-indigo-800/60 px-5 py-3 rounded-2xl text-right shadow-inner">
-                <span className="text-2xl font-black text-indigo-400 font-mono block leading-none">
+              <div className="bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800/60 px-5 py-3 rounded-2xl text-right shadow-xs dark:shadow-inner">
+                <span className="text-2xl font-black text-indigo-700 dark:text-indigo-400 font-mono block leading-none">
                   {optimisticCompletedBlocks}/{effectiveTotalBlocks}
                 </span>
-                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-0.5 block">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mt-0.5 block">
                   Blocos ({effectiveProgress}%)
                 </span>
               </div>
@@ -395,17 +395,17 @@ export function CycleView({
           </div>
 
           <div className="my-6 space-y-2.5 relative z-10">
-            <div className="flex justify-between items-center text-xs text-slate-300 font-medium">
+            <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-300 font-medium">
               <span>Progresso na Volta Atual</span>
               <span>
                 Faltam{" "}
-                <strong className="text-indigo-300 font-mono font-bold">
+                <strong className="text-indigo-700 dark:text-indigo-300 font-mono font-bold">
                   {formatMinutes(remainingMinutes)}
                 </strong>
               </span>
             </div>
 
-            <div className="w-full h-3.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800/80 shadow-inner">
+            <div className="w-full h-3.5 bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-300 dark:border-slate-800/80 shadow-xs dark:shadow-inner">
               <div
                 className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-700 ease-out shadow-[0_0_15px_rgba(99,102,241,0.6)]"
                 style={{ width: `${effectiveProgress}%` }}
@@ -413,28 +413,28 @@ export function CycleView({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3.5 pt-4 border-t border-slate-800/60 text-center relative z-10">
-            <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/50">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+          <div className="grid grid-cols-3 gap-3.5 pt-4 border-t border-slate-200 dark:border-slate-800/60 text-center relative z-10">
+            <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800/50">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block mb-1">
                 Carga Total
               </span>
-              <span className="text-sm font-bold text-slate-100 font-mono">
+              <span className="text-sm font-bold text-slate-900 dark:text-slate-100 font-mono">
                 {formatMinutes(totalMinutes)}
               </span>
             </div>
-            <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/50">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+            <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800/50">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block mb-1">
                 Concluídos
               </span>
-              <span className="text-sm font-bold text-emerald-400 font-mono">
+              <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">
                 {optimisticCompletedBlocks} blocos
               </span>
             </div>
-            <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/50">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+            <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800/50">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block mb-1">
                 Restantes
               </span>
-              <span className="text-sm font-bold text-indigo-400 font-mono">
+              <span className="text-sm font-bold text-indigo-700 dark:text-indigo-400 font-mono">
                 {Math.max(0, effectiveTotalBlocks - optimisticCompletedBlocks)}{" "}
                 blocos
               </span>
@@ -442,13 +442,13 @@ export function CycleView({
           </div>
         </div>
 
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 sm:p-8 backdrop-blur-xl flex flex-col justify-between space-y-6 shadow-2xl">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 sm:p-8 backdrop-blur-xl flex flex-col justify-between space-y-6 shadow-xs dark:shadow-2xl">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase flex items-center gap-2">
-              <Sparkles size={15} className="text-indigo-400" />
+            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
+              <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400" />
               Balanço por Matéria
             </h3>
-            <span className="text-xs font-mono text-slate-400">
+            <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
               {subjectBreakdown.length} matérias
             </span>
           </div>
@@ -662,12 +662,12 @@ export function CycleView({
                 key={`upcoming-${block.subjectId || block.subjectName}-${
                   block.blockNumber
                 }-${idx}`}
-                className={`border rounded-2xl p-5 space-y-4 transition-all duration-300 relative overflow-hidden shadow-lg ${
+                className={`border rounded-2xl p-5 space-y-4 transition-all duration-300 relative overflow-hidden shadow-xs dark:shadow-lg ${
                   isDone
-                    ? "bg-slate-950/40 border-slate-800/50 opacity-60"
+                    ? "bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800/50 opacity-60"
                     : block.isReinforcement
-                    ? "bg-slate-900/70 border-violet-500/35 hover:border-violet-500/60 hover:bg-slate-900/90 shadow-[0_0_20px_rgba(139,92,246,0.12)]"
-                    : "bg-slate-900/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/90"
+                    ? "bg-violet-50/70 dark:bg-slate-900/70 border-violet-200 dark:border-violet-500/35 hover:border-violet-300 dark:hover:border-violet-500/60 shadow-[0_0_20px_rgba(139,92,246,0.08)]"
+                    : "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs"
                 }`}
               >
                 {/* Linha brilhante sutil no topo para blocos de reforço adaptativo */}
@@ -685,18 +685,18 @@ export function CycleView({
 
                 <div className="flex items-center justify-between pl-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-slate-400">
+                    <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">
                       #{block.blockNumber}
                     </span>
-                    <span className="text-sm font-bold text-white truncate max-w-[150px]">
+                    <span className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[150px]">
                       {block.subjectName}
                     </span>
                     {block.isReinforcement && (
                       <span
                         title="Bloco adicional de reforço adaptativo gerado por déficit de retenção"
-                        className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider text-violet-300 bg-violet-500/15 border border-violet-500/30 px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(139,92,246,0.2)] shrink-0"
+                        className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider text-violet-800 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/15 border border-violet-300 dark:border-violet-500/30 px-2 py-0.5 rounded-full shadow-xs shrink-0"
                       >
-                        <Zap size={10} className="text-cyan-400 fill-cyan-400" />
+                        <Zap size={10} className="text-cyan-600 dark:text-cyan-400 fill-cyan-400" />
                         Reforço
                       </span>
                     )}
@@ -711,34 +711,34 @@ export function CycleView({
                           setSwapModalOpen(true);
                         }}
                         title="Trocar matéria deste bloco"
-                        className="p-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-indigo-400 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-950 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors cursor-pointer"
                       >
                         <ArrowRightLeft size={13} />
                       </button>
                     )}
 
                     {isDone ? (
-                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2.5 py-1 rounded-full uppercase">
+                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-1 rounded-full uppercase">
                         ✓ Feito
                       </span>
                     ) : (
-                      <span className="text-[10px] font-mono text-indigo-300 bg-indigo-950/80 border border-indigo-800/60 px-2.5 py-1 rounded-full font-bold">
+                      <span className="text-[10px] font-mono font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800/60 px-2.5 py-1 rounded-full">
                         {weight}% relevância
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center text-xs font-mono text-slate-300 pl-2 pt-2 border-t border-slate-800/60">
+                <div className="flex justify-between items-center text-xs font-mono text-slate-600 dark:text-slate-300 pl-2 pt-2 border-t border-slate-200 dark:border-slate-800/60">
                   <span className="flex items-center gap-1.5 text-xs font-semibold">
-                    <Clock size={13} className="text-slate-400" />
+                    <Clock size={13} className="text-slate-500 dark:text-slate-400" />
                     {formatMinutes(block.durationMinutes)}
                   </span>
 
                   {block.assignedTopics.length > 0 && (
                     <button
                       onClick={() => toggleExpand(block.blockNumber)}
-                      className="text-xs text-indigo-400 hover:underline flex items-center gap-1 font-sans font-semibold cursor-pointer select-none"
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-sans font-semibold cursor-pointer select-none"
                     >
                       <span>{block.assignedTopics.length} tópicos</span>
                       <motion.div
@@ -760,13 +760,13 @@ export function CycleView({
                       transition={{ duration: 0.25, ease: "easeInOut" }}
                       className="overflow-hidden pl-2"
                     >
-                      <div className="pt-3 border-t border-slate-800/80 space-y-2">
+                      <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
                         {block.assignedTopics.map((top, topIdx) => (
                           <div
                             key={`upcoming-top-${
                               top.id || top.title
                             }-${topIdx}`}
-                            className="text-xs text-slate-300 bg-slate-950/90 p-2.5 rounded-xl border border-slate-900 truncate shadow-sm"
+                            className="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/90 p-2.5 rounded-xl border border-slate-200 dark:border-slate-900 truncate shadow-xs"
                           >
                             • {top.title}
                           </div>
@@ -783,17 +783,17 @@ export function CycleView({
 
       {/* MODAL DE SWAP */}
       {swapModalOpen && blockToSwap && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-6 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-6 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-4">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <ArrowRightLeft size={17} className="text-indigo-400" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <ArrowRightLeft size={17} className="text-indigo-600 dark:text-indigo-400" />
                   Trocar Matéria do Bloco #{blockToSwap.blockNumber}
                 </h2>
-                <p className="text-xs text-slate-300 mt-1">
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
                   Selecione a matéria substituta para o bloco de{" "}
-                  <strong className="text-indigo-300">
+                  <strong className="text-indigo-600 dark:text-indigo-300">
                     {blockToSwap.subjectName}
                   </strong>
                   .
@@ -804,14 +804,14 @@ export function CycleView({
                   setSwapModalOpen(false);
                   setBlockToSwap(null);
                 }}
-                className="text-slate-400 hover:text-white transition-colors cursor-pointer p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer p-1"
               >
                 <X size={20} />
               </button>
             </div>
 
             <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
                 Opções disponíveis:
               </span>
 
@@ -826,14 +826,14 @@ export function CycleView({
                     }
                     type="button"
                     onClick={() => handleExecuteSwap(subjectItem.name)}
-                    className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/50 transition-all text-left group cursor-pointer shadow-sm"
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all text-left group cursor-pointer shadow-xs dark:shadow-sm"
                   >
                     <div className="flex items-center gap-3">
                       <span
-                        className="w-3 h-3 rounded-full shadow-sm"
+                        className="w-3 h-3 rounded-full shadow-xs"
                         style={{ backgroundColor: subjectItem.color }}
                       />
-                      <span className="text-xs font-semibold text-slate-200 group-hover:text-white">
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">
                         {subjectItem.name}
                       </span>
                     </div>

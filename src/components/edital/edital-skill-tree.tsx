@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 import { MindMapModal } from "@/components/mindmap/MindMapModal";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export interface SkillTreeTopic {
   id: string;
@@ -206,6 +207,7 @@ function SkillTreeTopicCard({
   onOpenProIncidence,
   index,
 }: SkillTreeTopicCardProps) {
+  const { isLight } = useTheme();
   const [isHovered, setIsHovered] = useState(false);
   const mastery = getTopicMastery(topic);
   const inc = getTopicIncidence(topic, index);
@@ -217,22 +219,36 @@ function SkillTreeTopicCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onSelect}
-      className="p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer relative overflow-hidden flex flex-col justify-between group"
+      className={`p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer relative overflow-hidden flex flex-col justify-between group ${
+        isLight
+          ? "bg-white border-slate-200 hover:border-slate-300 shadow-xs"
+          : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
+      }`}
       style={{
         borderColor: isSelected
           ? subColor
           : isHovered
           ? hexToRgba(subColor, 0.75)
+          : isLight
+          ? "#e2e8f0"
           : "rgba(30, 41, 59, 0.8)",
         backgroundColor: isSelected
-          ? "rgba(15, 23, 42, 0.95)"
+          ? isLight
+            ? "#f8fafc"
+            : "rgba(15, 23, 42, 0.95)"
           : isHovered
-          ? "rgba(15, 23, 42, 0.85)"
+          ? isLight
+            ? "#f1f5f9"
+            : "rgba(15, 23, 42, 0.85)"
+          : isLight
+          ? "#ffffff"
           : "rgba(2, 6, 23, 0.6)",
         boxShadow: isSelected
-          ? `0 0 20px ${hexToRgba(subColor, 0.4)}`
+          ? `0 0 20px ${hexToRgba(subColor, 0.35)}`
           : isHovered
-          ? `0 8px 24px -4px ${hexToRgba(subColor, 0.25)}, 0 0 12px ${hexToRgba(subColor, 0.15)}`
+          ? isLight
+            ? `0 6px 20px -4px ${hexToRgba(subColor, 0.2)}, 0 2px 6px -1px rgba(15, 23, 42, 0.05)`
+            : `0 8px 24px -4px ${hexToRgba(subColor, 0.25)}, 0 0 12px ${hexToRgba(subColor, 0.15)}`
           : undefined,
       }}
     >
@@ -241,7 +257,7 @@ function SkillTreeTopicCard({
         className="absolute inset-0 pointer-events-none transition-opacity duration-300"
         style={{
           backgroundColor: subColor,
-          opacity: isSelected ? 0.12 : isHovered ? 0.08 : 0,
+          opacity: isSelected ? (isLight ? 0.08 : 0.12) : isHovered ? (isLight ? 0.05 : 0.08) : 0,
         }}
       />
 
@@ -254,19 +270,19 @@ function SkillTreeTopicCard({
       <div className="flex items-center justify-between gap-2 mb-3 relative z-10">
         <div className="flex items-center gap-1.5">
           {mastery.tier === "DIAMOND" && (
-            <Crown size={14} className="text-cyan-400 fill-cyan-400/20" />
+            <Crown size={14} className="text-cyan-600 dark:text-cyan-400 fill-cyan-400/20" />
           )}
           {mastery.tier === "GOLD" && (
-            <Trophy size={14} className="text-amber-400 fill-amber-400/20" />
+            <Trophy size={14} className="text-amber-600 dark:text-amber-400 fill-amber-400/20" />
           )}
           {mastery.tier === "SILVER" && (
-            <Shield size={14} className="text-slate-300 fill-slate-300/20" />
+            <Shield size={14} className="text-slate-500 dark:text-slate-300 fill-slate-300/20" />
           )}
           {mastery.tier === "BRONZE" && (
-            <Shield size={14} className="text-orange-500 fill-orange-500/20" />
+            <Shield size={14} className="text-orange-600 dark:text-orange-500 fill-orange-500/20" />
           )}
           {mastery.tier === "LOCKED" && (
-            <Lock size={13} className="text-slate-500" />
+            <Lock size={13} className="text-slate-400 dark:text-slate-500" />
           )}
           <span
             className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${mastery.badgeColor}`}
@@ -278,7 +294,7 @@ function SkillTreeTopicCard({
         <span
           className="font-mono text-xs font-bold transition-colors duration-200"
           style={{
-            color: isHovered || isSelected ? subColor : "rgb(203, 213, 225)",
+            color: isHovered || isSelected ? subColor : isLight ? "#475569" : "rgb(203, 213, 225)",
           }}
         >
           {topic.performance || 0}%
@@ -290,7 +306,7 @@ function SkillTreeTopicCard({
         <h4
           className="text-xs font-bold transition-colors duration-200 line-clamp-2"
           style={{
-            color: isHovered || isSelected ? subColor : "#ffffff",
+            color: isHovered || isSelected ? subColor : isLight ? "#0f172a" : "#ffffff",
           }}
         >
           {topic.title}
@@ -302,14 +318,14 @@ function SkillTreeTopicCard({
             <span
               className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
                 inc.level === "HIGH"
-                  ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                  ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30"
                   : inc.level === "MEDIUM"
-                  ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                  : "bg-cyan-500/10 text-cyan-300 border-cyan-500/20"
+                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
+                  : "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-500/20"
               }`}
             >
-              {inc.level === "HIGH" && <Flame size={10} className="text-rose-400" />}
-              {inc.level === "MEDIUM" && <Zap size={10} className="text-amber-400" />}
+              {inc.level === "HIGH" && <Flame size={10} className="text-rose-600 dark:text-rose-400" />}
+              {inc.level === "MEDIUM" && <Zap size={10} className="text-amber-600 dark:text-amber-400" />}
               <span>{inc.label}</span>
             </span>
           ) : (
@@ -319,37 +335,37 @@ function SkillTreeTopicCard({
                 e.stopPropagation();
                 onOpenProIncidence();
               }}
-              className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-800/90 hover:bg-amber-500/10 text-amber-300/80 hover:text-amber-200 border border-amber-500/30 hover:border-amber-400 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 hover:bg-amber-50 text-amber-700 hover:text-amber-800 dark:bg-slate-800/90 dark:hover:bg-amber-500/10 dark:text-amber-300/80 dark:hover:text-amber-200 border border-amber-300 dark:border-amber-500/30 hover:border-amber-400 transition-all cursor-pointer"
               title="Raio-X de Incidência da Banca (Exclusivo Synapse Pro)"
             >
-              <Lock size={9} className="text-amber-400" />
+              <Lock size={9} className="text-amber-600 dark:text-amber-400" />
               <span>Raio-X Banca</span>
-              <Crown size={9} className="text-amber-400 fill-amber-400" />
+              <Crown size={9} className="text-amber-600 dark:text-amber-400 fill-amber-500" />
             </button>
           )}
         </div>
       </div>
 
       {/* Rodapé do Nó: Status e Declínio */}
-      <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] relative z-10">
+      <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[10px] relative z-10">
         {mastery.isDecaying ? (
-          <span className="text-amber-400 font-bold flex items-center gap-1">
+          <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">
             <Clock size={11} />
             Revisar Urgente
           </span>
         ) : topic.firstStudy && topic.firstStudy !== "Pendente" ? (
-          <span className="text-emerald-400 font-medium flex items-center gap-1">
+          <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
             <Sparkles size={11} />
             {topic.firstStudy}
           </span>
         ) : (
-          <span className="text-slate-500">Pendente de estudo</span>
+          <span className="text-slate-600 dark:text-slate-500 font-medium">Pendente de estudo</span>
         )}
 
         <span
-          className="transition-colors duration-200 flex items-center gap-0.5"
+          className="transition-colors duration-200 flex items-center gap-0.5 font-medium"
           style={{
-            color: isHovered || isSelected ? subColor : "rgb(100, 116, 139)",
+            color: isHovered || isSelected ? subColor : isLight ? "#64748b" : "rgb(100, 116, 139)",
           }}
         >
           <span>Ver nó</span>
@@ -488,63 +504,63 @@ export function EditalSkillTree({
               <Sparkles size={13} className="text-cyan-400" />
               <span>Árvore de Domínio RPG</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Constelação de Habilidades do Edital
             </h2>
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
               Cada tópico do edital é um nó estelar. Conquiste 70%+ de acertos em questões para promover o nó a Prata, 85% para Ouro e 95% para Diamante Cósmico.
             </p>
           </div>
 
           {/* Placar de Níveis e Ebbinghaus */}
-          <div className="flex flex-wrap items-center gap-3 bg-slate-950/70 border border-slate-800/90 p-3.5 rounded-2xl backdrop-blur-md">
+          <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/90 p-3.5 rounded-2xl backdrop-blur-md shadow-xs dark:shadow-md">
             <div className="text-center px-2">
-              <div className="text-xs font-mono font-black text-cyan-300 flex items-center justify-center gap-1">
-                <Crown size={14} className="text-cyan-400" />
+              <div className="text-xs font-mono font-black text-cyan-600 dark:text-cyan-300 flex items-center justify-center gap-1">
+                <Crown size={14} className="text-cyan-500 dark:text-cyan-400" />
                 {stats.diamond}
               </div>
-              <span className="text-[10px] uppercase font-bold text-slate-400">Diamante</span>
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Diamante</span>
             </div>
 
-            <div className="h-6 w-px bg-slate-800" />
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
 
             <div className="text-center px-2">
-              <div className="text-xs font-mono font-black text-amber-300 flex items-center justify-center gap-1">
-                <Trophy size={14} className="text-amber-400" />
+              <div className="text-xs font-mono font-black text-amber-600 dark:text-amber-300 flex items-center justify-center gap-1">
+                <Trophy size={14} className="text-amber-500 dark:text-amber-400" />
                 {stats.gold}
               </div>
-              <span className="text-[10px] uppercase font-bold text-slate-400">Ouro</span>
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Ouro</span>
             </div>
 
-            <div className="h-6 w-px bg-slate-800" />
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
 
             <div className="text-center px-2">
-              <div className="text-xs font-mono font-black text-slate-200 flex items-center justify-center gap-1">
-                <Shield size={14} className="text-slate-300" />
+              <div className="text-xs font-mono font-black text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1">
+                <Shield size={14} className="text-slate-500 dark:text-slate-300" />
                 {stats.silver}
               </div>
-              <span className="text-[10px] uppercase font-bold text-slate-400">Prata</span>
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Prata</span>
             </div>
 
-            <div className="h-6 w-px bg-slate-800" />
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
 
             <div className="text-center px-2">
-              <div className="text-xs font-mono font-black text-orange-400 flex items-center justify-center gap-1">
+              <div className="text-xs font-mono font-black text-orange-600 dark:text-orange-400 flex items-center justify-center gap-1">
                 <Shield size={14} className="text-orange-500" />
                 {stats.bronze}
               </div>
-              <span className="text-[10px] uppercase font-bold text-slate-400">Bronze</span>
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Bronze</span>
             </div>
 
             {stats.decaying > 0 && (
               <>
-                <div className="h-6 w-px bg-slate-800" />
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
                 <div className="text-center px-2 animate-pulse">
-                  <div className="text-xs font-mono font-black text-rose-400 flex items-center justify-center gap-1">
-                    <ShieldAlert size={14} className="text-rose-400" />
+                  <div className="text-xs font-mono font-black text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1">
+                    <ShieldAlert size={14} className="text-rose-500 dark:text-rose-400" />
                     {stats.decaying}
                   </div>
-                  <span className="text-[10px] uppercase font-bold text-rose-400">Em Declínio</span>
+                  <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400">Em Declínio</span>
                 </div>
               </>
             )}
@@ -552,15 +568,15 @@ export function EditalSkillTree({
         </div>
 
         {/* Barra de Progresso da Galáxia */}
-        <div className="mt-5 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="w-full sm:max-w-md space-y-1.5">
-            <div className="flex justify-between text-[11px] font-semibold text-slate-300">
+            <div className="flex justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300">
               <span>Domínio da Galáxia do Concurso</span>
-              <span className="text-cyan-400 font-mono font-bold">
+              <span className="text-cyan-600 dark:text-cyan-400 font-mono font-bold">
                 {stats.masteredCount} / {stats.total} nós ({stats.progressPercent}%)
               </span>
             </div>
-            <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full h-2 bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden border border-slate-300 dark:border-slate-800">
               <div
                 className="h-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 rounded-full transition-all duration-700 shadow-sm shadow-cyan-500/50"
                 style={{ width: `${stats.progressPercent}%` }}
@@ -568,7 +584,7 @@ export function EditalSkillTree({
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-400 flex items-center gap-2">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
             <span>Nós com pulso âmbar requerem reforço de retenção (Ebbinghaus)</span>
           </div>
@@ -576,7 +592,7 @@ export function EditalSkillTree({
       </div>
 
       {/* BARRA DE FILTROS & BUSCA RÁPIDA DE NÓS */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 border border-slate-800/80 p-3 rounded-2xl backdrop-blur-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 p-3 rounded-2xl backdrop-blur-xl shadow-xs dark:shadow-md">
         {/* Pílulas de Matérias */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none max-w-full">
           <button
@@ -584,7 +600,7 @@ export function EditalSkillTree({
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               selectedSubjectId === "ALL"
                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                : "bg-slate-950/60 text-slate-400 hover:text-white border border-slate-800"
+                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
             }`}
           >
             Todas as Matérias ({subjects.length})
@@ -598,7 +614,7 @@ export function EditalSkillTree({
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                   isSelected
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                    : "bg-slate-950/60 text-slate-400 hover:text-white border border-slate-800"
+                    : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
                 }`}
               >
                 <span
@@ -613,13 +629,13 @@ export function EditalSkillTree({
 
         {/* Input de Busca de Nó */}
         <div className="relative min-w-48 sm:w-64">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar nó estelar..."
-            className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none"
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-indigo-500/50 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
           />
         </div>
       </div>
@@ -632,16 +648,16 @@ export function EditalSkillTree({
           return (
             <div
               key={group.subject.id}
-              className="relative rounded-3xl bg-[#060913]/90 border border-slate-800/90 p-5 sm:p-7 backdrop-blur-xl shadow-xl space-y-6 overflow-hidden"
+              className="relative rounded-3xl bg-white dark:bg-[#060913]/90 border border-slate-200 dark:border-slate-800/90 p-5 sm:p-7 backdrop-blur-xl shadow-xs dark:shadow-xl space-y-6 overflow-hidden"
             >
               {/* Efeito Glow da Matéria */}
               <div
-                className="absolute -top-20 -left-20 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-20"
+                className="absolute -top-20 -left-20 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-10 dark:opacity-20"
                 style={{ backgroundColor: subColor }}
               />
 
               {/* Núcleo Estelar da Matéria (Cosmic Core) */}
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4 relative z-10">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-4 relative z-10">
                 <div className="flex items-center gap-3">
                   <div
                     className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base text-white shadow-lg relative overflow-hidden border border-white/20"
@@ -853,7 +869,7 @@ export function EditalSkillTree({
                   <Link
                     href="/flashcards"
                     onClick={() => setSelectedTopic(null)}
-                    className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border text-slate-200 text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95 group"
+                    className="w-full py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95 group shadow-xs dark:shadow-none"
                     style={{ borderColor: hexToRgba(activeColor, 0.25) }}
                   >
                     <div className="flex items-center gap-2">
@@ -874,10 +890,10 @@ export function EditalSkillTree({
                         color: activeColor,
                       });
                     }}
-                    className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-violet-600/25 to-indigo-600/25 hover:from-violet-600/40 hover:to-indigo-600/40 border border-violet-500/40 text-violet-200 hover:text-white text-xs font-bold transition-all shadow-md shadow-violet-950/40 flex items-center justify-between cursor-pointer active:scale-95"
+                    className="w-full py-3 px-4 rounded-xl bg-violet-100 hover:bg-violet-200 dark:bg-linear-to-r dark:from-violet-600/25 dark:to-indigo-600/25 dark:hover:from-violet-600/40 dark:hover:to-indigo-600/40 border border-violet-300 dark:border-violet-500/40 text-violet-800 hover:text-violet-950 dark:text-violet-200 dark:hover:text-white text-xs font-bold transition-all shadow-xs dark:shadow-md dark:shadow-violet-950/40 flex items-center justify-between cursor-pointer active:scale-95"
                   >
                     <div className="flex items-center gap-2">
-                      <Brain size={15} className="text-violet-400" />
+                      <Brain size={15} className="text-violet-600 dark:text-violet-400" />
                       <span>Ver Mapa Mental do Tópico (SVG)</span>
                     </div>
                     <ArrowRight size={14} />
@@ -891,7 +907,7 @@ export function EditalSkillTree({
                         setSelectedTopic(null);
                         onReviewClick(topicId);
                       }}
-                      className="w-full py-2.5 px-4 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-950 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs dark:shadow-none"
                     >
                       <Calendar size={13} />
                       <span>Registrar Estudo Manual</span>
