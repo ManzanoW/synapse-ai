@@ -1221,24 +1221,24 @@ export default function WeekPage() {
 
       {/* Focus Timer Modal */}
       {focusSubject && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-sm w-full p-6 space-y-6 shadow-2xl text-center relative overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm w-full p-6 space-y-6 shadow-2xl text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 left-0 h-1 bg-emerald-500" />
 
             <div>
-              <span className="text-[10px] uppercase tracking-widest font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+              <span className="text-[10px] uppercase tracking-widest font-mono text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20 font-bold px-2.5 py-1 rounded-full border">
                 Sessão em Andamento
               </span>
-              <h3 className="text-lg font-bold text-white mt-3 truncate">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-3 truncate">
                 {focusSubject.name}
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Mantenha o foco total durante esse bloco.
               </p>
             </div>
 
             <div className="py-2">
-              <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white drop-shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+              <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-slate-900 dark:text-white drop-shadow-xs dark:drop-shadow-[0_0_20px_rgba(16,185,129,0.3)]">
                 {formatTimer(focusTimeLeft)}
               </div>
             </div>
@@ -1261,13 +1261,13 @@ export default function WeekPage() {
                   );
                   setFocusTimeLeft(initial);
                 }}
-                className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer"
+                className="p-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer"
               >
                 <RotateCcw size={18} />
               </button>
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={handleFinishSessionAndComplete}
@@ -1283,7 +1283,7 @@ export default function WeekPage() {
                   setFocusSubject(null);
                   setIsTimerRunning(false);
                 }}
-                className="w-full py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="w-full py-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
               >
                 Sair sem concluir
               </button>
@@ -1294,14 +1294,14 @@ export default function WeekPage() {
 
       {/* Settings Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                <Settings2 size={18} className="text-indigo-400" />
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Settings2 size={18} className="text-indigo-600 dark:text-indigo-400" />
                 Configurar Meta de Estudo
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Ajuste sua disponibilidade semanal para recalcular o cronograma dinâmico.
               </p>
             </div>
@@ -1309,11 +1309,11 @@ export default function WeekPage() {
             <div className="space-y-5">
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <label className="text-slate-300 font-medium flex items-center gap-1.5">
-                    <Clock size={13} className="text-slate-400" /> Meta Semanal
+                  <label className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5">
+                    <Clock size={13} className="text-slate-400 dark:text-slate-500" /> Meta Semanal
                     (Horas)
                   </label>
-                  <span className="text-indigo-400 font-bold font-mono text-sm">
+                  <span className="text-indigo-600 dark:text-indigo-400 font-bold font-mono text-sm">
                     {goalHours}h / semana
                   </span>
                 </div>
@@ -1324,9 +1324,9 @@ export default function WeekPage() {
                   step={1}
                   value={goalHours}
                   onChange={(e) => setGoalHours(Number(e.target.value))}
-                  className="w-full accent-indigo-500 bg-slate-800 rounded-lg h-2 cursor-pointer"
+                  className="w-full accent-indigo-500 bg-slate-200 dark:bg-slate-800 rounded-lg h-2 cursor-pointer"
                 />
-                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                   <span>2h</span>
                   <span>30h</span>
                   <span>60h</span>
@@ -1335,11 +1335,11 @@ export default function WeekPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <label className="text-slate-300 font-medium flex items-center gap-1.5">
-                    <Calendar size={13} className="text-slate-400" /> Dias
+                  <label className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5">
+                    <Calendar size={13} className="text-slate-400 dark:text-slate-500" /> Dias
                     Ativos na Semana
                   </label>
-                  <span className="text-indigo-400 font-bold font-mono text-sm">
+                  <span className="text-indigo-600 dark:text-indigo-400 font-bold font-mono text-sm">
                     {activeDays} dias
                   </span>
                 </div>
@@ -1352,7 +1352,7 @@ export default function WeekPage() {
                       className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                         activeDays === num
                           ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
-                          : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:border-slate-700"
                       }`}
                     >
                       {num}d
@@ -1362,11 +1362,11 @@ export default function WeekPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800/80">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800/80">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -1395,17 +1395,17 @@ export default function WeekPage() {
 
       {/* Swap Modal */}
       {swapModalOpen && subjectToSwap && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#090d16] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <ArrowRightLeft size={16} className="text-indigo-400" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <ArrowRightLeft size={16} className="text-indigo-600 dark:text-indigo-400" />
                   Reorganizar Matéria
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Escolha por qual matéria você quer trocar{" "}
-                  <strong className="text-indigo-300">
+                  <strong className="text-indigo-600 dark:text-indigo-300">
                     {subjectToSwap.name}
                   </strong>
                   .
@@ -1416,14 +1416,14 @@ export default function WeekPage() {
                   setSwapModalOpen(false);
                   setSubjectToSwap(null);
                 }}
-                className="text-slate-500 hover:text-white transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-2">
                 Selecione a matéria para trocar de posição:
               </span>
 
@@ -1441,19 +1441,19 @@ export default function WeekPage() {
                           targetSubjectId: s.id,
                         })
                       }
-                      className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-indigo-500/50 transition-all text-left group cursor-pointer"
+                      className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-indigo-300 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 dark:border-slate-800/80 dark:hover:border-indigo-500/50 transition-all text-left group cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
                         <span
                           className="w-2.5 h-2.5 rounded-full"
                           style={{ backgroundColor: color }}
                         />
-                        <span className="text-xs font-semibold text-slate-200 group-hover:text-white">
+                        <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-white">
                           {s.name}
                         </span>
                       </div>
 
-                      <span className="text-[10px] font-mono text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
+                      <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
                         Trocar →
                       </span>
                     </button>
@@ -1461,14 +1461,14 @@ export default function WeekPage() {
                 })}
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex justify-end">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex justify-end">
               <button
                 type="button"
                 onClick={() => {
                   setSwapModalOpen(false);
                   setSubjectToSwap(null);
                 }}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
