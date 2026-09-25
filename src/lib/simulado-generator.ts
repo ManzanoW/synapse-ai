@@ -125,6 +125,119 @@ export function calculateBatchSizes(total: number, maxBatchSize = 5): number[] {
   return batches;
 }
 
+/**
+ * Busca questões elegíveis já geradas anteriormente no banco de dados para a mesma banca e matéria/tópico.
+ * Garante que:
+ * 1. O aluno atual nunca veja questões que ele já respondeu/viu em quizzes anteriores.
+ * 2. As questões tenham validação estrutural completa (enunciado, alternativas/gabarito, justificativa).
+ * 3. O formato (Certo/Errado vs Múltipla Escolha) seja estritamente compatível.
+ * 4. O limite respeite a proporção máxima de cache (até 40% do total) para garantir frescor da IA.
+ */
+async function fetchCachedQuestionsForSimulado(params: {
+  banca: string;
+  materia: string;
+  targetTopicUuid?: string | null;
+  dificuldade?: string;
+  isCebraspeStyle: boolean;
+  maxToReuse: number;
+  userId?: string | null;
+}): Promise<QuestaoGerada[]> {
+  const {
+    banca,
+    materia,
+    targetTopicUuid,
+    dificuldade,
+    isCebraspeStyle,
+    maxToReuse,
+    userId,
+  } = params;
+
+  if (maxToReuse <= 0) return [];
+
+  try {
+    const seenQuestionTexts = new Set<string>();
+
+    if (userId) {
+      const userQuizzes = await prisma.quiz.findMany({
+        where: { userId },
+        select: { questions: true },
+        take: 30,
+        orderBy: { createdAt: "desc" },
+      });
+
+      for (const qz of userQuizzes) {
+        if (Array.isArray(qz.questions)) {
+          for (const item of qz.questions as unknown as QuestaoGerada[]) {
+            if (item?.enunciado) {
+              seenQuestionTexts.add(item.enunciado.trim().toLowerCase());
+            }
+          }
+        }
+      }
+    }
+
+    const candidateQuizzes = await prisma.quiz.findMany({
+      where: {
+        banca: { equals: banca, mode: "insensitive" },
+        ...(dificuldade ? { difficulty: { equals: dificuldade, mode: "insensitive" } } : {}),
+        subject: { contains: materia, mode: "insensitive" },
+        ...(targetTopicUuid ? { topicId: targetTopicUuid } : {}),
+      },
+      select: { questions: true },
+      take: 25,
+      orderBy: { createdAt: "desc" },
+    });
+
+    const pool: QuestaoGerada[] = [];
+
+    for (const cq of candidateQuizzes) {
+      if (!Array.isArray(cq.questions)) continue;
+
+      for (const rawQ of cq.questions as unknown as QuestaoGerada[]) {
+        if (
+          !rawQ ||
+          typeof rawQ.enunciado !== "string" ||
+          !rawQ.enunciado.trim() ||
+          typeof rawQ.gabaritoCorreto !== "string" ||
+          typeof rawQ.justificativa !== "string"
+        ) {
+          continue;
+        }
+
+        // Validação estrita de compatibilidade de formato:
+        if (isCebraspeStyle) {
+          const isItemValid =
+            rawQ.formato === "certo_errado" ||
+            ["Certo", "Errado"].includes(rawQ.gabaritoCorreto.trim());
+          if (!isItemValid) continue;
+        } else {
+          // Múltipla escolha
+          const isItemValid =
+            Array.isArray(rawQ.alternativas) && rawQ.alternativas.length >= 4;
+          if (!isItemValid) continue;
+        }
+
+        const normalized = rawQ.enunciado.trim().toLowerCase();
+        if (seenQuestionTexts.has(normalized)) continue;
+
+        seenQuestionTexts.add(normalized);
+        pool.push(rawQ);
+
+        if (pool.length >= maxToReuse * 3) break;
+      }
+
+      if (pool.length >= maxToReuse * 3) break;
+    }
+
+    if (pool.length === 0) return [];
+
+    return shuffleArray(pool).slice(0, maxToReuse);
+  } catch (error) {
+    console.warn("[simulado-generator] Erro não-bloqueante no cache híbrido:", error);
+    return [];
+  }
+}
+
 const geminiResponseSchema = {
   type: Type.OBJECT,
   properties: {
@@ -333,8 +446,56 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
     }
   }
 
-  // Divisão em lotes paralelos (chunks de no máximo 5)
-  const batches = calculateBatchSizes(quantidadeTotal, 5);
+  // Calibração do formato da questão
+  const isCebraspeStyle =
+    formatoQuestao === "certo_errado" ||
+    (formatoQuestao === "auto" && banca.toLowerCase().includes("cebraspe"));
+
+  const isCasosPraticos =
+    formatoQuestao === "casos_praticos" ||
+    (formatoQuestao === "auto" && banca.toLowerCase().includes("fgv"));
+
+  const use5Alternatives =
+    formatoQuestao === "multipla_5" ||
+    (!isCebraspeStyle &&
+      (banca.toLowerCase().includes("fcc") ||
+        banca.toLowerCase().includes("fgv") ||
+        banca.toLowerCase().includes("cesgranrio") ||
+        banca.toLowerCase().includes("vunesp") ||
+        banca.toLowerCase().includes("aocp") ||
+        banca.toLowerCase().includes("idecan")));
+
+  // ⚡ Estratégia de Cache Híbrido:
+  // Se for simulado padrão (não adaptativo, sem texto/lei avulsa e sem recorte restrito),
+  // reaproveitamos até 40% de questões inéditas para o aluno direto do banco, acelerando a resposta e economizando tokens da IA.
+  const isEligibleForCache =
+    !params.adaptiveMode &&
+    !params.textoBase &&
+    fonteConteudo !== "texto" &&
+    !specificTopic?.trim();
+
+  let cachedQuestions: QuestaoGerada[] = [];
+  if (isEligibleForCache) {
+    const maxToReuse = Math.floor(quantidadeTotal * 0.4);
+    if (maxToReuse > 0) {
+      cachedQuestions = await fetchCachedQuestionsForSimulado({
+        banca,
+        materia,
+        targetTopicUuid,
+        dificuldade,
+        isCebraspeStyle,
+        maxToReuse,
+        userId,
+      });
+    }
+  }
+
+  const quantidadeParaGerarNaIA = Math.max(0, quantidadeTotal - cachedQuestions.length);
+
+  // Divisão em lotes paralelos (chunks de no máximo 5) para a quantidade restante
+  const batches = quantidadeParaGerarNaIA > 0
+    ? calculateBatchSizes(quantidadeParaGerarNaIA, 5)
+    : [];
 
   // Mapeia cada lote com instrução focada e particionamento de tópicos
   const batchPromises = batches.map(async (batchCount, batchIndex) => {
@@ -370,25 +531,6 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
     if (fonteConteudo === "texto" && textoBase) {
       batchContext += `Obrigatório basear as questões estritamente neste texto/lei:\n"${textoBase}"\n`;
     }
-
-    // Calibração do formato da questão
-    const isCebraspeStyle =
-      formatoQuestao === "certo_errado" ||
-      (formatoQuestao === "auto" && banca.toLowerCase().includes("cebraspe"));
-
-    const isCasosPraticos =
-      formatoQuestao === "casos_praticos" ||
-      (formatoQuestao === "auto" && banca.toLowerCase().includes("fgv"));
-
-    const use5Alternatives =
-      formatoQuestao === "multipla_5" ||
-      (!isCebraspeStyle &&
-        (banca.toLowerCase().includes("fcc") ||
-          banca.toLowerCase().includes("fgv") ||
-          banca.toLowerCase().includes("cesgranrio") ||
-          banca.toLowerCase().includes("vunesp") ||
-          banca.toLowerCase().includes("aocp") ||
-          banca.toLowerCase().includes("idecan")));
 
     // Diretriz pedagógica da banca
     let bancaProfileDirective = "";
@@ -562,11 +704,11 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
     }
   });
 
-  // Execução 100% paralela com Promise.all
-  const results = await Promise.all(batchPromises);
+  // Execução 100% paralela com Promise.all (apenas se houver lotes pendentes para a IA)
+  const results = batches.length > 0 ? await Promise.all(batchPromises) : [];
 
-  // Consolidação dos arrays resultantes
-  const allRawQuestions: QuestaoGerada[] = [];
+  // Consolidação dos arrays resultantes (iniciando com as questões do cache)
+  const allRawQuestions: QuestaoGerada[] = [...cachedQuestions];
   let dominantModel = "gemini-3.5-flash-lite";
 
   results.forEach((r) => {
@@ -580,10 +722,18 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
     throw new Error("A IA não retornou nenhuma questão válida.");
   }
 
+  if (cachedQuestions.length > 0) {
+    const aiCount = allRawQuestions.length - cachedQuestions.length;
+    const economyPct = Math.round((cachedQuestions.length / Math.max(allRawQuestions.length, 1)) * 100);
+    console.log(
+      `[simulado-generator] 🚀 Cache Híbrido ativado: ${cachedQuestions.length} questões do banco + ${aiCount} geradas via IA. Economia de ~${economyPct}% de tokens/cota.`
+    );
+  }
+
   // Se gerou a mais ou a menos devido à variação de cada lote, ajusta para a quantidade pedida
   const slicedQuestions = allRawQuestions.slice(0, quantidadeTotal);
 
-  // Processa alternativas e embaralha a lista final para intercalar os lotes
+  // Processa alternativas e embaralha a lista final para intercalar perfeitamente as do cache com as da IA
   const questoesProcessadas = shuffleArray(shuffleAlternatives(slicedQuestions));
 
   // Persistência no Banco de Dados
