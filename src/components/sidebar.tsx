@@ -62,6 +62,7 @@ interface SidebarProps {
     planTier?: string | null;
     role?: string | null;
     isPro?: boolean;
+    isAdmin?: boolean;
   };
 }
 
@@ -189,9 +190,7 @@ export default function Sidebar({ user }: SidebarProps) {
     user?.isPro ||
     user?.planTier === "PREMIUM" ||
     user?.role === "ADMIN" ||
-    (user?.email &&
-      (user.email.toLowerCase() === "joaovytormanzano@gmail.com" ||
-       user.email.toLowerCase().includes("manzano")))
+    user?.isAdmin
   );
 
   const [userPlan, setUserPlan] = useState<string>(() =>
@@ -333,10 +332,7 @@ export default function Sidebar({ user }: SidebarProps) {
   };
 
   const isAdmin = Boolean(
-    user?.role === "ADMIN" ||
-    (user?.email &&
-      (user.email.toLowerCase() === "joaovytormanzano@gmail.com" ||
-       user.email.toLowerCase().includes("manzano")))
+    user?.isAdmin || user?.role === "ADMIN"
   );
 
   // Filtra módulos de Direito/Carreiras Jurídicas e adiciona link do Admin IA se for administrador
