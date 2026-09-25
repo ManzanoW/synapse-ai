@@ -25,6 +25,7 @@ import {
   TranscribeHandwrittenEssayResponse,
 } from "@/actions/essay-actions";
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
+import { compressClientImage } from "@/lib/client-image-compression";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import Link from "next/link";
 
@@ -87,21 +88,32 @@ export function HandwrittenOcrModal({
 
     setErrorMessage(null);
     setStep("processing");
-    setProcessingStatus("Digitalizando traçado caligráfico...");
-
-    setTimeout(() => {
-      setProcessingStatus("Identificando recuo de parágrafos e linhas 1 a 30...");
-    }, 1500);
-
-    setTimeout(() => {
-      setProcessingStatus("Formatando pontuação e fidelidade textual...");
-    }, 3000);
+    setProcessingStatus("Otimizando imagem para leitura rápida...");
 
     try {
+      // Comprime a foto no navegador antes do upload para economizar dados e acelerar a resposta da IA
+      const optimizedFile = await compressClientImage(file, {
+        maxDimension: 1800,
+        quality: 0.85,
+      });
+
+      setProcessingStatus("Digitalizando traçado caligráfico...");
+
+      const statusTimer1 = setTimeout(() => {
+        setProcessingStatus("Identificando recuo de parágrafos e linhas 1 a 30...");
+      }, 1500);
+
+      const statusTimer2 = setTimeout(() => {
+        setProcessingStatus("Formatando pontuação e fidelidade textual...");
+      }, 3000);
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", optimizedFile);
 
       const res = await transcribeHandwrittenEssayAction(formData);
+
+      clearTimeout(statusTimer1);
+      clearTimeout(statusTimer2);
 
       if (res.isQuotaExceeded) {
         setStep("quota");

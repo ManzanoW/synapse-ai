@@ -28,6 +28,7 @@ import {
   ScannedQuestionResult,
 } from "@/actions/ocr-question-actions";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
+import { compressClientImage } from "@/lib/client-image-compression";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 
 interface QuestionScannerModalProps {
@@ -145,10 +146,16 @@ export function QuestionScannerModal({
     setErrorMsg(null);
     setScanStepIndex(0);
 
-    const formData = new FormData();
-    formData.append("image", selectedImage);
-
     try {
+      // Otimiza e comprime a foto no cliente antes do envio para máxima velocidade
+      const optimizedImage = await compressClientImage(selectedImage, {
+        maxDimension: 1800,
+        quality: 0.85,
+      });
+
+      const formData = new FormData();
+      formData.append("image", optimizedImage);
+
       const res = await scanQuestionFromImageAction(formData);
 
       if (res.quotaExceeded) {
