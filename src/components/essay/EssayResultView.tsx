@@ -16,6 +16,8 @@ import {
   Check,
   RotateCcw,
   BookOpen,
+  ShieldCheck,
+  Scale,
 } from "lucide-react";
 import { EssayEvaluationResult } from "@/actions/essay-actions";
 import { GoldenVersionSplitView } from "./GoldenVersionSplitView";
@@ -32,7 +34,7 @@ export function EssayResultView({
   onViewHistory,
 }: EssayResultViewProps) {
   const [copiedGolden, setCopiedGolden] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"feedback" | "golden" | "original">("feedback");
+  const [activeTab, setActiveTab] = useState<"feedback" | "mirror" | "golden" | "original">("feedback");
 
   const scorePercentage = Math.round((result.score / result.maxScore) * 100);
   const isApproved = result.isApproved;
@@ -128,18 +130,24 @@ export function EssayResultView({
           </div>
 
           {result.notaConteudo !== undefined && result.descontoFormal !== undefined && (
-            <div className="mt-2 text-[10px] font-mono text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2.5 py-1 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setActiveTab("mirror")}
+              className="mt-2 text-[10px] font-mono text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer group flex items-center gap-1"
+              title="Clique para ver a fórmula e o espelho oficial detalhado"
+            >
               <span>NC: <strong>{result.notaConteudo.toFixed(1)}</strong></span>
-              <span className="mx-1 text-slate-400 dark:text-slate-500">•</span>
+              <span className="text-slate-400 dark:text-slate-500">•</span>
               <span>Desc: <strong className="text-rose-600 dark:text-rose-400">-{result.descontoFormal.toFixed(2)}</strong> ({result.numeroErros ?? 0} {result.numeroErros === 1 ? "erro" : "erros"})</span>
-            </div>
+              <span className="ml-1 text-violet-600 dark:text-violet-400 group-hover:underline">⚖️ Espelho</span>
+            </button>
           )}
         </div>
       </div>
 
       {/* BARRA DE BOTÕES DE AÇÃO */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100 dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xs">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => setActiveTab("feedback")}
@@ -150,6 +158,18 @@ export function EssayResultView({
             }`}
           >
             Parecer da Banca
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("mirror")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "mirror"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            }`}
+          >
+            <ShieldCheck size={13} />
+            <span>Espelho Oficial da Banca</span>
           </button>
           <button
             type="button"
@@ -346,7 +366,92 @@ export function EssayResultView({
         </div>
       )}
 
-      {/* ABA 2: VERSÃO PADRÃO OURO COMPARATIVA */}
+      {/* ABA 2: ESPELHO OFICIAL DE CORREÇÃO DA BANCA */}
+      {activeTab === "mirror" && (
+        <div className="flex flex-col gap-6 animate-in fade-in duration-200">
+          {/* BANNER DA FÓRMULA OFICIAL */}
+          <div className="bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-950 border border-indigo-500/30 rounded-3xl p-6 sm:p-8 shadow-xl text-slate-100 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300">
+                  <Scale size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">
+                    {result.bancaMethodology?.formulaName || `Espelho Oficial da Banca ${result.banca}`}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Cálculo matemático auditável conforme critérios oficiais do concurso
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 self-start sm:self-auto">
+                Banca {result.banca}
+              </span>
+            </div>
+
+            {/* Display Matemático */}
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 font-mono text-center sm:text-left space-y-1">
+              <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-sans font-bold">
+                Aplicação Real na Sua Prova
+              </span>
+              <p className="text-base sm:text-lg font-black text-indigo-200">
+                {result.bancaMethodology?.formulaDisplay || `NF = ${result.score.toFixed(1)} / ${result.maxScore}`}
+              </p>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {result.bancaMethodology?.formulaExplanation || "A banca avalia a fundamentação temática com desconto rigoroso por desvios da norma culta."}
+            </p>
+          </div>
+
+          {/* TABELA DE DESDOBRAMENTO OFICIAL */}
+          <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-xs dark:shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-3">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <FileText size={16} className="text-indigo-600 dark:text-indigo-400" />
+                <span>Desdobramento dos Parâmetros do Espelho</span>
+              </h4>
+              <span className="text-xs font-mono text-slate-500">
+                {result.lineCount} linhas • {result.numeroErros ?? 0} erros
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-mono">
+                    <th className="pb-2.5 font-bold">Parâmetro Avaliado</th>
+                    <th className="pb-2.5 font-bold text-right sm:text-left">Pontuação / Valor</th>
+                    <th className="pb-2.5 font-bold hidden sm:table-cell">Detalhamento Técnico</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                  {(result.bancaMethodology?.detailedBreakdown || [
+                    { label: "Nota de Conteúdo", value: `${(result.notaConteudo ?? result.score).toFixed(1)} pts`, detail: "Desenvolvimento dos aspectos e temas" },
+                    { label: "Desconto Formal", value: `-${(result.descontoFormal ?? 0).toFixed(2)} pts`, detail: `${result.numeroErros ?? 0} desvio(s) gramaticais` },
+                    { label: "Nota Final Líquida", value: `${result.score.toFixed(1)} / ${result.maxScore} pts`, detail: result.isApproved ? "Aprovado na discursiva" : "Abaixo da nota de corte" },
+                  ]).map((row, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                      <td className="py-3 font-semibold text-slate-800 dark:text-slate-200">
+                        {row.label}
+                      </td>
+                      <td className="py-3 font-mono font-bold text-slate-900 dark:text-white text-right sm:text-left">
+                        {row.value}
+                      </td>
+                      <td className="py-3 text-slate-500 dark:text-slate-400 hidden sm:table-cell text-[11px]">
+                        {row.detail || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ABA 3: VERSÃO PADRÃO OURO COMPARATIVA */}
       {activeTab === "golden" && (
         <GoldenVersionSplitView
           originalText={result.content}

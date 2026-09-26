@@ -15,6 +15,7 @@ import {
   Award,
   Crown,
   Gift,
+  Printer,
 } from "lucide-react";
 import {
   PageSpotlightBanner,
@@ -33,6 +34,7 @@ import { MotivatingTextsModal } from "./MotivatingTextsModal";
 import { EssayResultView } from "./EssayResultView";
 import { EssayHistoryList } from "./EssayHistoryList";
 import { EssayQuotaModal } from "./EssayQuotaModal";
+import { PrintableExamSheetModal } from "./PrintableExamSheetModal";
 
 
 const DEFAULT_THEME: EssayTheme = {
@@ -76,6 +78,7 @@ export function EssayWorkspace() {
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
   const [evaluationError, setEvaluationError] = useState<string | null>(null);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState<boolean>(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
   const [submittedCounts, setSubmittedCounts] = useState<{ lines: number; words: number }>({
     lines: 0,
     words: 0,
@@ -194,14 +197,27 @@ export function EssayWorkspace() {
           />
 
           {viewMode === "write" && (
-            <button
-              type="button"
-              onClick={() => setIsThemeModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-600/25 dark:shadow-violet-950/50 transition-all cursor-pointer"
-            >
-              <Sparkles size={14} />
-              <span>Mudar Tema / Banca</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setIsThemeModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-600/25 dark:shadow-violet-950/50 transition-all cursor-pointer"
+              >
+                <Sparkles size={14} />
+                <span>Mudar Tema / Banca</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsPrintModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-white/10 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                title="Imprimir folha pautada oficial A4 com este tema para treinar manuscrito"
+              >
+                <Printer size={14} className="text-violet-600 dark:text-violet-400" />
+                <span className="hidden sm:inline">Folha Pautada (PDF)</span>
+                <span className="sm:hidden">PDF</span>
+              </button>
+            </>
           )}
 
           <div className="flex rounded-xl bg-slate-100 border border-slate-200 dark:bg-slate-900 dark:border-white/10 p-1 shadow-2xs">
@@ -363,6 +379,13 @@ export function EssayWorkspace() {
       <MotivatingTextsModal
         isOpen={isMotivatingModalOpen}
         onClose={() => setIsMotivatingModalOpen(false)}
+        theme={theme}
+      />
+
+      {/* MODAL DE IMPRESSÃO / FOLHA PAUTADA A4 */}
+      <PrintableExamSheetModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
         theme={theme}
       />
 

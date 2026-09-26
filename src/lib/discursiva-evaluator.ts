@@ -27,6 +27,20 @@ export interface DiscursivaEvaluationInput {
   durationSeconds?: number;
 }
 
+export interface BancaMethodologyBreakdown {
+  label: string;
+  value: string | number;
+  detail?: string;
+}
+
+export interface BancaMethodology {
+  bancaName: string;
+  formulaName: string;
+  formulaDisplay: string;
+  formulaExplanation: string;
+  detailedBreakdown: BancaMethodologyBreakdown[];
+}
+
 export interface DiscursivaEvaluationOutput {
   score: number;
   maxScore: number;
@@ -40,6 +54,7 @@ export interface DiscursivaEvaluationOutput {
   strengths: string[];
   improvements: string[];
   goldenVersion: string;
+  bancaMethodology?: BancaMethodology;
 }
 
 /**
@@ -267,16 +282,80 @@ Retorne EXCLUSIVAMENTE um objeto JSON estrito:
     notaConteudo = Math.min(100, Math.max(0, notaConteudo));
   }
 
-  // 3. Aplica a Fórmula Oficial CEBRASPE: Desconto = (2 * NúmeroDeErros) / TotalDeLinhas
-  const descontoFormal = isCebraspe
-    ? Math.round(((2 * numeroErros) / actualLineCount) * 100) / 100
-    : Math.round(((2 * numeroErros) / actualLineCount) * 100) / 100;
+  // 3. Aplica a Fórmula Oficial Calibrada da Banca
+  const upperBanca = (banca || "").toUpperCase();
+  const isFGV = upperBanca.includes("FGV");
+  const isFCC = upperBanca.includes("FCC");
 
-  // 4. Calcula a Nota Final Oficial
-  const finalScore = Math.max(0, Math.round((notaConteudo - descontoFormal) * 100) / 100);
+  let formulaName = "";
+  let formulaDisplay = "";
+  let formulaExplanation = "";
+  let descontoFormal = 0;
+  let finalScore = 0;
+  let detailedBreakdown: BancaMethodologyBreakdown[] = [];
+
+  if (isCebraspe) {
+    formulaName = "Fórmula Oficial CEBRASPE: NF = NC - 2 × (NE / TL)";
+    descontoFormal = Math.round(((2 * numeroErros) / actualLineCount) * 100) / 100;
+    finalScore = Math.max(0, Math.round((notaConteudo - descontoFormal) * 100) / 100);
+    formulaDisplay = `NF = ${notaConteudo.toFixed(1)} - 2 × (${numeroErros} / ${actualLineCount}) = ${finalScore.toFixed(2)}`;
+    formulaExplanation = "O Cebraspe calcula a nota final deduzindo duas vezes o número de erros gramaticais (NE) dividido pelo total de linhas escritas (TL).";
+    detailedBreakdown = [
+      { label: "Nota de Conteúdo (NC)", value: `${notaConteudo.toFixed(1)} / 100.0 pts`, detail: "Atendimento pleno aos tópicos da proposta temática" },
+      { label: "Total de Linhas (TL)", value: `${actualLineCount} linhas`, detail: "Linhas efetivamente redigidas na folha definitiva" },
+      { label: "Erros Gramaticais (NE)", value: `${numeroErros} ${numeroErros === 1 ? "erro" : "erros"}`, detail: "Falhas gramaticais e de coesão apontadas na correção" },
+      { label: "Desconto Formal", value: `-${descontoFormal.toFixed(2)} pts`, detail: `2 × ${numeroErros} ÷ ${actualLineCount}` },
+      { label: "Nota Final Líquida (NF)", value: `${finalScore.toFixed(2)} / 100.0 pts`, detail: finalScore >= 60 ? "Classificado na discursiva" : "Abaixo da nota de corte mínima (60.0)" },
+    ];
+  } else if (isFGV) {
+    formulaName = "Espelho Oficial FGV: Parte I (Conteúdo/60) + Parte II (Expressão/40)";
+    const parteConteudo = Math.round(((notaConteudo * 60) / 100) * 10) / 10;
+    const descontoPorErro = 1.0;
+    descontoFormal = Math.round((numeroErros * descontoPorErro) * 10) / 10;
+    const parteExpressao = Math.max(0, Math.round((40 - descontoFormal) * 10) / 10);
+    finalScore = Math.min(100, Math.max(0, Math.round((parteConteudo + parteExpressao) * 10) / 10));
+    formulaDisplay = `NF = ${parteConteudo.toFixed(1)} (Conteúdo) + ${parteExpressao.toFixed(1)} (Expressão) = ${finalScore.toFixed(1)}`;
+    formulaExplanation = "A FGV divide a prova em Conteúdo (60 pts) e Expressão/Norma Culta (40 pts). Cada desvio gramatical acarreta desconto direto de 1,0 ponto na nota de expressão.";
+    detailedBreakdown = [
+      { label: "Parte I: Conteúdo & Estrutura", value: `${parteConteudo.toFixed(1)} / 60.0 pts`, detail: "Tema, informatividade, argumentação e progressão textual" },
+      { label: "Parte II: Expressão Escrita", value: `${parteExpressao.toFixed(1)} / 40.0 pts`, detail: `Base 40 pts deduzida de ${numeroErros} erro(s)` },
+      { label: "Desconto Formal por Falhas", value: `-${descontoFormal.toFixed(1)} pts`, detail: `${numeroErros} desvio(s) formal(is) × 1.0 pt` },
+      { label: "Nota Final Consolidada", value: `${finalScore.toFixed(1)} / 100.0 pts`, detail: finalScore >= 60 ? "Classificado na discursiva" : "Abaixo do mínimo exigido (60.0)" },
+    ];
+  } else if (isFCC) {
+    formulaName = "Padrão Oficial FCC: Conteúdo (40) + Estrutura (30) + Expressão (30)";
+    const parteConteudo = Math.round(((notaConteudo * 40) / 100) * 10) / 10;
+    const parteEstrutura = Math.round(((Math.min(100, notaConteudo + 5) * 30) / 100) * 10) / 10;
+    const descontoPorErro = 0.75;
+    descontoFormal = Math.round((numeroErros * descontoPorErro) * 100) / 100;
+    const parteExpressao = Math.max(0, Math.round((30 - descontoFormal) * 10) / 10);
+    finalScore = Math.min(100, Math.max(0, Math.round((parteConteudo + parteEstrutura + parteExpressao) * 10) / 10));
+    formulaDisplay = `NF = ${parteConteudo.toFixed(1)} (Conteúdo) + ${parteEstrutura.toFixed(1)} (Estrutura) + ${parteExpressao.toFixed(1)} (Expressão) = ${finalScore.toFixed(1)}`;
+    formulaExplanation = "A FCC avalia Conteúdo (40 pts), Estrutura dissertativa (30 pts) e Expressão (30 pts), descontando 0,75 ponto por desvio gramatical na nota de expressão.";
+    detailedBreakdown = [
+      { label: "Critério A: Conteúdo", value: `${parteConteudo.toFixed(1)} / 40.0 pts`, detail: "Consistência e pertinência temática" },
+      { label: "Critério B: Estrutura", value: `${parteEstrutura.toFixed(1)} / 30.0 pts`, detail: "Organização em parágrafos e coesão" },
+      { label: "Critério C: Expressão", value: `${parteExpressao.toFixed(1)} / 30.0 pts`, detail: `Base 30 pts deduzida de ${descontoFormal.toFixed(2)} pts` },
+      { label: "Nota Final Oficial", value: `${finalScore.toFixed(1)} / 100.0 pts`, detail: finalScore >= 60 ? "Aprovado na discursiva" : "Abaixo da nota de corte (60.0)" },
+    ];
+  } else {
+    formulaName = `Padrão ${banca || "Oficial"}: Conteúdo (70) + Norma Padrão (30)`;
+    const parteConteudo = Math.round(((notaConteudo * 70) / 100) * 10) / 10;
+    descontoFormal = Math.round((numeroErros * 1.0) * 10) / 10;
+    const parteGramatica = Math.max(0, Math.round((30 - descontoFormal) * 10) / 10);
+    finalScore = Math.min(100, Math.max(0, Math.round((parteConteudo + parteGramatica) * 10) / 10));
+    formulaDisplay = `NF = ${parteConteudo.toFixed(1)} (Conteúdo) + ${parteGramatica.toFixed(1)} (Norma Padrão) = ${finalScore.toFixed(1)}`;
+    formulaExplanation = `Avaliação no padrão ${banca}, ponderando desenvolvimento temático (70%) e domínio da norma culta com descontos por falhas apontadas (30%).`;
+    detailedBreakdown = [
+      { label: "Desenvolvimento Temático", value: `${parteConteudo.toFixed(1)} / 70.0 pts`, detail: "Abordagem dos conceitos e atendimento à proposta" },
+      { label: "Norma Padrão e Coesão", value: `${parteGramatica.toFixed(1)} / 30.0 pts`, detail: `30 pts deduzidos de ${descontoFormal.toFixed(1)} pts` },
+      { label: "Nota Final Oficial", value: `${finalScore.toFixed(1)} / 100.0 pts`, detail: finalScore >= 60 ? "Aprovado na discursiva" : "Abaixo da nota mínima (60.0)" },
+    ];
+  }
+
   const isApproved = finalScore >= 60.0;
 
-  // 5. Assegura que criteriaScores contenha o critério formal atualizado com a fórmula
+  // 4. Assegura que criteriaScores contenha os critérios oficiais
   const criteriaScores: CriteriaScore[] = Array.isArray(parsed.criteriaScores)
     ? parsed.criteriaScores.map((c: any) => ({
         name: String(c.name || "Aspecto Técnico"),
@@ -299,5 +378,12 @@ Retorne EXCLUSIVAMENTE um objeto JSON estrito:
     strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
     improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
     goldenVersion: parsed.goldenVersion || "",
+    bancaMethodology: {
+      bancaName: banca,
+      formulaName,
+      formulaDisplay,
+      formulaExplanation,
+      detailedBreakdown,
+    },
   };
 }
