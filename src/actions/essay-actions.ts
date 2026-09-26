@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { recordStudyActivityAction } from "./gamification-actions";
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
-import { evaluateDiscursivaEssay } from "@/lib/discursiva-evaluator";
+import { evaluateDiscursivaEssay, BancaMethodology } from "@/lib/discursiva-evaluator";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 export interface MotivatingText {
@@ -63,6 +63,7 @@ export interface EssayEvaluationResult {
   notaConteudo?: number;
   descontoFormal?: number;
   numeroErros?: number;
+  bancaMethodology?: BancaMethodology;
 }
 
 /**
@@ -283,6 +284,7 @@ export async function evaluateEssayAction(payload: {
         notaConteudo: evaluation.notaConteudo,
         descontoFormal: evaluation.descontoFormal,
         numeroErros: evaluation.numeroErros,
+        bancaMethodology: evaluation.bancaMethodology,
       },
     };
   } catch (error) {
