@@ -16,6 +16,7 @@ import { useSidebar } from "@/lib/sidebar-context";
 import { DashboardSubject } from "@/types";
 import { DailyQuestsPanel } from "@/components/dashboard/DailyQuestsPanel";
 import { GamificationCockpitCard } from "@/components/dashboard/GamificationCockpitCard";
+import { LeagueWidgetCard } from "@/components/dashboard/LeagueWidgetCard";
 import { KeyMetricsCard } from "@/components/dashboard/KeyMetricsCard";
 import { useGamification } from "@/context/GamificationContext";
 
@@ -1488,6 +1489,9 @@ export default function DashboardClient({
                 />
               )}
 
+              {/* LIGAS SEMANAIS & GAMIFICAÇÃO D30 */}
+              <LeagueWidgetCard />
+
               {/* SALA DE FOCO & DEEP WORK (ZEN COCKPIT) */}
               {visibleCards.focusRoom && (
                 <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-linear-to-br from-indigo-950/40 via-slate-950/70 to-purple-950/30 p-6 shadow-2xl backdrop-blur-2xl group hover:border-indigo-500/40 transition-all duration-300">
@@ -1552,6 +1556,11 @@ export default function DashboardClient({
               )}
             </div>
           )}
+        </div>
+
+        {/* LIGAS SEMANAIS NO MOBILE */}
+        <div className="block md:hidden">
+          <LeagueWidgetCard />
         </div>
 
         {/* SALA DE FOCO NO MOBILE */}

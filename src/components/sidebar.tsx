@@ -112,10 +112,16 @@ const NAV_GROUPS = [
       { label: "Flashcards FSRS", href: "/flashcards", icon: Layers },
       { label: "Performance", href: "/performance", icon: TrendingUp },
       {
+        label: "Ligas Semanais",
+        href: "/leaderboard",
+        icon: Trophy,
+        badge: "D30",
+        isSpecial: true,
+      },
+      {
         label: "Conquistas",
         href: "/achievements",
-        icon: Trophy,
-        isSpecial: true,
+        icon: Award,
       },
       { label: "Calendário", href: "/calendar", icon: CalendarDays },
     ],
