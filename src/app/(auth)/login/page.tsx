@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DotDistortionCanvas } from "@/components/ui/dot-distortion-canvas";
 import { GuestLoginButton } from "@/components/auth/guest-login-button";
 import { OAuthLoginButtons } from "@/components/auth/oauth-login-buttons";
+import { AuthThemeToggle } from "@/components/auth/auth-theme-toggle";
 
 export default function LoginPage() {
   const googleConfigured = Boolean(
@@ -17,38 +18,43 @@ export default function LoginPage() {
     !process.env.AUTH_GITHUB_ID?.includes("placeholder") &&
     !process.env.AUTH_GITHUB_CLIENT_ID?.includes("placeholder")
   );
+
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#020408] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white relative overflow-hidden">
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-slate-50 dark:bg-[#020408] text-slate-900 dark:text-slate-100 font-sans selection:bg-indigo-500 selection:text-white relative overflow-hidden transition-colors duration-300">
+      {/* Botão de Alternar Modo Claro / Modo Escuro no topo */}
+      <AuthThemeToggle />
+
       {/* Luzes Volumétricas Globais */}
-      <div className="pointer-events-none absolute -top-40 -left-40 w-[650px] h-[650px] bg-indigo-600/10 rounded-full blur-[160px]" />
-      <div className="pointer-events-none absolute -bottom-40 -right-20 w-[550px] h-[550px] bg-purple-600/10 rounded-full blur-[150px]" />
+      <div className="pointer-events-none absolute -top-40 -left-40 w-[650px] h-[650px] bg-indigo-500/15 dark:bg-indigo-600/10 rounded-full blur-[160px]" />
+      <div className="pointer-events-none absolute -bottom-40 -right-20 w-[550px] h-[550px] bg-purple-500/15 dark:bg-purple-600/10 rounded-full blur-[150px]" />
 
       {/* ================= COLUNA ESQUERDA: SHOWCASE INTERATIVO ================= */}
-      <div className="hidden lg:flex flex-col justify-between p-12 lg:p-16 relative overflow-hidden w-full border-r border-white/[0.06] bg-[#030509]">
+      <div className="hidden lg:flex flex-col justify-between p-12 lg:p-16 relative overflow-hidden w-full border-r border-slate-200/80 dark:border-white/[0.06] bg-linear-to-br from-slate-50 via-indigo-50/30 to-purple-50/20 dark:from-[#030509] dark:via-[#030509] dark:to-[#030509]">
         {/* Canvas de Partículas Neurais Otimizado */}
         <DotDistortionCanvas
           dotColor="rgba(99, 102, 241, 0.22)"
-          activeColor="rgba(192, 132, 252, 0.95)"
+          activeColor="rgba(147, 51, 234, 0.95)"
           spacing={28}
           distortionRadius={140}
         />
 
-        <div className="pointer-events-none absolute inset-0 bg-radial from-transparent via-[#030509]/40 to-[#030509]/95 z-1" />
+        {/* Máscara de Vinheta Suave (Dual-Theme) */}
+        <div className="pointer-events-none absolute inset-0 bg-radial from-transparent via-slate-100/40 to-slate-200/70 dark:via-[#030509]/40 dark:to-[#030509]/95 z-1" />
 
         {/* 1. Header - Logo */}
         <div className="relative z-10 w-full max-w-xl mx-auto">
           <div className="inline-flex items-center gap-2 select-none">
-            <h1 className="font-black text-white text-3xl tracking-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.2)]">
+            <h1 className="font-black text-slate-900 dark:text-white text-3xl tracking-tight drop-shadow-xs dark:drop-shadow-[0_0_24px_rgba(255,255,255,0.2)]">
               Synapse
             </h1>
 
             <div className="inline-flex items-center gap-1.5">
-              <span className="font-black text-3xl tracking-tight bg-linear-to-r from-indigo-400 via-purple-300 to-white bg-clip-text text-transparent drop-shadow-[0_0_16px_rgba(168,85,247,0.6)]">
+              <span className="font-black text-3xl tracking-tight bg-linear-to-r from-indigo-600 via-violet-600 to-purple-600 dark:from-indigo-400 dark:via-purple-300 dark:to-white bg-clip-text text-transparent drop-shadow-xs dark:drop-shadow-[0_0_16px_rgba(168,85,247,0.6)]">
                 AI
               </span>
               <div className="relative flex items-center justify-center w-2.5 h-2.5 mt-1.5 ml-0.5">
-                <span className="absolute w-2.5 h-2.5 rounded-full bg-indigo-400/50 animate-ping" />
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 drop-shadow-[0_0_8px_#818cf8]" />
+                <span className="absolute w-2.5 h-2.5 rounded-full bg-indigo-500/50 dark:bg-indigo-400/50 animate-ping" />
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-300 drop-shadow-[0_0_8px_#818cf8]" />
               </div>
             </div>
           </div>
@@ -56,15 +62,15 @@ export default function LoginPage() {
 
         {/* 2. Card Glassmorphic Ativo */}
         <div className="relative z-10 my-auto w-full max-w-xl mx-auto space-y-8">
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/75 p-6 sm:p-7 shadow-[0_25px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl transition-all duration-300 hover:border-violet-500/40 hover:shadow-[0_0_40px_rgba(139,92,246,0.2)] group">
+          <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-slate-950/75 p-6 sm:p-7 shadow-[0_20px_50px_-10px_rgba(99,102,241,0.12),0_8px_20px_-6px_rgba(15,23,42,0.06)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl transition-all duration-300 hover:border-violet-500/40 hover:shadow-[0_0_40px_rgba(139,92,246,0.15)] group">
             {/* Feixe de Luz Superior */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-400/80 to-transparent" />
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-48 h-20 bg-violet-500/25 blur-2xl pointer-events-none" />
+            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/80 to-transparent" />
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-48 h-20 bg-violet-500/15 dark:bg-violet-500/25 blur-2xl pointer-events-none" />
 
             {/* Header do Card */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/[0.07]">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/[0.07]">
               <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-2xl bg-linear-to-br from-violet-500/20 to-indigo-500/10 border border-violet-500/30 flex items-center justify-center text-violet-300 shadow-[0_0_15px_rgba(168,85,247,0.35)]">
+                <div className="w-10 h-10 rounded-2xl bg-violet-50 border border-violet-200 text-violet-600 dark:bg-linear-to-br dark:from-violet-500/20 dark:to-indigo-500/10 dark:border-violet-500/30 dark:text-violet-300 flex items-center justify-center shadow-xs dark:shadow-[0_0_15px_rgba(168,85,247,0.35)]">
                   <svg
                     className="w-5 h-5 fill-none stroke-current"
                     viewBox="0 0 24 24"
@@ -78,61 +84,61 @@ export default function LoginPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-wide">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">
                     Plano de Estudos Inteligente
                   </h3>
-                  <p className="text-[11px] font-mono text-slate-400">
+                  <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
                     Exemplo de Dashboard • Synapse Engine
                   </p>
                 </div>
               </div>
 
-              <span className="text-[10px] font-mono font-extrabold bg-violet-500/15 text-violet-300 border border-violet-500/30 px-2.5 py-1 rounded-full uppercase tracking-wider shadow-[0_0_12px_rgba(168,85,247,0.25)]">
+              <span className="text-[10px] font-mono font-extrabold bg-violet-50 border border-violet-200 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-500/30 px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs dark:shadow-[0_0_12px_rgba(168,85,247,0.25)]">
                 Preview
               </span>
             </div>
 
             {/* Grid de Métricas */}
             <div className="grid grid-cols-2 gap-3.5 pt-4">
-              <div className="bg-slate-900/60 border border-white/[0.06] p-3.5 rounded-2xl flex flex-col justify-between">
-                <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block mb-1">
+              <div className="bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] p-3.5 rounded-2xl flex flex-col justify-between">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono uppercase tracking-wider block mb-1">
                   Ritmo de Estudo
                 </span>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-sm font-black text-slate-100">
+                  <span className="text-sm font-black text-slate-900 dark:text-slate-100">
                     Consistente
                   </span>
-                  <span className="text-[10px] font-mono font-bold text-indigo-400">
+                  <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400">
                     94%
                   </span>
                 </div>
-                <div className="mt-2 h-1.5 w-full bg-slate-950 rounded-full overflow-hidden p-0.5 border border-white/5">
-                  <div className="h-full rounded-full bg-linear-to-r from-indigo-500 to-violet-400 shadow-[0_0_8px_rgba(129,140,248,0.6)] w-[94%]" />
+                <div className="mt-2 h-1.5 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-300/50 dark:border-white/5">
+                  <div className="h-full rounded-full bg-linear-to-r from-indigo-600 to-violet-500 dark:from-indigo-500 dark:to-violet-400 shadow-[0_0_8px_rgba(129,140,248,0.6)] w-[94%]" />
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 border border-white/[0.06] p-3.5 rounded-2xl flex flex-col justify-between">
-                <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block mb-1">
+              <div className="bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] p-3.5 rounded-2xl flex flex-col justify-between">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono uppercase tracking-wider block mb-1">
                   Organização IA
                 </span>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-sm font-black text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.35)]">
+                  <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 drop-shadow-xs dark:drop-shadow-[0_0_10px_rgba(52,211,153,0.35)]">
                     Automatizada
                   </span>
-                  <span className="text-[10px] font-mono text-emerald-400/80">
+                  <span className="text-[10px] font-mono text-emerald-600/90 dark:text-emerald-400/80">
                     Ativo
                   </span>
                 </div>
-                <div className="mt-2 h-1.5 w-full bg-slate-950 rounded-full overflow-hidden p-0.5 border border-white/5">
-                  <div className="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-300 shadow-[0_0_8px_rgba(52,211,153,0.6)] w-[100%]" />
+                <div className="mt-2 h-1.5 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-300/50 dark:border-white/5">
+                  <div className="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-400 dark:from-emerald-500 dark:to-teal-300 shadow-[0_0_8px_rgba(52,211,153,0.6)] w-[100%]" />
                 </div>
               </div>
             </div>
 
             {/* Status Bar */}
-            <div className="mt-3.5 bg-violet-950/40 border border-violet-500/25 p-3 rounded-2xl flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse shadow-[0_0_8px_#a855f7] shrink-0" />
-              <p className="text-xs text-violet-200/90 font-mono truncate">
+            <div className="mt-3.5 bg-violet-50/90 dark:bg-violet-950/40 border border-violet-200/80 dark:border-violet-500/25 p-3 rounded-2xl flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-violet-500 dark:bg-violet-400 animate-pulse shadow-[0_0_8px_#a855f7] shrink-0" />
+              <p className="text-xs text-violet-900 dark:text-violet-200/90 font-mono truncate">
                 Algoritmos SM-2 & Quests diárias calibrando seu ciclo.
               </p>
             </div>
@@ -140,39 +146,39 @@ export default function LoginPage() {
 
           {/* 3. Headline */}
           <div className="space-y-4">
-            <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
+            <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
               Sua rotina de estudos estruturada com o poder da{" "}
-              <span className="bg-linear-to-r from-indigo-300 via-violet-200 to-white bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(168,85,247,0.45)]">
+              <span className="bg-linear-to-r from-indigo-600 via-violet-600 to-purple-600 dark:from-indigo-300 dark:via-violet-200 dark:to-white bg-clip-text text-transparent drop-shadow-xs dark:drop-shadow-[0_0_24px_rgba(168,85,247,0.45)]">
                 Inteligência Artificial
               </span>
               .
             </h2>
 
             <div className="flex items-center gap-3 pt-2">
-              <span className="text-xs font-mono bg-white/[0.04] border border-white/10 text-slate-300 px-3.5 py-1.5 rounded-xl flex items-center gap-2 backdrop-blur-md shadow-sm">
-                <span className="text-amber-400">⚡</span> Algoritmos Preditivos
+              <span className="text-xs font-mono bg-white/90 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 px-3.5 py-1.5 rounded-xl flex items-center gap-2 backdrop-blur-md shadow-xs">
+                <span className="text-amber-500 dark:text-amber-400">⚡</span> Algoritmos Preditivos
               </span>
-              <span className="text-xs font-mono bg-white/[0.04] border border-white/10 text-slate-300 px-3.5 py-1.5 rounded-xl flex items-center gap-2 backdrop-blur-md shadow-sm">
-                <span className="text-emerald-400">🔒</span> Foco em Privacidade
+              <span className="text-xs font-mono bg-white/90 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 px-3.5 py-1.5 rounded-xl flex items-center gap-2 backdrop-blur-md shadow-xs">
+                <span className="text-emerald-500 dark:text-emerald-400">🔒</span> Foco em Privacidade
               </span>
             </div>
           </div>
         </div>
 
         {/* 4. Footer */}
-        <div className="relative z-10 w-full max-w-xl mx-auto flex items-center justify-between text-xs font-mono text-slate-500 pt-6">
+        <div className="relative z-10 w-full max-w-xl mx-auto flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-500 pt-6">
           <span>&copy; {new Date().getFullYear()} Synapse AI</span>
 
           <a
             href="https://my-portfolio-beta-flax-uo1wwytg9x.vercel.app/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-slate-400 hover:text-violet-300 transition-all duration-200 py-1.5 px-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-violet-500/40 group shadow-lg"
+            className="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-violet-300 transition-all duration-200 py-1.5 px-3 rounded-xl bg-white/90 hover:bg-white border border-slate-200 hover:border-indigo-300 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] dark:border-white/10 dark:hover:border-violet-500/40 group shadow-xs dark:shadow-lg"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
             <span className="font-medium">Desenvolvido por João Vytor</span>
             <svg
-              className="w-3.5 h-3.5 text-slate-500 group-hover:text-violet-300 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 dark:text-slate-500 dark:group-hover:text-violet-300 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -189,35 +195,35 @@ export default function LoginPage() {
       </div>
 
       {/* ================= COLUNA DIREITA: FORMULÁRIO GLASSMORPHIC ================= */}
-      <div className="flex items-center justify-center p-6 sm:p-12 relative z-10">
+      <div className="flex items-center justify-center p-6 sm:p-12 relative z-10 bg-slate-50/50 dark:bg-transparent">
         {/* Glow Central Atrás do Formulário */}
-        <div className="pointer-events-none absolute w-96 h-96 bg-indigo-500/10 rounded-full blur-[130px]" />
+        <div className="pointer-events-none absolute w-96 h-96 bg-indigo-500/10 dark:bg-indigo-500/10 rounded-full blur-[130px]" />
 
-        <div className="w-full max-w-md relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/60 p-8 sm:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] backdrop-blur-2xl space-y-8">
+        <div className="w-full max-w-md relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/10 bg-white/95 dark:bg-slate-950/60 p-8 sm:p-10 shadow-[0_25px_60px_-15px_rgba(15,23,42,0.1),0_10px_20px_-5px_rgba(99,102,241,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)] backdrop-blur-2xl space-y-8">
           {/* Linha de Destaque Superior */}
-          <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/60 to-transparent" />
 
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-2">
             <div className="inline-flex items-center gap-1.5 select-none">
-              <h1 className="font-extrabold text-slate-50 text-2xl tracking-tight">
+              <h1 className="font-extrabold text-slate-900 dark:text-slate-50 text-2xl tracking-tight">
                 Synapse
               </h1>
-              <span className="font-black text-2xl tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent">
+              <span className="font-black text-2xl tracking-tight bg-linear-to-r from-indigo-600 via-violet-600 to-purple-600 dark:from-indigo-300 dark:via-indigo-100 dark:to-white bg-clip-text text-transparent">
                 AI
               </span>
             </div>
           </div>
 
           <div className="text-center lg:text-left space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-[11px] font-mono text-violet-300 font-bold mb-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-pulse" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 dark:border-violet-500/30 bg-violet-50 dark:bg-violet-500/10 px-3 py-1 text-[11px] font-mono text-violet-700 dark:text-violet-300 font-bold mb-1 shadow-xs">
+              <span className="h-1.5 w-1.5 rounded-full bg-violet-500 dark:bg-violet-400 animate-pulse" />
               Acesso Seguro
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
               Acesse sua conta
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               Entre para continuar seus ciclos de estudo e resgatar suas quests
               diárias.
             </p>
@@ -228,11 +234,11 @@ export default function LoginPage() {
             <GuestLoginButton />
 
             <div className="relative flex items-center justify-center my-1">
-              <div className="border-t border-white/10 w-full" />
-              <span className="bg-slate-950/80 px-3 text-[11px] font-mono text-slate-400 uppercase tracking-wider shrink-0">
+              <div className="border-t border-slate-200 dark:border-white/10 w-full" />
+              <span className="bg-white dark:bg-slate-950/80 px-3 text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider shrink-0">
                 ou acesse via oauth
               </span>
-              <div className="border-t border-white/10 w-full" />
+              <div className="border-t border-slate-200 dark:border-white/10 w-full" />
             </div>
 
             <OAuthLoginButtons
@@ -242,10 +248,10 @@ export default function LoginPage() {
           </div>
 
           {/* Footer Informativo */}
-          <div className="pt-6 border-t border-white/[0.08] text-center lg:text-left space-y-3">
-            <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-slate-400">
+          <div className="pt-6 border-t border-slate-200/80 dark:border-white/[0.08] text-center lg:text-left space-y-3">
+            <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-slate-600 dark:text-slate-400">
               <svg
-                className="w-4 h-4 text-emerald-400 shrink-0"
+                className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -262,18 +268,18 @@ export default function LoginPage() {
               </span>
             </div>
 
-            <p className="text-[11px] text-slate-500 leading-relaxed">
+            <p className="text-[11px] text-slate-500 dark:text-slate-500 leading-relaxed">
               Ao continuar, você concorda com nossos{" "}
               <Link
                 href="#"
-                className="underline hover:text-slate-300 transition-colors"
+                className="underline hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
               >
                 Termos de Uso
               </Link>{" "}
               e{" "}
               <Link
                 href="#"
-                className="underline hover:text-slate-300 transition-colors"
+                className="underline hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
               >
                 Política de Privacidade
               </Link>
