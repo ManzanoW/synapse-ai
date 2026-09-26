@@ -270,9 +270,9 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#02050e] text-slate-100 flex flex-col items-center justify-center gap-3">
-        <Loader2 size={32} className="animate-spin text-indigo-400" />
-        <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
+      <div className="min-h-screen bg-slate-50/50 dark:bg-[#02050e] text-slate-900 dark:text-slate-100 flex flex-col items-center justify-center gap-3">
+        <Loader2 size={32} className="animate-spin text-indigo-500 dark:text-indigo-400" />
+        <span className="text-xs font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase">
           Consolidando inteligência cognitiva real...
         </span>
       </div>
@@ -281,12 +281,12 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#02050e] text-slate-100 flex flex-col items-center justify-center gap-3 p-4 text-center">
-        <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400">
+      <div className="min-h-screen bg-slate-50/50 dark:bg-[#02050e] text-slate-900 dark:text-slate-100 flex flex-col items-center justify-center gap-3 p-4 text-center">
+        <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-500 dark:text-rose-400">
           <AlertTriangle size={36} className="animate-pulse" />
         </div>
-        <h3 className="text-lg font-bold text-white">Ops! Algo deu errado</h3>
-        <p className="text-xs text-slate-400 max-w-sm">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Ops! Algo deu errado</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
           {error || "Não foi possível carregar o painel de métricas."}
         </p>
       </div>
@@ -318,7 +318,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
   const retentionStatus = data.metrics.retentionStatus;
 
   return (
-    <div className="relative min-h-screen bg-[#02050e] text-slate-100 p-4 md:p-8 font-sans antialiased selection:bg-indigo-500/30 overflow-hidden">
+    <div className="relative min-h-screen bg-slate-50/50 dark:bg-[#02050e] text-slate-900 dark:text-slate-100 p-4 md:p-8 font-sans antialiased selection:bg-indigo-500/30 overflow-hidden">
       <div className="pointer-events-none absolute top-0 left-1/4 h-125 w-125 rounded-full bg-indigo-500/10 blur-[140px]" />
       <div className="pointer-events-none absolute top-1/3 right-10 h-100 w-100 rounded-full bg-purple-500/10 blur-[130px]" />
 

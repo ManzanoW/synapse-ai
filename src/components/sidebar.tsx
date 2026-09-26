@@ -407,8 +407,8 @@ export default function Sidebar({ user }: SidebarProps) {
 
       <aside
         className={`
-          w-72 sm:w-64 max-w-[85vw] h-screen h-[100dvh] max-h-[100dvh] bg-[#07090e] border-r border-white/6 
-          text-slate-200 flex flex-col p-3.5 font-sans antialiased shrink-0 select-none
+          w-72 sm:w-64 max-w-[85vw] h-screen h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#07090e] border-r border-slate-200 dark:border-white/6 
+          text-slate-800 dark:text-slate-200 flex flex-col p-3.5 font-sans antialiased shrink-0 select-none
           fixed md:sticky top-0 left-0 z-50 transition-transform duration-300 ease-in-out 
           ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
@@ -421,7 +421,7 @@ export default function Sidebar({ user }: SidebarProps) {
             <button
               type="button"
               onClick={closeSidebar}
-              className="md:hidden absolute right-0 top-0 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="md:hidden absolute right-0 top-0 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Fechar menu"
               aria-label="Fechar menu"
             >
@@ -429,7 +429,7 @@ export default function Sidebar({ user }: SidebarProps) {
             </button>
 
             <div className="inline-flex items-center justify-center gap-2">
-              <h1 className="font-extrabold text-slate-50 text-[1.8rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
+              <h1 className="font-extrabold text-slate-900 dark:text-slate-50 text-[1.8rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
                 Synapse
               </h1>
 
@@ -538,7 +538,7 @@ export default function Sidebar({ user }: SidebarProps) {
           <nav className="space-y-2.5 pb-2">
             {filteredNavGroups.map((group) => (
               <div key={group.label} className="space-y-0.5">
-                <span className="px-2.5 text-[11px] font-sans font-bold uppercase tracking-wider text-slate-300 mt-3 mb-1.5 block select-none">
+                <span className="px-2.5 text-[11px] font-sans font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5 block select-none">
                   {group.label}
                 </span>
 
@@ -569,17 +569,17 @@ export default function Sidebar({ user }: SidebarProps) {
                         className={`relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-all duration-200 ${
                           isActive
                             ? isSpecial
-                              ? "text-amber-200 bg-amber-500/10 font-semibold border border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
-                              : "text-indigo-200 bg-indigo-500/10 font-semibold"
-                            : "text-slate-400 hover:text-slate-200 hover:bg-white/3"
+                              ? "text-amber-800 bg-amber-500/15 font-semibold border border-amber-500/30 dark:text-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                              : "text-indigo-700 bg-indigo-50 font-semibold dark:text-indigo-200 dark:bg-indigo-500/10"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/3"
                         }`}
                       >
                         {isActive && (
                           <div
                             className={`absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full ${
                               isSpecial
-                                ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
-                                : "bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
+                                ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
+                                : "bg-indigo-500 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
                             }`}
                           />
                         )}
@@ -590,16 +590,16 @@ export default function Sidebar({ user }: SidebarProps) {
                           className={`transition-all duration-200 ${
                             isActive
                               ? isSpecial
-                                ? "text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
-                                : "text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]"
-                              : "text-slate-500 group-hover:text-slate-300"
+                                ? "text-amber-600 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                                : "text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]"
+                              : "text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300"
                           }`}
                         />
 
                         <span className="tracking-wide">{item.label}</span>
 
                         {"badge" in item && Boolean((item as any).badge) && (
-                          <span className="ml-auto text-[8.5px] font-bold px-1.5 py-0.2 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-tight">
+                          <span className="ml-auto text-[8.5px] font-bold px-1.5 py-0.2 rounded-full bg-violet-500/15 text-violet-700 border border-violet-500/30 dark:bg-violet-500/20 dark:text-violet-300 tracking-tight">
                             {(item as any).badge}
                           </span>
                         )}

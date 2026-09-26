@@ -1552,7 +1552,7 @@ export default function QuestoesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#02050e] text-slate-100 p-3 sm:p-8 font-sans antialiased relative selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-slate-50/50 dark:bg-[#02050e] text-slate-900 dark:text-slate-100 p-3 sm:p-8 font-sans antialiased relative selection:bg-indigo-500/30">
       {isZenMode && (
         <style jsx global>{`
           aside,

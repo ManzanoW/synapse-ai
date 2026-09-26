@@ -54,7 +54,7 @@ export default async function DashboardLayout({
       <GamificationProvider userId={session?.user?.id}>
         <AchievementProvider>
           <AudioProvider>
-            <div className="flex h-screen h-[100dvh] w-full bg-[#030712] overflow-hidden relative">
+            <div className="flex h-screen h-[100dvh] w-full bg-slate-50 dark:bg-[#030712] text-slate-900 dark:text-slate-100 transition-colors duration-200 overflow-hidden relative">
               {/* Mini-HUD de Áudio Zen & Foco Global */}
               <SoundscapeFloatingWidget />
 
