@@ -204,6 +204,39 @@ export default function AchievementsPage() {
           </div>
         </div>
 
+        {/* ================= BANNER: LIGAS SEMANAIS & RANKING ================= */}
+        <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/40 via-slate-950/80 to-purple-950/40 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+              <Trophy size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400">
+                  Gamificação Competitiva D30
+                </span>
+                <span className="rounded-full bg-cyan-500/20 px-2 py-0.2 text-[9px] font-bold text-cyan-300">
+                  AO VIVO
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white">
+                Ligas Semanais & Desafios da Semana
+              </h3>
+              <p className="text-xs text-slate-300">
+                Dispute o pódio na sua divisão e abra o Grande Baú Semanal (+500 XP).
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/leaderboard"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-4 py-2 text-xs font-black shadow-lg shadow-cyan-500/20 transition-all shrink-0 active:scale-95"
+          >
+            <span>Ver Ligas e Ranking</span>
+            <ArrowLeft size={12} className="rotate-180" />
+          </Link>
+        </div>
+
         {/* ================= 2. HERO CARD: ÚLTIMA CONQUISTA DESBLOQUEADA ================= */}
         {latestUnlocked && (
           <div className="relative overflow-hidden rounded-3xl border border-amber-500/40 bg-linear-to-r from-amber-500/10 via-[#070b16] to-purple-500/10 p-6 backdrop-blur-2xl shadow-2xl">
