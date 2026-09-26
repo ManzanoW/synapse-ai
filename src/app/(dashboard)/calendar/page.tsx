@@ -96,7 +96,7 @@ export default function CalendarPage() {
   const todayCount = data[realTodayStr] || 0;
 
   return (
-    <div className="relative min-h-screen bg-[#02050e] text-slate-100 p-3 sm:p-4 md:p-8 font-sans antialiased selection:bg-indigo-500/30 overflow-hidden">
+    <div className="relative min-h-screen bg-slate-50/50 dark:bg-[#02050e] text-slate-900 dark:text-slate-100 p-3 sm:p-4 md:p-8 font-sans antialiased selection:bg-indigo-500/30 overflow-hidden">
       {/* Luz Ambient Neon de Fundo */}
       <div className="pointer-events-none absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-indigo-500/10 blur-[140px]" />
       <div className="pointer-events-none absolute top-1/3 right-10 h-[400px] w-[400px] rounded-full bg-cyan-500/10 blur-[130px]" />
@@ -106,11 +106,11 @@ export default function CalendarPage() {
         <div className="flex items-center justify-between">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors group cursor-pointer"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors group cursor-pointer"
           >
             <ArrowLeft
               size={14}
-              className="transition-transform group-hover:-translate-x-1 text-indigo-400"
+              className="transition-transform group-hover:-translate-x-1 text-indigo-500 dark:text-indigo-400"
             />
             <span>Voltar para a Dashboard</span>
           </Link>
@@ -118,80 +118,80 @@ export default function CalendarPage() {
 
         {/* KPIS DE RESUMO */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-          <div className="bg-gradient-to-br from-[#090d16] to-[#05070e] border border-white/10 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-2xl flex items-center justify-between">
+          <div className="bg-white/90 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border border-slate-200/80 dark:border-white/10 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-sm dark:shadow-2xl flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider">
                 Total Este Mês
               </p>
-              <p className="text-xl sm:text-2xl font-black text-white font-mono mt-1">
+              <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono mt-1">
                 {totalMonthRevisions}
               </p>
             </div>
-            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400">
               <Sparkles size={18} />
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-[#090d16] to-[#05070e] border border-white/10 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-2xl flex items-center justify-between">
+          <div className="bg-white/90 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border border-slate-200/80 dark:border-white/10 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-sm dark:shadow-2xl flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider">
                 Revisões de Hoje
               </p>
-              <p className="text-xl sm:text-2xl font-black text-indigo-400 font-mono mt-1">
+              <p className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono mt-1">
                 {todayCount}
               </p>
             </div>
-            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400">
               <Clock size={18} />
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-[#090d16] to-[#05070e] border border-white/10 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-2xl flex items-center justify-between">
+          <div className="bg-white/90 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border border-slate-200/80 dark:border-white/10 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-sm dark:shadow-2xl flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider">
                 Revisões Atrasadas
               </p>
-              <p className="text-xl sm:text-2xl font-black text-rose-400 font-mono mt-1">
+              <p className="text-xl sm:text-2xl font-black text-rose-500 dark:text-rose-400 font-mono mt-1">
                 0
               </p>
             </div>
-            <div className="p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+            <div className="p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 dark:text-rose-400">
               <AlertCircle size={18} />
             </div>
           </div>
         </div>
 
         {/* CABEÇALHO DO CALENDÁRIO */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-4 gap-3 sm:gap-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-white/10 pb-4 gap-3 sm:gap-0">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0">
+            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 shrink-0">
               <CalendarIcon size={20} />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 Calendário de Revisões
               </h1>
-              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Visão temporal das suas sessões agendadas pelo algoritmo SM-2.
               </p>
             </div>
           </div>
 
           {/* Controle de Mês */}
-          <div className="flex items-center justify-between sm:justify-start gap-2 bg-[#090d16] border border-white/10 p-1.5 rounded-2xl shadow-lg self-start sm:self-auto w-full sm:w-auto">
+          <div className="flex items-center justify-between sm:justify-start gap-2 bg-white dark:bg-[#090d16] border border-slate-200 dark:border-white/10 p-1.5 rounded-2xl shadow-sm dark:shadow-lg self-start sm:self-auto w-full sm:w-auto">
             <button
               onClick={handlePrevMonth}
-              className="p-1.5 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer active:scale-95"
+              className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer active:scale-95"
               title="Mês anterior"
             >
               <ChevronLeft size={16} />
             </button>
-            <span className="text-xs font-bold px-2 text-slate-200 capitalize min-w-[110px] sm:min-w-[120px] text-center">
+            <span className="text-xs font-bold px-2 text-slate-800 dark:text-slate-200 capitalize min-w-[110px] sm:min-w-[120px] text-center">
               {monthName}
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-1.5 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer active:scale-95"
+              className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer active:scale-95"
               title="Próximo mês"
             >
               <ChevronRight size={16} />
@@ -200,7 +200,7 @@ export default function CalendarPage() {
         </div>
 
         {/* GRADE DO CALENDÁRIO */}
-        <div className="bg-gradient-to-br from-[#090d16] to-[#05070e] border border-white/10 rounded-3xl p-3 sm:p-6 shadow-2xl backdrop-blur-2xl">
+        <div className="bg-white/80 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border border-slate-200/80 dark:border-white/10 rounded-3xl p-3 sm:p-6 shadow-sm dark:shadow-2xl backdrop-blur-2xl">
           {loading && (
             <div className="flex items-center justify-center gap-2 py-2 text-xs text-indigo-400 font-bold">
               <Loader2 size={14} className="animate-spin" /> Sincronizando
@@ -243,23 +243,23 @@ export default function CalendarPage() {
                     isToday
                       ? "border-indigo-500 bg-indigo-500/10 shadow-[0_0_20px_rgba(99,102,241,0.25)]"
                       : count > 0
-                        ? "border-white/10 bg-slate-950/80 hover:border-indigo-500/40 hover:bg-[#0c101d]"
-                        : "border-white/5 bg-slate-950/40 opacity-60 hover:opacity-100 hover:border-white/10"
+                        ? "border-slate-200 dark:border-white/10 bg-slate-100/60 dark:bg-slate-950/80 hover:border-indigo-500/40 hover:bg-indigo-50/50 dark:hover:bg-[#0c101d]"
+                        : "border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/40 opacity-70 hover:opacity-100 hover:border-slate-300 dark:hover:border-white/10"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span
                       className={`text-[11px] sm:text-xs font-bold font-mono ${
                         isToday
-                          ? "text-indigo-400 font-extrabold"
-                          : "text-slate-400 group-hover:text-white"
+                          ? "text-indigo-600 dark:text-indigo-400 font-extrabold"
+                          : "text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
                       }`}
                     >
                       {day}
                     </span>
 
                     {isToday && (
-                      <span className="hidden sm:inline-block text-[9px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/20 px-1.5 py-0.2 rounded-full border border-indigo-500/30">
+                      <span className="hidden sm:inline-block text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest bg-indigo-500/20 px-1.5 py-0.2 rounded-full border border-indigo-500/30">
                         Hoje
                       </span>
                     )}
@@ -271,7 +271,7 @@ export default function CalendarPage() {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
                       </span>
-                      <span className="text-[9px] sm:text-[10px] font-mono font-bold text-indigo-300 truncate">
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 truncate">
                         <span className="sm:hidden">{count}</span>
                         <span className="hidden sm:inline">
                           {count} {count === 1 ? "revisão" : "revisões"}
@@ -289,30 +289,30 @@ export default function CalendarPage() {
       {/* MODAL DE DETALHES DO DIA */}
       {selectedDay && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
           onClick={() => setSelectedDay(null)}
         >
           <div
-            className="bg-[#090d16] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl relative space-y-5"
+            className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl relative space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-start border-b border-white/10 pb-4">
+            <div className="flex justify-between items-start border-b border-slate-200 dark:border-white/10 pb-4">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400">
                   <BookOpen size={18} />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-white">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                     Revisões do Dia
                   </h2>
-                  <p className="text-xs text-indigo-400 font-semibold mt-0.5">
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5">
                     {selectedDay} de {monthName}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedDay(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -323,13 +323,13 @@ export default function CalendarPage() {
                 selectedTopics.map((topic) => (
                   <div
                     key={topic.id}
-                    className="p-3.5 bg-slate-950/80 border border-white/10 hover:border-indigo-500/30 rounded-2xl flex items-center justify-between gap-3 group transition-all"
+                    className="p-3.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-white/10 hover:border-indigo-500/30 rounded-2xl flex items-center justify-between gap-3 group transition-all"
                   >
                     <div className="min-w-0 flex-1 space-y-0.5">
-                      <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block truncate">
+                      <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block truncate">
                         {topic.subject?.name || "Sem Matéria"}
                       </span>
-                      <p className="text-xs font-bold text-slate-200 truncate group-hover:text-white">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-white">
                         {topic.title}
                       </p>
                     </div>
@@ -344,7 +344,7 @@ export default function CalendarPage() {
                 ))
               ) : (
                 <div className="py-8 text-center space-y-1">
-                  <p className="text-xs text-slate-400 font-medium">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                     Nenhuma revisão agendada para este dia.
                   </p>
                 </div>

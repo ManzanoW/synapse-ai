@@ -370,7 +370,7 @@ export default function ProvaOralClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#02050e] text-slate-100 p-3 sm:p-8 font-sans antialiased relative selection:bg-rose-500/30">
+    <div className="min-h-screen bg-slate-50/50 dark:bg-[#02050e] text-slate-900 dark:text-slate-100 p-3 sm:p-8 font-sans antialiased relative selection:bg-rose-500/30">
       {/* Ambient Glow */}
       <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-rose-600/10 blur-[120px] pointer-events-none" />
       <div className="absolute top-1/3 left-10 w-96 h-96 rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
