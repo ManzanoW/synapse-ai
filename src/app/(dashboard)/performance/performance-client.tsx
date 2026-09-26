@@ -13,6 +13,12 @@ import {
 import { EditalEmptyState } from "@/components/edital-empty-state";
 import { ApprovalPredictorSection } from "@/components/performance/ApprovalPredictorSection";
 import { AdaptiveRebalanceComparisonModal } from "@/components/performance/AdaptiveRebalanceComparisonModal";
+import { MonteCarloRiskModal } from "@/components/analytics/MonteCarloRiskModal";
+import { ExecutiveWeeklyDossier } from "@/components/analytics/ExecutiveWeeklyDossier";
+import {
+  runMonteCarloSimulationAction,
+  MonteCarloSimulationResult,
+} from "@/actions/monte-carlo-actions";
 import {
   Menu,
   TrendingUp,
@@ -178,6 +184,39 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
   // Expansão da lista de reforço do Adaptive Rebalancer
   const [isRebalanceListExpanded, setIsRebalanceListExpanded] = useState(false);
 
+  // Estados do Raio-X Monte Carlo e Dossiê Executivo
+  const [isMonteCarloOpen, setIsMonteCarloOpen] = useState(false);
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
+  const [monteCarloData, setMonteCarloData] = useState<MonteCarloSimulationResult | null>(null);
+
+  const handleOpenMonteCarlo = async () => {
+    setIsMonteCarloOpen(true);
+    if (!monteCarloData) {
+      try {
+        const res = await runMonteCarloSimulationAction();
+        if (res.success && res.data) {
+          setMonteCarloData(res.data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar Monte Carlo:", err);
+      }
+    }
+  };
+
+  const handleOpenDossier = async () => {
+    if (!monteCarloData) {
+      try {
+        const res = await runMonteCarloSimulationAction();
+        if (res.success && res.data) {
+          setMonteCarloData(res.data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar Monte Carlo para Dossiê:", err);
+      }
+    }
+    setIsDossierOpen(true);
+  };
+
   // 1. Evita Hydration Mismatch definindo a data apenas no cliente
   useEffect(() => {
     const day = new Date()
@@ -336,13 +375,34 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                 <Activity size={13} className="text-indigo-400" />
                 <span>Analytics & Inteligência Cognitiva</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
+              <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
                 Desempenho Cognitivo
               </h1>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Acompanhamento com métricas 100% autênticas: algoritmos FSRS, simulados reais e cobertura do edital.
               </p>
             </div>
+          </div>
+
+          {/* Botões de Ação Ultra-Premium */}
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleOpenMonteCarlo}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/25 active:scale-95 transition-all cursor-pointer"
+            >
+              <Target size={15} />
+              <span>🎯 Raio-X Monte Carlo</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenDossier}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer"
+            >
+              <BarChart3 size={15} className="text-indigo-500" />
+              <span className="hidden sm:inline">Dossiê Semanal (PDF)</span>
+            </button>
           </div>
         </div>
 
@@ -1376,6 +1436,25 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
         onClose={() => setIsComparisonOpen(false)}
         comparison={rebalanceComparison}
         totalWeeklyHours={rebalanceTotalHours}
+      />
+
+      {/* RAIO-X MONTE CARLO & SIMULADOR DE RISCO */}
+      <MonteCarloRiskModal
+        isOpen={isMonteCarloOpen}
+        onClose={() => setIsMonteCarloOpen(false)}
+        onOpenDossier={() => {
+          setIsMonteCarloOpen(false);
+          setIsDossierOpen(true);
+        }}
+      />
+
+      {/* DOSSIÊ SEMANAL EXECUTIVO (PDF/IMPRESSÃO) */}
+      <ExecutiveWeeklyDossier
+        isOpen={isDossierOpen}
+        onClose={() => setIsDossierOpen(false)}
+        data={monteCarloData}
+        targetRole={((data as unknown as Record<string, unknown>)?.targetRole as string) || "Concurso Público"}
+        userName={((data as unknown as Record<string, unknown>)?.userName as string) || "Concurseiro(a)"}
       />
     </div>
   );

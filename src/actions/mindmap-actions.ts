@@ -1,18 +1,36 @@
+// src/actions/mindmap-actions.ts
 "use server";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
-import { checkAiQuota, consumeAiQuota, getUserQuotaStatus } from "@/lib/ai-quota-service";
+import {
+  checkAiQuota,
+  consumeAiQuota,
+  getUserQuotaStatus,
+} from "@/lib/ai-quota-service";
 
 export interface MindMapNode {
   id: string;
   label: string;
-  type: "root" | "branch" | "leaf" | "rule" | "mnemonic";
+  type?: "root" | "branch" | "leaf" | "rule" | "mnemonic";
   description?: string;
   mnemonic?: string;
   ruleOrLaw?: string;
+  trapWarning?: string;
+  color?: string;
   children?: MindMapNode[];
+}
+
+export type MindmapNode = MindMapNode;
+
+export interface MindmapData {
+  id: string;
+  title: string;
+  subject: string;
+  summary: string;
+  rootNode: MindMapNode;
+  createdAt: string;
 }
 
 export interface GenerateMindMapInput {
@@ -30,6 +48,9 @@ export interface GenerateMindMapResult {
   canWatchRewardedAd?: boolean;
 }
 
+/**
+ * Geração de Mapa Mental estruturado para o Edital e Modal de Tópico
+ */
 export async function generateTopicMindMapAction(
   input: GenerateMindMapInput,
 ): Promise<GenerateMindMapResult> {
@@ -40,25 +61,14 @@ export async function generateTopicMindMapAction(
     }
 
     const userId = session.user.id;
-    const { topicTitle, subjectName, topicId, forceRegenerate = false } = input;
+    const { topicTitle, subjectName, topicId, forceRegenerate } = input;
 
-    // 1. Verificação de Cache no Banco de Dados (Zero tokens gastos ao reabrir)
-    if (!forceRegenerate) {
-      let cachedTopic = null;
-      if (topicId) {
-        cachedTopic = await prisma.topic.findUnique({
-          where: { id: topicId },
-          select: { id: true, mindMap: true },
-        });
-      } else {
-        cachedTopic = await prisma.topic.findFirst({
-          where: {
-            title: topicTitle,
-            subject: { userId },
-          },
-          select: { id: true, mindMap: true },
-        });
-      }
+    // 1. Verifica cache no banco de dados se não for forçado
+    if (!forceRegenerate && topicId) {
+      const cachedTopic = await prisma.topic.findUnique({
+        where: { id: topicId },
+        select: { mindMap: true },
+      });
 
       if (cachedTopic?.mindMap) {
         return {
@@ -118,7 +128,6 @@ Retorne APENAS um JSON válido estrito sem blocos markdown adicionais no formato
       "id": "branch-2",
       "label": "Bizú de Memorização",
       "type": "mnemonic",
-      "label": "Mnemônico da Banca",
       "mnemonic": "Palavra ou acrônimo chave",
       "description": "Dica infalível para não esquecer os itens."
     }
@@ -135,10 +144,9 @@ Retorne APENAS um JSON válido estrito sem blocos markdown adicionais no formato
 
     let parsed: MindMapNode;
     try {
-      const cleaned = aiRes.text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+      const cleaned = aiRes.text.replace(/```json/g, "").replace(/```/g, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
-      // Fallback estruturado inteligente
       parsed = {
         id: "root-fallback",
         label: topicTitle,
@@ -190,30 +198,17 @@ Retorne APENAS um JSON válido estrito sem blocos markdown adicionais no formato
       };
     }
 
-    // 2. Persiste o mapa mental gerado no banco de dados para evitar chamadas redundantes
     try {
       if (topicId) {
         await prisma.topic.update({
           where: { id: topicId },
           data: { mindMap: parsed as any },
         });
-      } else {
-        const found = await prisma.topic.findFirst({
-          where: { title: topicTitle, subject: { userId } },
-          select: { id: true },
-        });
-        if (found) {
-          await prisma.topic.update({
-            where: { id: found.id },
-            data: { mindMap: parsed as any },
-          });
-        }
       }
     } catch (saveErr) {
       console.warn("[generateTopicMindMapAction] Aviso ao salvar mapa mental no banco:", saveErr);
     }
 
-    // Consome cota diária de Mapa Mental com IA
     await consumeAiQuota(userId, "MINDMAP");
 
     return {
@@ -256,7 +251,6 @@ export async function deepenMindMapNodeAction(input: {
     const userId = session.user.id;
     const userQuota = await getUserQuotaStatus(userId);
 
-    // 👑 Verificação de Exclusividade Synapse Pro
     if (!userQuota.isUnlimited) {
       return {
         success: false,
@@ -266,7 +260,7 @@ export async function deepenMindMapNodeAction(input: {
       };
     }
 
-    const prompt = `Você é um tutor de alta performance para concursos públicos e vestibulares de elite.
+    const prompt = `Você é um tutor de alta performance para concursos públicos.
 Sua missão é APROFUNDAR o seguinte nó do mapa mental de "${input.topicTitle}" (${input.subjectName}):
 - Conceito/Ramo: "${input.nodeLabel}"
 - Descrição atual: "${input.nodeDescription || "Sem descrição"}"
@@ -297,7 +291,7 @@ Retorne APENAS um JSON válido no formato:
       },
     });
 
-    const cleaned = aiRes.text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+    const cleaned = aiRes.text.replace(/```json/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
 
     return {
@@ -313,3 +307,88 @@ Retorne APENAS um JSON válido no formato:
   }
 }
 
+/**
+ * Geração livre para o Hub de Mapas Mentais (/mapas-mentais)
+ */
+export async function generateMindmapAction(input: {
+  topic: string;
+  subject?: string;
+  careerFocus?: string;
+  banca?: string;
+}): Promise<{ success: boolean; data?: MindmapData; error?: string }> {
+  try {
+    const prompt = `
+Você é o Especialista em Mapas Mentais de Alta Retenção e Mnemônicos para Concursos da Synapse AI.
+Crie um MAPA MENTAL ESQUEMATIZADO E HIERÁRQUICO para o seguinte tema:
+
+TEMA/TÓPICO: "${input.topic}"
+DISCIPLINA: "${input.subject || "Geral"}"
+CARREIRA: "${input.careerFocus || "Geral"}"
+BANCA: "${input.banca || "Cebraspe / FGV / FCC"}"
+
+DIRETRIZES:
+1. Nó raiz com conceito central.
+2. 3 a 5 ramos principais coloridos (indigo, emerald, amber, rose, cyan, purple).
+3. 2 a 4 sub-nós com regras, artigos de lei ou mnemônicos.
+4. "mnemonic" (macete) e "trapWarning" (pegadinha clássica).
+
+Retorne EXCLUSIVAMENTE um JSON:
+{
+  "title": "Título do Mapa",
+  "subject": "${input.subject || "Geral"}",
+  "summary": "Resumo de 2 frases",
+  "rootNode": {
+    "id": "root",
+    "label": "Conceito Central",
+    "description": "Definição nuclear",
+    "color": "indigo",
+    "children": [
+      {
+        "id": "b1",
+        "label": "Ramo 1",
+        "description": "Explicação",
+        "color": "cyan",
+        "mnemonic": "Macete opcional",
+        "trapWarning": "Pegadinha opcional",
+        "children": [
+          {
+            "id": "s1-1",
+            "label": "Subtópico",
+            "description": "Detalhe"
+          }
+        ]
+      }
+    ]
+  }
+}
+`;
+
+    const { text } = await generateContentWithFallback({
+      prompt,
+      timeoutMs: 40000,
+    });
+
+    const cleaned = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+
+    const mindmap: MindmapData = {
+      id: `mm-${Date.now()}`,
+      title: parsed.title || input.topic,
+      subject: parsed.subject || input.subject || "Geral",
+      summary: parsed.summary || "Esquematização cognitiva de alto impacto para fixação rápida.",
+      rootNode: parsed.rootNode,
+      createdAt: new Date().toISOString(),
+    };
+
+    return {
+      success: true,
+      data: mindmap,
+    };
+  } catch (err) {
+    console.error("Erro ao gerar mapa mental:", err);
+    return {
+      success: false,
+      error: "Não foi possível gerar o mapa mental no momento.",
+    };
+  }
+}

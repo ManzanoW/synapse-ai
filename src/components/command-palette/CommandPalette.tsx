@@ -26,6 +26,8 @@ import {
   Headphones,
   CalendarDays,
   Flame,
+  Brain,
+  Activity,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAudio } from "@/contexts/AudioContext";
@@ -198,8 +200,28 @@ export function CommandPalette({ user }: CommandPaletteProps) {
         action: () => navigateTo("/performance"),
         keywords: ["metricas", "desempenho", "graficos", "estatisticas", "retencao"],
       },
+      {
+        id: "nav-mindmaps",
+        title: "Hub de Mapas Mentais & Mnemônicos",
+        subtitle: "Esquematizações conceituais e macetes de bancas com IA",
+        category: "Navegação",
+        icon: Brain,
+        badge: "IA",
+        action: () => navigateTo("/mapas-mentais"),
+        keywords: ["mapa mental", "mnemonicos", "esquema", "resumo", "arvore", "visual", "macetes"],
+      },
 
       // AÇÕES RÁPIDAS
+      {
+        id: "action-monte-carlo",
+        title: "Executar Raio-X Monte Carlo (1.000x)",
+        subtitle: "Simulação estocástica de nota e matriz de custo de oportunidade",
+        category: "Ações Rápidas",
+        icon: Activity,
+        badge: "Preditivo",
+        action: () => navigateTo("/performance"),
+        keywords: ["monte carlo", "raio x", "risco", "probabilidade", "corte", "chance", "aprovacao"],
+      },
       {
         id: "action-quick-simulado",
         title: "Iniciar Simulado Rápido de 10 Questões",

@@ -48,6 +48,7 @@ import {
   Moon,
   X,
   Cpu,
+  Brain,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -110,6 +111,12 @@ const NAV_GROUPS = [
         badge: "ZEN",
       },
       { label: "Flashcards FSRS", href: "/flashcards", icon: Layers },
+      {
+        label: "Mapas Mentais",
+        href: "/mapas-mentais",
+        icon: Brain,
+        badge: "IA",
+      },
       { label: "Performance", href: "/performance", icon: TrendingUp },
       {
         label: "Ligas Semanais",
