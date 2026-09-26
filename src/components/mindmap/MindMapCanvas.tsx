@@ -49,7 +49,7 @@ function addSubNodesToTree(
   if (!node.children || node.children.length === 0) return node;
   return {
     ...node,
-    children: node.children.map((child) =>
+    children: node.children.map((child: MindMapNode) =>
       addSubNodesToTree(child, targetId, newChildren, newExplanation),
     ),
   };
@@ -329,7 +329,7 @@ export function MindMapCanvas({
           res.data.expandedExplanation,
         );
         setCurrentNode(updated);
-        setSelectedNode((prev) =>
+        setSelectedNode((prev: MindMapNode | null) =>
           prev && prev.id === node.id
             ? {
                 ...prev,
@@ -377,7 +377,7 @@ export function MindMapCanvas({
       };
 
       if (!isCollapsed && node.children && node.children.length > 0) {
-        layout.children = node.children.map((child) =>
+        layout.children = node.children.map((child: MindMapNode) =>
           buildTree(child, depth + 1, layout),
         );
         const childYs = layout.children.map((c) => c.y + c.height / 2);
