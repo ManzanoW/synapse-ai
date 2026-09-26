@@ -4,7 +4,7 @@ import { GamificationProvider } from "@/context/GamificationContext";
 import { AchievementProvider } from "@/context/AchievementContext";
 import { AudioProvider } from "@/contexts/AudioContext";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
-import { CommandPalette } from "@/components/ui/command-palette";
+import { CommandPalette } from "@/components/command-palette/CommandPalette";
 import { DemoSessionSync } from "@/components/auth/demo-session-sync";
 import { SoundscapeFloatingWidget } from "@/components/audio/SoundscapeFloatingWidget";
 import { auth } from "@/auth";
@@ -59,7 +59,7 @@ export default async function DashboardLayout({
               <SoundscapeFloatingWidget />
 
               {/* Paleta de Comandos Global (Cmd+K / Ctrl+K) */}
-              <CommandPalette />
+              <CommandPalette user={dbUser} />
 
               {/* Sidebar Desktop */}
               <Sidebar

@@ -26,12 +26,14 @@ import {
   Lightbulb,
   WifiOff,
   RefreshCw,
+  Headphones,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
 import { useGamification } from "@/context/GamificationContext";
 import { useAchievement } from "@/context/AchievementContext";
 import { useSound } from "@/hooks/useSound";
+import { AudioFlashcardPlayer } from "./AudioFlashcardPlayer";
 import { checkNewAchievements } from "@/lib/check-achievements";
 import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 import {
@@ -85,10 +87,18 @@ export default function StudyFlashcard({
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [showEbbinghausCurve, setShowEbbinghausCurve] = useState(false);
+  const [isAudioPlayerOpen, setIsAudioPlayerOpen] = useState(false);
   const isDraggingRef = useRef(false);
   const cardStartTimeRef = useRef(0);
 
   const { isOnline, pendingCount, isSyncing, triggerSync } = useOfflineSync();
+
+  // Escuta acionamento global do modo áudio pela Command Palette
+  useEffect(() => {
+    const handleOpenAudio = () => setIsAudioPlayerOpen(true);
+    window.addEventListener("open-audio-study", handleOpenAudio);
+    return () => window.removeEventListener("open-audio-study", handleOpenAudio);
+  }, []);
 
   useEffect(() => {
     const currentDeckId = deckId || initialCards?.[0]?.deckId || "all";
@@ -601,6 +611,16 @@ export default function StudyFlashcard({
                   </button>
                 )}
 
+                <button
+                  type="button"
+                  onClick={() => setIsAudioPlayerOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 hover:text-indigo-300 text-[10px] sm:text-[11px] font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                  title="Estudo com áudio contínuo para fones de ouvido (trânsito, academia)"
+                >
+                  <Headphones size={13} className="text-indigo-400" />
+                  <span className="hidden sm:inline">Modo Fones</span>
+                </button>
+
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[10px] sm:text-[11px] font-mono shadow-inner">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
                   <span className="font-bold text-indigo-400">
@@ -997,6 +1017,15 @@ export default function StudyFlashcard({
           </>
         )}
       </div>
+
+      {/* PLAYER DE ESTUDO HANDS-FREE / FONES DE OUVIDO */}
+      <AudioFlashcardPlayer
+        isOpen={isAudioPlayerOpen}
+        onClose={() => setIsAudioPlayerOpen(false)}
+        cards={cards}
+        deckTitle={deckTitle}
+        initialIndex={currentIndex}
+      />
     </div>
   );
 }
