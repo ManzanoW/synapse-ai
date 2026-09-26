@@ -19,6 +19,7 @@ import {
   Gavel,
   BookOpen,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   Send,
   HelpCircle,
@@ -26,6 +27,7 @@ import {
   X,
   Check,
 } from "lucide-react";
+import Link from "next/link";
 import confetti from "canvas-confetti";
 import {
   OralQuestionData,
@@ -47,29 +49,34 @@ export default function ProvaOralClient({
   userCareer = "Concurso Geral",
   userRole = "Concurso Geral",
 }: ProvaOralClientProps) {
-  // Banner para usuários com foco em outra carreira
-  const [bannerDismissed, setBannerDismissed] = useState(false);
-  const [isPinning, setIsPinning] = useState(false);
-  const [isPinnedSuccess, setIsPinnedSuccess] = useState(false);
+  const [hasLawAccess, setHasLawAccess] = useState(isLawUser);
+  const [isActivatingLaw, setIsActivatingLaw] = useState(false);
 
-  const handlePinToSidebar = async () => {
+  const handleEnableLawModule = async () => {
     try {
-      setIsPinning(true);
+      setIsActivatingLaw(true);
       const newRole = enableLawModuleInTargetRole(userRole);
       const res = await updateUserCareerFocusAction({
         targetRole: newRole,
         careerFocus: userCareer,
       });
       if (res.success) {
-        setIsPinnedSuccess(true);
+        setHasLawAccess(true);
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("career-updated"));
         }
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 70,
+            origin: { y: 0.6 },
+          });
+        } catch {}
       }
     } catch (err) {
-      console.error("Erro ao fixar módulo de direito:", err);
+      console.error("Erro ao ativar módulo de direito:", err);
     } finally {
-      setIsPinning(false);
+      setIsActivatingLaw(false);
     }
   };
 
@@ -310,6 +317,58 @@ export default function ProvaOralClient({
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
+  // =========================================================================
+  // GATEKEEPER ESTRITO: EXIBIDO QUANDO O USUÁRIO NÃO TEM FOCO EM DIREITO
+  // =========================================================================
+  if (!hasLawAccess) {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center p-4 sm:p-6">
+        <div className="max-w-xl w-full rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-950/80 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl text-center space-y-6">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-rose-500/10 border border-rose-500/30 text-rose-500 shadow-xl shadow-rose-500/10">
+            <Mic className="h-10 w-10" />
+          </div>
+
+          <div className="space-y-2">
+            <span className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
+              Módulo Jurídico Exclusivo
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              Acesso Restrito às Carreiras de Direito
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              Seu foco de estudos atual está configurado para{" "}
+              <strong className="text-slate-900 dark:text-white font-bold">{userCareer}</strong>.
+              O Simulador de Prova Oral com IA e Voz Ativa é exclusivo para carreiras jurídicas de ponta (Magistratura, Ministério Público, Defensoria e Delegado).
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              onClick={handleEnableLawModule}
+              disabled={isActivatingLaw}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white font-black text-sm px-6 py-3.5 shadow-xl shadow-rose-500/20 active:scale-95 transition-all cursor-pointer"
+            >
+              {isActivatingLaw ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Scale className="h-4 w-4" />
+              )}
+              <span>{isActivatingLaw ? "Ativando Módulo..." : "⚖️ Ativar Foco em Direito & Desbloquear"}</span>
+            </button>
+
+            <Link
+              href="/dashboard"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold text-sm px-5 py-3.5 transition-all"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Voltar ao Dashboard</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#02050e] text-slate-100 p-3 sm:p-8 font-sans antialiased relative selection:bg-rose-500/30">
       {/* Ambient Glow */}
@@ -317,49 +376,6 @@ export default function ProvaOralClient({
       <div className="absolute top-1/3 left-10 w-96 h-96 rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
 
       <div className="max-w-4xl mx-auto space-y-6 relative">
-        {/* ================= BANNER DE MÓDULO JURÍDICO PARA OUTRAS CARREIRAS ================= */}
-        {!isLawUser && !bannerDismissed && (
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0">
-                <Scale size={18} />
-              </div>
-              <div className="space-y-0.5">
-                <span className="font-bold text-rose-200 block">
-                  Você está acessando o Módulo de Direito (Seu foco atual: {userCareer.split("(")[0].trim()})
-                </span>
-                <p className="text-slate-400 text-[11px]">
-                  Os atalhos de Prova Oral e Jurisprudência ficam ocultos por padrão para concurseiros de outras áreas. Deseja fixá-los na sua barra lateral?
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-              {isPinnedSuccess ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-                  <Check size={13} /> Fixado no menu!
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  disabled={isPinning}
-                  onClick={handlePinToSidebar}
-                  className="px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {isPinning ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                  <span>Fixar no Menu Lateral</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setBannerDismissed(true)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                title="Fechar aviso"
-              >
-                <X size={15} />
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* ================= HERO HEADER ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
