@@ -119,10 +119,102 @@ export function useSound() {
     }
   }, [getAudioContext, isMuted]);
 
+  const playClick = useCallback(() => {
+    if (isMuted) return;
+
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      // Som tátil suave e seco estilo Linear/Apple (800Hz drop para 300Hz em 20ms)
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(300, now + 0.02);
+
+      gainNode.gain.setValueAtTime(0.04, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.02);
+    } catch {
+      // Ignorar exceções de áudio
+    }
+  }, [getAudioContext, isMuted]);
+
+  const playLevelUp = useCallback(() => {
+    if (isMuted) return;
+
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      // Arpejo ascendente maior (C5 -> E5 -> G5 -> C6)
+      const freqs = [523.25, 659.25, 783.99, 1046.5];
+      freqs.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        const start = now + idx * 0.07;
+
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, start);
+
+        gainNode.gain.setValueAtTime(0.12, start);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        osc.start(start);
+        osc.stop(start + 0.35);
+      });
+    } catch {
+      // Ignorar exceções de áudio
+    }
+  }, [getAudioContext, isMuted]);
+
+  const playChime = useCallback(() => {
+    if (isMuted) return;
+
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(1046.5, now); // C6
+      osc.frequency.exponentialRampToValueAtTime(1318.5, now + 0.15); // E6
+
+      gainNode.gain.setValueAtTime(0.08, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } catch {
+      // Ignorar exceções de áudio
+    }
+  }, [getAudioContext, isMuted]);
+
   return {
     playCorrect,
     playError,
     playFlip,
+    playClick,
+    playLevelUp,
+    playChime,
     isMuted,
   };
 }

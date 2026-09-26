@@ -21,11 +21,22 @@ import {
   Sparkles,
   PenTool,
   BookOpen,
+  Search,
+  Lightbulb,
+  Volume2,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
 import { ErrorClassification } from "@/types/quiz";
 import { MentorCopilotDrawer } from "@/components/mentor/MentorCopilotDrawer";
 import { QuestionScratchpad } from "@/components/questions/QuestionScratchpad";
+import {
+  getSocraticHintAction,
+  explainAlternativeAction,
+  AlternativeExplanation,
+} from "@/actions/socratic-actions";
+import { SocraticWhyWrongModal } from "@/components/questions/SocraticWhyWrongModal";
+import { useSound } from "@/hooks/useSound";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface QuestionCardProps {
   questao: QuestaoIA;
@@ -85,6 +96,26 @@ export function QuestionCard({
   const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
   const [hasScratchpadNotes, setHasScratchpadNotes] = useState(false);
 
+  // Estados do Tutor Socrático
+  const [socraticHint, setSocraticHint] = useState<string | null>(null);
+  const [isLoadingHint, setIsLoadingHint] = useState(false);
+  const [showHintBox, setShowHintBox] = useState(false);
+  const [whyWrongModal, setWhyWrongModal] = useState<{
+    isOpen: boolean;
+    optionId: string;
+    optionText: string;
+    explanation: AlternativeExplanation | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    optionId: "",
+    optionText: "",
+    explanation: null,
+    isLoading: false,
+  });
+
+  const { playCorrect, playError, playClick, playChime } = useSound();
+
   // Atalho global ⌘J / Ctrl+J para acionar o Mentor IA na questão focada
   useEffect(() => {
     if (!isFocused) return;
@@ -103,21 +134,103 @@ export function QuestionCard({
   const toggleEliminate = (e: React.MouseEvent, altId: string) => {
     e.stopPropagation();
     if (respondida) return;
+    playClick();
+    triggerHaptic("light");
     setEliminatedAlts((prev) => ({ ...prev, [altId]: !prev[altId] }));
   };
 
   const acertou = alternativaSelecionada === questao.gabaritoCorreto;
 
-  // Resposta com classificação automática invisível para o Caderno de Erros
+  // Resposta com classificação automática invisível para o Caderno de Erros e Sensory feedback
   const handleAnswer = () => {
     onAnswerQuestion();
-    if (alternativaSelecionada !== questao.gabaritoCorreto && onClassifyError) {
-      const autoReason: ErrorClassification =
-        questao.pegadinhaBanca || questao.mentorGuidance?.trapWarning
-          ? "ATTENTION_LAPSE"
-          : "THEORY_GAP";
-      onClassifyError(autoReason);
-      setSelectedReason(autoReason);
+    if (alternativaSelecionada === questao.gabaritoCorreto) {
+      playCorrect();
+      triggerHaptic("success");
+    } else {
+      playError();
+      triggerHaptic("warning");
+      if (onClassifyError) {
+        const autoReason: ErrorClassification =
+          questao.pegadinhaBanca || questao.mentorGuidance?.trapWarning
+            ? "ATTENTION_LAPSE"
+            : "THEORY_GAP";
+        onClassifyError(autoReason);
+        setSelectedReason(autoReason);
+      }
+    }
+  };
+
+  // Solicitar Pista Socrática pré-resposta
+  const handleGetSocraticHint = async () => {
+    if (socraticHint) {
+      setShowHintBox((prev) => !prev);
+      playClick();
+      return;
+    }
+
+    setIsLoadingHint(true);
+    playClick();
+    triggerHaptic("medium");
+
+    try {
+      const res = await getSocraticHintAction({
+        questionText: questao.enunciado,
+        options: questao.alternativas,
+        subject: ((questao as unknown as Record<string, unknown>).materia as string) || "Geral",
+        banca: ((questao as unknown as Record<string, unknown>).banca as string) || "Geral",
+      });
+
+      if (res.success && res.hint) {
+        setSocraticHint(res.hint);
+        setShowHintBox(true);
+        playChime();
+        triggerHaptic("success");
+      }
+    } catch (err) {
+      console.error("Erro ao obter pista socrática:", err);
+    } finally {
+      setIsLoadingHint(false);
+    }
+  };
+
+  // Dissecar alternativa individual
+  const handleDissectAlternative = async (optionId: string, optionText: string) => {
+    playClick();
+    triggerHaptic("medium");
+    setWhyWrongModal({
+      isOpen: true,
+      optionId,
+      optionText,
+      explanation: null,
+      isLoading: true,
+    });
+
+    try {
+      const res = await explainAlternativeAction({
+        questionText: questao.enunciado,
+        optionId,
+        optionText,
+        correctAnswer: questao.gabaritoCorreto,
+        explanation: questao.justificativa,
+        subject: ((questao as unknown as Record<string, unknown>).materia as string) || "Geral",
+        banca: ((questao as unknown as Record<string, unknown>).banca as string) || "Geral",
+      });
+
+      if (res.success && res.data) {
+        setWhyWrongModal((prev) => ({
+          ...prev,
+          explanation: res.data || null,
+          isLoading: false,
+        }));
+        playChime();
+        triggerHaptic("light");
+      } else {
+        setWhyWrongModal((prev) => ({ ...prev, isLoading: false }));
+      }
+    } catch (err) {
+      console.error("Erro ao dissecar alternativa:", err);
+      setWhyWrongModal((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -315,7 +428,7 @@ export function QuestionCard({
                     )}
                   </button>
 
-                  {!respondida && (
+                  {!respondida ? (
                     <button
                       type="button"
                       onClick={(e) => toggleEliminate(e, alt.id)}
@@ -332,6 +445,16 @@ export function QuestionCard({
                     >
                       {isEliminated ? <Eye size={15} /> : <EyeOff size={15} />}
                     </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleDissectAlternative(alt.id, alt.texto)}
+                      title="Dissecar pegadinha desta assertiva com IA"
+                      className="px-2.5 py-1.5 rounded-lg text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 border border-indigo-500/20 text-[11px] font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 self-center active:scale-95"
+                    >
+                      <Search size={12} />
+                      <span className="hidden sm:inline">Por que?</span>
+                    </button>
                   )}
                 </div>
               );
@@ -341,64 +464,113 @@ export function QuestionCard({
               const atalhoNum = altIdx + 1;
 
               return (
-                <button
-                  key={`q-${index}-ce-${opcao}`}
-                  disabled={respondida}
-                  onClick={() => onSelectAnswer(opcao)}
-                  type="button"
-                  className={`w-full text-left px-4 py-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] ${
-                    respondida
-                      ? opcao === questao.gabaritoCorreto
-                        ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 shadow-xs"
+                <div key={`q-${index}-ce-${opcao}`} className="flex items-center gap-2">
+                  <button
+                    disabled={respondida}
+                    onClick={() => onSelectAnswer(opcao)}
+                    type="button"
+                    className={`flex-1 text-left px-4 py-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] ${
+                      respondida
+                        ? opcao === questao.gabaritoCorreto
+                          ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 shadow-xs"
+                          : isSelected
+                            ? "bg-rose-500/10 border-rose-500/80 text-rose-300"
+                            : "bg-slate-950/30 border-slate-900 text-slate-600"
                         : isSelected
-                          ? "bg-rose-500/10 border-rose-500/80 text-rose-300"
-                          : "bg-slate-950/30 border-slate-900 text-slate-600"
-                      : isSelected
-                        ? "bg-indigo-600/15 border-indigo-500/80 text-slate-100 ring-1 ring-indigo-500/40 shadow-xs"
-                        : "bg-slate-950/50 border-slate-800/80 hover:border-slate-700/80 hover:bg-slate-900/40 text-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`w-2.5 h-2.5 rounded-full ${
-                        opcao === "Certo" ? "bg-emerald-400" : "bg-rose-400"
-                      }`}
-                    />
-                    <span>{opcao}</span>
-                  </div>
-                  {!respondida && (
-                    <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-slate-400 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded transition-colors">
-                      {atalhoNum}
-                    </kbd>
+                          ? "bg-indigo-600/15 border-indigo-500/80 text-slate-100 ring-1 ring-indigo-500/40 shadow-xs"
+                          : "bg-slate-950/50 border-slate-800/80 hover:border-slate-700/80 hover:bg-slate-900/40 text-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full ${
+                          opcao === "Certo" ? "bg-emerald-400" : "bg-rose-400"
+                        }`}
+                      />
+                      <span>{opcao}</span>
+                    </div>
+                    {!respondida && (
+                      <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-slate-400 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded transition-colors">
+                        {atalhoNum}
+                      </kbd>
+                    )}
+                  </button>
+
+                  {respondida && (
+                    <button
+                      type="button"
+                      onClick={() => handleDissectAlternative(opcao, opcao)}
+                      title="Dissecar com IA"
+                      className="px-2.5 py-2 rounded-xl text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 border border-indigo-500/20 text-[11px] font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 active:scale-95"
+                    >
+                      <Search size={12} />
+                      <span className="hidden sm:inline">Por que?</span>
+                    </button>
                   )}
-                </button>
+                </div>
               );
             })}
       </div>
 
+      {/* CAIXA DE PISTA SOCRÁTICA EXPANSÍVEL */}
+      <AnimatePresence>
+        {socraticHint && showHintBox && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="rounded-2xl p-4 bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2 overflow-hidden"
+          >
+            <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+              <div className="flex items-center gap-2 font-bold text-amber-300">
+                <Lightbulb size={16} className="text-amber-400 animate-bounce" />
+                <span>Pista Socrática do Mentor Synapse</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHintBox(false)}
+                className="text-amber-400 hover:text-amber-200 text-[11px] font-semibold cursor-pointer"
+              >
+                Recolher
+              </button>
+            </div>
+            <p className="leading-relaxed whitespace-pre-line text-amber-100/90 font-medium">
+              {socraticHint}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* RODAPÉ / BOTÃO DE SUBMISSÃO */}
       <div className="flex flex-col gap-4">
         {!respondida ? (
-          <div className="flex items-center justify-between border-t border-slate-800/60 pt-4 gap-4">
-            <div className="hidden sm:flex items-center gap-3 text-[11px] text-slate-500 font-mono">
-              <span className="flex items-center gap-1">
-                <kbd className="bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                  ↑
-                </kbd>
-                <kbd className="bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                  ↓
-                </kbd>
-                <span className="text-slate-600 ml-0.5">Navegar</span>
-              </span>
+          <div className="flex flex-wrap items-center justify-between border-t border-slate-800/60 pt-4 gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleGetSocraticHint}
+                disabled={isLoadingHint}
+                className="px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                {isLoadingHint ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin text-amber-400" />
+                    <span>Pensando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lightbulb size={14} className="text-amber-400" />
+                    <span>{socraticHint ? (showHintBox ? "Ocultar Pista" : "Ver Pista Socrática") : "💡 Pista Socrática"}</span>
+                  </>
+                )}
+              </button>
 
-              <span className="text-slate-700">•</span>
-
-              <span className="flex items-center gap-1">
-                <kbd className="bg-slate-900 border border-slate-800 text-indigo-300 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5">
-                  <CornerDownLeft size={10} /> Enter
+              <div className="hidden sm:flex items-center gap-2 text-[11px] text-slate-500 font-mono">
+                <kbd className="bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                  ↑ / ↓
                 </kbd>
-                <span className="text-slate-600 ml-0.5">Confirmar</span>
-              </span>
+                <span className="text-slate-600">Navegar</span>
+              </div>
             </div>
 
             <button
@@ -522,6 +694,16 @@ export function QuestionCard({
         onGuidanceGenerated={(newGuidance) => {
           questao.mentorGuidance = newGuidance;
         }}
+      />
+
+      {/* MODAL DE DISSECAÇÃO "POR QUE ESTÁ ERRADA?" */}
+      <SocraticWhyWrongModal
+        isOpen={whyWrongModal.isOpen}
+        onClose={() => setWhyWrongModal((prev) => ({ ...prev, isOpen: false }))}
+        optionId={whyWrongModal.optionId}
+        optionText={whyWrongModal.optionText}
+        explanation={whyWrongModal.explanation}
+        isLoading={whyWrongModal.isLoading}
       />
     </motion.div>
   );
