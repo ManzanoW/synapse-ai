@@ -26,6 +26,7 @@ import {
   Film,
   Headphones,
   VolumeX,
+  Layers,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import Link from "next/link";
@@ -43,6 +44,7 @@ import {
   markErrorAsPendingAction,
   deleteErrorNotebookItemAction,
 } from "@/actions/error-notebook-actions";
+import { convertSingleErrorToFlashcardAction } from "@/actions/error-flashcard-actions";
 import {
   TAXONOMY_METADATA,
   normalizeTaxonomy,
@@ -97,6 +99,8 @@ export function ErrorCard({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSpeakingMnemonic, setIsSpeakingMnemonic] = useState(false);
+  const [isCreatingFlashcard, setIsCreatingFlashcard] = useState(false);
+  const [flashcardSuccess, setFlashcardSuccess] = useState(false);
 
   const handleToggleSpeakMnemonic = (text: string) => {
     if (isSpeakingMnemonic) {
@@ -262,6 +266,22 @@ export function ErrorCard({
       console.error("Erro ao alternar status:", err);
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  // Transforma o erro em um flashcard FSRS
+  const handleCreateFlashcard = async () => {
+    if (isCreatingFlashcard || flashcardSuccess) return;
+    setIsCreatingFlashcard(true);
+    try {
+      const res = await convertSingleErrorToFlashcardAction(errorItem.id);
+      if (res.success) {
+        setFlashcardSuccess(true);
+      }
+    } catch (err) {
+      console.error("Erro ao converter em flashcard:", err);
+    } finally {
+      setIsCreatingFlashcard(false);
     }
   };
 
@@ -464,6 +484,27 @@ export function ErrorCard({
           <Sparkles size={14} className="text-violet-400" />
           <span>{isExpanded ? "Ocultar Análise IA" : "✨ Analisar Causa com IA"}</span>
           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+
+        {/* Botão de Criar Flashcard FSRS */}
+        <button
+          onClick={handleCreateFlashcard}
+          disabled={isCreatingFlashcard || flashcardSuccess}
+          className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border min-h-[44px] ${
+            flashcardSuccess
+              ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
+              : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-200 hover:text-white hover:border-indigo-400"
+          }`}
+          title={flashcardSuccess ? "Flashcard já cadastrado nos seus Decks FSRS" : "Criar Flashcard de repetição espaçada a partir deste erro"}
+        >
+          {isCreatingFlashcard ? (
+            <Loader2 size={13} className="animate-spin text-indigo-400" />
+          ) : flashcardSuccess ? (
+            <Check size={13} className="text-emerald-400" />
+          ) : (
+            <Layers size={13} className="text-indigo-400" />
+          )}
+          <span>{flashcardSuccess ? "✓ No Deck FSRS" : "Criar Flashcard"}</span>
         </button>
 
         {/* Botão de Marcar como Superado */}

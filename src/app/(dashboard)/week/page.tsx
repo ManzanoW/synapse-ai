@@ -29,9 +29,16 @@ import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
 import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { AdaptiveRebalanceBanner } from "@/components/week/AdaptiveRebalanceBanner";
-import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
+import {
+  rebalanceScheduleAction,
+  autoRebalanceFromPerformanceAction,
+} from "@/actions/adaptive-actions";
 import { EditalEmptyState } from "@/components/edital-empty-state";
 import { EmergencyRescheduleModal } from "@/components/week/EmergencyRescheduleModal";
+import {
+  RebalanceImpactModal,
+  RebalanceComparisonItem,
+} from "@/components/week/RebalanceImpactModal";
 
 const HIGH_CONTRAST_PALETTE = [
   "#f43f5e",
@@ -125,6 +132,11 @@ export default function WeekPage() {
   const [isResetting, setIsResetting] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
   const [isPending, startTransition] = useTransition();
+
+  const [isManualRebalancing, setIsManualRebalancing] = useState(false);
+  const [isImpactModalOpen, setIsImpactModalOpen] = useState(false);
+  const [impactComparisons, setImpactComparisons] = useState<RebalanceComparisonItem[]>([]);
+  const [impactWeeklyHours, setImpactWeeklyHours] = useState(10);
 
   const [goalHours, setGoalHours] = useState(10);
   const [activeDays, setActiveDays] = useState(5);
@@ -302,6 +314,23 @@ export default function WeekPage() {
         console.error("Erro ao aplicar rebalanceamento adaptativo:", err);
       }
     });
+  };
+
+  const handleManualAIRebalance = async () => {
+    setIsManualRebalancing(true);
+    try {
+      const res = await autoRebalanceFromPerformanceAction();
+      if (res.success && res.comparison) {
+        setImpactComparisons(res.comparison);
+        setImpactWeeklyHours(res.totalWeeklyHours || goalHours || 10);
+        setIsImpactModalOpen(true);
+        await loadWeekData();
+      }
+    } catch (err) {
+      console.error("Erro ao disparar rebalanceamento com IA:", err);
+    } finally {
+      setIsManualRebalancing(false);
+    }
   };
 
   const handleToggleMode = (mode: "WEEKLY" | "CYCLE") => {
@@ -618,6 +647,17 @@ export default function WeekPage() {
             </button>
 
             <button
+              onClick={handleManualAIRebalance}
+              disabled={isManualRebalancing || isPending || !hasSubjects}
+              title="Rebalanceamento Preditivo com IA: cruza seus erros e acertos para redistribuir horas com foco nos pontos fracos"
+              className="flex items-center gap-1.5 text-xs font-semibold bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 border border-violet-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <Sparkles size={14} className={isManualRebalancing ? "animate-spin text-violet-400" : "text-violet-400"} />
+              <span className="hidden sm:inline">{isManualRebalancing ? "Otimizando..." : "⚡ Rebalancear com IA"}</span>
+              <span className="sm:hidden">{isManualRebalancing ? "..." : "⚡ IA"}</span>
+            </button>
+
+            <button
               onClick={handleTriggerRebalance}
               disabled={isPending || !hasSubjects}
               title="Recalcular distribuição adaptativa com base nas suas metas e desempenho"
@@ -725,10 +765,21 @@ export default function WeekPage() {
                 : "Selecione o dia do planejamento e execute seus alvos com prioridade dinâmica."}
             </p>
           </div>
-          <span className="self-start sm:self-auto text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
-            <Sparkles size={13} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
-            Rebalanceador Adaptativo Ativo
-          </span>
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <button
+              onClick={handleManualAIRebalance}
+              disabled={isManualRebalancing || isPending || !hasSubjects}
+              title="Executar rebalanceamento adaptativo com IA baseado em erros e acertos"
+              className="text-[11px] bg-gradient-to-r from-violet-600/20 to-indigo-600/20 hover:from-violet-600/30 hover:to-indigo-600/30 text-violet-300 border border-violet-500/40 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+            >
+              <Sparkles size={13} className={isManualRebalancing ? "animate-spin text-violet-400" : "text-violet-400 animate-pulse"} />
+              <span>{isManualRebalancing ? "Otimizando..." : "⚡ Rebalancear com IA"}</span>
+            </button>
+            <span className="text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+              Rebalanceador Ativo
+            </span>
+          </div>
         </div>
 
         {/* ================= BANNER PREDITIVO DE REBALANCEAMENTO ================= */}
@@ -1546,6 +1597,14 @@ export default function WeekPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de Impacto do Rebalanceamento com IA */}
+      <RebalanceImpactModal
+        isOpen={isImpactModalOpen}
+        onClose={() => setIsImpactModalOpen(false)}
+        comparisons={impactComparisons}
+        totalWeeklyHours={impactWeeklyHours}
+      />
     </div>
   );
 }

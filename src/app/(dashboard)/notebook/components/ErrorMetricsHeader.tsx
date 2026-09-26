@@ -29,6 +29,8 @@ interface ErrorMetricsHeaderProps {
   isClassifying?: boolean;
   onOpenRemediationModal?: () => void;
   onToggleSpotlight?: () => void;
+  onBatchCreateFlashcards?: () => Promise<void> | void;
+  isCreatingBatchFlashcards?: boolean;
 }
 
 const TAXONOMY_ICONS: Record<string, React.ElementType> = {
@@ -48,6 +50,8 @@ export function ErrorMetricsHeader({
   isClassifying = false,
   onOpenRemediationModal,
   onToggleSpotlight,
+  onBatchCreateFlashcards,
+  isCreatingBatchFlashcards = false,
 }: ErrorMetricsHeaderProps) {
   const classifyHandler = onBatchClassify || onAutoClassify;
   const { totalErrors, pendingErrors, masteredErrors, masteryRate, taxonomyDistribution } =
@@ -85,6 +89,23 @@ export function ErrorMetricsHeader({
               onClick={onToggleSpotlight}
               label="Como Funciona?"
             />
+          )}
+
+          {onBatchCreateFlashcards && pendingErrors > 0 && (
+            <button
+              type="button"
+              onClick={onBatchCreateFlashcards}
+              disabled={isCreatingBatchFlashcards}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 text-xs md:text-sm font-bold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[44px]"
+              title="Gera um Deck FSRS com todos os erros pendentes para revisão ativa diária"
+            >
+              {isCreatingBatchFlashcards ? (
+                <Loader2 size={16} className="animate-spin text-indigo-400" />
+              ) : (
+                <Layers size={16} className="text-indigo-400" />
+              )}
+              <span>Transformar em Deck FSRS</span>
+            </button>
           )}
 
           {onOpenRemediationModal && pendingErrors > 0 && (

@@ -17,6 +17,7 @@ import {
   getErrorMetricsAction,
   batchClassifyTaxonomyOnlyAction,
 } from "@/actions/error-notebook-actions";
+import { convertBatchErrorsToFlashcardsAction } from "@/actions/error-flashcard-actions";
 import {
   AlertCircle,
   BookOpenCheck,
@@ -72,6 +73,7 @@ export function ErrorNotebookView({
   const [isFiltering, setIsFiltering] = useState(false);
   const [isClassifying, setIsClassifying] = useState(false);
   const [isRemediationOpen, setIsRemediationOpen] = useState(false);
+  const [isCreatingBatchFlashcards, setIsCreatingBatchFlashcards] = useState(false);
 
   // Refs de controle de requisição e Sentinela de Rolagem
   const requestIdRef = useRef(0);
@@ -282,6 +284,36 @@ export function ErrorNotebookView({
     showToast("Simulado de remediação concluído com sucesso!", "success");
   };
 
+  // Conversão de erros em lote para Deck de Flashcards FSRS
+  const handleBatchCreateFlashcards = async () => {
+    const pendingQuestions = questions.filter((q) => q.status === "PENDING" || !q.status);
+    const targetQuestions = pendingQuestions.length > 0 ? pendingQuestions : questions;
+
+    if (!targetQuestions.length) {
+      showToast("Nenhum erro encontrado para converter em flashcards.", "info");
+      return;
+    }
+
+    setIsCreatingBatchFlashcards(true);
+    try {
+      const ids = targetQuestions.map((q) => q.id);
+      const res = await convertBatchErrorsToFlashcardsAction(ids);
+      if (res.success) {
+        showToast(
+          `⚡ ${res.createdCount ?? 0} flashcards FSRS adicionados ao deck "${res.deckTitle}"!`,
+          "success"
+        );
+      } else {
+        showToast(res.error || "Falha ao gerar flashcards em lote.", "error");
+      }
+    } catch (err) {
+      console.error("Erro ao gerar flashcards em lote:", err);
+      showToast("Erro inesperado ao gerar flashcards.", "error");
+    } finally {
+      setIsCreatingBatchFlashcards(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* SPOTLIGHT DICA DE PRIMEIRO ACESSO */}
@@ -328,6 +360,8 @@ export function ErrorNotebookView({
         isClassifying={isClassifying}
         onOpenRemediationModal={() => setIsRemediationOpen(true)}
         onToggleSpotlight={spotlight.toggle}
+        onBatchCreateFlashcards={handleBatchCreateFlashcards}
+        isCreatingBatchFlashcards={isCreatingBatchFlashcards}
       />
 
       {/* 2. Barra de Filtros */}

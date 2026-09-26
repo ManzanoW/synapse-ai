@@ -184,7 +184,13 @@ export async function autoRebalanceFromPerformanceAction(
       0,
     );
 
-    // 2. Monta o vetor de SubjectPerformance com base nos QuizAttempts e peso base do edital
+    // Busca erros pendentes no Caderno de Erros para cruzar no diagnóstico adaptativo
+    const pendingErrors = await prisma.questionError.findMany({
+      where: { userId, status: "PENDING" },
+      select: { subjectId: true, subject: { select: { id: true, name: true } }, createdAt: true },
+    });
+
+    // 2. Monta o vetor de SubjectPerformance cruzando QuizAttempts, Erros reais e peso do edital
     const performances: SubjectPerformance[] = user.subjects.map((subject: any) => {
       let totalQuestions = 0;
       let totalCorrect = 0;
@@ -200,10 +206,28 @@ export async function autoRebalanceFromPerformanceAction(
         });
       });
 
+      // Cruza erros pendentes associados a esta matéria
+      const errorsForSub = pendingErrors.filter(
+        (qe) =>
+          qe.subjectId === subject.id ||
+          (qe.subject?.name && qe.subject.name.toLowerCase() === subject.name.toLowerCase())
+      );
+      const pendingErrorCount = errorsForSub.length;
+
+      errorsForSub.forEach((qe) => {
+        if (qe.createdAt > latestQuizDate) {
+          latestQuizDate = qe.createdAt;
+        }
+      });
+
+      // Cada erro pendente entra no cômputo como questão errada
+      const adjustedTotal = totalQuestions + pendingErrorCount;
+      const adjustedCorrect = totalCorrect;
+
       const accuracyPercentage =
-        totalQuestions > 0
-          ? Math.round((totalCorrect / totalQuestions) * 100)
-          : 70;
+        adjustedTotal > 0
+          ? Math.round((adjustedCorrect / adjustedTotal) * 100)
+          : (pendingErrorCount >= 2 ? 45 : 70);
 
       // Base padrão do edital (distribuição ponderada pelo peso da matéria)
       const baseWeeklyMinutes = Math.round(
@@ -215,7 +239,7 @@ export async function autoRebalanceFromPerformanceAction(
         subjectId: subject.id,
         subjectName: subject.name,
         accuracyPercentage,
-        totalQuestionsSolved: totalQuestions,
+        totalQuestionsSolved: adjustedTotal,
         lastStudiedAt: latestQuizDate,
         targetWeeklyMinutes: baseWeeklyMinutes,
       };
@@ -338,12 +362,13 @@ export interface RebalanceAlertStatus {
     name: string;
     accuracy: number;
     totalQuestions: number;
+    pendingErrors?: number;
   }[];
 }
 
 /**
  * Consulta se o usuário possui matérias com acurácia crítica (< 65%)
- * para sugerir rebalanceamento preventivo
+ * ou com acúmulo de erros pendentes no Caderno de Erros para sugerir rebalanceamento preventivo
  */
 export async function checkRebalanceNeedsAction(): Promise<{
   success: boolean;
@@ -374,6 +399,12 @@ export async function checkRebalanceNeedsAction(): Promise<{
       select: { weeklyGoalHours: true },
     });
 
+    // Busca erros pendentes no Caderno de Erros
+    const pendingErrors = await prisma.questionError.findMany({
+      where: { userId, status: "PENDING" },
+      select: { subjectId: true, subject: { select: { id: true, name: true } } },
+    });
+
     const totalWeeklyHours = user?.weeklyGoalHours || 10;
     const totalWeeklyMinutes = totalWeeklyHours * 60;
     const totalWeight = subjects.reduce((acc, s) => acc + (s.weight || 5), 0);
@@ -393,30 +424,45 @@ export async function checkRebalanceNeedsAction(): Promise<{
         });
       });
 
-      if (total >= 3) {
-        const accuracy = Math.round((correct / total) * 100);
-        if (accuracy < 65) {
-          criticalList.push({
-            id: subject.id,
-            name: subject.name,
-            accuracy,
-            totalQuestions: total,
-          });
+      const errorsForSub = pendingErrors.filter(
+        (qe) =>
+          qe.subjectId === subject.id ||
+          (qe.subject?.name && qe.subject.name.toLowerCase() === subject.name.toLowerCase())
+      );
+      const pendingCount = errorsForSub.length;
 
-          const baseMinutes =
-            (totalWeeklyMinutes * (subject.weight || 5)) / Math.max(1, totalWeight);
-          const currentMinutes =
-            (totalWeeklyMinutes * (subject.priority || 1)) /
-            Math.max(1, totalPriority);
-          const avgRatio = totalPriority / Math.max(1, totalWeight);
-          const priorityRatio = (subject.priority || 1) / (subject.weight || 5);
+      const adjustedTotal = total + pendingCount;
+      const adjustedCorrect = correct;
+      const effectiveAccuracy =
+        adjustedTotal > 0
+          ? Math.round((adjustedCorrect / adjustedTotal) * 100)
+          : (pendingCount >= 2 ? 45 : 70);
 
-          const isReinforced =
-            currentMinutes >= baseMinutes * 1.03 || priorityRatio > avgRatio * 1.04;
+      // É crítica se tiver acurácia baixa em volume mínimo OU pelo menos 2 erros pendentes no caderno
+      const isCritical = (adjustedTotal >= 3 && effectiveAccuracy < 65) || pendingCount >= 2;
 
-          if (!isReinforced) {
-            unreinforcedCount++;
-          }
+      if (isCritical) {
+        criticalList.push({
+          id: subject.id,
+          name: subject.name,
+          accuracy: effectiveAccuracy,
+          totalQuestions: adjustedTotal,
+          pendingErrors: pendingCount,
+        });
+
+        const baseMinutes =
+          (totalWeeklyMinutes * (subject.weight || 5)) / Math.max(1, totalWeight);
+        const currentMinutes =
+          (totalWeeklyMinutes * (subject.priority || 1)) /
+          Math.max(1, totalPriority);
+        const avgRatio = totalPriority / Math.max(1, totalWeight);
+        const priorityRatio = (subject.priority || 1) / (subject.weight || 5);
+
+        const isReinforced =
+          currentMinutes >= baseMinutes * 1.03 || priorityRatio > avgRatio * 1.04;
+
+        if (!isReinforced) {
+          unreinforcedCount++;
         }
       }
     }
@@ -424,7 +470,7 @@ export async function checkRebalanceNeedsAction(): Promise<{
     return {
       success: true,
       data: {
-        // Só aciona o banner de alerta se houver disciplinas críticas que ainda não receberam a calibração
+        // Aciona o alerta preventivo se houver disciplinas críticas que ainda não receberam reforço
         needsRebalance: unreinforcedCount > 0,
         criticalSubjects: criticalList,
       },
