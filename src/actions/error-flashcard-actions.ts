@@ -295,3 +295,163 @@ export async function getConvertedFlashcardQuestionTextsAction(): Promise<{
     return { success: false, error: "Falha ao obter status de flashcards." };
   }
 }
+
+export interface CreateQuizFlashcardsResult {
+  success: boolean;
+  createdCount?: number;
+  deckId?: string;
+  deckTitle?: string;
+  alreadyExistedCount?: number;
+  error?: string;
+}
+
+/**
+ * Cria Flashcards FSRS diretamente a partir das questões erradas na tela de resultado do Simulado.
+ * Também sincroniza com o Caderno de Erros (QuestionError) para alimentar o motor adaptativo.
+ */
+export async function createFlashcardsFromQuizResultsAction(params: {
+  quizId?: string | null;
+  subjectName?: string;
+  subjectId?: string | null;
+  topicId?: string | null;
+  banca?: string;
+  wrongQuestions: {
+    questionText: string;
+    correctAnswer: string;
+    explanation?: string | null;
+    userAnswer?: string | null;
+    options?: any;
+  }[];
+}): Promise<CreateQuizFlashcardsResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    if (!params.wrongQuestions || params.wrongQuestions.length === 0) {
+      return { success: false, error: "Nenhuma questão incorreta informada." };
+    }
+
+    const subjectName = params.subjectName || params.banca || "Geral";
+    const deckTitle = `Erros: ${subjectName}`;
+    const deckColor = "#8b5cf6";
+
+    // 1. Busca ou cria o Deck da matéria
+    let deck = await prisma.deck.findFirst({
+      where: {
+        userId,
+        title: { equals: deckTitle, mode: "insensitive" },
+      },
+    });
+
+    if (!deck) {
+      deck = await prisma.deck.create({
+        data: {
+          userId,
+          title: deckTitle,
+          color: deckColor,
+          subjectId: params.subjectId || null,
+          topicId: params.topicId || null,
+        },
+      });
+    }
+
+    // 2. Busca flashcards existentes no deck para evitar duplicidades
+    const existingCards = await prisma.flashcard.findMany({
+      where: { deckId: deck.id },
+      select: { question: true },
+    });
+    const existingQuestions = new Set(
+      existingCards.map((c) => c.question.trim().toLowerCase()),
+    );
+
+    let createdCount = 0;
+    let alreadyExistedCount = 0;
+
+    for (const q of params.wrongQuestions) {
+      const qKey = q.questionText.trim().toLowerCase();
+      if (existingQuestions.has(qKey)) {
+        alreadyExistedCount++;
+        continue;
+      }
+
+      const formattedAnswer = [
+        `🎯 Gabarito Correto: ${q.correctAnswer}`,
+        q.explanation ? `\n\n📖 Explicação:\n${q.explanation}` : "",
+      ]
+        .filter(Boolean)
+        .join("");
+
+      await prisma.flashcard.create({
+        data: {
+          deckId: deck.id,
+          topicId: params.topicId || null,
+          question: q.questionText,
+          answer: formattedAnswer,
+          details: `Origem: Simulado ${params.banca || "Geral"} • ${params.subjectName || "Concurso"}`,
+          interval: 0,
+          stability: 2.0,
+          difficulty: 5.0,
+          easeFactor: 2.5,
+          repetitions: 0,
+          lapses: 0,
+          nextReviewDate: new Date(),
+        },
+      });
+
+      existingQuestions.add(qKey);
+      createdCount++;
+    }
+
+    // 3. Garante também o registro em QuestionError para fechar o ciclo com o Cronograma Adaptativo
+    for (const q of params.wrongQuestions) {
+      const existingError = await prisma.questionError.findFirst({
+        where: {
+          userId,
+          questionText: q.questionText,
+          status: "PENDING",
+        },
+        select: { id: true },
+      });
+
+      if (!existingError) {
+        await prisma.questionError.create({
+          data: {
+            userId,
+            subjectId: params.subjectId || null,
+            topicId: params.topicId || null,
+            quizId: params.quizId || null,
+            questionText: q.questionText,
+            options: q.options || [],
+            userAnswer: q.userAnswer || "Incorreta",
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation || null,
+            errorReason: "UNCLASSIFIED",
+            status: "PENDING",
+          },
+        });
+      }
+    }
+
+    revalidatePath("/flashcards");
+    revalidatePath("/notebook");
+    revalidatePath("/week");
+
+    return {
+      success: true,
+      createdCount,
+      alreadyExistedCount,
+      deckId: deck.id,
+      deckTitle: deck.title,
+    };
+  } catch (err) {
+    console.error("Erro em createFlashcardsFromQuizResultsAction:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao gerar flashcards a partir dos erros.",
+    };
+  }
+}

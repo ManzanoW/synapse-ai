@@ -26,6 +26,10 @@ import {
   BookOpenCheck,
   ShieldCheck,
   HelpCircle,
+  Target,
+  TrendingUp,
+  TrendingDown,
+  ExternalLink,
 } from "lucide-react";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 import { useGamification } from "@/context/GamificationContext";
@@ -37,6 +41,7 @@ import {
   saveWrongQuestionsToNotebookAction,
   WrongQuestionItem,
 } from "@/actions/error-notebook-actions";
+import { createFlashcardsFromQuizResultsAction } from "@/actions/error-flashcard-actions";
 
 export interface QuizResultViewProps {
   quizId?: string | null;
@@ -100,6 +105,15 @@ export function QuizResultView({
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
   const [savedCount, setSavedCount] = useState<number>(0);
 
+  // Estado de geração de Flashcards FSRS direto dos erros
+  const [isCreatingFlashcards, setIsCreatingFlashcards] = useState(false);
+  const [flashcardDeckInfo, setFlashcardDeckInfo] = useState<{
+    deckId: string;
+    deckTitle: string;
+    count: number;
+  } | null>(null);
+  const [flashcardErrorMessage, setFlashcardErrorMessage] = useState<string | null>(null);
+
   // Estado de aprofundamento por IA sob demanda
   const [deepenedExplanations, setDeepenedExplanations] = useState<
     Record<number, DeepenExplanationResult>
@@ -130,6 +144,92 @@ export function QuizResultView({
       ? `${pad(hrs)}:${pad(mins)}:${pad(secs)}`
       : `${pad(mins)}:${pad(secs)}`;
   };
+
+  // Benchmarking Histórico da Banca e Termômetro de Nota de Corte
+  const bancaBenchmark = useMemo(() => {
+    const key = (banca || "").toUpperCase();
+    if (key.includes("CEBRASPE") || key.includes("CESPE")) {
+      return {
+        name: "Cebraspe",
+        cutoff: 72,
+        tag: "1 Errada anula 1 Certa",
+        description: "Exige altíssima precisão líquida. Chutes aumentam o risco de anulação.",
+      };
+    }
+    if (key.includes("FGV")) {
+      return {
+        name: "FGV",
+        cutoff: 68,
+        tag: "Enunciados Complexos",
+        description: "Casos práticos densos com alta exigência de raciocínio contextual.",
+      };
+    }
+    if (key.includes("FCC")) {
+      return {
+        name: "FCC",
+        cutoff: 76,
+        tag: "Doutrina e Jurisprudência",
+        description: "Notas de corte historicamente altas com disputa acirrada por vaga.",
+      };
+    }
+    if (key.includes("VUNESP")) {
+      return {
+        name: "Vunesp",
+        cutoff: 80,
+        tag: "Lei Seca Literal",
+        description: "Cobrança da literalidade dos textos de lei, exigindo notas próximas do teto.",
+      };
+    }
+    if (key.includes("CESGRANRIO")) {
+      return {
+        name: "Cesgranrio",
+        cutoff: 74,
+        tag: "Equilíbrio Conceitual",
+        description: "Provas balanceadas com boa distribuição por peso e disciplina.",
+      };
+    }
+    return {
+      name: banca || "Banca Geral",
+      cutoff: 70,
+      tag: "Média Estimada",
+      description: "Linha de corte média histórica calculada para concursos desta carreira.",
+    };
+  }, [banca]);
+
+  const competitiveness = useMemo(() => {
+    const diff = percentageAcc - bancaBenchmark.cutoff;
+    if (diff >= 5) {
+      return {
+        status: "COMPETITIVO",
+        badge: "Zona de Classificação Superior",
+        color: "text-emerald-400",
+        badgeBg: "bg-emerald-500/15 border-emerald-500/30 text-emerald-300",
+        barColor: "bg-emerald-500",
+        diffText: `+${diff}% acima da nota de corte projetada`,
+        advice: "Você está no pelotão de frente desta banca. Mantenha as revisões para fixar.",
+      };
+    }
+    if (diff >= -5) {
+      return {
+        status: "DISPUTA",
+        badge: "Zona de Disputa por Vagas",
+        color: "text-amber-400",
+        badgeBg: "bg-amber-500/15 border-amber-500/30 text-amber-300",
+        barColor: "bg-amber-500",
+        diffText: `${diff >= 0 ? `+${diff}%` : `${diff}%`} em relação ao corte estimado`,
+        advice: "Muito próximo da aprovação. Converter 2 a 3 erros em acertos garante sua vaga.",
+      };
+    }
+    return {
+      status: "ALERTA",
+      badge: "Zona de Reforço Imediato",
+      color: "text-rose-400",
+      badgeBg: "bg-rose-500/15 border-rose-500/30 text-rose-300",
+      barColor: "bg-rose-500",
+      diffText: `${diff}% abaixo do corte projetado`,
+      advice: "Abaixo da nota de segurança. Utilize os Flashcards FSRS para sanar essas lacunas.",
+    };
+  }, [percentageAcc, bancaBenchmark]);
 
   // Classificação Dinâmica
   const classification = useMemo(() => {
@@ -231,6 +331,56 @@ export function QuizResultView({
       setSaveErrorMessage("Erro ao conectar ao servidor.");
     } finally {
       setIsSavingErrors(false);
+    }
+  };
+
+  // Ação: Gerar Deck de Flashcards FSRS dos erros deste simulado
+  const handleCreateFlashcardsFromErrors = async () => {
+    if (isCreatingFlashcards || incorrectCount === 0) return;
+
+    setIsCreatingFlashcards(true);
+    setFlashcardErrorMessage(null);
+
+    try {
+      const wrongList = questions
+        .map((q, idx) => ({
+          question: q,
+          isCorrect: selectedAnswers[idx] === q.gabaritoCorreto,
+          userAnswer: selectedAnswers[idx],
+        }))
+        .filter((item) => !item.isCorrect)
+        .map((item) => ({
+          questionText: item.question.enunciado,
+          correctAnswer: item.question.gabaritoCorreto,
+          explanation: item.question.justificativa || null,
+          userAnswer: item.userAnswer || "Incorreta",
+          options: item.question.alternativas || [],
+        }));
+
+      const res = await createFlashcardsFromQuizResultsAction({
+        quizId,
+        subjectName: subject,
+        subjectId: questions[0]?.subjectId || null,
+        topicId: topicId || null,
+        banca,
+        wrongQuestions: wrongList,
+      });
+
+      if (res.success && res.deckId) {
+        setFlashcardDeckInfo({
+          deckId: res.deckId,
+          deckTitle: res.deckTitle || `Erros: ${subject}`,
+          count: res.createdCount ?? wrongList.length,
+        });
+        setIsErrorsSaved(true);
+      } else {
+        setFlashcardErrorMessage(res.error || "Não foi possível gerar os flashcards.");
+      }
+    } catch (err) {
+      console.error("Erro ao gerar flashcards dos erros:", err);
+      setFlashcardErrorMessage("Erro inesperado ao gerar flashcards.");
+    } finally {
+      setIsCreatingFlashcards(false);
     }
   };
 
@@ -560,11 +710,96 @@ export function QuizResultView({
         </motion.div>
 
         {/* ========================================================================= */}
+        {/* TERMÔMETRO DE NOTA DE CORTE & ANÁLISE DE COMPETITIVIDADE DA BANCA         */}
+        {/* ========================================================================= */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#090d18] via-[#070b16] to-[#04060c] border border-white/10 hover:border-violet-500/30 rounded-3xl p-5 sm:p-6 shadow-xl transition-all">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            {/* Contexto da Banca */}
+            <div className="space-y-1.5 max-w-sm shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-300 shrink-0">
+                  <Target size={18} />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-black text-white uppercase">
+                      Banca {bancaBenchmark.name}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold bg-white/5 border border-white/10 text-slate-300 px-2 py-0.5 rounded-full">
+                      {bancaBenchmark.tag}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Corte histórico projetado: <span className="text-violet-300 font-bold">{bancaBenchmark.cutoff}%</span>
+                  </p>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed pt-1">
+                {bancaBenchmark.description}
+              </p>
+            </div>
+
+            {/* Barras Comparativas de Desempenho */}
+            <div className="flex-1 w-full space-y-2.5 bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-violet-400 inline-block" />
+                  Sua Pontuação Neste Simulado
+                </span>
+                <span className="font-mono font-black text-white">{percentageAcc}%</span>
+              </div>
+              <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden relative">
+                {/* Marcador da Linha de Corte */}
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-amber-400 z-10 shadow-[0_0_8px_rgba(251,191,36,0.9)]"
+                  style={{ left: `${Math.min(99, bancaBenchmark.cutoff)}%` }}
+                  title={`Linha de Corte: ${bancaBenchmark.cutoff}%`}
+                />
+                <motion.div
+                  className={`h-full rounded-full ${competitiveness.barColor}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, percentageAcc)}%` }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 pt-0.5">
+                <span>0%</span>
+                <span className="text-amber-400 font-bold flex items-center gap-1">
+                  ▲ Corte: {bancaBenchmark.cutoff}%
+                </span>
+                <span>100%</span>
+              </div>
+            </div>
+
+            {/* Diagnóstico de Competitividade */}
+            <div className="shrink-0 w-full lg:w-72 space-y-1.5 text-left lg:text-right">
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border ${competitiveness.badgeBg}`}
+              >
+                {percentageAcc >= bancaBenchmark.cutoff ? (
+                  <TrendingUp size={13} className="text-emerald-400" />
+                ) : (
+                  <TrendingDown size={13} className="text-rose-400" />
+                )}
+                <span>{competitiveness.badge}</span>
+              </span>
+              <p className="text-xs font-bold text-white">
+                {competitiveness.diffText}
+              </p>
+              <p className="text-[11px] text-slate-400 leading-tight">
+                {competitiveness.advice}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
         {/* 2. AÇÕES DE RETENÇÃO E CADERNO DE ERROS                                   */}
         {/* ========================================================================= */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
           {/* CARD EM DESTAQUE: ADICIONAR QUESTÕES ERRADAS AO CADERNO DE ERROS (8 cols) */}
-          <div className="md:col-span-8 relative overflow-hidden bg-linear-to-r from-violet-950/30 via-[#070b16] to-[#090d18] border border-violet-500/30 hover:border-violet-500/50 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 transition-all">
+          <div className="md:col-span-8 relative overflow-hidden bg-gradient-to-r from-violet-950/30 via-[#070b16] to-[#090d18] border border-violet-500/30 hover:border-violet-500/50 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 transition-all">
             <div className="space-y-1.5 max-w-md">
               <div className="flex items-center gap-2">
                 <span className="p-2 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-300 shrink-0">
@@ -572,18 +807,18 @@ export function QuizResultView({
                 </span>
                 <div>
                   <h3 className="text-sm font-black text-white">
-                    Caderno de Erros Inteligente
+                    Caderno de Erros & Flashcards FSRS
                   </h3>
                   <span className="text-[11px] font-mono text-slate-400">
                     {incorrectCount > 0
-                      ? `${incorrectCount} questão(ões) identificada(s) e salvas para remediação ativa.`
+                      ? `${incorrectCount} questão(ões) identificada(s) para remediação ativa.`
                       : "Gabarito 100% perfeito — sem erros pendentes!"}
                   </span>
                 </div>
               </div>
               <p className="text-xs text-slate-300/80 leading-relaxed pt-1">
                 {incorrectCount > 0
-                  ? "Suas falhas já foram registradas no Caderno de Erros. Você pode treinar causas-raiz, desarmar pegadinhas e gerar micro-questões de fixação com IA."
+                  ? "Transforme seus pontos cegos em memória de longo prazo instantaneamente com repetição espaçada FSRS."
                   : "Excelente aproveitamento! Continue praticando simulados para consolidar sua memória de longo prazo."}
               </p>
               {saveErrorMessage && (
@@ -591,9 +826,14 @@ export function QuizResultView({
                   {saveErrorMessage}
                 </p>
               )}
+              {flashcardErrorMessage && (
+                <p className="text-xs text-rose-400 font-semibold pt-1">
+                  {flashcardErrorMessage}
+                </p>
+              )}
             </div>
 
-            <div className="shrink-0 w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2.5">
+            <div className="shrink-0 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
               {incorrectCount === 0 ? (
                 <div className="px-5 py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-black flex items-center justify-center gap-2">
                   <Check size={16} />
@@ -601,6 +841,44 @@ export function QuizResultView({
                 </div>
               ) : (
                 <>
+                  {flashcardDeckInfo ? (
+                    <Link
+                      href={`/flashcards/study/${flashcardDeckInfo.deckId}`}
+                      className="px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-950/60 border border-emerald-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 animate-in fade-in"
+                    >
+                      <Sparkles size={15} className="text-emerald-200" />
+                      <span>Estudar Deck FSRS ({flashcardDeckInfo.count})</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={handleCreateFlashcardsFromErrors}
+                      disabled={isCreatingFlashcards}
+                      type="button"
+                      className="px-4 py-3 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-950/60 border border-indigo-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                    >
+                      {isCreatingFlashcards ? (
+                        <>
+                          <Loader2 size={15} className="animate-spin" />
+                          <span>Gerando Flashcards...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap size={15} className="fill-white" />
+                          <span>⚡ Gerar Flashcards FSRS ({incorrectCount})</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  <Link
+                    href="/notebook"
+                    className="px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 group"
+                  >
+                    <BookOpenCheck size={15} className="group-hover:scale-110 transition-transform" />
+                    <span>Caderno</span>
+                  </Link>
+
                   <button
                     onClick={() => {
                       setFilterReview("incorrect");
@@ -610,19 +888,10 @@ export function QuizResultView({
                       }
                     }}
                     type="button"
-                    className="w-full sm:w-auto px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    className="px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
-                    <span>Revisar Erros ({incorrectCount})</span>
+                    <span>Revisar ({incorrectCount})</span>
                   </button>
-
-                  <Link
-                    href="/notebook"
-                    className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-rose-600 hover:from-violet-500 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-violet-950/60 border border-violet-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 group"
-                  >
-                    <BookOpenCheck size={15} className="group-hover:scale-110 transition-transform" />
-                    <span>Abrir Caderno de Erros</span>
-                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                  </Link>
                 </>
               )}
             </div>
