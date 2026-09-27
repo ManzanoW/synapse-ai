@@ -1551,3 +1551,287 @@ export async function submitRemediationAnswerAction(
     };
   }
 }
+
+export interface RedemptionExamQuestion {
+  errorId: string;
+  subjectName: string;
+  topicName?: string;
+  originalQuestionSnippet: string;
+  originalUserAnswer: string;
+  originalCorrectAnswer: string;
+  conceptTested: string;
+  questionText: string;
+  options: Array<{ id: string; texto: string }>;
+  correctAnswer: string;
+  explanation: string;
+  mnemonic: string;
+}
+
+export interface GenerateRedemptionExamResult {
+  success: boolean;
+  error?: string;
+  questions?: RedemptionExamQuestion[];
+  totalAvailable?: number;
+}
+
+/**
+ * Gera um Simulado de Redenção com Questões Gêmeas da IA baseadas nos erros pendentes do aluno
+ */
+export async function generateRedemptionExamAction(params?: {
+  subjectId?: string;
+  count?: number;
+}): Promise<GenerateRedemptionExamResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const count = Math.min(Math.max(params?.count || 5, 3), 10);
+    const whereClause: any = {
+      userId,
+      status: "PENDING",
+    };
+
+    if (params?.subjectId && params.subjectId !== "ALL") {
+      whereClause.subjectId = params.subjectId;
+    }
+
+    const pendingErrors = await prisma.questionError.findMany({
+      where: whereClause,
+      include: {
+        subject: { select: { id: true, name: true } },
+        topic: { select: { id: true, title: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: count * 2, // Amostra maior para selecionar os melhores
+    });
+
+    if (pendingErrors.length === 0) {
+      return {
+        success: false,
+        error: "Parabéns! Você não possui erros pendentes de cicatrização no momento.",
+        totalAvailable: 0,
+      };
+    }
+
+    // Embaralha e pega a quantidade desejada
+    const selected = pendingErrors
+      .sort(() => 0.5 - Math.random())
+      .slice(0, count);
+
+    // Monta o prompt de IA para gerar questões gêmeas
+    const errorsToTransform = selected.map((err, idx) => ({
+      index: idx,
+      id: err.id,
+      materia: err.subject?.name || "Geral",
+      topico: err.topic?.title || "Geral",
+      enunciadoOriginal: err.questionText,
+      respostaIncorretaDoAluno: err.userAnswer,
+      respostaCorretaOriginal: err.correctAnswer,
+      motivoErro: err.errorReason,
+    }));
+
+    const prompt = `Você é o Coordenador Pedagógico e Especialista em Bancas de Concursos Públicos da Synapse AI.
+Sua missão é criar um "Simulado de Redenção" composto por QUESTÕES GÊMEAS sintéticas para cicatrização definitiva dos erros do aluno.
+
+Para CADA um dos ${errorsToTransform.length} erros abaixo, crie uma QUESTÃO GÊMEA inédita:
+- A questão deve testar O MESMO CONCEITO/REGRA/PEGADINHA que fez o aluno errar, mas com uma nova historinha, novos dados ou nova roupagem formal de banca (FGV/Cebraspe/FCC).
+- Crie 4 ou 5 alternativas objetivas (A, B, C, D, E) com clareza.
+- Forneça a alternativa correta (letra maiúscula), uma explicação detalhada e um mnemônico/macete de fixação rápido.
+
+ERROS DO ALUNO:
+${JSON.stringify(errorsToTransform, null, 2)}
+
+Retorne OBRIGATORIAMENTE um JSON com o array de questões no formato especificado no schema.`;
+
+    const aiResult = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            questoes: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  errorId: { type: Type.STRING },
+                  conceptTested: { type: Type.STRING },
+                  questionText: { type: Type.STRING },
+                  options: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        id: { type: Type.STRING },
+                        texto: { type: Type.STRING },
+                      },
+                      required: ["id", "texto"],
+                    },
+                  },
+                  correctAnswer: { type: Type.STRING },
+                  explanation: { type: Type.STRING },
+                  mnemonic: { type: Type.STRING },
+                },
+                required: [
+                  "errorId",
+                  "conceptTested",
+                  "questionText",
+                  "options",
+                  "correctAnswer",
+                  "explanation",
+                  "mnemonic",
+                ],
+              },
+            },
+          },
+          required: ["questoes"],
+        },
+      },
+      timeoutMs: 45000,
+    });
+
+    let parsedQuestions: any[] = [];
+    try {
+      const parsed = JSON.parse(aiResult.text);
+      parsedQuestions = parsed.questoes || [];
+    } catch {
+      parsedQuestions = [];
+    }
+
+    // Mapeia e junta metadados
+    const formattedQuestions: RedemptionExamQuestion[] = [];
+
+    for (let i = 0; i < selected.length; i++) {
+      const orig = selected[i];
+      const matchAi = parsedQuestions.find((q) => q.errorId === orig.id) || parsedQuestions[i];
+
+      if (matchAi && matchAi.questionText && Array.isArray(matchAi.options) && matchAi.options.length > 0) {
+        formattedQuestions.push({
+          errorId: orig.id,
+          subjectName: orig.subject?.name || "Geral",
+          topicName: orig.topic?.title || undefined,
+          originalQuestionSnippet: orig.questionText.slice(0, 140) + "...",
+          originalUserAnswer: orig.userAnswer,
+          originalCorrectAnswer: orig.correctAnswer,
+          conceptTested: matchAi.conceptTested || "Conceito Chave do Tópico",
+          questionText: matchAi.questionText,
+          options: matchAi.options,
+          correctAnswer: String(matchAi.correctAnswer).trim().toUpperCase(),
+          explanation: matchAi.explanation,
+          mnemonic: matchAi.mnemonic || "Lembre-se da regra geral e suas exceções.",
+        });
+      } else {
+        // Fallback: se a IA falhou no item específico, utiliza a questão original com suas opções
+        let opts: Array<{ id: string; texto: string }> = [];
+        if (Array.isArray(orig.options)) {
+          opts = orig.options as any;
+        } else {
+          opts = [
+            { id: "A", texto: "Alternativa A" },
+            { id: "B", texto: "Alternativa B" },
+            { id: "C", texto: "Alternativa C" },
+            { id: "D", texto: "Alternativa D" },
+          ];
+        }
+
+        formattedQuestions.push({
+          errorId: orig.id,
+          subjectName: orig.subject?.name || "Geral",
+          topicName: orig.topic?.title || undefined,
+          originalQuestionSnippet: orig.questionText.slice(0, 140) + "...",
+          originalUserAnswer: orig.userAnswer,
+          originalCorrectAnswer: orig.correctAnswer,
+          conceptTested: "Fixação e Retenção do Erro Original",
+          questionText: orig.questionText,
+          options: opts,
+          correctAnswer: orig.correctAnswer.trim().toUpperCase(),
+          explanation: orig.explanation || orig.aiExplanation || "Reveja atentamente os termos do comando.",
+          mnemonic: orig.mnemonic || "Ancore este conceito para a prova.",
+        });
+      }
+    }
+
+    return {
+      success: true,
+      questions: formattedQuestions,
+      totalAvailable: pendingErrors.length,
+    };
+  } catch (err) {
+    console.error("[generateRedemptionExamAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao gerar o Simulado de Redenção.",
+    };
+  }
+}
+
+/**
+ * Processa uma resposta do Simulado de Redenção, atualizando o erro para MASTERED caso correto
+ */
+export async function submitRedemptionQuestionResultAction(params: {
+  errorId: string;
+  userAnswer: string;
+  isCorrect: boolean;
+}): Promise<{
+  success: boolean;
+  error?: string;
+  earnedXp?: number;
+  newMasteredCount?: number;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    let earnedXp = 0;
+
+    if (params.isCorrect) {
+      earnedXp = 35; // Bônus premium de cicatrização (+35 XP)
+
+      await prisma.questionError.update({
+        where: { id: params.errorId, userId },
+        data: {
+          status: "MASTERED",
+          masteredAt: new Date(),
+        },
+      });
+
+      // Grava atividade de estudo com bônus de XP
+      await recordStudyActivityAction(userId, earnedXp, "ERROR_FIX");
+
+      // Avança a missão diária de questões resolvidas
+      await trackQuestProgressAction("QUESTIONS_SOLVED", 1);
+    }
+
+    try {
+      revalidatePath("/notebook");
+      revalidatePath("/performance");
+    } catch {}
+
+    const totalMastered = await prisma.questionError.count({
+      where: { userId, status: "MASTERED" },
+    });
+
+    return {
+      success: true,
+      earnedXp,
+      newMasteredCount: totalMastered,
+    };
+  } catch (err) {
+    console.error("[submitRedemptionQuestionResultAction] Erro:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Erro ao registrar redenção.",
+    };
+  }
+}
+

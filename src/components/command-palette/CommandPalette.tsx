@@ -28,12 +28,15 @@ import {
   Flame,
   Brain,
   Activity,
+  UploadCloud,
+  ShieldCheck,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAudio } from "@/contexts/AudioContext";
 import { useSound } from "@/hooks/useSound";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 import { isLawFocused } from "@/lib/career-utils";
+import { PDFExamImporterModal } from "@/components/exam-importer/PDFExamImporterModal";
 
 interface CommandItem {
   id: string;
@@ -55,6 +58,7 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ user }: CommandPaletteProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isPdfImporterOpen, setIsPdfImporterOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -87,12 +91,20 @@ export function CommandPalette({ user }: CommandPaletteProps) {
       triggerHaptic("light");
     };
 
+    const handleOpenPdfImporter = () => {
+      setIsOpen(false);
+      setIsPdfImporterOpen(true);
+      triggerHaptic("light");
+    };
+
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("open-command-palette", handleCustomOpen);
+    window.addEventListener("open-pdf-importer", handleOpenPdfImporter);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("open-command-palette", handleCustomOpen);
+      window.removeEventListener("open-pdf-importer", handleOpenPdfImporter);
     };
   }, [isOpen]);
 
@@ -212,6 +224,30 @@ export function CommandPalette({ user }: CommandPaletteProps) {
       },
 
       // AÇÕES RÁPIDAS
+      {
+        id: "action-import-pdf",
+        title: "Importar Prova em PDF (OCR de Banca)",
+        subtitle: "Dissecação automática com IA multimodal para simulado interativo",
+        category: "Ações Rápidas",
+        icon: UploadCloud,
+        badge: "Multimodal",
+        action: () => {
+          setIsOpen(false);
+          setIsPdfImporterOpen(true);
+          triggerHaptic("medium");
+        },
+        keywords: ["pdf", "prova", "banca", "importar", "ocr", "caderno", "questoes pdf", "enunciado"],
+      },
+      {
+        id: "action-redemption-exam",
+        title: "Iniciar Simulado de Redenção (Caderno de Erros)",
+        subtitle: "Cicatrização ativa com Questões Gêmeas da IA sobre suas falhas",
+        category: "Ações Rápidas",
+        icon: ShieldCheck,
+        badge: "Domínio",
+        action: () => navigateTo("/notebook"),
+        keywords: ["redencao", "cicatrizao", "erros", "questoes gemeas", "superar", "dominar"],
+      },
       {
         id: "action-monte-carlo",
         title: "Executar Raio-X Monte Carlo (1.000x)",
@@ -339,8 +375,9 @@ export function CommandPalette({ user }: CommandPaletteProps) {
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
+    <>
+      <AnimatePresence>
+        {isOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 p-3 font-sans">
           {/* Backdrop com blur sofisticado */}
           <motion.div
@@ -496,5 +533,12 @@ export function CommandPalette({ user }: CommandPaletteProps) {
         </div>
       )}
     </AnimatePresence>
+
+    {/* Modal Global de Importação de Provas em PDF */}
+    <PDFExamImporterModal
+      isOpen={isPdfImporterOpen}
+      onClose={() => setIsPdfImporterOpen(false)}
+    />
+  </>
   );
 }
