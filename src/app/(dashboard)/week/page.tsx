@@ -24,6 +24,7 @@ import {
   Pause,
   RotateCcw,
   AlertTriangle,
+  LifeBuoy,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
@@ -35,6 +36,7 @@ import {
 } from "@/actions/adaptive-actions";
 import { EditalEmptyState } from "@/components/edital-empty-state";
 import { EmergencyRescheduleModal } from "@/components/week/EmergencyRescheduleModal";
+import { ScheduleRescueModal } from "@/components/week/ScheduleRescueModal";
 import {
   RebalanceImpactModal,
   RebalanceComparisonItem,
@@ -128,6 +130,7 @@ export default function WeekPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+  const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
@@ -644,6 +647,17 @@ export default function WeekPage() {
               <RotateCcw size={14} className="text-amber-400" />
               <span className="hidden sm:inline">Resetar Semana</span>
               <span className="sm:hidden">Resetar</span>
+            </button>
+
+            <button
+              onClick={() => setIsRescueModalOpen(true)}
+              disabled={!hasSubjects}
+              title="Modo Resgate de Semana: redistribua matérias atrasadas pelos dias restantes com IA e sem culpa"
+              className="flex items-center gap-1.5 text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <LifeBuoy size={14} className="animate-pulse text-amber-500" />
+              <span className="hidden sm:inline">Modo Resgate (IA)</span>
+              <span className="sm:hidden">Resgate</span>
             </button>
 
             <button
@@ -1604,6 +1618,13 @@ export default function WeekPage() {
         onClose={() => setIsImpactModalOpen(false)}
         comparisons={impactComparisons}
         totalWeeklyHours={impactWeeklyHours}
+      />
+
+      {/* Modal de Modo Resgate da Semana com IA */}
+      <ScheduleRescueModal
+        isOpen={isRescueModalOpen}
+        onClose={() => setIsRescueModalOpen(false)}
+        onRescueApplied={() => loadWeekData()}
       />
     </div>
   );
