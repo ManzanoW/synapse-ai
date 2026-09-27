@@ -1403,98 +1403,107 @@ export default function QuestoesPage() {
             const finalTotal = finalData.totalQuestions || 1;
             const finalAcc = Math.round((finalCorrect / finalTotal) * 100);
 
-            await syncQuizWithSM2(finalAcc);
+            // Transição Instantânea Otimista: Abre o Diagnóstico imediatamente sem congelar
+            const baseEarnedXp = finalCorrect * 15;
+            setLastEarnedXp(baseEarnedXp);
+            setShowCompletionModal(true);
 
-            try {
-              const submissions: QuestionAnswerSubmission[] = questions.map(
-                (q, idx) => ({
-                  questionId: q.id || `q-${idx}`,
-                  subjectId: q.subjectId || currentSubjectObj?.id || "",
-                  topicId: q.topicId || selectedTopicId || undefined,
-                  selectedOption: finalData.selectedAnswers[idx] || "",
-                  isCorrect:
-                    finalData.selectedAnswers[idx] === q.gabaritoCorreto,
-                  timeSpentSeconds: Math.round(
-                    finalData.timerSeconds / finalTotal,
-                  ),
-                  errorReason:
-                    finalData.errorClassifications[idx] || "UNCLASSIFIED",
-                  questionText: q.enunciado,
-                  options: q.alternativas,
-                  correctAnswer: q.gabaritoCorreto,
-                  explanation: q.justificativa,
-                }),
-              );
-
-              const attemptResult = await submitQuizAttemptAction({
-                title: `Simulado ${banca} - ${materia || "Geral"}`,
-                topicId: selectedTopicId || undefined,
-                subjectId: currentSubjectObj?.id || undefined,
-                totalQuestions: finalTotal,
-                correctAnswers: finalCorrect,
-                timeSpentSeconds: finalData.timerSeconds,
-                answers: submissions,
-              });
-
-              const response = await fetch("/api/questions/save", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  quizId: currentQuizId,
-                  banca: banca || "Geral",
-                  subject: materia?.trim() || "Geral",
-                  topicId: selectedTopicId || null,
-                  difficulty: dificuldade || "Média",
-                  questions: questions.map((q, idx) => ({
-                    ...q,
-                    userAnswer: finalData.selectedAnswers[idx],
+            // Processamento em segundo plano sem travar a navegação do usuário
+            (async () => {
+              try {
+                const submissions: QuestionAnswerSubmission[] = questions.map(
+                  (q, idx) => ({
+                    questionId: q.id || `q-${idx}`,
+                    subjectId: q.subjectId || currentSubjectObj?.id || "",
+                    topicId: q.topicId || selectedTopicId || undefined,
+                    selectedOption: finalData.selectedAnswers[idx] || "",
                     isCorrect:
                       finalData.selectedAnswers[idx] === q.gabaritoCorreto,
-                    errorReason: finalData.errorClassifications[idx] || null,
                     timeSpentSeconds: Math.round(
-                      finalData.timerSeconds / Math.max(1, finalTotal),
+                      finalData.timerSeconds / finalTotal,
                     ),
-                  })),
-                }),
-              });
+                    errorReason:
+                      finalData.errorClassifications[idx] || "UNCLASSIFIED",
+                    questionText: q.enunciado,
+                    options: q.alternativas,
+                    correctAnswer: q.gabaritoCorreto,
+                    explanation: q.justificativa,
+                  }),
+                );
 
-              const data = await response.json();
-              const earnedXp = attemptResult.success
-                ? attemptResult.data?.earnedXp || data.earnedXp || 0
-                : data.earnedXp || 0;
+                const [attemptResult, saveResponse] = await Promise.all([
+                  submitQuizAttemptAction({
+                    title: `Simulado ${banca} - ${materia || "Geral"}`,
+                    topicId: selectedTopicId || undefined,
+                    subjectId: currentSubjectObj?.id || undefined,
+                    totalQuestions: finalTotal,
+                    correctAnswers: finalCorrect,
+                    timeSpentSeconds: finalData.timerSeconds,
+                    answers: submissions,
+                  }),
+                  fetch("/api/questions/save", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      quizId: currentQuizId,
+                      banca: banca || "Geral",
+                      subject: materia?.trim() || "Geral",
+                      topicId: selectedTopicId || null,
+                      difficulty: dificuldade || "Média",
+                      questions: questions.map((q, idx) => ({
+                        ...q,
+                        userAnswer: finalData.selectedAnswers[idx],
+                        isCorrect:
+                          finalData.selectedAnswers[idx] === q.gabaritoCorreto,
+                        errorReason: finalData.errorClassifications[idx] || null,
+                        timeSpentSeconds: Math.round(
+                          finalData.timerSeconds / Math.max(1, finalTotal),
+                        ),
+                      })),
+                    }),
+                  })
+                    .then((r) => r.json())
+                    .catch(() => null),
+                  syncQuizWithSM2(finalAcc).catch(() => null),
+                ]);
 
-              setLastEarnedXp(earnedXp);
+                const earnedXp = attemptResult?.success
+                  ? attemptResult.data?.earnedXp || saveResponse?.earnedXp || baseEarnedXp
+                  : saveResponse?.earnedXp || baseEarnedXp;
 
-              window.dispatchEvent(
-                new CustomEvent("xp-updated", {
-                  detail: {
-                    totalXp: data.totalXp,
-                    earnedXp,
-                    levelInfo: data.levelInfo,
-                  },
-                }),
-              );
+                setLastEarnedXp(earnedXp);
 
-              const newLevel = data.levelInfo?.level;
-              const previousLevel =
-                gamificationStats?.gamification?.level ?? 1;
+                if (saveResponse?.totalXp) {
+                  window.dispatchEvent(
+                    new CustomEvent("xp-updated", {
+                      detail: {
+                        totalXp: saveResponse.totalXp,
+                        earnedXp,
+                        levelInfo: saveResponse.levelInfo,
+                      },
+                    }),
+                  );
+                }
 
-              if (newLevel && newLevel > previousLevel) {
-                setLevelUpData({
-                  leveledUp: true,
-                  newLevel,
-                  title: data.levelInfo?.title || "Iniciante Consciente",
-                });
+                const newLevel = saveResponse?.levelInfo?.level;
+                const previousLevel =
+                  gamificationStats?.gamification?.level ?? 1;
+
+                if (newLevel && newLevel > previousLevel) {
+                  setLevelUpData({
+                    leveledUp: true,
+                    newLevel,
+                    title: saveResponse?.levelInfo?.title || "Iniciante Consciente",
+                  });
+                }
+                if (refreshStats) await refreshStats();
+              } catch (error) {
+                console.error(
+                  "Erro ao sincronizar simulado em background:",
+                  error,
+                );
               }
-              if (refreshStats) await refreshStats();
-            } catch (error) {
-              console.error(
-                "Erro ao registrar simulado e creditar XP:",
-                error,
-              );
-            } finally {
-              setShowCompletionModal(true);
-            }
+            })();
           }}
           onExit={() => {
             setQuestions([]);

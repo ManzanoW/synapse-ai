@@ -140,6 +140,7 @@ export function QuizResolutionView({
   const [isJustificationExpanded, setIsJustificationExpanded] = useState(true);
   const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
   const [showFinishConfirmModal, setShowFinishConfirmModal] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [deepenedExplanations, setDeepenedExplanations] = useState<
     Record<number, DeepenExplanationResult>
@@ -364,6 +365,7 @@ export function QuizResolutionView({
 
   // Finalizar Simulado
   const handleFinalize = () => {
+    setIsFinalizing(true);
     onFinishQuiz({
       totalQuestions,
       correctCount,
@@ -1344,6 +1346,7 @@ export function QuizResolutionView({
                       </span>
                       <button
                         type="button"
+                        disabled={isFinalizing}
                         onClick={() => {
                           if (activeQuestionIndex < totalQuestions - 1) {
                             navigateTo(activeQuestionIndex + 1);
@@ -1351,14 +1354,23 @@ export function QuizResolutionView({
                             handlePromptFinalize();
                           }
                         }}
-                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-violet-950/40 active:scale-95 ml-auto"
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-80 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-violet-950/40 active:scale-95 ml-auto"
                       >
-                        <span>
-                          {activeQuestionIndex < totalQuestions - 1
-                            ? "Próxima Questão"
-                            : "Finalizar Simulado"}
-                        </span>
-                        <ArrowRight size={14} />
+                        {isFinalizing && activeQuestionIndex >= totalQuestions - 1 ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin text-violet-200" />
+                            <span>Gerando Diagnóstico...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>
+                              {activeQuestionIndex < totalQuestions - 1
+                                ? "Próxima Questão"
+                                : "Finalizar Simulado"}
+                            </span>
+                            <ArrowRight size={14} />
+                          </>
+                        )}
                       </button>
                     </div>
                   </motion.div>
@@ -1548,11 +1560,21 @@ export function QuizResolutionView({
             {/* Botão de destaque no rodapé do card: Finalizar Simulado */}
             <button
               onClick={handlePromptFinalize}
+              disabled={isFinalizing}
               type="button"
-              className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-violet-950/50 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-80 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-violet-950/50 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
             >
-              <Award size={15} />
-              <span>Finalizar Simulado</span>
+              {isFinalizing ? (
+                <>
+                  <Loader2 size={15} className="animate-spin text-violet-200" />
+                  <span>Gerando Diagnóstico...</span>
+                </>
+              ) : (
+                <>
+                  <Award size={15} />
+                  <span>Finalizar Simulado</span>
+                </>
+              )}
             </button>
           </div>
         </aside>
