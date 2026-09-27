@@ -797,30 +797,42 @@ export function QuizResultView({
         {/* ========================================================================= */}
         {/* 2. AÇÕES DE RETENÇÃO E CADERNO DE ERROS                                   */}
         {/* ========================================================================= */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
-          {/* CARD EM DESTAQUE: ADICIONAR QUESTÕES ERRADAS AO CADERNO DE ERROS (8 cols) */}
-          <div className="md:col-span-8 relative overflow-hidden bg-gradient-to-r from-violet-950/30 via-[#070b16] to-[#090d18] border border-violet-500/30 hover:border-violet-500/50 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 transition-all">
-            <div className="space-y-1.5 max-w-md">
-              <div className="flex items-center gap-2">
-                <span className="p-2 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-300 shrink-0">
-                  <BookOpenCheck size={18} />
-                </span>
-                <div>
-                  <h3 className="text-sm font-black text-white">
-                    Caderno de Erros & Flashcards FSRS
-                  </h3>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    {incorrectCount > 0
-                      ? `${incorrectCount} questão(ões) identificada(s) para remediação ativa.`
-                      : "Gabarito 100% perfeito — sem erros pendentes!"}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+          {/* CARD EM DESTAQUE: ADICIONAR QUESTÕES ERRADAS AO CADERNO DE ERROS */}
+          <div className="lg:col-span-8 relative overflow-hidden bg-gradient-to-r from-violet-950/30 via-[#070b16] to-[#090d18] border border-violet-500/30 hover:border-violet-500/50 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-5 transition-all">
+            {/* Topo: Ícone, Título, Badge e Descrição com largura completa */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex items-center gap-3">
+                  <span className="p-2.5 rounded-2xl bg-violet-500/15 border border-violet-500/30 text-violet-300 shrink-0 shadow-inner">
+                    <BookOpenCheck size={20} />
                   </span>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black text-white tracking-tight">
+                      Caderno de Erros & Flashcards FSRS
+                    </h3>
+                    <span className="text-[11px] sm:text-xs font-mono text-slate-400">
+                      {incorrectCount > 0
+                        ? `${incorrectCount} questão(ões) identificada(s) para remediação ativa.`
+                        : "Gabarito 100% perfeito — sem erros pendentes!"}
+                    </span>
+                  </div>
                 </div>
+
+                {incorrectCount > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-violet-500/15 border border-violet-500/30 text-violet-300">
+                    <Sparkles size={12} className="text-violet-400" />
+                    <span>Auto-Remediação</span>
+                  </span>
+                )}
               </div>
-              <p className="text-xs text-slate-300/80 leading-relaxed pt-1">
+
+              <p className="text-xs text-slate-300/80 leading-relaxed max-w-2xl pt-1">
                 {incorrectCount > 0
-                  ? "Transforme seus pontos cegos em memória de longo prazo instantaneamente com repetição espaçada FSRS."
+                  ? "Transforme seus pontos cegos em memória de longo prazo instantaneamente com repetição espaçada FSRS. Seus erros são catalogados no Caderno de Erros para revisão e remediação ativa."
                   : "Excelente aproveitamento! Continue praticando simulados para consolidar sua memória de longo prazo."}
               </p>
+
               {saveErrorMessage && (
                 <p className="text-xs text-rose-400 font-semibold pt-1">
                   {saveErrorMessage}
@@ -833,9 +845,10 @@ export function QuizResultView({
               )}
             </div>
 
-            <div className="shrink-0 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            {/* Base: Botões de Ação com wrap responsivo sem compressão */}
+            <div className="pt-3 border-t border-white/5 flex flex-wrap items-center gap-2.5">
               {incorrectCount === 0 ? (
-                <div className="px-5 py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-black flex items-center justify-center gap-2">
+                <div className="px-5 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-black flex items-center justify-center gap-2">
                   <Check size={16} />
                   <span>Sem Erros Registrados</span>
                 </div>
@@ -844,7 +857,7 @@ export function QuizResultView({
                   {flashcardDeckInfo ? (
                     <Link
                       href={`/flashcards/study/${flashcardDeckInfo.deckId}`}
-                      className="px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-950/60 border border-emerald-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 animate-in fade-in"
+                      className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-950/60 border border-emerald-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 animate-in fade-in"
                     >
                       <Sparkles size={15} className="text-emerald-200" />
                       <span>Estudar Deck FSRS ({flashcardDeckInfo.count})</span>
@@ -855,7 +868,7 @@ export function QuizResultView({
                       onClick={handleCreateFlashcardsFromErrors}
                       disabled={isCreatingFlashcards}
                       type="button"
-                      className="px-4 py-3 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-950/60 border border-indigo-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                      className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-950/60 border border-indigo-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                     >
                       {isCreatingFlashcards ? (
                         <>
@@ -873,7 +886,7 @@ export function QuizResultView({
 
                   <Link
                     href="/notebook"
-                    className="px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 group"
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 group"
                   >
                     <BookOpenCheck size={15} className="group-hover:scale-110 transition-transform" />
                     <span>Caderno</span>
@@ -888,7 +901,7 @@ export function QuizResultView({
                       }
                     }}
                     type="button"
-                    className="px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
                     <span>Revisar ({incorrectCount})</span>
                   </button>
@@ -897,8 +910,8 @@ export function QuizResultView({
             </div>
           </div>
 
-          {/* BOTÕES SECUNDÁRIOS DE RETENÇÃO (4 cols) */}
-          <div className="md:col-span-4 flex flex-col sm:flex-row md:flex-col gap-3 justify-between">
+          {/* BOTÕES SECUNDÁRIOS DE RETENÇÃO */}
+          <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-3 justify-between">
             <button
               onClick={onRestart}
               type="button"
