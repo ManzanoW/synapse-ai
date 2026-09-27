@@ -99,65 +99,60 @@ export function QuestionIdClient({ quiz }: QuestionIdClientProps) {
     const total = finalData.totalQuestions || 1;
     const accuracy = Math.round((finalData.correctCount / total) * 100);
 
-    // Sincronização SM-2
-    if (quiz.topicId) {
-      let grade = 1;
-      if (accuracy >= 95) grade = 5;
-      else if (accuracy >= 85) grade = 4;
-      else if (accuracy >= 70) grade = 3;
-      else if (accuracy >= 50) grade = 2;
-
-      try {
-        await fetch("/api/review", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            topicId: quiz.topicId,
-            grade,
-            source: "QUIZ",
-          }),
-        });
-      } catch (err) {
-        console.error("Erro SM-2:", err);
-      }
-    }
-
-    // Submissão da tentativa no banco de dados
-    try {
-      const submissions: QuestionAnswerSubmission[] = questions.map((q, idx) => ({
-        questionId: q.id || `q-${idx}`,
-        subjectId: q.subjectId || quiz.subject || "Geral",
-        topicId: q.topicId || quiz.topicId || undefined,
-        selectedOption: finalData.selectedAnswers[idx] || "",
-        isCorrect: finalData.selectedAnswers[idx] === q.gabaritoCorreto,
-        timeSpentSeconds: Math.round(finalData.timerSeconds / total),
-        errorReason: finalData.errorClassifications[idx] || "UNCLASSIFIED",
-        questionText: q.enunciado,
-        options: q.alternativas,
-        correctAnswer: q.gabaritoCorreto,
-        explanation: q.justificativa,
-      }));
-
-      const res = await submitQuizAttemptAction({
-        title: `Simulado ${quiz.banca} - ${quiz.subject}`,
-        topicId: quiz.topicId || undefined,
-        totalQuestions: total,
-        correctAnswers: finalData.correctCount,
-        timeSpentSeconds: finalData.timerSeconds,
-        answers: submissions,
-      });
-
-      if (res.success && res.data) {
-        setLastEarnedXp(res.data.earnedXp);
-        if (refreshStats) {
-          refreshStats();
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao registrar tentativa:", err);
-    }
-
+    // Transição Instantânea Otimista: Abre a tela de resultado sem espera
+    const baseEarnedXp = finalData.correctCount * 15;
+    setLastEarnedXp(baseEarnedXp);
     setViewMode("results");
+
+    // Persistência em segundo plano
+    (async () => {
+      try {
+        const submissions: QuestionAnswerSubmission[] = questions.map((q, idx) => ({
+          questionId: q.id || `q-${idx}`,
+          subjectId: q.subjectId || quiz.subject || "Geral",
+          topicId: q.topicId || quiz.topicId || undefined,
+          selectedOption: finalData.selectedAnswers[idx] || "",
+          isCorrect: finalData.selectedAnswers[idx] === q.gabaritoCorreto,
+          timeSpentSeconds: Math.round(finalData.timerSeconds / total),
+          errorReason: finalData.errorClassifications[idx] || "UNCLASSIFIED",
+          questionText: q.enunciado,
+          options: q.alternativas,
+          correctAnswer: q.gabaritoCorreto,
+          explanation: q.justificativa,
+        }));
+
+        const [res] = await Promise.all([
+          submitQuizAttemptAction({
+            title: `Simulado ${quiz.banca} - ${quiz.subject}`,
+            topicId: quiz.topicId || undefined,
+            totalQuestions: total,
+            correctAnswers: finalData.correctCount,
+            timeSpentSeconds: finalData.timerSeconds,
+            answers: submissions,
+          }),
+          quiz.topicId
+            ? fetch("/api/review", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  topicId: quiz.topicId,
+                  grade: accuracy >= 95 ? 5 : accuracy >= 85 ? 4 : accuracy >= 70 ? 3 : accuracy >= 50 ? 2 : 1,
+                  source: "QUIZ",
+                }),
+              }).catch(() => null)
+            : Promise.resolve(null),
+        ]);
+
+        if (res && res.success && res.data) {
+          setLastEarnedXp(res.data.earnedXp);
+          if (refreshStats) {
+            refreshStats();
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao sincronizar tentativa em background:", err);
+      }
+    })();
   };
 
   const handleRestart = () => {
