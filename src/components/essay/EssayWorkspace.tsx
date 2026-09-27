@@ -16,6 +16,7 @@ import {
   Crown,
   Gift,
   Printer,
+  Camera,
 } from "lucide-react";
 import {
   PageSpotlightBanner,
@@ -27,6 +28,7 @@ import {
   EssayEvaluationResult,
   evaluateEssayAction,
 } from "@/actions/essay-actions";
+import { HandwrittenEssayResult } from "@/actions/handwritten-essay-actions";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 import { ExamSheetEditor } from "./ExamSheetEditor";
 import { ThemeSelectorModal } from "./ThemeSelectorModal";
@@ -35,6 +37,7 @@ import { EssayResultView } from "./EssayResultView";
 import { EssayHistoryList } from "./EssayHistoryList";
 import { EssayQuotaModal } from "./EssayQuotaModal";
 import { PrintableExamSheetModal } from "./PrintableExamSheetModal";
+import { HandwrittenEssayModal } from "./HandwrittenEssayModal";
 
 
 const DEFAULT_THEME: EssayTheme = {
@@ -79,11 +82,37 @@ export function EssayWorkspace() {
   const [evaluationError, setEvaluationError] = useState<string | null>(null);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState<boolean>(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
+  const [isHandwrittenModalOpen, setIsHandwrittenModalOpen] = useState<boolean>(false);
   const [submittedCounts, setSubmittedCounts] = useState<{ lines: number; words: number }>({
     lines: 0,
     words: 0,
   });
 
+  const handleHandwrittenComplete = (res: HandwrittenEssayResult) => {
+    setEvaluationResult({
+      id: res.id,
+      themeTitle: theme.title,
+      banca: theme.banca,
+      subjectArea: theme.subjectArea,
+      motivatingText: theme.motivatingTexts.map((m) => m.content).join("\n"),
+      expectedPoints: theme.expectedTopics.join("\n"),
+      content: res.fullText,
+      lineCount: res.lineCount,
+      wordCount: res.wordCount,
+      durationSeconds: 0,
+      score: res.score,
+      maxScore: res.maxScore,
+      isApproved: res.isApproved,
+      generalFeedback: res.generalFeedback,
+      criteriaScores: res.criteriaScores as any,
+      lineErrors: res.lineErrors as any,
+      strengths: res.strengths,
+      improvements: res.improvements,
+      goldenVersion: res.goldenVersion,
+      createdAt: new Date().toISOString(),
+    });
+    setViewMode("result");
+  };
 
   const handleSelectTheme = (newTheme: EssayTheme) => {
     setTheme(newTheme);
@@ -198,6 +227,17 @@ export function EssayWorkspace() {
 
           {viewMode === "write" && (
             <>
+              <button
+                type="button"
+                onClick={() => setIsHandwrittenModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all cursor-pointer"
+                title="Tire uma foto da sua folha escrita à mão para correção oficial com OCR e espelho da banca"
+              >
+                <Camera size={14} className="text-rose-200" />
+                <span className="hidden sm:inline">Enviar Foto Manuscrita (OCR)</span>
+                <span className="sm:hidden">Foto OCR</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsThemeModalOpen(true)}
@@ -398,6 +438,18 @@ export function EssayWorkspace() {
         onRewardClaimed={() => {
           setEvaluationError(null);
         }}
+      />
+
+      {/* MODAL DE CORREÇÃO VIA FOTO DA FOLHA MANUSCRITA (OCR) */}
+      <HandwrittenEssayModal
+        isOpen={isHandwrittenModalOpen}
+        onClose={() => setIsHandwrittenModalOpen(false)}
+        themeTitle={theme.title}
+        banca={theme.banca}
+        subjectArea={theme.subjectArea}
+        motivatingText={theme.motivatingTexts.map((m) => m.content).join("\n")}
+        expectedPoints={theme.expectedTopics.join("\n")}
+        onEvaluationComplete={handleHandwrittenComplete}
       />
     </div>
   );

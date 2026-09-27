@@ -30,6 +30,8 @@ import {
   Activity,
   UploadCloud,
   ShieldCheck,
+  LifeBuoy,
+  Camera,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAudio } from "@/contexts/AudioContext";
@@ -224,6 +226,26 @@ export function CommandPalette({ user }: CommandPaletteProps) {
       },
 
       // AÇÕES RÁPIDAS
+      {
+        id: "action-rescue-week",
+        title: "Salvar Minha Semana (Modo Resgate IA)",
+        subtitle: "Redistribua matérias atrasadas pelos dias restantes sem culpa",
+        category: "Ações Rápidas",
+        icon: LifeBuoy,
+        badge: "Resgate",
+        action: () => navigateTo("/week"),
+        keywords: ["resgate", "semana", "atrasado", "salvar", "rebalancear", "cronograma", "imprevisto"],
+      },
+      {
+        id: "action-handwritten-essay",
+        title: "Corretor de Discursiva via Foto (OCR)",
+        subtitle: "Envie foto da sua folha de 30 linhas para nota oficial de banca",
+        category: "Ações Rápidas",
+        icon: Camera,
+        badge: "Discursiva",
+        action: () => navigateTo("/redacao"),
+        keywords: ["redacao foto", "manuscrita", "discursiva foto", "camera", "caligrafia", "folha"],
+      },
       {
         id: "action-import-pdf",
         title: "Importar Prova em PDF (OCR de Banca)",
