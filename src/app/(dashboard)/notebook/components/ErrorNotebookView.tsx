@@ -12,10 +12,13 @@ import { ErrorMetricsHeader } from "./ErrorMetricsHeader";
 import { ErrorFiltersBar } from "./ErrorFiltersBar";
 import { ErrorCard } from "./ErrorCard";
 import { RemediationQuizModal } from "./RemediationQuizModal";
+import { RedemptionExamModal } from "./RedemptionExamModal";
 import {
   getErrorNotebookQuestionsAction,
   getErrorMetricsAction,
   batchClassifyTaxonomyOnlyAction,
+  generateRedemptionExamAction,
+  RedemptionExamQuestion,
 } from "@/actions/error-notebook-actions";
 import { convertBatchErrorsToFlashcardsAction } from "@/actions/error-flashcard-actions";
 import {
@@ -29,6 +32,8 @@ import {
   HelpCircle,
   Brain,
   Sparkles,
+  ShieldCheck,
+  Flame,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -74,6 +79,11 @@ export function ErrorNotebookView({
   const [isClassifying, setIsClassifying] = useState(false);
   const [isRemediationOpen, setIsRemediationOpen] = useState(false);
   const [isCreatingBatchFlashcards, setIsCreatingBatchFlashcards] = useState(false);
+
+  // Estados do Simulado de Redenção com Questões Gêmeas
+  const [isRedemptionOpen, setIsRedemptionOpen] = useState(false);
+  const [isGeneratingRedemption, setIsGeneratingRedemption] = useState(false);
+  const [redemptionQuestions, setRedemptionQuestions] = useState<RedemptionExamQuestion[]>([]);
 
   // Refs de controle de requisição e Sentinela de Rolagem
   const requestIdRef = useRef(0);
@@ -314,6 +324,46 @@ export function ErrorNotebookView({
     }
   };
 
+  // Disparo do Simulado de Redenção com Questões Gêmeas da IA
+  const handleStartRedemption = async (count: number = 5) => {
+    setIsGeneratingRedemption(true);
+    try {
+      const res = await generateRedemptionExamAction({
+        subjectId: filters.subjectId,
+        count,
+      });
+
+      if (res.success && res.questions && res.questions.length > 0) {
+        setRedemptionQuestions(res.questions);
+        setIsRedemptionOpen(true);
+      } else {
+        showToast(
+          res.error || "Nenhum erro pendente elegível para redenção no momento.",
+          "info"
+        );
+      }
+    } catch (err) {
+      console.error("Erro ao gerar simulado de redenção:", err);
+      showToast("Falha ao gerar o Simulado de Redenção com a IA.", "error");
+    } finally {
+      setIsGeneratingRedemption(false);
+    }
+  };
+
+  const handleRedemptionComplete = async () => {
+    fetchQuestions(1, filters, true);
+    try {
+      const metricsRes = await getErrorMetricsAction();
+      if (metricsRes.success && metricsRes.data) {
+        setMetrics(metricsRes.data);
+      }
+    } catch {}
+    showToast(
+      "Sessão de redenção finalizada! Erros superados foram atualizados no seu perfil.",
+      "success"
+    );
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* SPOTLIGHT DICA DE PRIMEIRO ACESSO */}
@@ -350,6 +400,53 @@ export function ErrorNotebookView({
           },
         ]}
       />
+
+      {/* 🚀 BANNER ULTRA-PREMIUM: SIMULADO DE REDENÇÃO (CICATRIZAÇÃO ATIVA DE FALHAS) */}
+      {metrics.pendingErrors > 0 && (
+        <div className="relative overflow-hidden p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-rose-950/40 via-purple-950/30 to-slate-900/60 border border-rose-500/30 dark:border-rose-500/20 shadow-xl backdrop-blur-xl">
+          <div className="absolute -right-8 -top-8 w-36 h-36 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1.5 max-w-xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />
+                <span>Cicatrização Ativa com IA • Questões Gêmeas</span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <span>Você tem</span>
+                <span className="text-rose-400 font-black underline decoration-rose-500 underline-offset-4">
+                  {metrics.pendingErrors} erros pendentes
+                </span>
+                <span>de domínio</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Supere suas falhas antes da prova real. A IA gera questões gêmeas inéditas
+                focadas exatamente nas pegadinhas e conceitos que te derrubaram.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                disabled={isGeneratingRedemption}
+                onClick={() => handleStartRedemption(5)}
+                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold text-xs sm:text-sm shadow-xl shadow-rose-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+              >
+                {isGeneratingRedemption ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Gerando Questões Gêmeas...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-amber-200" />
+                    <span>Iniciar Simulado de Redenção (5Q)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 1. Métricas e Distribuição Taxonômica */}
       <ErrorMetricsHeader
@@ -550,6 +647,14 @@ export function ErrorNotebookView({
         subjects={subjects}
         initialTaxonomy={filters.errorReason || "ALL"}
         onFinished={handleRemediationFinished}
+      />
+
+      {/* 7. Modal de Simulado de Redenção com Questões Gêmeas da IA */}
+      <RedemptionExamModal
+        isOpen={isRedemptionOpen}
+        onClose={() => setIsRedemptionOpen(false)}
+        questions={redemptionQuestions}
+        onExamComplete={handleRedemptionComplete}
       />
     </div>
   );

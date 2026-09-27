@@ -49,6 +49,7 @@ import {
   X,
   Cpu,
   Brain,
+  UploadCloud,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -80,6 +81,12 @@ const NAV_GROUPS = [
     label: "Prática & Performance",
     items: [
       { label: "Simulados & Questões", href: "/questions", icon: FileStack },
+      {
+        label: "Importar Prova",
+        href: "#import-pdf",
+        icon: UploadCloud,
+        badge: "OCR",
+      },
       {
         label: "Redação Oficial",
         href: "/redacao",
@@ -572,7 +579,15 @@ export default function Sidebar({ user }: SidebarProps) {
                       <Link
                         key={item.href}
                         href={getHref(item.href)}
-                        onClick={closeSidebar}
+                        onClick={(e) => {
+                          if (item.href === "#import-pdf") {
+                            e.preventDefault();
+                            closeSidebar();
+                            window.dispatchEvent(new CustomEvent("open-pdf-importer"));
+                            return;
+                          }
+                          closeSidebar();
+                        }}
                         className={`relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-all duration-200 ${
                           isActive
                             ? isSpecial
