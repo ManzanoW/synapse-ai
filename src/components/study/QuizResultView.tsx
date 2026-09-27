@@ -797,40 +797,44 @@ export function QuizResultView({
         {/* ========================================================================= */}
         {/* 2. AÇÕES DE RETENÇÃO E CADERNO DE ERROS                                   */}
         {/* ========================================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
           {/* CARD EM DESTAQUE: ADICIONAR QUESTÕES ERRADAS AO CADERNO DE ERROS */}
-          <div className="lg:col-span-8 relative overflow-hidden bg-gradient-to-r from-violet-950/30 via-[#070b16] to-[#090d18] border border-violet-500/30 hover:border-violet-500/50 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-5 transition-all">
-            {/* Topo: Ícone, Título, Badge e Descrição com largura completa */}
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2.5">
-                <div className="flex items-center gap-3">
-                  <span className="p-2.5 rounded-2xl bg-violet-500/15 border border-violet-500/30 text-violet-300 shrink-0 shadow-inner">
-                    <BookOpenCheck size={20} />
+          <div className="lg:col-span-8 relative overflow-hidden bg-gradient-to-br from-[#0c0d1e] via-[#080a18] to-[#040610] border border-violet-500/30 hover:border-violet-500/50 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col justify-between gap-5 transition-all">
+            {/* Glow decorativo de fundo */}
+            <div className="pointer-events-none absolute -top-16 -right-16 w-52 h-52 rounded-full bg-violet-600/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-16 -left-16 w-52 h-52 rounded-full bg-indigo-600/10 blur-3xl" />
+
+            {/* Topo: Ícone, Título, Badge e Descrição com leitura fluida */}
+            <div className="space-y-3 relative z-10">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3.5">
+                  <span className="p-3 rounded-2xl bg-violet-500/15 border border-violet-500/30 text-violet-300 shrink-0 shadow-lg shadow-violet-950/40">
+                    <BookOpenCheck size={22} />
                   </span>
                   <div>
-                    <h3 className="text-sm sm:text-base font-black text-white tracking-tight">
+                    <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
                       Caderno de Erros & Flashcards FSRS
                     </h3>
-                    <span className="text-[11px] sm:text-xs font-mono text-slate-400">
+                    <span className="text-xs font-mono text-slate-400">
                       {incorrectCount > 0
-                        ? `${incorrectCount} questão(ões) identificada(s) para remediação ativa.`
+                        ? `${incorrectCount} questão(ões) catalogada(s) para remediação ativa.`
                         : "Gabarito 100% perfeito — sem erros pendentes!"}
                     </span>
                   </div>
                 </div>
 
                 {incorrectCount > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-violet-500/15 border border-violet-500/30 text-violet-300">
-                    <Sparkles size={12} className="text-violet-400" />
-                    <span>Auto-Remediação</span>
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold bg-violet-500/15 border border-violet-500/30 text-violet-300 shadow-xs">
+                    <Sparkles size={13} className="text-violet-400" />
+                    <span>Auto-Remediação FSRS</span>
                   </span>
                 )}
               </div>
 
-              <p className="text-xs text-slate-300/80 leading-relaxed max-w-2xl pt-1">
+              <p className="text-xs sm:text-sm text-slate-300/80 leading-relaxed max-w-2xl">
                 {incorrectCount > 0
-                  ? "Transforme seus pontos cegos em memória de longo prazo instantaneamente com repetição espaçada FSRS. Seus erros são catalogados no Caderno de Erros para revisão e remediação ativa."
-                  : "Excelente aproveitamento! Continue praticando simulados para consolidar sua memória de longo prazo."}
+                  ? "Suas respostas incorretas foram catalogadas automaticamente no seu Caderno de Erros. Gere um deck inteligente de repetição espaçada FSRS para converter suas falhas conceituais em memória de longo prazo."
+                  : "Excelente aproveitamento! Continue praticando simulados para consolidar sua memória de longo prazo e manter o domínio do edital."}
               </p>
 
               {saveErrorMessage && (
@@ -845,111 +849,143 @@ export function QuizResultView({
               )}
             </div>
 
-            {/* Base: Botões de Ação com wrap responsivo sem compressão */}
-            <div className="pt-3 border-t border-white/5 flex flex-wrap items-center gap-2.5">
+            {/* Base: Estrutura em Duas Camadas (Sem nenhum risco de corte horizontal) */}
+            <div className="pt-4 border-t border-white/10 space-y-2.5 relative z-10 w-full">
               {incorrectCount === 0 ? (
-                <div className="px-5 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-black flex items-center justify-center gap-2">
-                  <Check size={16} />
-                  <span>Sem Erros Registrados</span>
+                <div className="w-full py-3.5 px-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-inner">
+                  <Check size={18} className="text-emerald-400" />
+                  <span>Gabarito 100% Perfeito — Nenhuma Falha Registrada</span>
                 </div>
               ) : (
                 <>
+                  {/* Linha 1: CTA Principal em Destaque (Largura Total) */}
                   {flashcardDeckInfo ? (
                     <Link
                       href={`/flashcards/study/${flashcardDeckInfo.deckId}`}
-                      className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-950/60 border border-emerald-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 animate-in fade-in"
+                      className="w-full py-3.5 px-5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-950/60 border border-emerald-400/40 transition-all flex items-center justify-center gap-2.5 cursor-pointer active:scale-[0.99] group"
                     >
-                      <Sparkles size={15} className="text-emerald-200" />
-                      <span>Estudar Deck FSRS ({flashcardDeckInfo.count})</span>
-                      <ArrowRight size={14} />
+                      <Sparkles size={17} className="text-emerald-200 group-hover:rotate-12 transition-transform" />
+                      <span>Estudar Deck FSRS ({flashcardDeckInfo.count} Cards)</span>
+                      <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform ml-1" />
                     </Link>
                   ) : (
                     <button
                       onClick={handleCreateFlashcardsFromErrors}
                       disabled={isCreatingFlashcards}
                       type="button"
-                      className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-950/60 border border-indigo-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                      className="w-full py-3.5 px-5 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-950/60 border border-indigo-400/40 transition-all flex items-center justify-center gap-2.5 cursor-pointer active:scale-[0.99] disabled:opacity-50 group"
                     >
                       {isCreatingFlashcards ? (
                         <>
-                          <Loader2 size={15} className="animate-spin" />
-                          <span>Gerando Flashcards...</span>
+                          <Loader2 size={17} className="animate-spin text-indigo-200" />
+                          <span>Gerando Flashcards com Inteligência Artificial...</span>
                         </>
                       ) : (
                         <>
-                          <Zap size={15} className="fill-white" />
+                          <Zap size={17} className="fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform" />
                           <span>⚡ Gerar Flashcards FSRS ({incorrectCount})</span>
+                          <ArrowRight size={16} className="text-violet-200 group-hover:translate-x-1 transition-transform ml-1" />
                         </>
                       )}
                     </button>
                   )}
 
-                  <Link
-                    href="/notebook"
-                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 group"
-                  >
-                    <BookOpenCheck size={15} className="group-hover:scale-110 transition-transform" />
-                    <span>Caderno</span>
-                  </Link>
+                  {/* Linha 2: Ações de Apoio Perfeitamente Espaçadas (50% / 50%) */}
+                  <div className="grid grid-cols-2 gap-2.5 w-full">
+                    <Link
+                      href="/notebook"
+                      className="py-2.5 px-3 bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-white/10 hover:border-violet-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 group text-center"
+                    >
+                      <BookOpenCheck size={16} className="text-violet-400 group-hover:scale-110 transition-transform shrink-0" />
+                      <span className="truncate">Caderno de Erros</span>
+                    </Link>
 
-                  <button
-                    onClick={() => {
-                      setFilterReview("incorrect");
-                      const reviewEl = document.getElementById("revisao-questoes-anchor");
-                      if (reviewEl) {
-                        reviewEl.scrollIntoView({ behavior: "smooth" });
-                      }
-                    }}
-                    type="button"
-                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-                  >
-                    <span>Revisar ({incorrectCount})</span>
-                  </button>
+                    <button
+                      onClick={() => {
+                        setFilterReview("incorrect");
+                        const reviewEl = document.getElementById("revisao-questoes-anchor");
+                        if (reviewEl) {
+                          reviewEl.scrollIntoView({ behavior: "smooth" });
+                        }
+                      }}
+                      type="button"
+                      className="py-2.5 px-3 bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-white/10 hover:border-indigo-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 group text-center"
+                    >
+                      <RotateCcw size={15} className="text-indigo-400 group-hover:-rotate-45 transition-transform shrink-0" />
+                      <span className="truncate">Revisar Erros ({incorrectCount})</span>
+                    </button>
+                  </div>
                 </>
               )}
             </div>
           </div>
 
-          {/* BOTÕES SECUNDÁRIOS DE RETENÇÃO */}
+          {/* BOTÕES SECUNDÁRIOS DE RETENÇÃO (Cards Interativos Premium) */}
           <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-3 justify-between">
+            {/* Card 1: Refazer Este Simulado */}
             <button
               onClick={onRestart}
               type="button"
-              className="flex-1 p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-violet-500/40 transition-all flex items-center justify-between group cursor-pointer text-left shadow-md"
+              className="group relative flex-1 p-5 rounded-3xl bg-gradient-to-br from-[#0c1224] via-[#080d1a] to-[#050711] border border-blue-500/20 hover:border-blue-500/50 shadow-xl hover:shadow-blue-950/40 transition-all cursor-pointer text-left overflow-hidden flex flex-col justify-between gap-3 active:scale-[0.99]"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-indigo-500/15 text-indigo-300 group-hover:scale-105 transition-transform">
-                  <RotateCcw size={17} />
+              {/* Glow interno suave */}
+              <div className="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full bg-blue-600/10 blur-xl group-hover:bg-blue-600/20 transition-all" />
+
+              <div className="flex items-start justify-between gap-3 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-300 shadow-inner group-hover:scale-105 group-hover:bg-blue-500/25 transition-all">
+                    <RotateCcw size={19} className="group-hover:-rotate-90 transition-transform duration-300" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-400 block">
+                      Novo Treino
+                    </span>
+                    <h4 className="text-sm font-black text-white group-hover:text-blue-200 transition-colors">
+                      Refazer Simulado
+                    </h4>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors">
-                    Refazer Este Simulado
-                  </h4>
-                  <p className="text-[11px] text-slate-400">
-                    Reiniciar com cronômetro zerado
-                  </p>
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 group-hover:text-blue-300 group-hover:border-blue-500/40 group-hover:bg-blue-500/10 transition-all shrink-0">
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </div>
+
+              <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors leading-relaxed relative z-10">
+                Reinicie com cronômetro zerado e teste sua retenção imediata neste mesmo caderno.
+              </p>
             </button>
 
+            {/* Card 2: Concluir e Voltar ao Início */}
             <button
               onClick={onExit}
               type="button"
-              className="flex-1 p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-violet-500/40 transition-all flex items-center justify-between group cursor-pointer text-left shadow-md"
+              className="group relative flex-1 p-5 rounded-3xl bg-gradient-to-br from-[#0c1a17] via-[#071310] to-[#040908] border border-emerald-500/20 hover:border-emerald-500/50 shadow-xl hover:shadow-emerald-950/40 transition-all cursor-pointer text-left overflow-hidden flex flex-col justify-between gap-3 active:scale-[0.99]"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-violet-500/15 text-violet-300 group-hover:scale-105 transition-transform">
-                  <CheckCircle2 size={17} />
+              {/* Glow interno suave */}
+              <div className="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full bg-emerald-600/10 blur-xl group-hover:bg-emerald-600/20 transition-all" />
+
+              <div className="flex items-start justify-between gap-3 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 shadow-inner group-hover:scale-105 group-hover:bg-emerald-500/25 transition-all">
+                    <CheckCircle2 size={19} className="group-hover:scale-110 transition-transform" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 block">
+                      Salvar & Finalizar
+                    </span>
+                    <h4 className="text-sm font-black text-white group-hover:text-emerald-200 transition-colors">
+                      Concluir Sessão
+                    </h4>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white group-hover:text-violet-300 transition-colors">
-                    Concluir e Voltar ao Início
-                  </h4>
-                  <p className="text-[11px] text-slate-400">
-                    Retornar ao painel de questões
-                  </p>
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 group-hover:text-emerald-300 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/10 transition-all shrink-0">
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </div>
+
+              <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors leading-relaxed relative z-10">
+                Confirme seus pontos de XP e retorne à central de questões da sua matéria.
+              </p>
             </button>
           </div>
         </div>
