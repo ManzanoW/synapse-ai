@@ -79,7 +79,7 @@ const StreakFreezeModal = dynamic(
   { ssr: false }
 );
 const TutorialModal = dynamic(
-  () => import().then((m) => m.TutorialModal),
+  () => import("@/components/tutorial/TutorialModal").then((m) => m.TutorialModal),
   { ssr: false }
 );
 const CustomizeCardsModal = dynamic(
