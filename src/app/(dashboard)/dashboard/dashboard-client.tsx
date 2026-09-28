@@ -42,6 +42,7 @@ import Heatmap from "@/components/analytics/Heatmap";
 import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
 import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
 import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
+import { DailyTipCard } from "@/components/dashboard/DailyTipCard";
 import { TutorialModal } from "@/components/tutorial/TutorialModal";
 
 interface JourneyData {
@@ -860,7 +861,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
 
           {/* CONTEÚDO DA ABA SELECIONADA */}
-          {mobileTab === "missions" && <DailyQuestsPanel />}
+          {mobileTab === "missions" && (
+            <div className="space-y-4">
+              <DailyQuestsPanel />
+              <DailyTipCard />
+            </div>
+          )}
 
           {mobileTab === "stats" && (
             <div className="space-y-4">
@@ -1161,6 +1167,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
             </div>
+
+            {/* CARD: DICA DIÁRIA (EVIDÊNCIA CIENTÍFICA & GEMINI) */}
+            <DailyTipCard />
 
             {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
             <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">

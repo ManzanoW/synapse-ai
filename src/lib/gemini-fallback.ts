@@ -19,9 +19,8 @@ function getAIClient(): GoogleGenAI {
 
 // Modelos Gemini suportados pelo SDK @google/genai
 const MODELS_CASCADE = [
+  "gemini-3.8-flash",
   "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-2.5-pro",
 ];
 
 export interface GeminiFallbackOptions {
