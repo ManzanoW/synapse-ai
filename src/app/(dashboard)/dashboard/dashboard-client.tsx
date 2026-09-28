@@ -95,6 +95,8 @@ import { DailyFlowCard } from "@/components/dashboard/DailyFlowCard";
 import type { DailyFlowData } from "@/actions/daily-flow-actions";
 import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
+import { DailyTipCard } from "@/components/dashboard/DailyTipCard";
+import { TutorialModal } from "@/components/tutorial/TutorialModal";
 
 interface JourneyData {
   hasObjective: boolean;
@@ -1177,7 +1179,12 @@ export default function DashboardClient({
           </div>
 
           {/* CONTEÚDO DA ABA SELECIONADA */}
-          {mobileTab === "missions" && <DailyQuestsPanel />}
+          {mobileTab === "missions" && (
+            <div className="space-y-4">
+              <DailyQuestsPanel />
+              <DailyTipCard />
+            </div>
+          )}
 
           {mobileTab === "stats" && (
             <div className="space-y-4">
@@ -1325,6 +1332,9 @@ export default function DashboardClient({
                 )}
               </div>
             )}
+
+            {/* CARD: DICA DIÁRIA (EVIDÊNCIA CIENTÍFICA & GEMINI) */}
+            <DailyTipCard />
 
             {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
             {visibleCards.radarDomain && (
