@@ -104,8 +104,11 @@ export function AdaptiveRebalanceBanner({
               <p className="text-xs text-slate-300 leading-relaxed">
                 Sua retenção em <strong className="text-white">{firstCrit.name}</strong> está em{" "}
                 <strong className="text-rose-400">{firstCrit.accuracy}%</strong>
+                {firstCrit.pendingErrors && firstCrit.pendingErrors > 0 ? (
+                  <> com <strong className="text-amber-300">{firstCrit.pendingErrors} {firstCrit.pendingErrors === 1 ? "questão com erro" : "questões com erros pendentes"}</strong></>
+                ) : null}
                 {otherCount > 0 && ` (+${otherCount} outra disciplina)`}. A IA sugere calibrar a
-                distribuição de horas semanais para reforçar estes tópicos.
+                distribuição de horas semanais para reforçar estes tópicos prioritários.
               </p>
             </div>
           </div>

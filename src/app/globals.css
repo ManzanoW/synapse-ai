@@ -1,15 +1,24 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --background: #030712;
+  --foreground: #f8fafc;
+}
+
+html.light, [data-theme="light"] {
+  color-scheme: light;
+  --background: #f1f5f9;
+  --foreground: #0f172a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-mono), monospace;
 
   /* === Adicione as novas animações do Tailwind v4 aqui === */
   --animate-fade-in: fadeIn 0.2s ease-out forwards;
@@ -38,28 +47,513 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden; /* Mantém container fixo da aplicação */
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+/* ==========================================================================
+   TEMA CLARO: SLATE ICE (LIMPO, ELEGANTE & ALTO CONTRASTE)
+   ========================================================================== */
+html.light body {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
+
+/* 1. FUNDOS PRINCIPAIS DA APLICAÇÃO */
+html.light .bg-\[\#030712\],
+html.light .bg-\[\#020408\],
+html.light .bg-\[\#030509\],
+html.light .bg-\[\#02050e\],
+html.light [class*="bg-[#030712]"],
+html.light [class*="bg-[#020408]"] {
+  background-color: #f1f5f9 !important;
+}
+
+/* 2. SIDEBAR E CABEÇALHOS */
+html.light .bg-\[\#07090e\],
+html.light aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Logo Synapse AI no modo claro */
+html.light aside h1.text-slate-50,
+html.light aside .text-slate-50 {
+  color: #0f172a !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+html.light aside [class*="from-indigo-300"] {
+  background-image: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+html.light aside .w-28.h-px {
+  background: linear-gradient(to right, transparent, #cbd5e1, transparent) !important;
+  box-shadow: none !important;
+}
+
+/* Itens de navegação da sidebar */
+html.light aside nav span.text-slate-300 {
+  color: #94a3b8 !important;
+}
+html.light aside nav a {
+  color: #475569 !important;
+}
+html.light aside nav a:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+html.light aside nav a.text-indigo-200 {
+  background-color: #eef2ff !important;
+  color: #4338ca !important;
+}
+
+/* Card de Gamificação no rodapé da Sidebar (Nível, XP e Usuário) */
+html.light aside .mt-auto [class*="bg-slate-950"] {
+  background: #f8fafc !important;
+  background-image: none !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05) !important;
+}
+html.light aside .mt-auto .bg-slate-950\/90 {
+  background-color: #e2e8f0 !important;
+}
+
+/* Botão/Card do Synapse Pro na Sidebar */
+html.light aside [class*="bg-gradient-to-r"][class*="from-violet-950"],
+html.light aside [class*="bg-gradient-to-b"][class*="from-indigo-950"] {
+  background-image: none !important;
+  background-color: #f5f3ff !important;
+  border-color: #ddd6fe !important;
+}
+
+/* 3. CARDS, SECTIONS E SUPERFÍCIES DO DASHBOARD E PÁGINAS */
+/* Neutraliza todos os gradientes escuros em containers e cards */
+html.light [class*="from-[#0"]:not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]),
+html.light [class*="from-[#1"]:not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]),
+html.light [class*="from-slate-9"],
+html.light [class*="from-zinc-9"],
+html.light [class*="from-violet-9"],
+html.light [class*="from-indigo-9"]:not(button):not(a[class*="bg-linear-to-r from-indigo-600"]) {
+  background-image: none !important;
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Superfícies escuras Tailwind (todas as variações de opacidade) */
+html.light [class*="bg-slate-950"]:not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]),
+html.light [class*="bg-slate-900"]:not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]),
+html.light [class*="bg-zinc-950"]:not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]),
+html.light [class*="bg-zinc-900"]:not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]) {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Cobertura Universal para todas as superfícies com cores hex escurecidas (#0... e #1...) */
+html.light [class*="bg-[#0"]:not(body):not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]):not([class*="fixed inset-0 bg-black"]):not([class*="bg-black/"]),
+html.light [class*="bg-[#1"]:not(body):not([class*="fixed inset-0"]):not([class*="inset-0 bg-"]):not([class*="fixed inset-0 bg-black"]):not([class*="bg-black/"]),
+html.light [class*="hover:bg-[#0"]:hover,
+html.light [class*="hover:bg-[#1"]:hover {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Quando aninhado dentro de um card, use a superfície suave Slate Ice (#f8fafc) */
+html.light [class*="rounded-3xl"] [class*="bg-[#0"],
+html.light [class*="rounded-3xl"] [class*="bg-[#1"],
+html.light [class*="rounded-2xl"] [class*="bg-[#0"],
+html.light [class*="rounded-2xl"] [class*="bg-[#1"] {
+  background-color: #f8fafc !important;
+  background-image: none !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Suaviza efeitos glow coloridos de blur que ficam manchados no modo claro */
+html.light .blur-3xl,
+html.light .blur-2xl {
+  opacity: 0.12 !important;
+}
+
+/* Cards principais elevados (Hero, Trilha do Dia, Missões, Métricas, Chance de Aprovação) */
+html.light section[class*="rounded-3xl"],
+html.light div[class*="rounded-3xl"]:not([class*="fixed"]),
+html.light div[class*="rounded-2xl"].border-indigo-500\/30,
+html.light div[class*="rounded-2xl"].border-amber-500\/40,
+html.light .glass-card {
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(15, 23, 42, 0.04) !important;
+}
+
+/* 4. ELEMENTOS ANINHADOS DENTRO DE CARDS (Tiles de métricas, passos da trilha, sub-cards) */
+html.light [class*="rounded-3xl"] div[class*="bg-slate-950"],
+html.light [class*="rounded-3xl"] div[class*="bg-slate-900"],
+html.light [class*="rounded-2xl"] a[class*="bg-slate-950"],
+html.light [class*="rounded-2xl"] div[class*="bg-slate-950"],
+html.light [class*="rounded-3xl"] [class*="bg-slate-950\/60"],
+html.light [class*="rounded-3xl"] [class*="bg-slate-950\/50"] {
+  background-color: #f8fafc !important;
+  background-image: none !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Passos concluídos da Trilha do Aprovado */
+html.light [class*="bg-emerald-950"] {
+  background-color: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+}
+
+/* Trilhos de barras de progresso e medidores circulares */
+html.light .rounded-full[class*="bg-slate-950"],
+html.light .rounded-full[class*="bg-slate-900"],
+html.light [class*="h-1"][class*="bg-slate-900"],
+html.light [class*="h-2"][class*="bg-slate-950"],
+html.light [class*="h-1.5"][class*="bg-slate-950"],
+html.light div[class*="overflow-hidden"][class*="bg-slate-950"],
+html.light circle[class*="text-white/5"] {
+  background-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Histograma de 7 dias (colunas vazias de fundo) */
+html.light div[class*="bg-slate-900"][class*="rounded-lg"] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+html.light [class*="bg-slate-800\/40"] {
+  background-color: #e2e8f0 !important;
+}
+
+/* 5. ATALHOS RÁPIDOS DO TOPO (Quick Actions: Resolver Questões, OCR, etc.) */
+html.light a[class*="bg-slate-950\/40"],
+html.light [class*="bg-slate-950\/40"] {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05) !important;
+}
+html.light a[class*="bg-slate-950\/40"]:hover,
+html.light [class*="hover:bg-slate-900\/40"]:hover {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08) !important;
+}
+html.light a[class*="bg-slate-950\/40"] [class*="bg-white\/"] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* 6. BOTÕES DO CABEÇALHO DO DASHBOARD (Pills de Modo, Tour, Modo Zen) */
+/* Alternador de Modo (Essencial, Prática, Completo, Cards) */
+html.light [class*="bg-slate-900\/90"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+}
+html.light [class*="bg-cyan-600\/30"] {
+  background-color: #cffafe !important;
+  color: #0e7490 !important;
+  border-color: #67e8f9 !important;
+}
+html.light [class*="bg-amber-500\/20"] {
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fcd34d !important;
+}
+html.light [class*="bg-indigo-600\/30"] {
+  background-color: #e0e7ff !important;
+  color: #4338ca !important;
+  border-color: #a5b4fc !important;
+}
+html.light [class*="bg-violet-600\/30"] {
+  background-color: #ede9fe !important;
+  color: #6d28d9 !important;
+  border-color: #c4b5fd !important;
+}
+
+/* Botão Meu Perfil & Modo Zen */
+html.light button[class*="bg-white\/\[0.03\]"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
+}
+html.light button[class*="bg-white\/\[0.03\]"]:hover {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Botão Tour do Sistema */
+html.light button[class*="bg-indigo-950\/40"] {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: #4338ca !important;
+  box-shadow: none !important;
+}
+
+/* 7. DIVISORES E BORDAS */
+html.light [class*="border-white\/"],
+html.light [class*="border-white/5"],
+html.light [class*="border-white/6"],
+html.light [class*="border-white/10"],
+html.light [class*="border-white/15"],
+html.light [class*="border-white/20"],
+html.light [class*="border-slate-800"],
+html.light [class*="border-slate-800\/80"],
+html.light [class*="border-slate-900"] {
+  border-color: #e2e8f0 !important;
+}
+
+html.light [class*="divide-white\/"],
+html.light [class*="divide-white/5"],
+html.light [class*="divide-white/10"] > * {
+  border-color: #e2e8f0 !important;
+}
+
+html.light [class*="via-white\/10"],
+html.light [class*="via-slate-800"] {
+  background: #e2e8f0 !important;
+}
+
+/* 8. TIPOGRAFIA DE ALTO CONTRASTE */
+html.light [class*="text-slate-50"],
+html.light [class*="text-slate-100"],
+html.light [class*="text-slate-200"],
+html.light [class*="text-slate-300"],
+html.light [class*="text-zinc-100"],
+html.light [class*="text-zinc-200"],
+html.light [class*="text-zinc-300"] {
+  color: #0f172a !important;
+}
+
+/* Textos secundários, legendas e rótulos agora usam Slate-700 para leitura confortável e nítida */
+html.light [class*="text-slate-400"],
+html.light [class*="text-slate-500"],
+html.light [class*="text-zinc-400"],
+html.light [class*="text-zinc-500"] {
+  color: #334155 !important;
+}
+
+/* Textos brancos em títulos e parágrafos sem botão sólido */
+html.light h1.text-white,
+html.light h2.text-white,
+html.light h3.text-white,
+html.light h4.text-white,
+html.light h5.text-white,
+html.light p.text-white,
+html.light strong.text-white,
+html.light span.text-white:not([class*="bg-indigo-600"]):not([class*="bg-violet-600"]):not([class*="bg-emerald-600"]):not([class*="bg-rose-600"]):not([class*="bg-amber-600"]):not([class*="bg-cyan-600"]):not(button[class*="from-indigo-600"] *):not(button[class*="from-violet-600"] *):not(a[class*="from-indigo-600"] *):not(a[class*="from-violet-600"] *) {
+  color: #0f172a !important;
+}
+
+/* 9. CORES DE DESTAQUE REFINADAS PARA FUNDO CLARO */
+/* Tons pastéis escurecidos para legibilidade perfeita no branco */
+html.light [class*="text-cyan-300"],
+html.light [class*="text-cyan-400"] {
+  color: #0284c7 !important;
+}
+
+html.light [class*="text-amber-300"],
+html.light [class*="text-amber-400"] {
+  color: #b45309 !important;
+}
+
+html.light [class*="text-indigo-300"],
+html.light [class*="text-indigo-400"] {
+  color: #4338ca !important;
+}
+
+html.light [class*="text-violet-300"],
+html.light [class*="text-violet-400"] {
+  color: #6d28d9 !important;
+}
+
+html.light [class*="text-emerald-300"],
+html.light [class*="text-emerald-400"] {
+  color: #047857 !important;
+}
+
+html.light [class*="text-rose-300"],
+html.light [class*="text-rose-400"] {
+  color: #be123c !important;
+}
+
+/* Badges e pílulas de status */
+html.light [class*="bg-white/5"],
+html.light [class*="bg-white/10"],
+html.light [class*="bg-white/[0.015]"],
+html.light [class*="bg-white/[0.03]"] {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light [class*="bg-cyan-500\/10"],
+html.light [class*="bg-cyan-500\/15"],
+html.light [class*="bg-cyan-500\/20"] {
+  background-color: #ecfeff !important;
+  border-color: #a5f3fc !important;
+}
+
+html.light [class*="bg-amber-500\/10"],
+html.light [class*="bg-amber-500\/15"],
+html.light [class*="bg-amber-500\/20"] {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+
+html.light [class*="bg-indigo-500\/10"],
+html.light [class*="bg-indigo-500\/15"],
+html.light [class*="bg-indigo-500\/20"] {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+}
+
+html.light [class*="bg-violet-500\/10"],
+html.light [class*="bg-violet-500\/15"],
+html.light [class*="bg-violet-500\/20"] {
+  background-color: #f5f3ff !important;
+  border-color: #ddd6fe !important;
+}
+
+html.light [class*="bg-emerald-500\/10"],
+html.light [class*="bg-emerald-500\/15"],
+html.light [class*="bg-emerald-500\/20"] {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+
+html.light [class*="bg-rose-500\/10"],
+html.light [class*="bg-rose-500\/15"],
+html.light [class*="bg-rose-500\/20"] {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+}
+
+/* Hover em botões e elementos translúcidos */
+html.light [class*="hover:bg-slate-900"]:hover,
+html.light [class*="hover:bg-slate-950"]:hover {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+html.light [class*="hover:bg-white\/10"]:hover,
+html.light [class*="hover:bg-white\/5"]:hover,
+html.light [class*="hover:bg-white\/3"]:hover {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+html.light [class*="bg-white\/5"],
+html.light [class*="bg-white\/10"] {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Linhas de tabelas, acordeões e listas */
+html.light [class*="bg-black\/20"],
+html.light [class*="bg-black\/10"] {
+  background-color: #f8fafc !important;
+}
+html.light [class*="bg-white\/2"],
+html.light [class*="bg-white\/3"],
+html.light [class*="bg-white\/4"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+html.light aside .fill-indigo-200 {
+  fill: #4f46e5 !important;
+}
+
+/* 10. FORMULÁRIOS, INPUTS E TABELAS */
+html.light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light table th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+html.light table td {
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+/* 11. MODAIS E DIÁLOGOS (Mantém backdrops escuros intactos) */
+html.light div:not(.fixed) > .bg-black\/85,
+html.light div:not(.fixed) > .bg-black\/90,
+html.light .bg-black\/85.rounded-2xl,
+html.light .bg-black\/85.rounded-3xl,
+html.light .bg-black\/80.rounded-2xl,
+html.light .bg-black\/80.rounded-3xl {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.2) !important;
+}
+
+/* 12. BOTTOM NAVIGATION MOBILE */
+html.light .bg-\[\#07090e\]\/95,
+html.light .bg-slate-950\/95,
+html.light .bg-\[\#030712\]\/90 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* 13. SCROLLBARS */
+html.light * {
+  scrollbar-color: #cbd5e1 transparent !important;
+}
+html.light *::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+}
+html.light *::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+/* Seleção de texto moderna e elegante */
+::selection {
+  background-color: rgba(99, 102, 241, 0.35);
+  color: #ffffff;
+}
+
+/* Scrollbars transversais refinadas para todos os navegadores */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+*::-webkit-scrollbar-track {
   background: transparent;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background: #334155;
-  border-radius: 10px;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 @layer utilities {
@@ -75,10 +569,47 @@ body {
   .rotate-y-180 {
     transform: rotateY(180deg);
   }
+
+  /* Utilidades de Glassmorphism & Elevação */
+  .glass-card {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+  .glass-card-hover {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .glass-card-hover:hover {
+    border-color: rgba(99, 102, 241, 0.35);
+    box-shadow: 0 12px 40px -10px rgba(99, 102, 241, 0.15);
+    transform: translateY(-2px);
+  }
+  .glow-indigo {
+    box-shadow: 0 0 20px -3px rgba(99, 102, 241, 0.4);
+  }
+  .glow-emerald {
+    box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.4);
+  }
+  .glow-amber {
+    box-shadow: 0 0 20px -3px rgba(245, 158, 11, 0.4);
+  }
 }
 
-body {
-  overflow: hidden; /* Isso remove a barra de rolagem globalmente */
+@keyframes flame-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.7));
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.9));
+  }
+}
+
+.animate-flame {
+  animation: flame-pulse 2.2s ease-in-out infinite;
 }
 
 @keyframes slideInUp {

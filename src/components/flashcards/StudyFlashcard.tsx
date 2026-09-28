@@ -5,11 +5,9 @@ import {
   useEffect,
   useCallback,
   useRef,
-  useOptimistic,
-  useTransition,
   useMemo,
 } from "react";
-import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from "framer-motion";
 import {
   X,
   RotateCcw,
@@ -25,18 +23,33 @@ import {
   Command,
   TouchpadIcon,
   HelpCircle,
+  Lightbulb,
+  WifiOff,
+  RefreshCw,
+  Headphones,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
 import { useGamification } from "@/context/GamificationContext";
 import { useAchievement } from "@/context/AchievementContext";
 import { useSound } from "@/hooks/useSound";
+import { AudioFlashcardPlayer } from "./AudioFlashcardPlayer";
 import { checkNewAchievements } from "@/lib/check-achievements";
 import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 import {
   predictNextIntervals,
   ReviewGrade,
+  calculateMemoryRetention,
+  getMemoryStatus,
+  isLeechCard,
 } from "@/lib/spaced-repetition";
+import { generateFlashcardMnemonicAction } from "@/actions/flashcard-actions";
+import {
+  useOfflineSync,
+  enqueueOfflineReview,
+  cacheOfflineDeck,
+  getCachedOfflineDeck,
+} from "@/lib/offline-sync";
 
 interface Flashcard {
   id: string;
@@ -53,6 +66,7 @@ interface Flashcard {
   difficulty?: number | null;
   repetitions?: number | null;
   lapses?: number | null;
+  lastReviewed?: Date | string | null;
 }
 
 interface StudyFlashcardProps {
@@ -62,23 +76,42 @@ interface StudyFlashcardProps {
   userId?: string;
 }
 
-interface OptimisticState {
-  index: number;
-  acertos: number;
-  erros: number;
-}
-
 export default function StudyFlashcard({
-  cards,
+  cards: initialCards,
   deckTitle,
+  deckId,
   userId,
 }: StudyFlashcardProps) {
+  const [cards, setCards] = useState<Flashcard[]>(initialCards || []);
   const [index, setIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-  const [selectedGrade, setSelectedGrade] = useState<ReviewGrade | null>(null);
+  const [showEbbinghausCurve, setShowEbbinghausCurve] = useState(false);
+  const [isAudioPlayerOpen, setIsAudioPlayerOpen] = useState(false);
   const isDraggingRef = useRef(false);
   const cardStartTimeRef = useRef(0);
+
+  const { isOnline, pendingCount, isSyncing, triggerSync } = useOfflineSync();
+
+  // Escuta acionamento global do modo áudio pela Command Palette
+  useEffect(() => {
+    const handleOpenAudio = () => setIsAudioPlayerOpen(true);
+    window.addEventListener("open-audio-study", handleOpenAudio);
+    return () => window.removeEventListener("open-audio-study", handleOpenAudio);
+  }, []);
+
+  useEffect(() => {
+    const currentDeckId = deckId || initialCards?.[0]?.deckId || "all";
+    if (initialCards && initialCards.length > 0) {
+      setCards(initialCards);
+      cacheOfflineDeck(currentDeckId, initialCards);
+    } else {
+      const cached = getCachedOfflineDeck<Flashcard[]>(currentDeckId);
+      if (cached?.cards && cached.cards.length > 0) {
+        setCards(cached.cards);
+      }
+    }
+  }, [initialCards, deckId]);
 
   useEffect(() => {
     cardStartTimeRef.current = Date.now();
@@ -104,28 +137,12 @@ export default function StudyFlashcard({
   const facilOpacity = useTransform(x, [75, 90, 140], [0, 0.6, 1]);
   const facilScale = useTransform(x, [75, 90, 140], [0.8, 1, 1.1]);
 
-  const [, startTransition] = useTransition();
   const { playCorrect, playError, playFlip } = useSound();
 
   const [performanceStats, setPerformanceStats] = useState({
     erros: 0,
     acertos: 0,
   });
-
-  const [optimisticState, setOptimisticState] = useOptimistic<
-    OptimisticState,
-    { grade: ReviewGrade }
-  >(
-    { index, acertos: performanceStats.acertos, erros: performanceStats.erros },
-    (currentState, action) => {
-      const isSuccess = action.grade >= 3;
-      return {
-        index: Math.min(currentState.index + 1, cards.length),
-        acertos: isSuccess ? currentState.acertos + 1 : currentState.acertos,
-        erros: !isSuccess ? currentState.erros + 1 : currentState.erros,
-      };
-    },
-  );
 
   const { stats: gamificationStats, refreshStats } = useGamification();
   const { notifyAchievement } = useAchievement();
@@ -136,10 +153,62 @@ export default function StudyFlashcard({
     title?: string;
   } | null>(null);
 
-  const currentIndex = optimisticState.index;
+  const currentIndex = index;
   const currentCard = cards[currentIndex];
   const progress =
     cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
+
+  // Estado local para mnemônicos gerados durante a sessão
+  const [mnemonicOverrides, setMnemonicOverrides] = useState<Record<string, string>>({});
+  const [isGeneratingMnemonic, setIsGeneratingMnemonic] = useState(false);
+
+  // Cálculo da Retenção de Memória FSRS em Tempo Real (Curva de Ebbinghaus: R = 0.9^(t / S))
+  const memoryRetention = useMemo(() => {
+    if (!currentCard) return 100;
+    return calculateMemoryRetention(
+      currentCard.stability ?? 1.0,
+      currentCard.lastReviewed ? new Date(currentCard.lastReviewed) : null,
+    );
+  }, [currentCard]);
+
+  const memoryStatus = useMemo(
+    () => getMemoryStatus(memoryRetention),
+    [memoryRetention],
+  );
+
+  // Detecção de Card Sanguessuga (Leech / Ponto Cego)
+  const isLeech = useMemo(() => {
+    if (!currentCard) return false;
+    return isLeechCard(currentCard.lapses ?? 0, currentCard.repetitions ?? 0);
+  }, [currentCard]);
+
+  const currentDetails = useMemo(() => {
+    if (!currentCard) return null;
+    return mnemonicOverrides[currentCard.id] ?? currentCard.details ?? null;
+  }, [currentCard, mnemonicOverrides]);
+
+  const handleGenerateMnemonic = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!currentCard || isGeneratingMnemonic) return;
+
+      setIsGeneratingMnemonic(true);
+      try {
+        const res = await generateFlashcardMnemonicAction(currentCard.id);
+        if (res.success && res.data) {
+          setMnemonicOverrides((prev) => ({
+            ...prev,
+            [currentCard.id]: res.data!.details,
+          }));
+        }
+      } catch (err) {
+        console.error("Erro ao gerar mnemônico inteligente:", err);
+      } finally {
+        setIsGeneratingMnemonic(false);
+      }
+    },
+    [currentCard, isGeneratingMnemonic],
+  );
 
   // Previsão dinâmica dos próximos intervalos do card atual (FSRS)
   const projections = useMemo(() => {
@@ -178,10 +247,10 @@ export default function StudyFlashcard({
   }, [playFlip]);
 
   const handleAnswer = useCallback(
-    async (grade: ReviewGrade) => {
+    (grade: ReviewGrade) => {
       if (!currentCard) return;
 
-      // Efeito sonoro imediato
+      // 1. Efeito sonoro imediato
       if (grade >= 3) {
         playCorrect();
       } else if (grade === 1) {
@@ -190,87 +259,21 @@ export default function StudyFlashcard({
         playFlip();
       }
 
-      setSelectedGrade(grade);
-      setIsFlipped(false);
-
+      const targetCard = currentCard;
       const isLastCard = index >= cards.length - 1;
-
-      startTransition(() => {
-        setOptimisticState({ grade });
-      });
-
       const responseTimeMs = Math.max(0, Date.now() - cardStartTimeRef.current);
 
-      try {
-        const previousLevel = gamificationStats?.gamification?.level ?? 1;
+      // 2. Transição instantânea (0ms) para o próximo card
+      setIsFlipped(false);
+      setIndex((prev) => prev + 1);
 
-        const [resReview] = await Promise.all([
-          fetch("/api/flashcards/review", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cardId: currentCard.id,
-              grade,
-              rating: grade,
-              responseTimeMs,
-            }),
-          }),
-          fetch("/api/review", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cardId: currentCard.id,
-              flashcardId: currentCard.id,
-              topicId:
-                currentCard.topicId || currentCard.deckId || currentCard.id,
-              grade: grade === 1 ? 0 : grade === 2 ? 3 : grade === 3 ? 4 : 5,
-              source: "FLASHCARD",
-            }),
-          }),
-        ]);
-
-        if (resReview.ok) {
-          const data = await resReview.json();
-
-          window.dispatchEvent(
-            new CustomEvent("xp-updated", {
-              detail: {
-                totalXp: data.totalXp,
-                earnedXp: data.earnedXp,
-                levelInfo: data.levelInfo,
-              },
-            }),
-          );
-
-          if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
-            const newLevel = data.levelInfo.level;
-            const newTitle = data.levelInfo.title || "Mestre da Retenção";
-
-            setLevelUpData({
-              leveledUp: true,
-              newLevel,
-              title: newTitle,
-            });
-          }
-        }
-
-        if (userId) {
-          await invalidateUserCacheAction(userId);
-        }
-        await refreshStats();
-      } catch (error) {
-        console.error("Erro ao sincronizar revisão do flashcard:", error);
-      } finally {
-        setIndex((prev) => prev + 1);
-        if (grade < 3) {
-          setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
-        } else {
-          setPerformanceStats((prev) => ({
-            ...prev,
-            acertos: prev.acertos + 1,
-          }));
-        }
-        setSelectedGrade(null);
+      if (grade < 3) {
+        setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
+      } else {
+        setPerformanceStats((prev) => ({
+          ...prev,
+          acertos: prev.acertos + 1,
+        }));
       }
 
       if (isLastCard) {
@@ -284,25 +287,85 @@ export default function StudyFlashcard({
 
         checkNewAchievements(notifyAchievement);
       }
+
+      // 3. Sincronização em background com a API / banco sem travar a navegação
+      const reviewPayload = {
+        cardId: targetCard.id,
+        grade,
+        rating: grade,
+        responseTimeMs,
+      };
+
+      (async () => {
+        try {
+          if (typeof navigator !== "undefined" && !navigator.onLine) {
+            enqueueOfflineReview(reviewPayload);
+            return;
+          }
+
+          const previousLevel = gamificationStats?.gamification?.level ?? 1;
+
+          const resReview = await fetch("/api/flashcards/review", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reviewPayload),
+          });
+
+          if (resReview.ok) {
+            const data = await resReview.json();
+
+            window.dispatchEvent(
+              new CustomEvent("xp-updated", {
+                detail: {
+                  totalXp: data.totalXp,
+                  earnedXp: data.earnedXp,
+                  levelInfo: data.levelInfo,
+                },
+              }),
+            );
+
+            if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
+              const newLevel = data.levelInfo.level;
+              const newTitle = data.levelInfo.title || "Mestre da Retenção";
+
+              setLevelUpData({
+                leveledUp: true,
+                newLevel,
+                title: newTitle,
+              });
+            }
+
+            if (userId) {
+              invalidateUserCacheAction(userId).catch(() => {});
+            }
+            refreshStats().catch(() => {});
+          } else {
+            enqueueOfflineReview(reviewPayload);
+          }
+        } catch (error) {
+          console.warn("Sem conexão estável. Revisão enfileirada offline:", error);
+          enqueueOfflineReview(reviewPayload);
+        }
+      })();
     },
     [
-      index,
-      cards,
+      cards.length,
       currentCard,
-      gamificationStats,
-      refreshStats,
+      gamificationStats?.gamification?.level,
+      index,
       notifyAchievement,
-      setOptimisticState,
-      userId,
       playCorrect,
       playError,
       playFlip,
+      refreshStats,
+      userId,
     ],
   );
 
   // Reseta a posição do card para o centro ao avançar ou reiniciar e reinicia cronômetro do card
   useEffect(() => {
     x.set(0);
+    setShowEbbinghausCurve(false);
     cardStartTimeRef.current = Date.now();
   }, [currentIndex, x]);
 
@@ -355,7 +418,12 @@ export default function StudyFlashcard({
 
       if (e.code === "Space") {
         e.preventDefault();
-        toggleFlip();
+        if (!isFlipped) {
+          toggleFlip();
+        } else {
+          // Padrão de Alta Velocidade Anki/SuperMemo: quando virado, Espaço confirma BOM (3)
+          handleAnswer(3);
+        }
       } else if (isFlipped) {
         if (e.key === "1") {
           e.preventDefault();
@@ -407,8 +475,8 @@ export default function StudyFlashcard({
         <div className="absolute top-1/4 w-[280px] h-[200px] bg-violet-600/15 rounded-full blur-[100px]" />
       </div>
 
-      {/* Contêiner Principal */}
-      <div className="w-full max-w-2xl p-3 sm:p-7 md:p-8 bg-transparent sm:bg-[#090d16]/90 sm:border sm:border-slate-800/80 rounded-none sm:rounded-[2.5rem] sm:backdrop-blur-3xl sm:shadow-[0_0_50px_-10px_rgba(99,102,241,0.2)] select-none transition-all relative z-10">
+      {/* Contêiner Principal Expandido para visualização imersiva e clara */}
+      <div className="w-full max-w-4xl lg:max-w-5xl p-3 sm:p-8 md:p-10 bg-transparent sm:bg-[#090d16]/90 sm:border sm:border-slate-800/80 rounded-none sm:rounded-[2.5rem] sm:backdrop-blur-3xl sm:shadow-[0_0_60px_-10px_rgba(99,102,241,0.25)] select-none transition-all relative z-10">
         <div className="hidden sm:block absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
 
         {isFinished ? (
@@ -460,7 +528,7 @@ export default function StudyFlashcard({
                   Dominados
                 </span>
                 <span className="text-lg sm:text-xl font-black text-emerald-400 font-mono tracking-tight">
-                  {optimisticState.acertos}
+                  {performanceStats.acertos}
                 </span>
               </div>
               <div className="pl-2">
@@ -468,7 +536,7 @@ export default function StudyFlashcard({
                   Revisar
                 </span>
                 <span className="text-lg sm:text-xl font-black text-rose-400 font-mono tracking-tight">
-                  {optimisticState.erros}
+                  {performanceStats.erros}
                 </span>
               </div>
             </div>
@@ -522,13 +590,45 @@ export default function StudyFlashcard({
                 </span>
               </Link>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[10px] sm:text-[11px] font-mono shadow-inner shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                <span className="font-bold text-indigo-400">
-                  {currentIndex + 1}
-                </span>
-                <span className="text-slate-600">/</span>
-                <span className="text-slate-400">{cards.length}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                {(!isOnline || pendingCount > 0) && (
+                  <button
+                    type="button"
+                    onClick={triggerSync}
+                    disabled={isSyncing || !isOnline}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono text-amber-300 transition-colors disabled:opacity-50 cursor-pointer"
+                    title={
+                      !isOnline
+                        ? "Sem conexão: revisões salvas localmente no dispositivo"
+                        : "Clique para sincronizar com o servidor"
+                    }
+                  >
+                    <WifiOff size={11} className="text-amber-400" />
+                    <span>{!isOnline ? "Offline" : `${pendingCount} na fila`}</span>
+                    {isSyncing && (
+                      <RefreshCw size={10} className="animate-spin text-amber-300" />
+                    )}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setIsAudioPlayerOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 hover:text-indigo-300 text-[10px] sm:text-[11px] font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                  title="Estudo com áudio contínuo para fones de ouvido (trânsito, academia)"
+                >
+                  <Headphones size={13} className="text-indigo-400" />
+                  <span className="hidden sm:inline">Modo Fones</span>
+                </button>
+
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[10px] sm:text-[11px] font-mono shadow-inner">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="font-bold text-indigo-400">
+                    {currentIndex + 1}
+                  </span>
+                  <span className="text-slate-600">/</span>
+                  <span className="text-slate-400">{cards.length}</span>
+                </div>
               </div>
             </div>
 
@@ -551,7 +651,7 @@ export default function StudyFlashcard({
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onClick={handleCardClick}
-              className="relative w-full min-h-[360px] sm:min-h-[420px] mb-4 cursor-grab active:cursor-grabbing group flex flex-col select-none touch-none"
+              className="relative w-full min-h-[350px] sm:min-h-[440px] md:min-h-[500px] mb-4 sm:mb-5 cursor-grab active:cursor-grabbing group flex flex-col select-none touch-none"
             >
               {/* BADGE ERREI: Arrasto para a esquerda (< 0px) -> Grade 1 */}
               <motion.div
@@ -590,28 +690,144 @@ export default function StudyFlashcard({
               >
                 {/* FRENTE DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors duration-300 border-t-indigo-400/40"
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors duration-300 border-t-indigo-400/40"
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",
                   }}
                 >
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
                   <div className="w-full flex justify-between items-center relative z-10">
-                    <span className="text-[9px] font-extrabold tracking-widest text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 rounded-lg uppercase backdrop-blur-md">
+                    <span className="text-[10px] sm:text-xs font-extrabold tracking-widest text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-3 py-1 rounded-lg uppercase backdrop-blur-md">
                       Pergunta
                     </span>
-                    <span className="text-[10px] text-slate-500 font-mono tracking-wider">
-                      CARD #{currentIndex + 1}
-                    </span>
-                  </div>
-
-                  <div className="my-auto space-y-3 sm:space-y-4 max-w-lg mx-auto relative z-10 py-2">
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform shadow-[0_0_20px_rgba(99,102,241,0.15)]">
-                      <HelpCircle size={22} />
+                    
+                      {/* Medidor de Retenção FSRS e Indicador de Leech com Curva de Ebbinghaus Visual */}
+                      <div className="flex items-center gap-2">
+                        {isLeech && (
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 animate-pulse">
+                            <AlertCircle size={11} />
+                            Ponto Cego
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowEbbinghausCurve((prev) => !prev);
+                          }}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-mono font-bold shadow-sm transition-all hover:scale-105 cursor-pointer ${memoryStatus.bgBadge} ${memoryStatus.textBadge} ${memoryStatus.borderBadge}`}
+                          title="Clique para ver a Curva de Esquecimento de Ebbinghaus"
+                        >
+                          <Brain size={12} />
+                          <span>Retenção {memoryRetention}%</span>
+                          <span className="text-[9px] opacity-70">📈</span>
+                        </button>
+                      </div>
                     </div>
-                    <h2 className="text-base sm:text-2xl font-bold text-slate-100 leading-relaxed tracking-tight">
+
+                  {/* Popover / Drawer da Curva de Esquecimento de Ebbinghaus */}
+                  <AnimatePresence>
+                    {showEbbinghausCurve && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative z-30 my-2 p-3.5 rounded-2xl bg-slate-950/95 border border-indigo-500/40 text-left shadow-2xl backdrop-blur-2xl space-y-2.5 max-w-md mx-auto"
+                      >
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                              <span>📈 Curva de Ebbinghaus</span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
+                                FSRS Pro
+                              </span>
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowEbbinghausCurve(false)}
+                            className="text-slate-400 hover:text-white text-xs cursor-pointer p-0.5"
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        {/* Gráfico SVG da Curva Exponencial */}
+                        <div className="relative h-20 w-full bg-slate-900/80 rounded-xl p-2 border border-white/5 flex items-end">
+                          <svg className="w-full h-full overflow-visible" viewBox="0 0 200 60">
+                            <defs>
+                              <linearGradient id="ebbinghaus-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#818cf8" />
+                                <stop offset="50%" stopColor="#38bdf8" />
+                                <stop offset="100%" stopColor="#f43f5e" />
+                              </linearGradient>
+                            </defs>
+                            {/* Linha crítica de 70% */}
+                            <line x1="0" y1="24" x2="200" y2="24" stroke="#f43f5e" strokeWidth="1" strokeDasharray="3,3" opacity="0.4" />
+                            {/* Curva R = e^(-t/S) */}
+                            <path
+                              d="M 0,6 Q 40,12 80,24 T 200,52"
+                              fill="none"
+                              stroke="url(#ebbinghaus-grad)"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                            />
+                            {/* Ponto Atual */}
+                            <circle
+                              cx={Math.max(10, Math.min(190, 200 - (memoryRetention / 100) * 190))}
+                              cy={Math.max(6, Math.min(54, 60 - (memoryRetention / 100) * 54))}
+                              r="4.5"
+                              fill="#38bdf8"
+                              className="animate-pulse shadow-lg"
+                            />
+                          </svg>
+                          <span className="absolute bottom-1 right-2 text-[8px] font-mono text-slate-500">
+                            Tempo (dias) ➔
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[10px] text-slate-300 font-mono">
+                          <span>
+                            Estabilidade: <strong>{currentCard?.stability ? `${currentCard.stability.toFixed(1)}d` : "1d"}</strong>
+                          </span>
+                          <span>
+                            Declínio crítico: <strong>&lt; 70%</strong>
+                          </span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Banner de Intervenção para Ponto Cego (Leech) */}
+                  {isLeech && (
+                    <div className="relative z-10 my-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-center justify-between gap-2 max-w-lg mx-auto">
+                      <div className="flex items-center gap-2 text-left">
+                        <AlertCircle size={14} className="shrink-0 text-amber-400" />
+                        <span className="text-[11px] leading-tight">Card com falhas repetidas. Fixe com um macete prático!</span>
+                      </div>
+                      <button
+                        onClick={handleGenerateMnemonic}
+                        disabled={isGeneratingMnemonic}
+                        className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[10px] font-bold flex items-center gap-1 transition-all shrink-0 cursor-pointer shadow-sm active:scale-95"
+                      >
+                        {isGeneratingMnemonic ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <Sparkles size={11} className="text-amber-400" />
+                        )}
+                        <span>Macete IA</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="my-auto space-y-4 sm:space-y-5 max-w-2xl sm:max-w-3xl mx-auto relative z-10 py-4 sm:py-6">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform shadow-[0_0_25px_rgba(99,102,241,0.2)]">
+                      <HelpCircle size={26} />
+                    </div>
+                    <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-100 leading-relaxed tracking-tight select-text">
                       {frontText}
                     </h2>
                   </div>
@@ -628,10 +844,10 @@ export default function StudyFlashcard({
                     </div>
 
                     {/* Exclusivo Desktop */}
-                    <div className="hidden sm:inline-flex items-center gap-1.5 text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                    <div className="hidden sm:inline-flex items-center gap-2 text-xs text-slate-400 uppercase tracking-widest font-semibold">
                       <span className="text-slate-500">Arraste para avaliar ou</span>
-                      <kbd className="px-2.5 py-1 rounded-md bg-slate-900 text-slate-200 border border-slate-700/80 text-[10px] font-mono shadow-md flex items-center gap-1">
-                        <Command size={10} /> Espaço
+                      <kbd className="px-3 py-1 rounded-md bg-slate-900 text-slate-200 border border-slate-700/80 text-xs font-mono shadow-md flex items-center gap-1">
+                        <Command size={11} /> Espaço
                       </kbd>
                       <span className="text-slate-500">para virar</span>
                     </div>
@@ -640,7 +856,7 @@ export default function StudyFlashcard({
 
                 {/* VERSO DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",
@@ -648,23 +864,55 @@ export default function StudyFlashcard({
                   }}
                 >
                   <div className="w-full flex justify-between items-center">
-                    <span className="text-[9px] font-extrabold tracking-widest text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-lg uppercase backdrop-blur-md">
+                    <span className="text-[10px] sm:text-xs font-extrabold tracking-widest text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-lg uppercase backdrop-blur-md">
                       Resposta
                     </span>
-                    <span className="text-[10px] text-emerald-400/80 font-mono tracking-wider">
-                      FSRS / SM-2
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-emerald-400/80 font-mono tracking-wider">
+                        FSRS • S: {currentCard?.stability ? `${currentCard.stability.toFixed(1)}d` : "1d"}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="my-auto space-y-2.5 sm:space-y-3 max-w-lg mx-auto overflow-y-auto max-h-56 px-1 custom-scrollbar py-2">
-                    <h3 className="text-sm sm:text-lg font-semibold text-slate-100 leading-relaxed">
+                  <div className="my-auto space-y-4 max-w-2xl sm:max-w-3xl mx-auto overflow-y-auto max-h-72 sm:max-h-96 px-2 custom-scrollbar py-3">
+                    <h3 className="text-base sm:text-xl md:text-2xl font-semibold text-slate-100 leading-relaxed select-text">
                       {backText}
                     </h3>
 
-                    {currentCard?.details && (
-                      <p className="text-[11px] sm:text-xs text-slate-300 bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-xl leading-relaxed text-left shadow-inner">
-                        {currentCard.details}
-                      </p>
+                    {/* Mnemônico / Detalhes de Aprendizagem */}
+                    {currentDetails ? (
+                      <div className="text-[11px] sm:text-xs text-slate-200 bg-slate-900/90 border border-indigo-500/30 p-3.5 rounded-xl leading-relaxed text-left shadow-inner space-y-2">
+                        {currentDetails.includes("💡 Mnemônico IA:") || currentDetails.includes("💡 Macete IA:") ? (
+                          <>
+                            <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs border-b border-white/10 pb-1.5">
+                              <Lightbulb size={14} className="text-amber-400" />
+                              <span>Macete de Memorização</span>
+                            </div>
+                            <div className="whitespace-pre-line text-indigo-100 font-medium">
+                              {currentDetails}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="whitespace-pre-line text-slate-300">
+                            {currentDetails}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="pt-1">
+                        <button
+                          onClick={handleGenerateMnemonic}
+                          disabled={isGeneratingMnemonic}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
+                        >
+                          {isGeneratingMnemonic ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Sparkles size={12} className="text-indigo-400" />
+                          )}
+                          <span>Criar Macete com IA</span>
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -712,7 +960,7 @@ export default function StudyFlashcard({
                   label: "BOM",
                   sublabel: "Good",
                   grade: 3 as ReviewGrade,
-                  key: "3",
+                  key: "3 [Espaço]",
                   icon: Check,
                   interval: projections[3]?.label ?? "4d",
                   style:
@@ -748,14 +996,10 @@ export default function StudyFlashcard({
                     {btn.key}
                   </span>
 
-                  {selectedGrade === btn.grade ? (
-                    <Loader2 size={18} className="animate-spin my-1" />
-                  ) : (
-                    <btn.icon
-                      size={18}
-                      className="group-hover:scale-110 transition-transform my-0.5"
-                    />
-                  )}
+                  <btn.icon
+                    size={18}
+                    className="group-hover:scale-110 transition-transform my-0.5"
+                  />
 
                   <span className="font-black text-[11px] sm:text-xs tracking-wider">
                     {btn.label}
@@ -773,6 +1017,15 @@ export default function StudyFlashcard({
           </>
         )}
       </div>
+
+      {/* PLAYER DE ESTUDO HANDS-FREE / FONES DE OUVIDO */}
+      <AudioFlashcardPlayer
+        isOpen={isAudioPlayerOpen}
+        onClose={() => setIsAudioPlayerOpen(false)}
+        cards={cards}
+        deckTitle={deckTitle}
+        initialIndex={currentIndex}
+      />
     </div>
   );
 }

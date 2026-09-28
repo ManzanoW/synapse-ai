@@ -6,8 +6,7 @@ const globalForPrisma = globalThis as unknown as { prisma?: any };
 const connectionString = process.env.DATABASE_URL;
 const isMockOrLocal =
   !connectionString ||
-  connectionString.includes("mock") ||
-  connectionString.includes("localhost:5432");
+  connectionString.includes("mock");
 
 let prismaClientInstance: any;
 
@@ -44,6 +43,22 @@ if (isMockOrLocal) {
       // Transparent error fallback proxy
       globalForPrisma.prisma = new Proxy(realPrisma, {
         get(target: any, prop: string) {
+          if (prop === "$transaction") {
+            return async (...args: any[]) => {
+              try {
+                if (typeof target.$transaction === "function") {
+                  return await target.$transaction(...args);
+                }
+              } catch (err) {
+                console.warn(
+                  "[AI Studio] Database $transaction failed, falling back to in-memory store:",
+                  err instanceof Error ? err.message : err,
+                );
+              }
+              return await mockFallback.$transaction(...args);
+            };
+          }
+
           const original = target[prop];
           if (typeof original === "object" && original !== null) {
             return new Proxy(original, {

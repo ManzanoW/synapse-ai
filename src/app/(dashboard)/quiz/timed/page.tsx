@@ -33,6 +33,8 @@ import { PacingBar } from "./_components/PacingBar";
 import { ExamSheetHUD } from "./_components/ExamSheetHUD";
 import { SubmitConfirmModal } from "./_components/SubmitConfirmModal";
 import { TimedExamResultView } from "./_components/TimedExamResultView";
+import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
 
 import {
   submitQuizAttemptAction,
@@ -72,12 +74,18 @@ export default function TimedQuizPage() {
   const [minutesPerQuestion, setMinutesPerQuestion] = useState(3);
   const [totalBlockMinutes, setTotalBlockMinutes] = useState(30);
   const [strictAntiDistraction, setStrictAntiDistraction] = useState(false);
+  const [isAdaptiveMode, setIsAdaptiveMode] = useState(
+    searchParams.get("adaptive") === "true",
+  );
 
   // Dados do Edital / Matérias
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSimuladoModalOpen, setIsSimuladoModalOpen] = useState(false);
+  const [pendingTimedQuestions, setPendingTimedQuestions] = useState<TimedQuizQuestion[] | null>(null);
+  const pendingTimedQuestionsRef = useRef<TimedQuizQuestion[] | null>(null);
 
   // Estado do Exame Ativo
   const [questions, setQuestions] = useState<TimedQuizQuestion[]>([]);
@@ -199,7 +207,7 @@ export default function TimedQuizPage() {
       getErrorNotebookItemsAction({ status: "PENDING" })
         .then((res) => {
           if (!res.success || !res.data || res.data.length === 0) {
-            router.replace("/questions?tab=notebook");
+            router.replace("/notebook");
             return;
           }
 
@@ -239,7 +247,7 @@ export default function TimedQuizPage() {
         })
         .catch((err) => {
           console.error("Erro ao carregar erros pendentes:", err);
-          router.replace("/questions?tab=notebook");
+          router.replace("/notebook");
         })
         .finally(() => {
           setIsGenerating(false);
@@ -390,6 +398,9 @@ export default function TimedQuizPage() {
     e.preventDefault();
     setErrorMessage(null);
     setIsGenerating(true);
+    setIsSimuladoModalOpen(true);
+    setPendingTimedQuestions(null);
+    pendingTimedQuestionsRef.current = null;
 
     try {
       const count = parseInt(qtdQuestoes, 10) || 10;
@@ -407,6 +418,7 @@ export default function TimedQuizPage() {
           qtdQuestoes: count,
           dificuldade,
           fonteConteudo: "banca",
+          adaptiveMode: isAdaptiveMode,
         }),
       });
 
@@ -417,35 +429,50 @@ export default function TimedQuizPage() {
         );
       }
 
-      const generatedQuestions: TimedQuizQuestion[] = json.data;
-      setQuestions(generatedQuestions);
-      setCurrentIndex(0);
-      setSelectedAnswers({});
-      setFlaggedQuestions({});
-      setTimeSpentPerQuestion({});
+      // Notifica em tempo real a Sidebar e os badges de cota
+      triggerAiQuotaRefresh();
 
-      // Cálculo do tempo total alocado em segundos
-      let allocated = 1800; // 30 min padrão
-      if (pacingMode === "per_question") {
-        allocated = count * minutesPerQuestion * 60;
-      } else {
-        allocated = totalBlockMinutes * 60;
-      }
-
-      setTotalAllocatedSeconds(allocated);
-      setRemainingSeconds(allocated);
-      endTimeRef.current = Date.now() + allocated * 1000;
-      questionStartTimestampRef.current = Date.now();
-      setIsPaused(false);
-      setIsFocusMode(strictAntiDistraction);
-      setPhase("exam");
+      pendingTimedQuestionsRef.current = json.data;
+      setPendingTimedQuestions(json.data);
+      setIsGenerating(false);
     } catch (err: unknown) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Falha ao iniciar simulado cronometrado."
-      );
-    } finally {
+      const msg =
+        err instanceof Error ? err.message : "Falha ao iniciar simulado cronometrado.";
+      setErrorMessage(msg);
       setIsGenerating(false);
     }
+  };
+
+  const handleSimuladoModalComplete = () => {
+    setIsSimuladoModalOpen(false);
+
+    const questionsToLoad = pendingTimedQuestionsRef.current || pendingTimedQuestions;
+    if (!questionsToLoad || questionsToLoad.length === 0) return;
+
+    const count = questionsToLoad.length;
+    setQuestions(questionsToLoad);
+    setCurrentIndex(0);
+    setSelectedAnswers({});
+    setFlaggedQuestions({});
+    setTimeSpentPerQuestion({});
+
+    // Cálculo do tempo total alocado em segundos
+    let allocated = 1800; // 30 min padrão
+    if (pacingMode === "per_question") {
+      allocated = count * minutesPerQuestion * 60;
+    } else {
+      allocated = totalBlockMinutes * 60;
+    }
+
+    setTotalAllocatedSeconds(allocated);
+    setRemainingSeconds(allocated);
+    endTimeRef.current = Date.now() + allocated * 1000;
+    questionStartTimestampRef.current = Date.now();
+    setIsPaused(false);
+    setIsFocusMode(strictAntiDistraction);
+    setPhase("exam");
+    setPendingTimedQuestions(null);
+    pendingTimedQuestionsRef.current = null;
   };
 
   // 5. SUBMISSÃO FINAL DO SIMULADO
@@ -707,7 +734,7 @@ export default function TimedQuizPage() {
             <p className="text-sm font-bold text-violet-200">
               Carregando caderno para o modo cronometrado...
             </p>
-            <p className="text-xs text-slate-400">Zero tokens consumidos • Início instantâneo</p>
+            <p className="text-xs text-slate-400">Preparando ambiente de prova...</p>
           </div>
         ) : (
         <div className="max-w-3xl mx-auto space-y-6 pt-4 pb-16">
@@ -918,6 +945,36 @@ export default function TimedQuizPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* MODO ADAPTATIVO INTELIGENTE */}
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <Target size={13} className="text-violet-400" />
+                  Modo Adaptativo (Anti-Falhas)
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                    IA Diagnóstica
+                  </span>
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Prioriza conceitos e pegadinhas onde você falhou no Caderno de Erros.
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAdaptiveMode((prev) => !prev)}
+                className={`w-12 h-6.5 rounded-full transition-colors relative cursor-pointer ${
+                  isAdaptiveMode ? "bg-violet-600" : "bg-white/10"
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full bg-white transition-transform absolute top-0.5 left-0.5 ${
+                    isAdaptiveMode ? "translate-x-5.5" : "translate-x-0"
+                  }`}
+                />
+              </button>
             </div>
 
             {/* MODO ANTI-DISTRAÇÃO AUTOMÁTICO */}
@@ -1204,6 +1261,24 @@ export default function TimedQuizPage() {
           }}
         />
       )}
+
+      <SimuladoGenerationModal
+        isOpen={isSimuladoModalOpen}
+        isGenerating={isGenerating}
+        banca={banca}
+        materia={materia}
+        qtdQuestoes={qtdQuestoes}
+        error={errorMessage}
+        onComplete={handleSimuladoModalComplete}
+        onClose={() => {
+          setIsSimuladoModalOpen(false);
+          setErrorMessage(null);
+        }}
+        onRewardedBonusEarned={() => {
+          setIsSimuladoModalOpen(false);
+          setErrorMessage(null);
+        }}
+      />
     </div>
   );
 }

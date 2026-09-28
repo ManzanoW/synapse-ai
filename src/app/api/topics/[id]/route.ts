@@ -16,7 +16,8 @@ export async function PATCH(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    const userId = session?.user?.id;
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -25,6 +26,21 @@ export async function PATCH(
       return NextResponse.json(
         { error: "ID do tópico é obrigatório" },
         { status: 400 }
+      );
+    }
+
+    // 🛡️ Garante que o tópico pertence ao usuário autenticado (prevenção de IDOR)
+    const existingTopic = await prisma.topic.findFirst({
+      where: {
+        id,
+        subject: { userId },
+      },
+    });
+
+    if (!existingTopic) {
+      return NextResponse.json(
+        { error: "Tópico não encontrado ou sem permissão" },
+        { status: 404 },
       );
     }
 

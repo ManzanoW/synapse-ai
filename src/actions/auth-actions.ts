@@ -1,6 +1,6 @@
 "use server";
 
-import { signIn, signOut } from "@/auth";
+import { getBaseUrl, signIn, signOut } from "@/auth";
 import { cookies, headers } from "next/headers";
 
 interface RetryOptions {
@@ -207,11 +207,17 @@ async function executeAuthWithRetry<T>(
 
 /**
  * Resolves an absolute URL for redirects in standalone output / container environments.
- * Uses x-forwarded-host, x-forwarded-proto, or AUTH_URL/NEXTAUTH_URL environment variables
- * to ensure redirects retain full host and protocol context behind reverse proxies.
+ * Prioritizes the stable base URL resolved by getBaseUrl() to avoid redirect_uri_mismatch
+ * errors caused by unique Vercel deployment hashes.
  */
 export async function getAbsoluteRedirectUrl(path: string): Promise<string> {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  // Se estiver na Vercel (Preview ou Produção), prioriza SEMPRE a URL estável do getBaseUrl()
+  if (process.env.VERCEL_BRANCH_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_ENV) {
+    const host = getBaseUrl();
+    return `${host}${cleanPath}`;
+  }
 
   try {
     const headersList = await headers();
@@ -227,37 +233,22 @@ export async function getAbsoluteRedirectUrl(path: string): Promise<string> {
       return `${forwardedProto}://${forwardedHost}${cleanPath}`;
     }
   } catch {
-    // headers() might fail in some contexts, fall back to environment variables
+    // headers() might fail in some contexts, fall back to getBaseUrl()
   }
 
-  // Em ambiente Vercel Preview, prioriza SEMPRE a URL dinâmica da branch (VERCEL_URL)
-  if (process.env.VERCEL_URL && (process.env.VERCEL_ENV === "preview" || !process.env.AUTH_URL)) {
-    return `https://${process.env.VERCEL_URL}${cleanPath}`;
-  }
-
-  const envBase =
-    process.env.AUTH_URL ||
-    process.env.NEXTAUTH_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
-
-  if (envBase) {
-    const base = envBase.endsWith("/") ? envBase.slice(0, -1) : envBase;
-    return `${base}${cleanPath}`;
-  }
-
-  // Fallback to clean path if host context cannot be resolved
-  return cleanPath;
+  const host = getBaseUrl();
+  return `${host}${cleanPath}`;
 }
 
-export async function loginWithGoogle() {
-  const redirectTo = await getAbsoluteRedirectUrl("/dashboard");
+export async function loginWithGoogle(callbackUrl: string = "/dashboard") {
+  const redirectTo = await getAbsoluteRedirectUrl(callbackUrl);
   return executeAuthWithRetry("loginWithGoogle", async () => {
     await signIn("google", { redirectTo });
   });
 }
 
-export async function loginWithGithub() {
-  const redirectTo = await getAbsoluteRedirectUrl("/dashboard");
+export async function loginWithGithub(callbackUrl: string = "/dashboard") {
+  const redirectTo = await getAbsoluteRedirectUrl(callbackUrl);
   return executeAuthWithRetry("loginWithGithub", async () => {
     await signIn("github", { redirectTo });
   });
@@ -285,12 +276,49 @@ export async function loginAsGuest() {
 }
 
 export async function logoutAction() {
+  const sessionCookieNames = [
+    "synapse_demo_active",
+    "synapse-demo-session",
+    "auth_token",
+    "authjs.session-token",
+    "__Secure-authjs.session-token",
+    "authjs.csrf-token",
+    "__Host-authjs.csrf-token",
+    "authjs.callback-url",
+    "__Secure-authjs.callback-url",
+    "next-auth.session-token",
+    "__Secure-next-auth.session-token",
+    "next-auth.csrf-token",
+    "next-auth.callback-url",
+  ];
+
   try {
     const cookieStore = await cookies();
-    cookieStore.delete("synapse_demo_active");
+    for (const name of sessionCookieNames) {
+      try {
+        cookieStore.delete(name);
+        cookieStore.set(name, "", {
+          path: "/",
+          maxAge: 0,
+          expires: new Date(0),
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+        });
+      } catch (cookieErr) {
+        console.warn(`Could not clear cookie ${name}:`, cookieErr);
+      }
+    }
   } catch (err) {
-    console.warn("Could not clear demo cookie:", err);
+    console.warn("Could not access cookies in logoutAction:", err);
   }
-  const redirectTo = await getAbsoluteRedirectUrl("/login");
-  await signOut({ redirectTo });
+
+  try {
+    await signOut({ redirect: false });
+  } catch (err) {
+    if (!isRedirectError(err)) {
+      console.warn("signOut error in logoutAction:", err);
+    }
+  }
+
+  return { success: true };
 }

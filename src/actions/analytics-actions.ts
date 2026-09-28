@@ -110,7 +110,7 @@ export async function getApprovalOddsAction(
     let totalQuestionsCorrect = 0;
 
     subjects.forEach((subject: any) => {
-      const weight = Math.max(1, Number(subject.priority || 1));
+      const weight = Math.max(0.5, Number(subject.weight ?? (subject.priority === "Alta" ? 3 : subject.priority === "Baixa" ? 1 : 2)));
       let subTotal = 0;
       let subCorrect = 0;
 

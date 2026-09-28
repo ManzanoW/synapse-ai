@@ -191,7 +191,7 @@ export function ZenModeOverlay({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex flex-col justify-between bg-[#020409] p-6 sm:p-12 text-slate-100 font-sans selection:bg-indigo-500 select-none"
+        className="fixed inset-0 z-50 flex flex-col justify-between bg-slate-50 dark:bg-[#020409] p-6 sm:p-12 text-slate-900 dark:text-slate-100 font-sans selection:bg-indigo-500 select-none transition-colors"
       >
         {/* Breathing Glow Central (Respiração Guiada 4s) */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -205,29 +205,29 @@ export function ZenModeOverlay({
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="h-[450px] w-[450px] rounded-full bg-violet-600 blur-[150px]"
+            className="h-[450px] w-[450px] rounded-full bg-violet-400/20 dark:bg-violet-600 blur-[150px]"
           />
         </div>
 
         {/* Topo: Controles & Presets */}
         <div className="relative z-10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-2 rounded-2xl border border-violet-500/30 bg-violet-500/10 px-3.5 py-1.5 text-xs font-mono font-bold text-violet-300 backdrop-blur-xl">
-              <ShieldCheck size={14} className="text-violet-400" />
+            <span className="flex items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-3.5 py-1.5 text-xs font-mono font-bold text-violet-800 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300 backdrop-blur-xl shadow-xs">
+              <ShieldCheck size={14} className="text-violet-600 dark:text-violet-400" />
               Trava de Foco Ativa
             </span>
 
             {/* Seletores de Tempo Pré-configurados */}
             {!isActive && !sessionCompleted && (
-              <div className="hidden sm:flex items-center gap-1.5 p-1 rounded-2xl bg-slate-900/60 border border-white/10 backdrop-blur-xl">
+              <div className="hidden sm:flex items-center gap-1.5 p-1 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 backdrop-blur-xl shadow-xs">
                 {PRESET_MINUTES.map((preset) => (
                   <button
                     key={preset.minutes}
                     onClick={() => selectPreset(preset.minutes)}
                     className={`cursor-pointer px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all ${
                       selectedMinutes === preset.minutes
-                        ? "bg-violet-600 text-white shadow-lg shadow-violet-600/30"
-                        : "text-slate-400 hover:text-slate-200"
+                        ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
+                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                     }`}
                   >
                     {preset.label}
@@ -240,18 +240,18 @@ export function ZenModeOverlay({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsMuted((prev) => !prev)}
-              className="cursor-pointer rounded-xl border border-white/10 bg-slate-900/60 p-2.5 text-slate-400 hover:text-white transition-all backdrop-blur-xl"
+              className="cursor-pointer rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-400 dark:hover:text-white p-2.5 transition-all backdrop-blur-xl shadow-xs"
               title={isMuted ? "Ativar som ambiente" : "Mutar som ambiente"}
             >
               {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
             <button
               onClick={handleManualExit}
-              className="cursor-pointer flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-xs font-bold text-slate-300 hover:text-white transition-all backdrop-blur-xl group"
+              className="cursor-pointer flex items-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:text-white px-4 py-2 text-xs font-bold transition-all backdrop-blur-xl shadow-xs group"
             >
               <Minimize2 size={16} />
               <span>Sair</span>
-              <kbd className="hidden sm:inline-block font-mono text-[9px] text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+              <kbd className="hidden sm:inline-block font-mono text-[9px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 px-1.5 py-0.5 rounded">
                 Esc
               </kbd>
             </button>
@@ -264,20 +264,20 @@ export function ZenModeOverlay({
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="space-y-4 max-w-sm rounded-3xl border border-emerald-500/30 bg-slate-950/80 p-8 shadow-[0_0_50px_rgba(16,185,129,0.2)] backdrop-blur-2xl"
+              className="space-y-4 max-w-sm rounded-3xl border border-emerald-300 dark:border-emerald-500/30 bg-white/90 dark:bg-slate-950/80 p-8 shadow-xl dark:shadow-[0_0_50px_rgba(16,185,129,0.2)] backdrop-blur-2xl"
             >
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40">
                 <CheckCircle2 size={32} />
               </div>
-              <h3 className="text-2xl font-black text-white">
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white">
                 Sessão Concluída!
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Foco ininterrupto finalizado com sucesso. O XP foi creditado na
                 sua conta.
               </p>
-              <div className="inline-flex items-center gap-2 rounded-2xl bg-amber-500/15 border border-amber-500/30 px-4 py-2 text-amber-300 font-mono font-bold text-sm">
-                <Zap size={16} className="fill-amber-400 text-amber-400" />+
+              <div className="inline-flex items-center gap-2 rounded-2xl bg-amber-100 border border-amber-300 dark:bg-amber-500/15 dark:border-amber-500/30 px-4 py-2 text-amber-900 dark:text-amber-300 font-mono font-bold text-sm">
+                <Zap size={16} className="fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" />+
                 {gainedXp} XP Adquirido
               </div>
               <button
@@ -296,14 +296,14 @@ export function ZenModeOverlay({
                     cx="50%"
                     cy="50%"
                     r="42%"
-                    className="stroke-slate-900 fill-none"
+                    className="stroke-slate-200 dark:stroke-slate-900 fill-none"
                     strokeWidth="8"
                   />
                   <circle
                     cx="50%"
                     cy="50%"
                     r="42%"
-                    className="stroke-violet-500 fill-none transition-all duration-1000 ease-linear shadow-[0_0_20px_rgba(168,85,247,0.8)]"
+                    className="stroke-violet-600 dark:stroke-violet-500 fill-none transition-all duration-1000 ease-linear shadow-[0_0_20px_rgba(168,85,247,0.5)]"
                     strokeWidth="8"
                     strokeDasharray="264%"
                     strokeDashoffset={`${264 - (264 * progressPercent) / 100}%`}
@@ -312,24 +312,24 @@ export function ZenModeOverlay({
                 </svg>
 
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="font-mono text-5xl sm:text-7xl font-black tracking-tight text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
+                  <span className="font-mono text-5xl sm:text-7xl font-black tracking-tight text-slate-900 dark:text-white drop-shadow-xs dark:drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
                     {String(minutes).padStart(2, "0")}:
                     {String(seconds).padStart(2, "0")}
                   </span>
-                  <span className="mt-2 text-xs font-mono uppercase tracking-widest text-slate-400">
+                  <span className="mt-2 text-xs font-mono uppercase tracking-widest font-semibold text-slate-500 dark:text-slate-400">
                     {isActive ? "Foco Profundo em Andamento" : "Pausado"}
                   </span>
                 </div>
               </div>
 
               {/* Tag de Rendimento */}
-              <div className="mt-6 flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 font-mono text-xs font-bold text-amber-300">
+              <div className="mt-6 flex items-center gap-2 rounded-full border border-amber-300/80 bg-amber-100/80 dark:border-amber-500/30 dark:bg-amber-500/10 px-4 py-1.5 font-mono text-xs font-bold text-amber-900 dark:text-amber-300 shadow-xs">
                 <Sparkles
                   size={14}
-                  className="text-amber-400 animate-spin-slow"
+                  className="text-amber-600 dark:text-amber-400 animate-spin-slow"
                 />
                 <span>+2 XP / min</span>
-                <span className="text-slate-500">•</span>
+                <span className="text-slate-400 dark:text-slate-500">•</span>
                 <span>Rendimento: +{realtimeXp} XP</span>
               </div>
 
@@ -353,7 +353,7 @@ export function ZenModeOverlay({
 
                 <button
                   onClick={resetTimer}
-                  className="cursor-pointer rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-slate-400 hover:text-white transition-all backdrop-blur-xl"
+                  className="cursor-pointer rounded-2xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-400 dark:hover:text-white p-4 transition-all backdrop-blur-xl shadow-xs"
                   title="Reiniciar Timer"
                 >
                   <RotateCcw size={18} />
@@ -363,7 +363,7 @@ export function ZenModeOverlay({
               {/* Dica de Teclado Discreta */}
               <p className="mt-4 text-[10px] font-mono text-slate-500">
                 Pressione{" "}
-                <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-400">
+                <kbd className="px-1.5 py-0.5 rounded bg-slate-200 border border-slate-300 text-slate-700 dark:bg-white/5 dark:border-white/10 dark:text-slate-400">
                   Espaço
                 </kbd>{" "}
                 para alternar

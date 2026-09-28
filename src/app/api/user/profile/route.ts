@@ -12,7 +12,7 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { targetExamDate } = body;
+    const { targetExamDate, careerFocus, targetRole } = body;
 
     // Converte a string YYYY-MM-DD para Date ou null
     let parsedDate: Date | null = null;
@@ -28,15 +28,20 @@ export async function PATCH(req: Request) {
       ? { id: session.user.id }
       : { email: session.user.email! };
 
+    const updateData: any = {};
+    if (targetExamDate !== undefined) updateData.targetExamDate = parsedDate;
+    if (careerFocus !== undefined) updateData.careerFocus = careerFocus;
+    if (targetRole !== undefined) updateData.targetRole = targetRole;
+
     const updatedUser = await prisma.user.update({
       where: whereCondition,
-      data: {
-        targetExamDate: parsedDate,
-      },
+      data: updateData,
       select: {
         id: true,
         email: true,
         targetExamDate: true,
+        careerFocus: true,
+        targetRole: true,
       },
     });
 

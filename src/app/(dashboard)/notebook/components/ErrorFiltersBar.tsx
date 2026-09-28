@@ -85,7 +85,7 @@ export function ErrorFiltersBar({
             <select
               value={filters.subjectId || "ALL"}
               onChange={(e) => onFilterChange({ subjectId: e.target.value })}
-              className="w-full px-3 py-2 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8"
+              className="w-full px-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8 min-h-[44px]"
             >
               <option value="ALL">Todas as Matérias</option>
               {subjects.map((sub) => (
@@ -105,7 +105,7 @@ export function ErrorFiltersBar({
             <select
               value={filters.errorReason || "ALL"}
               onChange={(e) => onFilterChange({ errorReason: e.target.value })}
-              className="w-full px-3 py-2 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8"
+              className="w-full px-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8 min-h-[44px]"
             >
               <option value="ALL">Todas as Causas-Raiz</option>
               {Object.entries(TAXONOMY_METADATA).map(([key, meta]) => (
@@ -129,7 +129,7 @@ export function ErrorFiltersBar({
                   status: e.target.value as "ALL" | "PENDING" | "MASTERED",
                 })
               }
-              className="w-full px-3 py-2 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8 font-medium"
+              className="w-full px-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8 font-medium min-h-[44px]"
             >
               <option value="ALL">Status: Todos</option>
               <option value="PENDING">⚠️ Pendentes</option>
@@ -150,7 +150,7 @@ export function ErrorFiltersBar({
                   period: e.target.value as "7d" | "30d" | "90d" | "all",
                 })
               }
-              className="w-full px-3 py-2 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8"
+              className="w-full px-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8 min-h-[44px]"
             >
               <option value="all">Todo o Período</option>
               <option value="7d">Últimos 7 dias</option>
@@ -167,7 +167,7 @@ export function ErrorFiltersBar({
           {hasActiveFilters && (
             <button
               onClick={onResetFilters}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-300 hover:text-rose-100 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-xl transition-all cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold text-rose-300 hover:text-rose-100 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-xl transition-all cursor-pointer min-h-[44px]"
             >
               <X size={13} />
               <span>Limpar</span>

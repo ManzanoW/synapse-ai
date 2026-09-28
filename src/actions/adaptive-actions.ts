@@ -9,6 +9,7 @@ import {
   SubjectPerformance,
 } from "@/types/adaptive";
 import { revalidateTag, revalidatePath } from "next/cache";
+import { buildWeeklySchedule } from "@/lib/study-cycle";
 
 export interface RebalanceComparisonItem {
   subjectId: string;
@@ -71,18 +72,37 @@ export async function rebalanceScheduleAction(
     if (params.performances && params.performances.length > 0) {
       adjustments = calculateAdaptiveRebalance(params);
 
+      const userRecord = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { weeklyGoalHours: true },
+      });
+      const totalWeeklyMinutes =
+        (params.weeklyGoalHours || userRecord?.weeklyGoalHours || 10) * 60;
+      const totalRawAdjusted = adjustments.reduce(
+        (acc, a) =>
+          acc + (a.adjustedMinutes || a.targetWeeklyMinutes || 1),
+        0,
+      );
+
       for (const adj of adjustments) {
         if (adj.subjectId) {
-          const targetMinutes =
+          const rawMinutes =
             adj.targetWeeklyMinutes ??
             adj.adjustedWeeklyMinutes ??
             adj.adjustedMinutes ??
             120;
+          const normalizedMinutes = Math.max(
+            15,
+            Math.round(
+              (totalWeeklyMinutes * rawMinutes) /
+                Math.max(1, totalRawAdjusted),
+            ),
+          );
 
           await prisma.subject.updateMany({
             where: { id: adj.subjectId, userId },
             data: {
-              priority: Number(targetMinutes),
+              priority: Number(normalizedMinutes),
             },
           });
         }
@@ -159,12 +179,18 @@ export async function autoRebalanceFromPerformanceAction(
 
     const totalWeeklyHours = user.weeklyGoalHours || 10;
     const totalWeeklyMinutes = totalWeeklyHours * 60;
-    const totalPriority = user.subjects.reduce(
-      (acc: number, s: { priority?: number | null }) => acc + (s.priority || 1),
+    const totalWeight = user.subjects.reduce(
+      (acc: number, s: { weight?: number | null }) => acc + (s.weight || 5),
       0,
     );
 
-    // 2. Monta o vetor de SubjectPerformance com base nos QuizAttempts
+    // Busca erros pendentes no Caderno de Erros para cruzar no diagnóstico adaptativo
+    const pendingErrors = await prisma.questionError.findMany({
+      where: { userId, status: "PENDING" },
+      select: { subjectId: true, subject: { select: { id: true, name: true } }, createdAt: true },
+    });
+
+    // 2. Monta o vetor de SubjectPerformance cruzando QuizAttempts, Erros reais e peso do edital
     const performances: SubjectPerformance[] = user.subjects.map((subject: any) => {
       let totalQuestions = 0;
       let totalCorrect = 0;
@@ -180,23 +206,42 @@ export async function autoRebalanceFromPerformanceAction(
         });
       });
 
-      const accuracyPercentage =
-        totalQuestions > 0
-          ? Math.round((totalCorrect / totalQuestions) * 100)
-          : 70;
+      // Cruza erros pendentes associados a esta matéria
+      const errorsForSub = pendingErrors.filter(
+        (qe) =>
+          qe.subjectId === subject.id ||
+          (qe.subject?.name && qe.subject.name.toLowerCase() === subject.name.toLowerCase())
+      );
+      const pendingErrorCount = errorsForSub.length;
 
-      const targetWeeklyMinutes = Math.round(
-        (totalWeeklyMinutes * (subject.priority || 1)) /
-          Math.max(1, totalPriority),
+      errorsForSub.forEach((qe) => {
+        if (qe.createdAt > latestQuizDate) {
+          latestQuizDate = qe.createdAt;
+        }
+      });
+
+      // Cada erro pendente entra no cômputo como questão errada
+      const adjustedTotal = totalQuestions + pendingErrorCount;
+      const adjustedCorrect = totalCorrect;
+
+      const accuracyPercentage =
+        adjustedTotal > 0
+          ? Math.round((adjustedCorrect / adjustedTotal) * 100)
+          : (pendingErrorCount >= 2 ? 45 : 70);
+
+      // Base padrão do edital (distribuição ponderada pelo peso da matéria)
+      const baseWeeklyMinutes = Math.round(
+        (totalWeeklyMinutes * (subject.weight || 5)) /
+          Math.max(1, totalWeight),
       );
 
       return {
         subjectId: subject.id,
         subjectName: subject.name,
         accuracyPercentage,
-        totalQuestionsSolved: totalQuestions,
+        totalQuestionsSolved: adjustedTotal,
         lastStudiedAt: latestQuizDate,
-        targetWeeklyMinutes,
+        targetWeeklyMinutes: baseWeeklyMinutes,
       };
     });
 
@@ -211,31 +256,42 @@ export async function autoRebalanceFromPerformanceAction(
 
     const adjustments = calculateAdaptiveRebalance(rebalanceParams);
 
-    // 4. Monta a lista comparativa Antes vs. Depois e grava os novos tempos calibrados no banco
+    // 4. Normaliza os novos minutos para que a soma bata EXATAMENTE com a meta semanal do usuário (ex: 600m = 10h)
+    const totalRawAdjusted = adjustments.reduce(
+      (acc, a) => acc + (a.adjustedMinutes || a.targetWeeklyMinutes || 1),
+      0,
+    );
+
     const comparison: RebalanceComparisonItem[] = [];
 
     for (const adj of adjustments) {
       if (adj.subjectId) {
-        const newMinutes = adj.adjustedMinutes;
+        const rawNewMinutes = adj.adjustedMinutes;
+        const normalizedNewMinutes = Math.max(
+          15,
+          Math.round(
+            (totalWeeklyMinutes * rawNewMinutes) / Math.max(1, totalRawAdjusted),
+          ),
+        );
         const originalPerf = performances.find(
           (p) => p.subjectId === adj.subjectId,
         );
-        const previousMinutes = originalPerf?.targetWeeklyMinutes ?? 120;
-        const diff = newMinutes - previousMinutes;
+        const baseMinutes = originalPerf?.targetWeeklyMinutes ?? 60;
+        const diff = normalizedNewMinutes - baseMinutes;
 
         comparison.push({
           subjectId: adj.subjectId,
           subjectName: adj.subjectName,
           accuracyPercentage: originalPerf?.accuracyPercentage ?? 70,
-          previousWeeklyMinutes: previousMinutes,
-          newWeeklyMinutes: newMinutes,
+          previousWeeklyMinutes: baseMinutes,
+          newWeeklyMinutes: normalizedNewMinutes,
           diffMinutes: diff,
         });
 
         await prisma.subject.updateMany({
           where: { id: adj.subjectId, userId },
           data: {
-            priority: Number(newMinutes),
+            priority: Number(normalizedNewMinutes),
           },
         });
       }
@@ -306,12 +362,13 @@ export interface RebalanceAlertStatus {
     name: string;
     accuracy: number;
     totalQuestions: number;
+    pendingErrors?: number;
   }[];
 }
 
 /**
  * Consulta se o usuário possui matérias com acurácia crítica (< 65%)
- * para sugerir rebalanceamento preventivo
+ * ou com acúmulo de erros pendentes no Caderno de Erros para sugerir rebalanceamento preventivo
  */
 export async function checkRebalanceNeedsAction(): Promise<{
   success: boolean;
@@ -337,7 +394,24 @@ export async function checkRebalanceNeedsAction(): Promise<{
       },
     });
 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { weeklyGoalHours: true },
+    });
+
+    // Busca erros pendentes no Caderno de Erros
+    const pendingErrors = await prisma.questionError.findMany({
+      where: { userId, status: "PENDING" },
+      select: { subjectId: true, subject: { select: { id: true, name: true } } },
+    });
+
+    const totalWeeklyHours = user?.weeklyGoalHours || 10;
+    const totalWeeklyMinutes = totalWeeklyHours * 60;
+    const totalWeight = subjects.reduce((acc, s) => acc + (s.weight || 5), 0);
+    const totalPriority = subjects.reduce((acc, s) => acc + (s.priority || 1), 0);
+
     const criticalList: RebalanceAlertStatus["criticalSubjects"] = [];
+    let unreinforcedCount = 0;
 
     for (const subject of subjects) {
       let total = 0;
@@ -350,15 +424,45 @@ export async function checkRebalanceNeedsAction(): Promise<{
         });
       });
 
-      if (total >= 5) {
-        const accuracy = Math.round((correct / total) * 100);
-        if (accuracy < 65) {
-          criticalList.push({
-            id: subject.id,
-            name: subject.name,
-            accuracy,
-            totalQuestions: total,
-          });
+      const errorsForSub = pendingErrors.filter(
+        (qe) =>
+          qe.subjectId === subject.id ||
+          (qe.subject?.name && qe.subject.name.toLowerCase() === subject.name.toLowerCase())
+      );
+      const pendingCount = errorsForSub.length;
+
+      const adjustedTotal = total + pendingCount;
+      const adjustedCorrect = correct;
+      const effectiveAccuracy =
+        adjustedTotal > 0
+          ? Math.round((adjustedCorrect / adjustedTotal) * 100)
+          : (pendingCount >= 2 ? 45 : 70);
+
+      // É crítica se tiver acurácia baixa em volume mínimo OU pelo menos 2 erros pendentes no caderno
+      const isCritical = (adjustedTotal >= 3 && effectiveAccuracy < 65) || pendingCount >= 2;
+
+      if (isCritical) {
+        criticalList.push({
+          id: subject.id,
+          name: subject.name,
+          accuracy: effectiveAccuracy,
+          totalQuestions: adjustedTotal,
+          pendingErrors: pendingCount,
+        });
+
+        const baseMinutes =
+          (totalWeeklyMinutes * (subject.weight || 5)) / Math.max(1, totalWeight);
+        const currentMinutes =
+          (totalWeeklyMinutes * (subject.priority || 1)) /
+          Math.max(1, totalPriority);
+        const avgRatio = totalPriority / Math.max(1, totalWeight);
+        const priorityRatio = (subject.priority || 1) / (subject.weight || 5);
+
+        const isReinforced =
+          currentMinutes >= baseMinutes * 1.03 || priorityRatio > avgRatio * 1.04;
+
+        if (!isReinforced) {
+          unreinforcedCount++;
         }
       }
     }
@@ -366,7 +470,8 @@ export async function checkRebalanceNeedsAction(): Promise<{
     return {
       success: true,
       data: {
-        needsRebalance: criticalList.length > 0,
+        // Aciona o alerta preventivo se houver disciplinas críticas que ainda não receberam reforço
+        needsRebalance: unreinforcedCount > 0,
         criticalSubjects: criticalList,
       },
     };
@@ -375,3 +480,325 @@ export async function checkRebalanceNeedsAction(): Promise<{
     return { success: false, error: "Falha ao verificar rebalanceamento." };
   }
 }
+
+export type EmergencyScenario =
+  | "MISSED_TODAY"
+  | "SURVIVAL_MICRO"
+  | "REDUCE_LOAD"
+  | "CORE_FOCUS";
+
+export interface EmergencyRescheduleInput {
+  scenario: EmergencyScenario;
+  availableMinutesToday?: number;
+}
+
+export interface EmergencyRescheduleResult {
+  success: boolean;
+  scenario?: EmergencyScenario;
+  message?: string;
+  affectedSubjects?: string[];
+  recommendation?: string;
+  error?: string;
+}
+
+/**
+ * Replanejamento Emergencial com Inteligência Artificial
+ * Salva a rotina de estudos do concurseiro redistribuindo a carga de forma inteligente
+ */
+export async function emergencyRescheduleAction(
+  input: EmergencyRescheduleInput
+): Promise<EmergencyRescheduleResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        weeklyGoalHours: true,
+        activeDaysPerWeek: true,
+        studyMode: true,
+      },
+    });
+
+    const activeDaysCount = Math.max(1, Math.min(7, user?.activeDaysPerWeek ?? 5));
+    const weeklyGoalHours = user?.weeklyGoalHours ?? 10;
+
+    const subjects = await prisma.subject.findMany({
+      where: { userId },
+      include: {
+        topics: {
+          select: {
+            id: true,
+            title: true,
+            firstStudy: true,
+            relevance: true,
+            performance: true,
+          },
+        },
+      },
+      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+    });
+
+    if (!subjects || subjects.length === 0) {
+      return {
+        success: false,
+        error: "Nenhuma disciplina cadastrada para replanejamento.",
+      };
+    }
+
+    // Mapeamento correto de dias:
+    // JavaScript getDay(): 0 = Domingo, 1 = Segunda, 2 = Terça, ..., 6 = Sábado
+    // Cronograma semanal (buildWeeklySchedule): 0 = Segunda, 1 = Terça, 2 = Quarta, 3 = Quinta, 4 = Sexta, 5 = Sábado, 6 = Domingo
+    const jsDay = new Date().getDay();
+    const scheduleTodayIndex = jsDay === 0 ? 6 : jsDay - 1;
+
+    // Obtém o cronograma atual real de todos os dias
+    const { scheduleByDay } = buildWeeklySchedule(
+      subjects,
+      weeklyGoalHours,
+      activeDaysCount,
+    );
+
+    // Identifica as matérias agendadas para o dia de hoje
+    const todayDaySchedule = scheduleByDay.find(
+      (d) => d.dayIndex === scheduleTodayIndex,
+    );
+    const todaySubjects = todayDaySchedule?.subjects || [];
+
+    // Dias ativos restantes na semana (ex: se hoje é Segunda (0) e activeDays=5, restantes = [1, 2, 3, 4])
+    const remainingDays = Array.from(
+      { length: activeDaysCount },
+      (_, i) => i,
+    ).filter((d) => d > scheduleTodayIndex);
+
+    // Se hoje for o último dia ativo da semana (ex: Sexta) ou fim de semana, distribui pelos dias ativos da semana
+    const fallbackDays =
+      remainingDays.length > 0
+        ? remainingDays
+        : Array.from({ length: activeDaysCount }, (_, i) => i);
+
+    let message = "";
+    let affectedSubjects: string[] = [];
+
+    // ================= CENÁRIO 1: PERDI O DIA DE HOJE =================
+    if (input.scenario === "MISSED_TODAY") {
+      const targets = todaySubjects.length > 0 ? todaySubjects : subjects.slice(0, 2);
+
+      for (let i = 0; i < targets.length; i++) {
+        const sub = targets[i];
+        const nextDay = fallbackDays[i % fallbackDays.length];
+        await prisma.subject.update({
+          where: { id: sub.id },
+          data: {
+            assignedDay: nextDay,
+            priority: Math.max(10, (sub.priority || 6.3) + 1.0),
+            updatedAt: new Date(),
+          },
+        });
+        affectedSubjects.push(sub.name);
+      }
+
+      message =
+        "Replanejamento concluído com sucesso! Os estudos de hoje foram redistribuídos suavemente para os próximos dias da semana, protegendo o seu edital sem sobrecarga no fim de semana.";
+    }
+
+    // ================= CENÁRIO 2: MICRO-REVISÃO DE SOBREVIVÊNCIA =================
+    else if (input.scenario === "SURVIVAL_MICRO") {
+      const minutes = input.availableMinutesToday || 30;
+      const targets = todaySubjects.length > 0 ? todaySubjects : subjects;
+
+      // Matéria mais importante fica hoje
+      const topSubject = targets[0];
+      const otherSubjects = targets.slice(1);
+
+      await prisma.subject.update({
+        where: { id: topSubject.id },
+        data: {
+          assignedDay: scheduleTodayIndex < activeDaysCount ? scheduleTodayIndex : 0,
+          priority: Math.max(10, (topSubject.priority || 6.3) + 2.0),
+          updatedAt: new Date(),
+        },
+      });
+      affectedSubjects.push(topSubject.name);
+
+      // As outras matérias vão para os próximos dias ativos
+      for (let i = 0; i < otherSubjects.length; i++) {
+        const sub = otherSubjects[i];
+        const targetDay = fallbackDays[i % fallbackDays.length];
+        await prisma.subject.update({
+          where: { id: sub.id },
+          data: {
+            assignedDay: targetDay,
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      message = `Modo Sobrevivência ativado! Plano condensado para ${minutes} minutos hoje focando exclusivamente em ${topSubject.name}. O restante foi remanejado sem perder a ofensiva!`;
+    }
+
+    // ================= CENÁRIO 3: SEMANA CAÓTICA (REDUÇÃO DE 30%) =================
+    else if (input.scenario === "REDUCE_LOAD") {
+      const currentHours = user?.weeklyGoalHours || 10;
+      const newHours = Math.max(3, Math.round(currentHours * 0.7));
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          weeklyGoalHours: newHours,
+        },
+      });
+
+      // Suaviza as prioridades de todas as matérias
+      for (const sub of subjects) {
+        await prisma.subject.update({
+          where: { id: sub.id },
+          data: {
+            priority: Math.max(5, Math.round((sub.priority || 6.3) * 0.8 * 10) / 10),
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      affectedSubjects = subjects.map((s) => s.name);
+      message = `Meta semanal reduzida temporariamente de ${currentHours}h para ${newHours}h (-30%). O foco desta semana é manter a constância e respirar sem culpa.`;
+    }
+
+    // ================= CENÁRIO 4: BLINDAGEM DE EDITAL (FOCO CORE) =================
+    else if (input.scenario === "CORE_FOCUS") {
+      const halfCount = Math.max(1, Math.ceil(subjects.length / 2));
+      const sortedByWeight = [...subjects].sort(
+        (a, b) => (b.weight || 5) - (a.weight || 5)
+      );
+      const topSubjects = sortedByWeight.slice(0, halfCount);
+      const secondarySubjects = sortedByWeight.slice(halfCount);
+
+      // Eleva matérias principais e distribui nos dias ativos
+      for (let i = 0; i < topSubjects.length; i++) {
+        const sub = topSubjects[i];
+        const day = i % activeDaysCount;
+        await prisma.subject.update({
+          where: { id: sub.id },
+          data: {
+            assignedDay: day,
+            priority: Math.round((sub.priority || 6.3) * 1.4 * 10) / 10,
+            updatedAt: new Date(),
+          },
+        });
+        affectedSubjects.push(sub.name);
+      }
+
+      // Reduz matérias secundárias
+      for (const sub of secondarySubjects) {
+        await prisma.subject.update({
+          where: { id: sub.id },
+          data: {
+            priority: Math.max(3, Math.round((sub.priority || 6.3) * 0.5 * 10) / 10),
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      message = `Blindagem ativada! Foco máximo direcionado para as matérias nucleares do seu edital: ${topSubjects
+        .map((s) => s.name)
+        .join(", ")}. Disciplinas secundárias foram colocadas em ritmo de manutenção leve.`;
+    }
+
+    // Invalidação de Cache
+    try {
+      (revalidateTag as (tag: string) => void)(`user-schedule-${userId}`);
+      revalidatePath("/week");
+      revalidatePath("/dashboard");
+      revalidatePath("/performance");
+    } catch {
+      // Ignora erro fora de contexto HTTP
+    }
+
+    return {
+      success: true,
+      scenario: input.scenario,
+      message,
+      affectedSubjects,
+    };
+  } catch (error) {
+    console.error("Erro em emergencyRescheduleAction:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Falha ao aplicar replanejamento emergencial.",
+    };
+  }
+}
+
+/**
+ * Restaura todas as prioridades das matérias para a carga horária base do edital
+ */
+export async function resetScheduleToDefaultAction(userIdParam?: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = userIdParam || session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { subjects: true },
+    });
+
+    if (!user || !user.subjects.length) {
+      return { success: false, error: "Nenhuma matéria cadastrada." };
+    }
+
+    const totalWeeklyHours = user.weeklyGoalHours || 10;
+    const totalWeeklyMinutes = totalWeeklyHours * 60;
+    const totalWeight = user.subjects.reduce(
+      (acc, s) => acc + (s.weight || 5),
+      0,
+    );
+
+    for (const sub of user.subjects) {
+      const baseMinutes = Math.round(
+        (totalWeeklyMinutes * (sub.weight || 5)) / Math.max(1, totalWeight),
+      );
+      await prisma.subject.updateMany({
+        where: { id: sub.id, userId },
+        data: {
+          priority: baseMinutes,
+        },
+      });
+    }
+
+    try {
+      (revalidateTag as (tag: string) => void)(`user-schedule-${userId}`);
+      revalidatePath("/week");
+      revalidatePath("/dashboard");
+      revalidatePath("/performance");
+    } catch {
+      // Ignora erro fora de contexto HTTP
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Erro em resetScheduleToDefaultAction:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Falha ao restaurar metas originais.",
+    };
+  }
+}
+

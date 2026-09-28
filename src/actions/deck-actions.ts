@@ -11,6 +11,7 @@ import { ErrorClassification } from "@/types/quiz";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
 import { Type } from "@google/genai";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 export interface GenerateTargetedDeckInput {
   topicId?: string;
@@ -28,6 +29,15 @@ export async function generateTargetedDeckAction(input: GenerateTargetedDeckInpu
 
     if (!userId) {
       return { success: false, error: "Usuário não autenticado." };
+    }
+
+    // 🛡️ Proteção de Cota Diária de IA para Flashcards
+    const quota = await checkAiQuota(userId, "FLASHCARD");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Limite diário de geração de flashcards com IA atingido.",
+      };
     }
 
     // 1. Identifica tópico e matéria associados
@@ -140,8 +150,9 @@ Retorne APENAS um JSON no seguinte formato:
       },
     });
 
-    // 5. Atualiza progresso da Missão Diária
+    // 5. Atualiza progresso da Missão Diária e consome cota
     await trackQuestProgressAction("AI_DECK_CREATED", 1);
+    await consumeAiQuota(userId, "FLASHCARD");
 
     // 6. Revalida caches
     try {

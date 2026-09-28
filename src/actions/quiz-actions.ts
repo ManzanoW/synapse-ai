@@ -2,10 +2,15 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { invalidateUserCacheAction } from "@/actions/gamification-actions";
+import {
+  invalidateUserCacheAction,
+  recordStudyActivityAction,
+} from "@/actions/gamification-actions";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
 import { revalidatePath } from "next/cache";
-import { SubmitQuizAttemptInput, SubjectDomainMetric } from "@/types/quiz";
+import { SubmitQuizAttemptInput, SubjectDomainMetric, MentorGuidance } from "@/types/quiz";
+import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { normalizeTaxonomy } from "@/lib/error-taxonomy";
 
 export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
   try {
@@ -63,29 +68,22 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
 
     const earnedXp = baseEarnedXp + accuracyBonusXp + timedBonusXp;
 
-    // 1. Grava a tentativa no banco e atualiza XP atômico
-    const [attempt] = await prisma.$transaction([
-      prisma.quizAttempt.create({
-        data: {
-          userId,
-          topicId: targetTopicId,
-          totalCount: input.totalQuestions,
-          correctCount: input.correctAnswers,
-        },
-      }),
-      prisma.userStats.upsert({
-        where: { userId },
-        create: {
-          userId,
-          totalXp: earnedXp,
-          lastStudyDate: new Date(),
-        },
-        update: {
-          totalXp: { increment: earnedXp },
-          lastStudyDate: new Date(),
-        },
-      }),
-    ]);
+    // 1. Grava a tentativa no banco
+    const attempt = await prisma.quizAttempt.create({
+      data: {
+        userId,
+        topicId: targetTopicId,
+        totalCount: input.totalQuestions,
+        correctCount: input.correctAnswers,
+      },
+    });
+
+    // 1.1 Atualiza XP, streak e proteção anti-frustração via motor centralizado
+    const activityResult = await recordStudyActivityAction(
+      userId,
+      earnedXp,
+      "QUIZ",
+    );
 
     // 2. Atualiza a performance e última data no tópico
     await prisma.topic.update({
@@ -111,29 +109,52 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
           : "UNCLASSIFIED";
 
       for (const item of incorrectAnswers) {
-        const errorReasonToSave =
+        const rawReason =
           item.errorReason && item.errorReason !== "UNCLASSIFIED"
             ? String(item.errorReason)
             : fallbackErrorReason;
+        const normalizedReason = normalizeTaxonomy(rawReason);
 
-        await prisma.questionError
-          .create({
-            data: {
+        try {
+          const existing = await prisma.questionError.findFirst({
+            where: {
               userId,
-              subjectId: item.subjectId || input.subjectId || null,
-              topicId: item.topicId || targetTopicId || null,
               questionText: item.questionText!,
-              options: (item.options as any) || [],
-              userAnswer: String(item.selectedOption || "Não informada"),
-              correctAnswer: String(item.correctAnswer || "A"),
-              explanation: item.explanation || null,
-              errorReason: errorReasonToSave,
-              status: "PENDING",
             },
-          })
-          .catch((e: unknown) =>
-            console.warn("Erro ao registrar questionError em submitQuizAttemptAction:", e)
-          );
+          });
+
+          if (existing) {
+            await prisma.questionError.update({
+              where: { id: existing.id },
+              data: {
+                userAnswer: String(item.selectedOption || "Não informada"),
+                correctAnswer: String(item.correctAnswer || "A"),
+                explanation: item.explanation || existing.explanation,
+                errorReason: normalizedReason !== "UNCLASSIFIED" ? normalizedReason : existing.errorReason,
+                status: "PENDING",
+                masteredAt: null,
+                updatedAt: new Date(),
+              },
+            });
+          } else {
+            await prisma.questionError.create({
+              data: {
+                userId,
+                subjectId: item.subjectId || input.subjectId || null,
+                topicId: item.topicId || targetTopicId || null,
+                questionText: item.questionText!,
+                options: (item.options as any) || [],
+                userAnswer: String(item.selectedOption || "Não informada"),
+                correctAnswer: String(item.correctAnswer || "A"),
+                explanation: item.explanation || null,
+                errorReason: normalizedReason,
+                status: "PENDING",
+              },
+            });
+          }
+        } catch (e: unknown) {
+          console.warn("Erro ao registrar questionError em submitQuizAttemptAction:", e);
+        }
       }
     }
 
@@ -157,6 +178,10 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
         accuracyBonusXp,
         timedBonusXp,
         completedWithinTime,
+        totalXp: activityResult.data?.totalXp,
+        streakDays: activityResult.data?.streakDays,
+        streakProtected: activityResult.data?.streakProtected,
+        levelInfo: activityResult.data?.levelInfo,
       },
     };
   } catch (err) {
@@ -207,6 +232,12 @@ export async function getSubjectDomainStatsAction(userIdParam?: string) {
           ? Math.round((totalCorrect / totalQuestions) * 100)
           : 0;
 
+      const rawWeight = Number(
+        subject.weight ??
+          (subject.priority && subject.priority <= 10 ? subject.priority : 5.0),
+      );
+      const safeWeight = Math.max(1, Math.min(10, isNaN(rawWeight) ? 5.0 : rawWeight));
+
       return {
         subjectId: subject.id,
         subjectName: subject.name,
@@ -214,7 +245,7 @@ export async function getSubjectDomainStatsAction(userIdParam?: string) {
         totalAnswered: totalQuestions,
         correctCount: totalCorrect,
         domainPercentage,
-        weight: Number(subject.priority || 1),
+        weight: safeWeight,
       };
     });
 
@@ -344,3 +375,212 @@ export async function deleteSavedQuizAction(quizId: string) {
     };
   }
 }
+
+export interface DeepenExplanationInput {
+  enunciado: string;
+  alternativas?: { id: string; texto: string }[];
+  gabaritoCorreto: string;
+  selectedAnswer?: string;
+  justificativaOriginal?: string;
+  banca?: string;
+  subject?: string;
+}
+
+export interface DeepenExplanationResult {
+  overview: string;
+  alternativesAnalysis: {
+    letter: string;
+    isCorrect: boolean;
+    explanation: string;
+  }[];
+  legalBasis?: string;
+  mnemonicTip?: string;
+}
+
+/**
+ * Aprofunda a explicação pedagógica e jurídica de uma questão via IA sob demanda
+ */
+export async function deepenExplanationAction(input: DeepenExplanationInput) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const {
+      enunciado,
+      alternativas = [],
+      gabaritoCorreto,
+      selectedAnswer,
+      justificativaOriginal = "",
+      banca = "Geral",
+      subject = "Conhecimentos Gerais",
+    } = input;
+
+    const altsFormatted = alternativas.length > 0
+      ? alternativas.map((a) => `${a.id}) ${a.texto}`).join("\n")
+      : "Opções: Certo / Errado";
+
+    const prompt = `Você é o tutor cognitivo de elite do Synapse AI para concursos públicos e exames de alto rendimento.
+O candidato solicitou um Aprofundamento Explicativo Detalhado para a seguinte questão:
+
+[CONTEXTO]
+Banca: ${banca}
+Disciplina: ${subject}
+Resposta do candidato: ${selectedAnswer || "Não respondeu ainda"}
+Gabarito Oficial: ${gabaritoCorreto}
+
+[ENUNCIADO]
+${enunciado}
+
+[ALTERNATIVAS]
+${altsFormatted}
+
+[JUSTIFICATIVA BASE DISPONÍVEL]
+${justificativaOriginal}
+
+[SUA TAREFA]
+Retorne um JSON estrito contendo uma dissecação completa e pedagógica da questão, no seguinte formato exato:
+{
+  "overview": "Visão geral estratégica de alto nível sobre o tema cobrado, o raciocínio central que o examinador da banca exigiu e o cerne da controvérsia.",
+  "alternativesAnalysis": [
+    {
+      "letter": "Identificador da alternativa (ex: A, B, C, Certo ou Errado)",
+      "isCorrect": true ou false,
+      "explanation": "Por que esta alternativa está correta ou incorreta, detalhando a pegadinha ou a regra violada."
+    }
+  ],
+  "legalBasis": "Fundamento legal, constitucional, doutrinário, jurisprudencial ou regra normativa exata que fundamenta o tema.",
+  "mnemonicTip": "Mnemônico prático, regra de ouro ou gatilho mental para o candidato memorizar e nunca mais cair nessa pegadinha."
+}
+Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
+
+    const aiRes = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+      },
+    });
+
+    let parsed: DeepenExplanationResult;
+    try {
+      const cleaned = aiRes.text.replace(/```json/g, "").replace(/```/g, "").trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = {
+        overview: aiRes.text,
+        alternativesAnalysis: [],
+        legalBasis: "Fundamentação extraída via análise neural.",
+        mnemonicTip: "Revise com atenção as palavras restritivas do comando da questão.",
+      };
+    }
+
+    return {
+      success: true,
+      data: parsed,
+    };
+  } catch (err) {
+    console.error("Erro em deepenExplanationAction:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao aprofundar explicação com IA.",
+    };
+  }
+}
+
+export interface GetMentorGuidanceInput {
+  enunciado: string;
+  alternativas?: Array<{ id: string; texto: string }>;
+  gabaritoCorreto?: string;
+  justificativa?: string;
+  banca?: string;
+  subject?: string;
+}
+
+export async function getQuestionMentorGuidanceAction(input: GetMentorGuidanceInput): Promise<{
+  success: boolean;
+  data?: MentorGuidance;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const {
+      enunciado,
+      alternativas = [],
+      gabaritoCorreto = "",
+      justificativa = "",
+      banca = "Geral",
+      subject = "Conhecimentos Gerais",
+    } = input;
+
+    const altsFormatted = alternativas.length > 0
+      ? alternativas.map((a) => `${a.id}) ${a.texto}`).join("\n")
+      : "Formato: Certo / Errado";
+
+    const prompt = `Você é o Copilot Mentor IA do Synapse AI, um tutor socrático de elite para estudantes e concurseiros de alta performance.
+Analise a seguinte questão de prova e produza orientações de raciocínio pedagógico:
+
+[CONTEXTO]
+Banca: ${banca}
+Disciplina: ${subject}
+Gabarito Oficial: ${gabaritoCorreto || "Não revelado"}
+
+[ENUNCIADO]
+${enunciado}
+
+[ALTERNATIVAS]
+${altsFormatted}
+
+[JUSTIFICATIVA BASE]
+${justificativa || "Sem justificativa prévia"}
+
+[SUA TAREFA]
+Retorne um JSON estrito contendo os 4 pilares do Mentor IA:
+{
+  "socraticHint": "Dica socrática cirúrgica (1 a 2 frases) orientando o candidato a pensar e raciocinar por conta própria SEM dar o gabarito ou a letra da resposta de bandeja. Aponte para onde olhar no enunciado ou qual princípio jurídico/lógico aplicar.",
+  "simplifiedLaw": "Tradução do conceito ou texto de lei/norma jurídica em linguagem ultra simples e acessível, com uma analogia visual do cotidiano prático que qualquer pessoa entende.",
+  "mnemonic": "Um mnemônico memorável, acrônimo, rima ou trocadilho inteligente para fixar essa matéria ou pegadinha na memória de longo prazo.",
+  "trapWarning": "Alerta da pegadinha clássica da banca ${banca}: o que a banca costuma inverter, omitir ou confundir nesta matéria para derrubar o estudante."
+}
+Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
+
+    const aiRes = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.4,
+      },
+    });
+
+    let parsed: MentorGuidance;
+    try {
+      const cleaned = aiRes.text.replace(/```json/g, "").replace(/```/g, "").trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = {
+        socraticHint: "Analise o comando central da questão e identifique quais elementos qualificam ou restringem a regra geral.",
+        simplifiedLaw: "Pense nesta regra como uma chave de segurança: quando a condição se cumpre, o procedimento é obrigatório; se houver exceção, ela deve estar expressa.",
+        mnemonic: "Lembre-se da regra de ouro: quem qualifica o ato determina a competência!",
+        trapWarning: `A banca ${banca} frequentemente substitui termos como 'sempre' por 'salvo exceção legal' para induzir o candidato desatento ao erro.`,
+      };
+    }
+
+    return {
+      success: true,
+      data: parsed,
+    };
+  } catch (err) {
+    console.error("Erro em getQuestionMentorGuidanceAction:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao consultar o Copilot Mentor IA.",
+    };
+  }
+}
+
+

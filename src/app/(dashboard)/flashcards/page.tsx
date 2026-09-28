@@ -16,7 +16,13 @@ import {
   TrendingUp,
   Check,
   Lock,
+  Brain,
+  AlertCircle,
 } from "lucide-react";
+import { getFlashcardsAnalyticsAction } from "@/actions/flashcard-actions";
+import { FlashcardsHeroActions } from "@/components/flashcards/FlashcardsHeroActions";
+import { FlashcardsSpotlight } from "@/components/flashcards/FlashcardsSpotlight";
+import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
 
 export default async function FlashcardsPage() {
   const session = await auth();
@@ -27,83 +33,85 @@ export default async function FlashcardsPage() {
 
   const userId = session.user.id;
 
-  const totalSubjects = await prisma.subject.count({
-    where: { userId },
-  });
-
-  const totalDecks = await prisma.deck.count({
-    where: { userId },
-  });
-
-  const totalCards = await prisma.flashcard.count({
-    where: {
-      deck: { userId },
-    },
-  });
-
-  const dueCardsCount = await prisma.flashcard.count({
-    where: {
-      deck: { userId },
-      OR: [
-        { nextReviewDate: { lte: new Date() } },
-        {
-          topic: {
-            nextRev: { lte: new Date() },
-          },
+  const [totalSubjects, totalDecks, recentDecks, analyticsRes, allUserDecks, audioCards] =
+    await Promise.all([
+      prisma.subject.count({ where: { userId } }),
+      prisma.deck.count({ where: { userId } }),
+      prisma.deck.findMany({
+        where: { userId },
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        include: {
+          subject: true,
+          _count: { select: { flashcards: true } },
         },
-      ],
-    },
-  });
+      }),
+      getFlashcardsAnalyticsAction(),
+      prisma.deck.findMany({
+        where: { userId },
+        select: { id: true, title: true },
+        orderBy: { title: "asc" },
+      }),
+      prisma.flashcard.findMany({
+        where: { deck: { userId } },
+        take: 30,
+        orderBy: { nextReviewDate: "asc" },
+        select: { id: true, question: true, answer: true, details: true },
+      }),
+    ]);
 
-  const recentDecks = await prisma.deck.findMany({
-    where: { userId },
-    take: 5,
-    orderBy: { createdAt: "desc" },
-    include: {
-      subject: true,
-      _count: { select: { flashcards: true } },
-    },
-  });
+  const analytics = analyticsRes.success && analyticsRes.data
+    ? analyticsRes.data
+    : {
+        totalCards: 0,
+        dueTodayCount: 0,
+        averageRetention: 100,
+        streakDays: 0,
+        maturity: {
+          newCount: 0,
+          learningCount: 0,
+          matureCount: 0,
+          leechCount: 0,
+        },
+      };
 
-  const estimatedRetention = totalCards > 0 ? "88.5%" : "100%";
-  const streakDays: number = 0;
+  const totalCards = analytics.totalCards;
+  const dueCardsCount = analytics.dueTodayCount;
+  const estimatedRetention = `${analytics.averageRetention}%`;
+  const streakDays = analytics.streakDays;
 
   return (
     <div className="p-3 sm:p-6 md:p-8 max-w-7xl mx-auto text-slate-100 space-y-6 sm:space-y-8 selection:bg-indigo-500/30 font-sans pb-16">
       {totalSubjects === 0 ? (
         <div className="min-h-[65vh] flex items-center justify-center py-4">
-          <div className="relative overflow-hidden max-w-xl w-full bg-gradient-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-6 sm:p-10 text-center shadow-2xl space-y-5">
-            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10 relative z-10">
-              <BookOpen size={26} />
-            </div>
-            <div className="space-y-2 relative z-10">
+          <div className="relative overflow-hidden max-w-3xl w-full bg-gradient-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="text-center space-y-3 relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10">
+                <BookOpen size={26} />
+              </div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
-                <Lock size={12} /> Etapa Obrigatória
+                <Lock size={12} /> Primeiro Passo para Flashcards
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Configure seu Edital Primeiro
+                Configure seu Edital ou Escolha um Modelo Pronto
               </h2>
-              <p className="text-slate-300 text-xs leading-relaxed max-w-sm mx-auto">
-                Para a inteligência artificial sincronizar tópicos e gerar
-                baralhos de repetição espaçada, é necessário mapear o seu edital
-                primeiro.
+              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto">
+                Para a inteligência artificial gerar baralhos de repetição espaçada adaptados ao seu concurso, você precisa de matérias cadastradas. Ative um modelo pronto abaixo ou importe seu próprio edital.
               </p>
             </div>
-            <div className="pt-2 relative z-10">
-              <Link
-                href="/edital"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs px-6 py-3.5 rounded-xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 cursor-pointer w-full sm:w-auto justify-center"
-              >
-                <BookOpen size={15} />
-                <span>Cadastrar Edital Agora</span>
-                <ArrowRight size={15} />
-              </Link>
+
+            <div className="relative z-10 pt-2">
+              <StarterEditalSelector />
             </div>
           </div>
         </div>
       ) : (
         <>
+          {/* SPOTLIGHT DICA DE PRIMEIRO ACESSO */}
+          <FlashcardsSpotlight />
+
           {/* HERO BANNER */}
           <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-indigo-950/90 via-slate-900/90 to-slate-950 border border-indigo-500/30 p-5 sm:p-8 shadow-2xl backdrop-blur-2xl">
             <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -154,40 +162,13 @@ export default async function FlashcardsPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full sm:w-auto">
-                {totalCards > 0 ? (
-                  <Link
-                    href="/flashcards/study/all"
-                    className="group relative inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs sm:text-sm font-bold px-6 py-3.5 rounded-xl sm:rounded-2xl transition-all duration-300 shadow-lg shadow-indigo-600/30 active:scale-95 border border-indigo-400/30 cursor-pointer w-full sm:w-auto"
-                  >
-                    <Zap
-                      size={16}
-                      className="fill-white group-hover:scale-110 transition-transform"
-                    />
-                    <span>Iniciar Revisão Geral</span>
-                    <ArrowRight
-                      size={15}
-                      className="group-hover:translate-x-1 transition-transform"
-                    />
-                  </Link>
-                ) : (
-                  <Link
-                    href="/flashcards/decks?openModal=true"
-                    className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold px-6 py-3.5 rounded-xl sm:rounded-2xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95 cursor-pointer w-full sm:w-auto"
-                  >
-                    <Plus size={18} />
-                    <span>Criar Primeiro Baralho</span>
-                  </Link>
-                )}
-
-                <Link
-                  href="/flashcards/decks"
-                  className="inline-flex items-center justify-center gap-2 bg-slate-900/80 hover:bg-slate-800/80 text-slate-300 text-xs font-semibold px-5 py-3 rounded-xl border border-slate-800/80 transition-colors w-full sm:w-auto"
-                >
-                  <Layers size={15} />
-                  <span>Gerenciar Coleções ({totalDecks})</span>
-                </Link>
-              </div>
+              <FlashcardsHeroActions
+                totalCards={totalCards}
+                totalDecks={totalDecks}
+                dueCardsCount={dueCardsCount}
+                decks={allUserDecks}
+                audioCards={audioCards}
+              />
             </div>
           </div>
 
@@ -239,11 +220,11 @@ export default async function FlashcardsPage() {
             <div className="p-5 sm:p-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Target size={16} className="text-emerald-400" />
-                  Taxa de Retenção
+                  <Brain size={16} className="text-emerald-400" />
+                  Retenção FSRS
                 </span>
-                <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                  <TrendingUp size={12} /> SM-2
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">
+                  Ebbinghaus
                 </span>
               </div>
 
@@ -252,14 +233,14 @@ export default async function FlashcardsPage() {
                   {estimatedRetention}
                 </p>
                 <span className="text-[11px] text-slate-400">
-                  Domínio da memória
+                  domínio médio
                 </span>
               </div>
 
               <p className="text-xs text-slate-500 leading-normal">
-                Você possui{" "}
-                <strong className="text-slate-300">{totalCards} cards</strong>{" "}
-                cadastrados.
+                Baseado em{" "}
+                <strong className="text-slate-300">{totalCards} flashcards</strong>{" "}
+                e na curva de decaimento de memória.
               </p>
             </div>
 
@@ -289,6 +270,89 @@ export default async function FlashcardsPage() {
               </div>
             </div>
           </div>
+
+          {/* PAINEL FSRS: DISTRIBUIÇÃO DE MATURIDADE DA MEMÓRIA */}
+          {totalCards > 0 && (
+            <div className="p-5 sm:p-6 bg-slate-900/50 border border-slate-800/80 rounded-2xl backdrop-blur-xl shadow-lg space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/60 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <Brain size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      Pipeline de Retenção FSRS
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono font-bold uppercase">
+                        NeuroMemory
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Classificação dos seus flashcards pelo nível de consolidação cerebral
+                    </p>
+                  </div>
+                </div>
+
+                <span className="text-xs font-mono text-slate-400">
+                  {totalCards} cards auditados
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* Novos */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                  <span className="text-[11px] font-bold text-violet-400 uppercase tracking-wider block">
+                    🟣 Novos
+                  </span>
+                  <p className="text-xl font-black font-mono text-white">
+                    {analytics.maturity.newCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Aguardando primeira fixação
+                  </p>
+                </div>
+
+                {/* Em Fixação */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
+                    🟡 Em Fixação
+                  </span>
+                  <p className="text-xl font-black font-mono text-white">
+                    {analytics.maturity.learningCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Estabilidade &lt; 21 dias
+                  </p>
+                </div>
+
+                {/* Maduros / Longo Prazo */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
+                    🟢 Longo Prazo
+                  </span>
+                  <p className="text-xl font-black font-mono text-white">
+                    {analytics.maturity.matureCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Estabilidade &ge; 21 dias
+                  </p>
+                </div>
+
+                {/* Pontos Cegos / Leeches */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                  <span className="text-[11px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1">
+                    <AlertCircle size={12} />
+                    Pontos Cegos
+                  </span>
+                  <p className="text-xl font-black font-mono text-white">
+                    {analytics.maturity.leechCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Falhas repetidas (&ge; 3 erros)
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* SESSÃO: BARALHOS PRIORITÁRIOS */}
           <div className="space-y-4 pt-2">

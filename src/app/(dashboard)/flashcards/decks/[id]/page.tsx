@@ -15,9 +15,11 @@ import {
   Sparkles,
   Clock,
   Repeat,
+  Download,
 } from "lucide-react";
 import { Flashcard, Deck } from "@/types";
 import FlashcardModal from "@/components/flashcards/FlashcardModal";
+import { AnkiExportModal } from "@/components/flashcards/AnkiExportModal";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -32,6 +34,7 @@ export default function DeckDetailPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAnkiModalOpen, setIsAnkiModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -199,11 +202,20 @@ export default function DeckDetailPage({ params }: PageProps) {
 
           <div className="flex items-center gap-2.5 w-full lg:w-auto relative z-10 pt-2 lg:pt-0">
             <button
+              onClick={() => setIsAnkiModalOpen(true)}
+              className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-blue-950/50 hover:bg-blue-900/60 text-blue-200 font-semibold text-xs px-4 py-3 rounded-xl border border-blue-500/30 transition-all active:scale-95 cursor-pointer shadow-sm"
+              title="Exportar baralho para o Anki (.txt)"
+            >
+              <Download size={15} className="text-blue-400" />
+              <span>Exportar Anki</span>
+            </button>
+
+            <button
               onClick={() => {
                 setEditingCard(null);
                 setIsModalOpen(true);
               }}
-              className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-100 font-semibold text-xs px-4 py-3 rounded-xl border border-slate-700/80 transition-all active:scale-95"
+              className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-100 font-semibold text-xs px-4 py-3 rounded-xl border border-slate-700/80 transition-all active:scale-95 cursor-pointer"
             >
               <Plus size={16} className="text-indigo-400" />
               <span>Novo Card</span>
@@ -211,7 +223,7 @@ export default function DeckDetailPage({ params }: PageProps) {
 
             <Link
               href={`/flashcards/study/${deck.id}`}
-              className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-xs px-5 py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/25 border border-indigo-400/20 active:scale-95"
+              className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-xs px-5 py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/25 border border-indigo-400/20 active:scale-95 cursor-pointer"
             >
               <Play size={15} className="fill-white" />
               <span>Estudar Agora</span>
@@ -372,6 +384,15 @@ export default function DeckDetailPage({ params }: PageProps) {
             setEditingCard(null);
             fetchDeckData();
           }}
+        />
+      )}
+
+      {isAnkiModalOpen && deck && (
+        <AnkiExportModal
+          isOpen={isAnkiModalOpen}
+          onClose={() => setIsAnkiModalOpen(false)}
+          deckId={deck.id}
+          deckTitle={deck.title}
         />
       )}
     </div>

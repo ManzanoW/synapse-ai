@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   AlertCircle,
   CheckCircle2,
@@ -13,8 +14,11 @@ import {
   Layers,
   Loader2,
   Zap,
+  FileStack,
+  ArrowRight,
 } from "lucide-react";
 import { ErrorNotebookMetrics, ErrorTaxonomyMetric } from "@/types/quiz";
+import { SpotlightTriggerButton } from "@/components/onboarding/PageSpotlightBanner";
 
 interface ErrorMetricsHeaderProps {
   metrics: ErrorNotebookMetrics;
@@ -23,6 +27,10 @@ interface ErrorMetricsHeaderProps {
   onBatchClassify?: () => Promise<void> | void;
   onAutoClassify?: () => Promise<void> | void;
   isClassifying?: boolean;
+  onOpenRemediationModal?: () => void;
+  onToggleSpotlight?: () => void;
+  onBatchCreateFlashcards?: () => Promise<void> | void;
+  isCreatingBatchFlashcards?: boolean;
 }
 
 const TAXONOMY_ICONS: Record<string, React.ElementType> = {
@@ -40,6 +48,10 @@ export function ErrorMetricsHeader({
   onBatchClassify,
   onAutoClassify,
   isClassifying = false,
+  onOpenRemediationModal,
+  onToggleSpotlight,
+  onBatchCreateFlashcards,
+  isCreatingBatchFlashcards = false,
 }: ErrorMetricsHeaderProps) {
   const classifyHandler = onBatchClassify || onAutoClassify;
   const { totalErrors, pendingErrors, masteredErrors, masteryRate, taxonomyDistribution } =
@@ -57,7 +69,7 @@ export function ErrorMetricsHeader({
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs font-medium mb-2 backdrop-blur-md">
             <Sparkles size={14} className="text-violet-400 animate-pulse" />
-            <span>Diagnóstico Taxonômico & Aprendizado Ativo</span>
+            <span>Aprenda com seus Erros & Fixe o Conteúdo</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
             <span className="p-2 rounded-xl bg-gradient-to-br from-violet-600/30 to-rose-600/30 border border-violet-500/30 text-violet-300 shadow-lg shadow-violet-500/10">
@@ -66,9 +78,58 @@ export function ErrorMetricsHeader({
             Caderno de Erros Inteligente
           </h1>
           <p className="text-slate-400 text-sm md:text-base mt-1 max-w-2xl">
-            Converta falhas em aprovação: diagnostique a causa-raiz de cada erro em
-            simulado, gere desarmamentos conceituais e resolva questões de fixação sob demanda via IA.
+            Converta falhas em aprovação: entenda por que errou cada questão (falta de atenção, pegadinha ou matéria nova) e faça exercícios com IA para nunca mais errar na prova.
           </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full sm:w-auto shrink-0">
+          {onToggleSpotlight && (
+            <SpotlightTriggerButton
+              accentColor="emerald"
+              onClick={onToggleSpotlight}
+              label="Como Funciona?"
+            />
+          )}
+
+          {onBatchCreateFlashcards && pendingErrors > 0 && (
+            <button
+              type="button"
+              onClick={onBatchCreateFlashcards}
+              disabled={isCreatingBatchFlashcards}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 text-xs md:text-sm font-bold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[44px]"
+              title="Gera um Deck FSRS com todos os erros pendentes para revisão ativa diária"
+            >
+              {isCreatingBatchFlashcards ? (
+                <Loader2 size={16} className="animate-spin text-indigo-400" />
+              ) : (
+                <Layers size={16} className="text-indigo-400" />
+              )}
+              <span>Transformar em Deck FSRS</span>
+            </button>
+          )}
+
+          {onOpenRemediationModal && pendingErrors > 0 && (
+            <button
+              type="button"
+              onClick={onOpenRemediationModal}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-violet-600 to-rose-600 hover:from-amber-400 hover:via-violet-500 hover:to-rose-500 text-white text-xs md:text-sm font-extrabold shadow-lg shadow-violet-600/30 border border-amber-400/40 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer group min-h-[44px]"
+            >
+              <Zap size={16} className="text-amber-300 fill-amber-300 animate-pulse group-hover:scale-110 transition-transform" />
+              <span>Treinar Questões que Errei</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-black/30 text-amber-200 border border-white/20">
+                {pendingErrors} a superar
+              </span>
+            </button>
+          )}
+
+          <Link
+            href="/questions"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-white text-xs md:text-sm font-semibold shadow-md border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] min-h-[44px]"
+          >
+            <FileStack size={16} />
+            <span>Treinar em Simulado</span>
+            <ArrowRight size={14} className="opacity-70" />
+          </Link>
         </div>
       </div>
 
@@ -101,6 +162,16 @@ export function ErrorMetricsHeader({
               ? "Parabéns! Nenhum erro pendente no momento."
               : "Requerem análise de causa-raiz e fixação ativa."}
           </p>
+          {pendingErrors > 0 && onOpenRemediationModal && (
+            <button
+              type="button"
+              onClick={onOpenRemediationModal}
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer group"
+            >
+              <Zap size={13} className="fill-rose-400 group-hover:scale-110 transition-transform" />
+              <span className="underline underline-offset-2">Superar com simulado de remediação ➔</span>
+            </button>
+          )}
         </motion.div>
 
         {/* Card 2: Taxa de Superação */}

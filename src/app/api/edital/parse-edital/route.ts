@@ -1,19 +1,8 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI, Type } from "@google/genai";
-import { PRESET_HEX_COLORS } from "@/constants/subjects"; // 1. Import da paleta de cores
-
-let aiClient: GoogleGenAI | null = null;
-
-function getAIClient(): GoogleGenAI {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY não configurada.");
-    }
-    aiClient = new GoogleGenAI({ apiKey });
-  }
-  return aiClient;
-}
+import { auth } from "@/auth";
+import { Type } from "@google/genai";
+import { PRESET_HEX_COLORS } from "@/constants/subjects";
+import { generateContentWithFallback } from "@/lib/gemini-fallback";
 
 interface AIResponse {
   text: string | null;
@@ -32,68 +21,51 @@ interface RawMateria {
 
 async function generateContentWithRetry(
   prompt: string,
-  retries = 3,
 ): Promise<AIResponse> {
-  const ai = getAIClient();
-  for (let i = 0; i < retries; i++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000);
-
-      const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          // 🟢 SCHEMA RÍGIDO: Força o Gemini a preencher a cor obrigatoriamente
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              materias: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    nome: { type: Type.STRING },
-                    color: {
-                      type: Type.STRING,
-                      description:
-                        "Hex da cor base do domínio: #3B82F6 (Dev/Arch), #10B981 (Test/QA), #8B5CF6 (Methodologies), #F59E0B (Frontend/UX), #EC4899 (Security)",
-                    },
-                    topicos: {
-                      type: Type.ARRAY,
-                      items: { type: Type.STRING },
-                    },
-                  },
-                  required: ["nome", "color", "topicos"],
+  const result = await generateContentWithFallback({
+    prompt,
+    config: {
+      responseMimeType: "application/json",
+      // 🟢 SCHEMA RÍGIDO: Força o Gemini a preencher a cor obrigatoriamente
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          materias: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                nome: { type: Type.STRING },
+                color: {
+                  type: Type.STRING,
+                  description:
+                    "Hex da cor base do domínio: #3B82F6 (Dev/Arch), #10B981 (Test/QA), #8B5CF6 (Methodologies), #F59E0B (Frontend/UX), #EC4899 (Security)",
+                },
+                topicos: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
                 },
               },
+              required: ["nome", "color", "topicos"],
             },
-            required: ["materias"],
           },
         },
-      });
+        required: ["materias"],
+      },
+    },
+    timeoutMs: 45000,
+  });
 
-      clearTimeout(timeoutId);
-      return { text: result.text || "" };
-    } catch (error: unknown) {
-      const err = error as { status?: number };
-
-      if ((err.status === 429 || err.status === 503) && i < retries - 1) {
-        const waitTime = err.status === 429 ? 5000 : 1500;
-        await new Promise((res) => setTimeout(res, waitTime));
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw new Error("Falha ao processar o edital após múltiplas tentativas.");
+  return { text: result.text || "" };
 }
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
     const { text } = await request.json();
 
     if (!text || text.trim() === "") {

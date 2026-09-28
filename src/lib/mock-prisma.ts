@@ -81,6 +81,7 @@ function createInitialStore(): MockStore {
         name: "Direito Constitucional",
         importance: "Alta",
         color: "#6366F1",
+        weight: 8.5,
         priority: 8.5,
         assignedDay: null,
         lastReviewed: daysAgo(1),
@@ -96,6 +97,7 @@ function createInitialStore(): MockStore {
         name: "Língua Portuguesa",
         importance: "Alta",
         color: "#10B981",
+        weight: 9.0,
         priority: 9.0,
         assignedDay: null,
         lastReviewed: daysAgo(2),
@@ -111,6 +113,7 @@ function createInitialStore(): MockStore {
         name: "Informática & Tecnologia",
         importance: "Média",
         color: "#06B6D4",
+        weight: 7.5,
         priority: 7.5,
         assignedDay: null,
         lastReviewed: daysAgo(3),
@@ -126,6 +129,7 @@ function createInitialStore(): MockStore {
         name: "Raciocínio Lógico-Matemático",
         importance: "Média",
         color: "#F59E0B",
+        weight: 7.0,
         priority: 7.0,
         assignedDay: null,
         lastReviewed: daysAgo(4),
@@ -633,13 +637,38 @@ function createModelHandler(getCollection: (store: MockStore) => any[]) {
     async create(args: any = {}) {
       const store = getStore();
       const list = getCollection(store);
+      const dataCopy = { ...args.data };
+
+      // Extrai tópicos aninhados se houver (ex: subject.create com topics: { create: [...] })
+      const nestedTopicsCreate = dataCopy.topics?.create;
+      delete dataCopy.topics;
+
       const newItem = {
-        id: args.data?.id || `mock-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        id: dataCopy.id || `mock-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
         createdAt: new Date(),
         updatedAt: new Date(),
-        ...args.data,
+        ...dataCopy,
       };
       list.push(newItem);
+
+      if (nestedTopicsCreate) {
+        const topicsList = Array.isArray(nestedTopicsCreate)
+          ? nestedTopicsCreate
+          : [nestedTopicsCreate];
+        for (const t of topicsList) {
+          store.topics.push({
+            id: t.id || `mock-top-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            subjectId: newItem.id,
+            firstStudy: t.firstStudy || "Pendente",
+            performance: t.performance || 0,
+            relevance: t.relevance || "5/10",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            ...t,
+          });
+        }
+      }
+
       let result = expandRelations(newItem, args.include, store);
       if (args.select) result = applySelect(result, args.select);
       return { ...result };

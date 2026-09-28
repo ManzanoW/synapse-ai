@@ -1,10 +1,12 @@
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
-import { authConfig } from "./auth.config";
+import { authConfig, getBaseUrl, baseUrl } from "./auth.config";
 import { cookies, headers } from "next/headers";
+
+export { getBaseUrl, baseUrl };
 
 const hasRealDb = !!process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("mock");
 
@@ -20,8 +22,9 @@ function getAdapter() {
   }
 }
 
-const nextAuthInstance = NextAuth({
+export const authOptions: NextAuthConfig = {
   ...authConfig,
+  trustHost: true,
   adapter: getAdapter(),
   session: { strategy: "jwt" },
   providers: [
@@ -53,6 +56,16 @@ const nextAuthInstance = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
+    async redirect({ url, baseUrl: _baseUrl }) {
+      const host = getBaseUrl();
+      if (url.startsWith("/")) return `${host}${url}`;
+      try {
+        if (new URL(url).origin === new URL(host).origin) return url;
+      } catch {
+        // Fallback se a URL for inválida
+      }
+      return host;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
@@ -71,7 +84,9 @@ const nextAuthInstance = NextAuth({
       return session;
     },
   },
-});
+};
+
+const nextAuthInstance = NextAuth(authOptions);
 
 export const handlers = nextAuthInstance.handlers;
 export const signIn = nextAuthInstance.signIn;
@@ -86,14 +101,18 @@ export async function auth(...args: any[]) {
   // Fallback demo session if guest cookie or demo header/referer is present
   try {
     const headersList = await headers();
-    const hasDemoHeader = headersList.get("x-synapse-demo") === "true";
-    const referer = headersList.get("referer") || "";
-    const hasDemoReferer = referer.includes("demo=true");
     const nextUrl = headersList.get("next-url") || headersList.get("x-url") || "";
-    const hasDemoUrl = nextUrl.includes("demo=true");
+    const isLoginPage = nextUrl.includes("/login");
+
+    const hasDemoHeader = !isLoginPage && headersList.get("x-synapse-demo") === "true";
+    const referer = headersList.get("referer") || "";
+    const hasDemoReferer = !isLoginPage && referer.includes("demo=true");
+    const hasDemoUrl = !isLoginPage && nextUrl.includes("demo=true");
 
     const cookieStore = await cookies();
-    const hasDemoCookie = cookieStore.get("synapse_demo_active")?.value === "true";
+    const hasDemoCookie =
+      cookieStore.get("synapse_demo_active")?.value === "true" ||
+      cookieStore.get("synapse-demo-session")?.value === "true";
 
     let hasReqDemo = false;
     if (args.length > 0 && args[0]) {

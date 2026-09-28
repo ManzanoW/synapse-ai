@@ -157,51 +157,84 @@ export default function AchievementsPage() {
   });
 
   return (
-    <div className="relative min-h-screen bg-[#02050e] p-4 text-slate-100 selection:bg-amber-500/30 md:p-8 font-sans antialiased overflow-hidden">
+    <div className="relative min-h-screen bg-slate-50/50 dark:bg-[#02050e] p-4 text-slate-900 dark:text-slate-100 selection:bg-amber-500/30 md:p-8 font-sans antialiased overflow-hidden transition-colors">
       {/* Luz Ambiente Neon de Fundo */}
       <div className="pointer-events-none absolute top-0 left-1/4 h-125 w-125 rounded-full bg-amber-500/10 blur-[150px]" />
       <div className="pointer-events-none absolute top-1/3 right-10 h-100 w-100 rounded-full bg-purple-500/10 blur-[130px]" />
 
       <div className="relative z-10 mx-auto max-w-6xl space-y-6">
         {/* ================= 1. CABEÇALHO ================= */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/10 pb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-white/10 pb-6">
           <div>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors mb-2 cursor-pointer group"
+              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-2 cursor-pointer group"
             >
               <ArrowLeft
                 size={14}
-                className="text-amber-400 transition-transform group-hover:-translate-x-1"
+                className="text-amber-500 dark:text-amber-400 transition-transform group-hover:-translate-x-1"
               />{" "}
               Dashboard
             </Link>
-            <h1 className="flex items-center gap-3 text-2xl md:text-3xl font-black tracking-tight text-white">
-              <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
+            <h1 className="flex items-center gap-3 text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+              <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 dark:text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
                 <Trophy size={22} />
               </div>
               Hall de Conquistas
             </h1>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
               Desbloqueie insígnias conforme fortalece sua rotina de estudos e
               evolui na plataforma.
             </p>
           </div>
 
           {/* BADGE TOTAL XP DE CONQUISTAS */}
-          <div className="flex items-center gap-3.5 rounded-3xl border border-amber-500/30 bg-linear-to-r from-amber-500/10 to-transparent p-4 shadow-2xl backdrop-blur-2xl">
-            <div className="rounded-2xl bg-amber-500/20 p-3 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+          <div className="flex items-center gap-3.5 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-4 shadow-xl backdrop-blur-2xl">
+            <div className="rounded-2xl bg-amber-500/20 p-3 text-amber-500 dark:text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
               <Sparkles size={22} className="animate-pulse" />
             </div>
             <div>
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-amber-400">
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400">
                 XP de Conquistas Resgatado
               </span>
-              <span className="font-mono text-2xl font-black text-white">
+              <span className="font-mono text-2xl font-black text-slate-900 dark:text-white">
                 +{totalXpEarned} XP
               </span>
             </div>
           </div>
+        </div>
+
+        {/* ================= BANNER: LIGAS SEMANAIS & RANKING ================= */}
+        <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/40 via-slate-950/80 to-purple-950/40 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+              <Trophy size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400">
+                  Gamificação Competitiva D30
+                </span>
+                <span className="rounded-full bg-cyan-500/20 px-2 py-0.2 text-[9px] font-bold text-cyan-300">
+                  AO VIVO
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white">
+                Ligas Semanais & Desafios da Semana
+              </h3>
+              <p className="text-xs text-slate-300">
+                Dispute o pódio na sua divisão e abra o Grande Baú Semanal (+500 XP).
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/leaderboard"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-4 py-2 text-xs font-black shadow-lg shadow-cyan-500/20 transition-all shrink-0 active:scale-95"
+          >
+            <span>Ver Ligas e Ranking</span>
+            <ArrowLeft size={12} className="rotate-180" />
+          </Link>
         </div>
 
         {/* ================= 2. HERO CARD: ÚLTIMA CONQUISTA DESBLOQUEADA ================= */}
@@ -260,36 +293,36 @@ export default function AchievementsPage() {
 
         {/* ================= 3. MÉTRICAS DE PROGRESSO GERAL ================= */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 backdrop-blur-2xl shadow-xl">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+          <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-linear-to-br dark:from-[#090d16] dark:to-[#05070e] p-5 backdrop-blur-2xl shadow-xl">
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Conquistas Desbloqueadas
             </span>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-mono text-3xl font-black text-amber-400">
+              <span className="font-mono text-3xl font-black text-amber-500 dark:text-amber-400">
                 {unlockedCount}
               </span>
-              <span className="font-mono text-xs font-semibold text-slate-500">
+              <span className="font-mono text-xs font-semibold text-slate-400 dark:text-slate-500">
                 / {totalCount}
               </span>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 backdrop-blur-2xl shadow-xl">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+          <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-linear-to-br dark:from-[#090d16] dark:to-[#05070e] p-5 backdrop-blur-2xl shadow-xl">
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Taxa de Conclusão
             </span>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-mono text-3xl font-black text-emerald-400">
+              <span className="font-mono text-3xl font-black text-emerald-600 dark:text-emerald-400">
                 {Math.round((unlockedCount / totalCount) * 100)}%
               </span>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#090d16] to-[#05070e] p-5 backdrop-blur-2xl shadow-xl">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+          <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-linear-to-br dark:from-[#090d16] dark:to-[#05070e] p-5 backdrop-blur-2xl shadow-xl">
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Próximo Marco
             </span>
-            <p className="mt-2 truncate text-sm font-bold text-slate-200">
+            <p className="mt-2 truncate text-sm font-bold text-slate-800 dark:text-slate-200">
               {combinedAchievements.find((a) => !a.isUnlocked)?.title ||
                 "Todas Desbloqueadas!"}
             </p>
@@ -297,7 +330,7 @@ export default function AchievementsPage() {
         </div>
 
         {/* ================= 4. FILTROS / CATEGORIAS ================= */}
-        <div className="flex flex-wrap gap-2 border-b border-white/10 pb-4">
+        <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-white/10 pb-4">
           {[
             { id: "ALL", label: "Todas", icon: ShieldCheck },
             { id: "STREAK", label: "Constância", icon: Flame },
@@ -314,8 +347,8 @@ export default function AchievementsPage() {
                 onClick={() => setSelectedCategory(tab.id)}
                 className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold transition-all active:scale-95 ${
                   isActive
-                    ? "border-amber-500/40 bg-amber-500/20 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
-                    : "border-white/5 bg-slate-950/40 text-slate-400 hover:border-white/10 hover:text-white"
+                    ? "border-amber-500/50 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                    : "border-slate-200 dark:border-white/5 bg-white/70 dark:bg-slate-950/40 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/10 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 <Icon size={14} />
@@ -343,7 +376,7 @@ export default function AchievementsPage() {
                   label: "COMUM",
                   border: "border-slate-500/30",
                   bg: "bg-slate-500/10",
-                  text: "text-slate-300",
+                  text: "text-slate-500 dark:text-slate-300",
                   glow: "",
                 };
 
@@ -357,8 +390,8 @@ export default function AchievementsPage() {
                     transition={{ duration: 0.2 }}
                     className={`relative overflow-hidden rounded-3xl border p-5 backdrop-blur-2xl transition-all duration-300 flex flex-col justify-between ${
                       badge.isUnlocked
-                        ? `border-amber-500/30 bg-linear-to-br from-[#090d16] to-[#05070e] ${rarity.glow} hover:border-amber-500/50`
-                        : "border-white/5 bg-slate-950/40 opacity-60 hover:opacity-90"
+                        ? `border-amber-500/40 bg-white/90 dark:bg-linear-to-br dark:from-[#090d16] dark:to-[#05070e] ${rarity.glow} hover:border-amber-500/60 shadow-lg`
+                        : "border-slate-200/80 dark:border-white/5 bg-slate-100/50 dark:bg-slate-950/40 opacity-70 hover:opacity-95"
                     }`}
                   >
                     {badge.isUnlocked && (
@@ -371,13 +404,13 @@ export default function AchievementsPage() {
                           className={`flex h-14 w-14 items-center justify-center rounded-2xl border text-3xl shadow-md ${
                             badge.isUnlocked
                               ? "border-amber-500/40 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
-                              : "border-white/10 bg-slate-900/80 text-slate-500"
+                              : "border-slate-200 dark:border-white/10 bg-slate-200 dark:bg-slate-900/80 text-slate-400 dark:text-slate-500"
                           }`}
                         >
                           {badge.isUnlocked ? (
                             badge.icon
                           ) : (
-                            <Lock size={20} className="text-slate-500" />
+                            <Lock size={20} className="text-slate-400 dark:text-slate-500" />
                           )}
                         </div>
 
@@ -391,8 +424,8 @@ export default function AchievementsPage() {
                           <span
                             className={`rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold ${
                               badge.isUnlocked
-                                ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
-                                : "border-white/5 bg-slate-900 text-slate-500"
+                                ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-300"
+                                : "border-slate-200 dark:border-white/5 bg-slate-200 dark:bg-slate-900 text-slate-500"
                             }`}
                           >
                             +{badge.xpReward} XP
@@ -402,18 +435,18 @@ export default function AchievementsPage() {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-white">
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                             {badge.title}
                           </h3>
                           {badge.isUnlocked && (
                             <CheckCircle2
                               size={15}
-                              className="text-emerald-400"
+                              className="text-emerald-500 dark:text-emerald-400"
                             />
                           )}
                         </div>
 
-                        <p className="mt-1 text-xs text-slate-400 leading-relaxed min-h-9">
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 leading-relaxed min-h-9">
                           {badge.description}
                         </p>
                       </div>

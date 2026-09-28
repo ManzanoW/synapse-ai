@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { FileSpreadsheet, Zap, Camera } from "lucide-react";
 import { QuestaoIA } from "../page";
 
 interface QuestionMinimapProps {
@@ -10,6 +11,9 @@ interface QuestionMinimapProps {
   flaggedQuestions: Record<number, boolean>;
   focusedIndex: number;
   onSelectQuestion: (index: number) => void;
+  onOpenOpticalSheet?: () => void;
+  onOpenSpeedQuiz?: () => void;
+  onOpenScanner?: () => void;
 }
 
 export function QuestionMinimap({
@@ -19,6 +23,9 @@ export function QuestionMinimap({
   flaggedQuestions,
   focusedIndex,
   onSelectQuestion,
+  onOpenOpticalSheet,
+  onOpenSpeedQuiz,
+  onOpenScanner,
 }: QuestionMinimapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLButtonElement>(null);
@@ -34,8 +41,44 @@ export function QuestionMinimap({
   }, [focusedIndex]);
 
   return (
-    <div className="fixed bottom-18 sm:bottom-6 left-0 right-0 z-30 px-3 pointer-events-none flex justify-center">
-      <div className="bg-[#090d16]/95 border border-white/10 backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl flex items-center justify-between gap-2 pointer-events-auto max-w-md w-full">
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.75rem)] sm:bottom-6 left-0 right-0 z-30 px-3 pointer-events-none flex justify-center">
+      <div className="bg-[#090d16]/95 border border-white/10 backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl flex items-center justify-between gap-2 pointer-events-auto max-w-lg w-full">
+        {onOpenOpticalSheet && (
+          <button
+            type="button"
+            onClick={onOpenOpticalSheet}
+            className="shrink-0 px-2 sm:px-2.5 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-xs"
+            title="Abrir Folha Óptica de Respostas (Cartão-Resposta)"
+          >
+            <FileSpreadsheet size={14} className="text-indigo-400" />
+            <span className="hidden sm:inline text-[11px]">Folha Óptica</span>
+          </button>
+        )}
+
+        {onOpenSpeedQuiz && (
+          <button
+            type="button"
+            onClick={onOpenSpeedQuiz}
+            className="shrink-0 px-2 sm:px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-xs"
+            title="Desafio Relâmpago 45s (Speed Quiz)"
+          >
+            <Zap size={14} className="text-amber-400 fill-amber-400" />
+            <span className="hidden sm:inline text-[11px]">Speed</span>
+          </button>
+        )}
+
+        {onOpenScanner && (
+          <button
+            type="button"
+            onClick={onOpenScanner}
+            className="shrink-0 px-2 sm:px-2.5 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-xs"
+            title="Scanner OCR de Questões (Visão IA)"
+          >
+            <Camera size={14} className="text-cyan-400" />
+            <span className="hidden sm:inline text-[11px]">Scanner</span>
+          </button>
+        )}
+
         <div
           ref={containerRef}
           className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5 px-1 scroll-smooth w-full"

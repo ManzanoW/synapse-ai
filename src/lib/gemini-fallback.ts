@@ -2,98 +2,283 @@
 
 import { GoogleGenAI, GenerateContentConfig } from "@google/genai";
 
-let aiClient: GoogleGenAI | null = null;
-
-function getAIClient(): GoogleGenAI {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        "Chave GEMINI_API_KEY não configurada. Configure a variável no ambiente ou em .env.",
-      );
-    }
-    aiClient = new GoogleGenAI({ apiKey });
-  }
-  return aiClient;
+interface ApiKeySlot {
+  key: string;
+  maskedKey: string;
+  client: GoogleGenAI;
+  cooldownUntil: number;
 }
 
-// Modelos Gemini suportados pelo SDK @google/genai
-const MODELS_CASCADE = [
-  "gemini-3.8-flash",
-  "gemini-2.5-flash",
-];
+let keySlots: ApiKeySlot[] = [];
+let currentSlotIndex = 0;
 
-export interface GeminiFallbackOptions {
-  prompt: string;
-  config?: GenerateContentConfig;
-  timeoutMs?: number;
+/**
+ * Inicializa e gerencia o pool de múltiplas chaves de API do Google Gemini.
+ * Suporta:
+ * 1. GEMINI_API_KEYS (lista separada por vírgula no .env: key1,key2,key3)
+ * 2. GEMINI_API_KEY (chave única padrão)
+ * 3. GEMINI_API_KEY_1 até GEMINI_API_KEY_10 (chaves indexadas)
+ */
+function initializeKeySlots(): ApiKeySlot[] {
+  if (keySlots.length > 0) return keySlots;
+
+  const rawKeys: string[] = [];
+
+  // 1. Suporte a lista separada por vírgula
+  if (process.env.GEMINI_API_KEYS) {
+    const split = process.env.GEMINI_API_KEYS.split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+    rawKeys.push(...split);
+  }
+
+  // 2. Suporte a chave padrão
+  if (process.env.GEMINI_API_KEY) {
+    rawKeys.push(process.env.GEMINI_API_KEY.trim());
+  }
+
+  // 3. Suporte a chaves numeradas
+  for (let i = 1; i <= 10; i++) {
+    const indexedKey = process.env[`GEMINI_API_KEY_${i}`];
+    if (indexedKey) {
+      rawKeys.push(indexedKey.trim());
+    }
+  }
+
+  // Remove duplicatas e strings vazias
+  const uniqueKeys = Array.from(new Set(rawKeys.filter(Boolean)));
+
+  if (uniqueKeys.length === 0) {
+    throw new Error(
+      "Nenhuma chave GEMINI_API_KEY configurada. Configure GEMINI_API_KEY ou GEMINI_API_KEYS no ambiente ou em .env.",
+    );
+  }
+
+  keySlots = uniqueKeys.map((key) => {
+    const maskedKey =
+      key.length > 8
+        ? `${key.slice(0, 4)}...${key.slice(-4)}`
+        : "***";
+
+    return {
+      key,
+      maskedKey,
+      client: new GoogleGenAI({ apiKey: key }),
+      cooldownUntil: 0,
+    };
+  });
+
+  return keySlots;
 }
 
 /**
- * Executa chamadas com fallback transparente entre todos os modelos Gemini disponíveis.
- * Se o limite de cota diário (RPD) ou por minuto (RPM) for atingido, comuta no milissegundo seguinte.
+ * Retorna os slots de chaves ordenados por rodízio (Round-Robin),
+ * priorizando chaves que não estejam em cooldown temporário por 429/cota.
+ */
+function getOrderedKeySlots(): ApiKeySlot[] {
+  const slots = initializeKeySlots();
+  const now = Date.now();
+
+  const available = slots.filter((s) => s.cooldownUntil <= now);
+  const poolToUse = available.length > 0 ? available : slots;
+
+  const ordered: ApiKeySlot[] = [];
+  for (let i = 0; i < poolToUse.length; i++) {
+    const idx = (currentSlotIndex + i) % poolToUse.length;
+    ordered.push(poolToUse[idx]);
+  }
+
+  currentSlotIndex = (currentSlotIndex + 1) % poolToUse.length;
+  return ordered;
+}
+
+// Modelos Gemini suportados pelo SDK @google/genai com base nas cotas ativas da conta
+const MODELS_CASCADE = [
+  "gemini-3.5-flash-lite", // 500 RPD, 15 RPM - altíssima cota diária e velocidade
+  "gemini-3.1-flash-lite", // 500 RPD, 15 RPM - excelente alternativa com 500 requisições/dia
+  "gemini-3.6-flash",      // Modelo oficial recomendado pelo Google AI Studio
+  "gemini-3.7-flash",      // Modelo de alta precisão
+  "gemini-3.8-flash",      // Modelo avançado
+  "gemini-3.5-flash",      // Fallback
+  "gemini-3-flash",        // Fallback
+  "gemini-2.5-flash-lite", // Fallback legado
+];
+
+export interface GeminiFallbackOptions {
+  prompt?: string;
+  contents?: unknown;
+  config?: GenerateContentConfig;
+  timeoutMs?: number;
+  preferredModels?: string[];
+}
+
+/**
+ * Executa chamadas com tolerância a falhas bidimensional:
+ * 1. Rodízio e comutação automática entre múltiplas chaves de API (Multi-Key Pool).
+ * 2. Cascata e fallback automático entre modelos Gemini caso uma cota esgote.
  */
 export async function generateContentWithFallback(
   options: GeminiFallbackOptions,
 ): Promise<{ text: string; usedModel: string }> {
-  const { prompt, config, timeoutMs = 90000 } = options;
+  const { prompt, contents, config, timeoutMs = 90000, preferredModels } = options;
   let lastError: unknown;
 
-  const ai = getAIClient();
+  const modelsToTry = preferredModels && preferredModels.length > 0
+    ? Array.from(new Set([...preferredModels, ...MODELS_CASCADE]))
+    : MODELS_CASCADE;
 
-  for (const modelName of MODELS_CASCADE) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const slots = getOrderedKeySlots();
 
-      const result = await ai.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: {
-          temperature: 0.3,
-          ...config,
-        },
-      });
+  for (const modelName of modelsToTry) {
+    for (const slot of slots) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      clearTimeout(timeoutId);
+        const requestContents = (contents ?? prompt ?? "") as any;
 
-      const responseText = result.text || "";
-      if (!responseText) {
-        throw new Error(`Modelo ${modelName} retornou conteúdo vazio.`);
-      }
+        const result = await slot.client.models.generateContent({
+          model: modelName,
+          contents: requestContents,
+          config: {
+            responseMimeType: "application/json",
+            maxOutputTokens: 2048,
+            temperature: 0.7,
+            ...config,
+          },
+        });
 
-      return {
-        text: responseText,
-        usedModel: modelName,
-      };
-    } catch (err: unknown) {
-      lastError = err;
-      const errorString = String(err);
+        clearTimeout(timeoutId);
 
-      // Detecta erro 429, esgotamento de quota ou sobrecarga temporária 503
-      const isQuotaOrRateLimit =
-        errorString.includes("429") ||
-        errorString.includes("503") ||
-        errorString.includes("RESOURCE_EXHAUSTED") ||
-        errorString.includes("quota") ||
-        errorString.includes("rate limit") ||
-        errorString.includes("not found"); // Caso algum modelo específico não esteja ativado na conta
+        const responseText = result.text || "";
+        if (!responseText) {
+          throw new Error(`Modelo ${modelName} retornou conteúdo vazio na chave ${slot.maskedKey}.`);
+        }
 
-      if (isQuotaOrRateLimit) {
-        console.warn(
-          `[Gemini Fallback] ${modelName} indisponível ou limite atingido. Tentando o próximo modelo...`,
-        );
-        // Pequena pausa para evitar rajada em conexões instáveis
-        await new Promise((res) => setTimeout(res, 300));
+        return {
+          text: responseText,
+          usedModel: modelName,
+        };
+      } catch (err: unknown) {
+        lastError = err;
+        const errorString = String(err).toLowerCase();
+        const errObj = err as Record<string, unknown> | null | undefined;
+        const status =
+          (errObj?.status as number | string | undefined) ||
+          (errObj?.code as number | string | undefined) ||
+          ((errObj?.error as Record<string, unknown> | undefined)?.code as number | string | undefined);
+
+        // Detecta erro de cota / rate limit (429, resource_exhausted, etc.)
+        const isQuotaOrRateLimit =
+          status === 429 ||
+          status === "429" ||
+          errorString.includes("429") ||
+          errorString.includes("resource_exhausted") ||
+          errorString.includes("quota") ||
+          errorString.includes("rate limit") ||
+          errorString.includes("overloaded");
+
+        if (isQuotaOrRateLimit) {
+          // Penaliza temporariamente esta chave com 60s de cooldown e comuta para a próxima
+          slot.cooldownUntil = Date.now() + 60 * 1000;
+          console.warn(
+            `[Gemini Multi-Key Pool] Chave ${slot.maskedKey} atingiu limite temporário no modelo ${modelName}. Comutando chave...`,
+          );
+          await new Promise((res) => setTimeout(res, 100));
+          continue; // Tenta o mesmo modelo na próxima chave disponível
+        }
+
+        // Detecta modelo descontinuado ou 404 (passa para o próximo modelo da cascata)
+        const isModelUnavailable =
+          status === 404 ||
+          status === "404" ||
+          status === 503 ||
+          status === "503" ||
+          errorString.includes("404") ||
+          errorString.includes("not_found") ||
+          errorString.includes("not found") ||
+          errorString.includes("no longer available") ||
+          errorString.includes("unsupported") ||
+          errorString.includes("is not supported") ||
+          errorString.includes("does not exist");
+
+        if (isModelUnavailable) {
+          console.warn(
+            `[Gemini Multi-Key Pool] Modelo ${modelName} indisponível (${status || "404"}). Comutando para próximo modelo...`,
+          );
+          break; // Sai do loop de chaves para tentar o próximo modelo
+        }
+
+        // Se for outro erro (ex: validação de formato), comuta de chave para tentar novamente
+        console.warn(`[Gemini Fallback] Erro na chave ${slot.maskedKey} (${modelName}):`, err);
         continue;
       }
-
-      // Erros críticos de validação/segurança não relacionados à cota interrompem imediatamente
-      throw err;
     }
   }
 
   throw new Error(
-    `Todos os 8 modelos Gemini da cadeia de fallback falharam ou atingiram o limite diário: ${lastError}`,
+    `Todos os ${MODELS_CASCADE.length} modelos Gemini e ${slots.length} chaves de API falharam ou atingiram o limite: ${lastError}`,
   );
 }
+
+/**
+ * Retorna o status operacional e a capacidade estimada do pool de chaves.
+ */
+export function getGeminiPoolStatus() {
+  const slots = initializeKeySlots();
+  const now = Date.now();
+
+  return {
+    totalKeys: slots.length,
+    activeKeys: slots.filter((s) => s.cooldownUntil <= now).length,
+    slots: slots.map((s, idx) => ({
+      index: idx,
+      maskedKey: s.maskedKey,
+      inCooldown: s.cooldownUntil > now,
+      cooldownRemainingSeconds:
+        s.cooldownUntil > now ? Math.ceil((s.cooldownUntil - now) / 1000) : 0,
+    })),
+    estimatedDailyQuota: `${slots.length * 1500} requisições gratuitas/dia (cota combinada)`,
+    estimatedThroughput: `${slots.length * 15} requisições/minuto (RPM combinado)`,
+  };
+}
+
+/**
+ * Executa um teste de conectividade (ping) individual em cada chave do pool.
+ */
+export async function testGeminiPoolKeys() {
+  const slots = initializeKeySlots();
+  const results = [];
+
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i];
+    const startTime = Date.now();
+    try {
+      const response = await slot.client.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: "Responda apenas: PONG",
+        config: { maxOutputTokens: 5, temperature: 0.1 },
+      });
+
+      results.push({
+        index: i,
+        maskedKey: slot.maskedKey,
+        success: Boolean(response.text),
+        model: "gemini-3.5-flash-lite",
+        latencyMs: Date.now() - startTime,
+      });
+    } catch (err: unknown) {
+      results.push({
+        index: i,
+        maskedKey: slot.maskedKey,
+        success: false,
+        model: "gemini-3.5-flash-lite",
+        latencyMs: Date.now() - startTime,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return results;
+}
+

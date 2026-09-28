@@ -168,13 +168,18 @@ export function NewContentModal({
             <select
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+              className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 cursor-pointer font-medium"
             >
-              <option value="1/10">1/10 - Muito Baixa</option>
-              <option value="3/10">3/10 - Baixa</option>
-              <option value="5/10">5/10 - Média</option>
-              <option value="7/10">7/10 - Alta</option>
-              <option value="9/10">9/10 - Altíssima</option>
+              <option value="1/10">Peso 1.0 - Baixo / Poucas Questões</option>
+              <option value="2/10">Peso 2.0 - Baixo</option>
+              <option value="3/10">Peso 3.0 - Regular</option>
+              <option value="4/10">Peso 4.0 - Regular</option>
+              <option value="5/10">Peso 5.0 - Médio (Padrão)</option>
+              <option value="6/10">Peso 6.0 - Médio-Alto</option>
+              <option value="7/10">Peso 7.0 - Alto</option>
+              <option value="8/10">Peso 8.0 - Muito Alto</option>
+              <option value="9/10">Peso 9.0 - Crítico / Conhecimentos Específicos</option>
+              <option value="10/10">Peso 10.0 - Máximo / Decisivo</option>
             </select>
           </div>
 

@@ -4,13 +4,22 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
-import { invalidateUserCacheAction } from "@/actions/gamification-actions";
+import {
+  invalidateUserCacheAction,
+  recordStudyActivityAction,
+} from "@/actions/gamification-actions";
+import { calculateLevel, type LevelInfo } from "@/lib/gamification/gamification";
+import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { Type } from "@google/genai";
 import {
   calculateNextReview,
   normalizeGrade,
   ReviewGrade,
   EvaluationRating,
   NextReviewResult,
+  calculateMemoryRetention,
+  isLeechCard,
+  classifyCardMaturity,
 } from "@/lib/spaced-repetition";
 
 export interface ReviewFlashcardInput {
@@ -36,6 +45,9 @@ export interface ReviewFlashcardResponse {
     subjectRetentionFactor: number;
     earnedXp?: number;
     totalXp?: number;
+    streakDays?: number;
+    streakProtected?: boolean;
+    levelInfo?: LevelInfo;
   };
 }
 
@@ -187,31 +199,15 @@ export async function reviewFlashcardAction(
       });
     }
 
-    // 6. Registra StudySession para métricas do painel semanal
-    await prisma.studySession.create({
-      data: {
-        userId,
-        durationMinutes: 1,
-        status: "COMPLETED",
-      },
-    });
-
-    // 7. Gamificação: XP escalonado (+5 XP por revisão, +8 XP se acertado/grade >= 3)
+    // 6. Gamificação: XP escalonado (+5 XP por revisão, +8 XP se acertado/grade >= 3) e Ofensiva
     const isCorrect = grade >= 3;
     const earnedXp = 5 + (isCorrect ? 8 : 0); // 5 XP se errou, 13 XP se acertou
 
-    const updatedStats = await prisma.userStats.upsert({
-      where: { userId },
-      update: {
-        totalXp: { increment: earnedXp },
-        lastStudyDate: new Date(),
-      },
-      create: {
-        userId,
-        totalXp: earnedXp,
-        lastStudyDate: new Date(),
-      },
-    });
+    const activityResult = await recordStudyActivityAction(
+      userId,
+      earnedXp,
+      "FLASHCARD",
+    );
 
     // 8. Sincroniza com as missões diárias
     try {
@@ -251,7 +247,10 @@ export async function reviewFlashcardAction(
         isCriticalSubjectDeficit: srsResult.isSubjectCriticalDeficit,
         subjectRetentionFactor: srsResult.subjectRetentionFactor,
         earnedXp,
-        totalXp: updatedStats.totalXp,
+        totalXp: activityResult.data?.totalXp ?? 0,
+        streakDays: activityResult.data?.streakDays ?? 0,
+        streakProtected: activityResult.data?.streakProtected ?? false,
+        levelInfo: calculateLevel(activityResult.data?.totalXp ?? 0),
       },
     };
   } catch (error) {
@@ -262,3 +261,614 @@ export async function reviewFlashcardAction(
     };
   }
 }
+
+export interface FlashcardMnemonicResult {
+  cardId: string;
+  mnemonic: string;
+  explanation: string;
+  details: string;
+}
+
+/**
+ * 🤖 Gera uma regra mnemônica via IA (Gemini) para desatar pontos cegos e cards difíceis (Leeches)
+ */
+export async function generateFlashcardMnemonicAction(
+  cardId: string,
+): Promise<{ success: boolean; data?: FlashcardMnemonicResult; error?: string }> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Não autorizado" };
+    }
+
+    const card = await prisma.flashcard.findFirst({
+      where: {
+        id: cardId,
+        deck: { userId },
+      },
+      select: {
+        id: true,
+        question: true,
+        answer: true,
+        details: true,
+        deckId: true,
+      },
+    });
+
+    if (!card) {
+      return { success: false, error: "Flashcard não encontrado." };
+    }
+
+    // Prompt pedagógico de alta memorização para concurseiros
+    const prompt = `
+Você é o NeuroMemory AI do Synapse AI, especialista em neurociência da aprendizagem e memorização acelerada para concursos públicos.
+
+O concurseiro está enfrentando dificuldades de retenção para fixar o seguinte flashcard:
+- Pergunta / Gatilho de Memória: "${card.question}"
+- Resposta Correta: "${card.answer}"
+${card.details ? `- Contexto / Detalhes atuais: "${card.details}"` : ""}
+
+SUA MISSÃO:
+1. "mnemonic": Crie uma regra mnemônica elegante, acrônimo infalível, rima marcante ou frase-gatilho de NO MÁXIMO 2 LINHAS para que o candidato nunca mais erre essa informação.
+2. "explanation": Explicação sucinta de 1 linha sobre como associar o gatilho à resposta na hora da prova.
+
+Responda ESTRITAMENTE em formato JSON com a estrutura solicitada.
+`;
+
+    const aiRes = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+        maxOutputTokens: 1024,
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            mnemonic: { type: Type.STRING },
+            explanation: { type: Type.STRING },
+          },
+          required: ["mnemonic", "explanation"],
+        },
+      },
+    });
+
+    let mnemonic = "Gatilho mental: Relacione as palavras-chave do enunciado à resposta.";
+    let explanation = "Fixe a conexão lógica entre os conceitos.";
+
+    try {
+      const text = aiRes.text || "{}";
+      const parsed = JSON.parse(text);
+      if (parsed.mnemonic) mnemonic = parsed.mnemonic.trim();
+      if (parsed.explanation) explanation = parsed.explanation.trim();
+    } catch {
+      // Fallback
+    }
+
+    const newDetails = card.details
+      ? `${card.details}\n\n💡 Mnemônico IA: ${mnemonic}`
+      : `💡 Mnemônico IA: ${mnemonic}`;
+
+    await prisma.flashcard.update({
+      where: { id: cardId },
+      data: { details: newDetails },
+    });
+
+    if (card.deckId) {
+      revalidatePath(`/flashcards/study/${card.deckId}`);
+    }
+    revalidatePath("/flashcards");
+
+    return {
+      success: true,
+      data: {
+        cardId,
+        mnemonic,
+        explanation,
+        details: newDetails,
+      },
+    };
+  } catch (error) {
+    console.error("Erro em generateFlashcardMnemonicAction:", error);
+    return {
+      success: false,
+      error: "Falha ao gerar mnemônico inteligente.",
+    };
+  }
+}
+
+export interface FlashcardsAnalyticsData {
+  totalCards: number;
+  dueTodayCount: number;
+  averageRetention: number; // % (0 a 100)
+  streakDays: number;
+  maturity: {
+    newCount: number;
+    learningCount: number;
+    matureCount: number;
+    leechCount: number;
+  };
+}
+
+/**
+ * 📊 Computa métricas globais e distribuição de maturidade FSRS dos flashcards do estudante
+ */
+export async function getFlashcardsAnalyticsAction(): Promise<{
+  success: boolean;
+  data?: FlashcardsAnalyticsData;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Não autorizado" };
+    }
+
+    const now = new Date();
+
+    const [cards, userStats] = await Promise.all([
+      prisma.flashcard.findMany({
+        where: { deck: { userId } },
+        select: {
+          id: true,
+          stability: true,
+          repetitions: true,
+          lapses: true,
+          nextReviewDate: true,
+          lastReviewed: true,
+          interval: true,
+        },
+      }),
+      prisma.userStats.findUnique({
+        where: { userId },
+        select: { streakDays: true },
+      }),
+    ]);
+
+    const totalCards = cards.length;
+    if (totalCards === 0) {
+      return {
+        success: true,
+        data: {
+          totalCards: 0,
+          dueTodayCount: 0,
+          averageRetention: 100,
+          streakDays: userStats?.streakDays ?? 0,
+          maturity: {
+            newCount: 0,
+            learningCount: 0,
+            matureCount: 0,
+            leechCount: 0,
+          },
+        },
+      };
+    }
+
+    let sumRetention = 0;
+    let dueTodayCount = 0;
+    let newCount = 0;
+    let learningCount = 0;
+    let matureCount = 0;
+    let leechCount = 0;
+
+    for (const c of cards) {
+      // 1. Retenção de memória FSRS individual
+      const retention = calculateMemoryRetention(c.stability ?? 1.0, c.lastReviewed, now);
+      sumRetention += retention;
+
+      // 2. Vencimento
+      if (!c.nextReviewDate || new Date(c.nextReviewDate) <= now) {
+        dueTodayCount++;
+      }
+
+      // 3. Maturidade FSRS
+      const stage = classifyCardMaturity(c.repetitions ?? 0, c.stability ?? 1.0);
+      if (stage === "NEW") newCount++;
+      else if (stage === "LEARNING") learningCount++;
+      else matureCount++;
+
+      // 4. Detecção de Leech
+      if (isLeechCard(c.lapses ?? 0, c.repetitions ?? 0)) {
+        leechCount++;
+      }
+    }
+
+    const averageRetention = Math.round(sumRetention / totalCards);
+
+    return {
+      success: true,
+      data: {
+        totalCards,
+        dueTodayCount,
+        averageRetention,
+        streakDays: userStats?.streakDays ?? 0,
+        maturity: {
+          newCount,
+          learningCount,
+          matureCount,
+          leechCount,
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Erro em getFlashcardsAnalyticsAction:", error);
+    return {
+      success: false,
+      error: "Falha ao calcular analytics FSRS dos flashcards.",
+    };
+  }
+}
+
+// ========================================================
+// EXTRATOR TURBO DE FLASHCARDS POR IA (LEI SECA / RESUMOS)
+// ========================================================
+
+export interface ExtractTurboFlashcardsInput {
+  rawText: string;
+  targetCount?: number;
+  mode?: "CLOZE_AND_CONCEPTS" | "LAW_EXCEPTIONS" | "DEADLINES_AND_NUMBERS";
+  deckTitle?: string;
+  deckId?: string;
+  subjectId?: string;
+  topicId?: string;
+}
+
+export interface ExtractTurboFlashcardsResult {
+  deckId: string;
+  deckTitle: string;
+  cardsCount: number;
+  cards: Array<{
+    id: string;
+    question: string;
+    answer: string;
+    details: string | null;
+  }>;
+}
+
+export interface ExtractTurboFlashcardsResponse {
+  success: boolean;
+  data?: ExtractTurboFlashcardsResult;
+  error?: string;
+}
+
+/**
+ * Server Action que extrai flashcards de alto rendimento a partir de texto bruto,
+ * artigos de lei ou anotações usando Gemini AI com formatação de Cloze Deletion e mnemônicos.
+ */
+export async function extractTurboFlashcardsAction(
+  input: ExtractTurboFlashcardsInput
+): Promise<ExtractTurboFlashcardsResponse> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const rawText = input.rawText?.trim();
+    if (!rawText || rawText.length < 25) {
+      return {
+        success: false,
+        error: "Insira ao menos 25 caracteres de conteúdo (lei, anotação ou resumo).",
+      };
+    }
+
+    const count = Math.min(20, Math.max(3, input.targetCount || 10));
+    const mode = input.mode || "CLOZE_AND_CONCEPTS";
+
+    let modeInstruction = "";
+    if (mode === "LAW_EXCEPTIONS") {
+      modeInstruction =
+        "FOCO PRINCIPAL: Exceções à regra geral, palavras perigosas de pegadinha ('salvo', 'exceto', 'vedado', 'não se aplica', 'dispensa vs inexigibilidade'). Formule perguntas que testem se o aluno cairia na pegadinha da banca.";
+    } else if (mode === "DEADLINES_AND_NUMBERS") {
+      modeInstruction =
+        "FOCO PRINCIPAL: Prazos processuais/legais (dias úteis vs corridos), quóruns de votação, percentuais, idades e números explícitos da lei. Pergunta direta e resposta pontual com mnemônico para memorização.";
+    } else {
+      modeInstruction =
+        "FOCO PRINCIPAL: Conceitos-chave de alta recorrência em concursos, combinando perguntas diretas com itens em formato Cloze Deletion '[...]' (onde o candidato precisa preencher a palavra crítica).";
+    }
+
+    const prompt = `Você é o maior especialista em Engenharia Pedagógica de Concursos Públicos do Brasil (Cebraspe, FGV, FCC, Vunesp).
+Sua missão é ler o texto bruto fornecido pelo estudante e extrair exatamente ${count} Flashcards de Altíssimo Rendimento para fixação rápida na memória de longo prazo (algoritmo FSRS/Anki).
+
+${modeInstruction}
+
+DIRETRIZES TÉCNICAS OBRIGATÓRIAS:
+1. Pergunta (question): Enxuta, instigante, clara. Use negrito ou lacunas '[...]' quando apropriado.
+2. Resposta (answer): Objetiva, sem enrolação. Destaque o gabarito no início e a fundamentação legal curta.
+3. Detalhes (details): Forneça um mnemônico rápido (ex: 'LIMPE', 'SOCIDIVAPLU', 'Bizú do Professor') ou a pegadinha clássica da banca sobre esse ponto.
+4. Título do Baralho (deckTitle): Crie um título profissional e direto (ex: 'Art. 5º CF - Direitos Fundamentais', 'Lei 8.112 - Regime Disciplinar').
+
+TEXTO BRUTO FORNECIDO:
+"""
+${rawText.slice(0, 12000)}
+"""`;
+
+    const aiRes = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.35,
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            deckTitle: { type: Type.STRING },
+            cards: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  question: { type: Type.STRING },
+                  answer: { type: Type.STRING },
+                  details: { type: Type.STRING },
+                },
+                required: ["question", "answer"],
+              },
+            },
+          },
+          required: ["deckTitle", "cards"],
+        },
+      },
+    });
+
+    if (!aiRes || !aiRes.text) {
+      throw new Error("A IA não retornou resposta estruturada.");
+    }
+
+    const parsed = JSON.parse(aiRes.text) as {
+      deckTitle: string;
+      cards: Array<{ question: string; answer: string; details?: string }>;
+    };
+
+    if (!parsed.cards || parsed.cards.length === 0) {
+      throw new Error("Nenhum card foi gerado a partir do texto.");
+    }
+
+    // Identifica ou cria o Deck no Prisma
+    let targetDeckId = input.deckId;
+    let finalTitle = input.deckTitle?.trim() || parsed.deckTitle || "Baralho Turbo IA";
+
+    if (targetDeckId) {
+      const existingDeck = await prisma.deck.findUnique({
+        where: { id: targetDeckId },
+      });
+      if (existingDeck) {
+        finalTitle = existingDeck.title;
+      } else {
+        targetDeckId = undefined;
+      }
+    }
+
+    if (!targetDeckId) {
+      const newDeck = await prisma.deck.create({
+        data: {
+          title: finalTitle,
+          color: "bg-indigo-600",
+          userId,
+          subjectId: input.subjectId || null,
+          topicId: input.topicId || null,
+        },
+      });
+      targetDeckId = newDeck.id;
+    }
+
+    // Insere os flashcards no banco
+    const createdCards = await prisma.$transaction(
+      parsed.cards.map((c) =>
+        prisma.flashcard.create({
+          data: {
+            deckId: targetDeckId!,
+            question: c.question,
+            answer: c.answer,
+            details: c.details || null,
+            topicId: input.topicId || null,
+            stability: 1.0,
+            difficulty: 5.0,
+            easeFactor: 2.5,
+            interval: 1,
+            repetitions: 0,
+            lapses: 0,
+            nextReviewDate: new Date(),
+          },
+          select: {
+            id: true,
+            question: true,
+            answer: true,
+            details: true,
+          },
+        })
+      )
+    );
+
+    revalidatePath("/flashcards");
+    revalidatePath("/flashcards/decks");
+    if (targetDeckId) {
+      revalidatePath(`/flashcards/decks/${targetDeckId}`);
+    }
+
+    return {
+      success: true,
+      data: {
+        deckId: targetDeckId,
+        deckTitle: finalTitle,
+        cardsCount: createdCards.length,
+        cards: createdCards,
+      },
+    };
+  } catch (error) {
+    console.error("Erro em extractTurboFlashcardsAction:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Falha ao extrair flashcards por inteligência artificial.",
+    };
+  }
+}
+
+export interface SpeedRunCardItem {
+  id: string;
+  question: string;
+  answer: string;
+  details?: string | null;
+  deckTitle?: string;
+}
+
+/**
+ * Busca flashcards aleatórios do usuário para o modo Speed Run Arcade
+ */
+export async function getSpeedRunFlashcardsAction(deckId?: string): Promise<{
+  success: boolean;
+  data?: SpeedRunCardItem[];
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const whereClause: any = {
+      deck: { userId },
+    };
+
+    if (deckId && deckId !== "all") {
+      whereClause.deckId = deckId;
+    }
+
+    const cards = await prisma.flashcard.findMany({
+      where: whereClause,
+      take: 60,
+      orderBy: {
+        nextReviewDate: "asc",
+      },
+      select: {
+        id: true,
+        question: true,
+        answer: true,
+        details: true,
+        deck: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    });
+
+    if (!cards || cards.length === 0) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    // Embaralha (Fisher-Yates) para garantir imprevisibilidade arcade
+    const shuffled = [...cards].sort(() => Math.random() - 0.5);
+
+    return {
+      success: true,
+      data: shuffled.map((c) => ({
+        id: c.id,
+        question: c.question,
+        answer: c.answer,
+        details: c.details,
+        deckTitle: c.deck?.title,
+      })),
+    };
+  } catch (error) {
+    console.error("Erro em getSpeedRunFlashcardsAction:", error);
+    return {
+      success: false,
+      error: "Falha ao carregar flashcards para o Speed Run.",
+    };
+  }
+}
+
+export interface RecordSpeedRunInput {
+  score: number;
+  correctCount: number;
+  wrongCount: number;
+  maxCombo: number;
+  durationSeconds: number;
+  deckId?: string;
+}
+
+export interface RecordSpeedRunResult {
+  success: boolean;
+  earnedXp?: number;
+  totalXp?: number;
+  streakDays?: number;
+  levelInfo?: any;
+  error?: string;
+}
+
+/**
+ * Registra a sessão de Speed Run Arcade no perfil do usuário, concedendo XP e ofensiva
+ */
+export async function recordSpeedRunSessionAction(
+  input: RecordSpeedRunInput
+): Promise<RecordSpeedRunResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    // Cálculo dinâmico de XP Arcade:
+    // Base: 15 XP por acerto sob pressão
+    // Bônus de Combo: +50 XP para combo Frenzy (>= 5), +25 XP para combo (>= 3)
+    // Bônus de sobrevivência de tempo: +10 XP
+    const baseXP = input.correctCount * 15;
+    const comboBonus =
+      input.maxCombo >= 5 ? 50 : input.maxCombo >= 3 ? 25 : input.maxCombo >= 2 ? 10 : 0;
+    const survivalBonus = input.durationSeconds >= 60 ? 15 : 5;
+    const totalEarnedXp = Math.max(10, baseXP + comboBonus + survivalBonus);
+
+    const durationMinutes = Math.max(1, Math.ceil(input.durationSeconds / 60));
+
+    // Grava a atividade no motor de gamificação com proteção de streak
+    const activityResult = await recordStudyActivityAction(
+      userId,
+      totalEarnedXp,
+      "FLASHCARD",
+      durationMinutes
+    );
+
+    // Registra progresso em missões diárias/semanais
+    if (input.correctCount > 0) {
+      try {
+        await trackQuestProgressAction("FLASHCARDS_REVIEWED", input.correctCount);
+      } catch (questErr) {
+        console.warn("Aviso ao registrar progresso de quest no speedrun:", questErr);
+      }
+    }
+
+    revalidatePath("/flashcards");
+    revalidatePath("/dashboard");
+    revalidatePath("/achievements");
+
+    return {
+      success: true,
+      earnedXp: totalEarnedXp,
+      totalXp: activityResult.data?.totalXp,
+      streakDays: activityResult.data?.streakDays,
+      levelInfo: activityResult.data?.levelInfo,
+    };
+  } catch (error) {
+    console.error("Erro em recordSpeedRunSessionAction:", error);
+    return {
+      success: false,
+      error: "Falha ao registrar pontuação do Speed Run.",
+    };
+  }
+}
+

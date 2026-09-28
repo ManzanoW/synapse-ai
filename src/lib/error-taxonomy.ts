@@ -5,29 +5,29 @@ export const TAXONOMY_METADATA: Record<
   { label: string; color: string; desc: string }
 > = {
   CONTENT_GAP: {
-    label: "Lacuna Teórica",
+    label: "Teoria / Matéria Nova",
     color: "#8B5CF6", // Violeta
-    desc: "Desconhecimento ou esquecimento do conceito teórico.",
+    desc: "Você ainda não viu essa matéria ou não se lembrou do conceito teórico.",
   },
   TRICK_QUESTION: {
-    label: "Falta de Atenção / Pegadinha",
+    label: "Atenção / Pegadinha",
     color: "#F59E0B", // Âmbar
-    desc: "Atenção desviada por detalhe ou pegadinha da banca.",
+    desc: "Você sabia a matéria, mas caiu em um detalhe ou pegadinha da banca.",
   },
   INTERPRETATION: {
-    label: "Erro de Interpretação",
+    label: "Interpretação do Enunciado",
     color: "#06B6D4", // Ciano
-    desc: "Compreensão equivocada do comando ou enunciado.",
+    desc: "Compreensão equivocada do que o comando da questão estava pedindo.",
   },
   TIME_PRESSURE: {
-    label: "Pressão de Tempo",
+    label: "Falta de Tempo / Pressa",
     color: "#F43F5E", // Carmesim / Rose
-    desc: "Pressa ou falta de tempo para raciocinar com calma.",
+    desc: "Marcou na correria por causa do relógio ou faltou tempo para pensar.",
   },
   UNCLASSIFIED: {
-    label: "Geral / Não Classificado",
+    label: "Outro Motivo",
     color: "#64748B", // Slate
-    desc: "Erro registrado sem categoria taxonômica específica.",
+    desc: "Erro registrado sem categoria específica selecionada.",
   },
 };
 

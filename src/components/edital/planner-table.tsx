@@ -12,8 +12,11 @@ import {
   Play,
   ArrowUpDown,
   Filter,
+  Pencil,
+  Scale,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { EditSubjectModal } from "./edit-subject-modal";
 
 export interface PlannerTopic {
   id: string;
@@ -31,6 +34,7 @@ export interface PlannerSubject {
   id: string;
   name: string;
   color?: string | null;
+  weight?: number;
 }
 
 export type SortOption =
@@ -44,6 +48,7 @@ interface PlannerViewProps {
   onReviewClick?: (topicId: string) => void;
   onDeleteTopic?: (topicId: string) => Promise<void> | void;
   onDeleteSubject?: (subjectIdOrName: string) => Promise<void> | void;
+  onSubjectUpdated?: () => void;
 }
 
 const INITIAL_TOPICS_PER_SUBJECT = 5;
@@ -56,7 +61,9 @@ export function PlannerView({
   onReviewClick,
   onDeleteTopic,
   onDeleteSubject,
+  onSubjectUpdated,
 }: PlannerViewProps) {
+  const [subjectToEdit, setSubjectToEdit] = useState<PlannerSubject | null>(null);
   const [subjectToDelete, setSubjectToDelete] = useState<{
     id?: string;
     name: string;
@@ -425,15 +432,35 @@ export function PlannerView({
                       <h3 className="text-xs sm:text-sm font-bold text-slate-100 truncate tracking-tight group-hover:text-white transition-colors">
                         {subjectName}
                       </h3>
-                      <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
-                        {subjectTopics.length}{" "}
-                        {subjectTopics.length === 1 ? "tópico" : "tópicos"}
+                      <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium flex items-center gap-1.5 flex-wrap">
+                        <span>
+                          {subjectTopics.length}{" "}
+                          {subjectTopics.length === 1 ? "tópico" : "tópicos"}
+                        </span>
+                        {matchedSubject ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSubjectToEdit(matchedSubject);
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-500/50 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer group/w active:scale-95 shadow-xs"
+                            title="Clique para calibrar o peso desta matéria"
+                          >
+                            <Scale size={10} className="text-amber-400 group-hover/w:rotate-12 transition-transform" />
+                            <span>Peso {matchedSubject.weight !== undefined ? Number(matchedSubject.weight).toFixed(1) : "5.0"}</span>
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold">
+                            Peso 5.0
+                          </span>
+                        )}
                         {progressPercent === 100 && (
-                          <span className="ml-2 text-[9px] sm:text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
+                          <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
                             ✓ Concluída
                           </span>
                         )}
-                      </p>
+                      </div>
                     </div>
                   </div>
 
@@ -466,6 +493,19 @@ export function PlannerView({
                         {progressPercent}%
                       </span>
                     </div>
+
+                    {matchedSubject && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSubjectToEdit(matchedSubject);
+                        }}
+                        className="p-1.5 sm:p-2 text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/15 rounded-xl transition-colors cursor-pointer"
+                        title="Editar Matéria e Peso"
+                      >
+                        <Pencil size={15} />
+                      </div>
+                    )}
 
                     <div
                       onClick={(e) => {
@@ -656,6 +696,13 @@ export function PlannerView({
           setTopicToDelete(null);
           setSubjectToDelete(null);
         }}
+      />
+
+      <EditSubjectModal
+        isOpen={!!subjectToEdit}
+        subject={subjectToEdit}
+        onClose={() => setSubjectToEdit(null)}
+        onSubjectUpdated={onSubjectUpdated}
       />
     </div>
   );

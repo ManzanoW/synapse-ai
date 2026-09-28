@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
@@ -18,9 +18,25 @@ import {
   Clock,
   AlertCircle,
   Check,
+  Sparkles,
+  PenTool,
+  BookOpen,
+  Search,
+  Lightbulb,
+  Volume2,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
 import { ErrorClassification } from "@/types/quiz";
+import { MentorCopilotDrawer } from "@/components/mentor/MentorCopilotDrawer";
+import { QuestionScratchpad } from "@/components/questions/QuestionScratchpad";
+import {
+  getSocraticHintAction,
+  explainAlternativeAction,
+  AlternativeExplanation,
+} from "@/actions/socratic-actions";
+import { SocraticWhyWrongModal } from "@/components/questions/SocraticWhyWrongModal";
+import { useSound } from "@/hooks/useSound";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface QuestionCardProps {
   questao: QuestaoIA;
@@ -39,48 +55,6 @@ interface QuestionCardProps {
   onToggleFlag?: () => void;
   onClassifyError?: (reason: ErrorClassification) => void;
 }
-
-const ERROR_TAXONOMY: {
-  key: ErrorClassification;
-  label: string;
-  desc: string;
-  icon: React.ElementType;
-  color: string;
-  bgActive: string;
-}[] = [
-  {
-    key: "THEORY_GAP",
-    label: "Lacuna Teórica",
-    desc: "Não conhecia ou esqueci o conceito teórico da matéria.",
-    icon: Brain,
-    color: "text-violet-400 border-violet-500/30 bg-violet-500/10",
-    bgActive: "border-violet-500 bg-violet-500/20 text-violet-200",
-  },
-  {
-    key: "ATTENTION_LAPSE",
-    label: "Falta de Atenção",
-    desc: "Sabia a teoria, mas caí em pegadinha ou li com pressa.",
-    icon: Eye,
-    color: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-    bgActive: "border-amber-500 bg-amber-500/20 text-amber-200",
-  },
-  {
-    key: "MISINTERPRETATION",
-    label: "Erro de Interpretação",
-    desc: "Interpretei errado o enunciado ou o comando da questão.",
-    icon: AlertCircle,
-    color: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10",
-    bgActive: "border-cyan-500 bg-cyan-500/20 text-cyan-200",
-  },
-  {
-    key: "TIME_PRESSURE",
-    label: "Pressão de Tempo",
-    desc: "Faltou tempo para calcular ou analisar as opções com calma.",
-    icon: Clock,
-    color: "text-rose-400 border-rose-500/30 bg-rose-500/10",
-    bgActive: "border-rose-500 bg-rose-500/20 text-rose-200",
-  },
-];
 
 const renderEnunciado = (texto: string) => {
   if (!texto) return null;
@@ -117,21 +91,146 @@ export function QuestionCard({
   onClassifyError,
 }: QuestionCardProps) {
   const [eliminatedAlts, setEliminatedAlts] = useState<Record<string, boolean>>({});
-  const [showErrorDiagnosis, setShowErrorDiagnosis] = useState(false);
   const [selectedReason, setSelectedReason] = useState<ErrorClassification | null>(null);
+  const [isMentorOpen, setIsMentorOpen] = useState(false);
+  const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
+  const [hasScratchpadNotes, setHasScratchpadNotes] = useState(false);
+
+  // Estados do Tutor Socrático
+  const [socraticHint, setSocraticHint] = useState<string | null>(null);
+  const [isLoadingHint, setIsLoadingHint] = useState(false);
+  const [showHintBox, setShowHintBox] = useState(false);
+  const [whyWrongModal, setWhyWrongModal] = useState<{
+    isOpen: boolean;
+    optionId: string;
+    optionText: string;
+    explanation: AlternativeExplanation | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    optionId: "",
+    optionText: "",
+    explanation: null,
+    isLoading: false,
+  });
+
+  const { playCorrect, playError, playClick, playChime } = useSound();
+
+  // Atalho global ⌘J / Ctrl+J para acionar o Mentor IA na questão focada
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        setIsMentorOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFocused]);
 
   const toggleEliminate = (e: React.MouseEvent, altId: string) => {
     e.stopPropagation();
     if (respondida) return;
+    playClick();
+    triggerHaptic("light");
     setEliminatedAlts((prev) => ({ ...prev, [altId]: !prev[altId] }));
   };
 
   const acertou = alternativaSelecionada === questao.gabaritoCorreto;
 
-  const handleSelectReason = (reason: ErrorClassification) => {
-    setSelectedReason(reason);
-    if (onClassifyError) {
-      onClassifyError(reason);
+  // Resposta com classificação automática invisível para o Caderno de Erros e Sensory feedback
+  const handleAnswer = () => {
+    onAnswerQuestion();
+    if (alternativaSelecionada === questao.gabaritoCorreto) {
+      playCorrect();
+      triggerHaptic("success");
+    } else {
+      playError();
+      triggerHaptic("warning");
+      if (onClassifyError) {
+        const autoReason: ErrorClassification =
+          questao.pegadinhaBanca || questao.mentorGuidance?.trapWarning
+            ? "ATTENTION_LAPSE"
+            : "THEORY_GAP";
+        onClassifyError(autoReason);
+        setSelectedReason(autoReason);
+      }
+    }
+  };
+
+  // Solicitar Pista Socrática pré-resposta
+  const handleGetSocraticHint = async () => {
+    if (socraticHint) {
+      setShowHintBox((prev) => !prev);
+      playClick();
+      return;
+    }
+
+    setIsLoadingHint(true);
+    playClick();
+    triggerHaptic("medium");
+
+    try {
+      const res = await getSocraticHintAction({
+        questionText: questao.enunciado,
+        options: questao.alternativas,
+        subject: ((questao as unknown as Record<string, unknown>).materia as string) || "Geral",
+        banca: ((questao as unknown as Record<string, unknown>).banca as string) || "Geral",
+      });
+
+      if (res.success && res.hint) {
+        setSocraticHint(res.hint);
+        setShowHintBox(true);
+        playChime();
+        triggerHaptic("success");
+      }
+    } catch (err) {
+      console.error("Erro ao obter pista socrática:", err);
+    } finally {
+      setIsLoadingHint(false);
+    }
+  };
+
+  // Dissecar alternativa individual
+  const handleDissectAlternative = async (optionId: string, optionText: string) => {
+    playClick();
+    triggerHaptic("medium");
+    setWhyWrongModal({
+      isOpen: true,
+      optionId,
+      optionText,
+      explanation: null,
+      isLoading: true,
+    });
+
+    try {
+      const res = await explainAlternativeAction({
+        questionText: questao.enunciado,
+        optionId,
+        optionText,
+        correctAnswer: questao.gabaritoCorreto,
+        explanation: questao.justificativa,
+        subject: ((questao as unknown as Record<string, unknown>).materia as string) || "Geral",
+        banca: ((questao as unknown as Record<string, unknown>).banca as string) || "Geral",
+      });
+
+      if (res.success && res.data) {
+        setWhyWrongModal((prev) => ({
+          ...prev,
+          explanation: res.data || null,
+          isLoading: false,
+        }));
+        playChime();
+        triggerHaptic("light");
+      } else {
+        setWhyWrongModal((prev) => ({ ...prev, isLoading: false }));
+      }
+    } catch (err) {
+      console.error("Erro ao dissecar alternativa:", err);
+      setWhyWrongModal((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -188,7 +287,7 @@ export function QuestionCard({
       )}
 
       {/* HEADER DA QUESTÃO */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4 gap-2">
+      <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4 gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-black tracking-wider text-indigo-400 uppercase">
             QUESTÃO {index + 1}
@@ -202,25 +301,72 @@ export function QuestionCard({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={onToggleFlag}
-          className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 ${
-            isFlagged
-              ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
-              : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-          }`}
-          title="Marcar questão para revisar depois"
-        >
-          <Flag
-            size={13}
-            className={isFlagged ? "fill-amber-300 text-amber-300" : ""}
-          />
-          <span className="text-[11px]">
-            {isFlagged ? "Marcada" : "Revisar"}
-          </span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Botão Copilot Mentor IA */}
+          <button
+            type="button"
+            onClick={() => setIsMentorOpen(true)}
+            className="px-2.5 py-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 hover:border-violet-500/50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 shadow-xs min-h-[36px]"
+            title="Abrir Mentor IA Copilot (⌘J ou Ctrl+J)"
+          >
+            <Brain size={13} className="text-violet-400" />
+            <span className="text-[11px] font-bold">Mentor IA</span>
+            <span className="text-[9px] font-mono text-violet-400/80 bg-violet-500/20 px-1 py-0.5 rounded border border-violet-500/30 hidden sm:inline">
+              ⌘J
+            </span>
+          </button>
+
+          {/* Botão Rascunho de Prova */}
+          <button
+            type="button"
+            onClick={() => setIsScratchpadOpen((prev) => !prev)}
+            className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 shadow-xs min-h-[36px] ${
+              isScratchpadOpen
+                ? "border-indigo-500 bg-indigo-600/20 text-indigo-200"
+                : hasScratchpadNotes
+                  ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20"
+                  : "border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20"
+            }`}
+            title="Abrir lousa de rascunho da questão"
+          >
+            <PenTool
+              size={13}
+              className={hasScratchpadNotes ? "text-indigo-400" : ""}
+            />
+            <span className="text-[11px] font-bold">Rascunho</span>
+            {hasScratchpadNotes && (
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleFlag}
+            className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 min-h-[36px] ${
+              isFlagged
+                ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+            }`}
+            title="Marcar questão para revisar depois"
+          >
+            <Flag
+              size={13}
+              className={isFlagged ? "fill-amber-300 text-amber-300" : ""}
+            />
+            <span className="text-[11px]">
+              {isFlagged ? "Marcada" : "Revisar"}
+            </span>
+          </button>
+        </div>
       </div>
+
+      {/* LOUSA DE RASCUNHO DA QUESTÃO */}
+      <QuestionScratchpad
+        storageKey={questao.id || `q_${index}`}
+        isOpen={isScratchpadOpen}
+        onClose={() => setIsScratchpadOpen(false)}
+        onNotesChange={setHasScratchpadNotes}
+      />
 
       {/* ENUNCIADO */}
       <p className="text-slate-200 text-sm sm:text-base font-medium mb-5 leading-relaxed whitespace-pre-line">
@@ -244,7 +390,7 @@ export function QuestionCard({
                     disabled={respondida}
                     onClick={() => !isEliminated && onSelectAnswer(alt.id)}
                     type="button"
-                    className={`w-full text-left px-3.5 py-3 sm:px-4 sm:py-3.5 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-12 ${
+                    className={`w-full text-left px-3.5 py-3.5 sm:px-4 sm:py-3.5 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] ${
                       isEliminated && !respondida
                         ? "opacity-30 line-through bg-slate-950/20 border-slate-900/50 text-slate-500"
                         : respondida
@@ -282,7 +428,7 @@ export function QuestionCard({
                     )}
                   </button>
 
-                  {!respondida && (
+                  {!respondida ? (
                     <button
                       type="button"
                       onClick={(e) => toggleEliminate(e, alt.id)}
@@ -291,13 +437,23 @@ export function QuestionCard({
                           ? "Restaurar alternativa"
                           : "Riscar alternativa"
                       }
-                      className={`p-2 rounded-lg transition-all shrink-0 cursor-pointer ${
+                      className={`p-2 rounded-lg transition-all shrink-0 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center ${
                         isEliminated
                           ? "text-rose-400 hover:text-rose-300 opacity-100"
                           : "text-slate-600 hover:text-slate-300 sm:opacity-0 sm:group-hover:opacity-100"
                       }`}
                     >
                       {isEliminated ? <Eye size={15} /> : <EyeOff size={15} />}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleDissectAlternative(alt.id, alt.texto)}
+                      title="Dissecar pegadinha desta assertiva com IA"
+                      className="px-2.5 py-1.5 rounded-lg text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 border border-indigo-500/20 text-[11px] font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 self-center active:scale-95"
+                    >
+                      <Search size={12} />
+                      <span className="hidden sm:inline">Por que?</span>
                     </button>
                   )}
                 </div>
@@ -308,71 +464,120 @@ export function QuestionCard({
               const atalhoNum = altIdx + 1;
 
               return (
-                <button
-                  key={`q-${index}-ce-${opcao}`}
-                  disabled={respondida}
-                  onClick={() => onSelectAnswer(opcao)}
-                  type="button"
-                  className={`w-full text-left px-4 py-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-12 ${
-                    respondida
-                      ? opcao === questao.gabaritoCorreto
-                        ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 shadow-xs"
+                <div key={`q-${index}-ce-${opcao}`} className="flex items-center gap-2">
+                  <button
+                    disabled={respondida}
+                    onClick={() => onSelectAnswer(opcao)}
+                    type="button"
+                    className={`flex-1 text-left px-4 py-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] ${
+                      respondida
+                        ? opcao === questao.gabaritoCorreto
+                          ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 shadow-xs"
+                          : isSelected
+                            ? "bg-rose-500/10 border-rose-500/80 text-rose-300"
+                            : "bg-slate-950/30 border-slate-900 text-slate-600"
                         : isSelected
-                          ? "bg-rose-500/10 border-rose-500/80 text-rose-300"
-                          : "bg-slate-950/30 border-slate-900 text-slate-600"
-                      : isSelected
-                        ? "bg-indigo-600/15 border-indigo-500/80 text-slate-100 ring-1 ring-indigo-500/40 shadow-xs"
-                        : "bg-slate-950/50 border-slate-800/80 hover:border-slate-700/80 hover:bg-slate-900/40 text-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`w-2.5 h-2.5 rounded-full ${
-                        opcao === "Certo" ? "bg-emerald-400" : "bg-rose-400"
-                      }`}
-                    />
-                    <span>{opcao}</span>
-                  </div>
-                  {!respondida && (
-                    <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-slate-400 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded transition-colors">
-                      {atalhoNum}
-                    </kbd>
+                          ? "bg-indigo-600/15 border-indigo-500/80 text-slate-100 ring-1 ring-indigo-500/40 shadow-xs"
+                          : "bg-slate-950/50 border-slate-800/80 hover:border-slate-700/80 hover:bg-slate-900/40 text-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full ${
+                          opcao === "Certo" ? "bg-emerald-400" : "bg-rose-400"
+                        }`}
+                      />
+                      <span>{opcao}</span>
+                    </div>
+                    {!respondida && (
+                      <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-slate-400 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded transition-colors">
+                        {atalhoNum}
+                      </kbd>
+                    )}
+                  </button>
+
+                  {respondida && (
+                    <button
+                      type="button"
+                      onClick={() => handleDissectAlternative(opcao, opcao)}
+                      title="Dissecar com IA"
+                      className="px-2.5 py-2 rounded-xl text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 border border-indigo-500/20 text-[11px] font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 active:scale-95"
+                    >
+                      <Search size={12} />
+                      <span className="hidden sm:inline">Por que?</span>
+                    </button>
                   )}
-                </button>
+                </div>
               );
             })}
       </div>
 
+      {/* CAIXA DE PISTA SOCRÁTICA EXPANSÍVEL */}
+      <AnimatePresence>
+        {socraticHint && showHintBox && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="rounded-2xl p-4 bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2 overflow-hidden"
+          >
+            <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+              <div className="flex items-center gap-2 font-bold text-amber-300">
+                <Lightbulb size={16} className="text-amber-400 animate-bounce" />
+                <span>Pista Socrática do Mentor Synapse</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHintBox(false)}
+                className="text-amber-400 hover:text-amber-200 text-[11px] font-semibold cursor-pointer"
+              >
+                Recolher
+              </button>
+            </div>
+            <p className="leading-relaxed whitespace-pre-line text-amber-100/90 font-medium">
+              {socraticHint}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* RODAPÉ / BOTÃO DE SUBMISSÃO */}
       <div className="flex flex-col gap-4">
         {!respondida ? (
-          <div className="flex items-center justify-between border-t border-slate-800/60 pt-4 gap-4">
-            <div className="hidden sm:flex items-center gap-3 text-[11px] text-slate-500 font-mono">
-              <span className="flex items-center gap-1">
-                <kbd className="bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                  ↑
-                </kbd>
-                <kbd className="bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                  ↓
-                </kbd>
-                <span className="text-slate-600 ml-0.5">Navegar</span>
-              </span>
+          <div className="flex flex-wrap items-center justify-between border-t border-slate-800/60 pt-4 gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleGetSocraticHint}
+                disabled={isLoadingHint}
+                className="px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                {isLoadingHint ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin text-amber-400" />
+                    <span>Pensando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lightbulb size={14} className="text-amber-400" />
+                    <span>{socraticHint ? (showHintBox ? "Ocultar Pista" : "Ver Pista Socrática") : "💡 Pista Socrática"}</span>
+                  </>
+                )}
+              </button>
 
-              <span className="text-slate-700">•</span>
-
-              <span className="flex items-center gap-1">
-                <kbd className="bg-slate-900 border border-slate-800 text-indigo-300 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5">
-                  <CornerDownLeft size={10} /> Enter
+              <div className="hidden sm:flex items-center gap-2 text-[11px] text-slate-500 font-mono">
+                <kbd className="bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                  ↑ / ↓
                 </kbd>
-                <span className="text-slate-600 ml-0.5">Confirmar</span>
-              </span>
+                <span className="text-slate-600">Navegar</span>
+              </div>
             </div>
 
             <button
               disabled={!alternativaSelecionada}
-              onClick={onAnswerQuestion}
+              onClick={handleAnswer}
               type="button"
-              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-indigo-950/50 ml-auto cursor-pointer min-h-11"
+              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-indigo-950/50 ml-auto cursor-pointer min-h-[48px]"
             >
               Responder Questão
             </button>
@@ -401,25 +606,19 @@ export function QuestionCard({
 
               {!acertou && (
                 <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => setShowErrorDiagnosis(true)}
-                    className={`w-full sm:w-auto px-3 py-2 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shadow-xs ${
-                      selectedReason
-                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                        : "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300"
-                    }`}
-                    title="Ver pegadinha da banca e diagnosticar motivo do erro"
+                  <span
+                    className="px-2.5 py-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-300 text-xs font-semibold flex items-center gap-1.5"
+                    title="Questão catalogada automaticamente no seu Caderno de Erros"
                   >
-                    <Brain size={13} className={selectedReason ? "text-emerald-400" : "text-amber-400"} />
-                    <span>{selectedReason ? "Diagnóstico Salvo ✓" : "Por que errei? 🧠"}</span>
-                  </button>
+                    <BookOpen size={12} className="text-rose-400" />
+                    <span>Caderno de Erros</span>
+                  </span>
 
                   <button
                     onClick={onCreateFlashcard}
                     disabled={isCreatingFlashcard || isFlashcardCreated}
                     type="button"
-                    className={`w-full sm:w-auto px-3 py-2 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer ${
+                    className={`w-full sm:w-auto px-3.5 py-2.5 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer min-h-[44px] ${
                       isFlashcardCreated
                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed opacity-90"
                         : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-300"
@@ -452,152 +651,60 @@ export function QuestionCard({
               </strong>
               {renderEnunciado(questao.justificativa)}
             </div>
+
+            {/* ALERTA DE PEGADINHA DA BANCA */}
+            {(questao.pegadinhaBanca || questao.mentorGuidance?.trapWarning) && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs">
+                <div className="flex items-center gap-2 font-bold text-amber-400 mb-1">
+                  <AlertTriangle size={15} className="text-amber-400 shrink-0" />
+                  <span>⚠️ Pegadinha Clássica da Banca</span>
+                </div>
+                <p className="leading-relaxed text-amber-100/90 font-medium">
+                  {questao.pegadinhaBanca || questao.mentorGuidance?.trapWarning}
+                </p>
+              </div>
+            )}
+
+            {/* PONTO CEGO / ANÁLISE DO ERRO */}
+            {!acertou && questao.explicacaoErro && (
+              <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-200 text-xs">
+                <div className="flex items-center gap-2 font-bold text-indigo-300 mb-1">
+                  <Target size={15} className="text-indigo-400 shrink-0" />
+                  <span>🎯 Ponto Cego & Análise do Erro</span>
+                </div>
+                <p className="leading-relaxed text-indigo-100/90 font-medium">
+                  {questao.explicacaoErro}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* MODAL DE DIAGNÓSTICO DE ERRO */}
-      <AnimatePresence>
-        {showErrorDiagnosis && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-            onClick={() => setShowErrorDiagnosis(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.2 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#0c101d] border border-amber-500/30 rounded-2xl w-full max-w-xl shadow-2xl shadow-amber-950/20 overflow-hidden flex flex-col max-h-[90vh]"
-            >
-              {/* MODAL HEADER */}
-              <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800/80 bg-slate-900/60">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-xs">
-                    <Brain size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">
-                      Diagnóstico de Erro & Ponto Cego 🧠
-                    </h3>
-                    <p className="text-[11px] text-slate-400 font-medium">
-                      Questão {index + 1} • Classifique seu motivo para calibrar a IA
-                    </p>
-                  </div>
-                </div>
+      {/* DRAWER FLUTUANTE DO COPILOT MENTOR IA */}
+      <MentorCopilotDrawer
+        isOpen={isMentorOpen}
+        onClose={() => setIsMentorOpen(false)}
+        questionIndex={index}
+        questionText={questao.enunciado}
+        options={questao.alternativas}
+        correctAnswer={questao.gabaritoCorreto}
+        explanation={questao.justificativa}
+        mentorGuidance={questao.mentorGuidance}
+        onGuidanceGenerated={(newGuidance) => {
+          questao.mentorGuidance = newGuidance;
+        }}
+      />
 
-                <button
-                  type="button"
-                  onClick={() => setShowErrorDiagnosis(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
-                  title="Fechar"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* MODAL CONTENT */}
-              <div className="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
-                {/* Resumo da resposta */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-medium">Sua resposta:</span>
-                    <span className="font-bold text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-md border border-rose-500/20">
-                      {alternativaSelecionada || "Nenhuma"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-medium">Gabarito correto:</span>
-                    <span className="font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
-                      {questao.gabaritoCorreto}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Bloco: Seleção do Motivo do Erro */}
-                <div className="space-y-2">
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 block">
-                    Qual foi a causa principal do erro?
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {ERROR_TAXONOMY.map((reason) => {
-                      const Icon = reason.icon;
-                      const isChosen = selectedReason === reason.key;
-                      return (
-                        <button
-                          key={reason.key}
-                          type="button"
-                          onClick={() => handleSelectReason(reason.key)}
-                          className={`cursor-pointer p-3 rounded-xl border text-left transition-all flex items-start gap-2.5 ${
-                            isChosen
-                              ? reason.bgActive
-                              : "border-white/5 bg-slate-950/60 hover:bg-slate-900/60 hover:border-white/15"
-                          }`}
-                        >
-                          <div className={`p-1.5 rounded-lg border shrink-0 ${reason.color}`}>
-                            <Icon size={14} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-slate-100 leading-tight">
-                                {reason.label}
-                              </span>
-                              {isChosen && <Check size={13} className="text-emerald-400 shrink-0" />}
-                            </div>
-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">
-                              {reason.desc}
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Bloco 1: Pegadinha da Banca */}
-                <div className="rounded-xl p-4 bg-amber-950/15 border border-amber-500/25 space-y-2">
-                  <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
-                    <AlertTriangle size={15} />
-                    <span>Pegadinha da Banca / Armadilha</span>
-                  </div>
-                  <div className="text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
-                    {renderEnunciado(
-                      questao.pegadinhaBanca ||
-                        "A banca utilizou distratores formulados para desviar a atenção do núcleo do comando e induzir o candidato ao erro conceitual.",
-                    )}
-                  </div>
-                </div>
-
-                {/* Bloco 2: Ponto Cego & Explicação do Erro */}
-                <div className="rounded-xl p-4 bg-indigo-950/20 border border-indigo-500/25 space-y-2">
-                  <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wider">
-                    <Target size={15} />
-                    <span>Ponto Cego & Por que você errou</span>
-                  </div>
-                  <div className="text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
-                    {renderEnunciado(
-                      questao.explicacaoErro ||
-                        "Confusão comum na interpretação das regras ou detalhes do enunciado. Revise os conceitos-chave e as exceções associadas a este tópico.",
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* MODAL FOOTER */}
-              <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-800/80 bg-slate-900/40">
-                <button
-                  type="button"
-                  onClick={() => setShowErrorDiagnosis(false)}
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-950/40 active:scale-95"
-                >
-                  Entendi o erro
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* MODAL DE DISSECAÇÃO "POR QUE ESTÁ ERRADA?" */}
+      <SocraticWhyWrongModal
+        isOpen={whyWrongModal.isOpen}
+        onClose={() => setWhyWrongModal((prev) => ({ ...prev, isOpen: false }))}
+        optionId={whyWrongModal.optionId}
+        optionText={whyWrongModal.optionText}
+        explanation={whyWrongModal.explanation}
+        isLoading={whyWrongModal.isLoading}
+      />
     </motion.div>
   );
 }

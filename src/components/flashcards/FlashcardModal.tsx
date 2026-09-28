@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Loader2,
@@ -42,6 +43,11 @@ export default function FlashcardModal({
 
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [submitting, setSubmitting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Submissão do formulário
   const handleSubmit = useCallback(
@@ -101,11 +107,11 @@ export default function FlashcardModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose, handleSubmit]);
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-xl bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl relative">
+  const modalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
+      <div className="w-full max-w-xl bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl relative my-auto max-h-[92vh]">
         {/* Glow de fundo */}
         <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -290,4 +296,6 @@ export default function FlashcardModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

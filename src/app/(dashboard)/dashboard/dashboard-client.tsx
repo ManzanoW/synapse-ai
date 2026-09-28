@@ -8,17 +8,31 @@ import React, {
 } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import PomodoroTimer from "@/components/pomodoro-timer";
+import dynamic from "next/dynamic";
 import SubjectCard from "@/components/subject-card";
-import { NewContentModal } from "@/components/create-subject-modal";
 import SubjectCardSkeleton from "@/components/subject-card-skeleton";
 import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { DashboardSubject } from "@/types";
-import { LevelUpModal } from "@/components/gamification/level-up-modal";
 import { DailyQuestsPanel } from "@/components/dashboard/DailyQuestsPanel";
-import { ZenModeOverlay } from "@/components/dashboard/ZenModeOverlay";
+import { GamificationCockpitCard } from "@/components/dashboard/GamificationCockpitCard";
+import { LeagueWidgetCard } from "@/components/dashboard/LeagueWidgetCard";
+import { KeyMetricsCard } from "@/components/dashboard/KeyMetricsCard";
 import { useGamification } from "@/context/GamificationContext";
+
+// Lazy-loaded Modais & Overlays pesados para otimização de bundle e LCP
+const NewContentModal = dynamic(
+  () => import("@/components/create-subject-modal").then((m) => m.NewContentModal),
+  { ssr: false }
+);
+const LevelUpModal = dynamic(
+  () => import("@/components/gamification/level-up-modal").then((m) => m.LevelUpModal),
+  { ssr: false }
+);
+const ZenModeOverlay = dynamic(
+  () => import("@/components/dashboard/ZenModeOverlay").then((m) => m.ZenModeOverlay),
+  { ssr: false }
+);
 import {
   Menu,
   BookOpen,
@@ -37,11 +51,50 @@ import {
   ChevronUp,
   Snowflake,
   Maximize2,
+  Headphones,
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  Compass,
+  SlidersHorizontal,
+  Settings2,
+  CheckSquare,
+  Square,
+  Eye,
+  Camera,
 } from "lucide-react";
-import Heatmap from "@/components/analytics/Heatmap";
-import DomainRadarChart from "@/components/dashboard/DomainRadarChart";
-import { StreakFreezeModal } from "@/components/dashboard/StreakFreezeModal";
 import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
+import type { ApprovalOddsData } from "@/actions/analytics-actions";
+import { type OnboardingQuizResult } from "@/components/onboarding/WelcomeQuizModal";
+
+const Heatmap = dynamic(() => import("@/components/analytics/Heatmap"), {
+  ssr: false,
+});
+const DomainRadarChart = dynamic(
+  () => import("@/components/dashboard/DomainRadarChart"),
+  { ssr: false }
+);
+const StreakFreezeModal = dynamic(
+  () => import("@/components/dashboard/StreakFreezeModal").then((m) => m.StreakFreezeModal),
+  { ssr: false }
+);
+const TutorialModal = dynamic(
+  () => import("@/components/tutorial/TutorialModal").then((m) => m.TutorialModal),
+  { ssr: false }
+);
+const CustomizeCardsModal = dynamic(
+  () => import("@/components/dashboard/CustomizeCardsModal").then((m) => m.CustomizeCardsModal),
+  { ssr: false }
+);
+const WelcomeQuizModal = dynamic(
+  () => import("@/components/onboarding/WelcomeQuizModal").then((m) => m.WelcomeQuizModal),
+  { ssr: false }
+);
+import { FirstStepsChecklistCard } from "@/components/dashboard/FirstStepsChecklistCard";
+import { DailyFlowCard } from "@/components/dashboard/DailyFlowCard";
+import type { DailyFlowData } from "@/actions/daily-flow-actions";
+import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
+import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 import { DailyTipCard } from "@/components/dashboard/DailyTipCard";
 import { TutorialModal } from "@/components/tutorial/TutorialModal";
 
@@ -99,6 +152,62 @@ interface Suggestion {
   actionUrl?: string;
 }
 
+export interface DashboardCardVisibility {
+  heroJourney: boolean;
+  quickActions: boolean;
+  dailyQuests: boolean;
+  keyMetrics: boolean;
+  radarDomain: boolean;
+  aiSuggestions: boolean;
+  subjects: boolean;
+  approvalOdds: boolean;
+  gamification: boolean;
+  focusRoom: boolean;
+  heatmap: boolean;
+}
+
+export const DEFAULT_FULL_CARDS: DashboardCardVisibility = {
+  heroJourney: true,
+  quickActions: true,
+  dailyQuests: true,
+  keyMetrics: true,
+  radarDomain: true,
+  aiSuggestions: true,
+  subjects: true,
+  approvalOdds: true,
+  gamification: true,
+  focusRoom: true,
+  heatmap: true,
+};
+
+export const DEFAULT_MINIMAL_CARDS: DashboardCardVisibility = {
+  heroJourney: true,
+  quickActions: true,
+  dailyQuests: true,
+  keyMetrics: false,
+  radarDomain: false,
+  aiSuggestions: false,
+  subjects: true,
+  approvalOdds: false,
+  gamification: false,
+  focusRoom: false,
+  heatmap: false,
+};
+
+export const DEFAULT_PRACTICE_CARDS: DashboardCardVisibility = {
+  heroJourney: true,
+  quickActions: true,
+  dailyQuests: true,
+  keyMetrics: true,
+  radarDomain: false,
+  aiSuggestions: false,
+  subjects: true,
+  approvalOdds: false,
+  gamification: true,
+  focusRoom: true,
+  heatmap: false,
+};
+
 interface DashboardClientProps {
   user: {
     id?: string;
@@ -106,9 +215,15 @@ interface DashboardClientProps {
     email?: string | null;
     image?: string | null;
   };
+  initialApprovalOdds?: ApprovalOddsData | null;
+  initialDailyFlow?: DailyFlowData | null;
 }
 
-export default function DashboardClient({ user }: DashboardClientProps) {
+export default function DashboardClient({
+  user,
+  initialApprovalOdds,
+  initialDailyFlow,
+}: DashboardClientProps) {
   const { openSidebar } = useSidebar();
   const searchParams = useSearchParams();
 
@@ -127,21 +242,87 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     [isDemo],
   );
 
+  const [isWelcomeQuizOpen, setIsWelcomeQuizOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Exibe tutorial automaticamente para novos usuários no modo demo
+  // Modo de Exibição do Dashboard (Minimalista vs Prática vs Completo vs Personalizado)
+  const [dashboardMode, setDashboardMode] = useState<"full" | "minimal" | "practice" | "custom">("full");
+  const [visibleCards, setVisibleCards] = useState<DashboardCardVisibility>(DEFAULT_FULL_CARDS);
+  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
+  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
+
+  // Carrega preferências salvas e exibe Welcome Quiz no 1º acesso ou sob demanda via query params
   useEffect(() => {
-    if (isDemo) {
-      try {
-        const seen = localStorage.getItem("synapse_tutorial_seen");
-        if (!seen) {
-          setIsTutorialOpen(true);
-        }
-      } catch {}
+    try {
+      const openQuizParam = searchParams?.get("openQuiz") === "true";
+      const openTourParam = searchParams?.get("openTour") === "true";
+
+      const quizSeen = localStorage.getItem("synapse_onboarding_quiz_seen");
+      const tutorialSeen = localStorage.getItem("synapse_tutorial_seen");
+
+      if (openQuizParam) {
+        setIsWelcomeQuizOpen(true);
+      } else if (openTourParam) {
+        setIsTutorialOpen(true);
+      } else if (!quizSeen) {
+        setIsWelcomeQuizOpen(true);
+      } else if (tutorialSeen) {
+        setHasCompletedTutorial(true);
+      }
+
+      const savedMode = localStorage.getItem("synapse_dashboard_mode") as "full" | "minimal" | "practice" | "custom" | null;
+      const savedCards = localStorage.getItem("synapse_dashboard_cards");
+      if (savedMode === "minimal") {
+        setDashboardMode("minimal");
+        setVisibleCards(DEFAULT_MINIMAL_CARDS);
+      } else if (savedMode === "practice") {
+        setDashboardMode("practice");
+        setVisibleCards(DEFAULT_PRACTICE_CARDS);
+      } else if (savedMode === "custom" && savedCards) {
+        setDashboardMode("custom");
+        setVisibleCards({ ...DEFAULT_FULL_CARDS, ...JSON.parse(savedCards) });
+      } else {
+        setDashboardMode("full");
+        setVisibleCards(DEFAULT_FULL_CARDS);
+      }
+    } catch {}
+  }, []);
+
+  const handleSwitchMode = (mode: "full" | "minimal" | "practice") => {
+    setDashboardMode(mode);
+    let nextCards = DEFAULT_FULL_CARDS;
+    if (mode === "minimal") nextCards = DEFAULT_MINIMAL_CARDS;
+    if (mode === "practice") nextCards = DEFAULT_PRACTICE_CARDS;
+    setVisibleCards(nextCards);
+    try {
+      localStorage.setItem("synapse_dashboard_mode", mode);
+      localStorage.setItem("synapse_dashboard_cards", JSON.stringify(nextCards));
+    } catch {}
+  };
+
+  const handleCompleteWelcomeQuiz = (result: OnboardingQuizResult) => {
+    setIsWelcomeQuizOpen(false);
+    try {
+      localStorage.setItem("synapse_onboarding_quiz_seen", "true");
+      localStorage.setItem("synapse_daily_study_hours", String(result.dailyHours));
+    } catch {}
+    handleSwitchMode(result.profileMode);
+    if (result.startAction === "edital" || (result.careerTemplate && result.careerTemplate !== "custom")) {
+      loadDashboardData();
     }
-  }, [isDemo]);
+  };
+
+  const handleToggleCard = (key: keyof DashboardCardVisibility) => {
+    const updated = { ...visibleCards, [key]: !visibleCards[key] };
+    setVisibleCards(updated);
+    setDashboardMode("custom");
+    try {
+      localStorage.setItem("synapse_dashboard_mode", "custom");
+      localStorage.setItem("synapse_dashboard_cards", JSON.stringify(updated));
+    } catch {}
+  };
 
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
@@ -156,7 +337,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [mobileTab, setMobileTab] = useState<
     "missions" | "stats" | "gamification"
   >("missions");
-  const [isPomodoroOpenMobile, setIsPomodoroOpenMobile] = useState(false);
 
   // Modo Zen / Imersivo
   const [isZenModeOpen, setIsZenModeOpen] = useState(false);
@@ -392,16 +572,27 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const handleOptimizeSchedule = async () => {
     try {
       setIsOptimizing(true);
+      // 1. Executa algoritmo adaptativo real para balancear metas e prioridades por desempenho
+      try {
+        await autoRebalanceFromPerformanceAction();
+      } catch (rebalanceErr) {
+        console.warn("Aviso ao rebalancear cronograma adaptativo:", rebalanceErr);
+      }
+
+      // 2. Busca novas sugestões inteligentes atualizadas
       const response = await fetch("/api/ai/suggestions", {
         cache: "no-store",
       });
 
-      if (!response.ok) throw new Error("Erro ao otimizar cronograma");
-      const data = await response.json();
-
-      if (data.data) {
-        setSuggestions(data.data);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data) {
+          setSuggestions(data.data);
+        }
       }
+
+      // 3. Recarrega métricas do dashboard
+      await loadDashboardData();
 
       setIsOptimized(true);
       setTimeout(() => setIsOptimized(false), 4000);
@@ -458,6 +649,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
   const hasEditalSubjects = subjects.length > 0;
   const displayedSubjects = subjects.slice(0, 4);
+  const hasRightColumnCards =
+    visibleCards.approvalOdds ||
+    visibleCards.gamification ||
+    visibleCards.focusRoom ||
+    visibleCards.heatmap;
 
   return (
     <div className="min-h-screen w-full bg-transparent p-4 sm:p-6 md:p-8 font-sans text-slate-100 selection:bg-indigo-500/30">
@@ -473,6 +669,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <Menu size={18} />
             </button>
 
+            <div className="md:hidden flex items-center">
+              <NotificationsPopover />
+            </div>
+
             <div>
               <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-white">
                 Dashboard
@@ -486,93 +686,178 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
+          {/* Ações e Controles Superiores do Dashboard */}
           <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Seletor de Modo: Minimalista (Essencial) vs Prática vs Completo vs Personalizado */}
+            <div className="flex items-center p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-inner">
+              <button
+                type="button"
+                onClick={() => handleSwitchMode("minimal")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  dashboardMode === "minimal"
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Modo Foco Essencial: apenas metas do dia e matérias, sem sobrecarga de gráficos"
+              >
+                <span>🌟 Essencial</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSwitchMode("practice")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  dashboardMode === "practice"
+                    ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Modo Prática: foco em simulados, flashcards e metas diárias"
+              >
+                <span>🎯 Prática</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSwitchMode("full")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  dashboardMode === "full"
+                    ? "bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Modo Completo: exibe todos os indicadores, predição de aprovação e métricas neurais"
+              >
+                <span>🚀 Completo</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsCustomizeModalOpen(true)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  dashboardMode === "custom"
+                    ? "bg-violet-600/30 text-violet-300 border border-violet-500/40"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Escolha exatamente quais cards aparecem na tela"
+              >
+                <SlidersHorizontal size={13} />
+                <span className="hidden sm:inline">Cards</span>
+              </button>
+            </div>
+
+            {/* Botão de Personalização / Meu Perfil */}
+            <button
+              type="button"
+              onClick={() => setIsWelcomeQuizOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:border-white/20 active:scale-95"
+              title="Ajustar perfil de estudos e tempo diário"
+            >
+              <Sparkles size={13} className="text-amber-400" />
+              <span className="hidden sm:inline">Meu Perfil</span>
+            </button>
+
+            {/* Botão de Tour pelo Sistema */}
             <button
               type="button"
               onClick={() => setIsTutorialOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-2.5 text-xs font-bold text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.15)] transition-all hover:bg-indigo-500/20 hover:border-indigo-500/50 active:scale-95"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-500/40 bg-indigo-950/40 hover:bg-indigo-900/50 px-3.5 py-2 text-xs font-bold text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all hover:border-indigo-400 active:scale-95 relative"
+              title="Iniciar tour guiado pela plataforma"
             >
-              <Sparkles size={14} className="text-indigo-400" />
-              <span>Modo Tutorial</span>
+              <Compass size={15} className="text-indigo-400 animate-spin-slow" />
+              <span>Tour do Sistema</span>
+              {!hasCompletedTutorial && (
+                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping absolute -top-0.5 -right-0.5" />
+              )}
             </button>
 
+            {/* Modo Zen */}
             <button
               onClick={() => setIsZenModeOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:bg-white/[0.08] hover:border-white/20 active:scale-95"
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:bg-white/[0.08] hover:border-white/20 active:scale-95"
+              title="Tela cheia minimalista para estudo focado"
             >
-              <Maximize2 size={14} className="text-violet-400" />
-              <span>Modo Zen</span>
+              <Maximize2 size={13} className="text-violet-400" />
+              <span className="hidden sm:inline">Modo Zen</span>
             </button>
 
+            {/* Iniciar Estudos */}
             <Link
               href={getHref(!isLoading && hasEditalSubjects ? "/flashcards" : "/edital")}
-              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-indigo-600/20 transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-95"
+              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 px-4 py-2 text-xs font-black text-white shadow-lg shadow-indigo-600/20 transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-95"
             >
               <Zap size={14} className="fill-white" />
               <span>
                 {isLoading
                   ? "Carregando..."
                   : hasEditalSubjects
-                    ? "Iniciar Estudos do Dia"
+                    ? "Iniciar Estudos"
                     : "Configurar Edital"}
               </span>
             </Link>
           </div>
         </div>
 
-        {/* ================= ATALHOS RÁPIDOS ================= */}
-        <div className="hidden md:grid grid-cols-4 gap-3">
-          {[
-            {
-              title: "Resolver Questões",
-              icon: HelpCircle,
-              color: "text-amber-400",
-              href: "/questions",
-            },
-            {
-              title: "Praticar Cards",
-              icon: Layers,
-              color: "text-indigo-400",
-              href: "/flashcards",
-            },
-            {
-              title: "Edital Verticalizado",
-              icon: BookOpen,
-              color: "text-cyan-400",
-              href: "/edital",
-              badge: !isLoading && !hasEditalSubjects ? "Passo 1" : undefined,
-            },
-            {
-              title: "Hall de Conquistas",
-              icon: Trophy,
-              color: "text-emerald-400",
-              href: "/achievements",
-            },
-          ].map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={idx}
-                href={getHref(item.href)}
-                className="relative flex items-center justify-between gap-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 p-3.5 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-slate-900/40 active:scale-[0.98]"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div className={`shrink-0 rounded-xl p-2 bg-white/[0.03] border border-white/5 ${item.color}`}>
-                    <Icon size={16} />
+        {/* ================= ATALHOS RÁPIDOS (2x2 no mobile, 5 colunas no desktop) ================= */}
+        {visibleCards.quickActions && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
+            {[
+              {
+                title: "Resolver Questões",
+                icon: HelpCircle,
+                color: "text-amber-400",
+                href: "/questions",
+              },
+              {
+                title: "Scanner OCR",
+                icon: Camera,
+                color: "text-rose-400",
+                href: "/questions?scan=true",
+                badge: "IA",
+              },
+              {
+                title: "Praticar Cards",
+                icon: Layers,
+                color: "text-indigo-400",
+                href: "/flashcards",
+              },
+              {
+                title: "Edital Verticalizado",
+                icon: BookOpen,
+                color: "text-cyan-400",
+                href: "/edital",
+                badge: !isLoading && !hasEditalSubjects ? "Passo 1" : undefined,
+              },
+              {
+                title: "Hall de Conquistas",
+                icon: Trophy,
+                color: "text-emerald-400",
+                href: "/achievements",
+              },
+            ].map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={idx}
+                  href={getHref(item.href)}
+                  className="relative flex items-center justify-between gap-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 p-3.5 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-slate-900/40 active:scale-[0.98]"
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div className={`shrink-0 rounded-xl p-2 bg-white/[0.03] border border-white/5 ${item.color}`}>
+                      <Icon size={16} />
+                    </div>
+                    <span className="text-xs font-bold text-slate-200 truncate">
+                      {item.title}
+                    </span>
                   </div>
-                  <span className="text-xs font-bold text-slate-200 truncate">
-                    {item.title}
-                  </span>
-                </div>
-                {item.badge && (
-                  <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+                  {item.badge && (
+                    <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
         {/* BANNER DE REMANEJAMENTO */}
         {!isLoading &&
@@ -589,8 +874,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           )}
 
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
-          <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+        {visibleCards.heroJourney && (
+          <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
 
           {/* LAYOUT MOBILE */}
           <div className="grid grid-cols-3 gap-2 text-center divide-x divide-white/5 md:hidden">
@@ -600,10 +886,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </span>
               {isLoading ? (
                 <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
-              ) : (
+              ) : stats?.journey?.hasObjective && (stats.journey.daysRemaining ?? 0) > 0 ? (
                 <span className="font-mono text-xl font-black text-white">
-                  {stats?.journey?.daysRemaining ?? 0}
+                  {stats.journey.daysRemaining}
                 </span>
+              ) : (
+                <Link
+                  href={getHref("/edital")}
+                  className="font-mono text-xs font-bold text-indigo-400 underline decoration-indigo-500/40 my-1 hover:text-indigo-300"
+                >
+                  Definir
+                </Link>
               )}
               <span className="text-[9px] text-slate-500 block">restantes</span>
             </div>
@@ -614,9 +907,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </span>
               {isLoading ? (
                 <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
-              ) : (
+              ) : stats?.journey?.hasObjective && (stats.journey.topicsPerWeek ?? 0) > 0 ? (
                 <span className="font-mono text-xl font-black text-amber-300">
-                  {stats?.journey?.topicsPerWeek ?? 0}
+                  {stats.journey.topicsPerWeek}
+                </span>
+              ) : (
+                <span className="font-mono text-xs font-bold text-amber-300/80 my-1">
+                  —
                 </span>
               )}
               <span className="text-[9px] text-slate-500 block">
@@ -655,15 +952,28 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <div className="flex items-baseline gap-2">
                   {isLoading ? (
                     <div className="h-10 w-24 rounded-lg bg-white/10 animate-pulse" />
-                  ) : (
+                  ) : stats?.journey?.hasObjective && (stats.journey.daysRemaining ?? 0) > 0 ? (
                     <>
                       <span className="font-mono text-4xl font-black tracking-tight text-white">
-                        {stats?.journey?.daysRemaining ?? 0}
+                        {stats.journey.daysRemaining}
                       </span>
                       <span className="text-xs font-semibold text-slate-400">
                         dias restantes
                       </span>
                     </>
+                  ) : (
+                    <div className="space-y-1">
+                      <span className="font-sans text-sm font-bold text-slate-200 block">
+                        Data não definida
+                      </span>
+                      <Link
+                        href={getHref("/profile")}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
+                      >
+                        <span>Definir data do concurso</span>
+                        <ArrowUpRight size={12} />
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -674,7 +984,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <div className="h-4 w-12 rounded bg-white/10 animate-pulse" />
                 ) : (
                   <strong className="font-mono text-slate-200">
-                    {stats?.journey?.weeksRemaining ?? 0} sem
+                    {stats?.journey?.hasObjective && (stats.journey.weeksRemaining ?? 0) > 0
+                      ? `${stats.journey.weeksRemaining} sem`
+                      : "—"}
                   </strong>
                 )}
               </div>
@@ -696,17 +1008,24 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <div className="flex items-baseline gap-2">
                   {isLoading ? (
                     <div className="h-10 w-24 rounded-lg bg-amber-400/10 animate-pulse" />
-                  ) : (
+                  ) : stats?.journey?.hasObjective && (stats.journey.topicsPerWeek ?? 0) > 0 ? (
                     <>
                       <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
-                        {hasEditalSubjects
-                          ? (stats?.journey?.topicsPerWeek ?? 0)
-                          : "—"}
+                        {stats.journey.topicsPerWeek}
                       </span>
                       <span className="text-xs font-medium text-slate-400">
-                        {hasEditalSubjects ? "tópicos / sem" : "Aguardando Edital"}
+                        tópicos / sem
                       </span>
                     </>
+                  ) : (
+                    <div className="space-y-1">
+                      <span className="font-sans text-sm font-bold text-amber-300/90 block">
+                        Calibrando Ritmo
+                      </span>
+                      <span className="text-[11px] text-slate-400 block">
+                        {hasEditalSubjects ? "Defina data para meta semanal" : "Aguardando matérias"}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -717,8 +1036,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <div className="h-4 w-16 rounded bg-white/10 animate-pulse" />
                 ) : (
                   <strong className="font-mono text-amber-300/90">
-                    {hasEditalSubjects
-                      ? `${stats?.journey?.currentPace ?? 0.0} / sem`
+                    {hasEditalSubjects && stats?.journey?.currentPace && stats.journey.currentPace > 0
+                      ? `${stats.journey.currentPace} / sem`
                       : "—"}
                   </strong>
                 )}
@@ -768,58 +1087,57 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
-                <span>Status:</span>
-                <span className="inline-flex items-center gap-1.5 font-bold text-indigo-300">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-                  {isLoading
-                    ? "Carregando..."
-                    : !hasEditalSubjects
-                      ? "Não Iniciado"
-                      : stats?.journey?.percentage === 100
-                        ? "Edital Completo"
-                        : "Em Andamento"}
-                </span>
-              </div>
+              {isLoading ? (
+                <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+                  <span>Status:</span>
+                  <div className="h-4 w-20 rounded bg-white/10 animate-pulse" />
+                </div>
+              ) : !hasEditalSubjects ? (
+                <Link
+                  href="/edital?import=true"
+                  className="group/cta flex items-center justify-between rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-3 py-2 text-xs font-semibold text-cyan-300 transition-all hover:scale-[1.02]"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-amber-400" />
+                    <span>Importar com IA</span>
+                  </div>
+                  <ArrowRight size={13} className="transition-transform group-hover/cta:translate-x-1" />
+                </Link>
+              ) : (
+                <Link
+                  href="/edital"
+                  className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400 hover:text-cyan-300 transition-colors group/link"
+                >
+                  <span className="flex items-center gap-1 font-medium">
+                    Ver Edital
+                    <ArrowRight size={12} className="transition-transform group-hover/link:translate-x-1 text-cyan-400" />
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 font-bold text-indigo-300">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
+                    {stats?.journey?.percentage === 100
+                      ? "Edital Completo"
+                      : "Em Andamento"}
+                  </span>
+                </Link>
+              )}
             </div>
           </div>
         </section>
+        )}
 
-        {/* ================= 3. ONBOARDING DISCRETO ================= */}
-        {!isLoading && !hasEditalSubjects && (
-          <div className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl">
-            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-500/40 to-transparent" />
-            <div className="relative z-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-              <div className="max-w-lg space-y-1.5">
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-amber-300">
-                  <Lock size={12} /> Onboarding Requerido
-                </div>
-                <h3 className="text-base sm:text-lg font-black text-white">
-                  Configure seu Edital para Ativar a IA
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Cadastre suas matérias para destravar o cronograma semanal, simulados adaptativos e predição neural de aprovação.
-                </p>
-              </div>
-              <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setIsTutorialOpen(true)}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/15 px-4 py-2.5 text-xs font-black text-indigo-300 shadow-md transition-all hover:bg-indigo-500/25 active:scale-95"
-                >
-                  <Sparkles size={14} className="text-indigo-400" />
-                  <span>Modo Tutorial</span>
-                </button>
-                <Link
-                  href={getHref("/edital")}
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-500/20 shrink-0 hover:bg-amber-400 transition-all"
-                >
-                  <BookOpen size={15} />
-                  <span>Cadastrar Edital</span>
-                </Link>
-              </div>
-            </div>
-          </div>
+        {/* ================= SESSÃO RECOMENDADA DE HOJE (DAILY FLOW 1-CLIQUE) ================= */}
+        {!isLoading && (
+          <DailyFlowCard flowData={initialDailyFlow || null} />
+        )}
+
+        {/* ================= 3. PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS) ================= */}
+        {!isLoading && (
+          <FirstStepsChecklistCard
+            hasEditalSubjects={hasEditalSubjects}
+            sessionsCount={stats?.metrics?.sessionsCount ?? 0}
+            questionsCount={stats?.metrics?.questionsCount ?? 0}
+            getHref={getHref}
+          />
         )}
 
         {/* ================= 4. SELETOR DE ABAS E CONTEÚDO EXCLUSIVO MOBILE ================= */}
@@ -871,7 +1189,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           {mobileTab === "stats" && (
             <div className="space-y-4">
               {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
-              <ApprovalOddsCard />
+              <ApprovalOddsCard initialData={initialApprovalOdds} />
 
               <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
                 <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
@@ -964,218 +1282,67 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           )}
 
           {mobileTab === "gamification" && (
-            <div className="space-y-4">
-              <Link
-                href={getHref("/achievements")}
-                className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
-              >
-                <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400">
-                      {level}
-                    </div>
-                    <div>
-                      <span className="block text-[9px] font-bold uppercase text-amber-400">
-                        Nível Atual
-                      </span>
-                      <h3 className="text-xs font-bold text-white">
-                        {levelTitle}
-                      </h3>
-                    </div>
-                  </div>
-                  <Award size={18} className="text-amber-400" />
-                </div>
-
-                <div className="space-y-2 pt-3">
-                  <div className="flex items-center justify-between font-mono text-xs">
-                    <span className="text-slate-400">
-                      XP: <strong className="text-white">{currentXp}</strong>
-                    </span>
-                    <span className="font-bold text-amber-400">
-                      {levelProgressPercent}%
-                    </span>
-                  </div>
-
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
-                    <div
-                      style={{ width: `${levelProgressPercent}%` }}
-                      className="h-full rounded-full bg-linear-to-r from-amber-500 to-amber-400"
-                    />
-                  </div>
-                </div>
-              </Link>
-
-              <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
-                <Link href={getHref("/performance")} className="block space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase text-slate-400">
-                      Meta Semanal
-                    </span>
-                    {isLoading ? (
-                      <div className="h-3 w-8 rounded bg-indigo-400/20 animate-pulse" />
-                    ) : (
-                      <span className="font-mono text-xs font-black text-indigo-400">
-                        {stats?.weeklyGoal?.percentage ?? 0}%
-                      </span>
-                    )}
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
-                    <div
-                      className="h-full rounded-full bg-indigo-500"
-                      style={{
-                        width: `${stats?.weeklyGoal?.percentage ?? 0}%`,
-                      }}
-                    />
-                  </div>
-                </Link>
-
-                <div className="my-2 border-t border-white/5" />
-
-                <div className="flex items-center justify-between">
-                  <Link
-                    href={getHref("/performance")}
-                    className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
-                  >
-                    Constância
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setIsStreakFreezeModalOpen(true)}
-                      title="Trava de Sequência"
-                      className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 transition-all hover:bg-cyan-500/20"
-                    >
-                      <Snowflake size={11} className="animate-spin-slow" />
-                      {streakFreezeCount}
-                    </button>
-                    <Link
-                      href={getHref("/performance")}
-                      className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
-                    >
-                      <Flame
-                        size={14}
-                        className="fill-amber-400 text-amber-400"
-                      />
-                      {Number(
-                        gStats.streakDays ??
-                          globalGamification?.streak?.currentDays ??
-                          0,
-                      )}{" "}
-                      Dias
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <GamificationCockpitCard
+              totalXp={currentXp}
+              level={level}
+              levelTitle={levelTitle}
+              currentLevelXp={xpProgressInLevel}
+              nextLevelXp={xpSpanForLevel}
+              progressPercent={levelProgressPercent}
+              streakDays={Number(
+                gStats.streakDays ??
+                  globalGamification?.streak?.currentDays ??
+                  stats?.streak?.currentDays ??
+                  0,
+              )}
+              streakFreezes={streakFreezeCount}
+              weekDays={stats?.streak?.weekDays}
+              weeklyGoalPercentage={stats?.weeklyGoal?.percentage ?? 0}
+              weeklyGoalTarget={stats?.weeklyGoal?.target ?? 50}
+              weeklyGoalCurrent={stats?.weeklyGoal?.current ?? 0}
+              onOpenStreakModal={() => setIsStreakFreezeModalOpen(true)}
+              getHref={getHref}
+            />
           )}
         </div>
 
         {/* ================= 5. GRID PRINCIPAL (DESKTOP) ================= */}
         <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-12">
           
-          {/* COLUNA ESQUERDA (`lg:col-span-8`) */}
-          <div className="space-y-6 lg:col-span-8">
+          {/* COLUNA ESQUERDA (expandida dinamicamente se a coluna direita estiver oculta) */}
+          <div className={`space-y-6 ${hasRightColumnCards ? "lg:col-span-8" : "lg:col-span-12"}`}>
             
             {/* PAINEL DUPLO APENAS NO DESKTOP */}
-            <div className="hidden md:grid grid-cols-2 gap-6">
-              {/* CARD 1: Missões do Dia */}
-              <DailyQuestsPanel />
+            {(visibleCards.dailyQuests || visibleCards.keyMetrics) && (
+              <div className={`hidden md:grid gap-6 items-start ${visibleCards.dailyQuests && visibleCards.keyMetrics ? "grid-cols-2" : "grid-cols-1"}`}>
+                {/* CARD 1: Missões do Dia */}
+                {visibleCards.dailyQuests && <DailyQuestsPanel />}
 
-              {/* CARD 2: Métricas de Desempenho */}
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl">
-                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-                
-                <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                    Estatísticas Chave
-                  </span>
-                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
-                    <Zap size={11} /> Tempo Real
-                  </span>
-                </div>
-
-                <div className="mb-6 flex gap-6">
-                  <div>
-                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Tempo Total
-                    </span>
-                    {isLoading ? (
-                      <div className="h-8 w-20 rounded bg-white/10 animate-pulse" />
-                    ) : (
-                      <span className="font-mono text-2xl font-black text-white">
-                        {stats?.metrics?.totalTimeFormatted || "0h 0m"}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      <span>Precisão</span>
-                      {isLoading ? (
-                        <div className="h-3 w-8 rounded bg-emerald-400/20 animate-pulse" />
-                      ) : (
-                        <span className="font-mono font-bold text-emerald-400">
-                          {stats?.metrics?.precision || "0%"}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
-                      <div
-                        className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
-                        style={{ width: stats?.metrics?.precision || "0%" }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4 text-center">
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">
-                      Sessões
-                    </span>
-                    {isLoading ? (
-                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
-                    ) : (
-                      <span className="font-mono text-sm font-extrabold text-white">
-                        {stats?.metrics?.sessionsCount ?? 0}
-                      </span>
-                    )}
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">
-                      Questões
-                    </span>
-                    {isLoading ? (
-                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
-                    ) : (
-                      <span className="font-mono text-sm font-extrabold text-white">
-                        {stats?.metrics?.questionsCount ?? 0}
-                      </span>
-                    )}
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">
-                      Méd/Dia
-                    </span>
-                    {isLoading ? (
-                      <div className="mx-auto my-0.5 h-5 w-12 rounded bg-white/10 animate-pulse" />
-                    ) : (
-                      <span className="font-mono text-sm font-extrabold text-white">
-                        {stats?.metrics?.averageTimePerSession || "0min"}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                {/* CARD 2: Métricas de Desempenho & Ritmo Semanal */}
+                {visibleCards.keyMetrics && (
+                  <KeyMetricsCard
+                    isLoading={isLoading}
+                    totalTime={stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                    precision={stats?.metrics?.precision || "0%"}
+                    sessionsCount={stats?.metrics?.sessionsCount ?? 0}
+                    questionsCount={stats?.metrics?.questionsCount ?? 0}
+                    averageTimePerSession={stats?.metrics?.averageTimePerSession || "0min"}
+                    heatmap={stats?.heatmap}
+                  />
+                )}
               </div>
-            </div>
+            )}
 
             {/* CARD: DICA DIÁRIA (EVIDÊNCIA CIENTÍFICA & GEMINI) */}
             <DailyTipCard />
 
             {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
-            <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              <DomainRadarChart subjects={subjects} isLoading={isLoading} />
-            </div>
+            {visibleCards.radarDomain && (
+              <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                <DomainRadarChart subjects={subjects} isLoading={isLoading} />
+              </div>
+            )}
 
             {/* CARD 3: Sugestões com IA */}
             {!isLoading && hasEditalSubjects && (
@@ -1183,41 +1350,41 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400">
+                    <div className="rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 p-2">
                       <Sparkles size={18} />
                     </div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
                       Sugestões Inteligentes da IA
                     </h3>
                   </div>
-                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[9px] font-bold text-cyan-300">
+                  <span className="rounded-full border border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 px-2.5 py-0.5 font-mono text-[9px] font-bold">
                     Synapse Neural
                   </span>
                 </div>
 
                 <div className="space-y-3">
                   {suggestions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-xs text-slate-400">
+                    <div className="rounded-2xl border border-dashed border-slate-200 dark:border-white/10 p-4 text-center text-xs text-slate-500 dark:text-slate-400">
                       Seu cronograma está 100% otimizado!
                     </div>
                   ) : (
                     suggestions.map((item: Suggestion) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3 hover:border-white/10 transition-colors"
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100/80 hover:border-slate-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:border-white/10 p-3 transition-colors"
                       >
                         <Link
                           href={getSuggestionUrl(item)}
                           className="flex items-center gap-3 flex-1 min-w-0"
                         >
-                          <div className="shrink-0 rounded-xl p-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                          <div className="shrink-0 rounded-xl p-2 bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
                             <BrainCircuit size={16} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h4 className="text-xs font-bold text-slate-200 truncate">
+                            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">
                               {item.title}
                             </h4>
-                            <p className="text-[11px] text-slate-400 truncate">
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
                               {item.description}
                             </p>
                           </div>
@@ -1230,225 +1397,215 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <button
                   onClick={handleOptimizeSchedule}
                   disabled={isOptimizing}
-                  className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 py-2.5 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20 transition-all"
+                  className={`mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-bold transition-all ${
+                    isOptimized
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300 shadow-2xs"
+                      : "border-cyan-200 bg-cyan-50/90 text-cyan-800 hover:bg-cyan-100 hover:border-cyan-300 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20 shadow-2xs"
+                  }`}
                 >
-                  {isOptimizing
-                    ? "Otimizando..."
-                    : "Otimizar Cronograma com IA"}
+                  {isOptimizing ? (
+                    <span>Otimizando Cronograma com IA...</span>
+                  ) : isOptimized ? (
+                    <>
+                      <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
+                      <span>Cronograma e Metas Otimizados!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      <span>Otimizar Cronograma com IA</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
 
             {/* CARD 4: Minhas Matérias */}
-            <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl relative">
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <BookOpen size={18} className="text-indigo-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                    Minhas Matérias
-                  </h3>
+            {visibleCards.subjects && (
+              <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl relative">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <BookOpen size={18} className="text-indigo-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                      Minhas Matérias
+                    </h3>
+                  </div>
+                  <Link
+                    href={getHref("/edital")}
+                    className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
+                    Ver todas ({subjects.length})
+                  </Link>
                 </div>
-                <Link
-                  href={getHref("/edital")}
-                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  Ver todas ({subjects.length})
-                </Link>
-              </div>
 
-              {isLoading ? (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {[...Array(2)].map((_, i) => (
-                    <SubjectCardSkeleton key={i} />
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {displayedSubjects.map((sub) => (
-                    <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
-                      <SubjectCard
-                        title={sub.name}
-                        colorClass={sub.color || "#3B82F6"}
-                        progress={sub.progress ?? 0}
-                        accuracy={sub.accuracy ?? 0}
-                        timeSpent={sub.timeSpent ?? "0min"}
-                        totalCards={sub._count?.topics ?? 0}
-                      />
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+                {isLoading ? (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {[...Array(2)].map((_, i) => (
+                      <SubjectCardSkeleton key={i} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {displayedSubjects.map((sub) => (
+                      <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
+                        <SubjectCard
+                          title={sub.name}
+                          colorClass={sub.color || "#3B82F6"}
+                          progress={sub.progress ?? 0}
+                          accuracy={sub.accuracy ?? 0}
+                          timeSpent={sub.timeSpent ?? "0min"}
+                          totalCards={sub._count?.topics ?? 0}
+                        />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* BARRA LATERAL DIREITA (`lg:col-span-4` - APENAS DESKTOP) */}
-          <div className="hidden md:block space-y-6 lg:col-span-4">
-            {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
-            <ApprovalOddsCard />
+          {hasRightColumnCards && (
+            <div className="hidden md:block space-y-6 lg:col-span-4">
+              {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
+              {visibleCards.approvalOdds && (
+                <ApprovalOddsCard initialData={initialApprovalOdds} />
+              )}
 
-            {/* GAMIFICAÇÃO & NÍVEL */}
-            <Link
-              href={getHref("/achievements")}
-              className="group relative block overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl hover:border-amber-500/30 transition-all"
-            >
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-400/50 to-transparent" />
-              
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 font-black text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
-                    {level}
-                  </div>
-                  <div>
-                    <span className="block text-[9px] font-bold uppercase text-amber-400/90">
-                      Nível Atual
-                    </span>
-                    <h3 className="text-xs font-bold text-white">
-                      {levelTitle}
-                    </h3>
-                  </div>
-                </div>
-                <Award size={18} className="text-amber-400" />
-              </div>
-
-              <div className="space-y-2 pt-3">
-                <div className="flex items-center justify-between font-mono text-xs">
-                  <span className="text-slate-400">
-                    XP: <strong className="text-white">{currentXp}</strong>
-                  </span>
-                  <span className="font-bold text-amber-400">
-                    {levelProgressPercent}%
-                  </span>
-                </div>
-
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
-                  <div
-                    style={{ width: `${levelProgressPercent}%` }}
-                    className="h-full rounded-full bg-linear-to-r from-amber-500 to-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
-                  />
-                </div>
-              </div>
-            </Link>
-
-            {/* META SEMANAL & CONSTÂNCIA */}
-            <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              
-              <Link href={getHref("/performance")} className="block space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase text-slate-400">
-                    Meta Semanal
-                  </span>
-                  {isLoading ? (
-                    <div className="h-3 w-8 rounded bg-indigo-400/20 animate-pulse" />
-                  ) : (
-                    <span className="font-mono text-xs font-black text-indigo-400">
-                      {stats?.weeklyGoal?.percentage ?? 0}%
-                    </span>
+              {/* COCKPIT DE GAMIFICAÇÃO & CONSTÂNCIA */}
+              {visibleCards.gamification && (
+                <GamificationCockpitCard
+                  totalXp={currentXp}
+                  level={level}
+                  levelTitle={levelTitle}
+                  currentLevelXp={xpProgressInLevel}
+                  nextLevelXp={xpSpanForLevel}
+                  progressPercent={levelProgressPercent}
+                  streakDays={Number(
+                    gStats.streakDays ??
+                      globalGamification?.streak?.currentDays ??
+                      stats?.streak?.currentDays ??
+                      0,
                   )}
+                  streakFreezes={streakFreezeCount}
+                  weekDays={stats?.streak?.weekDays}
+                  weeklyGoalPercentage={stats?.weeklyGoal?.percentage ?? 0}
+                  weeklyGoalTarget={stats?.weeklyGoal?.target ?? 50}
+                  weeklyGoalCurrent={stats?.weeklyGoal?.current ?? 0}
+                  onOpenStreakModal={() => setIsStreakFreezeModalOpen(true)}
+                  getHref={getHref}
+                />
+              )}
+
+              {/* LIGAS SEMANAIS & GAMIFICAÇÃO D30 */}
+              <LeagueWidgetCard />
+
+              {/* SALA DE FOCO & DEEP WORK (ZEN COCKPIT) */}
+              {visibleCards.focusRoom && (
+                <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-linear-to-br from-indigo-950/40 via-slate-950/70 to-purple-950/30 p-6 shadow-2xl backdrop-blur-2xl group hover:border-indigo-500/40 transition-all duration-300">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-400/50 to-transparent" />
+                  <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-indigo-500/10 blur-2xl" />
+
+                  <div className="relative z-10 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-transform">
+                          <Headphones size={20} className="animate-pulse text-indigo-400" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                              Sala de Foco
+                            </h3>
+                            <span className="rounded-full border border-violet-500/30 bg-violet-500/15 px-1.5 py-0.5 font-mono text-[9px] font-bold text-violet-300">
+                              ZEN
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400">
+                            Deep Work & Bioacústica
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setIsZenModeOpen(true)}
+                        className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-mono font-bold text-slate-300 hover:bg-white/[0.08] hover:text-white transition-all active:scale-95"
+                        title="Ativar tela cheia minimalista"
+                      >
+                        <Maximize2 size={11} className="text-violet-400" />
+                        <span>Modo Zen</span>
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-slate-300/90 leading-relaxed">
+                      Treine em estado de flow com sons binaurais procedurais (Alpha 10Hz), chuva, ruído marrom e timer pomodoro inteligente.
+                    </p>
+
+                    <div className="pt-1">
+                      <Link
+                        href={getHref("/study-room")}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-600/80 via-purple-600/80 to-indigo-600/80 hover:from-indigo-500 hover:to-purple-500 py-3 px-4 text-xs font-bold text-white shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/30 active:scale-98 transition-all group/btn cursor-pointer"
+                      >
+                        <Headphones size={15} className="group-hover/btn:rotate-12 transition-transform" />
+                        <span>Entrar na Sala de Foco</span>
+                        <ArrowRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-white/5">
-                  <div
-                    className="h-full rounded-full bg-indigo-500"
-                    style={{ width: `${stats?.weeklyGoal?.percentage ?? 0}%` }}
-                  />
+              )}
+
+              {/* HEATMAP */}
+              {visibleCards.heatmap && (
+                <div className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                  <Heatmap />
                 </div>
-              </Link>
-
-              <div className="my-2 border-t border-white/5" />
-
-              <div className="flex items-center justify-between">
-                <Link
-                  href={getHref("/performance")}
-                  className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 hover:text-slate-200 transition-colors"
-                >
-                  Constância
-                </Link>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setIsStreakFreezeModalOpen(true)}
-                    title="Trava de Sequência"
-                    className="cursor-pointer flex items-center gap-1 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/20 transition-all"
-                  >
-                    <Snowflake size={11} className="animate-spin-slow" />
-                    {streakFreezeCount}
-                  </button>
-                  <Link
-                    href={getHref("/performance")}
-                    className="flex items-center gap-1 font-mono text-xs font-black text-amber-400"
-                  >
-                    <Flame
-                      size={14}
-                      className="fill-amber-400 text-amber-400"
-                    />
-                    {Number(
-                      gStats.streakDays ??
-                        globalGamification?.streak?.currentDays ??
-                        0,
-                    )}{" "}
-                    Dias
-                  </Link>
-                </div>
-              </div>
+              )}
             </div>
-
-            {/* POMODORO TIMER COM GATILHO MODO ZEN */}
-            <div
-              id="pomodoro"
-              className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-4 shadow-2xl backdrop-blur-2xl relative"
-            >
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              
-              <div className="flex justify-end pb-2">
-                <button
-                  onClick={() => setIsZenModeOpen(true)}
-                  className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-mono font-bold text-slate-300 hover:bg-white/[0.08] transition-all active:scale-95"
-                >
-                  <Maximize2 size={12} className="text-violet-400" />
-                  <span>Modo Zen</span>
-                </button>
-              </div>
-              <PomodoroTimer />
-            </div>
-
-            {/* HEATMAP */}
-            <div className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
-              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              <Heatmap />
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* POMODORO DOBRÁVEL APENAS NO MOBILE */}
-        <div
-          id="pomodoro-mobile"
-          className="block md:hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-3 shadow-2xl backdrop-blur-2xl"
-        >
-          <div className="flex items-center justify-between p-2">
-            <button
-              onClick={() => setIsPomodoroOpenMobile((prev) => !prev)}
-              className="flex items-center gap-2 text-xs font-bold text-slate-300"
-            >
-              <span>Pomodoro Timer</span>
-              {isPomodoroOpenMobile ? (
-                <ChevronUp size={16} />
-              ) : (
-                <ChevronDown size={16} />
-              )}
-            </button>
+        {/* LIGAS SEMANAIS NO MOBILE */}
+        <div className="block md:hidden">
+          <LeagueWidgetCard />
+        </div>
 
-            <button
-              onClick={() => setIsZenModeOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-violet-300"
-            >
-              <Maximize2 size={10} />
-              <span>Zen</span>
-            </button>
-          </div>
+        {/* SALA DE FOCO NO MOBILE */}
+        <div className="block md:hidden rounded-3xl border border-indigo-500/20 bg-linear-to-br from-indigo-950/40 via-slate-950/70 to-purple-950/30 p-4 shadow-2xl backdrop-blur-2xl">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400">
+                <Headphones size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold text-white truncate">Sala de Foco</h4>
+                  <span className="rounded-full border border-violet-500/30 bg-violet-500/15 px-1 py-0.2 font-mono text-[8px] font-bold text-violet-300">ZEN</span>
+                </div>
+                <p className="text-[10px] text-slate-400 truncate">Sons binaurais & Pomodoro</p>
+              </div>
+            </div>
 
-          <div className={`${isPomodoroOpenMobile ? "block" : "hidden"}`}>
-            <PomodoroTimer />
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setIsZenModeOpen(true)}
+                className="cursor-pointer inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-mono font-bold text-slate-300 active:scale-95"
+              >
+                <Maximize2 size={11} className="text-violet-400" />
+                <span>Zen</span>
+              </button>
+
+              <Link
+                href={getHref("/study-room")}
+                className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-500/40 bg-indigo-600/80 hover:bg-indigo-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-md active:scale-95"
+              >
+                <Headphones size={12} />
+                <span>Entrar</span>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -1489,11 +1646,38 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         }}
       />
 
+      {/* MODAL WIZARD DE BOAS-VINDAS / ONBOARDING */}
+      <WelcomeQuizModal
+        isOpen={isWelcomeQuizOpen}
+        onClose={() => {
+          setIsWelcomeQuizOpen(false);
+          try {
+            localStorage.setItem("synapse_onboarding_quiz_seen", "true");
+          } catch {}
+        }}
+        onComplete={handleCompleteWelcomeQuiz}
+        onOpenFullTour={() => setIsTutorialOpen(true)}
+        userName={user.name}
+      />
+
       {/* MODAL MODO TUTORIAL */}
       <TutorialModal
         isOpen={isTutorialOpen}
-        onClose={() => setIsTutorialOpen(false)}
+        onClose={() => {
+          setIsTutorialOpen(false);
+          setHasCompletedTutorial(true);
+        }}
         isDemo={isDemo}
+      />
+
+      {/* MODAL DE PERSONALIZAÇÃO DE CARDS */}
+      <CustomizeCardsModal
+        isOpen={isCustomizeModalOpen}
+        onClose={() => setIsCustomizeModalOpen(false)}
+        visibleCards={visibleCards}
+        onToggleCard={handleToggleCard}
+        onApplyPreset={handleSwitchMode}
+        currentMode={dashboardMode}
       />
     </div>
   );

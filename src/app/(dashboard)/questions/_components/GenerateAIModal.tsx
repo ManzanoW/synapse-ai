@@ -25,6 +25,7 @@ interface GenerateAIModalProps {
   banca: string;
   materia: string;
   selectedTopicId: string;
+  specificTopic: string;
   qtdQuestoes: string;
   fonteConteudo: "banca" | "texto" | "pdf";
   dificuldade: string;
@@ -35,10 +36,17 @@ interface GenerateAIModalProps {
   onBancaChange: (value: string) => void;
   onMateriaChange: (value: string) => void;
   onTopicChange: (value: string) => void;
+  onSpecificTopicChange: (value: string) => void;
   onFonteChange: (value: "banca" | "texto" | "pdf") => void;
   onTextoBaseChange: (value: string) => void;
   onDificuldadeChange: (value: string) => void;
   onQtdQuestoesChange: (value: string) => void;
+  isAdaptiveMode?: boolean;
+  onAdaptiveModeChange?: (val: boolean) => void;
+  formatoQuestao?: "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos";
+  onFormatoQuestaoChange?: (val: "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos") => void;
+  nivelCargo?: "medio" | "superior" | "juridico";
+  onNivelCargoChange?: (val: "medio" | "superior" | "juridico") => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -48,6 +56,7 @@ export function GenerateAIModal({
   banca,
   materia,
   selectedTopicId,
+  specificTopic,
   qtdQuestoes,
   fonteConteudo,
   dificuldade,
@@ -57,9 +66,16 @@ export function GenerateAIModal({
   onBancaChange,
   onMateriaChange,
   onTopicChange,
+  onSpecificTopicChange,
   onFonteChange,
   onDificuldadeChange,
   onQtdQuestoesChange,
+  isAdaptiveMode = false,
+  onAdaptiveModeChange,
+  formatoQuestao = "auto",
+  onFormatoQuestaoChange,
+  nivelCargo = "superior",
+  onNivelCargoChange,
   onSubmit,
 }: GenerateAIModalProps) {
   if (!isOpen) return null;
@@ -68,7 +84,7 @@ export function GenerateAIModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-[#090d16] border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl p-5 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 custom-scrollbar">
+      <div className="bg-[#090d16] border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl p-5 sm:p-6 pb-[max(env(safe-area-inset-bottom),20px)] sm:pb-6 space-y-4 sm:space-y-5 shadow-2xl relative max-h-[88dvh] overflow-y-auto overscroll-contain animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 custom-scrollbar">
         {/* Handle visual no celular */}
         <div className="w-full flex justify-center pt-1 pb-2 sm:hidden">
           <div className="w-12 h-1.5 rounded-full bg-slate-700/80" />
@@ -134,11 +150,15 @@ export function GenerateAIModal({
                   disabled={isGenerating}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 cursor-pointer outline-none focus:border-indigo-500/50"
                 >
-                  <option value="Cebraspe">Cebraspe</option>
-                  <option value="FGV">FGV</option>
-                  <option value="FCC">FCC</option>
-                  <option value="IBAM">IBAM</option>
+                  <option value="Cebraspe">Cebraspe (Certo/Errado & Múltipla)</option>
+                  <option value="FGV">FGV (Fundação Getulio Vargas)</option>
+                  <option value="FCC">FCC (Fundação Carlos Chagas)</option>
+                  <option value="Cesgranrio">Cesgranrio (CNU / Caixa / BB)</option>
                   <option value="Vunesp">Vunesp</option>
+                  <option value="Quadrix">Quadrix (Conselhos Federais/Regionais)</option>
+                  <option value="AOCP">Instituto AOCP (Polícias & Tribunais)</option>
+                  <option value="IDECAN">IDECAN</option>
+                  <option value="IBAM">IBAM</option>
                 </select>
               </div>
 
@@ -159,6 +179,69 @@ export function GenerateAIModal({
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* SELETOR DE NÍVEL DO CARGO */}
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+                <span>Nível do Cargo Alvo</span>
+                <span className="text-[10px] text-indigo-400 font-normal">Calibra a profundidade da prova</span>
+              </label>
+              <div className="grid grid-cols-3 gap-1.5 bg-slate-950 border border-slate-800 p-1 rounded-xl items-center">
+                {[
+                  { id: "medio", label: "Nível Médio" },
+                  { id: "superior", label: "Nível Superior" },
+                  { id: "juridico", label: "Carreiras Jurídicas" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={isGenerating}
+                    onClick={() => onNivelCargoChange?.(item.id as "medio" | "superior" | "juridico")}
+                    className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
+                      nivelCargo === item.id
+                        ? "bg-indigo-600 text-slate-100 shadow-sm"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* SELETOR DE ESTILO / FORMATO DE QUESTÃO */}
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+                <span>Estilo de Questão</span>
+                <span className="text-[10px] text-indigo-400 font-normal">Padrão oficial da banca</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                {[
+                  { id: "auto", label: "Padrão Banca" },
+                  { id: "certo_errado", label: "Certo / Errado" },
+                  { id: "multipla_5", label: "Múltipla (A-E)" },
+                  { id: "casos_praticos", label: "Casos Práticos" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={isGenerating}
+                    onClick={() =>
+                      onFormatoQuestaoChange?.(
+                        item.id as "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos"
+                      )
+                    }
+                    className={`py-2 px-1 rounded-xl border font-bold text-[10px] transition-all cursor-pointer text-center ${
+                      formatoQuestao === item.id
+                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300 shadow-sm"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-300"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -189,6 +272,62 @@ export function GenerateAIModal({
                   );
                 })}
               </select>
+            </div>
+
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                <Sparkles size={12} className="text-violet-400" /> Foco Específico ou Legislação (Opcional)
+              </label>
+              <input
+                type="text"
+                value={specificTopic}
+                onChange={(e) => onSpecificTopicChange(e.target.value)}
+                disabled={isGenerating}
+                placeholder="Ex: Lei 5.777, Lei 8.112/90, Acentuação Gráfica..."
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 outline-none transition-all"
+              />
+              <p className="text-[11px] text-zinc-500">
+                A IA concentrará todas as questões exclusivamente neste microtema.
+              </p>
+            </div>
+
+            {/* Modo Adaptativo IA */}
+            <div className="p-3 rounded-2xl bg-gradient-to-r from-violet-600/15 via-indigo-600/10 to-violet-600/5 border border-violet-500/30 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-violet-500/20 text-violet-300 shrink-0">
+                    <Target size={16} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-slate-100 text-xs">
+                        Modo Adaptativo Inteligente
+                      </span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                        IA Anti-Falhas
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                      A IA analisa seu Caderno de Erros e foca em desarmar suas pegadinhas e dificuldades recorrentes.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onAdaptiveModeChange?.(!isAdaptiveMode)}
+                  disabled={isGenerating}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    isAdaptiveMode ? "bg-violet-600 shadow-md shadow-violet-600/30" : "bg-slate-800"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      isAdaptiveMode ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-1.5 border-t border-slate-900 pt-3">
@@ -284,17 +423,17 @@ export function GenerateAIModal({
             <button
               type="submit"
               disabled={isGenerating}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-slate-100 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-lg shadow-indigo-950/40 cursor-pointer min-h-11"
+              className="w-full bg-linear-to-r from-violet-600 via-indigo-600 to-violet-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-lg shadow-violet-950/40 cursor-pointer min-h-11 border border-violet-500/30"
             >
               {isGenerating ? (
                 <>
-                  <Loader2 size={15} className="animate-spin" />
-                  <span>Sincronizando sinapses...</span>
+                  <Loader2 size={15} className="animate-spin text-violet-300" />
+                  <span>Preparando matriz de questões...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles size={15} />
-                  <span>Gerar Simulado Inédito</span>
+                  <Sparkles size={15} className="text-violet-300" />
+                  <span>Iniciar Simulado</span>
                 </>
               )}
             </button>

@@ -99,7 +99,7 @@ export function TimedPacingModal({
               <div>
                 <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/25 text-violet-300 text-[10px] font-bold uppercase tracking-wider mb-1">
                   <Zap size={11} className="text-amber-400" />
-                  0 Gasto de Tokens • Instantâneo
+                  Alta Performance
                 </div>
                 <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
                   Ritmo do Simulado Cronometrado

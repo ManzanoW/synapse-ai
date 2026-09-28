@@ -15,13 +15,18 @@ import {
   Copy,
   Sparkles,
   ArrowRight,
+  Scale,
+  CalendarDays,
 } from "lucide-react";
 import PendingSubjects from "./PendingSubjects";
 import { Topic } from "@/types";
 import { ImportEditalModal } from "@/components/edital/import-edital-modal";
+import { CalibrateWeightsModal } from "@/components/edital/calibrate-weights-modal";
 import { PlannerView } from "@/components/edital/planner-table";
+import { EditalSkillTree } from "@/components/edital/edital-skill-tree";
 import { NewContentModal } from "@/components/create-subject-modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
 import { useSearchParams } from "next/navigation";
 
 interface ApiTopic {
@@ -46,6 +51,7 @@ interface ApiSubject {
   importance?: string;
   priority?: string;
   color?: string | null;
+  weight?: number;
   topics?: ApiTopic[];
   _count?: {
     topics: number;
@@ -71,6 +77,17 @@ function PlannerContent() {
 
   // Modal de Importar Edital
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  // Modal de Calibrar Pesos
+  const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
+  // Modo de visualização: Tabela vs Árvore RPG
+  const [viewMode, setViewMode] = useState<"table" | "skill-tree">("table");
+
+  // Auto-abrir modal de importação se vier do dashboard com ?import=true
+  useEffect(() => {
+    if (searchParams.get("import") === "true") {
+      setIsImportModalOpen(true);
+    }
+  }, [searchParams]);
 
   async function refreshData() {
     try {
@@ -152,6 +169,7 @@ function PlannerContent() {
     weight: string;
   }) {
     try {
+      const parsedWeight = parseFloat(data.weight.split("/")[0]) || 5.0;
       const response = await fetch("/api/edital", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,6 +178,7 @@ function PlannerContent() {
           title: data.title,
           subjectName: data.subjectName,
           relevance: data.weight,
+          weight: parsedWeight,
         }),
       });
 
@@ -283,15 +302,74 @@ function PlannerContent() {
             </div>
 
             <div className="grid grid-cols-2 sm:flex items-center gap-2 shrink-0 justify-end">
+              {subjects.length > 0 && (
+                <>
+                  {/* Alternador de Visão: Tabela vs Árvore RPG */}
+                  <div className="flex items-center p-1 bg-slate-950/80 border border-slate-800 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("table")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        viewMode === "table"
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                      title="Exibir edital em formato de tabela"
+                    >
+                      <BookOpen size={13} />
+                      <span>Tabela</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("skill-tree")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        viewMode === "skill-tree"
+                          ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-sm shadow-cyan-500/25"
+                          : "text-slate-400 hover:text-cyan-300"
+                      }`}
+                      title="Exibir edital em formato de Árvore de Domínio RPG"
+                    >
+                      <Sparkles size={13} className={viewMode === "skill-tree" ? "text-cyan-300" : "text-slate-400"} />
+                      <span>Árvore RPG</span>
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">
+                        NOVO
+                      </span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCalibrateModalOpen(true)}
+                    className="flex items-center justify-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm hover:border-amber-500/50 active:scale-95"
+                    title="Calibrar os pesos oficiais das disciplinas para o Radar de Domínio"
+                  >
+                    <Scale size={14} className="text-amber-400" />
+                    <span className="truncate">Calibrar Pesos</span>
+                  </button>
+
+                  <Link
+                    href="/week"
+                    className="flex items-center justify-center gap-1.5 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-cyan-500/50 text-slate-200 hover:text-cyan-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+                    title="Distribuir matérias do edital na sua grade semanal de estudos"
+                  >
+                    <CalendarDays size={14} className="text-cyan-400" />
+                    <span className="truncate">Cronograma Semanal</span>
+                  </Link>
+                </>
+              )}
+
               <button
+                type="button"
                 onClick={() => setIsImportModalOpen(true)}
                 className="flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer"
+                title="Escolha uma carreira pronta ou gere uma personalizada com IA"
               >
-                <UploadCloud size={14} className="text-indigo-400" />
-                <span className="truncate">Importar Edital</span>
+                <Sparkles size={14} className="text-amber-400" />
+                <span className="truncate">Carreiras & Edital</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setIsCreateModalOpen(true)}
                 className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
               >
@@ -435,21 +513,34 @@ function PlannerContent() {
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                   onClick={() => setIsImportModalOpen(true)}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 text-xs font-extrabold text-white shadow-lg transition-all active:scale-95 cursor-pointer"
                 >
                   <UploadCloud size={16} />
-                  <span>Importar meu Edital Agora</span>
+                  <span>Importar meu Edital em PDF / Texto</span>
                   <ArrowRight size={16} />
                 </button>
+              </div>
+
+              {/* MODELOS PRONTOS EM 1 CLIQUE */}
+              <div className="pt-4 border-t border-white/10 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Ou Escolha um Modelo Pronto por Carreira (1 Clique):
+                  </span>
+                </div>
+                <StarterEditalSelector
+                  onSuccess={() => refreshData()}
+                  showCustomLink={false}
+                />
               </div>
             </div>
           </div>
         )}
 
-        {/* Tabela do Planner */}
+        {/* Tabela do Planner ou Árvore de Domínio RPG */}
         {loading ? (
           <div className="flex items-center justify-center py-10 gap-2">
             <Loader2 className="animate-spin text-indigo-500" size={16} />
@@ -457,21 +548,36 @@ function PlannerContent() {
           </div>
         ) : (
           subjects.length > 0 && (
-            <PlannerView
-              topics={mappedTopicsForView}
-              subjects={subjects}
-              searchQuery={searchQuery}
-              targetSubjectId={targetSubjectId}
-              onReviewClick={(topicId) => {
-                const found = topics.find((t) => t.id === topicId);
-                if (found) {
-                  setActiveReviewTopic(found);
-                  setPerformanceValue(found.performance || 100);
-                }
-              }}
-              onDeleteTopic={handleDeleteTopic}
-              onDeleteSubject={handleDeleteSubject}
-            />
+            viewMode === "skill-tree" ? (
+              <EditalSkillTree
+                subjects={subjects}
+                topics={mappedTopicsForView}
+                onReviewClick={(topicId) => {
+                  const found = topics.find((t) => t.id === topicId);
+                  if (found) {
+                    setActiveReviewTopic(found);
+                    setPerformanceValue(found.performance || 100);
+                  }
+                }}
+              />
+            ) : (
+              <PlannerView
+                topics={mappedTopicsForView}
+                subjects={subjects}
+                searchQuery={searchQuery}
+                targetSubjectId={targetSubjectId}
+                onReviewClick={(topicId) => {
+                  const found = topics.find((t) => t.id === topicId);
+                  if (found) {
+                    setActiveReviewTopic(found);
+                    setPerformanceValue(found.performance || 100);
+                  }
+                }}
+                onDeleteTopic={handleDeleteTopic}
+                onDeleteSubject={handleDeleteSubject}
+                onSubjectUpdated={refreshData}
+              />
+            )
           )
         )}
       </div>
@@ -556,6 +662,21 @@ function PlannerContent() {
           }}
         />
       )}
+
+      <CalibrateWeightsModal
+        isOpen={isCalibrateModalOpen}
+        subjects={subjects.map((s) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          weight: s.weight,
+          topicsCount: s._count?.topics || s.topics?.length || 0,
+        }))}
+        onClose={() => setIsCalibrateModalOpen(false)}
+        onSuccess={async () => {
+          await refreshData();
+        }}
+      />
     </div>
   );
 }

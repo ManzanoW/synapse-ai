@@ -29,6 +29,7 @@ export interface StatsData {
     progressPercentage: number;
     title: string;
     prestige?: number;
+    streakFreezes?: number;
     prestigeTier?: {
       name: string;
       badgeColor: string;
@@ -38,6 +39,7 @@ export interface StatsData {
   };
   streak: {
     currentDays: number;
+    streakFreezes?: number;
     weekDays: WeekDay[];
   };
 }

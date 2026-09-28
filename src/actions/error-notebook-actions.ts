@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { Type } from "@google/genai";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
+import { recordStudyActivityAction } from "@/actions/gamification-actions";
 import {
   ErrorNotebookFilters,
   ErrorNotebookItem,
@@ -13,8 +14,11 @@ import {
   ErrorRemediationData,
   ErrorTaxonomyMetric,
   GenerateRemediationInput,
+  GetErrorNotebookQuestionsParams,
+  Question,
 } from "@/types/quiz";
 import { TAXONOMY_METADATA, normalizeTaxonomy } from "@/lib/error-taxonomy";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 /**
  * Normaliza o texto de uma questão para comparação e deduplicação
@@ -32,7 +36,9 @@ const syncLockMap = new Map<string, Promise<void>>();
  * para um mesmo userId e questionText.
  * Preserva o registro mais qualificado (MASTERED > com remediação IA gerada > mais recente).
  */
-export async function cleanupDuplicateQuestionErrors(userId: string): Promise<number> {
+export async function cleanupDuplicateQuestionErrors(
+  userId: string,
+): Promise<number> {
   try {
     const records = await prisma.questionError.findMany({
       where: { userId },
@@ -78,10 +84,8 @@ export async function cleanupDuplicateQuestionErrors(userId: string): Promise<nu
         if (aMastered !== bMastered) return bMastered - aMastered;
 
         // Prioridade 2: Já possui análise ou remediação por IA gerada
-        const aHasAi =
-          a.aiExplanation || a.drillQuestion || a.mnemonic ? 1 : 0;
-        const bHasAi =
-          b.aiExplanation || b.drillQuestion || b.mnemonic ? 1 : 0;
+        const aHasAi = a.aiExplanation || a.drillQuestion || a.mnemonic ? 1 : 0;
+        const bHasAi = b.aiExplanation || b.drillQuestion || b.mnemonic ? 1 : 0;
         if (aHasAi !== bHasAi) return bHasAi - aHasAi;
 
         // Prioridade 3: Mais recente (updatedAt ou createdAt)
@@ -110,7 +114,10 @@ export async function cleanupDuplicateQuestionErrors(userId: string): Promise<nu
 
     return idsToDelete.length;
   } catch (err) {
-    console.error("[cleanupDuplicateQuestionErrors] Erro ao limpar duplicatas:", err);
+    console.error(
+      "[cleanupDuplicateQuestionErrors] Erro ao limpar duplicatas:",
+      err,
+    );
     return 0;
   }
 }
@@ -253,7 +260,10 @@ async function syncLegacyErrorsIfEmpty(userId: string) {
         });
       }
     } catch (err) {
-      console.error("[syncLegacyErrorsIfEmpty] Erro ao sincronizar legado:", err);
+      console.error(
+        "[syncLegacyErrorsIfEmpty] Erro ao sincronizar legado:",
+        err,
+      );
     } finally {
       syncLockMap.delete(userId);
     }
@@ -261,6 +271,156 @@ async function syncLegacyErrorsIfEmpty(userId: string) {
 
   syncLockMap.set(userId, promise);
   return promise;
+}
+
+export interface GetErrorNotebookQuestionsResult {
+  questions: Question[];
+  total: number;
+  hasMore: boolean;
+  nextPage: number | null;
+  success: boolean;
+  error?: string;
+  data?: {
+    questions: Question[];
+    total: number;
+    hasMore: boolean;
+    nextPage: number | null;
+  };
+}
+
+/**
+ * Lista as questões do Caderno de Erros com paginação suave (Infinite Scroll) e filtros dinâmicos
+ */
+export async function getErrorNotebookQuestionsAction(
+  params: GetErrorNotebookQuestionsParams = {},
+): Promise<GetErrorNotebookQuestionsResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return {
+        questions: [],
+        total: 0,
+        hasMore: false,
+        nextPage: null,
+        success: false,
+        error: "Usuário não autenticado.",
+      };
+    }
+
+    const page = Math.max(1, params.page || 1);
+    const limit = Math.max(1, params.limit || 10);
+    const skip = (page - 1) * limit;
+
+    // Sincroniza e sanitiza apenas na primeira página para desempenho máximo
+    if (page === 1) {
+      await syncLegacyErrorsIfEmpty(userId);
+    }
+
+    const where: any = { userId };
+
+    if (params.subjectId && params.subjectId !== "ALL") {
+      where.subjectId = params.subjectId;
+    }
+
+    if (params.status && params.status !== "ALL") {
+      where.status = params.status;
+    }
+
+    if (params.errorReason && params.errorReason !== "ALL") {
+      const normalized = normalizeTaxonomy(params.errorReason);
+      where.errorReason = normalized;
+    }
+
+    if (params.period && params.period !== "all") {
+      const now = new Date();
+      let days = 7;
+      if (params.period === "30d") days = 30;
+      if (params.period === "90d") days = 90;
+      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      where.createdAt = { gte: startDate };
+    }
+
+    if (params.search && params.search.trim() !== "") {
+      const term = params.search.trim();
+      where.OR = [
+        { questionText: { contains: term, mode: "insensitive" } },
+        { explanation: { contains: term, mode: "insensitive" } },
+      ];
+    }
+
+    const [total, records] = await Promise.all([
+      prisma.questionError.count({ where }),
+      prisma.questionError.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        include: {
+          subject: {
+            select: { id: true, name: true, color: true },
+          },
+          topic: {
+            select: { id: true, title: true },
+          },
+        },
+      }),
+    ]);
+
+    const hasMore = skip + records.length < total;
+    const nextPage = hasMore ? page + 1 : null;
+
+    const questions: Question[] = records.map((r: any) => ({
+      id: r.id,
+      userId: r.userId,
+      subjectId: r.subjectId,
+      topicId: r.topicId,
+      quizId: r.quizId,
+      questionText: r.questionText,
+      options: (r.options as any) || [],
+      userAnswer: r.userAnswer,
+      correctAnswer: r.correctAnswer,
+      explanation: r.explanation,
+      errorReason: r.errorReason,
+      status: r.status as "PENDING" | "MASTERED",
+      masteredAt: r.masteredAt,
+      aiExplanation: r.aiExplanation,
+      mnemonic: r.mnemonic,
+      drillQuestion: (r.drillQuestion as any) || null,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      subject: r.subject,
+      topic: r.topic,
+    }));
+
+    return {
+      success: true,
+      questions,
+      total,
+      hasMore,
+      nextPage,
+      data: {
+        questions,
+        total,
+        hasMore,
+        nextPage,
+      },
+    };
+  } catch (err) {
+    console.error("[getErrorNotebookQuestionsAction] Erro:", err);
+    return {
+      questions: [],
+      total: 0,
+      hasMore: false,
+      nextPage: null,
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao buscar questões do caderno de erros.",
+    };
+  }
 }
 
 /**
@@ -510,18 +670,12 @@ export async function markErrorAsMasteredAction(
       await trackQuestProgressAction("QUESTIONS_SOLVED", 1);
     }
 
-    await prisma.userStats.upsert({
-      where: { userId },
-      create: {
-        userId,
-        totalXp: earnedXp,
-        lastStudyDate: new Date(),
-      },
-      update: {
-        totalXp: { increment: earnedXp },
-        lastStudyDate: new Date(),
-      },
-    });
+    // Atualização de XP, streak e proteção anti-frustração via motor centralizado
+    const activityResult = await recordStudyActivityAction(
+      userId,
+      earnedXp,
+      "ERROR_FIX",
+    );
 
     try {
       revalidatePath("/notebook");
@@ -536,6 +690,10 @@ export async function markErrorAsMasteredAction(
         id: updated.id,
         status: updated.status,
         earnedXp,
+        totalXp: activityResult.data?.totalXp,
+        streakDays: activityResult.data?.streakDays,
+        streakProtected: activityResult.data?.streakProtected,
+        levelInfo: activityResult.data?.levelInfo,
       },
     };
   } catch (err) {
@@ -621,7 +779,13 @@ export async function deleteErrorNotebookItemAction(errorId: string) {
  */
 export async function generateErrorRemediationAction(
   input: GenerateRemediationInput,
-): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
+): Promise<{
+  success: boolean;
+  data?: ErrorRemediationData;
+  error?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
+}> {
   try {
     const session = await auth();
     const userId = session?.user?.id;
@@ -660,6 +824,17 @@ export async function generateErrorRemediationAction(
     const normalizedReason = normalizeTaxonomy(input.errorReason);
     const reasonMeta =
       TAXONOMY_METADATA[normalizedReason] || TAXONOMY_METADATA.UNCLASSIFIED;
+
+    // 🛡️ Proteção de Cota Diária de IA para Remediação
+    const quota = await checkAiQuota(userId, "REMEDIATION");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Limite diário de remediações e mnemônicos com IA atingido.",
+        isQuotaExceeded: true,
+        canWatchRewardedAd: quota.canWatchRewardedAd,
+      };
+    }
 
     // 2. Monta o prompt especializado de tutoria ativa para concursos
     const prompt = `
@@ -757,6 +932,9 @@ Responda ESTRITAMENTE no formato JSON com os campos solicitados.
       });
     }
 
+    // Consome cota diária de Remediação com IA
+    await consumeAiQuota(userId, "REMEDIATION");
+
     return { success: true, data: parsed };
   } catch (err) {
     console.error("[generateErrorRemediationAction] Erro:", err);
@@ -808,7 +986,13 @@ Responda ESTRITAMENTE no formato JSON com os campos solicitados.
  */
 export async function analyzeSingleErrorAction(
   inputOrErrorId: GenerateRemediationInput | string,
-): Promise<{ success: boolean; data?: ErrorRemediationData; error?: string }> {
+): Promise<{
+  success: boolean;
+  data?: ErrorRemediationData;
+  error?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
+}> {
   if (typeof inputOrErrorId === "string") {
     const session = await auth();
     const userId = session?.user?.id;
@@ -844,7 +1028,9 @@ export async function analyzeSingleErrorAction(
  * Classificação taxonômica ultrarrápida e econômica em lote (apenas rootCause)
  * Processa 15 a 20 questões por execução com custo mínimo de tokens.
  */
-export async function batchClassifyTaxonomyOnlyAction(batchSize: number = 20): Promise<{
+export async function batchClassifyTaxonomyOnlyAction(
+  batchSize: number = 20,
+): Promise<{
   success: boolean;
   processed?: number;
   message?: string;
@@ -971,7 +1157,8 @@ Sem qualquer texto introdutório, justificativa ou explicação.`;
         resolvedReason = normalizeTaxonomy(rootCause);
       } else {
         // Heurística rápida de contingência
-        const combined = `${item.questionText} ${item.explanation || ""}`.toLowerCase();
+        const combined =
+          `${item.questionText} ${item.explanation || ""}`.toLowerCase();
         if (
           combined.includes("pegadinha") ||
           combined.includes("atenção") ||
@@ -1055,5 +1242,596 @@ export async function autoClassifyPendingErrorsAction(): Promise<{
     message: res.message,
     error: res.error,
   };
+}
+
+export interface WrongQuestionItem {
+  questionText: string;
+  options?: any;
+  userAnswer: string;
+  correctAnswer: string;
+  explanation?: string | null;
+  errorReason?: string;
+  subjectId?: string | null;
+  topicId?: string | null;
+}
+
+export interface SaveWrongQuestionsInput {
+  quizId?: string | null;
+  subjectId?: string | null;
+  topicId?: string | null;
+  questions: WrongQuestionItem[];
+}
+
+/**
+ * Persiste as questões incorretas diretamente no Caderno de Erros com validação de unicidade.
+ */
+export async function saveWrongQuestionsToNotebookAction(
+  input: SaveWrongQuestionsInput,
+): Promise<{
+  success: boolean;
+  countAdded?: number;
+  alreadyExisted?: number;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    if (!Array.isArray(input.questions) || input.questions.length === 0) {
+      return {
+        success: true,
+        countAdded: 0,
+        alreadyExisted: 0,
+        message: "Nenhuma questão incorreta para salvar.",
+      };
+    }
+
+    // Busca erros existentes do usuário para evitar duplicatas
+    const existingErrors = await prisma.questionError.findMany({
+      where: { userId },
+      select: { questionText: true },
+    });
+
+    const existingKeys = new Set(
+      existingErrors.map((r: any) => normalizeQuestionKey(r.questionText)),
+    );
+
+    const toInsert: any[] = [];
+    let alreadyExisted = 0;
+    const seenInBatch = new Set<string>();
+
+    for (const q of input.questions) {
+      if (!q.questionText || typeof q.questionText !== "string") continue;
+      const key = normalizeQuestionKey(q.questionText);
+      if (!key) continue;
+
+      if (existingKeys.has(key) || seenInBatch.has(key)) {
+        alreadyExisted++;
+        continue;
+      }
+
+      seenInBatch.add(key);
+
+      const normalizedReason = normalizeTaxonomy(q.errorReason || "UNCLASSIFIED");
+
+      toInsert.push({
+        userId,
+        subjectId: q.subjectId || input.subjectId || null,
+        topicId: q.topicId || input.topicId || null,
+        quizId: input.quizId || null,
+        questionText: q.questionText.trim(),
+        options: q.options || [],
+        userAnswer: String(q.userAnswer || "Não informada"),
+        correctAnswer: String(q.correctAnswer || "A"),
+        explanation: q.explanation || null,
+        errorReason: normalizedReason,
+        status: "PENDING",
+      });
+    }
+
+    if (toInsert.length > 0) {
+      await prisma.questionError.createMany({
+        data: toInsert,
+      });
+    }
+
+    try {
+      revalidatePath("/notebook");
+      revalidatePath("/questions");
+    } catch {}
+
+    return {
+      success: true,
+      countAdded: toInsert.length,
+      alreadyExisted,
+      message:
+        toInsert.length > 0
+          ? `${toInsert.length} questão(ões) adicionada(s) ao Caderno de Erros!`
+          : alreadyExisted > 0
+            ? "As questões incorretas já estão salvas no seu Caderno de Erros."
+            : "Nenhuma questão para salvar.",
+    };
+  } catch (err) {
+    console.error("[saveWrongQuestionsToNotebookAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao salvar questões no caderno de erros.",
+    };
+  }
+}
+
+export interface GetRemediationQuestionsParams {
+  subjectId?: string;
+  taxonomy?: string;
+  limit?: number;
+}
+
+/**
+ * Busca questões pendentes de remediação para o Simulado de Remediação
+ */
+export async function getRemediationQuestionsAction(
+  params?: GetRemediationQuestionsParams,
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const whereClause: any = {
+      userId,
+      status: "PENDING",
+    };
+
+    if (params?.subjectId && params.subjectId !== "ALL") {
+      whereClause.subjectId = params.subjectId;
+    }
+
+    if (params?.taxonomy && params.taxonomy !== "ALL") {
+      const normalized = normalizeTaxonomy(params.taxonomy);
+      whereClause.errorReason = {
+        in: [
+          normalized,
+          params.taxonomy,
+          params.taxonomy.toLowerCase(),
+          params.taxonomy.toUpperCase(),
+        ],
+      };
+    }
+
+    const takeLimit = Math.min(Math.max(params?.limit || 10, 1), 50);
+
+    const errors = await prisma.questionError.findMany({
+      where: whereClause,
+      include: {
+        subject: {
+          select: { id: true, name: true, color: true },
+        },
+        topic: {
+          select: { id: true, title: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: takeLimit,
+    });
+
+    const parsedQuestions: ErrorNotebookItem[] = errors.map((item) => ({
+      id: item.id,
+      userId: item.userId,
+      subjectId: item.subjectId,
+      topicId: item.topicId,
+      quizId: item.quizId,
+      questionText: item.questionText,
+      options: Array.isArray(item.options) ? (item.options as any) : null,
+      userAnswer: item.userAnswer,
+      correctAnswer: item.correctAnswer,
+      explanation: item.explanation,
+      errorReason: item.errorReason,
+      status: item.status as "PENDING" | "MASTERED",
+      masteredAt: item.masteredAt,
+      aiExplanation: item.aiExplanation,
+      mnemonic: item.mnemonic,
+      drillQuestion: (item.drillQuestion as any) || null,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      subject: item.subject,
+      topic: item.topic,
+    }));
+
+    return {
+      success: true,
+      questions: parsedQuestions,
+      totalFound: parsedQuestions.length,
+    };
+  } catch (err) {
+    console.error("[getRemediationQuestionsAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao buscar questões para remediação.",
+      questions: [],
+      totalFound: 0,
+    };
+  }
+}
+
+export interface SubmitRemediationAnswerInput {
+  errorId: string;
+  selectedAnswer: string;
+}
+
+/**
+ * Valida a resposta do Simulado de Remediação, promove o erro a MASTERED em caso de acerto,
+ * concede XP de superação e avança nas missões diárias.
+ */
+export async function submitRemediationAnswerAction(
+  input: SubmitRemediationAnswerInput,
+) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const errorItem = await prisma.questionError.findUnique({
+      where: { id: input.errorId, userId },
+    });
+
+    if (!errorItem) {
+      return { success: false, error: "Questão não encontrada no caderno." };
+    }
+
+    const cleanUserAnswer = String(input.selectedAnswer || "").trim().toUpperCase();
+    const cleanCorrectAnswer = String(errorItem.correctAnswer || "").trim().toUpperCase();
+    const isCorrect = cleanUserAnswer === cleanCorrectAnswer;
+
+    let earnedXp = 0;
+    let activityResult: any = null;
+
+    if (isCorrect) {
+      earnedXp = 25; // XP de remediação / superação ativa
+
+      // Atualiza o erro para MASTERED
+      await prisma.questionError.update({
+        where: { id: errorItem.id, userId },
+        data: {
+          status: "MASTERED",
+          masteredAt: new Date(),
+        },
+      });
+
+      // Grava atividade de estudo com bônus de XP
+      activityResult = await recordStudyActivityAction(
+        userId,
+        earnedXp,
+        "ERROR_FIX",
+      );
+
+      // Avança a missão diária de questões resolvidas
+      await trackQuestProgressAction("QUESTIONS_SOLVED", 1);
+
+      try {
+        revalidatePath("/notebook");
+        revalidatePath("/questions");
+      } catch {}
+    }
+
+    return {
+      success: true,
+      isCorrect,
+      correctAnswer: errorItem.correctAnswer,
+      explanation: errorItem.explanation || errorItem.aiExplanation || null,
+      mnemonic: errorItem.mnemonic || null,
+      earnedXp,
+      newStatus: isCorrect ? ("MASTERED" as const) : ("PENDING" as const),
+      activityData: activityResult?.data || null,
+    };
+  } catch (err) {
+    console.error("[submitRemediationAnswerAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao processar resposta do simulado de remediação.",
+    };
+  }
+}
+
+export interface RedemptionExamQuestion {
+  errorId: string;
+  subjectName: string;
+  topicName?: string;
+  originalQuestionSnippet: string;
+  originalUserAnswer: string;
+  originalCorrectAnswer: string;
+  conceptTested: string;
+  questionText: string;
+  options: Array<{ id: string; texto: string }>;
+  correctAnswer: string;
+  explanation: string;
+  mnemonic: string;
+}
+
+export interface GenerateRedemptionExamResult {
+  success: boolean;
+  error?: string;
+  questions?: RedemptionExamQuestion[];
+  totalAvailable?: number;
+}
+
+/**
+ * Gera um Simulado de Redenção com Questões Gêmeas da IA baseadas nos erros pendentes do aluno
+ */
+export async function generateRedemptionExamAction(params?: {
+  subjectId?: string;
+  count?: number;
+}): Promise<GenerateRedemptionExamResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const count = Math.min(Math.max(params?.count || 5, 3), 10);
+    const whereClause: any = {
+      userId,
+      status: "PENDING",
+    };
+
+    if (params?.subjectId && params.subjectId !== "ALL") {
+      whereClause.subjectId = params.subjectId;
+    }
+
+    const pendingErrors = await prisma.questionError.findMany({
+      where: whereClause,
+      include: {
+        subject: { select: { id: true, name: true } },
+        topic: { select: { id: true, title: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: count * 2, // Amostra maior para selecionar os melhores
+    });
+
+    if (pendingErrors.length === 0) {
+      return {
+        success: false,
+        error: "Parabéns! Você não possui erros pendentes de cicatrização no momento.",
+        totalAvailable: 0,
+      };
+    }
+
+    // Embaralha e pega a quantidade desejada
+    const selected = pendingErrors
+      .sort(() => 0.5 - Math.random())
+      .slice(0, count);
+
+    // Monta o prompt de IA para gerar questões gêmeas
+    const errorsToTransform = selected.map((err, idx) => ({
+      index: idx,
+      id: err.id,
+      materia: err.subject?.name || "Geral",
+      topico: err.topic?.title || "Geral",
+      enunciadoOriginal: err.questionText,
+      respostaIncorretaDoAluno: err.userAnswer,
+      respostaCorretaOriginal: err.correctAnswer,
+      motivoErro: err.errorReason,
+    }));
+
+    const prompt = `Você é o Coordenador Pedagógico e Especialista em Bancas de Concursos Públicos da Synapse AI.
+Sua missão é criar um "Simulado de Redenção" composto por QUESTÕES GÊMEAS sintéticas para cicatrização definitiva dos erros do aluno.
+
+Para CADA um dos ${errorsToTransform.length} erros abaixo, crie uma QUESTÃO GÊMEA inédita:
+- A questão deve testar O MESMO CONCEITO/REGRA/PEGADINHA que fez o aluno errar, mas com uma nova historinha, novos dados ou nova roupagem formal de banca (FGV/Cebraspe/FCC).
+- Crie 4 ou 5 alternativas objetivas (A, B, C, D, E) com clareza.
+- Forneça a alternativa correta (letra maiúscula), uma explicação detalhada e um mnemônico/macete de fixação rápido.
+
+ERROS DO ALUNO:
+${JSON.stringify(errorsToTransform, null, 2)}
+
+Retorne OBRIGATORIAMENTE um JSON com o array de questões no formato especificado no schema.`;
+
+    const aiResult = await generateContentWithFallback({
+      prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            questoes: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  errorId: { type: Type.STRING },
+                  conceptTested: { type: Type.STRING },
+                  questionText: { type: Type.STRING },
+                  options: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        id: { type: Type.STRING },
+                        texto: { type: Type.STRING },
+                      },
+                      required: ["id", "texto"],
+                    },
+                  },
+                  correctAnswer: { type: Type.STRING },
+                  explanation: { type: Type.STRING },
+                  mnemonic: { type: Type.STRING },
+                },
+                required: [
+                  "errorId",
+                  "conceptTested",
+                  "questionText",
+                  "options",
+                  "correctAnswer",
+                  "explanation",
+                  "mnemonic",
+                ],
+              },
+            },
+          },
+          required: ["questoes"],
+        },
+      },
+      timeoutMs: 45000,
+    });
+
+    let parsedQuestions: any[] = [];
+    try {
+      const parsed = JSON.parse(aiResult.text);
+      parsedQuestions = parsed.questoes || [];
+    } catch {
+      parsedQuestions = [];
+    }
+
+    // Mapeia e junta metadados
+    const formattedQuestions: RedemptionExamQuestion[] = [];
+
+    for (let i = 0; i < selected.length; i++) {
+      const orig = selected[i];
+      const matchAi = parsedQuestions.find((q) => q.errorId === orig.id) || parsedQuestions[i];
+
+      if (matchAi && matchAi.questionText && Array.isArray(matchAi.options) && matchAi.options.length > 0) {
+        formattedQuestions.push({
+          errorId: orig.id,
+          subjectName: orig.subject?.name || "Geral",
+          topicName: orig.topic?.title || undefined,
+          originalQuestionSnippet: orig.questionText.slice(0, 140) + "...",
+          originalUserAnswer: orig.userAnswer,
+          originalCorrectAnswer: orig.correctAnswer,
+          conceptTested: matchAi.conceptTested || "Conceito Chave do Tópico",
+          questionText: matchAi.questionText,
+          options: matchAi.options,
+          correctAnswer: String(matchAi.correctAnswer).trim().toUpperCase(),
+          explanation: matchAi.explanation,
+          mnemonic: matchAi.mnemonic || "Lembre-se da regra geral e suas exceções.",
+        });
+      } else {
+        // Fallback: se a IA falhou no item específico, utiliza a questão original com suas opções
+        let opts: Array<{ id: string; texto: string }> = [];
+        if (Array.isArray(orig.options)) {
+          opts = orig.options as any;
+        } else {
+          opts = [
+            { id: "A", texto: "Alternativa A" },
+            { id: "B", texto: "Alternativa B" },
+            { id: "C", texto: "Alternativa C" },
+            { id: "D", texto: "Alternativa D" },
+          ];
+        }
+
+        formattedQuestions.push({
+          errorId: orig.id,
+          subjectName: orig.subject?.name || "Geral",
+          topicName: orig.topic?.title || undefined,
+          originalQuestionSnippet: orig.questionText.slice(0, 140) + "...",
+          originalUserAnswer: orig.userAnswer,
+          originalCorrectAnswer: orig.correctAnswer,
+          conceptTested: "Fixação e Retenção do Erro Original",
+          questionText: orig.questionText,
+          options: opts,
+          correctAnswer: orig.correctAnswer.trim().toUpperCase(),
+          explanation: orig.explanation || orig.aiExplanation || "Reveja atentamente os termos do comando.",
+          mnemonic: orig.mnemonic || "Ancore este conceito para a prova.",
+        });
+      }
+    }
+
+    return {
+      success: true,
+      questions: formattedQuestions,
+      totalAvailable: pendingErrors.length,
+    };
+  } catch (err) {
+    console.error("[generateRedemptionExamAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao gerar o Simulado de Redenção.",
+    };
+  }
+}
+
+/**
+ * Processa uma resposta do Simulado de Redenção, atualizando o erro para MASTERED caso correto
+ */
+export async function submitRedemptionQuestionResultAction(params: {
+  errorId: string;
+  userAnswer: string;
+  isCorrect: boolean;
+}): Promise<{
+  success: boolean;
+  error?: string;
+  earnedXp?: number;
+  newMasteredCount?: number;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    let earnedXp = 0;
+
+    if (params.isCorrect) {
+      earnedXp = 35; // Bônus premium de cicatrização (+35 XP)
+
+      await prisma.questionError.update({
+        where: { id: params.errorId, userId },
+        data: {
+          status: "MASTERED",
+          masteredAt: new Date(),
+        },
+      });
+
+      // Grava atividade de estudo com bônus de XP
+      await recordStudyActivityAction(userId, earnedXp, "ERROR_FIX");
+
+      // Avança a missão diária de questões resolvidas
+      await trackQuestProgressAction("QUESTIONS_SOLVED", 1);
+    }
+
+    try {
+      revalidatePath("/notebook");
+      revalidatePath("/performance");
+    } catch {}
+
+    const totalMastered = await prisma.questionError.count({
+      where: { userId, status: "MASTERED" },
+    });
+
+    return {
+      success: true,
+      earnedXp,
+      newMasteredCount: totalMastered,
+    };
+  } catch (err) {
+    console.error("[submitRedemptionQuestionResultAction] Erro:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Erro ao registrar redenção.",
+    };
+  }
 }
 

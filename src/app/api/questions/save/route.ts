@@ -4,6 +4,7 @@ import { updateSubjectSRS } from "@/lib/srs-service";
 import { auth } from "@/auth";
 import { XP_REWARDS, calculateLevel } from "@/lib/gamification/gamification";
 import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
+import { normalizeTaxonomy } from "@/lib/error-taxonomy";
 
 export async function POST(request: Request) {
   try {
@@ -245,23 +246,42 @@ export async function POST(request: Request) {
         const correctAns = String(
           item.gabaritoCorreto || item.correctAnswer || item.answer || "A",
         ).trim();
-        const reason = item.errorReason || "UNCLASSIFIED";
+        const normalizedReason = normalizeTaxonomy(item.errorReason || "UNCLASSIFIED");
 
-        await prisma.questionError.create({
-          data: {
-            userId: userId,
-            subjectId: subjectRecord?.id || null,
-            topicId: resolvedTopicId || null,
-            quizId: quizRecord?.id || null,
-            questionText: text,
-            options: item.alternativas || item.options || [],
-            userAnswer: userAns,
-            correctAnswer: correctAns,
-            explanation: item.justificativa || item.explanation || null,
-            errorReason: String(reason),
-            status: "PENDING",
-          },
+        const existing = await prisma.questionError.findFirst({
+          where: { userId, questionText: text },
         });
+
+        if (existing) {
+          await prisma.questionError.update({
+            where: { id: existing.id },
+            data: {
+              userAnswer: userAns,
+              correctAnswer: correctAns,
+              explanation: item.justificativa || item.explanation || existing.explanation,
+              errorReason: normalizedReason !== "UNCLASSIFIED" ? normalizedReason : existing.errorReason,
+              status: "PENDING",
+              masteredAt: null,
+              updatedAt: new Date(),
+            },
+          });
+        } else {
+          await prisma.questionError.create({
+            data: {
+              userId: userId,
+              subjectId: subjectRecord?.id || null,
+              topicId: resolvedTopicId || null,
+              quizId: quizRecord?.id || null,
+              questionText: text,
+              options: item.alternativas || item.options || [],
+              userAnswer: userAns,
+              correctAnswer: correctAns,
+              explanation: item.justificativa || item.explanation || null,
+              errorReason: normalizedReason,
+              status: "PENDING",
+            },
+          });
+        }
       }
     } catch (errErr) {
       console.warn("Aviso ao salvar erros no Caderno de Erros:", errErr);

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Zap, Flame } from "lucide-react";
+import { Zap, Flame, Shield } from "lucide-react";
 
 interface GamificationCardProps {
   totalXp: number;
@@ -10,6 +10,7 @@ interface GamificationCardProps {
   nextLevelXp: number;
   currentLevelXp: number;
   streakDays: number;
+  streakFreezes?: number;
 }
 
 export function GamificationCard({
@@ -19,6 +20,7 @@ export function GamificationCard({
   nextLevelXp = 1000,
   currentLevelXp = 0,
   streakDays = 0,
+  streakFreezes = 0,
 }: GamificationCardProps) {
   const xpInCurrentLevel = totalXp - currentLevelXp;
   const xpNeededForNext = nextLevelXp - currentLevelXp;
@@ -44,9 +46,21 @@ export function GamificationCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-mono text-xs font-bold shadow-sm">
-          <Flame size={16} className="animate-bounce" />
-          <span>{streakDays} dias seguidos</span>
+        <div className="flex items-center gap-2">
+          {Boolean(streakFreezes && streakFreezes > 0) && (
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 font-mono text-xs font-bold shadow-sm"
+              title={`${streakFreezes} Congelamento(s) de Ofensiva ativo(s) — seu streak está protegido!`}
+            >
+              <Shield size={14} className="text-cyan-400 fill-cyan-400/20" />
+              <span>{streakFreezes}</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-mono text-xs font-bold shadow-sm">
+            <Flame size={16} className="animate-bounce" />
+            <span>{streakDays} dias seguidos</span>
+          </div>
         </div>
       </div>
 

@@ -17,12 +17,22 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  const isLoginPage = pathname === "/login";
   const isDemoParam = req.nextUrl.searchParams.get("demo") === "true";
-  const isDemoCookie = req.cookies.get("synapse_demo_active")?.value === "true";
+  const isDemoCookie =
+    req.cookies.get("synapse_demo_active")?.value === "true" ||
+    req.cookies.get("synapse-demo-session")?.value === "true";
   const referer = req.headers.get("referer") || "";
-  const isDemoReferer = referer.includes("demo=true");
-  const isDemoHeader = req.headers.get("x-synapse-demo") === "true";
+  // Em /login nunca ativar demo via referer ou header residual (previne loop de logout)
+  const isDemoReferer = !isLoginPage && referer.includes("demo=true");
+  const isDemoHeader = !isLoginPage && req.headers.get("x-synapse-demo") === "true";
   const isDemo = isDemoParam || isDemoCookie || isDemoReferer || isDemoHeader;
+
+  // Se o usuário está em /login e não possui cookie nem parâmetro explícito demo=true,
+  // permite a navegação normal sem adicionar cookies de demo
+  if (isLoginPage && !isDemoCookie && !isDemoParam) {
+    return NextResponse.next();
+  }
 
   if (isDemo) {
     // NUNCA emite redirect em navegações internas ou prefetchs (_rsc)
