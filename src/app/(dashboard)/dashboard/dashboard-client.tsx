@@ -79,7 +79,7 @@ const StreakFreezeModal = dynamic(
   { ssr: false }
 );
 const TutorialModal = dynamic(
-  () => import("@/components/tutorial/TutorialModal").then((m) => m.TutorialModal),
+  () => import().then((m) => m.TutorialModal),
   { ssr: false }
 );
 const CustomizeCardsModal = dynamic(
@@ -96,7 +96,6 @@ import type { DailyFlowData } from "@/actions/daily-flow-actions";
 import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 import { DailyTipCard } from "@/components/dashboard/DailyTipCard";
-import { TutorialModal } from "@/components/tutorial/TutorialModal";
 
 interface JourneyData {
   hasObjective: boolean;
