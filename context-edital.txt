@@ -50,8 +50,12 @@ src/
         PendingSubjects.tsx
   components/
     edital/
+      calibrate-weights-modal.tsx
+      edit-subject-modal.tsx
+      edital-skill-tree.tsx
       import-edital-modal.tsx
       planner-table.tsx
+      StarterEditalSelector.tsx
 </directory_structure>
 
 <files>
@@ -186,555 +190,371 @@ export default function PendingSubjects({
 }
 </file>
 
-<file path="src/components/edital/import-edital-modal.tsx">
+<file path="src/components/edital/calibrate-weights-modal.tsx">
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   X,
-  Upload,
-  Sparkles,
-  Loader2,
+  Scale,
+  Sliders,
   Check,
-  ChevronDown,
-  ChevronRight,
-  ArrowLeft,
-  FileText,
-  HelpCircle,
-  Play,
+  Loader2,
+  Sparkles,
+  BookOpen,
+  RotateCcw,
+  Equal,
 } from "lucide-react";
+import { bulkUpdateSubjectWeightsAction } from "@/actions/subject-actions";
 
-interface TopicItem {
+export interface CalibrateSubjectItem {
   id: string;
   name: string;
-  selected: boolean;
+  color?: string | null;
+  weight?: number;
+  topicsCount?: number;
 }
 
-interface SubjectItem {
-  id: string;
-  name: string;
-  color?: string;
-  selected: boolean;
-  topics: TopicItem[];
-}
-
-interface ImportEditalModalProps {
+interface CalibrateWeightsModalProps {
   isOpen: boolean;
+  subjects: CalibrateSubjectItem[];
   onClose: () => void;
-  onImportSuccess: (data: { materias: SubjectItem[] }) => void;
+  onSuccess?: () => void;
 }
 
-interface RawMateria {
-  nome?: string;
-  materia?: string;
-  name?: string;
-  cor?: string;
-  color?: string;
-  topicos?: string[];
-  topics?: string[];
+function getRelevanceTag(weight: number) {
+  if (weight >= 8) {
+    return {
+      label: "Crítico / Máximo",
+      colorClass: "bg-rose-500/15 text-rose-300 border-rose-500/30",
+    };
+  }
+  if (weight >= 6) {
+    return {
+      label: "Específica / Alto",
+      colorClass: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    };
+  }
+  if (weight >= 4) {
+    return {
+      label: "Intermediário / Padrão",
+      colorClass: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
+    };
+  }
+  return {
+    label: "Básico / Complementar",
+    colorClass: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+  };
 }
 
-const DATAPREV_EXAMPLE = `MODULO II - CONHECIMENTOS ESPECÍFICOS:
-PERFIL 1: ANÁLISE DE NEGÓCIOS DE TI:
-1 Análise de negócios. 2 Gestão por processos e gestão funcional. 2.1 Ciclo PDCA. 3 Gerenciamento de Processos de Negócio (BPM CBOK v4.0). 3.1 Conceitos, modelagem de processos. 6 Gerenciamento de indicadores, metas e resultados. 7 Gestão Ágil de Projetos. 8. Gerenciamento de produtos. 9. COBIT 2019. 10 ITIL v4.
-
-EXPERIÊNCIA DO USUÁRIO (UX) E DESIGN:
-13 User experience (UX): 13.1 Conceitos de acessibilidade e usabilidade. 13.2 Histórias do usuário. 14 Storytelling com dados. 15 Prototipação. 16 Design thinking. 17 Análise de personas de usuários de software. 18 Mínimo Produto Viável (MVP).`;
-
-export function ImportEditalModal({
+export function CalibrateWeightsModal({
   isOpen,
+  subjects,
   onClose,
-  onImportSuccess,
-}: ImportEditalModalProps) {
-  const [step, setStep] = useState<"input" | "preview">("input");
-  const [activeTab, setActiveTab] = useState<"file" | "text">("text");
-  const [rawText, setRawText] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  onSuccess,
+}: CalibrateWeightsModalProps) {
+  const [localWeights, setLocalWeights] = useState<Record<string, number>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [parsedSubjects, setParsedSubjects] = useState<SubjectItem[]>([]);
-  const [expandedSubjects, setExpandedSubjects] = useState<
-    Record<string, boolean>
-  >({});
+  // Inicializa os pesos com os dados recebidos das disciplinas
+  useEffect(() => {
+    if (subjects && subjects.length > 0) {
+      const initial: Record<string, number> = {};
+      subjects.forEach((s) => {
+        initial[s.id] =
+          typeof s.weight === "number" && !isNaN(s.weight)
+            ? Math.max(1, Math.min(10, s.weight))
+            : 5.0;
+      });
+      setLocalWeights(initial);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+    }
+  }, [subjects, isOpen]);
+
+  // Soma total de todos os pesos para calcular a fatia percentual
+  const totalWeightSum = useMemo(() => {
+    return Object.values(localWeights).reduce((acc, w) => acc + (w || 1), 0);
+  }, [localWeights]);
 
   if (!isOpen) return null;
 
-  const readFileAsText = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (err) => reject(err);
-      reader.readAsText(file);
+  const handleSliderChange = (id: string, value: number) => {
+    setLocalWeights((prev) => ({
+      ...prev,
+      [id]: Math.max(1, Math.min(10, value)),
+    }));
+  };
+
+  const handleStepChange = (id: string, delta: number) => {
+    setLocalWeights((prev) => {
+      const current = prev[id] ?? 5.0;
+      const next = Math.max(1, Math.min(10, Math.round((current + delta) * 10) / 10));
+      return {
+        ...prev,
+        [id]: next,
+      };
     });
   };
 
-  const handleProcessEdital = async () => {
-    setIsProcessing(true);
-
-    try {
-      let contentToProcess = "";
-
-      if (activeTab === "file" && selectedFile) {
-        if (selectedFile.name.endsWith(".txt")) {
-          contentToProcess = await readFileAsText(selectedFile);
-        } else if (
-          selectedFile.type === "application/pdf" ||
-          selectedFile.name.endsWith(".pdf")
-        ) {
-          alert(
-            "Para PDFs do edital, selecione e copie o trecho de Conteúdo Programático diretamente do seu leitor de PDF e cole na aba 'Colar Texto do Edital'.",
-          );
-          setIsProcessing(false);
-          setActiveTab("text");
-          return;
-        }
-      } else {
-        contentToProcess = rawText;
-      }
-
-      if (!contentToProcess.trim()) {
-        alert("Por favor, insira o texto do edital antes de prosseguir.");
-        setIsProcessing(false);
-        return;
-      }
-
-      const response = await fetch("/api/edital/parse-edital", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: contentToProcess }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Erro ao processar o edital");
-      }
-
-      const rawList: RawMateria[] = Array.isArray(result.materias)
-        ? result.materias
-        : [];
-
-      const formattedSubjects: SubjectItem[] = rawList.map(
-        (m: RawMateria, mIdx: number) => {
-          const name = m.nome || m.materia || m.name || "Matéria sem nome";
-          const subjectColor = m.cor || m.color;
-          const rawTopics = Array.isArray(m.topicos)
-            ? m.topicos
-            : Array.isArray(m.topics)
-              ? m.topics
-              : [];
-
-          return {
-            id: `materia-${mIdx}`,
-            name,
-            color: subjectColor,
-            selected: true,
-            topics: rawTopics.map((t: string, tIdx: number) => ({
-              id: `topico-${mIdx}-${tIdx}`,
-              name: t,
-              selected: true,
-            })),
-          };
-        },
-      );
-
-      if (formattedSubjects.length === 0) {
-        alert(
-          "Nenhuma matéria foi encontrada no texto enviado. Tente colar apenas o trecho do Conteúdo Programático.",
-        );
-        return;
-      }
-
-      setParsedSubjects(formattedSubjects);
-
-      const initialExpanded: Record<string, boolean> = {};
-      formattedSubjects.forEach((sub) => (initialExpanded[sub.id] = true));
-      setExpandedSubjects(initialExpanded);
-
-      setStep("preview");
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Erro desconhecido";
-      console.error("Erro ao importar edital:", error);
-      alert(`Ocorreu um erro: ${msg}`);
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleDistributeEqually = () => {
+    const updated: Record<string, number> = {};
+    subjects.forEach((s) => {
+      updated[s.id] = 5.0;
+    });
+    setLocalWeights(updated);
   };
 
-  const toggleSubjectSelect = (subjectId: string) => {
-    setParsedSubjects((prev) =>
-      prev.map((sub) => {
-        if (sub.id === subjectId) {
-          const nextSelected = !sub.selected;
-          return {
-            ...sub,
-            selected: nextSelected,
-            topics: sub.topics.map((t) => ({ ...t, selected: nextSelected })),
-          };
-        }
-        return sub;
-      }),
-    );
+  const handleReset = () => {
+    const initial: Record<string, number> = {};
+    subjects.forEach((s) => {
+      initial[s.id] =
+        typeof s.weight === "number" && !isNaN(s.weight) ? s.weight : 5.0;
+    });
+    setLocalWeights(initial);
   };
 
-  const toggleTopicSelect = (subjectId: string, topicId: string) => {
-    setParsedSubjects((prev) =>
-      prev.map((sub) => {
-        if (sub.id === subjectId) {
-          const updatedTopics = sub.topics.map((t) =>
-            t.id === topicId ? { ...t, selected: !t.selected } : t,
-          );
-          const hasAnyTopicSelected = updatedTopics.some((t) => t.selected);
-          return {
-            ...sub,
-            selected: hasAnyTopicSelected,
-            topics: updatedTopics,
-          };
-        }
-        return sub;
-      }),
-    );
-  };
-
-  const toggleAccordion = (subjectId: string) => {
-    setExpandedSubjects((prev) => ({ ...prev, [subjectId]: !prev[subjectId] }));
-  };
-
-  const handleConfirmImport = async () => {
-    const finalData = parsedSubjects
-      .filter((sub) => sub.selected)
-      .map((sub) => ({
-        name: sub.name,
-        cor: sub.color,
-        topics: sub.topics
-          .filter((t) => t.selected)
-          .map((t) => ({ name: t.name })),
-      }))
-      .filter((sub) => sub.topics.length > 0);
-
-    if (finalData.length === 0) {
-      alert("Selecione ao menos um tópico para importar.");
-      return;
-    }
-
+  const handleSave = async () => {
     setIsSaving(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
 
     try {
-      const response = await fetch("/api/edital/import-edital", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: "test",
-          materias: finalData,
-        }),
-      });
+      const payload = Object.entries(localWeights).map(([subjectId, weight]) => ({
+        subjectId,
+        weight,
+      }));
 
-      const rawResText = await response.text();
+      const res = await bulkUpdateSubjectWeightsAction(payload);
 
-      let result;
-      try {
-        result = JSON.parse(rawResText);
-      } catch {
-        throw new Error(
-          `Resposta do servidor não é válida. Status: ${response.status}`,
-        );
+      if (!res.success) {
+        setErrorMessage(res.error || "Falha ao salvar calibragem de pesos.");
+        return;
       }
 
-      if (!response.ok) {
-        throw new Error(result.error || "Erro no servidor");
-      }
-
-      onImportSuccess?.(result);
-      handleClose();
-    } catch (error) {
-      console.error("Erro na importação:", error);
+      setSuccessMessage("Pesos calibrados com sucesso!");
+      setTimeout(() => {
+        onSuccess?.();
+        onClose();
+      }, 700);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleClose = () => {
-    setStep("input");
-    setRawText("");
-    setSelectedFile(null);
-    setParsedSubjects([]);
-    onClose();
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-slate-950 border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden text-slate-200 flex flex-col max-h-[88vh]">
-        {/* Cabeçalho */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
-          <div className="flex items-center gap-2">
-            {step === "preview" && (
-              <button
-                onClick={() => setStep("input")}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-colors mr-1 cursor-pointer"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            )}
-            <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-              <Sparkles size={18} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative flex flex-col w-full max-w-3xl max-h-[90vh] bg-linear-to-br from-[#090d16] via-[#070b14] to-[#04060c] border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+        {/* Glow de ambientação no topo */}
+        <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-500/50 to-transparent" />
+        <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl" />
+
+        {/* ================= 1. CABEÇALHO DO MODAL ================= */}
+        <div className="relative z-10 flex items-start justify-between p-5 sm:p-6 border-b border-white/5 gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/15 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+              <Scale size={20} className="animate-pulse" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-100">
-                {step === "input"
-                  ? "Importar Edital com IA"
-                  : "Revisar Matérias e Tópicos"}
-              </h2>
-              <p className="text-xs text-slate-400">
-                {step === "input"
-                  ? "Extraia a estrutura de estudos do seu concurso automaticamente"
-                  : "Selecione o que deseja adicionar ao seu Planner"}
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+                  Calibragem de Pesos do Edital
+                </h2>
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase text-amber-300">
+                  Radar Neural
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Defina a importância de cada disciplina para calibrar o Radar de Domínio e o agendamento inteligente.
               </p>
             </div>
           </div>
+
           <button
-            onClick={handleClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-colors cursor-pointer"
+            onClick={onClose}
+            className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* Corpo */}
-        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
-          {step === "input" ? (
-            <div className="space-y-5">
-              {/* Card Didático de Onde Pegar */}
-              <div className="p-4 rounded-2xl bg-linear-to-r from-indigo-950/40 to-slate-900/60 border border-indigo-500/20 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
-                    <HelpCircle size={15} />
-                    Como pegar do PDF do edital?
-                  </span>
-                  <button
-                    onClick={() => {
-                      setActiveTab("text");
-                      setRawText(DATAPREV_EXAMPLE);
-                    }}
-                    className="flex items-center gap-1 text-[11px] font-extrabold text-amber-400 hover:text-amber-300 transition-colors bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg cursor-pointer"
-                  >
-                    <Play size={11} className="fill-amber-400" />
-                    <span>Testar com Exemplo</span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-300 leading-relaxed">
-                  Abra o PDF do seu concurso (ex:{" "}
-                  <strong>DATAPREV, FGV, Cebraspe</strong>), vá na seção de{" "}
-                  <strong>CONHECIMENTOS ESPECÍFICOS</strong>, selecione o texto
-                  bruto dos tópicos e cole abaixo. Não precisa formatar nada!
-                </p>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex p-1 bg-slate-900/80 border border-white/5 rounded-xl">
-                <button
-                  onClick={() => setActiveTab("text")}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    activeTab === "text"
-                      ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <FileText size={14} />
-                  <span>Colar Texto do Edital (Recomendado)</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab("file")}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    activeTab === "file"
-                      ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <Upload size={14} />
-                  <span>Enviar TXT</span>
-                </button>
-              </div>
-
-              {activeTab === "file" ? (
-                <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-white/10 rounded-xl cursor-pointer bg-white/5 hover:bg-white/10 hover:border-indigo-500/40 transition-all group">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
-                    <div className="p-3 mb-2 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:scale-110 transition-transform">
-                      <Upload size={22} />
-                    </div>
-                    <p className="text-xs font-semibold text-slate-300">
-                      {selectedFile
-                        ? selectedFile.name
-                        : "Clique para enviar um arquivo TXT"}
-                    </p>
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      Para arquivos PDF, utilize a aba &quot;Colar Texto do
-                      Edital&quot;
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept=".txt"
-                    onChange={(e) =>
-                      e.target.files && setSelectedFile(e.target.files[0])
-                    }
-                  />
-                </label>
-              ) : (
-                <textarea
-                  rows={8}
-                  value={rawText}
-                  onChange={(e) => setRawText(e.target.value)}
-                  placeholder="Cole aqui o conteúdo programático copiado do edital PDF...&#10;&#10;Exemplo:&#10;MODULO II - CONHECIMENTOS ESPECÍFICOS:&#10;PERFIL 1: ANÁLISE DE NEGÓCIOS DE TI:&#10;1 Análise de negócios. 2 Gestão por processos..."
-                  className="w-full p-3.5 rounded-xl bg-slate-900/60 border border-white/10 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors resize-none leading-relaxed font-mono"
-                />
-              )}
-            </div>
-          ) : (
-            /* PREVIEW STEP */
-            <div className="space-y-3">
-              {parsedSubjects.map((sub) => {
-                const isExpanded = expandedSubjects[sub.id];
-                const selectedCount = sub.topics.filter(
-                  (t) => t.selected,
-                ).length;
-
-                return (
-                  <div
-                    key={sub.id}
-                    className="border border-white/5 rounded-xl bg-slate-900/40 overflow-hidden"
-                  >
-                    {/* Cabeçalho da Matéria */}
-                    <div className="flex items-center justify-between p-3 bg-white/5 border-b border-white/5">
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => toggleSubjectSelect(sub.id)}
-                          className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer ${
-                            sub.selected
-                              ? "bg-indigo-600 border-indigo-500 text-white"
-                              : "border-slate-700 bg-slate-900"
-                          }`}
-                        >
-                          {sub.selected && <Check size={12} />}
-                        </button>
-
-                        {sub.color && (
-                          <span
-                            className="w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: sub.color }}
-                            title={`Cor atribuída: ${sub.color}`}
-                          />
-                        )}
-
-                        <span className="text-xs font-semibold text-slate-200">
-                          {sub.name}
-                        </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
-                          {selectedCount}/{sub.topics.length} tópicos
-                        </span>
-                      </div>
-
-                      <button
-                        onClick={() => toggleAccordion(sub.id)}
-                        className="p-1 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-                      >
-                        {isExpanded ? (
-                          <ChevronDown size={16} />
-                        ) : (
-                          <ChevronRight size={16} />
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Lista de Tópicos */}
-                    {isExpanded && (
-                      <div className="p-3 space-y-1.5 pl-8">
-                        {sub.topics.map((topic) => (
-                          <div
-                            key={topic.id}
-                            onClick={() => toggleTopicSelect(sub.id, topic.id)}
-                            className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
-                          >
-                            <div
-                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
-                                topic.selected
-                                  ? "bg-indigo-600 border-indigo-500 text-white"
-                                  : "border-slate-700 bg-slate-900"
-                              }`}
-                            >
-                              {topic.selected && <Check size={10} />}
-                            </div>
-                            <span
-                              className={`text-xs ${
-                                topic.selected
-                                  ? "text-slate-300"
-                                  : "text-slate-500 line-through"
-                              }`}
-                            >
-                              {topic.name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Rodapé */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-900/40 border-t border-white/5 shrink-0">
-          <button
-            onClick={handleClose}
-            className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-          >
-            Cancelar
-          </button>
-
-          {step === "input" ? (
+        {/* ================= 2. BARRA DE ATALHOS & PRESETS ================= */}
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 px-5 sm:px-6 py-3 bg-slate-950/60 border-b border-white/5 text-xs">
+          <div className="flex items-center gap-2">
             <button
-              disabled={
-                isProcessing ||
-                (activeTab === "file" && !selectedFile) ||
-                (activeTab === "text" && !rawText.trim())
-              }
-              onClick={handleProcessEdital}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_25px_rgba(99,102,241,0.6)] disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+              type="button"
+              onClick={handleDistributeEqually}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] px-3 py-1.5 font-semibold text-slate-300 transition-all active:scale-95 cursor-pointer"
             >
-              {isProcessing ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>Analisando com IA...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={14} />
-                  <span>Analisar Edital com IA</span>
-                </>
-              )}
+              <Equal size={13} className="text-amber-400" />
+              <span>Distribuir Igualmente (5.0)</span>
             </button>
-          ) : (
+
             <button
+              type="button"
+              onClick={handleReset}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] px-3 py-1.5 font-semibold text-slate-300 transition-all active:scale-95 cursor-pointer"
+            >
+              <RotateCcw size={12} />
+              <span>Resetar</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
+            <span>Matérias: <strong className="text-white">{subjects.length}</strong></span>
+            <span>•</span>
+            <span>Soma dos Pesos: <strong className="text-amber-400">{totalWeightSum.toFixed(1)}</strong></span>
+          </div>
+        </div>
+
+        {/* Mensagens de Feedback */}
+        {errorMessage && (
+          <div className="mx-5 sm:mx-6 mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300 font-medium">
+            {errorMessage}
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mx-5 sm:mx-6 mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 font-medium flex items-center gap-2">
+            <Check size={14} className="text-emerald-400" />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        {/* ================= 3. LISTA DE DISCIPLINAS COM SLIDERS ================= */}
+        <div className="relative z-10 flex-1 overflow-y-auto p-5 sm:p-6 space-y-3.5 divide-y divide-white/5">
+          {subjects.map((subject) => {
+            const currentWeight = localWeights[subject.id] ?? 5.0;
+            const percentage =
+              totalWeightSum > 0
+                ? Math.round((currentWeight / totalWeightSum) * 100)
+                : 0;
+            const relevance = getRelevanceTag(currentWeight);
+            const subColor = subject.color || "#6366f1";
+
+            return (
+              <div
+                key={subject.id}
+                className="pt-3.5 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 group/item"
+              >
+                {/* Lado Esquerdo: Identificação da Matéria */}
+                <div className="sm:w-2/5 min-w-0 space-y-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                      style={{ backgroundColor: subColor }}
+                    />
+                    <h4 className="text-xs sm:text-sm font-bold text-white truncate tracking-tight">
+                      {subject.name}
+                    </h4>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[10px]">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-md border font-mono font-bold ${relevance.colorClass}`}
+                    >
+                      {relevance.label}
+                    </span>
+                    <span className="text-slate-400 font-mono">
+                      ~{percentage}% da prova
+                    </span>
+                  </div>
+                </div>
+
+                {/* Lado Direito: Slider e Controles Finais */}
+                <div className="sm:w-3/5 flex items-center gap-3">
+                  {/* Botão Menos */}
+                  <button
+                    type="button"
+                    onClick={() => handleStepChange(subject.id, -0.5)}
+                    disabled={currentWeight <= 1.0}
+                    className="h-7 w-7 shrink-0 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center font-mono font-black text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  >
+                    -
+                  </button>
+
+                  {/* Slider Contínuo */}
+                  <div className="flex-1 space-y-1">
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="0.5"
+                      value={currentWeight}
+                      onChange={(e) =>
+                        handleSliderChange(subject.id, parseFloat(e.target.value) || 5)
+                      }
+                      className="w-full accent-amber-500 bg-slate-900 rounded-lg h-2 cursor-pointer transition-all"
+                    />
+                    <div className="flex justify-between text-[8px] font-mono text-slate-500">
+                      <span>1.0</span>
+                      <span>5.0</span>
+                      <span>10.0</span>
+                    </div>
+                  </div>
+
+                  {/* Botão Mais */}
+                  <button
+                    type="button"
+                    onClick={() => handleStepChange(subject.id, 0.5)}
+                    disabled={currentWeight >= 10.0}
+                    className="h-7 w-7 shrink-0 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center font-mono font-black text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  >
+                    +
+                  </button>
+
+                  {/* Valor Numérico Destaque */}
+                  <div className="w-14 shrink-0 text-right">
+                    <span className="font-mono text-sm font-black text-amber-300 bg-amber-500/10 border border-amber-500/25 px-2 py-1 rounded-xl block text-center shadow-xs">
+                      {currentWeight.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ================= 4. RODAPÉ DE AÇÕES ================= */}
+        <div className="relative z-10 flex items-center justify-between p-4 sm:p-5 bg-slate-950/80 border-t border-white/5 gap-3">
+          <p className="text-[11px] text-slate-400 hidden sm:block">
+            💡 As alterações serão aplicadas diretamente ao <strong>Radar de Domínio</strong> na Dashboard.
+          </p>
+
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={onClose}
               disabled={isSaving}
-              onClick={handleConfirmImport}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 px-5 py-2.5 text-xs font-black shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               {isSaving ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>Salvando no Planner...</span>
+                  <Loader2 size={14} className="animate-spin text-slate-950" />
+                  <span>Salvando Calibragem...</span>
                 </>
               ) : (
                 <>
-                  <Check size={14} />
-                  <span>Confirmar e Importar</span>
+                  <Check size={14} className="text-slate-950" />
+                  <span>Salvar Pesos ({subjects.length})</span>
                 </>
               )}
             </button>
-          )}
+          </div>
         </div>
       </div>
     </div>
@@ -742,581 +562,300 @@ export function ImportEditalModal({
 }
 </file>
 
-<file path="src/app/(dashboard)/edital/page.tsx">
+<file path="src/components/edital/edit-subject-modal.tsx">
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
-import Link from "next/link";
-import {
-  ArrowLeft,
-  Search,
-  UploadCloud,
-  Plus,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
-  BookOpen,
-  Copy,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react";
-import PendingSubjects from "./PendingSubjects";
-import { Topic } from "@/types";
-import { ImportEditalModal } from "@/components/edital/import-edital-modal";
-import { PlannerView } from "@/components/edital/planner-table";
-import { NewContentModal } from "@/components/create-subject-modal";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { useSearchParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { X, BookOpen, Loader2, Save, Sparkles, Sliders } from "lucide-react";
+import { updateSubjectAction } from "@/actions/subject-actions";
 
-interface ApiTopic {
-  id: string;
-  title: string;
-  subjectName?: string;
-  firstStudy?: string;
-  performance?: number;
-  lastRev?: string;
-  nextRev?: string;
-  quizId?: string | null;
-  subjectColor?: string;
-  subject?: {
-    name?: string;
-    color?: string;
-  };
-}
-
-interface ApiSubject {
+export interface EditSubjectData {
   id: string;
   name: string;
-  importance?: string;
-  priority?: string;
   color?: string | null;
-  topics?: ApiTopic[];
-  _count?: {
-    topics: number;
+  weight?: number;
+}
+
+interface EditSubjectModalProps {
+  isOpen: boolean;
+  subject: EditSubjectData | null;
+  onClose: () => void;
+  onSuccess?: () => void;
+  onSubjectUpdated?: () => void;
+}
+
+const COLOR_OPTIONS = [
+  { hex: "#3B82F6", label: "Azul (Dev / Exatas)" },
+  { hex: "#10B981", label: "Verde (Testes / Qualidade)" },
+  { hex: "#8B5CF6", label: "Roxo (Gestão / Processos)" },
+  { hex: "#F59E0B", label: "Âmbar (Frontend / UX / Gerais)" },
+  { hex: "#EC4899", label: "Rosa (Segurança / Redes)" },
+  { hex: "#06B6D4", label: "Ciano (Dados / Cloud)" },
+  { hex: "#EF4444", label: "Vermelho (Legislação / Direito)" },
+  { hex: "#6366F1", label: "Índigo (Constitucional / Adm)" },
+];
+
+function getWeightBadge(weight: number) {
+  if (weight >= 9) {
+    return {
+      label: "Crítico / Máximo",
+      desc: "Bloco principal de questões da prova ou peso 3",
+      colorClass: "bg-rose-500/15 text-rose-300 border-rose-500/30",
+    };
+  }
+  if (weight >= 7) {
+    return {
+      label: "Alto / Específica",
+      desc: "Conhecimentos específicos de alta pontuação",
+      colorClass: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    };
+  }
+  if (weight >= 4) {
+    return {
+      label: "Médio / Padrão",
+      desc: "Conhecimentos gerais com pontuação intermediária",
+      colorClass: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
+    };
+  }
+  return {
+    label: "Baixo / Básico",
+    desc: "Poucas questões ou peso complementar",
+    colorClass: "bg-slate-500/15 text-slate-300 border-slate-500/30",
   };
 }
 
-function PlannerContent() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [subjects, setSubjects] = useState<ApiSubject[]>([]);
-  const [loading, setLoading] = useState(true);
-  const searchParams = useSearchParams();
-  const targetSubjectId = searchParams.get("subjectId");
-
-  // Estados para Revisão Ebbinghaus
-  const [activeReviewTopic, setActiveReviewTopic] = useState<Topic | null>(
-    null,
-  );
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  const [performanceValue, setPerformanceValue] = useState<number>(100);
-
-  // Modal de Importar Edital
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-
-  async function refreshData() {
-    try {
-      const subjectsRes = await fetch(`/api/edital?mode=subjects`, {
-        cache: "no-store",
-      });
-      if (subjectsRes.ok) {
-        const subjectsJson = await subjectsRes.json();
-        const subjectsData: ApiSubject[] = subjectsJson.data || [];
-        setSubjects(subjectsData);
-
-        const extractedTopics = subjectsData.flatMap((sub) =>
-          (sub.topics || []).map((t) => ({
-            ...t,
-            subjectName: sub.name,
-            subjectColor: sub.color || t.subjectColor || t.subject?.color,
-          })),
-        );
-
-        if (extractedTopics.length > 0) {
-          setTopics(extractedTopics as unknown as Topic[]);
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao atualizar dados:", err);
-    }
-  }
+export function EditSubjectModal({
+  isOpen,
+  subject,
+  onClose,
+  onSuccess,
+  onSubjectUpdated,
+}: EditSubjectModalProps) {
+  const [name, setName] = useState("");
+  const [color, setColor] = useState("#3B82F6");
+  const [weight, setWeight] = useState(5.0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    if (subject) {
+      setName(subject.name || "");
+      setColor(subject.color || "#3B82F6");
+      setWeight(
+        typeof subject.weight === "number" && !isNaN(subject.weight)
+          ? subject.weight
+          : 5.0,
+      );
+      setError(null);
+    }
+  }, [subject]);
 
-    async function loadData() {
-      try {
-        setLoading(true);
+  if (!isOpen || !subject) return null;
 
-        const subjectsRes = await fetch(`/api/edital?mode=subjects`, {
-          cache: "no-store",
-        });
-        if (!subjectsRes.ok)
-          throw new Error("Falha ao carregar os dados do banco.");
+  const badgeInfo = getWeightBadge(weight);
 
-        const subjectsJson = await subjectsRes.json();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      setError("O nome da matéria é obrigatório.");
+      return;
+    }
 
-        if (!isMounted) return;
+    setIsLoading(true);
+    setError(null);
 
-        const subjectsData: ApiSubject[] = subjectsJson.data || [];
-        setSubjects(subjectsData);
+    try {
+      const res = await updateSubjectAction({
+        subjectId: subject.id,
+        name: name.trim(),
+        color,
+        weight: Number(weight),
+      });
 
-        const extractedTopics = subjectsData.flatMap((sub) =>
-          (sub.topics || []).map((t) => ({
-            ...t,
-            subjectName: sub.name,
-            subjectColor: sub.color || t.subjectColor || t.subject?.color,
-          })),
-        );
-
-        setTopics(extractedTopics as unknown as Topic[]);
-      } catch (err: unknown) {
-        console.error(
-          err instanceof Error ? err.message : "Erro desconhecido ao carregar",
-        );
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      if (!res.success) {
+        setError(res.error || "Falha ao atualizar matéria.");
+        return;
       }
-    }
 
-    loadData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  async function handleCreateTopic(data: {
-    title: string;
-    subjectName: string;
-    weight: string;
-  }) {
-    try {
-      const response = await fetch("/api/edital", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "CREATE",
-          title: data.title,
-          subjectName: data.subjectName,
-          relevance: data.weight,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Erro ao criar novo conteúdo.");
-
-      setIsCreateModalOpen(false);
-      await refreshData();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Falha ao salvar");
-    }
-  }
-
-  async function handleReviewSubmission(grade: "Bom" | "Difícil" | "Errei") {
-    if (!activeReviewTopic) return;
-    try {
-      setSubmitting(true);
-      const response = await fetch("/api/edital", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topicId: activeReviewTopic.id,
-          grade,
-          performance: performanceValue,
-        }),
-      });
-      if (!response.ok) throw new Error("Erro ao processar sua revisão.");
-      setActiveReviewTopic(null);
-
-      await refreshData();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Falha na requisição");
+      onSuccess?.();
+      onSubjectUpdated?.();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
-      setSubmitting(false);
+      setIsLoading(false);
     }
-  }
-
-  async function handleDeleteTopic(topicId: string) {
-    try {
-      const response = await fetch(`/api/edital?id=${topicId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Erro ao excluir o tópico.");
-
-      await refreshData();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Falha ao deletar tópico");
-    }
-  }
-
-  async function handleDeleteSubject(subjectIdOrName: string) {
-    try {
-      const response = await fetch(`/api/edital?subjectId=${subjectIdOrName}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Erro ao excluir a matéria.");
-
-      await refreshData();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Falha ao deletar matéria");
-    }
-  }
-
-  const mappedTopicsForView = topics.map((t) => {
-    const item = t as unknown as ApiTopic;
-    return {
-      id: item.id,
-      title: item.title,
-      subjectName: item.subjectName || item.subject?.name || "Geral",
-      subjectColor: item.subjectColor || item.subject?.color,
-      firstStudy: item.firstStudy,
-      performance: item.performance,
-      lastRev: item.lastRev,
-      nextRev: item.nextRev,
-      quizId:
-        typeof item.quizId === "string" && item.quizId.trim().length > 0
-          ? item.quizId
-          : null,
-    };
-  });
+  };
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-3.5 sm:p-6 font-sans antialiased relative">
-      <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6 animate-in fade-in duration-500">
-        {/* Nav */}
-        <div>
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors group"
-          >
-            <ArrowLeft
-              size={14}
-              className="transition-transform group-hover:-translate-x-0.5"
-            />
-            <span>Voltar para a Dashboard</span>
-          </Link>
-        </div>
-
-        {/* Top Control Bar */}
-        <div className="flex flex-col lg:flex-row gap-3.5 items-stretch lg:items-center justify-between bg-[#090d16] border border-slate-800/60 p-3.5 sm:p-4 rounded-2xl shadow-lg">
-          <div className="flex items-center justify-between lg:justify-start gap-4 shrink-0">
-            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-200">
-              Planner de Estudos
-            </h1>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 justify-end w-full">
-            <div className="relative w-full sm:max-w-xs">
-              <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-              />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Pesquisar tópico ou matéria..."
-                className="w-full bg-slate-950 border border-slate-900 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 sm:flex items-center gap-2 shrink-0 justify-end">
-              <button
-                onClick={() => setIsImportModalOpen(true)}
-                className="flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer"
-              >
-                <UploadCloud size={14} className="text-indigo-400" />
-                <span className="truncate">Importar Edital</span>
-              </button>
-
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
-              >
-                <Plus size={14} />
-                <span className="truncate">Novo conteúdo</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Seção de Revisões Pendentes */}
-        <section className="mt-4 sm:mt-6">
-          <h2 className="text-xs font-bold text-slate-500 mb-2 sm:mb-3 uppercase tracking-wider">
-            Pendentes de hoje
-          </h2>
-          <PendingSubjects
-            onReviewClick={(topic: Topic) => setActiveReviewTopic(topic)}
-          />
-        </section>
-
-        {/* Header de Métricas Globais */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-linear-to-r from-[#090d16] via-[#0c1222] to-[#090d16] border border-white/10 p-3.5 sm:p-4 rounded-2xl shadow-xl">
-          <div className="flex items-center gap-3">
-            <div className="p-2 sm:p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-bold text-xs">
-              {
-                topics.filter(
-                  (t) => t.firstStudy && t.firstStudy !== "Pendente",
-                ).length
-              }{" "}
-              / {topics.length}
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                Tópicos Concluídos
-              </p>
-              <p className="text-xs font-semibold text-slate-200">
-                Avanço no Edital
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 sm:border-x border-white/10 sm:px-4">
-            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs">
-              {subjects.length}
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                Disciplinas
-              </p>
-              <p className="text-xs font-semibold text-slate-200">
-                Mapeadas no Plano
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                Desempenho Geral
-              </p>
-              <p className="text-xs font-semibold text-slate-200">
-                Média em Questões
-              </p>
-            </div>
-            <span className="text-sm font-mono font-bold text-indigo-400">
-              {Math.round(
-                topics.reduce(
-                  (acc: number, t) => acc + (t.performance || 0),
-                  0,
-                ) / (topics.length || 1),
-              )}
-              %
-            </span>
-          </div>
-        </div>
-
-        {/* GUIA DIDÁTICO QUANDO NÃO HÁ MATÉRIAS */}
-        {!loading && subjects.length === 0 && (
-          <div className="relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-linear-to-br from-[#090d19] via-[#050812] to-[#020409] p-5 sm:p-8 shadow-2xl">
-            <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
-            <div className="relative z-10 max-w-3xl space-y-5">
-              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-[11px] font-bold text-indigo-300">
-                <Sparkles size={14} className="animate-pulse" />
-                <span>Como cadastrar seu Edital em segundos</span>
-              </div>
-
-              <div>
-                <h3 className="text-lg sm:text-2xl font-black text-white tracking-tight">
-                  Importe as matérias do seu Concurso com IA
-                </h3>
-                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                  Não perca tempo criando tópico por tópico manualmente. Você só
-                  precisa copiar o texto do edital em PDF e colar no Synapse.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3.5 space-y-1.5">
-                  <div className="flex items-center justify-between text-indigo-400">
-                    <BookOpen size={16} />
-                    <span className="font-mono text-xs font-black text-slate-500">
-                      01
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-200">
-                    Abra seu Edital PDF
-                  </h4>
-                  <p className="text-[11px] text-slate-400 leading-normal">
-                    Vá até a seção de Conteúdo Programático.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3.5 space-y-1.5">
-                  <div className="flex items-center justify-between text-cyan-400">
-                    <Copy size={16} />
-                    <span className="font-mono text-xs font-black text-slate-500">
-                      02
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-200">
-                    Copie o Texto Bruto
-                  </h4>
-                  <p className="text-[11px] text-slate-400 leading-normal">
-                    Copie todo o bloco de disciplinas sem formatar.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3.5 space-y-1.5">
-                  <div className="flex items-center justify-between text-emerald-400">
-                    <Sparkles size={16} />
-                    <span className="font-mono text-xs font-black text-slate-500">
-                      03
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-200">
-                    A IA Mapeia Tudo
-                  </h4>
-                  <p className="text-[11px] text-slate-400 leading-normal">
-                    Cole no Synapse para gerar seu plano.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  onClick={() => setIsImportModalOpen(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 text-xs font-extrabold text-white shadow-lg transition-all active:scale-95 cursor-pointer"
-                >
-                  <UploadCloud size={16} />
-                  <span>Importar meu Edital Agora</span>
-                  <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tabela do Planner */}
-        {loading ? (
-          <div className="flex items-center justify-center py-10 gap-2">
-            <Loader2 className="animate-spin text-indigo-500" size={16} />
-            <span className="text-xs text-slate-500">Carregando dados...</span>
-          </div>
-        ) : (
-          subjects.length > 0 && (
-            <PlannerView
-              topics={mappedTopicsForView}
-              subjects={subjects}
-              searchQuery={searchQuery}
-              targetSubjectId={targetSubjectId}
-              onReviewClick={(topicId) => {
-                const found = topics.find((t) => t.id === topicId);
-                if (found) {
-                  setActiveReviewTopic(found);
-                  setPerformanceValue(found.performance || 100);
-                }
-              }}
-              onDeleteTopic={handleDeleteTopic}
-              onDeleteSubject={handleDeleteSubject}
-            />
-          )
-        )}
-      </div>
-
-      <NewContentModal
-        isOpen={isCreateModalOpen}
-        subjects={subjects}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateTopic}
-      />
-
-      {/* 📱 REVISÃO SM-2 EM BOTTOM SHEET NO MOBILE */}
-      {activeReviewTopic && (
-        <BottomSheet
-          isOpen={!!activeReviewTopic}
-          onClose={() => setActiveReviewTopic(null)}
-          title="Registrar Avaliação SM-2"
-        >
-          <div className="space-y-5">
-            <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-indigo-400">
-                {activeReviewTopic.subject?.name || "Geral"}
-              </span>
-              <h2 className="text-base font-bold text-slate-100">
-                {activeReviewTopic.title}
-              </h2>
-            </div>
-
-            <div className="space-y-2 bg-slate-900/60 p-3.5 rounded-xl border border-white/5">
-              <label className="text-xs text-slate-400 flex justify-between font-medium">
-                <span>Porcentagem de Acertos:</span>
-                <span className="font-mono text-indigo-400 font-bold">
-                  {performanceValue}%
-                </span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={performanceValue}
-                onChange={(e) => setPerformanceValue(Number(e.target.value))}
-                className="w-full accent-indigo-500 bg-slate-950 rounded-lg h-2 cursor-pointer"
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-2.5 pt-1">
-              <button
-                disabled={submitting}
-                onClick={() => handleReviewSubmission("Bom")}
-                className="flex flex-col items-center justify-center gap-2 p-3.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
-              >
-                <CheckCircle2 size={22} />
-                <span>Bom</span>
-              </button>
-              <button
-                disabled={submitting}
-                onClick={() => handleReviewSubmission("Difícil")}
-                className="flex flex-col items-center justify-center gap-2 p-3.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
-              >
-                <AlertCircle size={22} />
-                <span>Difícil</span>
-              </button>
-              <button
-                disabled={submitting}
-                onClick={() => handleReviewSubmission("Errei")}
-                className="flex flex-col items-center justify-center gap-2 p-3.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
-              >
-                <XCircle size={22} />
-                <span>Errei</span>
-              </button>
-            </div>
-          </div>
-        </BottomSheet>
-      )}
-
-      {isImportModalOpen && (
-        <ImportEditalModal
-          isOpen={isImportModalOpen}
-          onClose={() => setIsImportModalOpen(false)}
-          onImportSuccess={async () => {
-            await refreshData();
-          }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-[#090d16] border border-white/10 rounded-3xl w-full max-w-lg p-6 sm:p-7 relative shadow-2xl space-y-6">
+        {/* Glow de fundo */}
+        <div
+          className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-20"
+          style={{ backgroundColor: color }}
         />
-      )}
-    </div>
-  );
-}
 
-export default function PlannerPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#030712] flex items-center justify-center text-slate-400 gap-2">
-          <Loader2 className="animate-spin text-indigo-500" size={20} />
-          <span className="text-xs">Carregando planejador...</span>
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/5 pb-4">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-inner transition-colors"
+              style={{
+                backgroundColor: `${color}20`,
+                borderColor: `${color}40`,
+                color: color,
+              }}
+            >
+              <BookOpen size={20} />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-white tracking-tight">
+                Editar Disciplina
+              </h2>
+              <p className="text-xs text-slate-400">
+                Calibre o peso no concurso e a identidade visual da matéria.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+          >
+            <X size={18} />
+          </button>
         </div>
-      }
-    >
-      <PlannerContent />
-    </Suspense>
+
+        {error && (
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Nome da Matéria */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Nome da Disciplina
+            </label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Direito Constitucional, Banco de Dados..."
+              className="w-full bg-slate-950/80 border border-white/10 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 transition-all font-medium"
+            />
+          </div>
+
+          {/* Seletor de Cores */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Cor de Identificação
+            </label>
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+              {COLOR_OPTIONS.map((c) => (
+                <button
+                  key={c.hex}
+                  type="button"
+                  onClick={() => setColor(c.hex)}
+                  title={c.label}
+                  className={`h-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                    color === c.hex
+                      ? "ring-2 ring-white scale-110 shadow-lg"
+                      : "opacity-60 hover:opacity-100 hover:scale-105"
+                  }`}
+                  style={{
+                    backgroundColor: `${c.hex}30`,
+                    borderColor: c.hex,
+                  }}
+                >
+                  <span
+                    className="w-3.5 h-3.5 rounded-full"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Slider de Peso no Edital (1 a 10) */}
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sliders size={16} className="text-indigo-400" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                  Peso no Edital / Concurso
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-base font-black text-indigo-400">
+                  {Number(weight).toFixed(1)}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">/ 10.0</span>
+              </div>
+            </div>
+
+            <input
+              type="range"
+              min="1"
+              max="10"
+              step="0.5"
+              value={weight}
+              onChange={(e) => setWeight(parseFloat(e.target.value))}
+              className="w-full accent-indigo-500 cursor-pointer h-2 bg-slate-900 rounded-lg"
+            />
+
+            <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+              <span>1.0 (Menor peso)</span>
+              <span>5.0 (Padrão)</span>
+              <span>10.0 (Peso Máximo)</span>
+            </div>
+
+            {/* Badge explicativo */}
+            <div className={`mt-2 p-2.5 rounded-xl border flex items-center justify-between text-xs ${badgeInfo.colorClass}`}>
+              <div>
+                <strong className="font-bold">{badgeInfo.label}</strong>
+                <p className="text-[11px] opacity-80 mt-0.5">{badgeInfo.desc}</p>
+              </div>
+              <span className="font-mono font-black text-xs px-2 py-0.5 rounded-md bg-black/30 border border-white/10 shrink-0">
+                Radar: {Math.round(weight * 10)}%
+              </span>
+            </div>
+          </div>
+
+          {/* Botões de Ação */}
+          <div className="flex items-center gap-3 justify-end pt-2 border-t border-white/5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold cursor-pointer transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-95 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <>
+                  <Save size={14} />
+                  <span>Salvar Alterações</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 </file>
@@ -1336,8 +875,11 @@ import {
   Play,
   ArrowUpDown,
   Filter,
+  Pencil,
+  Scale,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { EditSubjectModal } from "./edit-subject-modal";
 
 export interface PlannerTopic {
   id: string;
@@ -1355,6 +897,7 @@ export interface PlannerSubject {
   id: string;
   name: string;
   color?: string | null;
+  weight?: number;
 }
 
 export type SortOption =
@@ -1368,6 +911,7 @@ interface PlannerViewProps {
   onReviewClick?: (topicId: string) => void;
   onDeleteTopic?: (topicId: string) => Promise<void> | void;
   onDeleteSubject?: (subjectIdOrName: string) => Promise<void> | void;
+  onSubjectUpdated?: () => void;
 }
 
 const INITIAL_TOPICS_PER_SUBJECT = 5;
@@ -1380,7 +924,9 @@ export function PlannerView({
   onReviewClick,
   onDeleteTopic,
   onDeleteSubject,
+  onSubjectUpdated,
 }: PlannerViewProps) {
+  const [subjectToEdit, setSubjectToEdit] = useState<PlannerSubject | null>(null);
   const [subjectToDelete, setSubjectToDelete] = useState<{
     id?: string;
     name: string;
@@ -1749,15 +1295,35 @@ export function PlannerView({
                       <h3 className="text-xs sm:text-sm font-bold text-slate-100 truncate tracking-tight group-hover:text-white transition-colors">
                         {subjectName}
                       </h3>
-                      <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
-                        {subjectTopics.length}{" "}
-                        {subjectTopics.length === 1 ? "tópico" : "tópicos"}
+                      <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium flex items-center gap-1.5 flex-wrap">
+                        <span>
+                          {subjectTopics.length}{" "}
+                          {subjectTopics.length === 1 ? "tópico" : "tópicos"}
+                        </span>
+                        {matchedSubject ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSubjectToEdit(matchedSubject);
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-500/50 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer group/w active:scale-95 shadow-xs"
+                            title="Clique para calibrar o peso desta matéria"
+                          >
+                            <Scale size={10} className="text-amber-400 group-hover/w:rotate-12 transition-transform" />
+                            <span>Peso {matchedSubject.weight !== undefined ? Number(matchedSubject.weight).toFixed(1) : "5.0"}</span>
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold">
+                            Peso 5.0
+                          </span>
+                        )}
                         {progressPercent === 100 && (
-                          <span className="ml-2 text-[9px] sm:text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
+                          <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
                             ✓ Concluída
                           </span>
                         )}
-                      </p>
+                      </div>
                     </div>
                   </div>
 
@@ -1790,6 +1356,19 @@ export function PlannerView({
                         {progressPercent}%
                       </span>
                     </div>
+
+                    {matchedSubject && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSubjectToEdit(matchedSubject);
+                        }}
+                        className="p-1.5 sm:p-2 text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/15 rounded-xl transition-colors cursor-pointer"
+                        title="Editar Matéria e Peso"
+                      >
+                        <Pencil size={15} />
+                      </div>
+                    )}
 
                     <div
                       onClick={(e) => {
@@ -1981,6 +1560,2958 @@ export function PlannerView({
           setSubjectToDelete(null);
         }}
       />
+
+      <EditSubjectModal
+        isOpen={!!subjectToEdit}
+        subject={subjectToEdit}
+        onClose={() => setSubjectToEdit(null)}
+        onSubjectUpdated={onSubjectUpdated}
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="src/app/(dashboard)/edital/page.tsx">
+"use client";
+
+import React, { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Search,
+  UploadCloud,
+  Plus,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  BookOpen,
+  Copy,
+  Sparkles,
+  ArrowRight,
+  Scale,
+  CalendarDays,
+} from "lucide-react";
+import PendingSubjects from "./PendingSubjects";
+import { Topic } from "@/types";
+import { ImportEditalModal } from "@/components/edital/import-edital-modal";
+import { CalibrateWeightsModal } from "@/components/edital/calibrate-weights-modal";
+import { PlannerView } from "@/components/edital/planner-table";
+import { EditalSkillTree } from "@/components/edital/edital-skill-tree";
+import { NewContentModal } from "@/components/create-subject-modal";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
+import { useSearchParams } from "next/navigation";
+
+interface ApiTopic {
+  id: string;
+  title: string;
+  subjectName?: string;
+  firstStudy?: string;
+  performance?: number;
+  lastRev?: string;
+  nextRev?: string;
+  quizId?: string | null;
+  subjectColor?: string;
+  subject?: {
+    name?: string;
+    color?: string;
+  };
+}
+
+interface ApiSubject {
+  id: string;
+  name: string;
+  importance?: string;
+  priority?: string;
+  color?: string | null;
+  weight?: number;
+  topics?: ApiTopic[];
+  _count?: {
+    topics: number;
+  };
+}
+
+function PlannerContent() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [subjects, setSubjects] = useState<ApiSubject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const targetSubjectId = searchParams.get("subjectId");
+
+  // Estados para Revisão Ebbinghaus
+  const [activeReviewTopic, setActiveReviewTopic] = useState<Topic | null>(
+    null,
+  );
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [performanceValue, setPerformanceValue] = useState<number>(100);
+
+  // Modal de Importar Edital
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  // Modal de Calibrar Pesos
+  const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
+  // Modo de visualização: Tabela vs Árvore RPG
+  const [viewMode, setViewMode] = useState<"table" | "skill-tree">("table");
+
+  // Auto-abrir modal de importação se vier do dashboard com ?import=true
+  useEffect(() => {
+    if (searchParams.get("import") === "true") {
+      setIsImportModalOpen(true);
+    }
+  }, [searchParams]);
+
+  async function refreshData() {
+    try {
+      const subjectsRes = await fetch(`/api/edital?mode=subjects`, {
+        cache: "no-store",
+      });
+      if (subjectsRes.ok) {
+        const subjectsJson = await subjectsRes.json();
+        const subjectsData: ApiSubject[] = subjectsJson.data || [];
+        setSubjects(subjectsData);
+
+        const extractedTopics = subjectsData.flatMap((sub) =>
+          (sub.topics || []).map((t) => ({
+            ...t,
+            subjectName: sub.name,
+            subjectColor: sub.color || t.subjectColor || t.subject?.color,
+          })),
+        );
+
+        if (extractedTopics.length > 0) {
+          setTopics(extractedTopics as unknown as Topic[]);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar dados:", err);
+    }
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+
+        const subjectsRes = await fetch(`/api/edital?mode=subjects`, {
+          cache: "no-store",
+        });
+        if (!subjectsRes.ok)
+          throw new Error("Falha ao carregar os dados do banco.");
+
+        const subjectsJson = await subjectsRes.json();
+
+        if (!isMounted) return;
+
+        const subjectsData: ApiSubject[] = subjectsJson.data || [];
+        setSubjects(subjectsData);
+
+        const extractedTopics = subjectsData.flatMap((sub) =>
+          (sub.topics || []).map((t) => ({
+            ...t,
+            subjectName: sub.name,
+            subjectColor: sub.color || t.subjectColor || t.subject?.color,
+          })),
+        );
+
+        setTopics(extractedTopics as unknown as Topic[]);
+      } catch (err: unknown) {
+        console.error(
+          err instanceof Error ? err.message : "Erro desconhecido ao carregar",
+        );
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  async function handleCreateTopic(data: {
+    title: string;
+    subjectName: string;
+    weight: string;
+  }) {
+    try {
+      const parsedWeight = parseFloat(data.weight.split("/")[0]) || 5.0;
+      const response = await fetch("/api/edital", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CREATE",
+          title: data.title,
+          subjectName: data.subjectName,
+          relevance: data.weight,
+          weight: parsedWeight,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Erro ao criar novo conteúdo.");
+
+      setIsCreateModalOpen(false);
+      await refreshData();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Falha ao salvar");
+    }
+  }
+
+  async function handleReviewSubmission(grade: "Bom" | "Difícil" | "Errei") {
+    if (!activeReviewTopic) return;
+    try {
+      setSubmitting(true);
+      const response = await fetch("/api/edital", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topicId: activeReviewTopic.id,
+          grade,
+          performance: performanceValue,
+        }),
+      });
+      if (!response.ok) throw new Error("Erro ao processar sua revisão.");
+      setActiveReviewTopic(null);
+
+      await refreshData();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Falha na requisição");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDeleteTopic(topicId: string) {
+    try {
+      const response = await fetch(`/api/edital?id=${topicId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Erro ao excluir o tópico.");
+
+      await refreshData();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Falha ao deletar tópico");
+    }
+  }
+
+  async function handleDeleteSubject(subjectIdOrName: string) {
+    try {
+      const response = await fetch(`/api/edital?subjectId=${subjectIdOrName}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Erro ao excluir a matéria.");
+
+      await refreshData();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Falha ao deletar matéria");
+    }
+  }
+
+  const mappedTopicsForView = topics.map((t) => {
+    const item = t as unknown as ApiTopic;
+    return {
+      id: item.id,
+      title: item.title,
+      subjectName: item.subjectName || item.subject?.name || "Geral",
+      subjectColor: item.subjectColor || item.subject?.color,
+      firstStudy: item.firstStudy,
+      performance: item.performance,
+      lastRev: item.lastRev,
+      nextRev: item.nextRev,
+      quizId:
+        typeof item.quizId === "string" && item.quizId.trim().length > 0
+          ? item.quizId
+          : null,
+    };
+  });
+
+  return (
+    <div className="min-h-screen bg-[#030712] text-slate-100 p-3.5 sm:p-6 font-sans antialiased relative">
+      <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6 animate-in fade-in duration-500">
+        {/* Nav */}
+        <div>
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors group"
+          >
+            <ArrowLeft
+              size={14}
+              className="transition-transform group-hover:-translate-x-0.5"
+            />
+            <span>Voltar para a Dashboard</span>
+          </Link>
+        </div>
+
+        {/* Top Control Bar */}
+        <div className="flex flex-col lg:flex-row gap-3.5 items-stretch lg:items-center justify-between bg-[#090d16] border border-slate-800/60 p-3.5 sm:p-4 rounded-2xl shadow-lg">
+          <div className="flex items-center justify-between lg:justify-start gap-4 shrink-0">
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-200">
+              Planner de Estudos
+            </h1>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 justify-end w-full">
+            <div className="relative w-full sm:max-w-xs">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Pesquisar tópico ou matéria..."
+                className="w-full bg-slate-950 border border-slate-900 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 shrink-0 justify-end">
+              {subjects.length > 0 && (
+                <>
+                  {/* Alternador de Visão: Tabela vs Árvore RPG */}
+                  <div className="flex items-center p-1 bg-slate-950/80 border border-slate-800 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("table")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        viewMode === "table"
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                      title="Exibir edital em formato de tabela"
+                    >
+                      <BookOpen size={13} />
+                      <span>Tabela</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("skill-tree")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        viewMode === "skill-tree"
+                          ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-sm shadow-cyan-500/25"
+                          : "text-slate-400 hover:text-cyan-300"
+                      }`}
+                      title="Exibir edital em formato de Árvore de Domínio RPG"
+                    >
+                      <Sparkles size={13} className={viewMode === "skill-tree" ? "text-cyan-300" : "text-slate-400"} />
+                      <span>Árvore RPG</span>
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">
+                        NOVO
+                      </span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCalibrateModalOpen(true)}
+                    className="flex items-center justify-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm hover:border-amber-500/50 active:scale-95"
+                    title="Calibrar os pesos oficiais das disciplinas para o Radar de Domínio"
+                  >
+                    <Scale size={14} className="text-amber-400" />
+                    <span className="truncate">Calibrar Pesos</span>
+                  </button>
+
+                  <Link
+                    href="/week"
+                    className="flex items-center justify-center gap-1.5 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-cyan-500/50 text-slate-200 hover:text-cyan-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+                    title="Distribuir matérias do edital na sua grade semanal de estudos"
+                  >
+                    <CalendarDays size={14} className="text-cyan-400" />
+                    <span className="truncate">Cronograma Semanal</span>
+                  </Link>
+                </>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer"
+                title="Escolha uma carreira pronta ou gere uma personalizada com IA"
+              >
+                <Sparkles size={14} className="text-amber-400" />
+                <span className="truncate">Carreiras & Edital</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
+              >
+                <Plus size={14} />
+                <span className="truncate">Novo conteúdo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Seção de Revisões Pendentes */}
+        <section className="mt-4 sm:mt-6">
+          <h2 className="text-xs font-bold text-slate-500 mb-2 sm:mb-3 uppercase tracking-wider">
+            Pendentes de hoje
+          </h2>
+          <PendingSubjects
+            onReviewClick={(topic: Topic) => setActiveReviewTopic(topic)}
+          />
+        </section>
+
+        {/* Header de Métricas Globais */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-linear-to-r from-[#090d16] via-[#0c1222] to-[#090d16] border border-white/10 p-3.5 sm:p-4 rounded-2xl shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-bold text-xs">
+              {
+                topics.filter(
+                  (t) => t.firstStudy && t.firstStudy !== "Pendente",
+                ).length
+              }{" "}
+              / {topics.length}
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                Tópicos Concluídos
+              </p>
+              <p className="text-xs font-semibold text-slate-200">
+                Avanço no Edital
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 sm:border-x border-white/10 sm:px-4">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs">
+              {subjects.length}
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                Disciplinas
+              </p>
+              <p className="text-xs font-semibold text-slate-200">
+                Mapeadas no Plano
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                Desempenho Geral
+              </p>
+              <p className="text-xs font-semibold text-slate-200">
+                Média em Questões
+              </p>
+            </div>
+            <span className="text-sm font-mono font-bold text-indigo-400">
+              {Math.round(
+                topics.reduce(
+                  (acc: number, t) => acc + (t.performance || 0),
+                  0,
+                ) / (topics.length || 1),
+              )}
+              %
+            </span>
+          </div>
+        </div>
+
+        {/* GUIA DIDÁTICO QUANDO NÃO HÁ MATÉRIAS */}
+        {!loading && subjects.length === 0 && (
+          <div className="relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-linear-to-br from-[#090d19] via-[#050812] to-[#020409] p-5 sm:p-8 shadow-2xl">
+            <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
+            <div className="relative z-10 max-w-3xl space-y-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-[11px] font-bold text-indigo-300">
+                <Sparkles size={14} className="animate-pulse" />
+                <span>Como cadastrar seu Edital em segundos</span>
+              </div>
+
+              <div>
+                <h3 className="text-lg sm:text-2xl font-black text-white tracking-tight">
+                  Importe as matérias do seu Concurso com IA
+                </h3>
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                  Não perca tempo criando tópico por tópico manualmente. Você só
+                  precisa copiar o texto do edital em PDF e colar no Synapse.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3.5 space-y-1.5">
+                  <div className="flex items-center justify-between text-indigo-400">
+                    <BookOpen size={16} />
+                    <span className="font-mono text-xs font-black text-slate-500">
+                      01
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-200">
+                    Abra seu Edital PDF
+                  </h4>
+                  <p className="text-[11px] text-slate-400 leading-normal">
+                    Vá até a seção de Conteúdo Programático.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3.5 space-y-1.5">
+                  <div className="flex items-center justify-between text-cyan-400">
+                    <Copy size={16} />
+                    <span className="font-mono text-xs font-black text-slate-500">
+                      02
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-200">
+                    Copie o Texto Bruto
+                  </h4>
+                  <p className="text-[11px] text-slate-400 leading-normal">
+                    Copie todo o bloco de disciplinas sem formatar.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3.5 space-y-1.5">
+                  <div className="flex items-center justify-between text-emerald-400">
+                    <Sparkles size={16} />
+                    <span className="font-mono text-xs font-black text-slate-500">
+                      03
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-200">
+                    A IA Mapeia Tudo
+                  </h4>
+                  <p className="text-[11px] text-slate-400 leading-normal">
+                    Cole no Synapse para gerar seu plano.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 text-xs font-extrabold text-white shadow-lg transition-all active:scale-95 cursor-pointer"
+                >
+                  <UploadCloud size={16} />
+                  <span>Importar meu Edital em PDF / Texto</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+
+              {/* MODELOS PRONTOS EM 1 CLIQUE */}
+              <div className="pt-4 border-t border-white/10 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Ou Escolha um Modelo Pronto por Carreira (1 Clique):
+                  </span>
+                </div>
+                <StarterEditalSelector
+                  onSuccess={() => refreshData()}
+                  showCustomLink={false}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tabela do Planner ou Árvore de Domínio RPG */}
+        {loading ? (
+          <div className="flex items-center justify-center py-10 gap-2">
+            <Loader2 className="animate-spin text-indigo-500" size={16} />
+            <span className="text-xs text-slate-500">Carregando dados...</span>
+          </div>
+        ) : (
+          subjects.length > 0 && (
+            viewMode === "skill-tree" ? (
+              <EditalSkillTree
+                subjects={subjects}
+                topics={mappedTopicsForView}
+                onReviewClick={(topicId) => {
+                  const found = topics.find((t) => t.id === topicId);
+                  if (found) {
+                    setActiveReviewTopic(found);
+                    setPerformanceValue(found.performance || 100);
+                  }
+                }}
+              />
+            ) : (
+              <PlannerView
+                topics={mappedTopicsForView}
+                subjects={subjects}
+                searchQuery={searchQuery}
+                targetSubjectId={targetSubjectId}
+                onReviewClick={(topicId) => {
+                  const found = topics.find((t) => t.id === topicId);
+                  if (found) {
+                    setActiveReviewTopic(found);
+                    setPerformanceValue(found.performance || 100);
+                  }
+                }}
+                onDeleteTopic={handleDeleteTopic}
+                onDeleteSubject={handleDeleteSubject}
+                onSubjectUpdated={refreshData}
+              />
+            )
+          )
+        )}
+      </div>
+
+      <NewContentModal
+        isOpen={isCreateModalOpen}
+        subjects={subjects}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateTopic}
+      />
+
+      {/* 📱 REVISÃO SM-2 EM BOTTOM SHEET NO MOBILE */}
+      {activeReviewTopic && (
+        <BottomSheet
+          isOpen={!!activeReviewTopic}
+          onClose={() => setActiveReviewTopic(null)}
+          title="Registrar Avaliação SM-2"
+        >
+          <div className="space-y-5">
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase font-bold text-indigo-400">
+                {activeReviewTopic.subject?.name || "Geral"}
+              </span>
+              <h2 className="text-base font-bold text-slate-100">
+                {activeReviewTopic.title}
+              </h2>
+            </div>
+
+            <div className="space-y-2 bg-slate-900/60 p-3.5 rounded-xl border border-white/5">
+              <label className="text-xs text-slate-400 flex justify-between font-medium">
+                <span>Porcentagem de Acertos:</span>
+                <span className="font-mono text-indigo-400 font-bold">
+                  {performanceValue}%
+                </span>
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={performanceValue}
+                onChange={(e) => setPerformanceValue(Number(e.target.value))}
+                className="w-full accent-indigo-500 bg-slate-950 rounded-lg h-2 cursor-pointer"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2.5 pt-1">
+              <button
+                disabled={submitting}
+                onClick={() => handleReviewSubmission("Bom")}
+                className="flex flex-col items-center justify-center gap-2 p-3.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
+              >
+                <CheckCircle2 size={22} />
+                <span>Bom</span>
+              </button>
+              <button
+                disabled={submitting}
+                onClick={() => handleReviewSubmission("Difícil")}
+                className="flex flex-col items-center justify-center gap-2 p-3.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
+              >
+                <AlertCircle size={22} />
+                <span>Difícil</span>
+              </button>
+              <button
+                disabled={submitting}
+                onClick={() => handleReviewSubmission("Errei")}
+                className="flex flex-col items-center justify-center gap-2 p-3.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
+              >
+                <XCircle size={22} />
+                <span>Errei</span>
+              </button>
+            </div>
+          </div>
+        </BottomSheet>
+      )}
+
+      {isImportModalOpen && (
+        <ImportEditalModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onImportSuccess={async () => {
+            await refreshData();
+          }}
+        />
+      )}
+
+      <CalibrateWeightsModal
+        isOpen={isCalibrateModalOpen}
+        subjects={subjects.map((s) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          weight: s.weight,
+          topicsCount: s._count?.topics || s.topics?.length || 0,
+        }))}
+        onClose={() => setIsCalibrateModalOpen(false)}
+        onSuccess={async () => {
+          await refreshData();
+        }}
+      />
+    </div>
+  );
+}
+
+export default function PlannerPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#030712] flex items-center justify-center text-slate-400 gap-2">
+          <Loader2 className="animate-spin text-indigo-500" size={20} />
+          <span className="text-xs">Carregando planejador...</span>
+        </div>
+      }
+    >
+      <PlannerContent />
+    </Suspense>
+  );
+}
+</file>
+
+<file path="src/components/edital/import-edital-modal.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  X,
+  Upload,
+  Sparkles,
+  Loader2,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ArrowLeft,
+  FileText,
+  HelpCircle,
+  Play,
+  Briefcase,
+  Crown,
+  Lock,
+  CalendarDays,
+  ArrowRight,
+} from "lucide-react";
+import Link from "next/link";
+import confetti from "canvas-confetti";
+import { getAiQuotaStatusAction } from "@/actions/quota-actions";
+import { StarterEditalSelector } from "./StarterEditalSelector";
+
+interface TopicItem {
+  id: string;
+  name: string;
+  selected: boolean;
+}
+
+interface SubjectItem {
+  id: string;
+  name: string;
+  color?: string;
+  weight?: number;
+  selected: boolean;
+  topics: TopicItem[];
+}
+
+interface ImportEditalModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onImportSuccess: (data: { materias: SubjectItem[] }) => void;
+}
+
+interface RawMateria {
+  nome?: string;
+  materia?: string;
+  name?: string;
+  cor?: string;
+  color?: string;
+  topicos?: string[];
+  topics?: string[];
+}
+
+const DATAPREV_EXAMPLE = `MODULO II - CONHECIMENTOS ESPECÍFICOS:
+PERFIL 1: ANÁLISE DE NEGÓCIOS DE TI:
+1 Análise de negócios. 2 Gestão por processos e gestão funcional. 2.1 Ciclo PDCA. 3 Gerenciamento de Processos de Negócio (BPM CBOK v4.0). 3.1 Conceitos, modelagem de processos. 6 Gerenciamento de indicadores, metas e resultados. 7 Gestão Ágil de Projetos. 8. Gerenciamento de produtos. 9. COBIT 2019. 10 ITIL v4.
+
+EXPERIÊNCIA DO USUÁRIO (UX) E DESIGN:
+13 User experience (UX): 13.1 Conceitos de acessibilidade e usabilidade. 13.2 Histórias do usuário. 14 Storytelling com dados. 15 Prototipação. 16 Design thinking. 17 Análise de personas de usuários de software. 18 Mínimo Produto Viável (MVP).`;
+
+export function ImportEditalModal({
+  isOpen,
+  onClose,
+  onImportSuccess,
+}: ImportEditalModalProps) {
+  const [step, setStep] = useState<"input" | "preview" | "success">("input");
+  const [importedSummary, setImportedSummary] = useState<{
+    subjectsCount: number;
+    topicsCount: number;
+  }>({ subjectsCount: 0, topicsCount: 0 });
+  const [activeTab, setActiveTab] = useState<"text" | "career" | "file" | "pdf">("text");
+  const [rawText, setRawText] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      getAiQuotaStatusAction().then((res) => {
+        if (res.success && res.data) {
+          setIsPro(res.data.isUnlimited);
+        }
+      });
+    }
+  }, [isOpen]);
+
+  const [parsedSubjects, setParsedSubjects] = useState<SubjectItem[]>([]);
+  const [expandedSubjects, setExpandedSubjects] = useState<
+    Record<string, boolean>
+  >({});
+
+  if (!isOpen) return null;
+
+  const readFileAsText = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsText(file);
+    });
+  };
+
+  const handleProcessEdital = async () => {
+    setIsProcessing(true);
+
+    try {
+      let contentToProcess = "";
+
+      if (activeTab === "file" && selectedFile) {
+        if (selectedFile.name.endsWith(".txt")) {
+          contentToProcess = await readFileAsText(selectedFile);
+        } else if (
+          selectedFile.type === "application/pdf" ||
+          selectedFile.name.endsWith(".pdf")
+        ) {
+          alert(
+            "Para PDFs do edital, selecione e copie o trecho de Conteúdo Programático diretamente do seu leitor de PDF e cole na aba 'Colar Texto do Edital'.",
+          );
+          setIsProcessing(false);
+          setActiveTab("text");
+          return;
+        }
+      } else {
+        contentToProcess = rawText;
+      }
+
+      if (!contentToProcess.trim()) {
+        alert("Por favor, insira o texto do edital antes de prosseguir.");
+        setIsProcessing(false);
+        return;
+      }
+
+      const response = await fetch("/api/edital/parse-edital", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: contentToProcess }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao processar o edital");
+      }
+
+      const rawList: RawMateria[] = Array.isArray(result.materias)
+        ? result.materias
+        : [];
+
+      const formattedSubjects: SubjectItem[] = rawList.map(
+        (m: RawMateria, mIdx: number) => {
+          const name = m.nome || m.materia || m.name || "Matéria sem nome";
+          const subjectColor = m.cor || m.color;
+          const rawTopics = Array.isArray(m.topicos)
+            ? m.topicos
+            : Array.isArray(m.topics)
+              ? m.topics
+              : [];
+
+          return {
+            id: `materia-${mIdx}`,
+            name,
+            color: subjectColor,
+            weight: 5.0,
+            selected: true,
+            topics: rawTopics.map((t: string, tIdx: number) => ({
+              id: `topico-${mIdx}-${tIdx}`,
+              name: t,
+              selected: true,
+            })),
+          };
+        },
+      );
+
+      if (formattedSubjects.length === 0) {
+        alert(
+          "Nenhuma matéria foi encontrada no texto enviado. Tente colar apenas o trecho do Conteúdo Programático.",
+        );
+        return;
+      }
+
+      setParsedSubjects(formattedSubjects);
+
+      const initialExpanded: Record<string, boolean> = {};
+      formattedSubjects.forEach((sub) => (initialExpanded[sub.id] = true));
+      setExpandedSubjects(initialExpanded);
+
+      setStep("preview");
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Erro desconhecido";
+      console.error("Erro ao importar edital:", error);
+      alert(`Ocorreu um erro: ${msg}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const updateSubjectWeight = (subjectId: string, weight: number) => {
+    setParsedSubjects((prev) =>
+      prev.map((sub) => (sub.id === subjectId ? { ...sub, weight } : sub)),
+    );
+  };
+
+  const toggleSubjectSelect = (subjectId: string) => {
+    setParsedSubjects((prev) =>
+      prev.map((sub) => {
+        if (sub.id === subjectId) {
+          const nextSelected = !sub.selected;
+          return {
+            ...sub,
+            selected: nextSelected,
+            topics: sub.topics.map((t) => ({ ...t, selected: nextSelected })),
+          };
+        }
+        return sub;
+      }),
+    );
+  };
+
+  const toggleTopicSelect = (subjectId: string, topicId: string) => {
+    setParsedSubjects((prev) =>
+      prev.map((sub) => {
+        if (sub.id === subjectId) {
+          const updatedTopics = sub.topics.map((t) =>
+            t.id === topicId ? { ...t, selected: !t.selected } : t,
+          );
+          const hasAnyTopicSelected = updatedTopics.some((t) => t.selected);
+          return {
+            ...sub,
+            selected: hasAnyTopicSelected,
+            topics: updatedTopics,
+          };
+        }
+        return sub;
+      }),
+    );
+  };
+
+  const toggleAccordion = (subjectId: string) => {
+    setExpandedSubjects((prev) => ({ ...prev, [subjectId]: !prev[subjectId] }));
+  };
+
+  const handleConfirmImport = async () => {
+    const finalData = parsedSubjects
+      .filter((sub) => sub.selected)
+      .map((sub) => ({
+        name: sub.name,
+        cor: sub.color,
+        weight: sub.weight ?? 5.0,
+        topics: sub.topics
+          .filter((t) => t.selected)
+          .map((t) => ({ name: t.name })),
+      }))
+      .filter((sub) => sub.topics.length > 0);
+
+    if (finalData.length === 0) {
+      alert("Selecione ao menos um tópico para importar.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await fetch("/api/edital/import-edital", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: "test",
+          materias: finalData,
+        }),
+      });
+
+      const rawResText = await response.text();
+
+      let result;
+      try {
+        result = JSON.parse(rawResText);
+      } catch {
+        throw new Error(
+          `Resposta do servidor não é válida. Status: ${response.status}`,
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erro no servidor");
+      }
+
+      const totalTopicsCount = finalData.reduce((acc, s) => acc + s.topics.length, 0);
+      setImportedSummary({
+        subjectsCount: finalData.length,
+        topicsCount: totalTopicsCount,
+      });
+
+      onImportSuccess?.(result);
+      setStep("success");
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+    } catch (error) {
+      console.error("Erro na importação:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleClose = () => {
+    setStep("input");
+    setRawText("");
+    setSelectedFile(null);
+    setParsedSubjects([]);
+    setImportedSummary({ subjectsCount: 0, topicsCount: 0 });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+      <div className="relative w-full max-w-3xl lg:max-w-4xl bg-slate-950 border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden text-slate-200 flex flex-col max-h-[88vh]">
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
+          <div className="flex items-center gap-2">
+            {step === "preview" && (
+              <button
+                onClick={() => setStep("input")}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-colors mr-1 cursor-pointer"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-100">
+                {step === "success"
+                  ? "Edital Mapeado com Sucesso"
+                  : step === "input"
+                    ? "Importar Edital com IA"
+                    : "Revisar Matérias e Tópicos"}
+              </h2>
+              <p className="text-xs text-slate-400">
+                {step === "success"
+                  ? "Disciplinas mapeadas e prontas para o seu plano"
+                  : step === "input"
+                    ? "Extraia a estrutura de estudos do seu concurso automaticamente"
+                    : "Selecione o que deseja adicionar ao seu Planner"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-colors cursor-pointer"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Corpo */}
+        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+          {step === "input" ? (
+            <div className="space-y-4">
+              {/* Card Didático Contextual por Aba */}
+              {activeTab === "text" && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/40 to-slate-900/60 border border-indigo-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
+                      <HelpCircle size={15} />
+                      Como pegar do PDF do edital?
+                    </span>
+                    <button
+                      onClick={() => {
+                        setActiveTab("text");
+                        setRawText(DATAPREV_EXAMPLE);
+                      }}
+                      className="flex items-center gap-1 text-[11px] font-extrabold text-amber-400 hover:text-amber-300 transition-colors bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg cursor-pointer"
+                    >
+                      <Play size={11} className="fill-amber-400" />
+                      <span>Testar com Exemplo</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Abra o PDF do seu concurso (ex:{" "}
+                    <strong>DATAPREV, FGV, Cebraspe</strong>), vá na seção de{" "}
+                    <strong>CONHECIMENTOS ESPECÍFICOS</strong>, selecione o texto
+                    bruto dos tópicos e cole abaixo. Não precisa formatar nada!
+                  </p>
+                </div>
+              )}
+
+              {activeTab === "career" && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-slate-900/60 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-300 shrink-0">
+                      <Sparkles size={16} />
+                    </div>
+                    <div className="text-xs">
+                      <p className="font-bold text-slate-200">Escolha uma carreira pronta ou use a IA</p>
+                      <p className="text-[11px] text-slate-400">Ative o plano em 1 clique ou digite qualquer cargo no campo abaixo.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("text")}
+                    className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-2 shrink-0 cursor-pointer self-start sm:self-auto"
+                  >
+                    Colar edital próprio &rarr;
+                  </button>
+                </div>
+              )}
+
+              {activeTab === "file" && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/40 to-slate-900/60 border border-indigo-500/20 text-xs text-slate-300 flex items-center gap-2.5">
+                  <Upload size={16} className="text-indigo-400 shrink-0" />
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Envie um arquivo <strong>.txt</strong> com o texto copiado do edital. A IA irá processar e montar o mapa de estudos.
+                  </p>
+                </div>
+              )}
+
+              {/* Tabs Reordenadas: Colar Texto Primeiro, Carreiras Segundo */}
+              <div className="flex flex-wrap p-1 bg-slate-900/80 border border-white/5 rounded-xl gap-1">
+                <button
+                  onClick={() => setActiveTab("text")}
+                  className={`flex-1 min-w-[130px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    activeTab === "text"
+                      ? "bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <FileText size={14} />
+                  <span>Colar Texto do Edital</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("career")}
+                  className={`flex-1 min-w-[130px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    activeTab === "career"
+                      ? "bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Sparkles size={14} className="text-amber-400" />
+                  <span>Carreiras & IA (1 Clique)</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("file")}
+                  className={`flex-1 min-w-[100px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    activeTab === "file"
+                      ? "bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Upload size={14} />
+                  <span>Enviar TXT</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("pdf")}
+                  className={`flex-1 min-w-[110px] py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    activeTab === "pdf"
+                      ? "bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <FileText size={14} className="text-amber-400" />
+                  <span>Arquivo PDF</span>
+                  <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-0.5">
+                    <Crown size={8} /> PRO
+                  </span>
+                </button>
+              </div>
+
+              {activeTab === "career" ? (
+                <div className="pt-2">
+                  <StarterEditalSelector
+                    onSuccess={(data) => {
+                      onImportSuccess({ materias: [] });
+                      setImportedSummary({
+                        subjectsCount: data?.subjectsCount || 5,
+                        topicsCount: data?.topicsCount || 25,
+                      });
+                      setStep("success");
+                      confetti({
+                        particleCount: 80,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                      });
+                    }}
+                    compact={true}
+                    showCustomLink={false}
+                  />
+                </div>
+              ) : activeTab === "pdf" ? (
+                !isPro ? (
+                  <div className="py-6 px-4 rounded-2xl bg-slate-900/60 border border-amber-500/30 flex flex-col items-center text-center space-y-4">
+                    <div className="relative">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-xl shadow-amber-500/10">
+                        <Crown size={28} />
+                      </div>
+                      <div className="absolute -top-1 -right-1 p-1 rounded-md bg-amber-500 text-slate-950 font-bold">
+                        <Lock size={12} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 max-w-md">
+                      <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        Recurso Exclusivo Synapse Pro
+                      </span>
+                      <h3 className="text-sm sm:text-base font-bold text-white">
+                        Leitor Inteligente de Editais em PDF
+                      </h3>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        Nossa IA Vision vasculha o PDF completo de 100+ páginas da banca (FGV, Cebraspe, FCC), detecta o anexo de Conteúdo Programático e organiza disciplinas e tópicos automaticamente com zero trabalho manual.
+                      </p>
+                    </div>
+
+                    <div className="w-full max-w-sm space-y-2 pt-2">
+                      <Link
+                        href="/pricing"
+                        onClick={onClose}
+                        className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all"
+                      >
+                        <Crown size={15} />
+                        <span>Desbloquear Leitor de PDF com Synapse Pro</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("text")}
+                        className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                      >
+                        Usar opção gratuita (Colar Texto do Edital)
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-amber-500/40 rounded-xl cursor-pointer bg-amber-500/5 hover:bg-amber-500/10 transition-all group">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+                      <div className="p-3 mb-2 rounded-full bg-amber-500/15 text-amber-400 group-hover:scale-110 transition-transform">
+                        <FileText size={24} />
+                      </div>
+                      <p className="text-xs font-bold text-slate-200">
+                        {selectedFile
+                          ? selectedFile.name
+                          : "Clique para enviar o PDF do Edital Oficial"}
+                      </p>
+                      <p className="text-[10px] text-amber-300/80 mt-1">
+                        Formatos PDF até 25MB • Processamento Synapse Pro
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf"
+                      onChange={(e) =>
+                        e.target.files && setSelectedFile(e.target.files[0])
+                      }
+                    />
+                  </label>
+                )
+              ) : activeTab === "file" ? (
+                <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-white/10 rounded-xl cursor-pointer bg-white/5 hover:bg-white/10 hover:border-indigo-500/40 transition-all group">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+                    <div className="p-3 mb-2 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:scale-110 transition-transform">
+                      <Upload size={22} />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-300">
+                      {selectedFile
+                        ? selectedFile.name
+                        : "Clique para enviar um arquivo TXT"}
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Para arquivos PDF, utilize a aba &quot;Colar Texto do
+                      Edital&quot;
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".txt"
+                    onChange={(e) =>
+                      e.target.files && setSelectedFile(e.target.files[0])
+                    }
+                  />
+                </label>
+              ) : (
+                <textarea
+                  rows={9}
+                  value={rawText}
+                  onChange={(e) => setRawText(e.target.value)}
+                  placeholder="Cole aqui o conteúdo programático copiado do edital PDF...&#10;&#10;Exemplo:&#10;MODULO II - CONHECIMENTOS ESPECÍFICOS:&#10;PERFIL 1: ANÁLISE DE NEGÓCIOS DE TI:&#10;1 Análise de negócios. 2 Gestão por processos..."
+                  className="w-full min-h-[220px] p-4 rounded-xl bg-slate-900/60 border border-white/10 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors resize-y leading-relaxed font-mono"
+                />
+              )}
+            </div>
+          ) : step === "preview" ? (
+            /* PREVIEW STEP */
+            <div className="space-y-3">
+              {parsedSubjects.map((sub) => {
+                const isExpanded = expandedSubjects[sub.id];
+                const selectedCount = sub.topics.filter(
+                  (t) => t.selected,
+                ).length;
+
+                return (
+                  <div
+                    key={sub.id}
+                    className="border border-white/5 rounded-xl bg-slate-900/40 overflow-hidden"
+                  >
+                    {/* Cabeçalho da Matéria */}
+                    <div className="flex items-center justify-between p-3 bg-white/5 border-b border-white/5">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => toggleSubjectSelect(sub.id)}
+                          className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer ${
+                            sub.selected
+                              ? "bg-indigo-600 border-indigo-500 text-white"
+                              : "border-slate-700 bg-slate-900"
+                          }`}
+                        >
+                          {sub.selected && <Check size={12} />}
+                        </button>
+
+                        {sub.color && (
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: sub.color }}
+                            title={`Cor atribuída: ${sub.color}`}
+                          />
+                        )}
+
+                        <span className="text-xs font-semibold text-slate-200">
+                          {sub.name}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
+                          {selectedCount}/{sub.topics.length} tópicos
+                        </span>
+
+                        <div
+                          className="flex items-center gap-1 bg-slate-950/90 border border-amber-500/25 px-2 py-0.5 rounded-lg"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+                            Peso:
+                          </span>
+                          <select
+                            value={sub.weight ?? 5.0}
+                            onChange={(e) =>
+                              updateSubjectWeight(
+                                sub.id,
+                                parseFloat(e.target.value) || 5.0,
+                              )
+                            }
+                            className="bg-transparent text-amber-300 text-[11px] font-mono font-bold outline-none cursor-pointer"
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => (
+                              <option
+                                key={w}
+                                value={w}
+                                className="bg-[#090d16] text-slate-200"
+                              >
+                                {w.toFixed(1)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => toggleAccordion(sub.id)}
+                        className="p-1 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown size={16} />
+                        ) : (
+                          <ChevronRight size={16} />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Lista de Tópicos */}
+                    {isExpanded && (
+                      <div className="p-3 space-y-1.5 pl-8">
+                        {sub.topics.map((topic) => (
+                          <div
+                            key={topic.id}
+                            onClick={() => toggleTopicSelect(sub.id, topic.id)}
+                            className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
+                          >
+                            <div
+                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
+                                topic.selected
+                                  ? "bg-indigo-600 border-indigo-500 text-white"
+                                  : "border-slate-700 bg-slate-900"
+                              }`}
+                            >
+                              {topic.selected && <Check size={10} />}
+                            </div>
+                            <span
+                              className={`text-xs ${
+                                topic.selected
+                                  ? "text-slate-300"
+                                  : "text-slate-500 line-through"
+                              }`}
+                            >
+                              {topic.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* ETAPA DE SUCESSO & INTEGRAÇÃO COM PLANNER */
+            <div className="py-8 px-4 flex flex-col items-center text-center space-y-6 max-w-lg mx-auto animate-fade-in">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/10">
+                  <Check size={32} />
+                </div>
+                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center border-2 border-slate-950 text-xs shadow-md">
+                  <Sparkles size={12} className="text-amber-300" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-bold font-mono">
+                  Mapeamento Concluído com Sucesso
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Edital Integrado ao Synapse! 🎉
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md">
+                  Foram cadastradas{" "}
+                  <strong className="text-white font-semibold">
+                    {importedSummary.subjectsCount} disciplinas
+                  </strong>{" "}
+                  e{" "}
+                  <strong className="text-white font-semibold">
+                    {importedSummary.topicsCount} tópicos
+                  </strong>{" "}
+                  no seu plano de estudos.
+                </p>
+              </div>
+
+              {/* Card Destaque: Próximo Passo Recomendado */}
+              <div className="w-full p-4 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900/80 border border-indigo-500/30 text-left space-y-2.5 shadow-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    Próximo Passo Recomendado
+                  </span>
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                    <CalendarDays size={16} className="text-indigo-400" />
+                    <span>Distribuir Matérias no Cronograma Semanal</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
+                    Nosso algoritmo calcula a prioridade e os pesos das disciplinas para montar seu ciclo semanal de estudos automaticamente.
+                  </p>
+                </div>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="w-full space-y-2.5 pt-1">
+                <Link
+                  href="/week"
+                  onClick={() => {
+                    handleClose();
+                  }}
+                  className="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl shadow-indigo-950/70 transition-all cursor-pointer group active:scale-95"
+                >
+                  <CalendarDays size={16} />
+                  <span>Montar Cronograma Semanal Agora</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold border border-white/5 transition-all cursor-pointer"
+                >
+                  Ver Edital Verticalizado
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Rodapé (apenas para input e preview) */}
+        {step !== "success" && (
+          <div className="flex items-center justify-between gap-3 px-6 py-4 bg-slate-900/40 border-t border-white/5 shrink-0">
+            <div className="text-xs text-slate-400">
+              {activeTab === "career" && step === "input" && (
+                <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-amber-400 shrink-0" />
+                  <span>Ative uma carreira acima ou digite seu cargo com IA</span>
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                {activeTab === "career" && step === "input" ? "Fechar" : "Cancelar"}
+              </button>
+
+              {step === "input" && activeTab !== "career" && (
+                <button
+                  disabled={
+                    isProcessing ||
+                    (activeTab === "file" && !selectedFile) ||
+                    (activeTab === "text" && !rawText.trim())
+                  }
+                  onClick={handleProcessEdital}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_25px_rgba(99,102,241,0.6)] disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Analisando com IA...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      <span>Analisar Edital com IA</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {step === "preview" && (
+                <button
+                  disabled={isSaving}
+                  onClick={handleConfirmImport}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Salvando no Planner...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      <span>Confirmar e Importar</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/edital/StarterEditalSelector.tsx">
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import confetti from "canvas-confetti";
+import {
+  Sparkles,
+  Loader2,
+  Check,
+  ArrowRight,
+  BookOpen,
+  FileText,
+  ShieldAlert,
+  Wand2,
+} from "lucide-react";
+import {
+  STARTER_EDITAL_TEMPLATES,
+  EditalTemplate,
+} from "@/lib/edital-templates";
+import {
+  importStarterEditalAction,
+  generateCustomEditalAction,
+} from "@/actions/edital-templates-actions";
+
+interface StarterEditalSelectorProps {
+  onSuccess?: (data?: { subjectsCount?: number; topicsCount?: number }) => void;
+  showCustomLink?: boolean;
+  compact?: boolean;
+}
+
+export function StarterEditalSelector({
+  onSuccess,
+  showCustomLink = true,
+  compact = false,
+}: StarterEditalSelectorProps) {
+  const router = useRouter();
+  const [loadingTemplateId, setLoadingTemplateId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Filtro por categorias
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  // Modo de importação: mesclar ou substituir grade existente
+  const [replaceExisting, setReplaceExisting] = useState<boolean>(false);
+
+  // Personalização com IA
+  const [customRoleInput, setCustomRoleInput] = useState<string>("");
+  const [isGeneratingCustom, setIsGeneratingCustom] = useState<boolean>(false);
+
+  const handleSelectTemplate = async (templateId: string) => {
+    setLoadingTemplateId(templateId);
+    setErrorMessage(null);
+
+    try {
+      const res = await importStarterEditalAction(templateId, { replaceExisting });
+
+      if (res.success && res.data) {
+        confetti({
+          particleCount: 70,
+          spread: 60,
+          origin: { y: 0.6 },
+        });
+
+        setSuccessMessage(
+          `Edital de "${res.data.templateTitle}" ativado! (${res.data.subjectsCount} matérias e ${res.data.topicsCount} tópicos carregados)`
+        );
+
+        if (onSuccess) {
+          setTimeout(() => {
+            onSuccess({
+              subjectsCount: res.data.subjectsCount,
+              topicsCount: res.data.topicsCount,
+            });
+          }, 800);
+        } else {
+          setTimeout(() => {
+            router.refresh();
+          }, 800);
+        }
+      } else {
+        setErrorMessage(res.error || "Ocorreu um erro ao carregar o edital.");
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage("Erro de conexão ao carregar modelo de edital.");
+    } finally {
+      setLoadingTemplateId(null);
+    }
+  };
+
+  const handleGenerateCustom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = customRoleInput.trim();
+    if (!trimmed) return;
+
+    setIsGeneratingCustom(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await generateCustomEditalAction(trimmed, { replaceExisting });
+
+      if (res.success && res.data) {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+
+        setSuccessMessage(
+          `Plano de estudos para "${res.data.targetRole}" gerado com IA! (${res.data.subjectsCount} disciplinas e ${res.data.topicsCount} tópicos criados)`
+        );
+        setCustomRoleInput("");
+
+        if (onSuccess) {
+          setTimeout(() => {
+            onSuccess({
+              subjectsCount: res.data.subjectsCount,
+              topicsCount: res.data.topicsCount,
+            });
+          }, 800);
+        } else {
+          setTimeout(() => {
+            router.refresh();
+          }, 800);
+        }
+      } else {
+        setErrorMessage(res.error || "Falha ao gerar disciplinas com IA.");
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage("Erro de conexão ao comunicar com a IA.");
+    } finally {
+      setIsGeneratingCustom(false);
+    }
+  };
+
+  const allTemplates = Object.values(STARTER_EDITAL_TEMPLATES);
+  const filteredTemplates = allTemplates.filter((tpl) => {
+    if (activeCategory === "all") return true;
+    if (activeCategory === "ti") return tpl.category === "ti";
+    if (activeCategory === "policial") return tpl.category === "policial";
+    if (activeCategory === "fiscal_controle") return tpl.category === "fiscal_controle";
+    if (activeCategory === "administrativo") return tpl.category === "administrativo";
+    if (activeCategory === "juridica") return tpl.category === "juridica";
+    if (activeCategory === "saude_educacao") return tpl.category === "saude_educacao";
+    return true;
+  });
+
+  return (
+    <div className="space-y-4 w-full">
+      {errorMessage && (
+        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
+          <ShieldAlert size={16} className="shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs flex items-center gap-2 font-bold animate-fade-in">
+          <Check size={16} className="shrink-0" />
+          <span>{successMessage}</span>
+        </div>
+      )}
+
+      {/* CARD PROMINENTE: PERSONALIZAR MEU FOCO COM IA */}
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-500/40 bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-indigo-950/40 p-4 shadow-xl space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
+            <Wand2 size={18} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-black text-white">
+                Personalizar meu Foco com IA
+              </span>
+              <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Qualquer Concurso / Cargo
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Digite o concurso ou cargo desejado e a IA pesquisa e estrutura as disciplinas e tópicos oficiais em segundos.
+            </p>
+          </div>
+        </div>
+
+        <form
+          onSubmit={handleGenerateCustom}
+          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full pt-0.5"
+        >
+          <input
+            type="text"
+            value={customRoleInput}
+            onChange={(e) => setCustomRoleInput(e.target.value)}
+            placeholder="Ex: Analista de TI - Caixa, Perito Criminal, SEFAZ..."
+            className="flex-1 min-w-0 bg-slate-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-colors"
+          />
+          <button
+            type="submit"
+            disabled={isGeneratingCustom || !customRoleInput.trim()}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          >
+            {isGeneratingCustom ? (
+              <>
+                <Loader2 size={13} className="animate-spin" />
+                <span>Gerando com IA...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={13} />
+                <span>Gerar com IA</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+
+      {/* OPÇÃO DE MODO DE CARGA: SUBSTITUIR OU ADICIONAR */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
+        <label className="flex items-center gap-2 text-slate-300 hover:text-white cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={replaceExisting}
+            onChange={(e) => setReplaceExisting(e.target.checked)}
+            className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+          />
+          <span className="font-medium text-[11px] sm:text-xs">
+            Substituir matérias anteriores (limpar edital antes de carregar nova carreira)
+          </span>
+        </label>
+        {replaceExisting && (
+          <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 font-bold">
+            ⚠️ Modo Substituição Limpa Ativado
+          </span>
+        )}
+      </div>
+
+      {/* FILTROS POR CATEGORIA DE CARREIRA */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+        {[
+          { id: "all", label: `🔥 Todas (${allTemplates.length})` },
+          { id: "ti", label: `💻 TI & Dados (${allTemplates.filter((t) => t.category === "ti").length})` },
+          { id: "policial", label: `👮 Policial (${allTemplates.filter((t) => t.category === "policial").length})` },
+          { id: "fiscal_controle", label: `💰 Fiscal & Controle (${allTemplates.filter((t) => t.category === "fiscal_controle").length})` },
+          { id: "administrativo", label: `🏛️ Tribunais & Adm (${allTemplates.filter((t) => t.category === "administrativo").length})` },
+          { id: "juridica", label: `⚖️ Jurídica (${allTemplates.filter((t) => t.category === "juridica").length})` },
+          { id: "saude_educacao", label: `🩺 Saúde & Educação (${allTemplates.filter((t) => t.category === "saude_educacao").length})` },
+        ].map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => setActiveCategory(cat.id)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              activeCategory === cat.id
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* GRID DE CARREIRAS PRONTAS */}
+      <div
+        className={`grid gap-3 ${
+          compact
+            ? "grid-cols-1 sm:grid-cols-2"
+            : "grid-cols-1 md:grid-cols-2"
+        }`}
+      >
+        {filteredTemplates.map((tpl) => {
+          const isLoading = loadingTemplateId === tpl.id;
+          const visibleMaterias = tpl.materias.slice(0, 3);
+          const remainingCount = tpl.materias.length - visibleMaterias.length;
+
+          return (
+            <div
+              key={tpl.id}
+              className="relative group p-3.5 rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-2.5"
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xl shrink-0">{tpl.icon}</span>
+                    <span className="text-xs font-bold text-white leading-tight truncate">
+                      {tpl.title}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shrink-0">
+                    {tpl.badge}
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-400 leading-snug line-clamp-2">
+                  {tpl.shortDescription}
+                </p>
+
+                {/* Resumo das Matérias (Compacto e Elegante) */}
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {visibleMaterias.map((m, idx) => (
+                    <span
+                      key={idx}
+                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 truncate max-w-[140px]"
+                    >
+                      {m.name}
+                    </span>
+                  ))}
+                  {remainingCount > 0 && (
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+                      +{remainingCount} matérias
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                <span className="text-[10px] text-slate-400 font-medium">
+                  {tpl.materias.length} matérias mapeadas
+                </span>
+
+                <button
+                  type="button"
+                  disabled={loadingTemplateId !== null || isGeneratingCustom}
+                  onClick={() => handleSelectTemplate(tpl.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-md shadow-indigo-950/50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Ativando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} />
+                      <span>Ativar em 1 Clique</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {showCustomLink && (
+        <div className="pt-2 text-center">
+          <a
+            href="/edital"
+            className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition-colors font-medium"
+          >
+            <FileText size={13} />
+            <span>Já tem outro edital em PDF ou texto? Importe aqui com IA</span>
+            <ArrowRight size={13} />
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/edital/edital-skill-tree.tsx">
+"use client";
+
+import React, { useState, useMemo } from "react";
+import Link from "next/link";
+import {
+  Sparkles,
+  Shield,
+  ShieldAlert,
+  Trophy,
+  Crown,
+  Lock,
+  Search,
+  Filter,
+  ArrowRight,
+  Zap,
+  BookOpen,
+  Calendar,
+  Layers,
+  ChevronRight,
+  X,
+  Clock,
+  Flame,
+  Brain,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { getAiQuotaStatusAction } from "@/actions/quota-actions";
+import { MindMapModal } from "@/components/mindmap/MindMapModal";
+import { useTheme } from "@/contexts/ThemeContext";
+
+export interface SkillTreeTopic {
+  id: string;
+  title: string;
+  subjectId?: string;
+  subjectName?: string;
+  subjectColor?: string;
+  performance?: number;
+  firstStudy?: string;
+  nextRev?: string;
+  lastRev?: string;
+  relevance?: string;
+  interval?: number;
+}
+
+export interface SkillTreeSubject {
+  id: string;
+  name: string;
+  color?: string | null;
+  weight?: number;
+  topics?: Array<{
+    id: string;
+    title: string;
+    performance?: number;
+    firstStudy?: string;
+    nextRev?: string;
+    lastRev?: string;
+  }>;
+}
+
+interface EditalSkillTreeProps {
+  subjects: SkillTreeSubject[];
+  topics: SkillTreeTopic[];
+  onReviewClick?: (topicId: string) => void;
+}
+
+type MasteryTier = "LOCKED" | "BRONZE" | "SILVER" | "GOLD" | "DIAMOND";
+
+interface TopicMasteryInfo {
+  tier: MasteryTier;
+  label: string;
+  badgeColor: string;
+  glowColor: string;
+  textColor: string;
+  borderColor: string;
+  fillColor: string;
+  isDecaying: boolean;
+}
+
+function getTopicIncidence(
+  t: SkillTreeTopic,
+  index: number,
+): { label: string; level: "HIGH" | "MEDIUM" | "NORMAL" } {
+  if (t.relevance) {
+    const r = t.relevance.toLowerCase();
+    if (r.includes("alta") || r.includes("muito")) {
+      return { label: "Alta Incidência • 42%", level: "HIGH" };
+    }
+    if (r.includes("méd") || r.includes("med")) {
+      return { label: "Média Incidência • 22%", level: "MEDIUM" };
+    }
+    return { label: "Incidência Padrão • 10%", level: "NORMAL" };
+  }
+  const charCode = t.title ? t.title.charCodeAt(0) : 65;
+  const hash = (charCode + t.id.length + index) % 10;
+  if (hash <= 2) return { label: "Alta Incidência • 45%", level: "HIGH" };
+  if (hash <= 6) return { label: "Média Incidência • 24%", level: "MEDIUM" };
+  return { label: "Incidência Padrão • 9%", level: "NORMAL" };
+}
+
+function getTopicMastery(t: SkillTreeTopic): TopicMasteryInfo {
+  const perf = t.performance || 0;
+  const isPending = !t.firstStudy || t.firstStudy === "Pendente";
+  const now = new Date();
+  const isDecaying =
+    Boolean(t.nextRev && new Date(t.nextRev) <= now && perf >= 70);
+
+  if (isPending && perf === 0) {
+    return {
+      tier: "LOCKED",
+      label: "Não Iniciado",
+      badgeColor: "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700/80",
+      glowColor: "rgba(100, 116, 139, 0.15)",
+      textColor: "text-slate-500",
+      borderColor: "border-slate-800",
+      fillColor: "#090d16",
+      isDecaying: false,
+    };
+  }
+
+  if (perf >= 95) {
+    return {
+      tier: "DIAMOND",
+      label: "Diamante • Mestre",
+      badgeColor: "bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-sm shadow-cyan-500/20",
+      glowColor: "rgba(6, 182, 212, 0.45)",
+      textColor: "text-cyan-300",
+      borderColor: "border-cyan-500/60",
+      fillColor: "#083344",
+      isDecaying,
+    };
+  }
+
+  if (perf >= 85) {
+    return {
+      tier: "GOLD",
+      label: "Ouro • Avançado",
+      badgeColor: "bg-amber-500/20 text-amber-300 border-amber-400/50 shadow-sm shadow-amber-500/20",
+      glowColor: "rgba(245, 158, 11, 0.4)",
+      textColor: "text-amber-300",
+      borderColor: "border-amber-500/60",
+      fillColor: "#451a03",
+      isDecaying,
+    };
+  }
+
+  if (perf >= 70) {
+    return {
+      tier: "SILVER",
+      label: "Prata • Competente",
+      badgeColor: "bg-slate-300/20 text-slate-200 border-slate-300/40",
+      glowColor: "rgba(203, 213, 225, 0.3)",
+      textColor: "text-slate-200",
+      borderColor: "border-slate-400/60",
+      fillColor: "#1e293b",
+      isDecaying,
+    };
+  }
+
+  return {
+    tier: "BRONZE",
+    label: "Bronze • Aprendiz",
+    badgeColor: "bg-orange-700/20 text-orange-300 border-orange-600/40",
+    glowColor: "rgba(194, 65, 12, 0.3)",
+    textColor: "text-orange-300",
+    borderColor: "border-orange-600/50",
+    fillColor: "#2c1208",
+    isDecaying: false,
+  };
+}
+
+function hexToRgba(hex?: string | null, alpha = 1): string {
+  if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
+    return `rgba(99, 102, 241, ${alpha})`;
+  }
+  let clean = hex.slice(1);
+  if (clean.length === 3) {
+    clean = clean.split("").map((c) => c + c).join("");
+  }
+  if (clean.length !== 6) {
+    return `rgba(99, 102, 241, ${alpha})`;
+  }
+  const num = parseInt(clean, 16);
+  if (isNaN(num)) {
+    return `rgba(99, 102, 241, ${alpha})`;
+  }
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+interface SkillTreeTopicCardProps {
+  topic: SkillTreeTopic;
+  subColor: string;
+  isSelected: boolean;
+  isPro: boolean;
+  onSelect: () => void;
+  onOpenProIncidence: () => void;
+  index: number;
+}
+
+function SkillTreeTopicCard({
+  topic,
+  subColor,
+  isSelected,
+  isPro,
+  onSelect,
+  onOpenProIncidence,
+  index,
+}: SkillTreeTopicCardProps) {
+  const { isLight } = useTheme();
+  const [isHovered, setIsHovered] = useState(false);
+  const mastery = getTopicMastery(topic);
+  const inc = getTopicIncidence(topic, index);
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={onSelect}
+      className={`p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer relative overflow-hidden flex flex-col justify-between group ${
+        isLight
+          ? "bg-white border-slate-200/90 hover:border-slate-300 shadow-xs hover:shadow-md"
+          : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
+      }`}
+      style={{
+        borderColor: isSelected
+          ? subColor
+          : isHovered
+          ? hexToRgba(subColor, 0.75)
+          : isLight
+          ? "#cbd5e1"
+          : "rgba(30, 41, 59, 0.8)",
+        backgroundColor: isSelected
+          ? isLight
+            ? "#f8fafc"
+            : "rgba(15, 23, 42, 0.95)"
+          : isHovered
+          ? isLight
+            ? "#f1f5f9"
+            : "rgba(15, 23, 42, 0.85)"
+          : isLight
+          ? "#ffffff"
+          : "rgba(2, 6, 23, 0.6)",
+        boxShadow: isSelected
+          ? `0 0 20px ${hexToRgba(subColor, 0.35)}`
+          : isHovered
+          ? isLight
+            ? `0 6px 20px -4px ${hexToRgba(subColor, 0.2)}, 0 2px 6px -1px rgba(15, 23, 42, 0.05)`
+            : `0 8px 24px -4px ${hexToRgba(subColor, 0.25)}, 0 0 12px ${hexToRgba(subColor, 0.15)}`
+          : isLight
+          ? "0 1px 3px 0 rgba(0, 0, 0, 0.05)"
+          : undefined,
+      }}
+    >
+      {/* Faixa colorida da disciplina no topo para dar destaque e identidade aos cards */}
+      <div
+        className="absolute top-0 inset-x-0 h-1 rounded-t-2xl pointer-events-none transition-opacity"
+        style={{
+          backgroundColor: subColor,
+          opacity: isLight ? 0.9 : 0.6,
+        }}
+      />
+
+      {/* Brilho suave da cor da matéria ao passar o mouse */}
+      <div
+        className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+        style={{
+          backgroundColor: subColor,
+          opacity: isSelected ? (isLight ? 0.08 : 0.12) : isHovered ? (isLight ? 0.05 : 0.08) : 0,
+        }}
+      />
+
+      {/* Alerta de Ebbinghaus (Borda pulsante âmbar) */}
+      {mastery.isDecaying && (
+        <div className="absolute inset-0 rounded-2xl border-2 border-amber-400/80 animate-pulse pointer-events-none" />
+      )}
+
+      {/* Topo do Nó: Nível RPG + % de Domínio */}
+      <div className="flex items-center justify-between gap-2 mb-3 relative z-10">
+        <div className="flex items-center gap-1.5">
+          {mastery.tier === "DIAMOND" && (
+            <Crown size={14} className="text-cyan-600 dark:text-cyan-400 fill-cyan-400/20" />
+          )}
+          {mastery.tier === "GOLD" && (
+            <Trophy size={14} className="text-amber-600 dark:text-amber-400 fill-amber-400/20" />
+          )}
+          {mastery.tier === "SILVER" && (
+            <Shield size={14} className="text-slate-500 dark:text-slate-300 fill-slate-300/20" />
+          )}
+          {mastery.tier === "BRONZE" && (
+            <Shield size={14} className="text-orange-600 dark:text-orange-500 fill-orange-500/20" />
+          )}
+          {mastery.tier === "LOCKED" && (
+            <Lock size={13} className="text-slate-400 dark:text-slate-500" />
+          )}
+          <span
+            className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${mastery.badgeColor}`}
+          >
+            {mastery.label.split("•")[0]}
+          </span>
+        </div>
+
+        <span
+          className="font-mono text-xs font-bold transition-colors duration-200"
+          style={{
+            color: isHovered || isSelected ? subColor : isLight ? "#475569" : "rgb(203, 213, 225)",
+          }}
+        >
+          {topic.performance || 0}%
+        </span>
+      </div>
+
+      {/* Título do Tópico */}
+      <div className="space-y-1.5 mb-3 relative z-10">
+        <h4
+          className="text-xs font-bold transition-colors duration-200 line-clamp-2"
+          style={{
+            color: isHovered || isSelected ? subColor : isLight ? "#0f172a" : "#ffffff",
+          }}
+        >
+          {topic.title}
+        </h4>
+
+        {/* Raio-X de Incidência da Banca */}
+        <div className="pt-0.5">
+          {isPro ? (
+            <span
+              className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+                inc.level === "HIGH"
+                  ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30"
+                  : inc.level === "MEDIUM"
+                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
+                  : "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-500/20"
+              }`}
+            >
+              {inc.level === "HIGH" && <Flame size={10} className="text-rose-600 dark:text-rose-400" />}
+              {inc.level === "MEDIUM" && <Zap size={10} className="text-amber-600 dark:text-amber-400" />}
+              <span>{inc.label}</span>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenProIncidence();
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 hover:bg-amber-50 text-amber-700 hover:text-amber-800 dark:bg-slate-800/90 dark:hover:bg-amber-500/10 dark:text-amber-300/80 dark:hover:text-amber-200 border border-amber-300 dark:border-amber-500/30 hover:border-amber-400 transition-all cursor-pointer"
+              title="Raio-X de Incidência da Banca (Exclusivo Synapse Pro)"
+            >
+              <Lock size={9} className="text-amber-600 dark:text-amber-400" />
+              <span>Raio-X Banca</span>
+              <Crown size={9} className="text-amber-600 dark:text-amber-400 fill-amber-500" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Rodapé do Nó: Status e Declínio */}
+      <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[10px] relative z-10">
+        {mastery.isDecaying ? (
+          <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">
+            <Clock size={11} />
+            Revisar Urgente
+          </span>
+        ) : topic.firstStudy && topic.firstStudy !== "Pendente" ? (
+          <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+            <Sparkles size={11} />
+            {topic.firstStudy}
+          </span>
+        ) : (
+          <span className="text-slate-600 dark:text-slate-500 font-medium">Pendente de estudo</span>
+        )}
+
+        <span
+          className="transition-colors duration-200 flex items-center gap-0.5 font-medium"
+          style={{
+            color: isHovered || isSelected ? subColor : isLight ? "#64748b" : "rgb(100, 116, 139)",
+          }}
+        >
+          <span>Ver nó</span>
+          <ChevronRight
+            size={12}
+            className={`transition-transform duration-200 ${
+              isHovered ? "translate-x-0.5" : ""
+            }`}
+          />
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
+export function EditalSkillTree({
+  subjects,
+  topics,
+  onReviewClick,
+}: EditalSkillTreeProps) {
+  const { isLight } = useTheme();
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("ALL");
+  const [selectedTopic, setSelectedTopic] = useState<SkillTreeTopic | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isPro, setIsPro] = useState(false);
+  const [showProIncidenceModal, setShowProIncidenceModal] = useState(false);
+  const [mindMapTarget, setMindMapTarget] = useState<{
+    topicTitle: string;
+    subjectName: string;
+    topicId?: string;
+    color?: string;
+  } | null>(null);
+
+  React.useEffect(() => {
+    getAiQuotaStatusAction().then((res) => {
+      if (res.success && res.data) {
+        setIsPro(res.data.isUnlimited);
+      }
+    });
+  }, []);
+
+  // Tópicos agrupados por disciplina
+  const groupedData = useMemo(() => {
+    return subjects.map((sub) => {
+      const subTopics = topics.filter(
+        (t) =>
+          t.subjectId === sub.id ||
+          t.subjectName?.toLowerCase() === sub.name.toLowerCase()
+      );
+      const avgPerf =
+        subTopics.length > 0
+          ? Math.round(
+              subTopics.reduce((acc, t) => acc + (t.performance || 0), 0) /
+                subTopics.length
+            )
+          : 0;
+
+      return {
+        subject: sub,
+        topics: subTopics,
+        averagePerformance: avgPerf,
+      };
+    });
+  }, [subjects, topics]);
+
+  // Estatísticas globais da Constelação
+  const stats = useMemo(() => {
+    let locked = 0;
+    let bronze = 0;
+    let silver = 0;
+    let gold = 0;
+    let diamond = 0;
+    let decaying = 0;
+
+    topics.forEach((t) => {
+      const m = getTopicMastery(t);
+      if (m.tier === "LOCKED") locked++;
+      else if (m.tier === "BRONZE") bronze++;
+      else if (m.tier === "SILVER") silver++;
+      else if (m.tier === "GOLD") gold++;
+      else if (m.tier === "DIAMOND") diamond++;
+
+      if (m.isDecaying) decaying++;
+    });
+
+    const masteredCount = silver + gold + diamond;
+    const total = topics.length || 1;
+    const progressPercent = Math.round((masteredCount / total) * 100);
+
+    return {
+      total: topics.length,
+      locked,
+      bronze,
+      silver,
+      gold,
+      diamond,
+      decaying,
+      masteredCount,
+      progressPercent,
+    };
+  }, [topics]);
+
+  // Filtragem
+  const filteredGroups = useMemo(() => {
+    return groupedData
+      .filter((g) => {
+        if (selectedSubjectId !== "ALL" && g.subject.id !== selectedSubjectId) {
+          return false;
+        }
+        return true;
+      })
+      .map((g) => {
+        if (!searchQuery.trim()) return g;
+        const q = searchQuery.toLowerCase();
+        return {
+          ...g,
+          topics: g.topics.filter(
+            (t) =>
+              t.title.toLowerCase().includes(q) ||
+              g.subject.name.toLowerCase().includes(q)
+          ),
+        };
+      })
+      .filter((g) => g.topics.length > 0 || !searchQuery.trim());
+  }, [groupedData, selectedSubjectId, searchQuery]);
+
+  return (
+    <div className="space-y-6">
+      {/* HEADER DA CONSTELAÇÃO: VISÃO PANORÂMICA RPG */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#070b16] via-[#0b1022] to-[#080d1a] border border-indigo-500/30 p-5 sm:p-7 shadow-2xl backdrop-blur-2xl">
+        <div className="absolute -top-32 -right-32 w-80 h-80 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold uppercase tracking-wider font-mono">
+              <Sparkles size={13} className="text-cyan-400" />
+              <span>Árvore de Domínio RPG</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Constelação de Habilidades do Edital
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+              Cada tópico do edital é um nó estelar. Conquiste 70%+ de acertos em questões para promover o nó a Prata, 85% para Ouro e 95% para Diamante Cósmico.
+            </p>
+          </div>
+
+          {/* Placar de Níveis e Ebbinghaus */}
+          <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/90 p-3.5 rounded-2xl backdrop-blur-md shadow-xs dark:shadow-md">
+            <div className="text-center px-2">
+              <div className="text-xs font-mono font-black text-cyan-600 dark:text-cyan-300 flex items-center justify-center gap-1">
+                <Crown size={14} className="text-cyan-500 dark:text-cyan-400" />
+                {stats.diamond}
+              </div>
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Diamante</span>
+            </div>
+
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+
+            <div className="text-center px-2">
+              <div className="text-xs font-mono font-black text-amber-600 dark:text-amber-300 flex items-center justify-center gap-1">
+                <Trophy size={14} className="text-amber-500 dark:text-amber-400" />
+                {stats.gold}
+              </div>
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Ouro</span>
+            </div>
+
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+
+            <div className="text-center px-2">
+              <div className="text-xs font-mono font-black text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1">
+                <Shield size={14} className="text-slate-500 dark:text-slate-300" />
+                {stats.silver}
+              </div>
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Prata</span>
+            </div>
+
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+
+            <div className="text-center px-2">
+              <div className="text-xs font-mono font-black text-orange-600 dark:text-orange-400 flex items-center justify-center gap-1">
+                <Shield size={14} className="text-orange-500" />
+                {stats.bronze}
+              </div>
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Bronze</span>
+            </div>
+
+            {stats.decaying > 0 && (
+              <>
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+                <div className="text-center px-2 animate-pulse">
+                  <div className="text-xs font-mono font-black text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1">
+                    <ShieldAlert size={14} className="text-rose-500 dark:text-rose-400" />
+                    {stats.decaying}
+                  </div>
+                  <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400">Em Declínio</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Barra de Progresso da Galáxia */}
+        <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="w-full sm:max-w-md space-y-1.5">
+            <div className="flex justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+              <span>Domínio da Galáxia do Concurso</span>
+              <span className="text-cyan-600 dark:text-cyan-400 font-mono font-bold">
+                {stats.masteredCount} / {stats.total} nós ({stats.progressPercent}%)
+              </span>
+            </div>
+            <div className="w-full h-2 bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden border border-slate-300 dark:border-slate-800">
+              <div
+                className="h-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 rounded-full transition-all duration-700 shadow-sm shadow-cyan-500/50"
+                style={{ width: `${stats.progressPercent}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <span>Nós com pulso âmbar requerem reforço de retenção (Ebbinghaus)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* BARRA DE FILTROS & BUSCA RÁPIDA DE NÓS */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 p-3 rounded-2xl backdrop-blur-xl shadow-xs dark:shadow-md">
+        {/* Pílulas de Matérias */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none max-w-full">
+          <button
+            onClick={() => setSelectedSubjectId("ALL")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              selectedSubjectId === "ALL"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
+            }`}
+          >
+            Todas as Matérias ({subjects.length})
+          </button>
+          {subjects.map((sub) => {
+            const isSelected = selectedSubjectId === sub.id;
+            return (
+              <button
+                key={sub.id}
+                onClick={() => setSelectedSubjectId(sub.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                    : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
+                }`}
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: sub.color || "#6366f1" }}
+                />
+                <span>{sub.name}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Input de Busca de Nó */}
+        <div className="relative min-w-48 sm:w-64">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar nó estelar..."
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-indigo-500/50 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
+          />
+        </div>
+      </div>
+
+      {/* GRADE DAS CONSTELAÇÕES POR DISCIPLINA */}
+      <div className="space-y-8">
+        {filteredGroups.map((group) => {
+          const subColor = group.subject.color || "#6366f1";
+
+          return (
+            <div
+              key={group.subject.id}
+              className="relative rounded-3xl bg-white dark:bg-[#060913]/90 border border-slate-200 dark:border-slate-800/90 p-5 sm:p-7 backdrop-blur-xl shadow-xs dark:shadow-xl space-y-6 overflow-hidden"
+            >
+              {/* Efeito Glow da Matéria */}
+              <div
+                className="absolute -top-20 -left-20 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-10 dark:opacity-20"
+                style={{ backgroundColor: subColor }}
+              />
+
+              {/* Núcleo Estelar da Matéria (Cosmic Core) */}
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-4 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shadow-md relative overflow-hidden border border-slate-200 dark:border-white/20"
+                    style={{
+                      backgroundColor: isLight ? hexToRgba(subColor, 0.15) : subColor,
+                      color: isLight ? subColor : "#ffffff",
+                    }}
+                  >
+                    <div
+                      className="absolute inset-0 animate-pulse pointer-events-none"
+                      style={{
+                        backgroundColor: subColor,
+                        opacity: isLight ? 0.25 : 0.3,
+                      }}
+                    />
+                    <Sparkles
+                      size={20}
+                      className="relative z-10"
+                      style={{ color: isLight ? subColor : "#ffffff" }}
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                        {group.subject.name}
+                      </h3>
+                      {group.subject.weight && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 dark:bg-white/5 dark:border-white/10 dark:text-slate-300 font-bold">
+                          Peso {group.subject.weight.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {group.topics.length} tópicos mapeados • Domínio médio:{" "}
+                      <strong className="text-indigo-600 dark:text-indigo-300 font-bold">
+                        {group.averagePerformance}%
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-400">
+                    {
+                      group.topics.filter(
+                        (t) => (t.performance || 0) >= 70
+                      ).length
+                    }{" "}
+                    / {group.topics.length} nós dominados
+                  </span>
+                </div>
+              </div>
+
+              {/* Grade de Nós Estelares da Disciplina */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 relative z-10">
+                {group.topics.map((t, idx) => (
+                  <SkillTreeTopicCard
+                    key={t.id}
+                    topic={t}
+                    subColor={subColor}
+                    isSelected={selectedTopic?.id === t.id}
+                    isPro={isPro}
+                    onSelect={() => setSelectedTopic(t)}
+                    onOpenProIncidence={() => setShowProIncidenceModal(true)}
+                    index={idx}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* MODAL / DRAWER DE INSPEÇÃO DO NÓ SELECIONADO */}
+      <AnimatePresence>
+        {selectedTopic && (() => {
+          const activeSubject = subjects.find(
+            (s) =>
+              s.id === selectedTopic.subjectId ||
+              s.name.toLowerCase() === selectedTopic.subjectName?.toLowerCase(),
+          );
+          const activeColor =
+            activeSubject?.color || selectedTopic.subjectColor || "#6366f1";
+          const m = getTopicMastery(selectedTopic);
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="relative w-full max-w-lg bg-[#080c16] rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 overflow-hidden border"
+                style={{
+                  borderColor: hexToRgba(activeColor, 0.45),
+                  boxShadow: `0 0 40px ${hexToRgba(activeColor, 0.18)}, 0 20px 50px -10px rgba(0, 0, 0, 0.85)`,
+                }}
+              >
+                {/* Glow do Modal na Cor da Matéria */}
+                <div
+                  className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl pointer-events-none"
+                  style={{
+                    backgroundColor: activeColor,
+                    opacity: 0.18,
+                  }}
+                />
+
+                {/* Cabeçalho */}
+                <div className="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-4 relative z-10">
+                  <div className="space-y-1">
+                    <span
+                      className="text-[10px] font-mono uppercase font-bold tracking-wider"
+                      style={{ color: activeColor }}
+                    >
+                      {selectedTopic.subjectName || activeSubject?.name || "Disciplina"}
+                    </span>
+                    <h3 className="text-base font-bold text-white leading-snug">
+                      {selectedTopic.title}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setSelectedTopic(null)}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Status de Domínio RPG */}
+                <div className="space-y-3 relative z-10">
+                  <div
+                    className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-950/80 border"
+                    style={{ borderColor: hexToRgba(activeColor, 0.25) }}
+                  >
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        Patente do Nó
+                      </span>
+                      <p className="text-xs font-bold text-white flex items-center gap-1.5 mt-0.5">
+                        {m.tier === "DIAMOND" && <Crown size={14} className="text-cyan-400" />}
+                        {m.tier === "GOLD" && <Trophy size={14} className="text-amber-400" />}
+                        {m.tier === "SILVER" && <Shield size={14} className="text-slate-300" />}
+                        {m.tier === "BRONZE" && <Shield size={14} className="text-orange-500" />}
+                        {m.tier === "LOCKED" && <Lock size={14} className="text-slate-500" />}
+                        <span>{m.label}</span>
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        Desempenho
+                      </span>
+                      <p
+                        className="text-sm font-mono font-black"
+                        style={{ color: activeColor }}
+                      >
+                        {selectedTopic.performance || 0}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {m.isDecaying && (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
+                      <Clock size={16} className="shrink-0 text-amber-400" />
+                      <span>
+                        <strong>Alerta Ebbinghaus:</strong> Este conceito atingiu a data crítica de declínio na memória. Reforce agora para não esquecer!
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Raio-X da Banca no Modal */}
+                  <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
+                        <Flame size={12} className="text-amber-400" />
+                        Raio-X de Incidência da Banca
+                      </span>
+                      {isPro ? (
+                        <p className="text-xs font-bold text-amber-300">
+                          {getTopicIncidence(selectedTopic, 0).label} nas últimas provas oficiais
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400">
+                          Estatística oculta no plano gratuito
+                        </p>
+                      )}
+                    </div>
+                    {!isPro && (
+                      <button
+                        type="button"
+                        onClick={() => setShowProIncidenceModal(true)}
+                        className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold flex items-center gap-1 hover:bg-amber-500/30 transition-colors cursor-pointer"
+                      >
+                        <Crown size={11} />
+                        <span>Desbloquear</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ações Táticas Rápidas para o Nó */}
+                <div className="space-y-2 pt-2 relative z-10">
+                  <Link
+                    href={
+                      selectedTopic.subjectId
+                        ? `/questions?subjectId=${encodeURIComponent(selectedTopic.subjectId)}&topicId=${encodeURIComponent(selectedTopic.id)}`
+                        : "/questions"
+                    }
+                    onClick={() => setSelectedTopic(null)}
+                    className="w-full py-3 px-4 rounded-xl text-white text-xs font-bold transition-all shadow-md flex items-center justify-between cursor-pointer active:scale-95 group"
+                    style={{
+                      background: `linear-gradient(135deg, #4f46e5 0%, ${activeColor} 100%)`,
+                      boxShadow: `0 4px 14px ${hexToRgba(activeColor, 0.35)}`,
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Zap size={15} className="fill-white" />
+                      <span>Fazer Questões deste Tópico</span>
+                    </div>
+                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+
+                  <Link
+                    href="/flashcards"
+                    onClick={() => setSelectedTopic(null)}
+                    className="w-full py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95 group shadow-xs dark:shadow-none"
+                    style={{ borderColor: hexToRgba(activeColor, 0.25) }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Layers size={15} style={{ color: activeColor }} />
+                      <span>Revisar Flashcards Vinculados</span>
+                    </div>
+                    <ArrowRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+
+                  {/* Botão de Mapa Mental Neural */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMindMapTarget({
+                        topicTitle: selectedTopic.title,
+                        subjectName: activeSubject?.name || selectedTopic.subjectName || "Edital",
+                        topicId: selectedTopic.id,
+                        color: activeColor,
+                      });
+                    }}
+                    className="w-full py-3 px-4 rounded-xl bg-violet-100 hover:bg-violet-200 dark:bg-linear-to-r dark:from-violet-600/25 dark:to-indigo-600/25 dark:hover:from-violet-600/40 dark:hover:to-indigo-600/40 border border-violet-300 dark:border-violet-500/40 text-violet-800 hover:text-violet-950 dark:text-violet-200 dark:hover:text-white text-xs font-bold transition-all shadow-xs dark:shadow-md dark:shadow-violet-950/40 flex items-center justify-between cursor-pointer active:scale-95"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Brain size={15} className="text-violet-600 dark:text-violet-400" />
+                      <span>Ver Mapa Mental do Tópico (SVG)</span>
+                    </div>
+                    <ArrowRight size={14} />
+                  </button>
+
+                  {onReviewClick && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const topicId = selectedTopic.id;
+                        setSelectedTopic(null);
+                        onReviewClick(topicId);
+                      }}
+                      className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-950 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs dark:shadow-none"
+                    >
+                      <Calendar size={13} />
+                      <span>Registrar Estudo Manual</span>
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
+
+      {/* MODAL INTERATIVO DE MAPA MENTAL NEURAL */}
+      {mindMapTarget && (
+        <MindMapModal
+          isOpen={Boolean(mindMapTarget)}
+          onClose={() => setMindMapTarget(null)}
+          topicTitle={mindMapTarget.topicTitle}
+          subjectName={mindMapTarget.subjectName}
+          topicId={mindMapTarget.topicId}
+          subjectColor={mindMapTarget.color}
+        />
+      )}
+
+      {/* MODAL RAIO-X EXCLUSIVO PRO */}
+      {showProIncidenceModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#090d1c] border border-amber-500/40 rounded-3xl w-full max-w-md p-6 shadow-2xl text-center space-y-4 relative">
+            <button
+              type="button"
+              onClick={() => setShowProIncidenceModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/10">
+              <Crown size={28} />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                Recurso Exclusivo Synapse Pro
+              </span>
+              <h3 className="text-base font-bold text-white">
+                Raio-X de Incidência da Banca Examinadora
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Descubra a frequência estatística exata de cada tópico nas provas anteriores da sua banca (FGV, Cebraspe, FCC, Vunesp). Priorize seu tempo no que realmente é cobrado e estude com precisão cirúrgica.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2">
+              <Link
+                href="/pricing"
+                onClick={() => setShowProIncidenceModal(false)}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all"
+              >
+                <Crown size={15} />
+                <span>Desbloquear Raio-X com Synapse Pro</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowProIncidenceModal(false)}
+                className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                Continuar no Plano Gratuito
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

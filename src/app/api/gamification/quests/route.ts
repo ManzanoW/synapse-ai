@@ -52,20 +52,34 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     });
 
-    // 2. Se não existirem, inicializa as 3 missões do dia
+    // 2. 🔒 Criação segura e atômica contra requisições concorrentes
     if (quests.length === 0) {
-      await prisma.dailyQuest.createMany({
-        data: DEFAULT_QUESTS.map((q) => ({
-          userId,
-          title: q.title,
-          description: q.description,
-          xpReward: q.xpReward,
-          targetCount: q.targetCount,
-          currentCount: 0,
-          completed: false,
-          claimed: false,
-          questDate: new Date(),
-        })),
+      await prisma.$transaction(async (tx) => {
+        const count = await tx.dailyQuest.count({
+          where: {
+            userId,
+            questDate: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+        });
+
+        if (count === 0) {
+          await tx.dailyQuest.createMany({
+            data: DEFAULT_QUESTS.map((q) => ({
+              userId,
+              title: q.title,
+              description: q.description,
+              xpReward: q.xpReward,
+              targetCount: q.targetCount,
+              currentCount: 0,
+              completed: false,
+              claimed: false,
+              questDate: startOfDay,
+            })),
+          });
+        }
       });
 
       quests = await prisma.dailyQuest.findMany({
@@ -161,38 +175,30 @@ export async function POST(req: Request) {
       );
     }
 
-    const quest = await prisma.dailyQuest.findFirst({
-      where: { id: questId, userId: session.user.id },
-    });
+    // 🔒 Transação interativa para evitar resgate duplo concorrente
+    const result = await prisma.$transaction(async (tx) => {
+      const quest = await tx.dailyQuest.findFirst({
+        where: { id: questId, userId: session.user.id },
+      });
 
-    if (!quest) {
-      return NextResponse.json(
-        { error: "Missão não encontrada" },
-        { status: 404 },
-      );
-    }
+      if (!quest) {
+        throw new Error("NOT_FOUND");
+      }
 
-    if (!quest.completed) {
-      return NextResponse.json(
-        { error: "A missão ainda não foi concluída" },
-        { status: 400 },
-      );
-    }
+      if (!quest.completed) {
+        throw new Error("NOT_COMPLETED");
+      }
 
-    if (quest.claimed) {
-      return NextResponse.json(
-        { error: "Recompensa já resgatada" },
-        { status: 400 },
-      );
-    }
+      if (quest.claimed) {
+        throw new Error("ALREADY_CLAIMED");
+      }
 
-    // Marca como resgatada e credita o XP atomicamente
-    const [, updatedStats] = await prisma.$transaction([
-      prisma.dailyQuest.update({
+      await tx.dailyQuest.update({
         where: { id: quest.id },
         data: { claimed: true },
-      }),
-      prisma.userStats.upsert({
+      });
+
+      const updatedStats = await tx.userStats.upsert({
         where: { userId: session.user.id },
         create: {
           userId: session.user.id,
@@ -201,15 +207,38 @@ export async function POST(req: Request) {
         update: {
           totalXp: { increment: quest.xpReward },
         },
-      }),
-    ]);
+      });
+
+      return {
+        claimedXp: quest.xpReward,
+        totalXp: updatedStats.totalXp,
+      };
+    });
 
     return NextResponse.json({
       success: true,
-      claimedXp: quest.xpReward,
-      totalXp: updatedStats.totalXp,
+      ...result,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message === "NOT_FOUND") {
+      return NextResponse.json(
+        { error: "Missão não encontrada" },
+        { status: 404 },
+      );
+    }
+    if (error?.message === "NOT_COMPLETED") {
+      return NextResponse.json(
+        { error: "A missão ainda não foi concluída" },
+        { status: 400 },
+      );
+    }
+    if (error?.message === "ALREADY_CLAIMED") {
+      return NextResponse.json(
+        { error: "Recompensa já resgatada" },
+        { status: 400 },
+      );
+    }
+
     console.error("Erro ao resgatar recompensa da quest:", error);
     return NextResponse.json(
       { error: "Erro interno do servidor" },
