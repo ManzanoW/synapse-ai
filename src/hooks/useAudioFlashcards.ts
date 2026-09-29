@@ -9,12 +9,48 @@ export interface AudioFlashcardItem {
   details?: string | null;
 }
 
-export type StudyPhase = "idle" | "question" | "thinking" | "answer" | "finished";
+export type StudyPhase =
+  "idle" | "question" | "thinking" | "answer" | "finished";
 
 interface UseAudioFlashcardsProps {
   cards: AudioFlashcardItem[];
   deckTitle?: string;
-  initialPauseDuration?: number; // em segundos (ex: 4s)
+  initialPauseDuration?: number; // em segundos
+}
+
+// Lista de prioridade estrita para vozes neurais / de alta fidelidade
+const NEURAL_PRIORITY_KEYWORDS = [
+  "francisca online (natural)",
+  "antonio online (natural)",
+  "google português do brasil",
+  "microsoft francisca",
+  "microsoft antonio",
+  "luciana",
+  "felipe",
+  "brenda",
+  "donato",
+  "yara",
+];
+
+function formatTextForSpeech(text: string): string {
+  if (!text) return "";
+  return (
+    text
+      // Trata lacunas e marcadores comuns
+      .replace(/\[\.\.\.\]/g, "lacuna")
+      .replace(/[*_#`~>]/g, "")
+      // Evita leitura rápida de listas numeradas (ex: "1. Princípio" -> "Item 1, Princípio")
+      .replace(/(\d+)\.\s+/g, "Item $1, ")
+      // Adiciona respiração natural após conectivos de transição
+      .replace(
+        /(Portanto|Logo|Assim|Dessa forma|Por conseguinte|Nesse sentido),?/gi,
+        "$1, ",
+      )
+      // Transforma quebras de linha em pausas suaves
+      .replace(/\n+/g, ". ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 export function useAudioFlashcards({
@@ -26,9 +62,12 @@ export function useAudioFlashcards({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPhase, setCurrentPhase] = useState<StudyPhase>("idle");
   const [pauseDuration, setPauseDuration] = useState(initialPauseDuration);
-  const [countdownRemaining, setCountdownRemaining] = useState(initialPauseDuration);
+  const [countdownRemaining, setCountdownRemaining] =
+    useState(initialPauseDuration);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [availableVoices, setAvailableVoices] = useState<
+    SpeechSynthesisVoice[]
+  >([]);
   const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>("");
 
   const isPlayingRef = useRef(false);
@@ -43,13 +82,14 @@ export function useAudioFlashcards({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // Inicializa Web Audio para o estímulo sonoro de reflexão
+  // Inicializa Web Audio para os bipes de reflexão
   const getAudioCtx = useCallback(() => {
     if (typeof window === "undefined") return null;
     if (!audioCtxRef.current) {
       const AudioContextClass =
         window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
       if (AudioContextClass) {
         audioCtxRef.current = new AudioContextClass();
       }
@@ -60,7 +100,7 @@ export function useAudioFlashcards({
     return audioCtxRef.current;
   }, []);
 
-  // Carrega e classifica vozes por naturalidade/qualidade neural
+  // Carrega e ranqueia as vozes com preferência absoluta para modelos neurais
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
@@ -68,45 +108,45 @@ export function useAudioFlashcards({
       const allVoices = window.speechSynthesis.getVoices();
       if (!allVoices || allVoices.length === 0) return;
 
-      // Filtra vozes em português
-      const ptVoices = allVoices.filter(
-        (v) =>
-          v.lang.toLowerCase().startsWith("pt-br") ||
-          v.lang.toLowerCase().startsWith("pt_br") ||
-          v.lang.toLowerCase().startsWith("pt")
-      );
+      // Filtra apenas vozes em português
+      const ptVoices = allVoices.filter((v) => {
+        const lang = v.lang.toLowerCase().replace("_", "-");
+        return lang.startsWith("pt");
+      });
 
-      // Pontua cada voz: vozes neurais/naturais têm prioridade máxima
+      // Sistema de pontuação para ordenar da mais humana para a mais mecânica
       const scoreVoice = (v: SpeechSynthesisVoice): number => {
         let score = 0;
         const name = v.name.toLowerCase();
         const lang = v.lang.toLowerCase();
 
         if (lang.includes("br")) score += 20;
-        if (name.includes("natural")) score += 50;
-        if (name.includes("neural")) score += 40;
-        if (name.includes("online")) score += 30;
-        if (name.includes("google")) score += 25;
-        if (
-          name.includes("francisca") ||
-          name.includes("antonio") ||
-          name.includes("luciana") ||
-          name.includes("brenda") ||
-          name.includes("donato") ||
-          name.includes("yara")
-        ) {
-          score += 35;
+
+        // Bonificação por palavras-chave de síntese neural moderna
+        if (name.includes("natural")) score += 60;
+        if (name.includes("neural")) score += 50;
+        if (name.includes("online")) score += 35;
+        if (name.includes("google")) score += 30;
+
+        // Checa se corresponde aos modelos específicos de alta qualidade conhecidos
+        for (let i = 0; i < NEURAL_PRIORITY_KEYWORDS.length; i++) {
+          if (name.includes(NEURAL_PRIORITY_KEYWORDS[i])) {
+            score += 40 - i;
+            break;
+          }
         }
+
         return score;
       };
 
-      const sorted = (ptVoices.length > 0 ? ptVoices : allVoices).sort(
-        (a, b) => scoreVoice(b) - scoreVoice(a)
+      const voicePool = ptVoices.length > 0 ? ptVoices : allVoices;
+      const sorted = [...voicePool].sort(
+        (a, b) => scoreVoice(b) - scoreVoice(a),
       );
 
       setAvailableVoices(sorted);
 
-      // Recupera voz salva ou seleciona a melhor classificada
+      // Resgata preferência salva ou define a melhor voz identificada
       try {
         const saved = localStorage.getItem("synapse_audio_voice");
         if (saved && sorted.some((v) => v.voiceURI === saved)) {
@@ -122,6 +162,10 @@ export function useAudioFlashcards({
 
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
   }, []);
 
   const handleSetSelectedVoiceURI = useCallback((uri: string) => {
@@ -131,71 +175,65 @@ export function useAudioFlashcards({
     } catch {}
   }, []);
 
-  // Toca um bipe suave ou tom alfa durante o pensamento
-  const playReflexBeep = useCallback((freq = 432, duration = 0.12) => {
-    try {
-      const ctx = getAudioCtx();
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + duration + 0.05);
-    } catch {
-      // Ignora erro em áudio suspenso
-    }
-  }, [getAudioCtx]);
+  // Estímulos sonoros sutis em frequência harmônica
+  const playReflexBeep = useCallback(
+    (freq = 432, duration = 0.12) => {
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(
+          0.001,
+          ctx.currentTime + duration,
+        );
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration + 0.05);
+      } catch {
+        // Ignora caso contexto esteja em suspense
+      }
+    },
+    [getAudioCtx],
+  );
 
-  // Busca voz em português do navegador, priorizando a selecionada ou mais natural
-  const getPortugueseVoice = useCallback((): SpeechSynthesisVoice | null => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+  const getActiveVoice = useCallback((): SpeechSynthesisVoice | null => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window))
+      return null;
     const voices = window.speechSynthesis.getVoices();
     if (!voices || voices.length === 0) return null;
 
     if (selectedVoiceURI) {
-      const found = voices.find((v) => v.voiceURI === selectedVoiceURI);
-      if (found) return found;
+      const match = voices.find((v) => v.voiceURI === selectedVoiceURI);
+      if (match) return match;
     }
 
-    // Heurística de fallback prioritária
-    const isNatural = (v: SpeechSynthesisVoice) => {
-      const n = v.name.toLowerCase();
-      return (
-        n.includes("natural") ||
-        n.includes("neural") ||
-        n.includes("online") ||
-        n.includes("google") ||
-        n.includes("francisca") ||
-        n.includes("antonio") ||
-        n.includes("luciana")
-      );
-    };
-
+    // Fallback: primeira voz pt-BR ou primeira pt
     return (
-      voices.find((v) => v.lang.toLowerCase().includes("br") && isNatural(v)) ||
-      voices.find((v) => v.lang === "pt-BR" || v.lang === "pt_BR") ||
-      voices.find((v) => v.lang.startsWith("pt")) ||
+      voices.find((v) =>
+        v.lang.toLowerCase().replace("_", "-").includes("pt-br"),
+      ) ||
+      voices.find((v) => v.lang.toLowerCase().startsWith("pt")) ||
       null
     );
   }, [selectedVoiceURI]);
 
-  // Limpa qualquer fala ou timer ativo
   const stopPlayback = useCallback(() => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
     if (timerRef.current) {
       clearInterval(timerRef.current);
+      clearTimeout(timerRef.current);
       timerRef.current = null;
     }
   }, []);
 
-  // Fala um texto com voz e velocidade configuradas com entonação suave
+  // Síntese de voz com cadência ajustada
   const speakText = useCallback(
     (text: string, onEnd?: () => void) => {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -205,19 +243,15 @@ export function useAudioFlashcards({
 
       window.speechSynthesis.cancel();
 
-      // Limpa tags markdown simples ou símbolos para fala natural
-      const cleanText = text
-        .replace(/\[\.\.\.\]/g, "lacuna")
-        .replace(/[*_#`~]/g, "")
-        .replace(/\n+/g, ". ")
-        .trim();
+      const naturalText = formatTextForSpeech(text);
+      const utterance = new SpeechSynthesisUtterance(naturalText);
 
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = "pt-BR";
-      utterance.rate = playbackSpeed;
+      // Ritmo otimizado para evitar monotonia robótica
+      utterance.rate = playbackSpeed * 1.03;
       utterance.pitch = 1.0;
+      utterance.lang = "pt-BR";
 
-      const voice = getPortugueseVoice();
+      const voice = getActiveVoice();
       if (voice) {
         utterance.voice = voice;
       }
@@ -229,7 +263,6 @@ export function useAudioFlashcards({
       };
 
       utterance.onerror = (e) => {
-        // Se foi cancelado intencionalmente, ignora
         if (e.error === "canceled" || e.error === "interrupted") return;
         if (isPlayingRef.current && onEnd) {
           onEnd();
@@ -238,10 +271,10 @@ export function useAudioFlashcards({
 
       window.speechSynthesis.speak(utterance);
     },
-    [playbackSpeed, getPortugueseVoice]
+    [playbackSpeed, getActiveVoice],
   );
 
-  // Executa o ciclo de um card: Pergunta -> Pausa -> Resposta -> Próximo
+  // Ciclo sequencial do Flashcard: Pergunta -> Reflexão -> Resposta -> Próximo
   const runCardCycle = useCallback(
     (index: number) => {
       if (!isPlayingRef.current || index >= cards.length) {
@@ -257,27 +290,25 @@ export function useAudioFlashcards({
       setCurrentIndex(index);
       setCurrentPhase("question");
 
-      // Atualiza Metadados no MediaSession (Bluetooth / Lockscreen)
+      // Atualiza o MediaSession (para controles Bluetooth e tela de bloqueio)
       if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
         try {
           navigator.mediaSession.metadata = new MediaMetadata({
-            title: `Card #${index + 1}: ${card.question.slice(0, 60)}`,
+            title: `Card ${index + 1}: ${card.question.slice(0, 50)}...`,
             artist: deckTitle,
-            album: "Synapse AI • Estudo Ativo",
+            album: "Synapse AI • Flashcards Ativos",
           });
-        } catch {
-          // Ignora se não suportado
-        }
+        } catch {}
       }
 
-      // 1. Lê a pergunta
+      // 1. Enuncia a pergunta com pausa natural
       speakText(`Pergunta número ${index + 1}. ${card.question}`, () => {
         if (!isPlayingRef.current) return;
 
-        // 2. Inicia a Pausa Reflexiva
+        // 2. Transição para a Pausa de Reflexão
         setCurrentPhase("thinking");
         setCountdownRemaining(pauseDuration);
-        playReflexBeep(330, 0.15); // Tom sutil de transição para o silêncio
+        playReflexBeep(330, 0.15);
 
         let remaining = pauseDuration;
         if (timerRef.current) clearInterval(timerRef.current);
@@ -285,8 +316,9 @@ export function useAudioFlashcards({
         timerRef.current = setInterval(() => {
           remaining -= 1;
           setCountdownRemaining(remaining);
+
           if (remaining > 0 && isPlayingRef.current) {
-            playReflexBeep(440, 0.08); // Pulso sutil de contagem
+            playReflexBeep(440, 0.06);
           }
 
           if (remaining <= 0) {
@@ -295,48 +327,46 @@ export function useAudioFlashcards({
 
             if (!isPlayingRef.current) return;
 
-            // 3. Lê a resposta e detalhes
+            // 3. Revela a resposta e o macete
             setCurrentPhase("answer");
-            playReflexBeep(528, 0.2); // Solfeggio da verdade/revelação
+            playReflexBeep(528, 0.2);
 
-            const answerText = `Resposta. ${card.answer}.${
-              card.details ? ` Mnemônico ou dica: ${card.details}` : ""
+            const answerPrompt = `Resposta: ${card.answer}. ${
+              card.details ? `Dica de fixação: ${card.details}` : ""
             }`;
 
-            speakText(answerText, () => {
+            speakText(answerPrompt, () => {
               if (!isPlayingRef.current) return;
 
-              // 4. Pausa de 1.5s antes do próximo card
+              // 4. Intervalo de acomodação cognitiva (1.4s) antes do próximo card
               timerRef.current = setTimeout(() => {
                 if (isPlayingRef.current) {
                   runCardCycle(index + 1);
                 }
-              }, 1500);
+              }, 1400);
             });
           }
         }, 1000);
       });
     },
-    [cards, deckTitle, pauseDuration, speakText, playReflexBeep]
+    [cards, deckTitle, pauseDuration, speakText, playReflexBeep],
   );
 
-  // Iniciar reprodução
   const play = useCallback(() => {
     if (cards.length === 0) return;
     setIsPlaying(true);
     isPlayingRef.current = true;
-    const startIndex = currentPhaseRef.current === "finished" ? 0 : currentIndexRef.current;
+    const startIndex =
+      currentPhaseRef.current === "finished" ? 0 : currentIndexRef.current;
     runCardCycle(startIndex);
   }, [cards.length, runCardCycle]);
 
-  // Pausar reprodução
   const pause = useCallback(() => {
     setIsPlaying(false);
     isPlayingRef.current = false;
     stopPlayback();
   }, [stopPlayback]);
 
-  // Alternar Play/Pause
   const togglePlay = useCallback(() => {
     if (isPlaying) {
       pause();
@@ -345,7 +375,6 @@ export function useAudioFlashcards({
     }
   }, [isPlaying, play, pause]);
 
-  // Avançar para o próximo card
   const next = useCallback(() => {
     stopPlayback();
     const nextIdx = Math.min(cards.length - 1, currentIndex + 1);
@@ -355,7 +384,6 @@ export function useAudioFlashcards({
     }
   }, [cards.length, currentIndex, isPlaying, stopPlayback, runCardCycle]);
 
-  // Voltar para o card anterior
   const prev = useCallback(() => {
     stopPlayback();
     const prevIdx = Math.max(0, currentIndex - 1);
@@ -365,9 +393,10 @@ export function useAudioFlashcards({
     }
   }, [currentIndex, isPlaying, stopPlayback, runCardCycle]);
 
-  // Configurações do MediaSession API (controles nos fones Bluetooth)
+  // Handlers para botões de fones de ouvido Bluetooth / Media keys
   useEffect(() => {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator))
+      return;
 
     navigator.mediaSession.setActionHandler("play", () => play());
     navigator.mediaSession.setActionHandler("pause", () => pause());
@@ -380,13 +409,11 @@ export function useAudioFlashcards({
         navigator.mediaSession.setActionHandler("pause", null);
         navigator.mediaSession.setActionHandler("nexttrack", null);
         navigator.mediaSession.setActionHandler("previoustrack", null);
-      } catch {
-        // Ignora limpeza
-      }
+      } catch {}
     };
   }, [play, pause, next, prev]);
 
-  // Limpa ao desmontar
+  // Cleanup ao desmontar o componente
   useEffect(() => {
     return () => {
       stopPlayback();

@@ -44,7 +44,6 @@ export function AudioFlashcardPlayerModal({
     countdownRemaining,
     pauseDuration,
     playbackSpeed,
-    play,
     pause,
     togglePlay,
     next,
@@ -103,7 +102,7 @@ export function AudioFlashcardPlayerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-2xl select-none overflow-y-auto">
       {/* Ambient Glow dinâmico dependendo da fase */}
       <div
-        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none transition-all duration-700 ${
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 h-125 rounded-full blur-[140px] pointer-events-none transition-all duration-700 ${
           currentPhase === "thinking"
             ? "bg-amber-600/20"
             : currentPhase === "answer"
@@ -125,12 +124,13 @@ export function AudioFlashcardPlayerModal({
                   Synapse Audio
                 </span>
                 <span className="text-slate-600">•</span>
-                <span className="text-xs text-slate-300 font-semibold truncate max-w-[200px]">
+                <span className="text-xs text-slate-300 font-semibold truncate max-w-50">
                   {deckTitle}
                 </span>
               </div>
               <p className="text-[11px] text-slate-500">
-                Card {currentIndex + 1} de {totalCards} ({Math.round(progressPercent)}%)
+                Card {currentIndex + 1} de {totalCards} (
+                {Math.round(progressPercent)}%)
               </p>
             </div>
           </div>
@@ -147,7 +147,7 @@ export function AudioFlashcardPlayerModal({
         {/* Barra de Progresso Fina */}
         <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden my-3 border border-slate-900">
           <div
-            className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-300"
+            className="h-full bg-linear-to-r from-indigo-500 to-violet-500 transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -256,7 +256,7 @@ export function AudioFlashcardPlayerModal({
 
             <button
               onClick={togglePlay}
-              className="py-4 px-8 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer min-w-36"
+              className="py-4 px-8 rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer min-w-36"
             >
               {isPlaying ? <Pause size={20} /> : <Play size={20} />}
               <span>{isPlaying ? "Pausar" : "Ouvir Agora"}</span>
@@ -278,23 +278,27 @@ export function AudioFlashcardPlayerModal({
             {availableVoices.length > 0 && (
               <div className="flex items-center gap-1.5 w-full sm:w-auto">
                 <Volume2 size={13} className="text-emerald-400 shrink-0" />
-                <span className="text-slate-400 font-semibold shrink-0">Voz:</span>
+                <span className="text-slate-400 font-semibold shrink-0">
+                  Voz:
+                </span>
                 <select
                   value={selectedVoiceURI}
                   onChange={(e) => setSelectedVoiceURI(e.target.value)}
-                  className="bg-slate-900 border border-slate-700/80 text-slate-200 rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer max-w-[200px] truncate"
+                  className="bg-slate-900 border border-slate-700/80 text-slate-200 rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer max-w-50 truncate"
                   title="Selecione a voz de reprodução do navegador"
                 >
                   {availableVoices.map((v) => {
-                    const isNeural =
-                      v.name.toLowerCase().includes("natural") ||
-                      v.name.toLowerCase().includes("neural") ||
-                      v.name.toLowerCase().includes("google") ||
-                      v.name.toLowerCase().includes("online");
+                    const isNeural = /natural|neural|google|online/i.test(
+                      v.name,
+                    );
                     return (
                       <option key={v.voiceURI} value={v.voiceURI}>
                         {isNeural ? "✨ " : ""}
-                        {v.name.replace(/Microsoft |Google /g, "").split(" - ")[0]}
+                        {
+                          v.name
+                            .replace(/Microsoft |Google /g, "")
+                            .split(" - ")[0]
+                        }
                       </option>
                     );
                   })}
@@ -350,7 +354,8 @@ export function AudioFlashcardPlayerModal({
             <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
               <Headphones size={13} className="text-indigo-400" />
               <span>
-                Compatível com botões dos <strong>fones Bluetooth</strong> e tela bloqueada (MediaSession API).
+                Compatível com botões dos <strong>fones Bluetooth</strong> e
+                tela bloqueada (MediaSession API).
               </span>
             </p>
           </div>
