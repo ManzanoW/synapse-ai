@@ -8,29 +8,7 @@ import {
   isLeechCard,
 } from "@/lib/spaced-repetition";
 
-interface TopicData {
-  id: string;
-  title: string;
-  easiness: number | null;
-  interval: number | null;
-  nextRev?: Date | null;
-  firstStudy?: string | null;
-  reviewHistories?: Array<{ grade: string; reviewedAt: Date }>;
-  quizAttempts?: Array<{ totalCount: number; correctCount: number }>;
-}
-
-interface SubjectData {
-  id: string;
-  name: string;
-  priority?: number | null;
-  weight?: number | null;
-  topics: TopicData[];
-}
-
-interface StudySessionData {
-  durationMinutes: number | null;
-  createdAt: Date;
-}
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -41,109 +19,162 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // 1. Busca todas as entidades reais com dados de estudo do usuário
-    const [subjects, studySessions, quizAttempts, flashcards, reviewHistories] =
-      await Promise.all([
-        prisma.subject.findMany({
-          where: { userId },
-          include: {
-            topics: {
-              select: {
-                id: true,
-                title: true,
-                easiness: true,
-                interval: true,
-                nextRev: true,
-                firstStudy: true,
-                reviewHistories: {
-                  select: {
-                    grade: true,
-                    reviewedAt: true,
-                  },
-                },
-                quizAttempts: {
-                  select: {
-                    totalCount: true,
-                    correctCount: true,
-                  },
-                },
-              },
-            },
-          },
-        }),
-        prisma.studySession.findMany({
-          where: { userId },
-          select: {
-            durationMinutes: true,
-            createdAt: true,
-          },
-        }),
-        prisma.quizAttempt.findMany({
-          where: { userId },
-          select: {
-            topicId: true,
-            totalCount: true,
-            correctCount: true,
-            completedAt: true,
-          },
-        }),
-        prisma.flashcard.findMany({
-          where: { deck: { userId } },
-          select: {
-            id: true,
-            stability: true,
-            difficulty: true,
-            repetitions: true,
-            lapses: true,
-            lastReviewed: true,
-            nextReviewDate: true,
-          },
-        }),
-        prisma.reviewHistory.findMany({
-          where: {
-            topic: {
-              subject: {
-                userId,
-              },
-            },
-          },
-          select: {
-            grade: true,
-            reviewedAt: true,
-          },
-        }),
-      ]);
+    const now = new Date();
 
-    // 2. Metadados de Tópicos e Revisões Pendentes
+    // 1. Consultas paralelas otimizadas com projeções seletivas
+    const [
+      subjects,
+      studySessions,
+      quizAttempts,
+      flashcards,
+      reviewHistories,
+      userRecord,
+    ] = await Promise.all([
+      prisma.subject.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          name: true,
+          priority: true,
+          weight: true,
+          topics: {
+            select: {
+              id: true,
+              title: true,
+              easiness: true,
+              interval: true,
+              nextRev: true,
+              firstStudy: true,
+            },
+          },
+        },
+      }),
+      prisma.studySession.findMany({
+        where: { userId },
+        select: {
+          createdAt: true,
+        },
+      }),
+      prisma.quizAttempt.findMany({
+        where: { userId },
+        select: {
+          topicId: true,
+          totalCount: true,
+          correctCount: true,
+        },
+      }),
+      prisma.flashcard.findMany({
+        where: { deck: { userId } },
+        select: {
+          id: true,
+          stability: true,
+          difficulty: true,
+          repetitions: true,
+          lapses: true,
+          lastReviewed: true,
+        },
+      }),
+      prisma.reviewHistory.findMany({
+        where: {
+          topic: {
+            subject: {
+              userId,
+            },
+          },
+        },
+        select: {
+          topicId: true,
+          grade: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { weeklyGoalHours: true },
+      }),
+    ]);
+
+    // 2. Indexação em Hash Maps O(1) para evitar .filter() dentro de loops de tópicos
+    const quizStatsByTopic = new Map<string, { total: number; correct: number }>();
+    let totalQuizQuestions = 0;
+    let correctQuizQuestions = 0;
+
+    for (const q of quizAttempts) {
+      totalQuizQuestions += q.totalCount;
+      correctQuizQuestions += q.correctCount;
+
+      if (q.topicId) {
+        const existing = quizStatsByTopic.get(q.topicId) || { total: 0, correct: 0 };
+        existing.total += q.totalCount;
+        existing.correct += q.correctCount;
+        quizStatsByTopic.set(q.topicId, existing);
+      }
+    }
+
+    const reviewCountsByTopic = new Map<string, number>();
+    let bomCount = 0;
+    let dificilCount = 0;
+    let erreiCount = 0;
+
+    for (const rh of reviewHistories) {
+      if (rh.topicId) {
+        reviewCountsByTopic.set(rh.topicId, (reviewCountsByTopic.get(rh.topicId) || 0) + 1);
+      }
+      if (rh.grade === "1") erreiCount++;
+      else if (rh.grade === "2") dificilCount++;
+      else if (rh.grade === "3" || rh.grade === "4") bomCount++;
+    }
+
+    // 3. Metadados de Tópicos, Revisões Pendentes e Pontos Fracos
     let totalTopics = 0;
     let sumEasiness = 0;
     let pendingReviewsCount = 0;
     let studiedTopicsCount = 0;
-    const now = new Date();
 
-    (subjects as SubjectData[]).forEach((sub: SubjectData) => {
-      sub.topics.forEach((topic: TopicData) => {
+    const weakTopics: Array<{
+      id: string;
+      title: string;
+      subject: string;
+      accuracy: number;
+      total: number;
+    }> = [];
+
+    for (const sub of subjects) {
+      for (const topic of sub.topics) {
         totalTopics++;
         sumEasiness += topic.easiness || 2.5;
 
-        // Se a revisão estiver agendada para antes de agora
         if (topic.nextRev && new Date(topic.nextRev) <= now) {
           pendingReviewsCount++;
         }
 
-        // Tópico iniciado/estudado
-        const hasQuiz = (topic.quizAttempts?.length ?? 0) > 0;
-        const hasReviews = (topic.reviewHistories?.length ?? 0) > 0;
+        const topicQuiz = quizStatsByTopic.get(topic.id);
+        const hasQuiz = (topicQuiz?.total ?? 0) > 0;
+        const hasReviews = (reviewCountsByTopic.get(topic.id) ?? 0) > 0;
         const isNotPending = topic.firstStudy && topic.firstStudy !== "Pendente";
+
         if (hasQuiz || hasReviews || isNotPending) {
           studiedTopicsCount++;
         }
-      });
-    });
+
+        // Diagnóstico de Pontos Fracos (< 60% de acerto com pelo menos 3 questões)
+        if (topicQuiz && topicQuiz.total >= 3) {
+          const accuracy = Math.round((topicQuiz.correct / topicQuiz.total) * 100);
+          if (accuracy < 60) {
+            weakTopics.push({
+              id: topic.id,
+              title: topic.title,
+              subject: sub.name,
+              accuracy,
+              total: topicQuiz.total,
+            });
+          }
+        }
+      }
+    }
 
     const avgEasiness = totalTopics > 0 ? Number((sumEasiness / totalTopics).toFixed(2)) : 2.5;
 
-    // 3. FSRS Real: Retenção de Memória & Pipeline de Maturidade
+    // 4. FSRS Real: Retenção de Memória & Pipeline de Maturidade
     const totalCards = flashcards.length;
     let newCards = 0;
     let learningCards = 0;
@@ -151,7 +182,7 @@ export async function GET() {
     let leechCards = 0;
     const cardRetentions: number[] = [];
 
-    flashcards.forEach((card) => {
+    for (const card of flashcards) {
       const maturity = classifyCardMaturity(card.repetitions, card.stability);
       if (maturity === "NEW") newCards++;
       else if (maturity === "LEARNING") learningCards++;
@@ -165,39 +196,27 @@ export async function GET() {
         const retention = calculateMemoryRetention(card.stability, card.lastReviewed, now);
         cardRetentions.push(retention);
       }
-    });
+    }
 
-    // 4. Questões / Simulados Reais
-    let totalQuizQuestions = 0;
-    let correctQuizQuestions = 0;
-
-    quizAttempts.forEach((q) => {
-      totalQuizQuestions += q.totalCount;
-      correctQuizQuestions += q.correctCount;
-    });
-
+    // 5. Cálculos de Acurácia e Retenção Global
     const incorrectQuizQuestions = Math.max(0, totalQuizQuestions - correctQuizQuestions);
     const overallQuizAccuracy =
       totalQuizQuestions > 0
         ? Math.round((correctQuizQuestions / totalQuizQuestions) * 100)
         : null;
 
-    // Cálculo da taxa de retenção autêntica
     let retentionValue: number;
     let retentionStatus;
 
     if (cardRetentions.length > 0) {
-      // Tem flashcards com revisões reais -> média ponderada das retenções atuais
       retentionValue = Math.round(
         cardRetentions.reduce((acc, curr) => acc + curr, 0) / cardRetentions.length,
       );
       retentionStatus = getMemoryStatus(retentionValue);
     } else if (totalQuizQuestions > 0 && overallQuizAccuracy !== null) {
-      // Fallback em simulados reais
       retentionValue = overallQuizAccuracy;
       retentionStatus = getMemoryStatus(retentionValue);
     } else {
-      // Sem dados históricos
       retentionValue = 100;
       retentionStatus = {
         status: "OPTIMAL" as const,
@@ -210,26 +229,14 @@ export async function GET() {
       };
     }
 
-    const estimatedRetention = cardRetentions.length > 0 || totalQuizQuestions > 0
-      ? `${retentionValue}%`
-      : "100%";
+    const estimatedRetention =
+      cardRetentions.length > 0 || totalQuizQuestions > 0 ? `${retentionValue}%` : "100%";
 
-    // 5. Qualidade da Memorização 100% Real (ReviewHistory + QuizAttempts)
-    let bomCount = 0;
-    let dificilCount = 0;
-    let erreiCount = 0;
-
+    // Qualidade da Memorização
     if (reviewHistories.length > 0) {
-      reviewHistories.forEach((rh) => {
-        if (rh.grade === "1") erreiCount++;
-        else if (rh.grade === "2") dificilCount++;
-        else if (rh.grade === "3" || rh.grade === "4") bomCount++;
-      });
-      // Soma também os acertos e erros dos simulados
       bomCount += correctQuizQuestions;
       erreiCount += incorrectQuizQuestions;
     } else {
-      // Baseado puramente nos simulados (sem multiplicação arbitrária)
       bomCount = correctQuizQuestions;
       dificilCount = 0;
       erreiCount = incorrectQuizQuestions;
@@ -240,13 +247,17 @@ export async function GET() {
       dificil: dificilCount,
       errei: erreiCount,
       total: bomCount + dificilCount + erreiCount,
-      source: (reviewHistories.length > 0 && totalQuizQuestions > 0)
-        ? "mixed"
-        : (reviewHistories.length > 0 ? "flashcard" : (totalQuizQuestions > 0 ? "quiz" : "none")),
+      source:
+        reviewHistories.length > 0 && totalQuizQuestions > 0
+          ? "mixed"
+          : reviewHistories.length > 0
+          ? "flashcard"
+          : totalQuizQuestions > 0
+          ? "quiz"
+          : "none",
     };
 
     // 6. Grau de Domínio Cognitivo (Mastery Score de 0.0 a 10.0)
-    // Ponderação transparente: 50% Acurácia em Questões, 30% Retenção FSRS, 20% Cobertura do Edital
     const quizScore = overallQuizAccuracy !== null ? (overallQuizAccuracy / 100) * 10 : 0;
     const retentionScore = (retentionValue / 100) * 10;
     const coverageRate = totalTopics > 0 ? studiedTopicsCount / totalTopics : 0;
@@ -260,7 +271,7 @@ export async function GET() {
       totalQuizQuestions > 0 || cardRetentions.length > 0 || studiedTopicsCount > 0;
 
     if (hasAnyStudyActivity) {
-      const weightedRaw = (quizScore * 0.5) + (retentionScore * 0.3) + (coverageScore * 0.2);
+      const weightedRaw = quizScore * 0.5 + retentionScore * 0.3 + coverageScore * 0.2;
       masteryScore = Number(Math.min(10.0, Math.max(0.0, weightedRaw)).toFixed(1));
 
       if (masteryScore >= 8.5) {
@@ -276,44 +287,41 @@ export async function GET() {
         masteryLevel = "Fase Inicial";
         badgeColor = "rose";
       }
-    } else {
-      masteryScore = 0.0;
-      masteryLevel = "Fase Inicial";
-      badgeColor = "rose";
     }
 
-    // Busca também a meta semanal do usuário
-    const userRecord = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { weeklyGoalHours: true },
-    });
-
+    // 7. Estatísticas por Disciplina
     const userWeeklyHours = userRecord?.weeklyGoalHours || 10;
     const totalWeeklyMinutesCalc = userWeeklyHours * 60;
     const totalWeight = subjects.reduce((acc, s) => acc + (s.weight || 5), 0);
     const totalPriority = subjects.reduce((acc, s) => acc + (s.priority || 1), 0);
     const avgRatio = totalPriority / Math.max(1, totalWeight);
 
-    // 7. Estatísticas por Disciplina (Deduplicadas e com diferenciação de atividades)
-    const subjectMap = new Map<string, {
-      subjectId: string;
-      subject: string;
-      priority: number;
-      weight: number;
-      total: number;
-      correct: number;
-      baseWeeklyMinutes: number;
-      targetWeeklyMinutes: number;
-    }>();
+    const subjectMap = new Map<
+      string,
+      {
+        subjectId: string;
+        subject: string;
+        priority: number;
+        weight: number;
+        total: number;
+        correct: number;
+        baseWeeklyMinutes: number;
+        targetWeeklyMinutes: number;
+      }
+    >();
 
-    (subjects as SubjectData[]).forEach((sub: SubjectData) => {
+    for (const sub of subjects) {
       const key = sub.name.trim().toLowerCase();
-      const topicIds = new Set(sub.topics.map((t: TopicData) => t.id));
-      const logs = quizAttempts.filter(
-        (q) => q.topicId && topicIds.has(q.topicId),
-      );
-      const total = logs.reduce((acc, curr) => acc + curr.totalCount, 0);
-      const correct = logs.reduce((acc, curr) => acc + curr.correctCount, 0);
+      let total = 0;
+      let correct = 0;
+
+      for (const t of sub.topics) {
+        const item = quizStatsByTopic.get(t.id);
+        if (item) {
+          total += item.total;
+          correct += item.correct;
+        }
+      }
 
       const baseWeeklyMinutes = Math.round(
         (totalWeeklyMinutesCalc * (sub.weight || 5)) / Math.max(1, totalWeight),
@@ -338,7 +346,7 @@ export async function GET() {
         existing.total += total;
         existing.correct += correct;
       }
-    });
+    }
 
     const subjectStats = Array.from(subjectMap.values()).map((item) => {
       const hasActivity = item.total > 0;
@@ -351,6 +359,7 @@ export async function GET() {
         accuracy !== null &&
         accuracy < 65 &&
         (item.targetWeeklyMinutes > item.baseWeeklyMinutes * 1.03 || priorityRatio > avgRatio * 1.04);
+
       const isOptimized =
         hasActivity &&
         item.total >= 5 &&
@@ -372,70 +381,35 @@ export async function GET() {
       };
     });
 
-    // 8. Rebalanceador Inteligente: Sugestões Precisas (Exclui matérias não testadas)
+    // 8. Rebalanceador Inteligente
     const highPrioritySubjects = subjectStats.filter(
       (s) => s.hasActivity && s.total >= 3 && s.accuracy !== null && s.accuracy < 65,
     );
     const optimizedSubjects = subjectStats.filter(
       (s) => s.hasActivity && s.total >= 5 && s.accuracy !== null && s.accuracy > 85,
     );
-    const untestedCount = subjectStats.filter(
-      (s) => !s.hasActivity || s.total < 3,
-    ).length;
+    const untestedCount = subjectStats.filter((s) => !s.hasActivity || s.total < 3).length;
 
-    // Se as matérias com déficit já possuem reforço ativo no cronograma
     const isRebalanceApplied =
       highPrioritySubjects.length > 0
         ? highPrioritySubjects.every((s) => s.isReinforced)
         : optimizedSubjects.length > 0
-          ? optimizedSubjects.every((s) => s.isOptimized)
-          : false;
+        ? optimizedSubjects.every((s) => s.isOptimized)
+        : false;
 
-    // 9. Pontos Fracos (< 60% de acerto com pelo menos 3 questões)
-    const weakTopics: Array<{
-      id: string;
-      title: string;
-      subject: string;
-      accuracy: number;
-      total: number;
-    }> = [];
-
-    (subjects as SubjectData[]).forEach((sub: SubjectData) => {
-      sub.topics.forEach((topic: TopicData) => {
-        const logs = quizAttempts.filter((q) => q.topicId === topic.id);
-        const total = logs.reduce((acc, curr) => acc + curr.totalCount, 0);
-        const correct = logs.reduce((acc, curr) => acc + curr.correctCount, 0);
-
-        if (total >= 3) {
-          const accuracy = Math.round((correct / total) * 100);
-          if (accuracy < 60) {
-            weakTopics.push({
-              id: topic.id,
-              title: topic.title,
-              subject: sub.name,
-              accuracy,
-              total,
-            });
-          }
-        }
-      });
-    });
-
-    // 10. Carga de revisão da semana
+    // 9. Carga de revisão por dia da semana
     const daysOfWeek = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
-    const chartDistribution = daysOfWeek.map((dayLabel, index) => {
-      const count = (studySessions as StudySessionData[]).filter(
-        (s: StudySessionData) => {
-          const day = new Date(s.createdAt).getDay();
-          return day === index;
-        },
-      ).length;
+    const dayCounts = [0, 0, 0, 0, 0, 0, 0];
 
-      return {
-        day: dayLabel,
-        quantidade: count,
-      };
-    });
+    for (const s of studySessions) {
+      const day = new Date(s.createdAt).getDay();
+      dayCounts[day]++;
+    }
+
+    const chartDistribution = daysOfWeek.map((dayLabel, index) => ({
+      day: dayLabel,
+      quantidade: dayCounts[index],
+    }));
 
     return NextResponse.json({
       metrics: {
@@ -475,8 +449,7 @@ export async function GET() {
       subjectStats,
       rebalanceSuggestions: {
         needsRebalance:
-          !isRebalanceApplied &&
-          (highPrioritySubjects.length > 0 || optimizedSubjects.length > 0),
+          !isRebalanceApplied && (highPrioritySubjects.length > 0 || optimizedSubjects.length > 0),
         isApplied: isRebalanceApplied,
         highPriority: highPrioritySubjects,
         optimized: optimizedSubjects,
