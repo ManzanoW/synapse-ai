@@ -5,23 +5,45 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, voice = "pt-BR-FranciscaNeural" } = await req.json();
+    const { text, voice = "pt-BR-ThalitaNeural" } = await req.json();
 
     if (!text || typeof text !== "string") {
       return NextResponse.json({ error: "Texto inválido" }, { status: 400 });
     }
 
-    // Limpa caracteres especiais e markdown antes da síntese
-    const cleanText = text
+    // 1. Limpeza de caracteres brutos e markdown
+    let cleanText = text
       .replace(/\[\.\.\.\]/g, "lacuna")
       .replace(/[*_#`~>]/g, "")
-      .replace(/\n+/g, ". ")
+      .replace(/&/g, "e")
+      .replace(/</g, "")
+      .replace(/>/g, "")
       .trim();
+
+    // 2. Injeta micro-pausas respiratórias antes de explicações e respostas
+    cleanText = cleanText
+      .replace(/(Resposta:?)/gi, '$1 <break time="350ms"/>')
+      .replace(
+        /(Dica de fixação:?|Mnemônico:?)/gi,
+        '<break time="250ms"/> $1 <break time="200ms"/>',
+      )
+      .replace(/\.\s+/g, '. <break time="300ms"/> ');
+
+    // 3. Monta o SSML com prosódia didática (cadência ligeiramente mais pausada)
+    const ssml = `
+      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="pt-BR">
+        <voice name="${voice}">
+          <prosody rate="-4%" pitch="+0Hz">
+            ${cleanText}
+          </prosody>
+        </voice>
+      </speak>
+    `.trim();
 
     const tts = new MsEdgeTTS();
     await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
 
-    const { audioStream: readable } = tts.toStream(cleanText);
+    const { audioStream: readable } = tts.toStream(ssml);
 
     // Converte o Readable Stream em Buffer
     const chunks: Buffer[] = [];

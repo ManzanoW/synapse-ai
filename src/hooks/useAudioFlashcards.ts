@@ -28,21 +28,27 @@ interface UseAudioFlashcardsProps {
 // Opções de vozes neurais de estúdio disponíveis via /api/tts
 export const NEURAL_VOICE_OPTIONS: NeuralVoiceOption[] = [
   {
+    voiceURI: "pt-BR-ThalitaNeural",
+    name: "Thalita (Didática • Tutora)",
+    gender: "female",
+    isNeural: true,
+  },
+  {
     voiceURI: "pt-BR-FranciscaNeural",
-    name: "Francisca (Neural • Expressiva)",
+    name: "Francisca (Clara • Narradora)",
     gender: "female",
     isNeural: true,
   },
   {
     voiceURI: "pt-BR-AntonioNeural",
-    name: "Antônio (Neural • Formal)",
+    name: "Antônio (Firme • Concursos)",
     gender: "male",
     isNeural: true,
   },
   {
-    voiceURI: "pt-BR-ThalitaNeural",
-    name: "Thalita (Neural • Natural)",
-    gender: "female",
+    voiceURI: "pt-BR-NicolauNeural",
+    name: "Nicolau (Pausado • Professor)",
+    gender: "male",
     isNeural: true,
   },
 ];
@@ -52,7 +58,7 @@ function formatTextForSpeech(text: string): string {
   return text
     .replace(/\[\.\.\.\]/g, "lacuna")
     .replace(/[*_#`~>]/g, "")
-    .replace(/(\d+)\.\s+/g, "Item $1, ")
+    .replace(/(\d+)\.\s+/g, "$1, ")
     .replace(
       /(Portanto|Logo|Assim|Dessa forma|Por conseguinte|Nesse sentido),?/gi,
       "$1, ",
