@@ -20,7 +20,7 @@ async function getAuthenticatedUserId() {
   }
   return session.user.id;
 }
-
+ 
 export async function GET(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
