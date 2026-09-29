@@ -97,6 +97,7 @@ export function useAudioFlashcards({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioCacheRef = useRef<Map<string, string>>(new Map());
+  const pendingFetchesRef = useRef<Set<string>>(new Set());
 
   // Inicializa Web Audio para os bipes de reflexão cognitiva
   const getAudioCtx = useCallback(() => {
@@ -198,7 +199,47 @@ export function useAudioFlashcards({
     [playbackSpeed],
   );
 
-  // Síntese principal via rota /api/tts com vozes neurais
+  // Pré-carregamento silencioso em background
+  const preloadAudio = useCallback(
+    async (text: string) => {
+      const clean = formatTextForSpeech(text);
+      if (!clean) return;
+
+      const cacheKey = `${selectedVoiceURI}_${clean}`;
+      if (
+        audioCacheRef.current.has(cacheKey) ||
+        pendingFetchesRef.current.has(cacheKey)
+      ) {
+        return;
+      }
+
+      pendingFetchesRef.current.add(cacheKey);
+
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: clean,
+            voice: selectedVoiceURI,
+          }),
+        });
+
+        if (res.ok) {
+          const blob = await res.blob();
+          const audioUrl = URL.createObjectURL(blob);
+          audioCacheRef.current.set(cacheKey, audioUrl);
+        }
+      } catch {
+        // Falha silenciosa no prefetch
+      } finally {
+        pendingFetchesRef.current.delete(cacheKey);
+      }
+    },
+    [selectedVoiceURI],
+  );
+
+  // Síntese principal via rota /api/tts com vozes neurais e cache instantâneo
   const speakText = useCallback(
     async (text: string, onEnd?: () => void) => {
       const clean = formatTextForSpeech(text);
@@ -269,6 +310,21 @@ export function useAudioFlashcards({
       setCurrentIndex(index);
       setCurrentPhase("question");
 
+      // Monta o texto de resposta para o prefetch antecipado
+      const answerPrompt = `Resposta: ${card.answer}. ${
+        card.details ? `Dica de fixação: ${card.details}` : ""
+      }`;
+
+      // ⚡ PRELOAD ANTECIPADO: Baixa o áudio da resposta enquanto o aluno ainda está ouvindo a pergunta!
+      preloadAudio(answerPrompt);
+
+      // (Opcional) Também pré-carrega a pergunta do próximo card se existir
+      if (index + 1 < cards.length) {
+        preloadAudio(
+          `Pergunta número ${index + 2}. ${cards[index + 1].question}`,
+        );
+      }
+
       if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
         try {
           navigator.mediaSession.metadata = new MediaMetadata({
@@ -305,13 +361,9 @@ export function useAudioFlashcards({
 
             if (!isPlayingRef.current) return;
 
-            // 3. Revelação da resposta e dica
+            // 3. Revelação imediata da resposta (áudio já está em cache)
             setCurrentPhase("answer");
             playReflexBeep(528, 0.2);
-
-            const answerPrompt = `Resposta: ${card.answer}. ${
-              card.details ? `Dica de fixação: ${card.details}` : ""
-            }`;
 
             speakText(answerPrompt, () => {
               if (!isPlayingRef.current) return;
@@ -327,7 +379,7 @@ export function useAudioFlashcards({
         }, 1000);
       });
     },
-    [cards, deckTitle, pauseDuration, speakText, playReflexBeep],
+    [cards, deckTitle, pauseDuration, speakText, playReflexBeep, preloadAudio],
   );
 
   const play = useCallback(() => {
@@ -395,9 +447,9 @@ export function useAudioFlashcards({
   useEffect(() => {
     return () => {
       stopPlayback();
-      // Revoga URLs do blob para evitar memory leaks
       audioCacheRef.current.forEach((url) => URL.revokeObjectURL(url));
       audioCacheRef.current.clear();
+      pendingFetchesRef.current.clear();
     };
   }, [stopPlayback]);
 
