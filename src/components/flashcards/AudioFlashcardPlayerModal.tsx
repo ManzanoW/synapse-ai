@@ -87,7 +87,6 @@ export function AudioFlashcardPlayerModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, togglePlay, pause, onClose, next, prev]);
 
-  // Se fechar o modal, pausa o áudio
   const handleClose = () => {
     pause();
     onClose();
@@ -102,7 +101,7 @@ export function AudioFlashcardPlayerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-2xl select-none overflow-y-auto">
       {/* Ambient Glow dinâmico dependendo da fase */}
       <div
-        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 h-125 rounded-full blur-[140px] pointer-events-none transition-all duration-700 ${
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none transition-all duration-700 ${
           currentPhase === "thinking"
             ? "bg-amber-600/20"
             : currentPhase === "answer"
@@ -124,7 +123,7 @@ export function AudioFlashcardPlayerModal({
                   Synapse Audio
                 </span>
                 <span className="text-slate-600">•</span>
-                <span className="text-xs text-slate-300 font-semibold truncate max-w-50">
+                <span className="text-xs text-slate-300 font-semibold truncate max-w-[200px]">
                   {deckTitle}
                 </span>
               </div>
@@ -147,7 +146,7 @@ export function AudioFlashcardPlayerModal({
         {/* Barra de Progresso Fina */}
         <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden my-3 border border-slate-900">
           <div
-            className="h-full bg-linear-to-r from-indigo-500 to-violet-500 transition-all duration-300"
+            className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -256,7 +255,7 @@ export function AudioFlashcardPlayerModal({
 
             <button
               onClick={togglePlay}
-              className="py-4 px-8 rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer min-w-36"
+              className="py-4 px-8 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer min-w-36"
             >
               {isPlaying ? <Pause size={20} /> : <Play size={20} />}
               <span>{isPlaying ? "Pausar" : "Ouvir Agora"}</span>
@@ -274,7 +273,7 @@ export function AudioFlashcardPlayerModal({
 
           {/* Barra Inferior: Configurações de Voz, Velocidade & Pausa Reflexiva */}
           <div className="flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3 text-xs bg-slate-950/60 p-3 sm:p-4 rounded-2xl border border-slate-800/80">
-            {/* Seletor de Voz Natural / Neural */}
+            {/* Seletor de Voz Neural de Estúdio */}
             {availableVoices.length > 0 && (
               <div className="flex items-center gap-1.5 w-full sm:w-auto">
                 <Volume2 size={13} className="text-emerald-400 shrink-0" />
@@ -284,24 +283,14 @@ export function AudioFlashcardPlayerModal({
                 <select
                   value={selectedVoiceURI}
                   onChange={(e) => setSelectedVoiceURI(e.target.value)}
-                  className="bg-slate-900 border border-slate-700/80 text-slate-200 rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer max-w-50 truncate"
-                  title="Selecione a voz de reprodução do navegador"
+                  className="bg-slate-900 border border-slate-700/80 text-slate-200 rounded-lg px-2.5 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer max-w-[210px] truncate"
+                  title="Selecione a voz neural de estúdio"
                 >
-                  {availableVoices.map((v) => {
-                    const isNeural = /natural|neural|google|online/i.test(
-                      v.name,
-                    );
-                    return (
-                      <option key={v.voiceURI} value={v.voiceURI}>
-                        {isNeural ? "✨ " : ""}
-                        {
-                          v.name
-                            .replace(/Microsoft |Google /g, "")
-                            .split(" - ")[0]
-                        }
-                      </option>
-                    );
-                  })}
+                  {availableVoices.map((v) => (
+                    <option key={v.voiceURI} value={v.voiceURI}>
+                      ✨ {v.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}
@@ -316,7 +305,7 @@ export function AudioFlashcardPlayerModal({
                 <button
                   key={s}
                   onClick={() => setPlaybackSpeed(s)}
-                  className={`px-2 py-0.8 rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer ${
+                  className={`px-2 py-1 rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer ${
                     playbackSpeed === s
                       ? "bg-indigo-600 text-white shadow-sm"
                       : "bg-slate-900 text-slate-400 hover:text-white"
@@ -337,7 +326,7 @@ export function AudioFlashcardPlayerModal({
                 <button
                   key={sec}
                   onClick={() => setPauseDuration(sec)}
-                  className={`px-2 py-0.8 rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer ${
+                  className={`px-2 py-1 rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer ${
                     pauseDuration === sec
                       ? "bg-amber-600 text-white shadow-sm"
                       : "bg-slate-900 text-slate-400 hover:text-white"
