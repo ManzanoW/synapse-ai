@@ -5,6 +5,14 @@ import { auth } from "@/auth";
 import { XP_REWARDS, calculateLevel } from "@/lib/gamification/gamification";
 import { rebalanceScheduleAction } from "@/actions/adaptive-actions";
 import { normalizeTaxonomy } from "@/lib/error-taxonomy";
+import crypto from "crypto";
+
+function generateQuestionsFingerprint(questions: any[]): string {
+  const content = questions
+    .map((q) => (q.enunciado || q.question || q.questionText || "").trim())
+    .join("::");
+  return crypto.createHash("sha256").update(content).digest("hex").slice(0, 32);
+}
 
 export async function POST(request: Request) {
   try {
@@ -16,8 +24,6 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    console.log("Payload recebido no save:", body);
-
     const { quizId, banca, subject, difficulty, questions, topicId } = body;
 
     if (!subject || !questions || questions.length === 0) {
@@ -38,9 +44,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // src/app/api/questions/save/route.ts (Substitua as seções 2 e 3 do arquivo)
-
-    // 2. 🟢 BUSCA O TÓPICO CORRETO (Resolução por UUID, Nome ou Fallback via Quiz existente)
+    // 2. Busca o tópico correto (UUID, título ou fallback via quizId)
     let resolvedTopicId: string | null = null;
 
     if (topicId && topicId !== "ALL") {
@@ -60,7 +64,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // 🔄 FALLBACK: Se o topicId não foi encontrado pelo filtro, recupera o topicId original salvo no Quiz
     if (!resolvedTopicId && quizId) {
       const existingQuiz = await prisma.quiz.findUnique({
         where: { id: quizId },
@@ -71,7 +74,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. 🟢 CALCULA OS ACERTOS COM COMPARAÇÃO ROBUSTA
+    // 3. Calcula acertos com comparação robusta
     const totalCount = questions.length;
     const correctCount = questions.filter(
       (q: {
@@ -98,13 +101,13 @@ export async function POST(request: Request) {
       },
     ).length;
 
-    // 4. ⚡ GANHO DE XP
+    // 4. Ganho de XP e nível
     const baseXp = correctCount * XP_REWARDS.QUESTION_CORRECT;
     const isPerfectScore = totalCount >= 5 && correctCount === totalCount;
     const perfectBonusMultiplier = isPerfectScore ? 0.25 : 0;
 
     const currentStats = await prisma.userStats.findUnique({
-      where: { userId: userId },
+      where: { userId },
     });
 
     const streakDays =
@@ -121,12 +124,12 @@ export async function POST(request: Request) {
 
     if (earnedXp > 0) {
       updatedStats = await prisma.userStats.upsert({
-        where: { userId: userId },
+        where: { userId },
         update: {
           totalXp: { increment: earnedXp },
         },
         create: {
-          userId: userId,
+          userId,
           totalXp: earnedXp,
         },
       });
@@ -134,18 +137,17 @@ export async function POST(request: Request) {
       updatedStats =
         currentStats ??
         (await prisma.userStats.findUnique({
-          where: { userId: userId },
+          where: { userId },
         }));
     }
 
     const totalXp = updatedStats?.totalXp ?? 0;
     const levelInfo = calculateLevel(totalXp);
 
-    // 5. 🛡️ PROTEÇÃO CONTRA DUPLICAÇÃO: Salva, Atualiza ou Reutiliza Quiz recente
+    // 5. 🛡️ Proteção por Hash/Assinatura determinística em vez de janela de 30 segundos
     let quizRecord;
 
     if (quizId) {
-      // Caso 1: ID do Quiz explícito fornecido (garante estritamente que pertence ao usuário)
       const existingUserQuiz = await prisma.quiz.findFirst({
         where: { id: quizId, userId },
       });
@@ -163,32 +165,43 @@ export async function POST(request: Request) {
       } else {
         quizRecord = await prisma.quiz.create({
           data: {
+            id: quizId,
             banca: banca || "Geral",
             subject,
             difficulty: difficulty || "Média",
             questions,
-            userId: userId,
+            userId,
             topicId: resolvedTopicId,
           },
         });
       }
     } else {
-      // Caso 2: Sem ID explícito -> Verifica se um quiz idêntico foi criado nos últimos 30 segundos
-      const recentDuplicate = await prisma.quiz.findFirst({
+      const signatureFirstQuestion = (
+        questions[0]?.enunciado ||
+        questions[0]?.question ||
+        questions[0]?.questionText ||
+        ""
+      ).trim();
+
+      // Busca um quiz idêntico recente comparando o enunciado da primeira questão do conjunto
+      const candidateDuplicate = await prisma.quiz.findFirst({
         where: {
           userId,
           topicId: resolvedTopicId,
           subject,
-          createdAt: {
-            gte: new Date(Date.now() - 30 * 1000),
-          },
         },
         orderBy: { createdAt: "desc" },
       });
 
-      if (recentDuplicate) {
+      const isExactSameSet =
+        candidateDuplicate &&
+        Array.isArray(candidateDuplicate.questions) &&
+        generateQuestionsFingerprint(candidateDuplicate.questions) ===
+          generateQuestionsFingerprint(questions);
+
+      if (isExactSameSet && candidateDuplicate) {
         quizRecord = await prisma.quiz.update({
-          where: { id: recentDuplicate.id },
+          where: { id: candidateDuplicate.id },
           data: {
             questions,
             difficulty: difficulty || "Média",
@@ -202,18 +215,18 @@ export async function POST(request: Request) {
             subject,
             difficulty: difficulty || "Média",
             questions,
-            userId: userId,
+            userId,
             topicId: resolvedTopicId,
           },
         });
       }
     }
 
-    // 6. 🚀 Registra no QuizAttempt e atualiza no Tópico exato
+    // 6. Registra tentativa no QuizAttempt e atualiza Tópico
     if (resolvedTopicId) {
       await prisma.quizAttempt.create({
         data: {
-          userId: userId,
+          userId,
           topicId: resolvedTopicId,
           totalCount,
           correctCount,
@@ -226,7 +239,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // 6.1 📓 Registra os erros no Caderno de Erros (QuestionError)
+    // 6.1 Registra erros no Caderno de Erros (QuestionError)
     try {
       const incorrectItems = (questions as any[]).filter((q: any) => {
         return (
@@ -235,7 +248,9 @@ export async function POST(request: Request) {
           (q.userAnswer &&
             (q.gabaritoCorreto || q.correctAnswer) &&
             String(q.userAnswer).trim().toUpperCase() !==
-              String(q.gabaritoCorreto || q.correctAnswer).trim().toUpperCase())
+              String(q.gabaritoCorreto || q.correctAnswer)
+                .trim()
+                .toUpperCase())
         );
       });
 
@@ -246,7 +261,9 @@ export async function POST(request: Request) {
         const correctAns = String(
           item.gabaritoCorreto || item.correctAnswer || item.answer || "A",
         ).trim();
-        const normalizedReason = normalizeTaxonomy(item.errorReason || "UNCLASSIFIED");
+        const normalizedReason = normalizeTaxonomy(
+          item.errorReason || "UNCLASSIFIED",
+        );
 
         const existing = await prisma.questionError.findFirst({
           where: { userId, questionText: text },
@@ -258,8 +275,12 @@ export async function POST(request: Request) {
             data: {
               userAnswer: userAns,
               correctAnswer: correctAns,
-              explanation: item.justificativa || item.explanation || existing.explanation,
-              errorReason: normalizedReason !== "UNCLASSIFIED" ? normalizedReason : existing.errorReason,
+              explanation:
+                item.justificativa || item.explanation || existing.explanation,
+              errorReason:
+                normalizedReason !== "UNCLASSIFIED"
+                  ? normalizedReason
+                  : existing.errorReason,
               status: "PENDING",
               masteredAt: null,
               updatedAt: new Date(),
@@ -268,7 +289,7 @@ export async function POST(request: Request) {
         } else {
           await prisma.questionError.create({
             data: {
-              userId: userId,
+              userId,
               subjectId: subjectRecord?.id || null,
               topicId: resolvedTopicId || null,
               quizId: quizRecord?.id || null,
@@ -287,19 +308,19 @@ export async function POST(request: Request) {
       console.warn("Aviso ao salvar erros no Caderno de Erros:", errErr);
     }
 
-    // 7. Atualiza o SRS da matéria se aplicável
+    // 7. Atualiza SRS da matéria se aplicável
     if (subjectRecord && totalCount > 0) {
       const performance = correctCount / totalCount >= 0.7 ? "bom" : "dificil";
       await updateSubjectSRS(subjectRecord.id, performance);
     }
 
-    // 8. 🎯 ADAPTIVE REBALANCER: Avalia o histórico de questões da matéria
+    // 8. Rebalanceador adaptativo
     let isRebalanced = false;
 
     if (subjectRecord) {
       const attempts = await prisma.quizAttempt.findMany({
         where: {
-          userId: userId,
+          userId,
           topic: {
             subjectId: subjectRecord.id,
           },

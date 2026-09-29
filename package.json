@@ -28,6 +28,7 @@
     "date-fns": "^4.4.0",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.23.0",
+    "msedge-tts": "^2.0.8",
     "next": "16.2.10",
     "next-auth": "^5.0.0-beta.32",
     "pg": "^8.22.0",

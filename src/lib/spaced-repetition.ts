@@ -166,27 +166,6 @@ export const normalizeRating = (
 
 /**
  * Função central do motor de repetição espaçada FSRS / SM-2 calibrado.
- *
- * Implementa as regras estritas da especificação:
- * - Grade 1 (Again):
- *     stability = max(0.5, stability * 0.3)
- *     interval = 1 dia
- *     difficulty = min(10, difficulty + 1.2)
- *     repetitions = 0
- * - Grade 2 (Hard):
- *     interval cresce com freio multiplicador (~1.2x a 1.3x do anterior)
- *     difficulty = min(10, difficulty + 0.5)
- *     repetitions = repetitions + 1
- * - Grade 3 (Good):
- *     novoIntervalo = stability * (1 + fatorDeCrescimento)
- *     difficulty se estabiliza
- *     repetitions = repetitions + 1
- * - Grade 4 (Easy):
- *     bônus de facilidade (stability * 1.5), intervalo expandido
- *     difficulty = max(1, difficulty - 0.8)
- *     repetitions = repetitions + 1
- * - Proteção por Déficit de Disciplina:
- *     Se subjectAccuracy < 65%, aplica multiplicador de proteção de 0.8x no intervalo resultante.
  */
 export function calculateNextReview(input: CalculateNextReviewInput): NextReviewResult {
   const grade = normalizeGrade(input.grade);
@@ -242,10 +221,6 @@ export function calculateNextReview(input: CalculateNextReviewInput): NextReview
 
   switch (grade) {
     case 1: {
-      // Grade 1 (Again / Errei):
-      // Reset parcial ou total de estabilidade (max(0.5, stability * 0.3))
-      // Intervalo recua para 1 dia
-      // Dificuldade sobe (+1.2)
       nextStability = Math.max(SRS_CONFIG.MIN_STABILITY, Number((stability * 0.3).toFixed(2)));
       nextDifficulty = Math.min(SRS_CONFIG.MAX_DIFFICULTY, Number((difficulty + 1.2).toFixed(2)));
       nextInterval = 1;
@@ -256,25 +231,19 @@ export function calculateNextReview(input: CalculateNextReviewInput): NextReview
     }
 
     case 2: {
-      // Grade 2 (Hard / Difícil):
-      // Intervalo cresce com freio multiplicador (~1.2x a 1.3x do anterior)
-      // Dificuldade sobe (+0.5)
       nextDifficulty = Math.min(
         SRS_CONFIG.MAX_DIFFICULTY,
         Number((difficulty + 0.5 + latencyPenalty).toFixed(2))
       );
-      // Estabilidade cresce moderadamente
       nextStability = Math.max(
         0.8,
         Number((stability * (1.1 + (10 - nextDifficulty) * 0.04)).toFixed(2))
       );
-      // Multiplicador de freio: 1.25x sobre o intervalo anterior
       const hardMultiplier = 1.25;
       const baseHardInterval = Math.max(
         1,
         Math.round(Math.max(previousInterval, 1) * hardMultiplier)
       );
-      // Se for primeira repetição, estabelece 2 dias de intervalo
       nextInterval = repetitions === 0 ? 2 : Math.max(previousInterval + 1, baseHardInterval);
       nextRepetitions = repetitions + 1;
       nextEaseFactor = Math.max(SRS_CONFIG.MIN_EASE_FACTOR, Number((safeDefaults.easeFactor - 0.15).toFixed(2)));
@@ -282,23 +251,17 @@ export function calculateNextReview(input: CalculateNextReviewInput): NextReview
     }
 
     case 3: {
-      // Grade 3 (Good / Bom):
-      // Progressão regular calculada como novoIntervalo = stability * (1 + fatorDeCrescimento)
-      // Dificuldade se estabiliza (leve ajuste fino)
       nextDifficulty = Math.max(
         SRS_CONFIG.MIN_DIFFICULTY,
         Number((difficulty - 0.05 + latencyPenalty).toFixed(2))
       );
-      // Fator de crescimento derivado da facilidade/dificuldade atual
       const growthFactor = Math.max(0.3, Number(((11 - nextDifficulty) * 0.25).toFixed(2)));
-      // Estabilidade se expande
       nextStability = Math.max(
         1.2,
         Number((stability * (1.25 + (10 - nextDifficulty) * 0.08)).toFixed(2))
       );
 
       if (repetitions === 0) {
-        // Primeiro acerto regular estabelece base de ~3 dias
         nextInterval = Math.max(2, Math.round(nextStability * (1 + growthFactor)));
       } else {
         const calculatedInterval = Math.round(nextStability * (1 + growthFactor));
@@ -311,15 +274,10 @@ export function calculateNextReview(input: CalculateNextReviewInput): NextReview
     }
 
     case 4: {
-      // Grade 4 (Easy / Fácil):
-      // Bônus de facilidade (stability * 1.5)
-      // Intervalo expandido
-      // Dificuldade reduz (max(1, difficulty - 0.8))
       nextDifficulty = Math.max(
         SRS_CONFIG.MIN_DIFFICULTY,
         Number((difficulty - 0.8).toFixed(2))
       );
-      // Estabilidade com bônus direto de 1.5x além da taxa de expansão
       nextStability = Math.max(
         2.0,
         Number((stability * 1.5 * (1.1 + (10 - nextDifficulty) * 0.05)).toFixed(2))
@@ -327,7 +285,6 @@ export function calculateNextReview(input: CalculateNextReviewInput): NextReview
       const easyGrowthFactor = Math.max(0.6, Number(((12 - nextDifficulty) * 0.35).toFixed(2)));
 
       if (repetitions === 0) {
-        // Primeiro acerto como Fácil pula para ~6 a 7 dias
         nextInterval = Math.max(5, Math.round(nextStability * (1 + easyGrowthFactor)));
       } else {
         const calculatedInterval = Math.round(nextStability * (1 + easyGrowthFactor));
@@ -341,7 +298,6 @@ export function calculateNextReview(input: CalculateNextReviewInput): NextReview
   }
 
   // 3. Aplicação do Multiplicador de Proteção por Déficit de Matéria (< 65%)
-  // Para notas >= 2, reduz o intervalo em 20% (0.8x) para forçar consolidação
   if (isSubjectCriticalDeficit && grade > 1) {
     nextInterval = Math.max(1, Math.round(nextInterval * subjectRetentionFactor));
     nextStability = Math.max(SRS_CONFIG.MIN_STABILITY, Number((nextStability * subjectRetentionFactor).toFixed(2)));
@@ -365,9 +321,72 @@ export function calculateNextReview(input: CalculateNextReviewInput): NextReview
 }
 
 /**
- * Helper para prever os próximos 4 intervalos na UI de estudo antes do aluno responder.
- * Retorna uma projeção legível (ex: "1d", "3d", "6d", "12d") para cada nota (1 a 4).
+ * 🔗 ADAPTADOR UNIFICADO FSRS PARA TÓPICOS DO EDITAL E CRONOGRAMA
  */
+export interface ProcessTopicReviewInput {
+  grade: ReviewGrade | EvaluationRating | number | string;
+  currentInterval?: number | null;
+  currentStability?: number | null;
+  currentDifficulty?: number | null;
+  currentRepetitions?: number | null;
+  currentEasiness?: number | null;
+  subjectAccuracy?: number | null;
+  subjectPriority?: number | null; // 1.0 a 10.0
+}
+
+export interface ProcessTopicReviewOutput {
+  newInterval: number;
+  newStability: number;
+  newDifficulty: number;
+  newRepetitions: number;
+  newEasiness: number;
+  nextReviewDate: Date;
+  retentionEstimate: number;
+}
+
+export function calculateTopicFSRSReview(
+  input: ProcessTopicReviewInput
+): ProcessTopicReviewOutput {
+  const grade = normalizeGrade(input.grade);
+  const now = new Date();
+
+  const previousInterval = Math.max(1, input.currentInterval || 1);
+  const stability = input.currentStability || Math.max(1.0, previousInterval * 0.8);
+  const difficulty =
+    input.currentDifficulty ||
+    (input.currentEasiness ? Number(((3.5 - input.currentEasiness) * 4).toFixed(2)) : 5.0);
+  const repetitions = Math.max(0, input.currentRepetitions || 0);
+
+  const result = calculateNextReview({
+    grade,
+    previousInterval,
+    stability,
+    difficulty,
+    repetitions,
+    subjectAccuracy: input.subjectAccuracy,
+  });
+
+  // Ajuste sutil para matérias de alto peso (peso >= 7.0)
+  let finalInterval = result.interval;
+  if (input.subjectPriority && input.subjectPriority >= 7.0 && grade > 1) {
+    const priorityFactor = Math.max(0.75, 1 - (input.subjectPriority - 7.0) * 0.05);
+    finalInterval = Math.max(1, Math.round(finalInterval * priorityFactor));
+  }
+
+  const nextReviewDate = new Date(now.getTime() + finalInterval * 24 * 60 * 60 * 1000);
+  nextReviewDate.setUTCHours(8, 0, 0, 0); // Padroniza revisão para o turno da manhã
+
+  return {
+    newInterval: finalInterval,
+    newStability: result.stability,
+    newDifficulty: result.difficulty,
+    newRepetitions: result.repetitions,
+    newEasiness: result.easeFactor,
+    nextReviewDate,
+    retentionEstimate: calculateMemoryRetention(result.stability, now, nextReviewDate),
+  };
+}
+
 export function predictNextIntervals(
   state: SpacedRepetitionCardState,
   subjectAccuracy?: number | null
@@ -421,9 +440,6 @@ export function predictNextIntervals(
   return predictions;
 }
 
-/**
- * Função de retrocompatibilidade para chamadas legadas que utilizavam calculateSpacedRepetition.
- */
 export function calculateSpacedRepetition(
   state: SpacedRepetitionCardState,
   options: SpacedRepetitionOptions
@@ -481,9 +497,6 @@ export function calculateSpacedRepetition(
   };
 }
 
-/**
- * Calcula o fator de atenuação da matéria (mantido para retrocompatibilidade)
- */
 export function calculateSubjectRetentionFactor(subjectAccuracy?: number | null): {
   factor: number;
   isCritical: boolean;
@@ -499,16 +512,6 @@ export function calculateSubjectRetentionFactor(subjectAccuracy?: number | null)
   };
 }
 
-/**
- * 🧠 FÓRMULA OFICIAL DE RETENÇÃO DO FSRS / CURVA DO ESQUECIMENTO DE EBBINGHAUS:
- * R(t, S) = 0.9^(t / S)
- *
- * Onde:
- * - t = Dias decorridos desde a última revisão
- * - S = Estabilidade da memória em dias (tempo para retenção cair a 90%)
- *
- * Retorna uma porcentagem inteira de 0 a 100%.
- */
 export function calculateMemoryRetention(
   stability: number,
   lastReviewed?: Date | null,
@@ -517,7 +520,6 @@ export function calculateMemoryRetention(
   const safeStability = Math.max(0.5, stability || 1.0);
 
   if (!lastReviewed) {
-    // Card novo ou recém-criado sem histórico anterior
     return 100;
   }
 
@@ -527,11 +529,8 @@ export function calculateMemoryRetention(
 
   if (elapsedDays <= 0) return 100;
 
-  // Fórmula FSRS: R = 0.9^(t / S)
   const retention = Math.pow(0.9, elapsedDays / safeStability);
-  const percentage = Math.round(Math.min(1.0, Math.max(0.05, retention)) * 100);
-
-  return percentage;
+  return Math.round(Math.min(1.0, Math.max(0.05, retention)) * 100);
 }
 
 export type MemoryRetentionStatus = "OPTIMAL" | "REVIEW_IDEAL" | "CRITICAL";
@@ -546,12 +545,6 @@ export interface MemoryStatusInfo {
   borderBadge: string;
 }
 
-/**
- * Classifica a saúde da memória baseada na probabilidade de retenção atual:
- * - >= 85%: Memória Forte / Consolidada
- * - 70% a 84%: Ponto Ótimo de Revisão (Desafio desejável antes do esquecimento)
- * - < 70%: Zona Crítica de Esquecimento
- */
 export function getMemoryStatus(retention: number): MemoryStatusInfo {
   if (retention >= 85) {
     return {
@@ -588,23 +581,12 @@ export function getMemoryStatus(retention: number): MemoryStatusInfo {
   };
 }
 
-/**
- * ⚠️ DETECÇÃO DE CARD SANGUESSUGA (LEECH / PONTO CEGO):
- * Cards que sofreram 3 ou mais falhas (lapses >= 3) e ainda não estabilizaram
- * consomem energia do concurseiro sem gerar fixação. Precisam de intervenção (mnemônico IA).
- */
 export function isLeechCard(lapses: number, repetitions: number = 0): boolean {
   return lapses >= 3 && repetitions <= 2;
 }
 
 export type CardMaturityStage = "NEW" | "LEARNING" | "MATURE";
 
-/**
- * Classifica o estágio de maturidade do card no FSRS:
- * - NEW: Card nunca revisado com sucesso (repetitions === 0)
- * - LEARNING: Em fixação inicial/intermediária (estabilidade < 21 dias)
- * - MATURE: Memória consolidada de longo prazo (estabilidade >= 21 dias)
- */
 export function classifyCardMaturity(
   repetitions: number,
   stability: number,
@@ -613,4 +595,3 @@ export function classifyCardMaturity(
   if (stability >= 21) return "MATURE";
   return "LEARNING";
 }
-

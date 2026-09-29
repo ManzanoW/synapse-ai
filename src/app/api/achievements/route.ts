@@ -6,7 +6,8 @@ import { ACHIEVEMENTS } from "@/lib/achievements";
 import type { Prisma } from "@prisma/client";
 
 interface UserStatsWithAchievements {
-  claimedAchievements?: string;
+  claimedAchievements?: string | null;
+  totalXp?: number;
 }
 
 export async function GET() {
@@ -61,41 +62,54 @@ export async function POST(req: Request) {
       );
     }
 
-    const userStats = (await prisma.userStats.findUnique({
-      where: { userId },
-    })) as UserStatsWithAchievements | null;
+    // 🔒 Transação com verificação em tempo de execução para evitar condições de corrida
+    const result = await prisma.$transaction(async (tx) => {
+      const userStats = (await tx.userStats.findUnique({
+        where: { userId },
+        select: { claimedAchievements: true, totalXp: true },
+      })) as UserStatsWithAchievements | null;
 
-    const currentClaimedRaw = userStats?.claimedAchievements || "";
-    const currentClaimed = currentClaimedRaw
-      ? currentClaimedRaw.split(",").map((id: string) => id.trim())
-      : [];
+      const currentClaimedRaw = userStats?.claimedAchievements || "";
+      const currentClaimed = currentClaimedRaw
+        ? currentClaimedRaw.split(",").map((id: string) => id.trim())
+        : [];
 
-    if (!currentClaimed.includes(achievementId)) {
+      if (currentClaimed.includes(achievementId)) {
+        throw new Error("ALREADY_CLAIMED");
+      }
+
       currentClaimed.push(achievementId);
-    }
+      const updatedClaimedString = currentClaimed.filter(Boolean).join(",");
 
-    const updatedClaimedString = currentClaimed.filter(Boolean).join(",");
+      const updateData: Prisma.UserStatsUpdateInput = {
+        totalXp: { increment: badge.xpReward },
+        claimedAchievements: updatedClaimedString,
+      };
 
-    // Objetos tipados explicitamente via Prisma
-    const updateData: Prisma.UserStatsUpdateInput = {
-      totalXp: { increment: badge.xpReward },
-      claimedAchievements: updatedClaimedString,
-    };
+      const createData: Prisma.UserStatsCreateInput = {
+        user: { connect: { id: userId } },
+        totalXp: badge.xpReward,
+        claimedAchievements: updatedClaimedString,
+      };
 
-    const createData: Prisma.UserStatsCreateInput = {
-      user: { connect: { id: userId } },
-      totalXp: badge.xpReward,
-      claimedAchievements: updatedClaimedString,
-    };
+      const updated = await tx.userStats.upsert({
+        where: { userId },
+        update: updateData,
+        create: createData,
+      });
 
-    await prisma.userStats.upsert({
-      where: { userId },
-      update: updateData,
-      create: createData,
+      return { totalXp: updated.totalXp, xpEarned: badge.xpReward };
     });
 
-    return NextResponse.json({ success: true, xpEarned: badge.xpReward });
-  } catch (error) {
+    return NextResponse.json({ success: true, ...result });
+  } catch (error: any) {
+    if (error?.message === "ALREADY_CLAIMED") {
+      return NextResponse.json(
+        { error: "XP já foi resgatado para esta conquista" },
+        { status: 400 },
+      );
+    }
+
     console.error("Erro ao resgatar XP:", error);
     return NextResponse.json(
       { error: "Erro ao processar resgate" },

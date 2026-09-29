@@ -44,7 +44,6 @@ export function AudioFlashcardPlayerModal({
     countdownRemaining,
     pauseDuration,
     playbackSpeed,
-    play,
     pause,
     togglePlay,
     next,
@@ -88,7 +87,6 @@ export function AudioFlashcardPlayerModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, togglePlay, pause, onClose, next, prev]);
 
-  // Se fechar o modal, pausa o áudio
   const handleClose = () => {
     pause();
     onClose();
@@ -130,7 +128,8 @@ export function AudioFlashcardPlayerModal({
                 </span>
               </div>
               <p className="text-[11px] text-slate-500">
-                Card {currentIndex + 1} de {totalCards} ({Math.round(progressPercent)}%)
+                Card {currentIndex + 1} de {totalCards} (
+                {Math.round(progressPercent)}%)
               </p>
             </div>
           </div>
@@ -274,30 +273,24 @@ export function AudioFlashcardPlayerModal({
 
           {/* Barra Inferior: Configurações de Voz, Velocidade & Pausa Reflexiva */}
           <div className="flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3 text-xs bg-slate-950/60 p-3 sm:p-4 rounded-2xl border border-slate-800/80">
-            {/* Seletor de Voz Natural / Neural */}
+            {/* Seletor de Voz Neural de Estúdio */}
             {availableVoices.length > 0 && (
               <div className="flex items-center gap-1.5 w-full sm:w-auto">
                 <Volume2 size={13} className="text-emerald-400 shrink-0" />
-                <span className="text-slate-400 font-semibold shrink-0">Voz:</span>
+                <span className="text-slate-400 font-semibold shrink-0">
+                  Voz:
+                </span>
                 <select
                   value={selectedVoiceURI}
                   onChange={(e) => setSelectedVoiceURI(e.target.value)}
-                  className="bg-slate-900 border border-slate-700/80 text-slate-200 rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer max-w-[200px] truncate"
-                  title="Selecione a voz de reprodução do navegador"
+                  className="bg-slate-900 border border-slate-700/80 text-slate-200 rounded-lg px-2.5 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer max-w-[210px] truncate"
+                  title="Selecione a voz neural de estúdio"
                 >
-                  {availableVoices.map((v) => {
-                    const isNeural =
-                      v.name.toLowerCase().includes("natural") ||
-                      v.name.toLowerCase().includes("neural") ||
-                      v.name.toLowerCase().includes("google") ||
-                      v.name.toLowerCase().includes("online");
-                    return (
-                      <option key={v.voiceURI} value={v.voiceURI}>
-                        {isNeural ? "✨ " : ""}
-                        {v.name.replace(/Microsoft |Google /g, "").split(" - ")[0]}
-                      </option>
-                    );
-                  })}
+                  {availableVoices.map((v) => (
+                    <option key={v.voiceURI} value={v.voiceURI}>
+                      ✨ {v.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}
@@ -312,7 +305,7 @@ export function AudioFlashcardPlayerModal({
                 <button
                   key={s}
                   onClick={() => setPlaybackSpeed(s)}
-                  className={`px-2 py-0.8 rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer ${
+                  className={`px-2 py-1 rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer ${
                     playbackSpeed === s
                       ? "bg-indigo-600 text-white shadow-sm"
                       : "bg-slate-900 text-slate-400 hover:text-white"
@@ -333,7 +326,7 @@ export function AudioFlashcardPlayerModal({
                 <button
                   key={sec}
                   onClick={() => setPauseDuration(sec)}
-                  className={`px-2 py-0.8 rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer ${
+                  className={`px-2 py-1 rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer ${
                     pauseDuration === sec
                       ? "bg-amber-600 text-white shadow-sm"
                       : "bg-slate-900 text-slate-400 hover:text-white"
@@ -350,7 +343,8 @@ export function AudioFlashcardPlayerModal({
             <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
               <Headphones size={13} className="text-indigo-400" />
               <span>
-                Compatível com botões dos <strong>fones Bluetooth</strong> e tela bloqueada (MediaSession API).
+                Compatível com botões dos <strong>fones Bluetooth</strong> e
+                tela bloqueada (MediaSession API).
               </span>
             </p>
           </div>

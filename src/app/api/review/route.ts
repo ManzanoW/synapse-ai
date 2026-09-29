@@ -2,8 +2,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { processSM2Review } from "@/lib/study-cycle";
-
+import { calculateTopicFSRSReview, normalizeGrade } from "@/lib/spaced-repetition";
+ 
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -13,8 +13,6 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { topicId, grade, source } = body;
-    // source: "FLASHCARD" ou "QUIZ"
-    // grade: nota de 0 a 5 (se for Quiz, converter % de acertos antes)
 
     if (!topicId || grade === undefined) {
       return NextResponse.json(
@@ -23,10 +21,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Busca o tópico e a matéria relacionada
+    // 1. Busca o tópico e a matéria relacionada com métricas reais
     const topic = await prisma.topic.findUnique({
       where: { id: topicId },
-      include: { subject: true },
+      include: {
+        subject: {
+          include: {
+            topics: {
+              select: {
+                quizAttempts: {
+                  select: { totalCount: true, correctCount: true },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!topic) {
@@ -36,58 +46,73 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Processa o SM-2 para o Tópico
-    const sm2Topic = processSM2Review(
-      topic.interval,
-      topic.easiness,
-      topic.repetitions,
-      grade,
-      topic.subject.priority,
-    );
+    // 2. Calcula acurácia histórica da disciplina para o freio de proteção FSRS
+    let totalQuestions = 0;
+    let totalCorrect = 0;
+    (topic.subject?.topics || []).forEach((t: any) => {
+      (t.quizAttempts || []).forEach((qa: any) => {
+        totalQuestions += qa.totalCount;
+        totalCorrect += qa.correctCount;
+      });
+    });
 
-    // 3. Transação atômica para salvar Histórico, atualizar Tópico e Matéria
+    const subjectAccuracy = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : null;
+    const normalizedGrade = normalizeGrade(grade);
+
+    // 3. Processa a revisão via Motor FSRS Unificado
+    const fsrsResult = calculateTopicFSRSReview({
+      grade: normalizedGrade,
+      currentInterval: topic.interval,
+      currentEasiness: topic.easiness,
+      currentRepetitions: topic.repetitions,
+      subjectAccuracy,
+      subjectPriority: Number(topic.subject?.weight || topic.subject?.priority || 5.0),
+    });
+
+    const performancePercentage = Math.round((normalizedGrade / 4) * 100);
+
+    // 4. Transação atômica para salvar Histórico e atualizar Tópico e Matéria
     await prisma.$transaction([
-      // a) Registra Histórico de Revisão
       prisma.reviewHistory.create({
         data: {
           topicId: topic.id,
-          grade: String(grade),
+          grade: String(normalizedGrade),
         },
       }),
 
-      // b) Atualiza metadados SM-2 do Tópico
       prisma.topic.update({
         where: { id: topic.id },
         data: {
           firstStudy: "Em Revisão",
-          performance: Math.round((grade / 5) * 100),
-          easiness: sm2Topic.newEasiness,
-          interval: sm2Topic.newInterval,
-          repetitions: sm2Topic.newRepetitions,
+          performance: performancePercentage,
+          easiness: fsrsResult.newEasiness,
+          interval: fsrsResult.newInterval,
+          repetitions: fsrsResult.newRepetitions,
           lastRev: new Date(),
-          nextRev: sm2Topic.nextReviewDate,
+          nextRev: fsrsResult.nextReviewDate,
           lastQuizAt: source === "QUIZ" ? new Date() : topic.lastQuizAt,
         },
       }),
 
-      // c) Atualiza a Matéria pai (Subject) para refletir a última revisão
       prisma.subject.update({
         where: { id: topic.subjectId },
         data: {
           lastReviewed: new Date(),
-          nextReview: sm2Topic.nextReviewDate,
-          interval: sm2Topic.newInterval,
-          easiness: sm2Topic.newEasiness,
+          nextReview: fsrsResult.nextReviewDate,
+          interval: fsrsResult.newInterval,
+          easiness: fsrsResult.newEasiness,
         },
       }),
     ]);
 
     return NextResponse.json({
-      message: "SM-2 atualizado com sucesso!",
+      message: "FSRS atualizado com sucesso!",
       data: {
-        nextReview: sm2Topic.nextReviewDate,
-        interval: sm2Topic.newInterval,
-        easiness: sm2Topic.newEasiness,
+        nextReview: fsrsResult.nextReviewDate,
+        interval: fsrsResult.newInterval,
+        easiness: fsrsResult.newEasiness,
+        stability: fsrsResult.newStability,
+        retentionEstimate: fsrsResult.retentionEstimate,
       },
     });
   } catch (error) {
