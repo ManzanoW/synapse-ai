@@ -6,6 +6,10 @@ import {
   calculateEarnedXp,
   calculateLevel,
 } from "@/lib/gamification/gamification";
+import {
+  calculateTopicFSRSReview,
+  normalizeGrade,
+} from "@/lib/spaced-repetition";
 
 export const dynamic = "force-dynamic";
 
@@ -57,17 +61,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: reviewQueue }, { status: 200 });
     }
 
-    // 🟢 Busca todos os quizzes do usuário de uma só vez para fazer o cruzamento resiliente
     const userQuizzes = await prisma.quiz.findMany({
       where: { userId },
       select: { id: true, topicId: true, subject: true },
       orderBy: { createdAt: "desc" },
-    });
-
-    const userAttempts = await prisma.quizAttempt.findMany({
-      where: { userId },
-      select: { id: true, topicId: true },
-      orderBy: { completedAt: "desc" },
     });
 
     if (mode === "subjects") {
@@ -95,31 +92,25 @@ export async function GET(request: Request) {
           const formattedTopics = rawTopics.map((topic: any) => {
             totalTopicsGlobal++;
 
-            // 🟢 Busca estrita e segura APENAS na tabela de Quizzes (Simulados reais ativos)
             const matchingQuiz = (userQuizzes || []).find((q) => {
               if (!q || !q.id || !q.topicId) return false;
               return String(q.topicId).trim() === String(topic.id).trim();
             });
 
-            // 🟢 Atribui APENAS o ID do Quiz ativo (ignora o histórico do QuizAttempt)
-            const activeQuizId = matchingQuiz?.id
-              ? String(matchingQuiz.id)
-              : null;
+            const activeQuizId = matchingQuiz?.id ? String(matchingQuiz.id) : null;
 
             // 1. Teoria Base
             const theoryScore =
               topic.firstStudy === "Concluido"
                 ? 20
-                : topic.firstStudy === "Em Estudo" ||
-                    topic.firstStudy === "Em Revisão"
+                : topic.firstStudy === "Em Estudo" || topic.firstStudy === "Em Revisão"
                   ? 10
                   : 0;
 
-            // 2. Retenção SM-2
+            // 2. Retenção FSRS / Histórico
             const reviewHistories = topic.reviewHistories || [];
             const validReviews = reviewHistories.filter((r: any) => {
-              const gradeStr =
-                r && r.grade ? String(r.grade).toUpperCase() : "";
+              const gradeStr = r && r.grade ? String(r.grade).toUpperCase() : "";
               return ["BOM", "FACIL", "3", "4", "5"].includes(gradeStr);
             }).length;
 
@@ -127,7 +118,7 @@ export async function GET(request: Request) {
             const intervalScore = Math.min(1, (topic.interval || 0) / 30) * 20;
             const flashcardScore = reviewVolumeScore + intervalScore;
 
-            // 3. Banco de Questões (Apenas pontua se houver quiz ativo cadastrado)
+            // 3. Banco de Questões
             const quizScore = activeQuizId ? 40 : 0;
 
             const topicProgress = Math.min(
@@ -146,7 +137,7 @@ export async function GET(request: Request) {
               lastRev: topic.lastRev,
               nextRev: topic.nextRev,
               progress: topicProgress,
-              quizId: activeQuizId, // Retorna null estrito se não existir um Quiz ativo para este UUID
+              quizId: activeQuizId,
             };
           });
 
@@ -155,13 +146,12 @@ export async function GET(request: Request) {
               ? Math.round(subjectProgressSum / formattedTopics.length)
               : 0;
 
-          const allReviews = rawTopics.flatMap(
-            (t: any) => t.reviewHistories || [],
-          );
+          const allReviews = rawTopics.flatMap((t: any) => t.reviewHistories || []);
           const correctReviews = allReviews.filter((r: any) => {
             const gradeStr = r && r.grade ? String(r.grade).toUpperCase() : "";
             return ["BOM", "FACIL", "3", "4", "5"].includes(gradeStr);
           }).length;
+
           const subjectAccuracy =
             allReviews.length > 0
               ? Math.round((correctReviews / allReviews.length) * 100)
@@ -219,8 +209,7 @@ export async function GET(request: Request) {
       const matchingQuiz = userQuizzes.find(
         (q) =>
           q.topicId === t.id ||
-          (q.topicId &&
-            q.topicId.trim().toLowerCase() === t.title.trim().toLowerCase()),
+          (q.topicId && q.topicId.trim().toLowerCase() === t.title.trim().toLowerCase()),
       );
       return {
         ...t,
@@ -269,14 +258,10 @@ export async function POST(request: Request) {
 
       if (!subject) {
         const randomColor =
-          PRESET_HEX_COLORS[
-            Math.floor(Math.random() * PRESET_HEX_COLORS.length)
-          ];
+          PRESET_HEX_COLORS[Math.floor(Math.random() * PRESET_HEX_COLORS.length)];
 
         const rawWeight =
-          typeof weight === "number"
-            ? weight
-            : parseFloat(String(weight || "5.0"));
+          typeof weight === "number" ? weight : parseFloat(String(weight || "5.0"));
         const safeWeight = !isNaN(rawWeight)
           ? Math.min(10, Math.max(1, rawWeight))
           : 5.0;
@@ -310,7 +295,7 @@ export async function POST(request: Request) {
 
     const { topicId, grade, performance, streakDays = 0 } = body;
 
-    if (!topicId || !grade) {
+    if (!topicId || grade === undefined) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
@@ -319,6 +304,19 @@ export async function POST(request: Request) {
 
     const currentTopic = await prisma.topic.findFirst({
       where: { id: topicId, subject: { userId } },
+      include: {
+        subject: {
+          include: {
+            topics: {
+              select: {
+                quizAttempts: {
+                  select: { totalCount: true, correctCount: true },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!currentTopic) {
@@ -328,76 +326,66 @@ export async function POST(request: Request) {
       );
     }
 
-    await prisma.reviewHistory.create({
-      data: { topicId, grade },
+    // Calcula acurácia real da disciplina
+    let totalQuestions = 0;
+    let totalCorrect = 0;
+    (currentTopic.subject?.topics || []).forEach((t: any) => {
+      (t.quizAttempts || []).forEach((qa: any) => {
+        totalQuestions += qa.totalCount;
+        totalCorrect += qa.correctCount;
+      });
+    });
+    const subjectAccuracy = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : null;
+
+    // Normaliza a nota para escala FSRS (1..4)
+    const normalizedGrade = normalizeGrade(grade);
+    const earnedXp = calculateEarnedXp(String(grade), Number(streakDays));
+
+    // Executa algoritmo FSRS unificado
+    const fsrsResult = calculateTopicFSRSReview({
+      grade: normalizedGrade,
+      currentInterval: currentTopic.interval,
+      currentEasiness: currentTopic.easiness,
+      currentRepetitions: currentTopic.repetitions,
+      subjectAccuracy,
+      subjectPriority: Number(currentTopic.subject?.weight || 5.0),
     });
 
-    const earnedXp = calculateEarnedXp(grade, Number(streakDays));
-
-    const updatedStats = await prisma.userStats.upsert({
-      where: { userId },
-      update: { totalXp: { increment: earnedXp } },
-      create: { userId, totalXp: earnedXp },
-    });
+    // Transação para registro de XP, histórico e atualização do tópico
+    const [, updatedStats, updatedTopic] = await prisma.$transaction([
+      prisma.reviewHistory.create({
+        data: {
+          topicId,
+          grade: String(normalizedGrade),
+        },
+      }),
+      prisma.userStats.upsert({
+        where: { userId },
+        update: { totalXp: { increment: earnedXp } },
+        create: { userId, totalXp: earnedXp },
+      }),
+      prisma.topic.update({
+        where: { id: topicId },
+        data: {
+          firstStudy: "Em Revisão",
+          performance:
+            performance !== undefined
+              ? Math.round(Number(performance))
+              : Math.round((normalizedGrade / 4) * 100),
+          lastRev: new Date(),
+          nextRev: fsrsResult.nextReviewDate,
+          easiness: fsrsResult.newEasiness,
+          interval: fsrsResult.newInterval,
+          repetitions: fsrsResult.newRepetitions,
+        },
+      }),
+    ]);
 
     const levelInfo = calculateLevel(updatedStats.totalXp);
 
-    let q = 5;
-    if (grade === "Difícil") q = 3;
-    if (grade === "Errei") q = 1;
-    if (grade === "Bom" && performance < 70) q = 3;
-
-    let easiness = currentTopic.easiness ?? 2.5;
-    let repetitions = currentTopic.repetitions ?? 0;
-    let interval = currentTopic.interval ?? 0;
-
-    if (q >= 3) {
-      if (repetitions === 0) {
-        interval = 1;
-      } else if (repetitions === 1) {
-        interval = 6;
-      } else {
-        const performanceMultiplier = performance > 90 ? 1.2 : 1.0;
-        interval = Math.round(interval * easiness * performanceMultiplier);
-      }
-      repetitions++;
-    } else {
-      repetitions = 0;
-      interval = performance < 30 ? 0 : 1;
-    }
-
-    const performancePenalty = (100 - performance) / 200;
-    easiness =
-      easiness + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)) - performancePenalty;
-
-    if (easiness < 1.3) easiness = 1.3;
-    if (easiness > 3.0) easiness = 3.0;
-
-    const nextRevisionDate = new Date();
-
-    if (interval > 0) {
-      nextRevisionDate.setDate(nextRevisionDate.getDate() + interval);
-      nextRevisionDate.setUTCHours(8, 0, 0, 0);
-    } else {
-      nextRevisionDate.setHours(nextRevisionDate.getHours() + 2);
-    }
-
-    const updatedTopic = await prisma.topic.update({
-      where: { id: topicId },
-      data: {
-        firstStudy: "Em Revisão",
-        performance: performance !== undefined ? performance : 0,
-        lastRev: new Date(),
-        nextRev: nextRevisionDate,
-        easiness,
-        interval,
-        repetitions,
-      },
-    });
-
     return NextResponse.json(
       {
-        message: "Curva de Ebbinghaus e Gamificação atualizadas!",
+        message: "Motor FSRS e Gamificação atualizados com sucesso!",
         earnedXp,
         totalXp: updatedStats.totalXp,
         levelInfo,
