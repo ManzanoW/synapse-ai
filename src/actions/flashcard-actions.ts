@@ -21,6 +21,7 @@ import {
   isLeechCard,
   classifyCardMaturity,
 } from "@/lib/spaced-repetition";
+import { ReviewFlashcardSchema } from "@/lib/validations/flashcard.schema";
 
 export interface ReviewFlashcardInput {
   cardId: string;
@@ -66,16 +67,21 @@ export async function reviewFlashcardAction(
       return { success: false, error: "Usuário não autenticado." };
     }
 
-    if (!input.cardId) {
-      return { success: false, error: "ID do flashcard não informado." };
+    const validation = ReviewFlashcardSchema.safeParse(input);
+    if (!validation.success) {
+      return {
+        success: false,
+        error: validation.error.issues[0]?.message || "Dados de revisão inválidos.",
+      };
     }
+    const validInput = validation.data;
 
-    const rawRating = input.rating ?? input.grade ?? 3;
+    const rawRating = validInput.rating ?? validInput.grade ?? 3;
     const grade = normalizeGrade(rawRating);
 
     // 1. Busca o card e suas relações de Deck, Topic, Subject e histórico de questões
     const card = await prisma.flashcard.findUnique({
-      where: { id: input.cardId },
+      where: { id: validInput.cardId },
       include: {
         deck: {
           include: {
@@ -163,41 +169,43 @@ export async function reviewFlashcardAction(
     const currentLapses = typeof card.lapses === "number" ? card.lapses : 0;
     const nextLapses = grade === 1 ? currentLapses + 1 : currentLapses;
 
-    // 4. Persiste no banco os novos valores do card
-    const updatedCard = await prisma.flashcard.update({
-      where: { id: card.id },
-      data: {
-        interval: srsResult.interval,
-        easeFactor: srsResult.easeFactor,
-        stability: srsResult.stability,
-        difficulty: srsResult.difficulty,
-        repetitions: srsResult.repetitions,
-        lapses: nextLapses,
-        nextReviewDate: srsResult.nextReviewDate,
-        lastReviewed: new Date(),
-      },
-    });
-
-    // 5. Se o card estiver associado a um Tópico do edital, sincroniza a data de revisão
-    if (card.topicId) {
-      await prisma.topic.update({
-        where: { id: card.topicId },
+    // 4. Persiste no banco os novos valores do card e tópicos de forma atômica
+    const [updatedCard] = await prisma.$transaction([
+      prisma.flashcard.update({
+        where: { id: card.id },
         data: {
-          lastRev: new Date(),
-          nextRev: srsResult.nextReviewDate,
-          firstStudy: "Concluido",
+          interval: srsResult.interval,
+          easeFactor: srsResult.easeFactor,
+          stability: srsResult.stability,
+          difficulty: srsResult.difficulty,
+          repetitions: srsResult.repetitions,
+          lapses: nextLapses,
+          nextReviewDate: srsResult.nextReviewDate,
+          lastReviewed: new Date(),
         },
-      });
-
-      // Registra no ReviewHistory
-      await prisma.reviewHistory.create({
-        data: {
-          topicId: card.topicId,
-          grade: String(grade),
-          durationSeconds: input.responseTimeMs ? Math.round(input.responseTimeMs / 1000) : 30,
-        },
-      });
-    }
+      }),
+      ...(card.topicId
+        ? [
+            prisma.topic.update({
+              where: { id: card.topicId },
+              data: {
+                lastRev: new Date(),
+                nextRev: srsResult.nextReviewDate,
+                firstStudy: "Concluido",
+              },
+            }),
+            prisma.reviewHistory.create({
+              data: {
+                topicId: card.topicId,
+                grade: String(grade),
+                durationSeconds: validInput.responseTimeMs
+                  ? Math.round(validInput.responseTimeMs / 1000)
+                  : 30,
+              },
+            }),
+          ]
+        : []),
+    ]);
 
     // 6. Gamificação: XP escalonado (+5 XP por revisão, +8 XP se acertado/grade >= 3) e Ofensiva
     const isCorrect = grade >= 3;

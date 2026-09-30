@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 const { auth } = NextAuth(authConfig);
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   const pathname = req.nextUrl.pathname;
 
   // Ignora assets estáticos e rotas públicas
@@ -59,8 +59,8 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
+export default proxy;
+
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
-
-

@@ -19,6 +19,7 @@ import {
 } from "@/types/quiz";
 import { TAXONOMY_METADATA, normalizeTaxonomy } from "@/lib/error-taxonomy";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
+import { ConvertErrorToFlashcardSchema } from "@/lib/validations/error-notebook.schema";
 
 /**
  * Normaliza o texto de uma questão para comparação e deduplicação
@@ -741,8 +742,16 @@ export async function convertErrorToFlashcardAction(errorId: string): Promise<{
       return { success: false, error: "Não autorizado." };
     }
 
+    const validation = ConvertErrorToFlashcardSchema.safeParse({ errorId });
+    if (!validation.success) {
+      return {
+        success: false,
+        error: validation.error.issues[0]?.message || "ID do erro inválido.",
+      };
+    }
+
     const item = await prisma.questionError.findFirst({
-      where: { id: errorId, userId },
+      where: { id: validation.data.errorId, userId },
       include: { subject: true, topic: true },
     });
 
@@ -769,6 +778,18 @@ export async function convertErrorToFlashcardAction(errorId: string): Promise<{
           topicId: item.topicId || null,
         },
       });
+    }
+
+    // Idempotência: verifica se o flashcard já foi gerado para este baralho
+    const existingCard = await prisma.flashcard.findFirst({
+      where: {
+        deckId: deck.id,
+        question: item.questionText,
+      },
+    });
+
+    if (existingCard) {
+      return { success: true, cardId: existingCard.id };
     }
 
     let backText = `Gabarito Correto: ${item.correctAnswer}`;
