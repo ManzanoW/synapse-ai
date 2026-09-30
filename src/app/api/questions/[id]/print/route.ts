@@ -225,10 +225,36 @@ export async function GET(
     .exp-body { font-size: 10.5px; text-align: justify; color: #334155; }
 
     @media print {
-      body { background: #fff; color: #000; }
+      body { background: #fff; color: #000; margin: 0; padding: 0; }
       .no-print-bar { display: none !important; }
       .paper-sheet { box-shadow: none !important; padding: 0 !important; margin: 0 !important; max-width: none !important; width: 100% !important; }
       @page { size: A4 portrait; margin: 10mm 12mm; }
+      .cover-box {
+        box-sizing: border-box !important;
+        min-height: 248mm !important;
+        height: 250mm !important;
+        max-height: 252mm !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin: 0 !important;
+        padding: 6mm 8mm !important;
+      }
+      .answer-sheet {
+        box-sizing: border-box !important;
+        min-height: 248mm !important;
+        height: 250mm !important;
+        max-height: 252mm !important;
+        page-break-before: always !important;
+        break-before: page !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin: 0 !important;
+        padding: 6mm 8mm !important;
+      }
     }
   </style>
 </head>

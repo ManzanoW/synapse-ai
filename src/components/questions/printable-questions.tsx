@@ -98,18 +98,41 @@ export function PrintableQuestions({
       {/* ========================================================================= */}
       <style jsx global>{`
         @media print {
-          /* Oculta toda a casca web do aplicativo */
-          body * {
-            visibility: hidden !important;
+          /* 1. Garante fluxo vertical natural e sem limites de altura */
+          html,
+          body {
+            height: auto !important;
+            min-height: 100% !important;
+            overflow: visible !important;
+            position: static !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
-          #printable-paper,
-          #printable-paper * {
-            visibility: visible !important;
+
+          /* 2. Força todos os wrappers e containers ancestrais a permitirem paginação contínua */
+          #__next,
+          main,
+          div {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
           }
+
+          /* 3. Oculta tudo que estiver marcado com print:hidden ou casca do app */
+          .print\\:hidden,
+          aside,
+          nav,
+          header,
+          footer {
+            display: none !important;
+          }
+
+          /* 4. Papel da prova em fluxo normal (NUNCA position: absolute em print) */
           #printable-paper {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            position: static !important;
+            display: block !important;
             width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -124,7 +147,7 @@ export function PrintableQuestions({
             margin: 10mm 12mm 10mm 12mm;
           }
 
-          /* QUEBRAS ESTRUTURAIS DE PÁGINA */
+          /* 5. Quebras de página estritas (Padrão W3C Paged Media) */
           .print-page-break-after {
             page-break-after: always !important;
             break-after: page !important;
@@ -140,54 +163,64 @@ export function PrintableQuestions({
             break-inside: avoid !important;
           }
 
-          /* CAPA PERFEITA EM EXATAMENTE 1 PÁGINA (SEM TRANSBORDAR) */
+          /* 6. Capa Oficial em Exatamente 1 Página A4 (Calibrada para 250mm) */
           .print-cover-container {
             box-sizing: border-box !important;
-            height: 275mm !important;
-            max-height: 275mm !important;
+            min-height: 248mm !important;
+            height: 250mm !important;
+            max-height: 252mm !important;
             page-break-after: always !important;
             break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
             overflow: hidden !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: space-between !important;
-            margin: 0 !important;
-            padding: 7mm !important;
+            margin: 0 0 0 0 !important;
+            padding: 6mm 7mm !important;
             border: 2.5pt solid #000 !important;
           }
 
-          /* FOLHA ÓPTICA DESTACÁVEL EM EXATAMENTE 1 PÁGINA */
+          /* 7. Folha Óptica Destacável em Exatamente 1 Página */
           .print-answer-sheet-container {
             box-sizing: border-box !important;
-            height: 275mm !important;
-            max-height: 275mm !important;
+            min-height: 248mm !important;
+            height: 250mm !important;
+            max-height: 252mm !important;
             page-break-before: always !important;
             break-before: page !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
             overflow: hidden !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: space-between !important;
-            margin: 0 !important;
-            padding: 7mm !important;
+            margin: 0 0 0 0 !important;
+            padding: 6mm 7mm !important;
             border: 2pt solid #000 !important;
           }
 
-          /* DIAGRAMAÇÃO OFICIAL DE CONCURSO EM 2 COLUNAS */
+          /* 8. Diagramação Oficial de Concurso em 2 Colunas */
           .print-columns-grid {
             column-count: 2 !important;
             column-gap: 7mm !important;
             column-rule: 0.5pt solid #cbd5e1 !important;
+            display: block !important;
           }
 
           .print-explanations-columns {
             column-count: 2 !important;
             column-gap: 6mm !important;
             column-rule: 0.5pt solid #cbd5e1 !important;
+            display: block !important;
           }
         }
       `}</style>
 
-      <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 md:p-8 font-sans print:bg-white print:p-0 print:text-black">
+      <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 md:p-8 font-sans print:bg-white print:p-0 print:text-black print:min-h-0 print:h-auto print:block print:overflow-visible">
         {/* ========================================================================= */}
         {/* BARRA SUPERIOR DE AÇÕES & CUSTOMIZAÇÃO (Apenas em tela) */}
         {/* ========================================================================= */}
@@ -289,7 +322,7 @@ export function PrintableQuestions({
         {/* ========================================================================= */}
         <div
           id="printable-paper"
-          className="max-w-5xl mx-auto bg-white text-black p-6 sm:p-10 md:p-14 rounded-2xl shadow-2xl print:shadow-none print:p-0 print:max-w-none print:w-full font-serif"
+          className="max-w-5xl mx-auto bg-white text-black p-6 sm:p-10 md:p-14 rounded-2xl shadow-2xl print:shadow-none print:p-0 print:max-w-none print:w-full font-serif print:block print:static print:overflow-visible print:m-0"
         >
           {/* ========================================================================= */}
           {/* 1. FOLHA DE ROSTO / CAPA OFICIAL DE CONCURSO (EXATAMENTE 1 PÁGINA A4) */}
@@ -387,7 +420,7 @@ export function PrintableQuestions({
           {/* ========================================================================= */}
           {/* 2. CADERNO DE QUESTÕES (DIAGRAMAÇÃO EM 2 COLUNAS DE ALTA DENSIDADE) */}
           {/* ========================================================================= */}
-          <div className="mb-10 print:mb-0">
+          <div className={`mb-10 print:mb-0 ${includeCover ? "print-page-break-before" : ""}`}>
             {/* CABEÇALHO DA PROVA */}
             <div className="border-b-[1.5pt] border-black pb-1.5 mb-4 flex items-center justify-between font-sans text-[9px] font-bold uppercase text-slate-600">
               <span>{banca.toUpperCase()} • {title}</span>

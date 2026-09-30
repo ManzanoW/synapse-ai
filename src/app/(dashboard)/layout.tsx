@@ -54,33 +54,41 @@ export default async function DashboardLayout({
       <GamificationProvider userId={session?.user?.id}>
         <AchievementProvider>
           <AudioProvider>
-            <div className="flex h-screen h-[100dvh] w-full bg-slate-50 dark:bg-[#030712] text-slate-900 dark:text-slate-100 transition-colors duration-200 overflow-hidden relative">
+            <div className="flex h-screen h-[100dvh] w-full bg-slate-50 dark:bg-[#030712] text-slate-900 dark:text-slate-100 transition-colors duration-200 overflow-hidden relative print:h-auto print:min-h-0 print:overflow-visible print:bg-white print:block print:static">
               {/* Mini-HUD de Áudio Zen & Foco Global */}
-              <SoundscapeFloatingWidget />
+              <div className="print:hidden">
+                <SoundscapeFloatingWidget />
+              </div>
 
               {/* Paleta de Comandos Global (Cmd+K / Ctrl+K) */}
-              <CommandPalette user={dbUser} />
+              <div className="print:hidden">
+                <CommandPalette user={dbUser} />
+              </div>
 
               {/* Sidebar Desktop */}
-              <Sidebar
-                user={{
-                  ...session.user,
-                  careerFocus: dbUser?.careerFocus,
-                  targetRole: dbUser?.targetRole,
-                  planTier: dbUser?.planTier,
-                  role: dbUser?.role,
-                  isPro,
-                  isAdmin,
-                }}
-              />
+              <div className="print:hidden shrink-0">
+                <Sidebar
+                  user={{
+                    ...session.user,
+                    careerFocus: dbUser?.careerFocus,
+                    targetRole: dbUser?.targetRole,
+                    planTier: dbUser?.planTier,
+                    role: dbUser?.role,
+                    isPro,
+                    isAdmin,
+                  }}
+                />
+              </div>
 
               {/* Área principal com margem inferior para o menu mobile */}
-              <main className="flex-1 min-w-0 h-full overflow-y-auto p-3 sm:p-4 md:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] md:pb-6">
+              <main className="flex-1 min-w-0 h-full overflow-y-auto p-3 sm:p-4 md:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] md:pb-6 print:h-auto print:min-h-0 print:overflow-visible print:p-0 print:m-0 print:block print:w-full print:static">
                 {children}
               </main>
 
               {/* Navegação Inferior Mobile */}
-              <BottomNavigation />
+              <div className="print:hidden">
+                <BottomNavigation />
+              </div>
             </div>
           </AudioProvider>
         </AchievementProvider>
