@@ -33,3 +33,41 @@ export const getCachedAchievementsProgress = (userId: string) =>
       revalidate: 300,
     },
   )();
+
+/**
+ * Cache reativo para as métricas do dashboard do usuário
+ * Consulta dados do usuário (weeklyGoalHours, targetExamDate), contagem de studySession e flashcard.
+ * Tag: user-dashboard-${userId}, TTL: 120s
+ */
+export const getCachedDashboardMetrics = (userId: string) =>
+  unstable_cache(
+    async () => {
+      const [user, studySessionCount, flashcardCount] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            weeklyGoalHours: true,
+            targetExamDate: true,
+          },
+        }),
+        prisma.studySession.count({
+          where: { userId },
+        }),
+        prisma.flashcard.count({
+          where: { deck: { userId } },
+        }),
+      ]);
+
+      return {
+        user,
+        studySessionCount,
+        flashcardCount,
+      };
+    },
+    [`user-dashboard-${userId}`],
+    {
+      tags: [`user-dashboard-${userId}`],
+      revalidate: 120, // Revalida automaticamente a cada 120 segundos
+    },
+  )();
+

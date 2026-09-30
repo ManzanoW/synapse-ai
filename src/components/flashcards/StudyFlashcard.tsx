@@ -6,6 +6,8 @@ import {
   useCallback,
   useRef,
   useMemo,
+  useOptimistic,
+  startTransition,
 } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from "framer-motion";
 import {
@@ -43,7 +45,10 @@ import {
   getMemoryStatus,
   isLeechCard,
 } from "@/lib/spaced-repetition";
-import { generateFlashcardMnemonicAction } from "@/actions/flashcard-actions";
+import {
+  generateFlashcardMnemonicAction,
+  reviewFlashcardAction,
+} from "@/actions/flashcard-actions";
 import {
   useOfflineSync,
   enqueueOfflineReview,
@@ -153,7 +158,28 @@ export default function StudyFlashcard({
     title?: string;
   } | null>(null);
 
-  const currentIndex = index;
+  const baseTotalXp = gamificationStats?.gamification?.totalXp ?? 0;
+
+  // Reatividade Instantânea: useOptimistic para avanço visual e saldo de XP
+  const [optimisticStudy, setOptimisticStudy] = useOptimistic(
+    {
+      index,
+      totalXp: baseTotalXp,
+    },
+    (
+      state,
+      update: {
+        nextIndex: number;
+        xpDelta: number;
+      },
+    ) => ({
+      index: update.nextIndex,
+      totalXp: state.totalXp + update.xpDelta,
+    }),
+  );
+
+  const currentIndex = optimisticStudy.index;
+  const currentTotalXp = optimisticStudy.totalXp;
   const currentCard = cards[currentIndex];
   const progress =
     cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
@@ -260,12 +286,13 @@ export default function StudyFlashcard({
       }
 
       const targetCard = currentCard;
-      const isLastCard = index >= cards.length - 1;
+      const isLastCard = currentIndex >= cards.length - 1;
       const responseTimeMs = Math.max(0, Date.now() - cardStartTimeRef.current);
+      // Requisito 3: +5 XP se errou (nota 1), +13 XP se acertou (notas 2, 3, 4)
+      const xpDelta = grade === 1 ? 5 : 13;
 
-      // 2. Transição instantânea (0ms) para o próximo card
+      // 2. Transição instantânea visual do card
       setIsFlipped(false);
-      setIndex((prev) => prev + 1);
 
       if (grade < 3) {
         setPerformanceStats((prev) => ({ ...prev, erros: prev.erros + 1 }));
@@ -288,45 +315,51 @@ export default function StudyFlashcard({
         checkNewAchievements(notifyAchievement);
       }
 
-      // 3. Sincronização em background com a API / banco sem travar a navegação
-      const reviewPayload = {
-        cardId: targetCard.id,
-        grade,
-        rating: grade,
-        responseTimeMs,
-      };
+      // 3. Reatividade Instantânea com useOptimistic gerenciada via startTransition
+      startTransition(async () => {
+        setOptimisticStudy({
+          nextIndex: currentIndex + 1,
+          xpDelta,
+        });
 
-      (async () => {
         try {
           if (typeof navigator !== "undefined" && !navigator.onLine) {
-            enqueueOfflineReview(reviewPayload);
+            enqueueOfflineReview({
+              cardId: targetCard.id,
+              grade,
+              rating: grade,
+              responseTimeMs,
+            });
+            setIndex((prev) => prev + 1);
             return;
           }
 
           const previousLevel = gamificationStats?.gamification?.level ?? 1;
 
-          const resReview = await fetch("/api/flashcards/review", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(reviewPayload),
+          // Chamada da Server Action reviewFlashcardAction em segundo plano
+          const res = await reviewFlashcardAction({
+            cardId: targetCard.id,
+            rating: grade,
+            grade,
+            responseTimeMs,
           });
 
-          if (resReview.ok) {
-            const data = await resReview.json();
+          if (res.success && res.data) {
+            setIndex((prev) => prev + 1);
 
             window.dispatchEvent(
               new CustomEvent("xp-updated", {
                 detail: {
-                  totalXp: data.totalXp,
-                  earnedXp: data.earnedXp,
-                  levelInfo: data.levelInfo,
+                  totalXp: res.data.totalXp,
+                  earnedXp: res.data.earnedXp,
+                  levelInfo: res.data.levelInfo,
                 },
               }),
             );
 
-            if (data.levelInfo?.level && data.levelInfo.level > previousLevel) {
-              const newLevel = data.levelInfo.level;
-              const newTitle = data.levelInfo.title || "Mestre da Retenção";
+            if (res.data.levelInfo?.level && res.data.levelInfo.level > previousLevel) {
+              const newLevel = res.data.levelInfo.level;
+              const newTitle = res.data.levelInfo.title || "Mestre da Retenção";
 
               setLevelUpData({
                 leveledUp: true,
@@ -340,24 +373,38 @@ export default function StudyFlashcard({
             }
             refreshStats().catch(() => {});
           } else {
-            enqueueOfflineReview(reviewPayload);
+            console.warn("Falha no processamento da revisão:", res.error);
+            enqueueOfflineReview({
+              cardId: targetCard.id,
+              grade,
+              rating: grade,
+              responseTimeMs,
+            });
+            // Em caso de falha, não chama setIndex: reverte suavemente o useOptimistic
           }
         } catch (error) {
-          console.warn("Sem conexão estável. Revisão enfileirada offline:", error);
-          enqueueOfflineReview(reviewPayload);
+          console.warn("Falha de rede na chamada de revisão. Revertendo estado suavemente:", error);
+          enqueueOfflineReview({
+            cardId: targetCard.id,
+            grade,
+            rating: grade,
+            responseTimeMs,
+          });
+          // Reversão suave sem quebrar o layout
         }
-      })();
+      });
     },
     [
       cards.length,
       currentCard,
+      currentIndex,
       gamificationStats?.gamification?.level,
-      index,
       notifyAchievement,
       playCorrect,
       playError,
       playFlip,
       refreshStats,
+      setOptimisticStudy,
       userId,
     ],
   );
@@ -620,6 +667,14 @@ export default function StudyFlashcard({
                   <Headphones size={13} className="text-indigo-400" />
                   <span className="hidden sm:inline">Modo Fones</span>
                 </button>
+
+                <div
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] sm:text-[11px] font-bold font-mono shadow-inner"
+                  title="Saldo de XP em tempo real"
+                >
+                  <Zap size={11} className="text-amber-400 fill-amber-400" />
+                  <span>{currentTotalXp} XP</span>
+                </div>
 
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[10px] sm:text-[11px] font-mono shadow-inner">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />

@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { generateSimuladoInParallel } from "@/lib/simulado-generator";
+import {
+  generateSimuladoInParallel,
+  getDeterministicFallbackQuestions,
+} from "@/lib/simulado-generator";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 export async function POST(request: Request) {
+  let requestBody: any = null;
   try {
     const session = await auth();
     const userId = session?.user?.id;
@@ -15,16 +19,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🛡️ Proteção Leve de Cota Diária de IA
-    const quota = await checkAiQuota(userId, "SIMULADO");
-    if (!quota.allowed) {
-      return NextResponse.json(
-        { error: quota.message || "Limite diário de simulados com IA atingido." },
-        { status: 429 },
-      );
-    }
-
     const body = await request.json();
+    requestBody = body;
     const {
       banca,
       materia,
@@ -46,6 +42,15 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    // 🛡️ Proteção Leve de Cota Diária do Usuário
+    let isUserQuotaLimited = false;
+    try {
+      const quota = await checkAiQuota(userId, "SIMULADO");
+      if (!quota.allowed) {
+        isUserQuotaLimited = true;
+      }
+    } catch {}
 
     const result = await generateSimuladoInParallel(
       {
@@ -69,8 +74,10 @@ export async function POST(request: Request) {
     const simuladoId = result.quizId || result.sessionId;
     const questions = result.data || [];
 
-    // Consome cota diária de Simulado com IA
-    await consumeAiQuota(userId, "SIMULADO");
+    // Consome cota diária de Simulado com IA apenas quando a IA foi acionada com sucesso
+    if (!result.isFallbackPool && !isUserQuotaLimited) {
+      await consumeAiQuota(userId, "SIMULADO").catch(() => {});
+    }
 
     return NextResponse.json({
       success: true,
@@ -82,14 +89,57 @@ export async function POST(request: Request) {
       sessionId: simuladoId,
       usedModel: result.usedModel,
       durationMs: result.durationMs,
+      isFallbackPool: Boolean(result.isFallbackPool),
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Erro Gemini Fallback:", error);
-
-    return NextResponse.json(
-      { error: "Falha ao gerar simulado.", details: errorMessage },
-      { status: 500 },
+    console.error(
+      "Erro ao gerar com IA, acionando contingência de Fallback Determinístico:",
+      error,
     );
+
+    // 🛡️ REQUISITO 4: Garanta que a rota /api/questions/generate nunca devolva erro 500 por indisponibilidade de cota do Gemini
+    try {
+      const materia = requestBody?.materia || "Conhecimentos Gerais";
+      const banca = requestBody?.banca || "Geral";
+      const qtdQuestoes = Math.min(
+        Math.max(parseInt(String(requestBody?.qtdQuestoes || 5), 10), 1),
+        30,
+      );
+
+      const fallbackQuestions = await getDeterministicFallbackQuestions({
+        materia,
+        topicoId: requestBody?.topicoId,
+        banca,
+        qtdQuestoes,
+      });
+
+      return NextResponse.json({
+        success: true,
+        id: null,
+        simuladoId: null,
+        total: fallbackQuestions.length,
+        data: fallbackQuestions,
+        quizId: null,
+        sessionId: null,
+        usedModel: "fallback-deterministic-pool",
+        durationMs: 0,
+        isFallbackPool: true,
+      });
+    } catch (fallbackError) {
+      console.error("Erro no fallback de contingência:", fallbackError);
+      return NextResponse.json({
+        success: true,
+        id: null,
+        simuladoId: null,
+        total: 0,
+        data: [],
+        quizId: null,
+        sessionId: null,
+        usedModel: "fallback-deterministic-pool",
+        durationMs: 0,
+        isFallbackPool: true,
+      });
+    }
   }
 }
+

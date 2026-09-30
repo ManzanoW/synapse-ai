@@ -1382,6 +1382,7 @@ export default function QuestoesPage() {
           banca={banca}
           subject={materia || "Simulado"}
           questions={questions}
+          strictAntiDistraction={searchParams.get("focus") === "true"}
           initialSelectedAnswers={selectedAnswers}
           initialCheckedQuestions={checkedQuestions}
           initialFlaggedQuestions={flaggedQuestions}

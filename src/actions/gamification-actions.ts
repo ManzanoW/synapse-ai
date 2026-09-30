@@ -163,6 +163,7 @@ export async function invalidateUserCacheAction(userId: string) {
   try {
     (revalidateTag as (tag: string) => void)(`user-stats-${userId}`);
     (revalidateTag as (tag: string) => void)(`user-achievements-${userId}`);
+    (revalidateTag as any)(`user-dashboard-${userId}`);
     return { success: true };
   } catch (err) {
     console.error("Erro ao revalidar cache:", err);
@@ -290,6 +291,9 @@ export async function recordStudyActivityAction(
 
     // 3. Invalida os caches do usuário
     await invalidateUserCacheAction(userId);
+    try {
+      (revalidateTag as any)(`user-dashboard-${userId}`);
+    } catch {}
 
     const levelInfo = calculateLevelData(
       updatedStats.totalXp,

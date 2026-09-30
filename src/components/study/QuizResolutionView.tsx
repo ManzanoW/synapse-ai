@@ -47,6 +47,7 @@ export interface QuizResolutionViewProps {
   banca?: string;
   subject?: string;
   questions: QuestaoIA[];
+  strictAntiDistraction?: boolean;
   initialSelectedAnswers?: Record<number, string>;
   initialCheckedQuestions?: Record<number, boolean>;
   initialFlaggedQuestions?: Record<number, boolean>;
@@ -96,6 +97,7 @@ export function QuizResolutionView({
   banca = "FGV",
   subject = "Conhecimentos Gerais",
   questions,
+  strictAntiDistraction = false,
   initialSelectedAnswers = {},
   initialCheckedQuestions = {},
   initialFlaggedQuestions = {},
@@ -182,6 +184,37 @@ export function QuizResolutionView({
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
   }, []);
+
+  // 5. MODO PROVA REAL ANTI-DISTRAÇÃO (FULLSCREEN API & BEFOREUNLOAD)
+  useEffect(() => {
+    if (!strictAntiDistraction) return;
+
+    // 1. Quando strictAntiDistraction estiver ativa, solicita modo tela cheia
+    if (typeof document !== "undefined" && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+
+    // 2. Proteção contra fechamento/atualização acidental da aba durante o simulado
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // 3. Ao finalizar ou sair do simulado, executa document.exitFullscreen() e remove os listeners de forma limpa no cleanup
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      if (
+        typeof document !== "undefined" &&
+        document.fullscreenElement &&
+        document.exitFullscreen
+      ) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, [strictAntiDistraction]);
 
   // Refs de auto-scroll para a régua horizontal mobile
   const rulerItemRefs = useRef<Record<number, HTMLButtonElement | null>>({});
@@ -365,6 +398,13 @@ export function QuizResolutionView({
 
   // Finalizar Simulado
   const handleFinalize = () => {
+    if (
+      typeof document !== "undefined" &&
+      document.fullscreenElement &&
+      document.exitFullscreen
+    ) {
+      document.exitFullscreen().catch(() => {});
+    }
     setIsFinalizing(true);
     onFinishQuiz({
       totalQuestions,
@@ -1684,6 +1724,13 @@ export function QuizResolutionView({
                 <button
                   type="button"
                   onClick={() => {
+                    if (
+                      typeof document !== "undefined" &&
+                      document.fullscreenElement &&
+                      document.exitFullscreen
+                    ) {
+                      document.exitFullscreen().catch(() => {});
+                    }
                     setShowExitConfirmModal(false);
                     onExit();
                   }}

@@ -7,7 +7,7 @@ import {
   recordStudyActivityAction,
 } from "@/actions/gamification-actions";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { SubmitQuizAttemptInput, SubjectDomainMetric, MentorGuidance } from "@/types/quiz";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { normalizeTaxonomy } from "@/lib/error-taxonomy";
@@ -161,6 +161,7 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
     // 4. Revalida caches e rotas
     await invalidateUserCacheAction(userId);
     try {
+      (revalidateTag as any)(`user-dashboard-${userId}`);
       revalidatePath("/achievements");
       revalidatePath("/notebook");
       revalidatePath("/performance");
