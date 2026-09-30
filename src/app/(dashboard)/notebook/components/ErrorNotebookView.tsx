@@ -19,6 +19,7 @@ import {
   batchClassifyTaxonomyOnlyAction,
   generateRedemptionExamAction,
   RedemptionExamQuestion,
+  convertErrorToFlashcardAction,
 } from "@/actions/error-notebook-actions";
 import { convertBatchErrorsToFlashcardsAction } from "@/actions/error-flashcard-actions";
 import {
@@ -80,15 +81,6 @@ export function ErrorNotebookView({
   const [isRemediationOpen, setIsRemediationOpen] = useState(false);
   const [isCreatingBatchFlashcards, setIsCreatingBatchFlashcards] = useState(false);
 
-  // Estados do Simulado de Redenção com Questões Gêmeas
-  const [isRedemptionOpen, setIsRedemptionOpen] = useState(false);
-  const [isGeneratingRedemption, setIsGeneratingRedemption] = useState(false);
-  const [redemptionQuestions, setRedemptionQuestions] = useState<RedemptionExamQuestion[]>([]);
-
-  // Refs de controle de requisição e Sentinela de Rolagem
-  const requestIdRef = useRef(0);
-  const observerTarget = useRef<HTMLDivElement | null>(null);
-
   // Notificações Toast
   const [toastMessage, setToastMessage] = useState<{
     text: string;
@@ -112,6 +104,38 @@ export function ErrorNotebookView({
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     };
   }, []);
+
+  // Gerenciamento de criação de flashcard em 1-clique (Zero tokens IA)
+  const [isConvertingId, setIsConvertingId] = useState<string | null>(null);
+  const [convertedIds, setConvertedIds] = useState<Set<string>>(new Set());
+
+  const handleSaveFlashcard = useCallback(async (itemId: string) => {
+    if (isConvertingId === itemId || convertedIds.has(itemId)) return;
+    setIsConvertingId(itemId);
+    try {
+      const res = await convertErrorToFlashcardAction(itemId);
+      if (res.success) {
+        setConvertedIds((prev) => new Set(prev).add(itemId));
+        showToast("Flashcard criado com sucesso!", "success");
+      } else {
+        showToast(res.error || "Falha ao salvar flashcard.", "error");
+      }
+    } catch (err) {
+      console.error("Erro ao converter erro em flashcard:", err);
+      showToast("Erro inesperado ao salvar flashcard.", "error");
+    } finally {
+      setIsConvertingId(null);
+    }
+  }, [convertedIds, isConvertingId, showToast]);
+
+  // Estados do Simulado de Redenção com Questões Gêmeas
+  const [isRedemptionOpen, setIsRedemptionOpen] = useState(false);
+  const [isGeneratingRedemption, setIsGeneratingRedemption] = useState(false);
+  const [redemptionQuestions, setRedemptionQuestions] = useState<RedemptionExamQuestion[]>([]);
+
+  // Refs de controle de requisição e Sentinela de Rolagem
+  const requestIdRef = useRef(0);
+  const observerTarget = useRef<HTMLDivElement | null>(null);
 
   // Sincroniza métricas se atualizadas pelo componente pai
   useEffect(() => {
@@ -459,6 +483,8 @@ export function ErrorNotebookView({
         onToggleSpotlight={spotlight.toggle}
         onBatchCreateFlashcards={handleBatchCreateFlashcards}
         isCreatingBatchFlashcards={isCreatingBatchFlashcards}
+        onStartRedemption={handleStartRedemption}
+        isGeneratingRedemption={isGeneratingRedemption}
       />
 
       {/* 2. Barra de Filtros */}
@@ -467,6 +493,8 @@ export function ErrorNotebookView({
         onFilterChange={handleFilterChange}
         subjects={subjects}
         onResetFilters={handleResetFilters}
+        onStartRedemption={handleStartRedemption}
+        isGeneratingRedemption={isGeneratingRedemption}
       />
 
       {/* 3. Indicador de Carregamento nos Filtros / Busca */}
@@ -490,6 +518,9 @@ export function ErrorNotebookView({
                   errorItem={item}
                   onItemUpdated={handleItemUpdated}
                   onItemDeleted={handleItemDeleted}
+                  isConvertingId={isConvertingId}
+                  convertedIds={convertedIds}
+                  onSaveFlashcard={handleSaveFlashcard}
                 />
               ))}
             </AnimatePresence>

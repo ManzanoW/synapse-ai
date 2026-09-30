@@ -12,30 +12,88 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // 35 dias para casar exatamente com os 35 blocos (5x7) do componente Heatmap
-    const thirtyFiveDaysAgo = subDays(new Date(), 34);
+    // 98 dias = 14 semanas (preenche perfeitamente a matriz 14x7 do componente Heatmap)
+    const ninetyEightDaysAgo = subDays(new Date(), 97);
 
-    // 🔒 Busca estritamente as revisões do usuário logado
-    const history = await prisma.reviewHistory.findMany({
-      where: {
-        topic: {
-          subject: {
-            userId: userId, // Filtro de isolamento multitenant
+    // 🔒 Busca em paralelo todas as frentes de estudo do aluno no período
+    const [reviews, quizAttempts, studySessions, essays] = await Promise.all([
+      // 1. Revisões de tópicos / flashcards
+      prisma.reviewHistory.findMany({
+        where: {
+          topic: {
+            subject: {
+              userId: userId,
+            },
+          },
+          reviewedAt: {
+            gte: ninetyEightDaysAgo,
           },
         },
-        reviewedAt: {
-          gte: thirtyFiveDaysAgo,
+        select: {
+          reviewedAt: true,
         },
-      },
-      select: { 
-        reviewedAt: true 
-      },
+      }),
+
+      // 2. Simulados e quizzes resolvidos
+      prisma.quizAttempt.findMany({
+        where: {
+          userId: userId,
+          completedAt: {
+            gte: ninetyEightDaysAgo,
+          },
+        },
+        select: {
+          completedAt: true,
+        },
+      }),
+
+      // 3. Sessões de estudo registradas
+      prisma.studySession.findMany({
+        where: {
+          userId: userId,
+          date: {
+            gte: ninetyEightDaysAgo,
+          },
+        },
+        select: {
+          date: true,
+        },
+      }),
+
+      // 4. Redações discursivas avaliadas
+      prisma.essaySubmission.findMany({
+        where: {
+          userId: userId,
+          createdAt: {
+            gte: ninetyEightDaysAgo,
+          },
+        },
+        select: {
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    // Agrupa por data no formato YYYY-MM-DD
+    const counts: Record<string, number> = {};
+
+    reviews.forEach((r) => {
+      const dateKey = format(r.reviewedAt, "yyyy-MM-dd");
+      counts[dateKey] = (counts[dateKey] || 0) + 1;
     });
 
-    // Agrupa por data no formato YYYY-MM-DD usando date-fns para preservar fuso local
-    const counts: Record<string, number> = {};
-    history.forEach((h: any) => {
-      const dateKey = format(h.reviewedAt, "yyyy-MM-dd");
+    quizAttempts.forEach((q) => {
+      const dateKey = format(q.completedAt, "yyyy-MM-dd");
+      counts[dateKey] = (counts[dateKey] || 0) + 1;
+    });
+
+    studySessions.forEach((s) => {
+      const dateKey = format(s.date, "yyyy-MM-dd");
+      counts[dateKey] = (counts[dateKey] || 0) + 1;
+    });
+
+    essays.forEach((e) => {
+      const dateKey = format(e.createdAt, "yyyy-MM-dd");
       counts[dateKey] = (counts[dateKey] || 0) + 1;
     });
 

@@ -58,6 +58,7 @@ import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 import { OpticalAnswerSheetModal } from "@/components/questions/OpticalAnswerSheetModal";
 import { SpeedQuizModal } from "@/components/questions/SpeedQuizModal";
 import { QuestionScannerModal } from "@/components/questions/QuestionScannerModal";
+import { streamSimuladoGeneration } from "@/lib/sse-client";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
@@ -999,10 +1000,8 @@ export default function QuestoesPage() {
         ? selectedTopicObj.title
         : selectedTopicId;
 
-      const response = await fetch("/api/questions/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await streamSimuladoGeneration(
+        {
           banca,
           materia,
           topicoId: selectedTopicId || "ALL",
@@ -1015,46 +1014,40 @@ export default function QuestoesPage() {
           adaptiveMode: isAdaptiveMode,
           formatoQuestao,
           nivelCargo,
-        }),
-      });
+        },
+        {
+          onComplete: (data) => {
+            triggerAiQuotaRefresh();
 
-      const data = await response.json();
+            const targetId = data.id || data.simuladoId;
+            setIsGenerating(false);
+            setIsSimuladoModalOpen(false);
 
-      if (!response.ok) {
-        throw new Error(
-          data.error || data.details || "Falha ao gerar simulado com IA.",
-        );
-      }
+            if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+              setQuestions(data.data);
+              setCurrentQuizId(targetId || null);
+              setSelectedAnswers({});
+              setCheckedQuestions({});
+              setFlaggedQuestions({});
+              setErrorClassifications({});
+              setSavedErrors({});
+              setCreatedFlashcards({});
+              setTimerSeconds(0);
+              setFocusedQuestionIndex(0);
+              setIsTimerRunning(true);
+            }
 
-      // Notifica em tempo real a Sidebar e os badges de cota
-      triggerAiQuotaRefresh();
-
-      const targetId = data.id || data.simuladoId;
-
-      setIsGenerating(false);
-      setIsSimuladoModalOpen(false);
-
-      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-        setQuestions(data.data);
-        setCurrentQuizId(targetId || null);
-        setSelectedAnswers({});
-        setCheckedQuestions({});
-        setFlaggedQuestions({});
-        setErrorClassifications({});
-        setSavedErrors({});
-        setCreatedFlashcards({});
-        setTimerSeconds(0);
-        setFocusedQuestionIndex(0);
-        setIsTimerRunning(true);
-      }
-
-      if (targetId) {
-        router.push(`/questions/${targetId}`);
-        // Se o projeto usar tabs na mesma página, descomente:
-        // setActiveTab("solve");
-      } else {
-        handleTabChange("history");
-      }
+            if (targetId) {
+              router.push(`/questions/${targetId}`);
+            } else {
+              handleTabChange("history");
+            }
+          },
+          onError: (err) => {
+            throw err;
+          },
+        }
+      );
     } catch (err: unknown) {
       const msg =
         err instanceof Error
@@ -1382,6 +1375,7 @@ export default function QuestoesPage() {
           banca={banca}
           subject={materia || "Simulado"}
           questions={questions}
+          strictAntiDistraction={searchParams.get("focus") === "true"}
           initialSelectedAnswers={selectedAnswers}
           initialCheckedQuestions={checkedQuestions}
           initialFlaggedQuestions={flaggedQuestions}

@@ -16,6 +16,7 @@ import {
   Zap,
   FileStack,
   ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
 import { ErrorNotebookMetrics, ErrorTaxonomyMetric } from "@/types/quiz";
 import { SpotlightTriggerButton } from "@/components/onboarding/PageSpotlightBanner";
@@ -31,6 +32,8 @@ interface ErrorMetricsHeaderProps {
   onToggleSpotlight?: () => void;
   onBatchCreateFlashcards?: () => Promise<void> | void;
   isCreatingBatchFlashcards?: boolean;
+  onStartRedemption?: (count?: number) => Promise<void> | void;
+  isGeneratingRedemption?: boolean;
 }
 
 const TAXONOMY_ICONS: Record<string, React.ElementType> = {
@@ -52,6 +55,8 @@ export function ErrorMetricsHeader({
   onToggleSpotlight,
   onBatchCreateFlashcards,
   isCreatingBatchFlashcards = false,
+  onStartRedemption,
+  isGeneratingRedemption = false,
 }: ErrorMetricsHeaderProps) {
   const classifyHandler = onBatchClassify || onAutoClassify;
   const { totalErrors, pendingErrors, masteredErrors, masteryRate, taxonomyDistribution } =
@@ -105,6 +110,31 @@ export function ErrorMetricsHeader({
                 <Layers size={16} className="text-indigo-400" />
               )}
               <span>Transformar em Deck FSRS</span>
+            </button>
+          )}
+
+          {onStartRedemption && pendingErrors > 0 && (
+            <button
+              type="button"
+              onClick={() => onStartRedemption(5)}
+              disabled={isGeneratingRedemption}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-purple-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white text-xs md:text-sm font-extrabold shadow-lg shadow-rose-600/30 border border-rose-400/40 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer group min-h-[44px]"
+              title="Gera 5 Questões Gêmeas com IA baseadas nos seus erros para cicatrização definitiva"
+            >
+              {isGeneratingRedemption ? (
+                <>
+                  <Loader2 size={16} className="animate-spin text-amber-200" />
+                  <span>Gerando Questões Gêmeas...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={16} className="text-amber-200 animate-pulse group-hover:scale-110 transition-transform" />
+                  <span>Simulado de Redenção</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-black/30 text-amber-200 border border-white/20">
+                    IA Gêmeas
+                  </span>
+                </>
+              )}
             </button>
           )}
 

@@ -8,6 +8,7 @@ import {
   getCachedAchievementsProgress,
 } from "@/lib/cache-service";
 import { calculateLevelData } from "@/lib/gamification/levels";
+import { RecordStudyActivitySchema } from "@/lib/validations/gamification.schema";
 
 export async function getUserStatsAction(userId: string) {
   try {
@@ -163,6 +164,7 @@ export async function invalidateUserCacheAction(userId: string) {
   try {
     (revalidateTag as (tag: string) => void)(`user-stats-${userId}`);
     (revalidateTag as (tag: string) => void)(`user-achievements-${userId}`);
+    (revalidateTag as any)(`user-dashboard-${userId}`);
     return { success: true };
   } catch (err) {
     console.error("Erro ao revalidar cache:", err);
@@ -199,6 +201,26 @@ export async function recordStudyActivityAction(
   durationMinutes: number = 1,
 ): Promise<RecordStudyActivityResult> {
   try {
+    // Validação estrita via Zod
+    const validation = RecordStudyActivitySchema.safeParse({
+      userId,
+      earnedXp,
+      activityType,
+      durationMinutes,
+    });
+
+    if (!validation.success) {
+      console.warn(
+        "[recordStudyActivityAction] Dados de atividade inválidos:",
+        validation.error.flatten(),
+      );
+      return {
+        success: false,
+        error: "Dados de atividade inválidos.",
+      };
+    }
+
+    const validData = validation.data;
     const now = new Date();
     const todayMidnight = new Date(
       now.getFullYear(),
@@ -206,22 +228,18 @@ export async function recordStudyActivityAction(
       now.getDate(),
     ).getTime();
 
-    // 1. Busca estatísticas atuais do usuário
-    let stats = await prisma.userStats.findUnique({
-      where: { userId },
+    // 1. Garante que userStats exista de forma atômica e idempotente via upsert
+    const stats = await prisma.userStats.upsert({
+      where: { userId: validData.userId },
+      create: {
+        userId: validData.userId,
+        totalXp: 0,
+        streakDays: 0,
+        streakFreezes: 0,
+        prestige: 0,
+      },
+      update: {},
     });
-
-    if (!stats) {
-      stats = await prisma.userStats.create({
-        data: {
-          userId,
-          totalXp: 0,
-          streakDays: 0,
-          streakFreezes: 0,
-          prestige: 0,
-        },
-      });
-    }
 
     let newStreak = stats.streakDays;
     let newFreezes = stats.streakFreezes ?? 0;
@@ -269,9 +287,9 @@ export async function recordStudyActivityAction(
     // 2. Atualização atômica em transação com registro em StudySession
     const [updatedStats] = await prisma.$transaction([
       prisma.userStats.update({
-        where: { userId },
+        where: { userId: validData.userId },
         data: {
-          totalXp: { increment: earnedXp },
+          totalXp: { increment: validData.earnedXp },
           streakDays: newStreak,
           streakFreezes: newFreezes,
           lastStudyDate: now,
@@ -279,17 +297,20 @@ export async function recordStudyActivityAction(
       }),
       prisma.studySession.create({
         data: {
-          userId,
+          userId: validData.userId,
           date: now,
           status: "COMPLETED",
-          durationMinutes: Math.max(1, Math.round(durationMinutes)),
-          notes: `ACTIVITY:${activityType}${streakProtected ? ":STREAK_PROTECTED" : ""}`,
+          durationMinutes: Math.max(1, Math.round(validData.durationMinutes)),
+          notes: `ACTIVITY:${validData.activityType}${streakProtected ? ":STREAK_PROTECTED" : ""}`,
         },
       }),
     ]);
 
     // 3. Invalida os caches do usuário
     await invalidateUserCacheAction(userId);
+    try {
+      (revalidateTag as any)(`user-dashboard-${userId}`);
+    } catch {}
 
     const levelInfo = calculateLevelData(
       updatedStats.totalXp,

@@ -111,6 +111,31 @@ export function AudioFlashcardPlayer({
     };
   }, [isOpen, currentIndex, currentCard, deckTitle, getFrontText, stopAllSpeech]);
 
+  // Seleção de melhor voz pt-BR disponível no dispositivo
+  const getBestPtBrVoice = useCallback((): SpeechSynthesisVoice | null => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    // Prioridade 1: Vozes naturais/neurais em português do Brasil
+    const preferredNames = ["Google português do Brasil", "Francisca", "Antonio", "Luciana", "Maria", "Letícia"];
+    for (const name of preferredNames) {
+      const match = voices.find(
+        (v) =>
+          (v.lang.includes("pt-BR") || v.lang.includes("pt_BR")) &&
+          v.name.toLowerCase().includes(name.toLowerCase())
+      );
+      if (match) return match;
+    }
+
+    // Prioridade 2: Qualquer voz explicitamente pt-BR
+    const ptBrVoice = voices.find((v) => v.lang.includes("pt-BR") || v.lang.includes("pt_BR"));
+    if (ptBrVoice) return ptBrVoice;
+
+    // Prioridade 3: Qualquer voz em português
+    return voices.find((v) => v.lang.startsWith("pt")) || null;
+  }, []);
+
   // Função para falar um texto via Web Speech API
   const speakText = useCallback(
     (text: string): Promise<void> => {
@@ -126,13 +151,18 @@ export function AudioFlashcardPlayer({
         utterance.lang = "pt-BR";
         utterance.rate = playbackSpeed;
 
+        const bestVoice = getBestPtBrVoice();
+        if (bestVoice) {
+          utterance.voice = bestVoice;
+        }
+
         utterance.onend = () => resolve();
         utterance.onerror = () => resolve();
 
         window.speechSynthesis.speak(utterance);
       });
     },
-    [playbackSpeed, stopAllSpeech]
+    [playbackSpeed, stopAllSpeech, getBestPtBrVoice]
   );
 
   // Ciclo principal de reprodução de um card

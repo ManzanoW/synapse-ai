@@ -43,8 +43,8 @@ import {
   markErrorAsMasteredAction,
   markErrorAsPendingAction,
   deleteErrorNotebookItemAction,
+  convertErrorToFlashcardAction,
 } from "@/actions/error-notebook-actions";
-import { convertSingleErrorToFlashcardAction } from "@/actions/error-flashcard-actions";
 import {
   TAXONOMY_METADATA,
   normalizeTaxonomy,
@@ -55,6 +55,9 @@ interface ErrorCardProps {
   errorItem: ErrorNotebookItem;
   onItemUpdated: (updatedItem: ErrorNotebookItem) => void;
   onItemDeleted: (id: string) => void;
+  isConvertingId?: string | null;
+  convertedIds?: Set<string>;
+  onSaveFlashcard?: (id: string) => Promise<void> | void;
 }
 
 const TAXONOMY_ICONS: Record<string, React.ElementType> = {
@@ -69,6 +72,9 @@ export function ErrorCard({
   errorItem,
   onItemUpdated,
   onItemDeleted,
+  isConvertingId,
+  convertedIds,
+  onSaveFlashcard,
 }: ErrorCardProps) {
   const { refreshStats } = useGamification();
 
@@ -99,8 +105,38 @@ export function ErrorCard({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSpeakingMnemonic, setIsSpeakingMnemonic] = useState(false);
-  const [isCreatingFlashcard, setIsCreatingFlashcard] = useState(false);
-  const [flashcardSuccess, setFlashcardSuccess] = useState(false);
+
+  // Estados para conversão em Flashcard em 1-Clique (Zero Tokens de IA)
+  const [localConvertingId, setLocalConvertingId] = useState<string | null>(null);
+  const [localConvertedIds, setLocalConvertedIds] = useState<Set<string>>(new Set());
+
+  const isConverting =
+    isConvertingId !== undefined
+      ? isConvertingId === errorItem.id
+      : localConvertingId === errorItem.id;
+  const isConverted =
+    convertedIds !== undefined
+      ? convertedIds.has(errorItem.id)
+      : localConvertedIds.has(errorItem.id);
+
+  const handleSaveFlashcard = async () => {
+    if (isConverting || isConverted) return;
+    if (onSaveFlashcard) {
+      await onSaveFlashcard(errorItem.id);
+      return;
+    }
+    setLocalConvertingId(errorItem.id);
+    try {
+      const res = await convertErrorToFlashcardAction(errorItem.id);
+      if (res.success) {
+        setLocalConvertedIds((prev) => new Set(prev).add(errorItem.id));
+      }
+    } catch (err) {
+      console.error("Erro ao converter em flashcard:", err);
+    } finally {
+      setLocalConvertingId(null);
+    }
+  };
 
   const handleToggleSpeakMnemonic = (text: string) => {
     if (isSpeakingMnemonic) {
@@ -266,22 +302,6 @@ export function ErrorCard({
       console.error("Erro ao alternar status:", err);
     } finally {
       setIsUpdatingStatus(false);
-    }
-  };
-
-  // Transforma o erro em um flashcard FSRS
-  const handleCreateFlashcard = async () => {
-    if (isCreatingFlashcard || flashcardSuccess) return;
-    setIsCreatingFlashcard(true);
-    try {
-      const res = await convertSingleErrorToFlashcardAction(errorItem.id);
-      if (res.success) {
-        setFlashcardSuccess(true);
-      }
-    } catch (err) {
-      console.error("Erro ao converter em flashcard:", err);
-    } finally {
-      setIsCreatingFlashcard(false);
     }
   };
 
@@ -486,25 +506,29 @@ export function ErrorCard({
           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
 
-        {/* Botão de Criar Flashcard FSRS */}
+        {/* Botão de Ação Rápida: Salvar Flashcard em 1-Clique (Zero Tokens de IA) */}
         <button
-          onClick={handleCreateFlashcard}
-          disabled={isCreatingFlashcard || flashcardSuccess}
+          onClick={handleSaveFlashcard}
+          disabled={isConverting || isConverted}
           className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border min-h-[44px] ${
-            flashcardSuccess
-              ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
+            isConverted
+              ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 cursor-not-allowed opacity-90 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
               : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-200 hover:text-white hover:border-indigo-400"
           }`}
-          title={flashcardSuccess ? "Flashcard já cadastrado nos seus Decks FSRS" : "Criar Flashcard de repetição espaçada a partir deste erro"}
+          title={
+            isConverted
+              ? "Flashcard já cadastrado nos seus Decks"
+              : "Salvar Flashcard a partir deste erro (Zero custo de IA)"
+          }
         >
-          {isCreatingFlashcard ? (
+          {isConverting ? (
             <Loader2 size={13} className="animate-spin text-indigo-400" />
-          ) : flashcardSuccess ? (
+          ) : isConverted ? (
             <Check size={13} className="text-emerald-400" />
           ) : (
             <Layers size={13} className="text-indigo-400" />
           )}
-          <span>{flashcardSuccess ? "✓ No Deck FSRS" : "Criar Flashcard"}</span>
+          <span>{isConverted ? "Flashcard Criado ✓" : "Salvar Flashcard"}</span>
         </button>
 
         {/* Botão de Marcar como Superado */}

@@ -7,10 +7,11 @@ import {
   recordStudyActivityAction,
 } from "@/actions/gamification-actions";
 import { trackQuestProgressAction } from "@/actions/quest-actions";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { SubmitQuizAttemptInput, SubjectDomainMetric, MentorGuidance } from "@/types/quiz";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { normalizeTaxonomy } from "@/lib/error-taxonomy";
+import { SubmitQuizAttemptSchema } from "@/lib/validations/quiz.schema";
 
 export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
   try {
@@ -21,13 +22,23 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
       return { success: false, error: "Usuário não autenticado." };
     }
 
+    // Validação em runtime via Zod
+    const validation = SubmitQuizAttemptSchema.safeParse(input);
+    if (!validation.success) {
+      return {
+        success: false,
+        error: validation.error.issues[0]?.message || "Dados de simulado inválidos.",
+      };
+    }
+    const validInput = validation.data;
+
     // Garante que haja um topicId válido (busca o primeiro tópico disponível caso não informado)
-    let targetTopicId = input.topicId;
+    let targetTopicId = validInput.topicId;
 
     if (!targetTopicId) {
       const fallbackTopic = await prisma.topic.findFirst({
-        where: input.subjectId
-          ? { subjectId: input.subjectId, subject: { userId } }
+        where: validInput.subjectId
+          ? { subjectId: validInput.subjectId, subject: { userId } }
           : { subject: { userId } },
         select: { id: true },
       });
@@ -43,20 +54,20 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
     }
 
     const accuracyPercentage = Math.round(
-      (input.correctAnswers / Math.max(1, input.totalQuestions)) * 100,
+      (validInput.correctAnswers / Math.max(1, validInput.totalQuestions)) * 100,
     );
 
     // XP Base: 20 XP por acerto + bônus de 50 XP para precisão >= 80%
-    const baseEarnedXp = input.correctAnswers * 20;
+    const baseEarnedXp = validInput.correctAnswers * 20;
     const accuracyBonusXp = accuracyPercentage >= 80 ? 50 : 0;
 
     // Bônus de Prova Real / Simulado Cronometrado
     let timedBonusXp = 0;
-    const completedWithinTime = input.totalAllocatedSeconds
-      ? input.timeSpentSeconds <= input.totalAllocatedSeconds + 5
+    const completedWithinTime = validInput.totalAllocatedSeconds
+      ? validInput.timeSpentSeconds <= validInput.totalAllocatedSeconds + 5
       : true;
 
-    if (input.isTimedSimulation && completedWithinTime) {
+    if (validInput.isTimedSimulation && completedWithinTime) {
       if (accuracyPercentage >= 80) {
         timedBonusXp = 100; // Alta performance sob pressão
       } else if (accuracyPercentage >= 70) {
@@ -68,15 +79,24 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
 
     const earnedXp = baseEarnedXp + accuracyBonusXp + timedBonusXp;
 
-    // 1. Grava a tentativa no banco
-    const attempt = await prisma.quizAttempt.create({
-      data: {
-        userId,
-        topicId: targetTopicId,
-        totalCount: input.totalQuestions,
-        correctCount: input.correctAnswers,
-      },
-    });
+    // 1. Grava a tentativa e atualiza o tópico de forma atômica
+    const [attempt] = await prisma.$transaction([
+      prisma.quizAttempt.create({
+        data: {
+          userId,
+          topicId: targetTopicId,
+          totalCount: validInput.totalQuestions,
+          correctCount: validInput.correctAnswers,
+        },
+      }),
+      prisma.topic.update({
+        where: { id: targetTopicId },
+        data: {
+          performance: accuracyPercentage,
+          lastQuizAt: new Date(),
+        },
+      }),
+    ]);
 
     // 1.1 Atualiza XP, streak e proteção anti-frustração via motor centralizado
     const activityResult = await recordStudyActivityAction(
@@ -85,17 +105,8 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
       "QUIZ",
     );
 
-    // 2. Atualiza a performance e última data no tópico
-    await prisma.topic.update({
-      where: { id: targetTopicId },
-      data: {
-        performance: accuracyPercentage,
-        lastQuizAt: new Date(),
-      },
-    });
-
     // 3. Atualiza progresso das Missões Diárias
-    await trackQuestProgressAction("QUESTIONS_SOLVED", input.totalQuestions);
+    await trackQuestProgressAction("QUESTIONS_SOLVED", validInput.totalQuestions);
 
     // 3.1 📓 Registra os erros das respostas no Caderno de Erros (se detalhadas)
     if (Array.isArray(input.answers)) {
@@ -161,6 +172,7 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
     // 4. Revalida caches e rotas
     await invalidateUserCacheAction(userId);
     try {
+      (revalidateTag as any)(`user-dashboard-${userId}`);
       revalidatePath("/achievements");
       revalidatePath("/notebook");
       revalidatePath("/performance");

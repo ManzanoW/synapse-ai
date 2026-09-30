@@ -73,7 +73,9 @@ export default function TimedQuizPage() {
   const [pacingMode, setPacingMode] = useState<TimedQuizPacingMode>("per_question");
   const [minutesPerQuestion, setMinutesPerQuestion] = useState(3);
   const [totalBlockMinutes, setTotalBlockMinutes] = useState(30);
-  const [strictAntiDistraction, setStrictAntiDistraction] = useState(false);
+  const [strictAntiDistraction, setStrictAntiDistraction] = useState(
+    searchParams.get("focus") === "true",
+  );
   const [isAdaptiveMode, setIsAdaptiveMode] = useState(
     searchParams.get("adaptive") === "true",
   );
@@ -255,6 +257,34 @@ export default function TimedQuizPage() {
         });
       return;
     }
+
+  // 5. MODO PROVA REAL ANTI-DISTRAÇÃO (FULLSCREEN API & BEFOREUNLOAD)
+  useEffect(() => {
+    if (phase !== "exam" || !strictAntiDistraction) return;
+
+    if (typeof document !== "undefined" && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      if (
+        typeof document !== "undefined" &&
+        document.fullscreenElement &&
+        document.exitFullscreen
+      ) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, [phase, strictAntiDistraction]);
 
     // Carregamento de matérias para modo de preparação
     fetch("/api/edital?mode=subjects")
@@ -559,6 +589,13 @@ export default function TimedQuizPage() {
       });
 
       if (refreshStats) await refreshStats();
+      if (
+        typeof document !== "undefined" &&
+        document.fullscreenElement &&
+        document.exitFullscreen
+      ) {
+        document.exitFullscreen().catch(() => {});
+      }
       setIsConfirmModalOpen(false);
       setPhase("results");
     } catch (error) {

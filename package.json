@@ -8,6 +8,7 @@
     "start": "next start -p 3000 -H 0.0.0.0",
     "postinstall": "prisma generate",
     "lint": "eslint .",
+    "test": "vitest run",
     "context:study": "npx repomix --include \"src/app/(dashboard)/study/**/*,src/components/flashcards/**/*,src/components/decks/**/*,src/components/questions/**/*,src/components/questions/**/*,src/app/(dashboard)/questions/**/*\" --ignore \"src/components/ui/**,**/*.skeleton.tsx\" -o context-study.txt",
     "context:core": "npx repomix --include \"src/actions/**/*,src/types/**/*,src/context/**/*,src/lib/**/*\" -o context-core.txt",
     "context:gamification": "npx repomix --include \"src/components/gamification/**/*,src/components/achievements/**/*\" -o context-gamification.txt",
@@ -34,7 +35,8 @@
     "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "unpdf": "^1.8.1"
+    "unpdf": "^1.8.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -49,6 +51,7 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "prisma": "^7.10.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.0.0"
   }
 }

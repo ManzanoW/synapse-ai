@@ -25,6 +25,7 @@ export interface QuestaoGerada {
   subjectId?: string;
   topicId?: string;
   mentorGuidance?: MentorGuidance;
+  isFallbackPool?: boolean;
 }
 
 export interface GenerateSimuladoParams {
@@ -40,6 +41,8 @@ export interface GenerateSimuladoParams {
   adaptiveMode?: boolean;
   formatoQuestao?: "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos";
   nivelCargo?: "medio" | "superior" | "juridico";
+  preferCachedQuestions?: boolean;
+  cacheRatio?: number;
 }
 
 export interface GenerateSimuladoResult {
@@ -49,6 +52,7 @@ export interface GenerateSimuladoResult {
   sessionId: string | null;
   usedModel?: string;
   durationMs?: number;
+  isFallbackPool?: boolean;
 }
 
 export function shuffleAlternatives(questoes: QuestaoGerada[]): QuestaoGerada[] {
@@ -237,6 +241,133 @@ async function fetchCachedQuestionsForSimulado(params: {
     return [];
   }
 }
+
+/**
+ * 🛡️ Fallback Determinístico sem Queda (Zero Erro 500 por Cota de IA):
+ * Se todas as chaves do pool falharem por cota (429) ou timeout,
+ * consulta na tabela Quiz do Prisma as questões já existentes para a mesma disciplina (subject) ou tópico.
+ * Embaralha e seleciona a quantidade solicitada (qtdQuestoes), retornando com a flag informativa isFallbackPool: true.
+ */
+export async function getDeterministicFallbackQuestions(params: {
+  materia: string;
+  topicoId?: string | null;
+  targetTopicUuid?: string | null;
+  banca?: string;
+  qtdQuestoes: number;
+}): Promise<QuestaoGerada[]> {
+  const { materia, topicoId, targetTopicUuid, banca, qtdQuestoes } = params;
+
+  try {
+    const orConditions: Prisma.QuizWhereInput[] = [];
+    if (targetTopicUuid) {
+      orConditions.push({ topicId: targetTopicUuid });
+    }
+    if (topicoId && topicoId !== "ALL") {
+      orConditions.push({ topicId: topicoId });
+    }
+    if (materia) {
+      orConditions.push({ subject: { contains: materia, mode: "insensitive" } });
+    }
+    if (banca) {
+      orConditions.push({ banca: { contains: banca, mode: "insensitive" } });
+    }
+
+    const candidateQuizzes = await prisma.quiz.findMany({
+      where: orConditions.length > 0 ? { OR: orConditions } : {},
+      select: { questions: true },
+      take: 40,
+      orderBy: { createdAt: "desc" },
+    });
+
+    const pool: QuestaoGerada[] = [];
+    const seenTexts = new Set<string>();
+
+    for (const cq of candidateQuizzes) {
+      if (!Array.isArray(cq.questions)) continue;
+      for (const rawQ of cq.questions as unknown as QuestaoGerada[]) {
+        if (!rawQ || !rawQ.enunciado || !rawQ.gabaritoCorreto) continue;
+        const norm = rawQ.enunciado.trim().toLowerCase();
+        if (seenTexts.has(norm)) continue;
+        seenTexts.add(norm);
+
+        pool.push({
+          ...rawQ,
+          isFallbackPool: true,
+          mentorGuidance: rawQ.mentorGuidance || {
+            socraticHint: "Analise com atenção os conceitos centrais do enunciado e elimine os distratores.",
+            simplifiedLaw: "Aplique a regra geral e atente-se às exceções descritas no gabarito.",
+            mnemonic: "Foco na causa-raiz do tema para fixar a resposta.",
+            trapWarning: "Cuidado com termos restritivos nas alternativas incorretas.",
+          },
+        });
+      }
+    }
+
+    // Se o banco ainda não tiver questões suficientes da matéria/tópico específico, busca de outros quizzes gerais
+    if (pool.length < qtdQuestoes) {
+      const generalQuizzes = await prisma.quiz.findMany({
+        select: { questions: true },
+        take: 30,
+        orderBy: { createdAt: "desc" },
+      });
+
+      for (const gq of generalQuizzes) {
+        if (!Array.isArray(gq.questions)) continue;
+        for (const rawQ of gq.questions as unknown as QuestaoGerada[]) {
+          if (!rawQ || !rawQ.enunciado || !rawQ.gabaritoCorreto) continue;
+          const norm = rawQ.enunciado.trim().toLowerCase();
+          if (seenTexts.has(norm)) continue;
+          seenTexts.add(norm);
+
+          pool.push({
+            ...rawQ,
+            isFallbackPool: true,
+            mentorGuidance: rawQ.mentorGuidance || {
+              socraticHint: "Leia com atenção o comando da questão.",
+              simplifiedLaw: "Identifique o conceito-chave cobrado.",
+              mnemonic: "Revise a teoria correspondente.",
+              trapWarning: "Atenção aos distratores formulados pela banca.",
+            },
+          });
+          if (pool.length >= qtdQuestoes * 2) break;
+        }
+      }
+    }
+
+    if (pool.length === 0) {
+      // Contingência estática segura para garantir zero erro 500 mesmo em banco vazio
+      const emergencyQuestions: QuestaoGerada[] = Array.from({ length: qtdQuestoes }).map((_, idx) => ({
+        enunciado: `[Questão Prática de Fixação ${idx + 1}] Em relação aos tópicos fundamentais da disciplina ${materia}, assinale a alternativa que expressa o correto entendimento da matéria:`,
+        formato: "multipla",
+        justificativa: `Fundamentação teórica consolidada na disciplina ${materia}. O gabarito aplica a regra legal basilar exigida pelas principais bancas examinadoras.`,
+        alternativas: [
+          { id: "A", texto: "A correta observância das normas gerais orienta a tomada de decisão no caso concreto." },
+          { id: "B", texto: "A interpretação restritiva deve ser aplicada de forma indistinta a todos os procedimentos." },
+          { id: "C", texto: "Apenas autorização judicial prévia valida atos de mera execução material." },
+          { id: "D", texto: "O descumprimento de prazos formais acarreta nulidade absoluta em qualquer hipótese." },
+        ],
+        gabaritoCorreto: "A",
+        flashcardFrente: `Qual é a diretriz fundamental no estudo e aplicação de ${materia}?`,
+        flashcardVerso: `A correta observância das normas e princípios gerais orienta a resolução segura das questões da prova.`,
+        isFallbackPool: true,
+        mentorGuidance: {
+          socraticHint: "Elimine as opções que utilizam palavras extremistas como 'qualquer hipótese' ou 'apenas'.",
+          simplifiedLaw: "A regra padrão orienta a atuação sem exigir exceções descabidas.",
+          mnemonic: "Foco na regra geral.",
+          trapWarning: "Pegadinha comum: generalizações indevidas nas alternativas incorretas.",
+        },
+      }));
+      return emergencyQuestions;
+    }
+
+    const shuffled = shuffleArray(pool);
+    return shuffled.slice(0, qtdQuestoes);
+  } catch (err) {
+    console.error("[getDeterministicFallbackQuestions] Erro no fallback determinístico:", err);
+    return [];
+  }
+}
+
 
 const geminiResponseSchema = {
   type: Type.OBJECT,
@@ -465,9 +596,9 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
         banca.toLowerCase().includes("aocp") ||
         banca.toLowerCase().includes("idecan")));
 
-  // ⚡ Estratégia de Cache Híbrido:
+  // ⚡ Estratégia de Cache Híbrido Semântico:
   // Se for simulado padrão (não adaptativo, sem texto/lei avulsa e sem recorte restrito),
-  // reaproveitamos até 40% de questões inéditas para o aluno direto do banco, acelerando a resposta e economizando tokens da IA.
+  // reaproveitamos de 60% a 100% de questões inéditas para o aluno direto do banco, acelerando a resposta e economizando tokens da IA.
   const isEligibleForCache =
     !params.adaptiveMode &&
     !params.textoBase &&
@@ -476,7 +607,11 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
 
   let cachedQuestions: QuestaoGerada[] = [];
   if (isEligibleForCache) {
-    const maxToReuse = Math.floor(quantidadeTotal * 0.4);
+    const effectiveRatio = params.preferCachedQuestions
+      ? 1.0 // Até 100% se solicitado modo rápido/econômico
+      : Math.min(Math.max(params.cacheRatio ?? 0.6, 0.2), 0.9); // Padrão 60%
+
+    const maxToReuse = Math.max(1, Math.floor(quantidadeTotal * effectiveRatio));
     if (maxToReuse > 0) {
       cachedQuestions = await fetchCachedQuestionsForSimulado({
         banca,
@@ -695,11 +830,29 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
           usedModel: response.usedModel,
         };
       }
-    } catch (batchError) {
-      console.error(`Erro ao gerar questões para o lote ${batchIndex}:`, batchError);
+    } catch (batchError: unknown) {
+      const errStr = String(batchError).toLowerCase();
+      const isQuotaOrTimeout =
+        errStr.includes("429") ||
+        errStr.includes("resource_exhausted") ||
+        errStr.includes("quota") ||
+        errStr.includes("rate limit") ||
+        errStr.includes("timeout") ||
+        errStr.includes("timed out") ||
+        errStr.includes("abort");
+
+      if (isQuotaOrTimeout) {
+        console.warn(
+          `[simulado-generator] Lote ${batchIndex} atingiu 429/cota/timeout. Acionando contingência de banco...`,
+        );
+      } else {
+        console.error(`Erro ao gerar questões para o lote ${batchIndex}:`, batchError);
+      }
+
       return {
         questions: [],
         usedModel: undefined,
+        isQuotaOrTimeout,
       };
     }
   });
@@ -711,19 +864,52 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
   const allRawQuestions: QuestaoGerada[] = [...cachedQuestions];
   let dominantModel = "gemini-3.5-flash-lite";
 
-  results.forEach((r) => {
+  results.forEach((r: any) => {
     if (r.usedModel) dominantModel = r.usedModel;
     if (Array.isArray(r.questions)) {
       allRawQuestions.push(...r.questions);
     }
   });
 
+  let isFallbackPool = false;
+
+  // 🛡️ REQUISITO 4: Fallback Determinístico sem Queda (Zero Erro 500 por Cota de IA)
+  // Se a IA não retornou a quantidade total necessária (por cota 429, timeouts ou chaves esgotadas):
+  if (allRawQuestions.length < quantidadeTotal) {
+    const missingCount = quantidadeTotal - allRawQuestions.length;
+    console.warn(
+      `[simulado-generator] 🛡️ Ativando Fallback Determinístico para suprir ${missingCount} questões...`,
+    );
+
+    const fallbackQuestions = await getDeterministicFallbackQuestions({
+      materia,
+      topicoId,
+      targetTopicUuid,
+      banca,
+      qtdQuestoes: missingCount,
+    });
+
+    if (fallbackQuestions.length > 0) {
+      allRawQuestions.push(...fallbackQuestions);
+      isFallbackPool = true;
+    }
+  }
+
+  // Garantia absoluta de zero falha
   if (allRawQuestions.length === 0) {
-    throw new Error("A IA não retornou nenhuma questão válida.");
+    const fallbackQuestions = await getDeterministicFallbackQuestions({
+      materia,
+      topicoId,
+      targetTopicUuid,
+      banca,
+      qtdQuestoes: quantidadeTotal,
+    });
+    allRawQuestions.push(...fallbackQuestions);
+    isFallbackPool = true;
   }
 
   if (cachedQuestions.length > 0) {
-    const aiCount = allRawQuestions.length - cachedQuestions.length;
+    const aiCount = Math.max(0, allRawQuestions.length - cachedQuestions.length);
     const economyPct = Math.round((cachedQuestions.length / Math.max(allRawQuestions.length, 1)) * 100);
     console.log(
       `[simulado-generator] 🚀 Cache Híbrido ativado: ${cachedQuestions.length} questões do banco + ${aiCount} geradas via IA. Economia de ~${economyPct}% de tokens/cota.`
@@ -734,7 +920,10 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
   const slicedQuestions = allRawQuestions.slice(0, quantidadeTotal);
 
   // Processa alternativas e embaralha a lista final para intercalar perfeitamente as do cache com as da IA
-  const questoesProcessadas = shuffleArray(shuffleAlternatives(slicedQuestions));
+  const questoesProcessadas = shuffleArray(shuffleAlternatives(slicedQuestions)).map((q) => ({
+    ...q,
+    isFallbackPool: isFallbackPool || Boolean(q.isFallbackPool),
+  }));
 
   // Persistência no Banco de Dados
   let savedQuiz = null;
@@ -782,7 +971,8 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
     data: questoesProcessadas,
     quizId: savedQuiz?.id || null,
     sessionId: savedQuiz?.id || null,
-    usedModel: dominantModel,
+    usedModel: isFallbackPool ? "fallback-deterministic-pool" : dominantModel,
     durationMs,
+    isFallbackPool,
   };
 }
