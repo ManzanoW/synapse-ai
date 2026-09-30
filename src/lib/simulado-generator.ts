@@ -41,6 +41,8 @@ export interface GenerateSimuladoParams {
   adaptiveMode?: boolean;
   formatoQuestao?: "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos";
   nivelCargo?: "medio" | "superior" | "juridico";
+  preferCachedQuestions?: boolean;
+  cacheRatio?: number;
 }
 
 export interface GenerateSimuladoResult {
@@ -594,9 +596,9 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
         banca.toLowerCase().includes("aocp") ||
         banca.toLowerCase().includes("idecan")));
 
-  // ⚡ Estratégia de Cache Híbrido:
+  // ⚡ Estratégia de Cache Híbrido Semântico:
   // Se for simulado padrão (não adaptativo, sem texto/lei avulsa e sem recorte restrito),
-  // reaproveitamos até 40% de questões inéditas para o aluno direto do banco, acelerando a resposta e economizando tokens da IA.
+  // reaproveitamos de 60% a 100% de questões inéditas para o aluno direto do banco, acelerando a resposta e economizando tokens da IA.
   const isEligibleForCache =
     !params.adaptiveMode &&
     !params.textoBase &&
@@ -605,7 +607,11 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
 
   let cachedQuestions: QuestaoGerada[] = [];
   if (isEligibleForCache) {
-    const maxToReuse = Math.floor(quantidadeTotal * 0.4);
+    const effectiveRatio = params.preferCachedQuestions
+      ? 1.0 // Até 100% se solicitado modo rápido/econômico
+      : Math.min(Math.max(params.cacheRatio ?? 0.6, 0.2), 0.9); // Padrão 60%
+
+    const maxToReuse = Math.max(1, Math.floor(quantidadeTotal * effectiveRatio));
     if (maxToReuse > 0) {
       cachedQuestions = await fetchCachedQuestionsForSimulado({
         banca,
