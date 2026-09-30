@@ -217,6 +217,28 @@ export function PrintableQuestions({
             column-rule: 0.5pt solid #cbd5e1 !important;
             display: block !important;
           }
+
+          /* 9. Modo Econômico: compressão vertical agressiva para economizar até 40% de papel */
+          .is-compact .print-columns-grid {
+            column-count: 2 !important;
+            column-gap: 5mm !important;
+          }
+
+          .is-compact .compact-q-block {
+            margin-bottom: 2mm !important;
+            padding-bottom: 1.5mm !important;
+          }
+
+          .is-compact .q-statement-text {
+            font-size: 9.5px !important;
+            line-height: 1.3 !important;
+            margin-bottom: 1.5mm !important;
+          }
+
+          .is-compact .q-alt-item {
+            font-size: 9px !important;
+            line-height: 1.25 !important;
+          }
         }
       `}</style>
 
@@ -296,13 +318,13 @@ export function PrintableQuestions({
               onClick={() => setIsCompactMode(!isCompactMode)}
               className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 isCompactMode
-                  ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                  ? "bg-amber-500/25 border-amber-500/50 text-amber-200 ring-1 ring-amber-400/40 shadow-sm"
                   : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
               }`}
-              title="Economiza folhas reduzindo ligeiramente a fonte"
+              title="Economiza folhas reduzindo o espaçamento e tamanho da fonte"
             >
               <Columns size={13} />
-              <span>{isCompactMode ? "Modo Econômico" : "Modo Padrão"}</span>
+              <span>{isCompactMode ? "Modo Econômico: ATIVADO" : "Modo Econômico"}</span>
             </button>
 
             {/* Botão Primário Imprimir */}
@@ -322,7 +344,9 @@ export function PrintableQuestions({
         {/* ========================================================================= */}
         <div
           id="printable-paper"
-          className="max-w-5xl mx-auto bg-white text-black p-6 sm:p-10 md:p-14 rounded-2xl shadow-2xl print:shadow-none print:p-0 print:max-w-none print:w-full font-serif print:block print:static print:overflow-visible print:m-0"
+          className={`max-w-5xl mx-auto bg-white text-black p-6 sm:p-10 md:p-14 rounded-2xl shadow-2xl print:shadow-none print:p-0 print:max-w-none print:w-full font-serif print:block print:static print:overflow-visible print:m-0 ${
+            isCompactMode ? "is-compact" : ""
+          }`}
         >
           {/* ========================================================================= */}
           {/* 1. FOLHA DE ROSTO / CAPA OFICIAL DE CONCURSO (EXATAMENTE 1 PÁGINA A4) */}
@@ -429,25 +453,32 @@ export function PrintableQuestions({
 
             <div
               className={`print-columns-grid ${
-                isCompactMode ? "space-y-3" : "space-y-4"
+                isCompactMode ? "columns-compact" : ""
               }`}
             >
               {questions.map((q) => {
                 const isCertoErrado = q.format === "certo_errado";
-                const totalOptions = q.options?.length || 4;
 
                 return (
                   <div
                     key={q.id}
-                    className="print-avoid-break mb-3.5 pb-2.5 border-b border-slate-200"
+                    className={`print-avoid-break border-b border-slate-200 ${
+                      isCompactMode
+                        ? "compact-q-block mb-2 pb-1.5"
+                        : "mb-3.5 pb-2.5"
+                    }`}
                   >
                     {/* NÚMERO E MATÉRIA */}
-                    <div className="flex items-center justify-between gap-2 mb-1.5 font-sans">
-                      <span className="font-black text-black text-[10.5px] uppercase tracking-wider bg-slate-200 px-1.5 py-0.5 rounded-xs">
+                    <div className={`flex items-center justify-between gap-2 font-sans ${isCompactMode ? "mb-1" : "mb-1.5"}`}>
+                      <span className={`font-black text-black uppercase tracking-wider bg-slate-200 rounded-xs shrink-0 ${
+                        isCompactMode ? "text-[9px] px-1 py-0.2" : "text-[10.5px] px-1.5 py-0.5"
+                      }`}>
                         QUESTÃO {q.number}
                       </span>
                       {q.subjectName && (
-                        <span className="text-[8.5px] font-bold text-slate-500 uppercase truncate max-w-[140px]">
+                        <span className={`font-bold text-slate-600 uppercase text-right leading-tight max-w-[220px] break-words ${
+                          isCompactMode ? "text-[7.5px]" : "text-[8.5px]"
+                        }`}>
                           {q.subjectName}
                         </span>
                       )}
@@ -455,8 +486,10 @@ export function PrintableQuestions({
 
                     {/* ENUNCIADO COMPACTO E JUSTIFICADO */}
                     <p
-                      className={`leading-relaxed text-slate-900 font-normal mb-2 whitespace-pre-line text-justify ${
-                        isCompactMode ? "text-[10.5px]" : "text-[11.5px]"
+                      className={`q-statement-text text-slate-900 font-normal whitespace-pre-line text-justify ${
+                        isCompactMode
+                          ? "text-[9.5px] leading-snug mb-1"
+                          : "text-[11.5px] leading-relaxed mb-2"
                       }`}
                     >
                       {renderPrintableStatement(q.statement)}
@@ -464,15 +497,21 @@ export function PrintableQuestions({
 
                     {/* ALTERNATIVAS */}
                     {isCertoErrado ? (
-                      <div className="font-sans text-[10.5px] space-y-1 pl-1">
+                      <div className={`font-sans pl-1 ${
+                        isCompactMode ? "text-[9px] space-y-0.5" : "text-[10.5px] space-y-1"
+                      }`}>
                         <div className="flex items-center gap-1.5">
-                          <span className="w-4 h-4 rounded-full border border-black flex items-center justify-center font-bold text-[9px]">
+                          <span className={`rounded-full border border-black flex items-center justify-center font-bold shrink-0 ${
+                            isCompactMode ? "w-3.5 h-3.5 text-[8px]" : "w-4 h-4 text-[9px]"
+                          }`}>
                             C
                           </span>
                           <span>CERTO</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="w-4 h-4 rounded-full border border-black flex items-center justify-center font-bold text-[9px]">
+                          <span className={`rounded-full border border-black flex items-center justify-center font-bold shrink-0 ${
+                            isCompactMode ? "w-3.5 h-3.5 text-[8px]" : "w-4 h-4 text-[9px]"
+                          }`}>
                             E
                           </span>
                           <span>ERRADO</span>
@@ -481,18 +520,24 @@ export function PrintableQuestions({
                     ) : (
                       q.options &&
                       q.options.length > 0 && (
-                        <div className="space-y-1 font-sans text-[10.5px] pl-0.5">
+                        <div className={`font-sans pl-0.5 ${
+                          isCompactMode ? "space-y-0.5 text-[9.5px]" : "space-y-1 text-[10.5px]"
+                        }`}>
                           {q.options.map((opt, idx) => {
                             const letter = String.fromCharCode(65 + idx);
                             return (
                               <div
                                 key={idx}
-                                className="flex items-start gap-1.5 text-slate-900 leading-snug text-justify"
+                                className={`q-alt-item flex items-start gap-1.5 text-slate-900 text-justify ${
+                                  isCompactMode ? "leading-tight" : "leading-snug"
+                                }`}
                               >
-                                <span className="w-4 h-4 rounded-full border border-black flex items-center justify-center font-bold text-[9px] shrink-0 mt-0.5">
+                                <span className={`rounded-full border border-black flex items-center justify-center font-bold shrink-0 ${
+                                  isCompactMode ? "w-3.5 h-3.5 text-[8px] mt-0.2" : "w-4 h-4 text-[9px] mt-0.5"
+                                }`}>
                                   {letter}
                                 </span>
-                                <span>{opt}</span>
+                                <span className={isCompactMode ? "leading-tight" : "leading-snug"}>{opt}</span>
                               </div>
                             );
                           })}
@@ -678,7 +723,7 @@ export function PrintableQuestions({
                           Gabarito: {q.correctOption}
                         </span>
                         {q.subjectName && (
-                          <span className="text-[9px] text-slate-500 font-normal truncate max-w-[120px]">
+                          <span className="text-[9px] text-slate-500 font-normal">
                             ({q.subjectName})
                           </span>
                         )}

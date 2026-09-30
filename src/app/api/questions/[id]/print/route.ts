@@ -202,8 +202,8 @@ export async function GET(
     .columns-grid { column-count: 2; column-gap: 24px; column-rule: 1px solid #e2e8f0; }
     .question-block { break-inside: avoid; page-break-inside: avoid; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
     .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-family: sans-serif; }
-    .q-badge { background: #e2e8f0; font-size: 10px; font-weight: 800; padding: 2px 6px; text-transform: uppercase; }
-    .q-subject { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .q-badge { background: #e2e8f0; font-size: 10px; font-weight: 800; padding: 2px 6px; text-transform: uppercase; shrink-0; }
+    .q-subject { font-size: 8.5px; font-weight: 700; color: #64748b; text-transform: uppercase; text-align: right; max-width: 220px; line-height: 1.2; word-break: break-word; }
     .q-statement { font-size: 11.5px; text-align: justify; margin-bottom: 8px; }
     .options-container { font-family: sans-serif; font-size: 10.5px; display: flex; flex-direction: column; gap: 4px; }
     .option-item { display: flex; align-items: flex-start; gap: 6px; text-align: justify; }
