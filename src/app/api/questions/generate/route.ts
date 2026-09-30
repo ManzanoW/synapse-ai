@@ -5,6 +5,11 @@ import {
   getDeterministicFallbackQuestions,
 } from "@/lib/simulado-generator";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
+import {
+  getClientIdentifier,
+  checkRateLimitAndGenerateResponse,
+  questionGenerationLimiter,
+} from "@/lib/rate-limiter";
 
 export async function POST(request: Request) {
   let requestBody: any = null;
@@ -17,6 +22,15 @@ export async function POST(request: Request) {
         { error: "Faça login para gerar simulados com IA." },
         { status: 401 },
       );
+    }
+
+    const clientId = getClientIdentifier(request, userId);
+    const rateCheck = checkRateLimitAndGenerateResponse(
+      questionGenerationLimiter,
+      clientId,
+    );
+    if (!rateCheck.allowed && rateCheck.response) {
+      return rateCheck.response;
     }
 
     const body = await request.json();
@@ -79,18 +93,21 @@ export async function POST(request: Request) {
       await consumeAiQuota(userId, "SIMULADO").catch(() => {});
     }
 
-    return NextResponse.json({
-      success: true,
-      id: simuladoId,
-      simuladoId: simuladoId,
-      total: questions.length,
-      data: questions,
-      quizId: simuladoId,
-      sessionId: simuladoId,
-      usedModel: result.usedModel,
-      durationMs: result.durationMs,
-      isFallbackPool: Boolean(result.isFallbackPool),
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        id: simuladoId,
+        simuladoId: simuladoId,
+        total: questions.length,
+        data: questions,
+        quizId: simuladoId,
+        sessionId: simuladoId,
+        usedModel: result.usedModel,
+        durationMs: result.durationMs,
+        isFallbackPool: Boolean(result.isFallbackPool),
+      },
+      { headers: rateCheck.headers },
+    );
   } catch (error: unknown) {
     console.error(
       "Erro ao gerar com IA, acionando contingência de Fallback Determinístico:",

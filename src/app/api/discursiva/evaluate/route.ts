@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { evaluateDiscursivaEssay } from "@/lib/discursiva-evaluator";
 import { recordStudyActivityAction } from "@/actions/gamification-actions";
 import { EvaluateDiscursivaSchema } from "@/lib/validations";
+import {
+  getClientIdentifier,
+  checkRateLimitAndGenerateResponse,
+  discursivaEvaluationLimiter,
+} from "@/lib/rate-limiter";
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +21,16 @@ export async function POST(request: Request) {
     }
 
     const userId = session.user.id;
+
+    const clientId = getClientIdentifier(request, userId);
+    const rateCheck = checkRateLimitAndGenerateResponse(
+      discursivaEvaluationLimiter,
+      clientId,
+    );
+    if (!rateCheck.allowed && rateCheck.response) {
+      return rateCheck.response;
+    }
+
     const body = await request.json();
 
     const parseResult = EvaluateDiscursivaSchema.safeParse(body);
@@ -120,7 +135,7 @@ export async function POST(request: Request) {
         descontoFormal: evaluation.descontoFormal,
         numeroErros: evaluation.numeroErros,
       },
-    });
+    }, { headers: rateCheck.headers });
   } catch (error) {
     console.error("[/api/discursiva/evaluate] Erro ao avaliar redação:", error);
     return NextResponse.json(

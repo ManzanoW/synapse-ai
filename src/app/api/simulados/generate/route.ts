@@ -1,11 +1,25 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { generateSimuladoInParallel } from "@/lib/simulado-generator";
+import {
+  getClientIdentifier,
+  checkRateLimitAndGenerateResponse,
+  simuladoGenerationLimiter,
+} from "@/lib/rate-limiter";
 
 export async function POST(request: Request) {
   try {
     const session = await auth();
     const userId = session?.user?.id;
+
+    const clientId = getClientIdentifier(request, userId);
+    const rateCheck = checkRateLimitAndGenerateResponse(
+      simuladoGenerationLimiter,
+      clientId,
+    );
+    if (!rateCheck.allowed && rateCheck.response) {
+      return rateCheck.response;
+    }
 
     const body = await request.json();
     const {
@@ -54,7 +68,7 @@ export async function POST(request: Request) {
         usedModel: result.usedModel,
         durationMs: result.durationMs,
       },
-      { status: 200 },
+      { status: 200, headers: rateCheck.headers },
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);

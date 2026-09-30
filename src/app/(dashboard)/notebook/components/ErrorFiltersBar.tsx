@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, Filter, BookOpen, Brain, CheckCircle, Clock, X } from "lucide-react";
+import { Search, Filter, BookOpen, Brain, CheckCircle, Clock, X, ShieldCheck, Loader2 } from "lucide-react";
 import { ErrorNotebookFilters } from "@/types/quiz";
 import { TAXONOMY_METADATA } from "@/lib/error-taxonomy";
 
@@ -16,6 +16,8 @@ interface ErrorFiltersBarProps {
   onFilterChange: (newFilters: Partial<ErrorNotebookFilters>) => void;
   subjects: SubjectOption[];
   onResetFilters: () => void;
+  onStartRedemption?: (count?: number) => Promise<void> | void;
+  isGeneratingRedemption?: boolean;
 }
 
 export function ErrorFiltersBar({
@@ -23,6 +25,8 @@ export function ErrorFiltersBar({
   onFilterChange,
   subjects,
   onResetFilters,
+  onStartRedemption,
+  isGeneratingRedemption = false,
 }: ErrorFiltersBarProps) {
   const [searchValue, setSearchValue] = React.useState(filters.search || "");
 
@@ -162,6 +166,29 @@ export function ErrorFiltersBar({
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
             />
           </div>
+
+          {/* Botão Contextual de Redenção por Matéria */}
+          {onStartRedemption && filters.subjectId && filters.subjectId !== "ALL" && (
+            <button
+              onClick={() => onStartRedemption(5)}
+              disabled={isGeneratingRedemption}
+              type="button"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold text-amber-200 hover:text-white bg-gradient-to-r from-rose-500/20 to-amber-500/20 hover:from-rose-500/30 hover:to-amber-500/30 border border-amber-500/40 rounded-xl transition-all cursor-pointer min-h-[44px] shadow-sm active:scale-95 disabled:opacity-50"
+              title="Gerar Simulado de Redenção focado nos erros desta matéria"
+            >
+              {isGeneratingRedemption ? (
+                <>
+                  <Loader2 size={13} className="animate-spin text-amber-400" />
+                  <span>Gerando...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={14} className="text-amber-400" />
+                  <span>Redenção desta Matéria</span>
+                </>
+              )}
+            </button>
+          )}
 
           {/* Botão de Limpar Filtros */}
           {hasActiveFilters && (

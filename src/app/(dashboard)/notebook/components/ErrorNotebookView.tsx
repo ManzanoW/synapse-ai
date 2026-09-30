@@ -483,6 +483,8 @@ export function ErrorNotebookView({
         onToggleSpotlight={spotlight.toggle}
         onBatchCreateFlashcards={handleBatchCreateFlashcards}
         isCreatingBatchFlashcards={isCreatingBatchFlashcards}
+        onStartRedemption={handleStartRedemption}
+        isGeneratingRedemption={isGeneratingRedemption}
       />
 
       {/* 2. Barra de Filtros */}
@@ -491,6 +493,8 @@ export function ErrorNotebookView({
         onFilterChange={handleFilterChange}
         subjects={subjects}
         onResetFilters={handleResetFilters}
+        onStartRedemption={handleStartRedemption}
+        isGeneratingRedemption={isGeneratingRedemption}
       />
 
       {/* 3. Indicador de Carregamento nos Filtros / Busca */}

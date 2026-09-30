@@ -425,15 +425,26 @@ export function QuizResolutionView({
     }
   };
 
-  // Atalhos de teclado (Desktop)
+  // Atalhos de teclado Turbo (Desktop)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignora digitação em inputs, textareas ou elementos editáveis
       const target = e.target as HTMLElement;
       if (
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
         target.isContentEditable
       ) {
+        return;
+      }
+
+      // Ignora se modais de confirmação estiverem abertos
+      if (showExitConfirmModal || showFinishConfirmModal) {
+        return;
+      }
+
+      // Permite Cmd+J / Ctrl+J sem colidir
+      if (e.metaKey || e.ctrlKey || e.altKey) {
         return;
       }
 
@@ -451,7 +462,7 @@ export function QuizResolutionView({
         return;
       }
 
-      // Confirmação com Enter ou Espaço
+      // Confirmação / Avanço com Enter ou Espaço
       if (e.key === "Enter" || e.code === "Space") {
         if (!isCurrentAnswered && currentSelectedAlt) {
           e.preventDefault();
@@ -459,7 +470,38 @@ export function QuizResolutionView({
         } else if (isCurrentAnswered && activeQuestionIndex < totalQuestions - 1) {
           e.preventDefault();
           navigateTo(activeQuestionIndex + 1);
+        } else if (isCurrentAnswered && activeQuestionIndex >= totalQuestions - 1) {
+          e.preventDefault();
+          handlePromptFinalize();
         }
+        return;
+      }
+
+      // Atalho R ou X: Marcar / desmarcar para revisão
+      if (keyUpper === "R" || keyUpper === "X") {
+        e.preventDefault();
+        handleToggleFlag();
+        return;
+      }
+
+      // Atalho F: Criar Flashcard com IA instantaneamente
+      if (keyUpper === "F" && onCreateFlashcard && !isCreatingFlashcard) {
+        e.preventDefault();
+        onCreateFlashcard(activeQuestionIndex);
+        return;
+      }
+
+      // Atalho M: Alternar o Mentor Copilot IA
+      if (keyUpper === "M") {
+        e.preventDefault();
+        setIsMentorOpen((prev) => !prev);
+        return;
+      }
+
+      // Atalho P: Alternar Modo de Impressão A4
+      if (keyUpper === "P") {
+        e.preventDefault();
+        setIsPrintMode((prev) => !prev);
         return;
       }
 
@@ -512,6 +554,12 @@ export function QuizResolutionView({
     handleConfirmAnswer,
     handleSelectAnswer,
     totalQuestions,
+    showExitConfirmModal,
+    showFinishConfirmModal,
+    handleToggleFlag,
+    onCreateFlashcard,
+    isCreatingFlashcard,
+    handlePromptFinalize,
   ]);
 
   if (isPrintMode) {
@@ -786,18 +834,19 @@ export function QuizResolutionView({
                   <div className="flex items-center gap-2">
                     {/* Botão Copilot Mentor IA */}
                     <button
-                      onClick={() => setIsMentorOpen(true)}
+                      onClick={() => setIsMentorOpen((prev) => !prev)}
                       type="button"
                       className="px-3 py-1.5 rounded-xl border border-violet-500/40 bg-violet-500/15 text-violet-300 hover:bg-violet-500/25 hover:border-violet-500/60 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-md shadow-violet-950/40"
-                      title="Abrir Mentor IA Copilot (⌘J ou Ctrl+J)"
+                      title="Abrir Mentor IA Copilot (Atalho: M ou ⌘J)"
                     >
                       <Brain size={14} className="text-violet-400" />
                       <span>Mentor IA</span>
-                      <span className="text-[9px] font-mono text-violet-400/90 bg-violet-500/25 px-1 py-0.5 rounded border border-violet-500/30 hidden sm:inline">
-                        ⌘J
+                      <span className="text-[9px] font-mono font-bold text-violet-300 bg-violet-500/30 px-1.5 py-0.5 rounded border border-violet-500/40 hidden sm:inline">
+                        M
                       </span>
                     </button>
 
+                    {/* Botão Marcar para Revisar */}
                     <button
                       onClick={handleToggleFlag}
                       type="button"
@@ -806,14 +855,40 @@ export function QuizResolutionView({
                           ? "bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-md shadow-amber-950/40"
                           : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
                       }`}
-                      title="Marcar para revisar no painel"
+                      title="Marcar para revisar no painel (Atalho: R)"
                     >
                       <Flag
                         size={14}
                         className={isCurrentFlagged ? "fill-amber-300 text-amber-300" : ""}
                       />
-                      <span>{isCurrentFlagged ? "Marcada para Revisar" : "Marcar p/ Revisar"}</span>
+                      <span>{isCurrentFlagged ? "Revisar" : "Revisar"}</span>
+                      <span className="text-[9px] font-mono font-bold text-slate-300 bg-white/10 px-1.5 py-0.5 rounded border border-white/10 hidden sm:inline">
+                        R
+                      </span>
                     </button>
+
+                    {/* Botão Rápido de Flashcard */}
+                    {onCreateFlashcard && (
+                      <button
+                        onClick={() => onCreateFlashcard(activeQuestionIndex)}
+                        disabled={isCreatingFlashcard}
+                        type="button"
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 ${
+                          createdFlashcards[activeQuestionIndex]
+                            ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
+                            : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
+                        }`}
+                        title="Criar Flashcard desta questão (Atalho: F)"
+                      >
+                        <Layers size={14} className={createdFlashcards[activeQuestionIndex] ? "text-emerald-400" : "text-violet-400"} />
+                        <span className="hidden sm:inline">
+                          {createdFlashcards[activeQuestionIndex] ? "Card Salvo" : "Flashcard"}
+                        </span>
+                        <span className="text-[9px] font-mono font-bold text-slate-300 bg-white/10 px-1.5 py-0.5 rounded border border-white/10 hidden sm:inline">
+                          F
+                        </span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -889,8 +964,10 @@ export function QuizResolutionView({
                               </div>
 
                               {!isCurrentAnswered && (
-                                <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-violet-300 border border-slate-800 group-hover:border-violet-500/40 px-2 py-0.5 rounded-lg shrink-0 self-center transition-colors">
-                                  {atalhoNum}
+                                <kbd className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono font-bold text-slate-400 group-hover:text-violet-300 border border-slate-800 group-hover:border-violet-500/40 px-2 py-0.5 rounded-lg shrink-0 self-center transition-colors shadow-xs">
+                                  <span>{alt.id}</span>
+                                  <span className="opacity-30">•</span>
+                                  <span className="opacity-70">{atalhoNum}</span>
                                 </kbd>
                               )}
 
@@ -978,8 +1055,10 @@ export function QuizResolutionView({
                             </div>
 
                             {!isCurrentAnswered && (
-                              <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-violet-300 border border-slate-800 group-hover:border-violet-500/40 px-2 py-0.5 rounded-lg transition-colors">
-                                {atalhoNum}
+                              <kbd className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono font-bold text-slate-400 group-hover:text-violet-300 border border-slate-800 group-hover:border-violet-500/40 px-2 py-0.5 rounded-lg transition-colors shadow-xs">
+                                <span>{opcao === "Certo" ? "C" : "E"}</span>
+                                <span className="opacity-30">•</span>
+                                <span className="opacity-70">{atalhoNum}</span>
                               </kbd>
                             )}
 
@@ -1420,31 +1499,67 @@ export function QuizResolutionView({
                 {/* BARRA INFERIOR DESKTOP (Navegação + Atalhos Visíveis) */}
                 {/* ================================================================= */}
                 <div className="hidden lg:flex items-center justify-between border-t border-white/10 pt-6 mt-6 gap-4 relative z-10">
-                  {/* Atalhos Visíveis */}
-                  <div className="flex items-center gap-3 text-xs font-mono text-slate-400">
+                  {/* Atalhos Visíveis Turbo */}
+                  <div className="flex flex-wrap items-center gap-2.5 text-xs font-mono text-slate-400">
                     <span className="flex items-center gap-1">
-                      <kbd className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-[11px] font-bold text-slate-300">
+                      <kbd className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-200">
                         A-E
                       </kbd>
-                      <span className="text-slate-500">Selecionar</span>
+                      <span className="text-slate-500 text-[11px]">Selecionar</span>
                     </span>
 
                     <span className="text-slate-700">•</span>
 
                     <span className="flex items-center gap-1">
-                      <kbd className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-[11px] font-bold text-slate-300">
-                        ← / →
-                      </kbd>
-                      <span className="text-slate-500">Navegar</span>
-                    </span>
-
-                    <span className="text-slate-700">•</span>
-
-                    <span className="flex items-center gap-1">
-                      <kbd className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-[11px] font-bold text-violet-300">
+                      <kbd className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-violet-300">
                         Enter
                       </kbd>
-                      <span className="text-slate-500">Confirmar</span>
+                      <span className="text-slate-500 text-[11px]">Confirmar/Avançar</span>
+                    </span>
+
+                    <span className="text-slate-700">•</span>
+
+                    <span className="flex items-center gap-1">
+                      <kbd className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-300">
+                        ← / →
+                      </kbd>
+                      <span className="text-slate-500 text-[11px]">Navegar</span>
+                    </span>
+
+                    <span className="text-slate-700">•</span>
+
+                    <span className="flex items-center gap-1">
+                      <kbd className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-amber-300">
+                        R
+                      </kbd>
+                      <span className="text-slate-500 text-[11px]">Revisar</span>
+                    </span>
+
+                    <span className="text-slate-700">•</span>
+
+                    <span className="flex items-center gap-1">
+                      <kbd className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-indigo-300">
+                        F
+                      </kbd>
+                      <span className="text-slate-500 text-[11px]">Flashcard</span>
+                    </span>
+
+                    <span className="text-slate-700">•</span>
+
+                    <span className="flex items-center gap-1">
+                      <kbd className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-violet-300">
+                        M
+                      </kbd>
+                      <span className="text-slate-500 text-[11px]">Mentor</span>
+                    </span>
+
+                    <span className="text-slate-700">•</span>
+
+                    <span className="flex items-center gap-1">
+                      <kbd className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-300">
+                        P
+                      </kbd>
+                      <span className="text-slate-500 text-[11px]">Imprimir</span>
                     </span>
                   </div>
 
