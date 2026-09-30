@@ -108,7 +108,7 @@ export default function Heatmap() {
                         <strong className="text-indigo-400">
                           {formattedDate}
                         </strong>
-                        : {count} {count === 1 ? "revisão" : "revisões"}
+                        : {count} {count === 1 ? "atividade" : "atividades"}
                       </div>
                       <div className="-mt-1 h-1.5 w-1.5 rotate-45 border-r border-b border-white/10 bg-slate-900" />
                     </div>

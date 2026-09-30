@@ -486,11 +486,18 @@ export default function StudyFlashcard({
           handleAnswer(4);
         }
       }
+
+      // Atalho H: Alternar Modo de Áudio Hands-Free
+      if (e.key.toLowerCase() === "h") {
+        e.preventDefault();
+        setIsAudioPlayerOpen((prev) => !prev);
+        return;
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFlipped, isFinished, currentCard, handleAnswer, toggleFlip]);
+  }, [isFlipped, isFinished, currentCard, handleAnswer, toggleFlip, setIsAudioPlayerOpen]);
 
   if (!cards || cards.length === 0) {
     return (
@@ -662,10 +669,13 @@ export default function StudyFlashcard({
                   type="button"
                   onClick={() => setIsAudioPlayerOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 hover:text-indigo-300 text-[10px] sm:text-[11px] font-bold transition-all shadow-xs cursor-pointer active:scale-95"
-                  title="Estudo com áudio contínuo para fones de ouvido (trânsito, academia)"
+                  title="Estudo com áudio contínuo para fones de ouvido (Atalho: H)"
                 >
                   <Headphones size={13} className="text-indigo-400" />
                   <span className="hidden sm:inline">Modo Fones</span>
+                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 hidden sm:inline">
+                    H
+                  </span>
                 </button>
 
                 <div

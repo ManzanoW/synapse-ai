@@ -30,6 +30,10 @@ import {
   TrendingUp,
   TrendingDown,
   ExternalLink,
+  Activity,
+  Radar,
+  Gauge,
+  Timer,
 } from "lucide-react";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 import { useGamification } from "@/context/GamificationContext";
@@ -268,6 +272,103 @@ export function QuizResultView({
         "Retenção abaixo do ideal. Recomendamos adicionar os erros ao Caderno de Erros e reforçar a teoria base.",
     };
   }, [percentageAcc]);
+
+  // Cálculos de Pacing e Distribuição Estratégica de Tempo
+  const pacingMetrics = useMemo(() => {
+    const key = (banca || "").toUpperCase();
+    let targetTimeSec = 150; // padrão 2.5 min
+    if (key.includes("CEBRASPE") || key.includes("CESPE")) targetTimeSec = 120;
+    else if (key.includes("FGV")) targetTimeSec = 180;
+    else if (key.includes("FCC")) targetTimeSec = 150;
+    else if (key.includes("VUNESP")) targetTimeSec = 135;
+
+    const timeRatio = averageTimePerQuestion / targetTimeSec;
+    let pacingStatus: "VELOZ" | "IDEAL" | "LENTO" = "IDEAL";
+    if (timeRatio < 0.75) pacingStatus = "VELOZ";
+    else if (timeRatio > 1.25) pacingStatus = "LENTO";
+
+    let fastCorrect = 0;   // ⚡ Zona Ágil (tempo eficiente e acerto)
+    let slowCorrect = 0;   // ⏳ Esforço Recompensado (tempo longo e acerto)
+    let fastIncorrect = 0; // 🕳️ Armadilha Apressada (tempo rápido e erro)
+    let slowIncorrect = 0; // ⚠️ Dreno de Tempo (tempo excessivo e erro)
+
+    questions.forEach((q, idx) => {
+      const isCorrect = selectedAnswers[idx] === q.gabaritoCorreto;
+      const wordCount = (q.enunciado || "").split(/\s+/).length;
+      const estimatedTime = averageTimePerQuestion * (wordCount > 60 ? 1.2 : 0.85);
+
+      if (isCorrect) {
+        if (estimatedTime <= targetTimeSec) fastCorrect++;
+        else slowCorrect++;
+      } else {
+        if (estimatedTime <= targetTimeSec) fastIncorrect++;
+        else slowIncorrect++;
+      }
+    });
+
+    const efficiencyScore = Math.min(
+      100,
+      Math.round((fastCorrect / Math.max(1, totalQuestions)) * 60 + percentageAcc * 0.4)
+    );
+
+    return {
+      targetTimeSec,
+      pacingStatus,
+      fastCorrect,
+      slowCorrect,
+      fastIncorrect,
+      slowIncorrect,
+      efficiencyScore,
+    };
+  }, [banca, averageTimePerQuestion, questions, selectedAnswers, totalQuestions, percentageAcc]);
+
+  // Cálculo do Radar de Competências da Prova (5 eixos em 0 a 100)
+  const radarMetrics = useMemo(() => {
+    // 1. Teoria Base
+    const theoryScore = percentageAcc;
+
+    // 2. Anti-Pegadinha (desvio de armadilhas)
+    const trapQuestions = questions.filter(
+      (q) => q.pegadinhaBanca || (q.mentorGuidance && q.mentorGuidance.trapWarning)
+    );
+    const trapAvoided = trapQuestions.length > 0
+      ? Math.round(
+          (trapQuestions.filter((q) => {
+            const originalIdx = questions.indexOf(q);
+            return selectedAnswers[originalIdx] === q.gabaritoCorreto;
+          }).length / trapQuestions.length) * 100
+        )
+      : Math.min(100, Math.round(percentageAcc * 0.95 + 10));
+
+    // 3. Gestão do Tempo (aderência ao target da banca)
+    const timeRatio = averageTimePerQuestion / pacingMetrics.targetTimeSec;
+    const timeScore = Math.round(Math.max(25, Math.min(100, 100 - Math.abs(1 - timeRatio) * 60)));
+
+    // 4. Interpretação de Enunciados Densos
+    const longQuestions = questions.filter((q) => (q.enunciado || "").length > 180);
+    const longScore = longQuestions.length > 0
+      ? Math.round(
+          (longQuestions.filter((q) => {
+            const originalIdx = questions.indexOf(q);
+            return selectedAnswers[originalIdx] === q.gabaritoCorreto;
+          }).length / longQuestions.length) * 100
+        )
+      : Math.min(100, percentageAcc);
+
+    // 5. Precisão Crítica
+    const precisionScore = Math.min(
+      100,
+      Math.round(percentageAcc * 0.85 + (pacingMetrics.fastCorrect / Math.max(1, totalQuestions)) * 20)
+    );
+
+    return [
+      { label: "Teoria Base", value: Math.min(100, theoryScore) },
+      { label: "Anti-Pegadinha", value: Math.min(100, trapAvoided) },
+      { label: "Gestão de Tempo", value: Math.min(100, timeScore) },
+      { label: "Interpretação", value: Math.min(100, longScore) },
+      { label: "Precisão Crítica", value: Math.min(100, precisionScore) },
+    ];
+  }, [percentageAcc, questions, selectedAnswers, averageTimePerQuestion, pacingMetrics, totalQuestions]);
 
   // Lista filtrada de questões
   const filteredQuestions = useMemo(() => {
@@ -790,6 +891,231 @@ export function QuizResultView({
               <p className="text-[11px] text-slate-400 leading-tight">
                 {competitiveness.advice}
               </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* NOVO: MATRIZ DE PACING (TEMPO VS PRECISÃO) & RADAR DE COMPETÊNCIAS        */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* LADO ESQUERDO (7 cols): MATRIZ DE PACING EM 4 QUADRANTES */}
+          <div className="lg:col-span-7 bg-gradient-to-br from-[#090d18] via-[#070b16] to-[#04060c] border border-white/10 hover:border-violet-500/30 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-3 gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-300 shrink-0">
+                  <Timer size={18} />
+                </span>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                    <span>Matriz de Pacing & Tempo</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                      Banca {banca}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Alvo da prova: ~{pacingMetrics.targetTimeSec}s/questão • Seu ritmo: ~{averageTimePerQuestion}s
+                  </p>
+                </div>
+              </div>
+
+              <span className={`self-start sm:self-auto text-[10px] font-mono font-bold uppercase px-2.5 py-1 rounded-full border shrink-0 ${
+                pacingMetrics.pacingStatus === "IDEAL"
+                  ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                  : pacingMetrics.pacingStatus === "VELOZ"
+                  ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                  : "bg-rose-500/15 border-rose-500/30 text-rose-300"
+              }`}>
+                Ritmo {pacingMetrics.pacingStatus}
+              </span>
+            </div>
+
+            {/* 4 Quadrantes Estratégicos */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* Quadrante 1: Zona Ágil */}
+              <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                    <Zap size={14} className="text-emerald-400" /> Zona Ágil
+                  </span>
+                  <span className="text-base font-mono font-black text-emerald-200">
+                    {pacingMetrics.fastCorrect}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  Acertos em tempo ágil com domínio pleno. Ponto forte de velocidade na prova.
+                </p>
+              </div>
+
+              {/* Quadrante 2: Esforço Recompensado */}
+              <div className="p-3.5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                    <ShieldCheck size={14} className="text-indigo-400" /> Esforço Recompensado
+                  </span>
+                  <span className="text-base font-mono font-black text-indigo-200">
+                    {pacingMetrics.slowCorrect}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  Tempo estendido com acerto garantido. Raciocínio denso bem concluído.
+                </p>
+              </div>
+
+              {/* Quadrante 3: Armadilha Apressada */}
+              <div className="p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <AlertTriangle size={14} className="text-amber-400" /> Armadilha Apressada
+                  </span>
+                  <span className="text-base font-mono font-black text-amber-200">
+                    {pacingMetrics.fastIncorrect}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  Erros precipitados por desatenção ao comando ou distrator clássico da banca.
+                </p>
+              </div>
+
+              {/* Quadrante 4: Dreno de Tempo */}
+              <div className="p-3.5 rounded-2xl bg-rose-500/5 border border-rose-500/20 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                    <Clock size={14} className="text-rose-400" /> Dreno de Tempo
+                  </span>
+                  <span className="text-base font-mono font-black text-rose-200">
+                    {pacingMetrics.slowIncorrect}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  Gargalo crítico: muito tempo gasto e resultado incorreto. Priorize teoria.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* LADO DIREITO (5 cols): RADAR SVG DE COMPETÊNCIAS DA PROVA */}
+          <div className="lg:col-span-5 bg-gradient-to-br from-[#090d18] via-[#070b16] to-[#04060c] border border-white/10 hover:border-violet-500/30 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4 transition-all">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 shrink-0">
+                  <Radar size={18} />
+                </span>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-white">
+                    Radar de Competências
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Diagnóstico dos 5 pilares exigidos pela banca
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Gráfico Radar Pentagonal SVG */}
+            <div className="relative flex items-center justify-center py-2">
+              <svg className="w-48 h-48 select-none" viewBox="0 0 200 200">
+                <defs>
+                  <linearGradient id="radarNeonFill" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.45" />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.15" />
+                  </linearGradient>
+                </defs>
+
+                {/* Grade Concêntrica (Anéis 25%, 50%, 75%, 100%) */}
+                {[0.25, 0.5, 0.75, 1.0].map((step, sIdx) => {
+                  const r = 68 * step;
+                  const pts = Array.from({ length: 5 }, (_, i) => {
+                    const a = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+                    return `${100 + r * Math.cos(a)},${100 + r * Math.sin(a)}`;
+                  }).join(" ");
+                  return (
+                    <polygon
+                      key={sIdx}
+                      points={pts}
+                      fill="none"
+                      stroke="rgba(255, 255, 255, 0.08)"
+                      strokeWidth="1"
+                    />
+                  );
+                })}
+
+                {/* Eixos Radiais */}
+                {Array.from({ length: 5 }, (_, i) => {
+                  const a = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+                  const x = 100 + 68 * Math.cos(a);
+                  const y = 100 + 68 * Math.sin(a);
+                  return (
+                    <line
+                      key={i}
+                      x1="100"
+                      y1="100"
+                      x2={x}
+                      y2={y}
+                      stroke="rgba(255, 255, 255, 0.12)"
+                      strokeWidth="1"
+                      strokeDasharray="2,2"
+                    />
+                  );
+                })}
+
+                {/* Polígono de Dados do Aluno */}
+                {(() => {
+                  const points = radarMetrics.map((item, i) => {
+                    const r = 68 * (item.value / 100);
+                    const a = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+                    return `${100 + r * Math.cos(a)},${100 + r * Math.sin(a)}`;
+                  }).join(" ");
+
+                  return (
+                    <>
+                      <polygon
+                        points={points}
+                        fill="url(#radarNeonFill)"
+                        stroke="#a855f7"
+                        strokeWidth="2"
+                        className="transition-all duration-700"
+                      />
+                      {radarMetrics.map((item, i) => {
+                        const r = 68 * (item.value / 100);
+                        const a = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+                        const px = 100 + r * Math.cos(a);
+                        const py = 100 + r * Math.sin(a);
+                        return (
+                          <circle
+                            key={i}
+                            cx={px}
+                            cy={py}
+                            r="3.5"
+                            className="fill-violet-300 stroke-violet-900"
+                            strokeWidth="1.5"
+                          />
+                        );
+                      })}
+                    </>
+                  );
+                })()}
+              </svg>
+            </div>
+
+            {/* Lista dos 5 Eixos */}
+            <div className="space-y-1.5 pt-1 border-t border-white/5 text-xs">
+              {radarMetrics.map((metric, mIdx) => (
+                <div key={mIdx} className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 font-medium">{metric.label}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 bg-white/10 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-violet-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${metric.value}%` }}
+                      />
+                    </div>
+                    <span className="font-mono font-bold text-white w-7 text-right">
+                      {metric.value}%
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

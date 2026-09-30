@@ -45,10 +45,29 @@ export function GoldenVersionSplitView({
   lineErrors = [],
   strengths = [],
 }: GoldenVersionSplitViewProps) {
-  const [viewMode, setViewMode] = useState<"split" | "golden-only">("split");
+  const [viewMode, setViewMode] = useState<"split" | "diff" | "golden-only">("split");
   const [mobileTab, setMobileTab] = useState<"original" | "golden">("golden");
   const [highlightKeywords, setHighlightKeywords] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
+
+  // Parágrafos pareados para visualização Diff
+  const pairedParagraphs = useMemo(() => {
+    const origParas = (originalText || "")
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+    const goldParas = (goldenVersion || "")
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+    const maxLen = Math.max(origParas.length, goldParas.length);
+
+    return Array.from({ length: maxLen }, (_, i) => ({
+      index: i + 1,
+      original: origParas[i] || "",
+      golden: goldParas[i] || "",
+    }));
+  }, [originalText, goldenVersion]);
 
   // Calcula estatísticas da versão Ouro
   const goldenLines = useMemo(() => {
@@ -117,7 +136,7 @@ export function GoldenVersionSplitView({
     <div className="flex flex-col gap-5 w-full">
       {/* BARRA SUPERIOR DE CONTROLE E SELEÇÃO DE MODO */}
       <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 rounded-2xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-md dark:shadow-xl backdrop-blur-xl">
-        {/* Toggle Lado a Lado vs Somente Padrão Ouro */}
+        {/* Toggle Lado a Lado vs Diff vs Somente Padrão Ouro */}
         <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/80 p-1 rounded-xl border border-slate-200 dark:border-white/5">
           <button
             type="button"
@@ -130,6 +149,19 @@ export function GoldenVersionSplitView({
           >
             <Split size={14} />
             <span>Comparação Lado a Lado</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode("diff")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              viewMode === "diff"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+            }`}
+          >
+            <Sliders size={14} />
+            <span>Rastrear Alterações (Diff)</span>
           </button>
 
           <button
@@ -212,14 +244,78 @@ export function GoldenVersionSplitView({
         </div>
       )}
 
+      {/* MODO RASTREAMENTO DE ALTERAÇÕES (DIFF PARÁGRAFO A PARÁGRAFO) */}
+      {viewMode === "diff" && (
+        <div className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl p-5 sm:p-6 shadow-md dark:shadow-2xl backdrop-blur-xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3.5 gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                <Sliders size={16} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Rastreamento Estratégico de Alterações
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Compare parágrafo por parágrafo o que foi aperfeiçoado para atingir a nota 100
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] font-mono font-bold">
+              <span className="flex items-center gap-1 text-rose-500 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Seu Texto
+              </span>
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Padrão Ouro (IA)
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {pairedParagraphs.map((para) => (
+              <div
+                key={para.index}
+                className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-white/5 space-y-3"
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-mono font-bold text-violet-600 dark:text-violet-400 uppercase text-[11px]">
+                    Parágrafo {para.index.toString().padStart(2, "0")}
+                  </span>
+                </div>
+
+                {para.original && (
+                  <div className="p-3 rounded-lg bg-rose-500/5 border-l-2 border-rose-500/70 text-slate-800 dark:text-slate-300 font-serif text-[13.5px] leading-relaxed">
+                    <span className="block text-[10px] font-mono font-bold uppercase tracking-wider text-rose-500 dark:text-rose-400 mb-1">
+                      Versão Enviada
+                    </span>
+                    {para.original}
+                  </div>
+                )}
+
+                {para.golden && (
+                  <div className="p-3 rounded-lg bg-emerald-500/5 border-l-2 border-emerald-500/70 text-slate-800 dark:text-slate-200 font-serif text-[13.5px] leading-relaxed">
+                    <span className="block text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1">
+                      Versão Ouro Reformulada
+                    </span>
+                    {renderTextWithHighlights(para.golden, true)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* CONTAINER COMPARATIVO LADO A LADO */}
-      <div
-        className={`w-full ${
-          viewMode === "split"
-            ? "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"
-            : "flex flex-col gap-6"
-        }`}
-      >
+      {viewMode !== "diff" && (
+        <div
+          className={`w-full ${
+            viewMode === "split"
+              ? "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"
+              : "flex flex-col gap-6"
+          }`}
+        >
         {/* PAINEL ESQUERDO: SUA REDAÇÃO */}
         {viewMode === "split" && (
           <div
@@ -377,6 +473,7 @@ export function GoldenVersionSplitView({
           </div>
         </div>
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 }
