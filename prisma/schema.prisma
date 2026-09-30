@@ -207,6 +207,9 @@ model Flashcard {
 
   topicId String?
   topic   Topic?  @relation(fields: [topicId], references: [id])
+
+  @@index([deckId, nextReviewDate])
+  @@index([topicId])
 }
 
 model ReviewHistory {
@@ -216,6 +219,8 @@ model ReviewHistory {
   durationSeconds Int?     @default(60)
   reviewedAt      DateTime @default(now())
   topic           Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId, reviewedAt])
 }
 
 model Quiz {
@@ -232,6 +237,9 @@ model Quiz {
   topic   Topic?  @relation(fields: [topicId], references: [id])
   topicId String?
 
+  @@index([banca, subject])
+  @@index([userId, createdAt])
+  @@index([topicId])
   @@map("quizzes")
 }
 
