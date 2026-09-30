@@ -4,11 +4,14 @@ import { Type } from "@google/genai";
 import { PRESET_HEX_COLORS } from "@/constants/subjects";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 
+// Permite tempo suficiente para o Gemini processar editais longos sem timeout
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 interface AIResponse {
   text: string | null;
 }
 
-// 2. Interface atualizada com suporte a cor (HEX)
 interface RawMateria {
   nome?: string;
   materia?: string;
@@ -19,14 +22,11 @@ interface RawMateria {
   topics?: string[];
 }
 
-async function generateContentWithRetry(
-  prompt: string,
-): Promise<AIResponse> {
+async function generateContentWithRetry(prompt: string): Promise<AIResponse> {
   const result = await generateContentWithFallback({
     prompt,
     config: {
       responseMimeType: "application/json",
-      // 🟢 SCHEMA RÍGIDO: Força o Gemini a preencher a cor obrigatoriamente
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -53,7 +53,7 @@ async function generateContentWithRetry(
         required: ["materias"],
       },
     },
-    timeoutMs: 45000,
+    timeoutMs: 50000,
   });
 
   return { text: result.text || "" };
@@ -75,14 +75,17 @@ export async function POST(request: Request) {
       );
     }
 
+    // Limpeza de ruídos comuns de PDF para economizar tokens e acelerar a resposta
     const cleanText = text
       .replace(/\r\n/g, "\n")
+      .replace(/P[áa]gina \d+ de \d+/gi, "")
+      .replace(/Di[áa]rio Oficial da Uni[ãa]o|DOU|Edital n[ºo°]\s*\d+/gi, "")
       .replace(/\n{3,}/g, "\n\n")
       .replace(/[ \t]{2,}/g, " ")
-      .substring(0, 30000);
+      .substring(0, 24000);
 
     const prompt = `
-      Você é um especialista em organização de edital e técnicas de estudo.
+      Você é um especialista em organização de edital e técnicas de estudo para concursos públicos.
       Sua tarefa é analisar o texto do edital e extrair as Matérias e Tópicos de forma SINTÉTICA e PRÁTICA para estudo.
 
       TEXTO DO EDITAL:
@@ -95,19 +98,14 @@ export async function POST(request: Request) {
 
       REGRAS RIGOROSAS DE AGRUPAMENTO:
       1. NÍVEL DE GRANULARIDADE (Evite super-atomição):
-        - NÃO crie um tópico para cada tecnologia isolada ou frameworks.
+        - NÃO crie um tópico para cada tecnologia isolada ou framework.
         - AGRUPE linguagens e frameworks correlatos em um único tópico macro. 
         - Exemplo RUIM: Tópicos separados para "Java", "Spring", "Hibernate", "JPA".
         - Exemplo BOM: Tópico único chamado "Desenvolvimento Java (JavaEE, JPA, SpringBoot, Hibernate)".
 
-      2. CRIAÇÃO DE MATÉRIAS E ATRIBUIÇÃO DE CORES (CAMPO 'cor'):
-        - Se o texto contiver múltiplos blocos grandes de conhecimento (ex: Desenvolvimento, Testes, Engenharia de Requisitos, Frontend, UX), DIVIDA-OS em Matérias diferentes para não poluir uma única matéria.
-        - Exemplo: 
-          - Matéria 1: Desenvolvimento e Arquitetura de Software
-          - Matéria 2: Testes de Software e RPA
-          - Matéria 3: Metodologias Ágeis e Requisitos
-          - Matéria 4: Frontend e UX/UI
-        - Para CADA Matéria, atribua obrigatoriamente um código HEX do campo 'cor' baseando-se estritamente na categoria do conhecimento:
+      2. CRIAÇÃO DE MATÉRIAS E ATRIBUIÇÃO DE CORES (CAMPO 'color'):
+        - Se o texto contiver múltiplos blocos grandes de conhecimento, divida-os em matérias diferentes.
+        - Para CADA Matéria, atribua obrigatoriamente um código HEX da paleta:
           * '#3B82F6' -> Exatas, Engenharia, Programação, Arquitetura de Software ou Banco de Dados.
           * '#10B981' -> Testes de Software, Qualidade, Governança, Legislação Específica ou Auditoria.
           * '#8B5CF6' -> Metodologias Ágeis, Engenharia de Requisitos, Gestão de Projetos ou Direitos.
@@ -115,15 +113,14 @@ export async function POST(request: Request) {
           * '#EC4899' -> Redes de Computadores, Infraestrutura, Segurança da Informação ou Cyber Security.
 
       3. TAMANHO IDEAL:
-        - Tente manter entre 5 a 15 tópicos significativos por Matéria. Tópicos de estudo devem levar entre 1 a 3 horas para serem estudados/revisados, e não 5 minutos.
+        - Mantenha entre 4 e 12 tópicos significativos por Matéria.
 
       Retorne ESTRITAMENTE um objeto JSON válido no formato:
       {
         "materias": [
           {
             "nome": "Nome da Matéria",
-            "color": "#HEX_COR", // Deve ser uma das cores: #3B82F6 (Dev/Arch), #10B981 (Test/QA), #8B5CF6 (Methodologies), #F59E0B (Frontend/UX), #EC4899 (Security)
-    "topics": [
+            "color": "#3B82F6",
             "topicos": [
               "Nome do Tópico 1",
               "Nome do Tópico 2"
@@ -170,7 +167,6 @@ export async function POST(request: Request) {
           ? item.topics
           : [];
 
-      // Pega a cor que a IA enviou ou sorteia uma cor válida da nossa paleta como fallback resguardo
       const hexColor = item.cor || item.color;
       const validColor = PRESET_HEX_COLORS.includes(hexColor as string)
         ? hexColor
@@ -180,7 +176,7 @@ export async function POST(request: Request) {
 
       return {
         nome: item.nome || item.materia || item.name || "Matéria sem nome",
-        cor: validColor, // 🟢 Retorna a cor tratada diretamente para o front/modal
+        cor: validColor,
         topicos: topicosArray.map((topico: string) => cleanTopicTitle(topico)),
       };
     });
