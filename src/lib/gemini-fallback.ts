@@ -110,17 +110,36 @@ export interface GeminiFallbackOptions {
   config?: GenerateContentConfig;
   timeoutMs?: number;
   preferredModels?: string[];
+  maxRetriesPerKey?: number;
+}
+
+/**
+ * Calcula delay com Full Jitter Exponential Backoff conforme recomendações de arquitetura
+ * de alta disponibilidade do Google Cloud e AWS para evitar colisões (thundering herd):
+ * sleep = Math.max(minDelayMs, Math.floor(randomFn() * Math.min(maxDelayMs, baseDelayMs * Math.pow(2, attempt))))
+ */
+export function calculateJitterDelay(
+  attempt: number,
+  baseDelayMs: number = 400,
+  maxDelayMs: number = 8000,
+  randomFn: () => number = Math.random
+): number {
+  const safeAttempt = Math.max(0, Math.min(attempt, 10));
+  const temp = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, safeAttempt));
+  const sleep = Math.floor(randomFn() * temp);
+  return Math.max(100, Math.min(maxDelayMs, sleep));
 }
 
 /**
  * Executa chamadas com tolerância a falhas bidimensional:
  * 1. Rodízio e comutação automática entre múltiplas chaves de API (Multi-Key Pool).
  * 2. Cascata e fallback automático entre modelos Gemini caso uma cota esgote.
+ * 3. Full Jitter Exponential Backoff para mitigar spikes transitórios de 429 / Rate Limit.
  */
 export async function generateContentWithFallback(
   options: GeminiFallbackOptions,
 ): Promise<{ text: string; usedModel: string }> {
-  const { prompt, contents, config, timeoutMs = 90000, preferredModels } = options;
+  const { prompt, contents, config, timeoutMs = 90000, preferredModels, maxRetriesPerKey = 2 } = options;
   let lastError: unknown;
 
   const modelsToTry = preferredModels && preferredModels.length > 0
@@ -130,88 +149,109 @@ export async function generateContentWithFallback(
   const slots = getOrderedKeySlots();
 
   for (const modelName of modelsToTry) {
+    let modelUnavailable = false;
+
     for (const slot of slots) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      if (modelUnavailable) break;
 
-        const requestContents = (contents ?? prompt ?? "") as any;
+      for (let attempt = 0; attempt <= maxRetriesPerKey; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-        const result = await slot.client.models.generateContent({
-          model: modelName,
-          contents: requestContents,
-          config: {
-            responseMimeType: "application/json",
-            maxOutputTokens: 2048,
-            temperature: 0.7,
-            ...config,
-          },
-        });
+          const requestContents = (contents ?? prompt ?? "") as any;
 
-        clearTimeout(timeoutId);
+          const result = await slot.client.models.generateContent({
+            model: modelName,
+            contents: requestContents,
+            config: {
+              responseMimeType: "application/json",
+              maxOutputTokens: 2048,
+              temperature: 0.7,
+              ...config,
+            },
+          });
 
-        const responseText = result.text || "";
-        if (!responseText) {
-          throw new Error(`Modelo ${modelName} retornou conteúdo vazio na chave ${slot.maskedKey}.`);
+          clearTimeout(timeoutId);
+
+          const responseText = result.text || "";
+          if (!responseText) {
+            throw new Error(`Modelo ${modelName} retornou conteúdo vazio na chave ${slot.maskedKey}.`);
+          }
+
+          return {
+            text: responseText,
+            usedModel: modelName,
+          };
+        } catch (err: unknown) {
+          lastError = err;
+          const errorString = String(err).toLowerCase();
+          const errObj = err as Record<string, unknown> | null | undefined;
+          const status =
+            (errObj?.status as number | string | undefined) ||
+            (errObj?.code as number | string | undefined) ||
+            ((errObj?.error as Record<string, unknown> | undefined)?.code as number | string | undefined);
+
+          // Detecta erro de cota / rate limit (429, resource_exhausted, etc.)
+          const isQuotaOrRateLimit =
+            status === 429 ||
+            status === "429" ||
+            errorString.includes("429") ||
+            errorString.includes("resource_exhausted") ||
+            errorString.includes("quota") ||
+            errorString.includes("rate limit") ||
+            errorString.includes("overloaded");
+
+          if (isQuotaOrRateLimit) {
+            if (attempt < maxRetriesPerKey) {
+              const delay = calculateJitterDelay(attempt);
+              console.warn(
+                `[Gemini Pool Backoff] Chave ${slot.maskedKey} recebeu 429/cota no modelo ${modelName}. Tentativa ${attempt + 1}/${maxRetriesPerKey}. Aguardando ${delay}ms com jitter...`
+              );
+              await new Promise((res) => setTimeout(res, delay));
+              continue;
+            }
+
+            // Esgotadas as retentativas nesta chave, penaliza temporariamente com 60s de cooldown
+            slot.cooldownUntil = Date.now() + 60 * 1000;
+            console.warn(
+              `[Gemini Multi-Key Pool] Chave ${slot.maskedKey} atingiu limite persistente no modelo ${modelName}. Comutando chave...`,
+            );
+            break;
+          }
+
+          // Detecta modelo descontinuado ou 404 (passa imediatamente para o próximo modelo da cascata)
+          const isModelUnavailable =
+            status === 404 ||
+            status === "404" ||
+            status === 503 ||
+            status === "503" ||
+            errorString.includes("404") ||
+            errorString.includes("not_found") ||
+            errorString.includes("not found") ||
+            errorString.includes("no longer available") ||
+            errorString.includes("unsupported") ||
+            errorString.includes("is not supported") ||
+            errorString.includes("does not exist");
+
+          if (isModelUnavailable) {
+            console.warn(
+              `[Gemini Multi-Key Pool] Modelo ${modelName} indisponível (${status || "404"}). Comutando para próximo modelo...`,
+            );
+            modelUnavailable = true;
+            break;
+          }
+
+          // Se for outro erro de rede temporário, tenta novamente com jitter curto
+          if (attempt < maxRetriesPerKey) {
+            const delay = calculateJitterDelay(attempt, 300, 3000);
+            await new Promise((res) => setTimeout(res, delay));
+            continue;
+          }
+
+          console.warn(`[Gemini Fallback] Erro na chave ${slot.maskedKey} (${modelName}):`, err);
+          break;
         }
-
-        return {
-          text: responseText,
-          usedModel: modelName,
-        };
-      } catch (err: unknown) {
-        lastError = err;
-        const errorString = String(err).toLowerCase();
-        const errObj = err as Record<string, unknown> | null | undefined;
-        const status =
-          (errObj?.status as number | string | undefined) ||
-          (errObj?.code as number | string | undefined) ||
-          ((errObj?.error as Record<string, unknown> | undefined)?.code as number | string | undefined);
-
-        // Detecta erro de cota / rate limit (429, resource_exhausted, etc.)
-        const isQuotaOrRateLimit =
-          status === 429 ||
-          status === "429" ||
-          errorString.includes("429") ||
-          errorString.includes("resource_exhausted") ||
-          errorString.includes("quota") ||
-          errorString.includes("rate limit") ||
-          errorString.includes("overloaded");
-
-        if (isQuotaOrRateLimit) {
-          // Penaliza temporariamente esta chave com 60s de cooldown e comuta para a próxima
-          slot.cooldownUntil = Date.now() + 60 * 1000;
-          console.warn(
-            `[Gemini Multi-Key Pool] Chave ${slot.maskedKey} atingiu limite temporário no modelo ${modelName}. Comutando chave...`,
-          );
-          await new Promise((res) => setTimeout(res, 100));
-          continue; // Tenta o mesmo modelo na próxima chave disponível
-        }
-
-        // Detecta modelo descontinuado ou 404 (passa para o próximo modelo da cascata)
-        const isModelUnavailable =
-          status === 404 ||
-          status === "404" ||
-          status === 503 ||
-          status === "503" ||
-          errorString.includes("404") ||
-          errorString.includes("not_found") ||
-          errorString.includes("not found") ||
-          errorString.includes("no longer available") ||
-          errorString.includes("unsupported") ||
-          errorString.includes("is not supported") ||
-          errorString.includes("does not exist");
-
-        if (isModelUnavailable) {
-          console.warn(
-            `[Gemini Multi-Key Pool] Modelo ${modelName} indisponível (${status || "404"}). Comutando para próximo modelo...`,
-          );
-          break; // Sai do loop de chaves para tentar o próximo modelo
-        }
-
-        // Se for outro erro (ex: validação de formato), comuta de chave para tentar novamente
-        console.warn(`[Gemini Fallback] Erro na chave ${slot.maskedKey} (${modelName}):`, err);
-        continue;
       }
     }
   }

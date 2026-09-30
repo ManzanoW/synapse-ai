@@ -22,6 +22,7 @@ import {
   Check,
   CheckSquare,
   Square,
+  Printer,
 } from "lucide-react";
 import { QuestaoIA } from "../page";
 import { deleteBatchSimuladosAction } from "@/actions/simulado-actions";
@@ -515,17 +516,30 @@ export function QuizHistoryTab({
                       )}
 
                       {!isSelectionMode && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onConfirmDelete(item.id);
-                          }}
-                          type="button"
-                          className="text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
-                          title="Excluir simulado"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/questions/${item.id}/print`, "_blank");
+                            }}
+                            type="button"
+                            className="text-zinc-500 hover:text-cyan-400 hover:bg-cyan-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                            title="Imprimir Simulado / PDF Oficial (A4)"
+                          >
+                            <Printer size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onConfirmDelete(item.id);
+                            }}
+                            type="button"
+                            className="text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                            title="Excluir simulado"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

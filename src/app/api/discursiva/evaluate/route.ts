@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { evaluateDiscursivaEssay } from "@/lib/discursiva-evaluator";
 import { recordStudyActivityAction } from "@/actions/gamification-actions";
+import { EvaluateDiscursivaSchema } from "@/lib/validations";
 
 export async function POST(request: Request) {
   try {
@@ -17,28 +18,31 @@ export async function POST(request: Request) {
     const userId = session.user.id;
     const body = await request.json();
 
-    const {
-      themeTitle,
-      banca = "CEBRASPE",
-      subjectArea = "Geral",
-      motivatingText = "",
-      expectedPoints = "",
-      content,
-      lineCount = 0,
-      wordCount = 0,
-      durationSeconds = 0,
-    } = body;
-
-    const cleanContent = (content || "").trim();
-    if (!cleanContent || cleanContent.length < 50) {
+    const parseResult = EvaluateDiscursivaSchema.safeParse(body);
+    if (!parseResult.success) {
       return NextResponse.json(
         {
           success: false,
-          error: "O texto da redação é muito curto para avaliação pela banca.",
+          error: parseResult.error.issues[0]?.message || "Dados de submissão inválidos.",
+          issues: parseResult.error.issues,
         },
         { status: 400 }
       );
     }
+
+    const {
+      themeTitle,
+      banca,
+      subjectArea,
+      motivatingText,
+      expectedPoints,
+      content,
+      lineCount,
+      wordCount,
+      durationSeconds,
+    } = parseResult.data;
+
+    const cleanContent = content.trim();
 
     // 1. Executa a avaliação calibrada CEBRASPE com fórmula oficial
     const evaluation = await evaluateDiscursivaEssay({
