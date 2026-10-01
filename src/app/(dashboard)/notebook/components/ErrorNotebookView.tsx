@@ -13,6 +13,7 @@ import { ErrorFiltersBar } from "./ErrorFiltersBar";
 import { ErrorCard } from "./ErrorCard";
 import { RemediationQuizModal } from "./RemediationQuizModal";
 import { RedemptionExamModal } from "./RedemptionExamModal";
+import { PrintableErrorBookModal } from "./PrintableErrorBookModal";
 import {
   getErrorNotebookQuestionsAction,
   getErrorMetricsAction,
@@ -80,6 +81,7 @@ export function ErrorNotebookView({
   const [isClassifying, setIsClassifying] = useState(false);
   const [isRemediationOpen, setIsRemediationOpen] = useState(false);
   const [isCreatingBatchFlashcards, setIsCreatingBatchFlashcards] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Notificações Toast
   const [toastMessage, setToastMessage] = useState<{
@@ -485,6 +487,7 @@ export function ErrorNotebookView({
         isCreatingBatchFlashcards={isCreatingBatchFlashcards}
         onStartRedemption={handleStartRedemption}
         isGeneratingRedemption={isGeneratingRedemption}
+        onOpenExportModal={() => setIsExportModalOpen(true)}
       />
 
       {/* 2. Barra de Filtros */}
@@ -686,6 +689,13 @@ export function ErrorNotebookView({
         onClose={() => setIsRedemptionOpen(false)}
         questions={redemptionQuestions}
         onExamComplete={handleRedemptionComplete}
+      />
+
+      {/* 8. Modal de Apostila de Véspera (PDF/Imprimir) & Exportação Anki */}
+      <PrintableErrorBookModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        items={questions}
       />
     </div>
   );

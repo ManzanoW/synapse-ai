@@ -24,6 +24,7 @@ import {
   Activity,
   RefreshCw,
   TrendingDown,
+  Flame,
 } from "lucide-react";
 import {
   ApprovalPredictorData,
@@ -202,6 +203,23 @@ export function ApprovalPredictorSection({
     const finalOdds = Math.round(baseChance * 0.8 + coverage * 0.2);
     return Math.min(99, Math.max(5, finalOdds));
   }, [activeScore, cutoffScore, deltaToCutoff, data?.coveragePercentage]);
+
+  // Distância exata em questões líquidas até o corte (base padrão 100Q de concurso)
+  const questionGapMetrics = useMemo(() => {
+    const gapPercent = cutoffScore - activeScore;
+    const isAhead = gapPercent <= 0;
+    const questionsNeeded = Math.max(0, Math.ceil(gapPercent));
+    const questionsAhead = Math.max(0, Math.floor(Math.abs(gapPercent)));
+    const topLeverage = (data?.topLeverageSubjects || []).slice(0, 2);
+
+    return {
+      isAhead,
+      questionsNeeded,
+      questionsAhead,
+      gapPercent: Math.abs(Number(gapPercent.toFixed(1))),
+      topLeverage,
+    };
+  }, [cutoffScore, activeScore, data?.topLeverageSubjects]);
 
   // =========================================================================
   // MOTOR DE MONTE CARLO (1.000 SIMULAÇÕES ESTOCÁSTICAS)
@@ -605,6 +623,144 @@ export function ApprovalPredictorSection({
               <p className="text-[11px] text-slate-400 mt-2">
                 Pondera precisão das disciplinas, cobertura do edital ({data.coveragePercentage}%) e margem de corte.
               </p>
+            </div>
+          </div>
+
+          {/* TERMÔMETRO DE CORTE REAL & DISTÂNCIA DAS VAGAS */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-linear-to-br from-slate-900/90 via-[#0a0f1f] to-slate-950/90 border border-violet-500/30 space-y-5 shadow-2xl relative overflow-hidden">
+            <div className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full bg-violet-600/10 blur-3xl" />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-violet-500/15 text-violet-400 border border-violet-500/30">
+                  <Target size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                    <span>Termômetro de Corte Real & Distância das Vagas</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                      Escala 100Q
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Posicionamento da sua nota ponderada comparada aos pontos de corte históricos
+                  </p>
+                </div>
+              </div>
+
+              {/* Badge de Distância em Questões */}
+              <div
+                className={`px-3.5 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-2 ${
+                  questionGapMetrics.isAhead
+                    ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                    : "bg-rose-500/15 border-rose-500/30 text-rose-300"
+                }`}
+              >
+                {questionGapMetrics.isAhead ? (
+                  <>
+                    <CheckCircle2 size={14} className="text-emerald-400" />
+                    <span>+{questionGapMetrics.questionsAhead} questões de folga</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle size={14} className="text-rose-400" />
+                    <span>Faltam ~{questionGapMetrics.questionsNeeded} questões líquidas</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* RÉGUA GRADUADA DO TERMÔMETRO */}
+            <div className="space-y-3 pt-2 relative z-10">
+              {/* Marcadores de Topo (Ponteiros do Aluno e do Corte) */}
+              <div className="relative h-6 text-[11px] font-mono font-bold">
+                {/* Pino da Nota do Aluno */}
+                <div
+                  className="absolute -top-1 flex flex-col items-center -translate-x-1/2 transition-all duration-700 z-20"
+                  style={{ left: `${Math.min(95, Math.max(5, activeScore))}%` }}
+                >
+                  <span className="px-2 py-0.5 rounded-md bg-white text-slate-950 shadow-md text-[10px] font-black whitespace-nowrap border border-slate-300">
+                    Você: {activeScore}%
+                  </span>
+                  <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-white mt-0.5" />
+                </div>
+
+                {/* Pino da Nota de Corte Alvo */}
+                <div
+                  className="absolute -top-1 flex flex-col items-center -translate-x-1/2 transition-all duration-700 z-10"
+                  style={{ left: `${Math.min(95, Math.max(5, cutoffScore))}%` }}
+                >
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 shadow-md text-[10px] font-black whitespace-nowrap">
+                    Corte: {cutoffScore}%
+                  </span>
+                  <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-amber-500 mt-0.5" />
+                </div>
+              </div>
+
+              {/* Barra de Gradiente Contínuo com as Zonas */}
+              <div className="relative h-4 rounded-full overflow-hidden bg-slate-950 border border-white/10 shadow-inner">
+                <div className="absolute inset-0 bg-gradient-to-r from-rose-600 via-amber-500 via-50% via-indigo-500 via-80% to-emerald-400 opacity-90" />
+
+                {/* Linhas de Marcação dos Patamares */}
+                <div className="absolute inset-0 flex justify-between pointer-events-none px-1">
+                  <div className="w-px h-full bg-black/40" style={{ left: "50%" }} />
+                  <div className="w-px h-full bg-black/40" style={{ left: "75%" }} />
+                  <div className="w-px h-full bg-black/40" style={{ left: "82%" }} />
+                  <div className="w-px h-full bg-black/40" style={{ left: "86%" }} />
+                  <div className="w-px h-full bg-black/40" style={{ left: "90%" }} />
+                </div>
+              </div>
+
+              {/* Legendas dos Patamares de Concurso */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[10.5px] font-medium text-slate-400 pt-1">
+                <div className="space-y-0.5">
+                  <span className="text-rose-400 font-bold block">&lt; 50%</span>
+                  <span className="text-[10px] text-slate-500">Eliminação Direta</span>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-amber-400 font-bold block">70% - 76%</span>
+                  <span className="text-[10px] text-slate-500">Policial / Adm</span>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-indigo-400 font-bold block">77% - 84%</span>
+                  <span className="text-[10px] text-slate-500">Tribunais / Analista</span>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-teal-400 font-bold block">85% - 89%</span>
+                  <span className="text-[10px] text-slate-500">Fiscal / Jurídico</span>
+                </div>
+                <div className="space-y-0.5 sm:text-right">
+                  <span className="text-emerald-400 font-bold block">90%+</span>
+                  <span className="text-[10px] text-slate-500">Top 1% Vagas</span>
+                </div>
+              </div>
+            </div>
+
+            {/* CARD DE PRESCRIÇÃO ESTRATÉGICA */}
+            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="space-y-1">
+                <span className="font-extrabold text-white flex items-center gap-1.5">
+                  <Flame size={14} className="text-amber-400" />
+                  <span>Estratégia para o Ponto de Corte:</span>
+                </span>
+                <p className="text-slate-300 leading-relaxed text-[11.5px]">
+                  {questionGapMetrics.isAhead
+                    ? `Sua nota ponderada atual (${activeScore}%) garante a vaga no patamar selecionado (${cutoffScore}%). Mantenha o ritmo de revisões para reter esse domínio no dia da prova.`
+                    : `Para compensar o déficit de ~${questionGapMetrics.questionsNeeded} questões líquidas, priorize aumentar a acurácia nas matérias de maior peso do seu edital.`}
+                </p>
+              </div>
+
+              {!questionGapMetrics.isAhead && questionGapMetrics.topLeverage.length > 0 && (
+                <div className="shrink-0 flex items-center gap-2">
+                  <Link
+                    href={`/questions?subjectId=${questionGapMetrics.topLeverage[0].id}`}
+                    className="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-all shadow-md flex items-center gap-1.5 active:scale-95"
+                  >
+                    <span>Focar em {questionGapMetrics.topLeverage[0].name}</span>
+                    <ArrowRight size={13} />
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
