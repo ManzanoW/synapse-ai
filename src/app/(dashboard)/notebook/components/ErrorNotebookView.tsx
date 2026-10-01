@@ -76,6 +76,7 @@ export function ErrorNotebookView({
     status: "ALL",
     period: "all",
     search: "",
+    origin: "ALL",
   });
   const [isFiltering, setIsFiltering] = useState(false);
   const [isClassifying, setIsClassifying] = useState(false);

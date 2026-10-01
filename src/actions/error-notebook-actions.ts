@@ -332,6 +332,12 @@ export async function getErrorNotebookQuestionsAction(
     if (params.errorReason && params.errorReason !== "ALL") {
       const normalized = normalizeTaxonomy(params.errorReason);
       where.errorReason = normalized;
+    } else if (params.origin && params.origin !== "ALL") {
+      if (params.origin === "TIMED") {
+        where.errorReason = "TIME_PRESSURE";
+      } else if (params.origin === "PRACTICE") {
+        where.errorReason = { not: "TIME_PRESSURE" };
+      }
     }
 
     if (params.period && params.period !== "all") {

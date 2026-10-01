@@ -21,9 +21,11 @@ import {
   AlertCircle,
   Flame,
   Layers,
+  Printer,
 } from "lucide-react";
 import { TimedQuizQuestion } from "@/types/quiz";
 import { ErrorClassification } from "@/types/quiz";
+import { PrintableTimedExamModal } from "./PrintableTimedExamModal";
 
 interface QuestionResultAudit {
   question: TimedQuizQuestion;
@@ -102,6 +104,7 @@ export function TimedExamResultView({
 }: TimedExamResultViewProps) {
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
   const [filterReview, setFilterReview] = useState<"all" | "incorrect" | "correct">("all");
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   const minutesSpent = Math.floor(totalTimeSpentSeconds / 60);
   const secondsSpent = totalTimeSpentSeconds % 60;
@@ -224,8 +227,8 @@ export function TimedExamResultView({
         </div>
       </motion.div>
 
-      {/* 2. ATALHOS RÁPIDOS (CADERNO DE ERROS & FLASHCARDS) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* 2. ATALHOS RÁPIDOS (CADERNO DE ERROS, IMPRESSÃO & NOVO SIMULADO) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Link
           href="/notebook"
           className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-violet-500/40 transition-all flex items-center justify-between group"
@@ -247,6 +250,25 @@ export function TimedExamResultView({
         </Link>
 
         <button
+          onClick={() => setIsPrintModalOpen(true)}
+          type="button"
+          className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/40 transition-all flex items-center justify-between group cursor-pointer text-left"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-300">
+              <Printer size={18} />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-white group-hover:text-emerald-300">
+                Exportar Caderno
+              </h3>
+              <p className="text-[11px] text-slate-400">PDF com gabarito oficial</p>
+            </div>
+          </div>
+          <ArrowRight size={14} className="text-slate-500 group-hover:translate-x-1 transition-transform" />
+        </button>
+
+        <button
           onClick={onRestartExam}
           type="button"
           className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-indigo-500/40 transition-all flex items-center justify-between group cursor-pointer text-left"
@@ -257,9 +279,9 @@ export function TimedExamResultView({
             </div>
             <div>
               <h3 className="text-xs font-bold text-white group-hover:text-indigo-300">
-                Refazer Este Simulado
+                Refazer Simulado
               </h3>
-              <p className="text-[11px] text-slate-400">Embaralhar e tentar novo tempo</p>
+              <p className="text-[11px] text-slate-400">Tentar novo tempo</p>
             </div>
           </div>
           <ArrowRight size={14} className="text-slate-500 group-hover:translate-x-1 transition-transform" />
@@ -278,12 +300,44 @@ export function TimedExamResultView({
               <h3 className="text-xs font-black text-white group-hover:text-violet-200">
                 Novo Simulado
               </h3>
-              <p className="text-[11px] text-violet-300/80">Configurar outro caderno</p>
+              <p className="text-[11px] text-violet-300/80">Outro caderno</p>
             </div>
           </div>
           <ArrowRight size={14} className="text-violet-300 group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
+
+      {/* 2.1 BANNER DE REDENÇÃO IMEDIATA (QUANDO HÁ ERROS) */}
+      {incorrectCount > 0 && (
+        <div className="relative overflow-hidden rounded-3xl border border-rose-500/30 bg-gradient-to-r from-[#170911]/90 via-[#10081c]/90 to-[#070914]/90 p-4 sm:p-5 shadow-xl backdrop-blur-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-300 flex items-center justify-center shrink-0 shadow-lg shadow-rose-950/40">
+              <RotateCcw size={20} />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-white">Sessão de Redenção Imediata</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-black">
+                  {incorrectCount} {incorrectCount === 1 ? "erro catalogado" : "erros catalogados"}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-300 leading-relaxed">
+                As questões erradas já foram arquivadas no seu Caderno de Erros. Reteste agora enquanto as pegadinhas estão frescas na memória!
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <Link
+              href="/quiz/timed?source=errors"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black text-xs transition-all shadow-lg shadow-rose-950/40 active:scale-95 inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <RotateCcw size={13} />
+              <span>Iniciar Redenção Agora ⚔️</span>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* 3. REVISÃO DETALHADA QUESTÃO POR QUESTÃO */}
       <div className="space-y-4">
@@ -484,6 +538,19 @@ export function TimedExamResultView({
           })}
         </div>
       </div>
+
+      {/* MODAL DE IMPRESSÃO / PDF OFICIAL DO SIMULADO */}
+      <PrintableTimedExamModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        banca={banca}
+        materia={materia}
+        totalQuestions={totalQuestions}
+        correctAnswers={correctAnswers}
+        accuracyPercentage={accuracyPercentage}
+        totalTimeSpentSeconds={totalTimeSpentSeconds}
+        questionsAudit={questionsAudit}
+      />
     </div>
   );
 }
