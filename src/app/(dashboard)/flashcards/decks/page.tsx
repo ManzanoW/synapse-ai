@@ -14,10 +14,12 @@ import {
   Zap,
   CheckCircle2,
   RotateCw,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import { Deck } from "@/types";
 import CreateDeckModal from "@/components/decks/CreateDeckModal";
+import { AnkiExportModal } from "@/components/flashcards/AnkiExportModal";
 
 function getSubjectTheme(color?: string | null, name?: string) {
   const normalized = (name || "").toLowerCase();
@@ -86,6 +88,7 @@ export default function DecksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [exportDeck, setExportDeck] = useState<{ id: string; title: string } | null>(null);
 
   const fetchDecksData = async () => {
     try {
@@ -320,6 +323,14 @@ export default function DecksPage() {
                   </span>
 
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setExportDeck({ id: deck.id, title: deck.title })}
+                      className="p-1.5 text-slate-400 hover:text-blue-400 rounded-lg transition-colors cursor-pointer"
+                      title="Exportar Baralho para o Anki (.txt)"
+                    >
+                      <Download size={15} />
+                    </button>
+
                     <Link
                       href={`/flashcards/decks/${deck.id}`}
                       className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
@@ -391,6 +402,15 @@ export default function DecksPage() {
             setIsModalOpen(false);
             handleDeckCreated();
           }}
+        />
+      )}
+
+      {exportDeck && (
+        <AnkiExportModal
+          isOpen={!!exportDeck}
+          onClose={() => setExportDeck(null)}
+          deckId={exportDeck.id}
+          deckTitle={exportDeck.title}
         />
       )}
     </div>

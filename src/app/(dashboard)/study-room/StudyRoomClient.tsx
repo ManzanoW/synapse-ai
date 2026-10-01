@@ -22,6 +22,7 @@ import {
   Headphones,
   Volume2,
   VolumeX,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,6 +38,7 @@ import {
   SessionTask,
 } from "./_components/SessionTaskChecklist";
 import { FocusCelebrationModal } from "./_components/FocusCelebrationModal";
+import { MiniTimerPiP } from "./_components/MiniTimerPiP";
 
 type TimerMode = "foco_25" | "foco_50" | "curta" | "longa";
 
@@ -103,6 +105,9 @@ export default function StudyRoomClient({
 
   // Modo Zen (Imersão Total)
   const [isZenMode, setIsZenMode] = useState(false);
+
+  // Picture-in-Picture (Mini-Timer Flutuante)
+  const [isPiPOpen, setIsPiPOpen] = useState(false);
 
   // Modal de Celebração
   const [celebrationResult, setCelebrationResult] =
@@ -363,19 +368,34 @@ export default function StudyRoomClient({
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              setIsZenMode(false);
-              if (document.fullscreenElement && document.exitFullscreen) {
-                document.exitFullscreen().catch(() => {});
-              }
-            }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 hover:text-white transition-all shadow-lg active:scale-95 cursor-pointer"
-            title="Sair do Modo Zen (Esc)"
-          >
-            <Minimize2 size={15} />
-            <span>Sair do Zen (Esc)</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsPiPOpen((prev) => !prev)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg active:scale-95 cursor-pointer ${
+                isPiPOpen
+                  ? "bg-violet-600 text-white border-violet-500 shadow-violet-500/30"
+                  : "bg-slate-900/80 hover:bg-slate-800 border-slate-700/60 text-slate-300 hover:text-white"
+              }`}
+              title="Mini-Timer Flutuante (Picture-in-Picture)"
+            >
+              <ExternalLink size={15} />
+              <span>{isPiPOpen ? "Fechar PiP" : "Mini-Timer PiP"}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setIsZenMode(false);
+                if (document.fullscreenElement && document.exitFullscreen) {
+                  document.exitFullscreen().catch(() => {});
+                }
+              }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 hover:text-white transition-all shadow-lg active:scale-95 cursor-pointer"
+              title="Sair do Modo Zen (Esc)"
+            >
+              <Minimize2 size={15} />
+              <span>Sair do Zen (Esc)</span>
+            </button>
+          </div>
         </div>
 
         {/* Centro Zen: Pomodoro Gigante e Controles */}
@@ -600,13 +620,20 @@ export default function StudyRoomClient({
           </div>
         </div>
 
-        {/* Modal de Celebração caso dispare dentro do Modo Zen */}
-        <FocusCelebrationModal
-          isOpen={isCelebrationOpen}
-          onClose={() => setIsCelebrationOpen(false)}
-          result={celebrationResult}
+        {/* Mini-Timer Flutuante PiP */}
+        <MiniTimerPiP
+          isOpen={isPiPOpen}
+          onClose={() => setIsPiPOpen(false)}
+          minutes={minutes}
+          seconds={seconds}
+          isActive={isActive}
+          modeLabel={MODE_CONFIG[mode].label}
+          isFocusMode={isFocusMode}
+          progressPercent={progressPercent}
           subjectName={selectedSubject?.name}
-          tasksCompletedCount={tasks.filter((t) => t.completed).length}
+          onToggleTimer={toggleTimer}
+          onResetTimer={resetTimer}
+          onSkipToNext={skipToNext}
         />
       </div>
     );
@@ -670,10 +697,26 @@ export default function StudyRoomClient({
             </div>
           </div>
 
+          {/* Botão Picture-in-Picture (Mini-Timer Flutuante) */}
+          <button
+            onClick={() => setIsPiPOpen((prev) => !prev)}
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
+              isPiPOpen
+                ? "bg-violet-600 text-white border-violet-500 shadow-lg shadow-violet-500/30"
+                : "bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border-slate-700/60"
+            }`}
+            title="Mini-Timer Flutuante (Picture-in-Picture): mantenha o cronômetro sempre visível sobre outros apps"
+          >
+            <ExternalLink size={16} />
+            <span className="hidden sm:inline">
+              {isPiPOpen ? "Fechar PiP" : "Mini-Timer (PiP)"}
+            </span>
+          </button>
+
           {/* Botão Modo Zen Fullscreen */}
           <button
             onClick={toggleFullscreen}
-            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
               isZenMode
                 ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/30"
                 : "bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border-slate-700/60"
@@ -938,6 +981,22 @@ export default function StudyRoomClient({
         result={celebrationResult}
         subjectName={selectedSubject?.name}
         tasksCompletedCount={tasks.filter((t) => t.completed).length}
+      />
+
+      {/* Mini-Timer Flutuante PiP */}
+      <MiniTimerPiP
+        isOpen={isPiPOpen}
+        onClose={() => setIsPiPOpen(false)}
+        minutes={minutes}
+        seconds={seconds}
+        isActive={isActive}
+        modeLabel={MODE_CONFIG[mode].label}
+        isFocusMode={isFocusMode}
+        progressPercent={progressPercent}
+        subjectName={selectedSubject?.name}
+        onToggleTimer={toggleTimer}
+        onResetTimer={resetTimer}
+        onSkipToNext={skipToNext}
       />
     </div>
   );

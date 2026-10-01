@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   X,
   Printer,
@@ -25,6 +25,7 @@ interface PrintableErrorBookModalProps {
   onClose: () => void;
   items: ErrorNotebookItem[];
   userName?: string | null;
+  initialTab?: "print" | "anki";
 }
 
 const TAXONOMY_LABELS: Record<string, { label: string; icon: React.ElementType }> = {
@@ -43,13 +44,20 @@ export function PrintableErrorBookModal({
   onClose,
   items,
   userName = "Concurseiro",
+  initialTab = "print",
 }: PrintableErrorBookModalProps) {
-  const [activeTab, setActiveTab] = useState<"print" | "anki">("print");
+  const [activeTab, setActiveTab] = useState<"print" | "anki">(initialTab);
   const [selectedReason, setSelectedReason] = useState<string>("ALL");
   const [selectedSubject, setSelectedSubject] = useState<string>("ALL");
   const [onlyPending, setOnlyPending] = useState<boolean>(true);
   const [columns, setColumns] = useState<1 | 2>(1);
   const [ankiDownloaded, setAnkiDownloaded] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   // Lista de matérias únicas disponíveis nos itens
   const uniqueSubjects = useMemo(() => {

@@ -82,6 +82,12 @@ export function ErrorNotebookView({
   const [isRemediationOpen, setIsRemediationOpen] = useState(false);
   const [isCreatingBatchFlashcards, setIsCreatingBatchFlashcards] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportModalInitialTab, setExportModalInitialTab] = useState<"print" | "anki">("print");
+
+  const handleOpenExportModal = useCallback((tab: "print" | "anki" = "print") => {
+    setExportModalInitialTab(tab);
+    setIsExportModalOpen(true);
+  }, []);
 
   // Notificações Toast
   const [toastMessage, setToastMessage] = useState<{
@@ -487,7 +493,7 @@ export function ErrorNotebookView({
         isCreatingBatchFlashcards={isCreatingBatchFlashcards}
         onStartRedemption={handleStartRedemption}
         isGeneratingRedemption={isGeneratingRedemption}
-        onOpenExportModal={() => setIsExportModalOpen(true)}
+        onOpenExportModal={handleOpenExportModal}
       />
 
       {/* 2. Barra de Filtros */}
@@ -696,6 +702,7 @@ export function ErrorNotebookView({
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         items={questions}
+        initialTab={exportModalInitialTab}
       />
     </div>
   );

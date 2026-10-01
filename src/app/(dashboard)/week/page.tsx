@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   LifeBuoy,
   Download,
+  Printer,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
@@ -38,6 +39,7 @@ import {
 import { EditalEmptyState } from "@/components/edital-empty-state";
 import { EmergencyRescheduleModal } from "@/components/week/EmergencyRescheduleModal";
 import { ScheduleRescueModal } from "@/components/week/ScheduleRescueModal";
+import { PrintableWeeklyPlannerModal } from "@/components/week/PrintableWeeklyPlannerModal";
 import {
   RebalanceImpactModal,
   RebalanceComparisonItem,
@@ -134,6 +136,7 @@ export default function WeekPage() {
   const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isPrintPlannerOpen, setIsPrintPlannerOpen] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
   const [isPending, startTransition] = useTransition();
 
@@ -781,6 +784,17 @@ export default function WeekPage() {
               <Download size={14} className="text-emerald-400" />
               <span className="hidden sm:inline">Exportar .ics</span>
               <span className="sm:hidden">.ics</span>
+            </button>
+
+            <button
+              onClick={() => setIsPrintPlannerOpen(true)}
+              disabled={!hasSubjects}
+              title="Gerar e imprimir folha de mesa A4 (Planner Semanal) com horários e checkboxes de estudo"
+              className="flex items-center gap-1.5 text-xs font-semibold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <Printer size={14} className="text-blue-400" />
+              <span className="hidden sm:inline">Imprimir Planner</span>
+              <span className="sm:hidden">Imprimir</span>
             </button>
           </div>
         </div>
@@ -1719,6 +1733,16 @@ export default function WeekPage() {
         isOpen={isRescueModalOpen}
         onClose={() => setIsRescueModalOpen(false)}
         onRescueApplied={() => loadWeekData()}
+      />
+
+      {/* Modal de Impressão do Planner Semanal de Mesa */}
+      <PrintableWeeklyPlannerModal
+        isOpen={isPrintPlannerOpen}
+        onClose={() => setIsPrintPlannerOpen(false)}
+        scheduleByDay={displayData?.scheduleByDay || []}
+        subjectOverview={displayData?.subjectOverview || []}
+        weeklyGoalHours={goalHours}
+        activeDaysPerWeek={activeDays}
       />
     </div>
   );
