@@ -104,7 +104,7 @@ export function FsrsReviewWidget({
           {/* Lado Direito: Botão de Ação Rápida "Revisar Agora" */}
           <div className="flex items-center gap-3 shrink-0 self-stretch md:self-center justify-end">
             <Link
-              href="/flashcards/study/all"
+              href="/flashcards/study/all?filter=due"
               className="w-full md:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all duration-300 shadow-xl shadow-amber-500/25 active:scale-95 border border-amber-300/40 inline-flex items-center justify-center gap-2 cursor-pointer group/btn"
             >
               <span>Revisar Agora</span>

@@ -95,6 +95,27 @@ export default function StudyRoomClient({
   const [isActive, setIsActive] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
 
+  // Recupera matéria de foco salva anteriormente
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("synapse_study_room_subject");
+      if (saved && initialSubjects.some((s) => s.id === saved)) {
+        setSelectedSubjectId(saved);
+      }
+    } catch {}
+  }, [initialSubjects]);
+
+  const handleSelectSubject = (id: string) => {
+    setSelectedSubjectId(id);
+    try {
+      if (id) {
+        localStorage.setItem("synapse_study_room_subject", id);
+      } else {
+        localStorage.removeItem("synapse_study_room_subject");
+      }
+    } catch {}
+  };
+
   // Métricas da Sessão
   const [metrics, setMetrics] = useState<FocusMetricsData>(initialMetrics);
   const [completedCycles, setCompletedCycles] = useState<number>(initialMetrics.todayCycles);
@@ -661,7 +682,7 @@ export default function StudyRoomClient({
               <span className="text-xs text-slate-400">Disciplina:</span>
               <select
                 value={selectedSubjectId}
-                onChange={(e) => setSelectedSubjectId(e.target.value)}
+                onChange={(e) => handleSelectSubject(e.target.value)}
                 aria-label="Selecionar matéria de foco"
                 className="bg-slate-950/80 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
               >
