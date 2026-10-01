@@ -96,6 +96,7 @@ import type { DailyFlowData } from "@/actions/daily-flow-actions";
 import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 import { DailyTipCard } from "@/components/dashboard/DailyTipCard";
+import { FsrsReviewWidget } from "@/components/dashboard/FsrsReviewWidget";
 
 interface JourneyData {
   hasObjective: boolean;
@@ -118,6 +119,7 @@ interface DashboardStats {
     sessionsCount: number;
     questionsCount: number;
     totalFlashcards: number;
+    dueFlashcards?: number;
     averageTimePerSession: string;
   };
   streak: {
@@ -500,6 +502,7 @@ export default function DashboardClient({
             sessionsCount: 0,
             questionsCount: 0,
             totalFlashcards: 0,
+            dueFlashcards: 0,
             averageTimePerSession: "0min",
           },
           streak: {
@@ -1128,6 +1131,13 @@ export default function DashboardClient({
         {!isLoading && (
           <DailyFlowCard flowData={initialDailyFlow || null} />
         )}
+
+        {/* ================= WIDGET DE REVISÃO FSRS PENDENTE HOJE ================= */}
+        <FsrsReviewWidget
+          dueCount={stats?.metrics?.dueFlashcards ?? 0}
+          totalCount={stats?.metrics?.totalFlashcards ?? 0}
+          isLoading={isLoading}
+        />
 
         {/* ================= 3. PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS) ================= */}
         {!isLoading && (

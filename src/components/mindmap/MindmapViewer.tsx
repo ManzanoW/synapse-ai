@@ -19,8 +19,16 @@ import {
   Layers,
   Eye,
   EyeOff,
+  Printer,
+  Check,
+  Loader2,
 } from "lucide-react";
-import { MindmapData, MindmapNode } from "@/actions/mindmap-actions";
+import Link from "next/link";
+import {
+  MindmapData,
+  MindmapNode,
+  convertMindmapToDeckAction,
+} from "@/actions/mindmap-actions";
 import { useSound } from "@/hooks/useSound";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 
@@ -50,6 +58,9 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
   const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({});
   const [isActiveRecallMode, setIsActiveRecallMode] = useState<boolean>(false);
   const [revealedNodes, setRevealedNodes] = useState<Record<string, boolean>>({});
+  const [isExportingPng, setIsExportingPng] = useState<boolean>(false);
+  const [isCreatingDeck, setIsCreatingDeck] = useState<boolean>(false);
+  const [createdDeckInfo, setCreatedDeckInfo] = useState<{ id: string; count: number } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -108,6 +119,95 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // Exportação em PNG de Alta Resolução (Retina / 2x)
+  const handleExportPng = () => {
+    if (!svgRef.current || isExportingPng) return;
+    setIsExportingPng(true);
+    playChime();
+    triggerHaptic("medium");
+
+    const svgElement = svgRef.current;
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgElement);
+
+    if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+      source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    const svgBlob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const scaleFactor = 2; // 2x para Retina e alta nitidez
+      const width = svgElement.viewBox.baseVal.width || 1200;
+      const height = svgElement.viewBox.baseVal.height || 800;
+
+      canvas.width = width * scaleFactor;
+      canvas.height = height * scaleFactor;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#030712";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.scale(scaleFactor, scaleFactor);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const pngUrl = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = pngUrl;
+        const safeTitle = (data.title || "mapa-mental")
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/\s+/g, "-");
+        a.download = `synapse-mapa-${safeTitle}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      URL.revokeObjectURL(url);
+      setIsExportingPng(false);
+    };
+    img.onerror = () => {
+      setIsExportingPng(false);
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
+
+  // Impressão direta do Mapa Mental
+  const handlePrint = () => {
+    playClick();
+    triggerHaptic("light");
+    window.print();
+  };
+
+  // Transformar Mapa Mental em Baralho de Flashcards FSRS
+  const handleConvertToDeck = async () => {
+    if (isCreatingDeck) return;
+    setIsCreatingDeck(true);
+    playClick();
+    triggerHaptic("medium");
+
+    try {
+      const res = await convertMindmapToDeckAction({
+        title: data.title,
+        subject: data.subject,
+        rootNode: data.rootNode,
+      });
+
+      if (res.success && res.deckId) {
+        setCreatedDeckInfo({ id: res.deckId, count: res.cardsCount || 0 });
+        playChime();
+        triggerHaptic("success");
+      }
+    } catch (err) {
+      console.error("Erro ao converter para deck:", err);
+    } finally {
+      setIsCreatingDeck(false);
+    }
   };
 
   // Cálculo da árvore de layout para o SVG
@@ -327,15 +427,43 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
             </span>
           </button>
 
+          {/* Botão Exportar PNG HD */}
+          <button
+            type="button"
+            data-mindmap-interactive
+            onClick={handleExportPng}
+            disabled={isExportingPng}
+            className="px-2 py-1 rounded-xl text-slate-600 dark:text-slate-300 hover:text-cyan-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1 text-xs font-bold disabled:opacity-50"
+            title="Baixar Mapa Mental em Imagem PNG em Alta Resolução (Retina 2x)"
+          >
+            {isExportingPng ? (
+              <Loader2 size={13} className="animate-spin text-cyan-400" />
+            ) : (
+              <Download size={13} />
+            )}
+            <span className="text-[11px]">PNG HD</span>
+          </button>
+
           {/* Botão Exportar SVG */}
           <button
             type="button"
             data-mindmap-interactive
             onClick={handleExportSvg}
             className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
-            title="Exportar Mapa Mental em SVG Vetorial de Alta Resolução"
+            title="Exportar Mapa Mental em Vetor SVG"
           >
-            <Download size={15} />
+            <span className="text-[10px] font-mono font-bold">SVG</span>
+          </button>
+
+          {/* Botão Imprimir */}
+          <button
+            type="button"
+            data-mindmap-interactive
+            onClick={handlePrint}
+            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+            title="Imprimir Mapa Mental (Folha A4 Paisagem)"
+          >
+            <Printer size={14} />
           </button>
         </div>
 
@@ -557,10 +685,46 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
           )}
         </div>
 
-        <div className="pt-4 border-t border-slate-100 dark:border-white/10 space-y-2">
+        <div className="pt-4 border-t border-slate-100 dark:border-white/10 space-y-2.5">
+          {createdDeckInfo ? (
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold">
+                <Check size={14} />
+                <span>Baralho Criado! ({createdDeckInfo.count} cards)</span>
+              </div>
+              <Link
+                href={`/flashcards/study/${createdDeckInfo.id}`}
+                className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold transition-all shadow-md shadow-emerald-600/30 active:scale-95 cursor-pointer"
+              >
+                <span>Revisar Flashcards Agora</span>
+                <ChevronRight size={13} />
+              </Link>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleConvertToDeck}
+              disabled={isCreatingDeck}
+              className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-600/25 active:scale-95 disabled:opacity-50 cursor-pointer"
+              title="Gera um baralho de repetição espaçada (FSRS) com todos os ramos e regras deste mapa"
+            >
+              {isCreatingDeck ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Criando Baralho FSRS...</span>
+                </>
+              ) : (
+                <>
+                  <Layers size={14} />
+                  <span>Gerar Baralho FSRS ({data.rootNode.children?.length || 3}+ cards)</span>
+                </>
+              )}
+            </button>
+          )}
+
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span>Matéria: {data.subject}</span>
-            <span className="font-mono">FSRS Linked</span>
+            <span className="font-mono text-indigo-400 font-semibold">FSRS Ready</span>
           </div>
         </div>
       </div>

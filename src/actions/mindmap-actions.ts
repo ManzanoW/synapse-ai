@@ -392,3 +392,114 @@ Retorne EXCLUSIVAMENTE um JSON:
     };
   }
 }
+
+/**
+ * Converte ramos e nós de um mapa mental em um Baralho de Flashcards FSRS
+ */
+export async function convertMindmapToDeckAction(input: {
+  title: string;
+  subject?: string;
+  rootNode: MindMapNode;
+}): Promise<{
+  success: boolean;
+  deckId?: string;
+  deckTitle?: string;
+  cardsCount?: number;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const userId = session.user.id;
+    const { title, subject, rootNode } = input;
+
+    // Extrai cartões de forma recursiva da árvore do mapa mental
+    const cardsToCreate: { question: string; answer: string; details?: string }[] = [];
+
+    function traverse(node: MindMapNode, parentPath: string = "") {
+      const currentPath = parentPath ? `${parentPath} › ${node.label}` : node.label;
+
+      // Se tiver descrição, mnemônico ou pegadinha, cria um flashcard
+      if (node.description || node.mnemonic || node.trapWarning) {
+        const answerText = node.description || "Conceito estrutural.";
+        const detailsParts: string[] = [];
+
+        if (node.mnemonic) {
+          detailsParts.push(`💡 Mnemônico: ${node.mnemonic}`);
+        }
+        if (node.trapWarning) {
+          detailsParts.push(`⚠️ Pegadinha da Banca: ${node.trapWarning}`);
+        }
+        if (node.ruleOrLaw) {
+          detailsParts.push(`📜 Base Legal / Súmula: ${node.ruleOrLaw}`);
+        }
+
+        const detailsText = detailsParts.length > 0 ? detailsParts.join("\n\n") : undefined;
+
+        cardsToCreate.push({
+          question: `[${subject || "Geral"}] ${node.label} (${title})\nQual é a síntese, regra ou macete deste conceito?`,
+          answer: answerText,
+          details: detailsText,
+        });
+      }
+
+      if (node.children && Array.isArray(node.children)) {
+        node.children.forEach((child) => traverse(child, currentPath));
+      }
+    }
+
+    traverse(rootNode);
+
+    if (cardsToCreate.length === 0) {
+      return {
+        success: false,
+        error: "O mapa mental não possui ramos suficientes para gerar flashcards.",
+      };
+    }
+
+    // Busca assunto compatível para vincular ao Deck
+    let matchedSubject = null;
+    if (subject && subject !== "Geral") {
+      matchedSubject = await prisma.subject.findFirst({
+        where: { userId, name: { contains: subject, mode: "insensitive" } },
+      });
+    }
+
+    const deckTitle = `[Mapa Mental] ${title}`;
+
+    const deck = await prisma.deck.create({
+      data: {
+        title: deckTitle,
+        color: "indigo",
+        userId,
+        subjectId: matchedSubject?.id || null,
+        flashcards: {
+          create: cardsToCreate.map((card) => ({
+            question: card.question,
+            answer: card.answer,
+            details: card.details,
+            easeFactor: 2.5,
+            interval: 1,
+            nextReviewDate: new Date(),
+          })),
+        },
+      },
+    });
+
+    return {
+      success: true,
+      deckId: deck.id,
+      deckTitle: deck.title,
+      cardsCount: cardsToCreate.length,
+    };
+  } catch (err) {
+    console.error("[convertMindmapToDeckAction] Erro:", err);
+    return {
+      success: false,
+      error: "Erro ao criar baralho a partir do mapa mental.",
+    };
+  }
+}

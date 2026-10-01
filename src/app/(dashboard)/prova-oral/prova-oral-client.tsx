@@ -26,6 +26,10 @@ import {
   Scale,
   X,
   Check,
+  Printer,
+  History,
+  TrendingUp,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -37,6 +41,17 @@ import {
 } from "@/actions/oral-exam-actions";
 import { updateUserCareerFocusAction } from "@/actions/edital-templates-actions";
 import { enableLawModuleInTargetRole } from "@/lib/career-utils";
+import { PrintableOralExamModal } from "./_components/PrintableOralExamModal";
+
+export interface OralHistoryItem {
+  id: string;
+  date: string;
+  cargo: string;
+  disciplina: string;
+  ponto: string;
+  questionData: OralQuestionData;
+  evaluation: OralEvaluationResult;
+}
 
 interface ProvaOralClientProps {
   isLawUser?: boolean;
@@ -106,6 +121,43 @@ export default function ProvaOralClient({
   // Resultado
   const [evaluation, setEvaluation] = useState<OralEvaluationResult | null>(null);
   const [evalError, setEvalError] = useState<string | null>(null);
+
+  // Histórico de Sabatinas e Modal de Impressão do Espelho Oficial
+  const [oralHistory, setOralHistory] = useState<OralHistoryItem[]>([]);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"EXAM" | "HISTORY">("EXAM");
+
+  // Carrega histórico salvo no localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("synapse_oral_exam_history");
+      if (stored) {
+        setOralHistory(JSON.parse(stored));
+      }
+    } catch (err) {
+      console.warn("Falha ao carregar histórico de prova oral:", err);
+    }
+  }, []);
+
+  const deleteHistoryItem = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOralHistory((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      try {
+        localStorage.setItem("synapse_oral_exam_history", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const handleOpenHistoricalExam = (item: OralHistoryItem) => {
+    setSelectedCargo(item.cargo);
+    setSelectedDisciplina(item.disciplina);
+    setQuestionData(item.questionData);
+    setEvaluation(item.evaluation);
+    setStage("RESULT");
+    setActiveTab("EXAM");
+  };
 
   const cargos = [
     "Delegado de Polícia Civil / Federal",
@@ -295,6 +347,24 @@ export default function ProvaOralClient({
       setEvaluation(res.data);
       setStage("RESULT");
 
+      const newHistoryItem: OralHistoryItem = {
+        id: `oral-${Date.now()}`,
+        date: new Date().toLocaleDateString("pt-BR"),
+        cargo: questionData?.cargo || selectedCargo,
+        disciplina: questionData?.disciplina || selectedDisciplina,
+        ponto: questionData?.ponto || "Ponto Geral",
+        questionData: questionData!,
+        evaluation: res.data,
+      };
+
+      setOralHistory((prev) => {
+        const updated = [newHistoryItem, ...prev];
+        try {
+          localStorage.setItem("synapse_oral_exam_history", JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
       // Dispara celebração se aprovado
       if (res.data.isApproved) {
         try {
@@ -377,10 +447,10 @@ export default function ProvaOralClient({
 
       <div className="max-w-4xl mx-auto space-y-6 relative">
 
-        {/* ================= HERO HEADER ================= */}
+        {/* ================= HERO HEADER & ABAS ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="p-3 rounded-2xl bg-linear-to-br from-rose-500/20 to-amber-500/20 border border-rose-500/30 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.25)] shrink-0">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-rose-500/20 to-amber-500/20 border border-rose-500/30 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.25)] shrink-0">
               <Mic size={24} />
             </div>
             <div>
@@ -397,10 +467,160 @@ export default function ProvaOralClient({
               </p>
             </div>
           </div>
+
+          <div className="inline-flex items-center p-1 rounded-2xl bg-slate-900/90 border border-white/10 shrink-0 self-start sm:self-center">
+            <button
+              type="button"
+              onClick={() => setActiveTab("EXAM")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "EXAM"
+                  ? "bg-rose-600 text-white shadow-md shadow-rose-600/30"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Mic size={14} />
+              <span>Sabatina Oral</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("HISTORY")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "HISTORY"
+                  ? "bg-rose-600 text-white shadow-md shadow-rose-600/30"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <History size={14} />
+              <span>Histórico ({oralHistory.length})</span>
+            </button>
+          </div>
         </div>
 
+        {/* ================= ABA DE HISTÓRICO & EVOLUÇÃO ================= */}
+        {activeTab === "HISTORY" && (
+          <div className="space-y-6 animate-fade-in">
+            {/* CARDS DE ESTATÍSTICAS DO HISTÓRICO */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-5 rounded-2xl bg-slate-950/70 border border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block tracking-wider">
+                  Média Geral da Banca
+                </span>
+                <span className="text-2xl font-black text-white font-mono">
+                  {oralHistory.length > 0
+                    ? (
+                        oralHistory.reduce((acc, h) => acc + h.evaluation.notaGeral, 0) /
+                        oralHistory.length
+                      ).toFixed(1)
+                    : "0,0"}
+                  <span className="text-xs text-zinc-500 font-normal"> / 10,0</span>
+                </span>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-950/70 border border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block tracking-wider">
+                  Sabatinas Realizadas
+                </span>
+                <span className="text-2xl font-black text-rose-400 font-mono">
+                  {oralHistory.length}
+                </span>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-950/70 border border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block tracking-wider">
+                  Taxa de Aprovação
+                </span>
+                <span className="text-2xl font-black text-emerald-400 font-mono">
+                  {oralHistory.length > 0
+                    ? `${Math.round(
+                        (oralHistory.filter((h) => h.evaluation.isApproved).length /
+                          oralHistory.length) *
+                          100
+                      )}%`
+                    : "0%"}
+                </span>
+              </div>
+            </div>
+
+            {/* LISTAGEM DE SABATINAS ANTERIORES */}
+            {oralHistory.length === 0 ? (
+              <div className="p-10 rounded-3xl bg-slate-950/60 border border-dashed border-white/10 text-center space-y-3">
+                <Gavel size={36} className="mx-auto text-zinc-600" />
+                <h3 className="text-sm font-bold text-white">Nenhuma sabatina realizada ainda</h3>
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                  Treine sua primeira arguição oral e o espelho da banca examinadora ficará salvo aqui para acompanhamento contínuo.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("EXAM")}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Mic size={14} />
+                  <span>Iniciar Sabatina Oral</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {oralHistory.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-4 sm:p-5 rounded-2xl bg-slate-950/80 border border-white/10 hover:border-white/20 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-black text-white">{item.cargo}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
+                          {item.disciplina}
+                        </span>
+                        <span className="text-[10px] text-zinc-500">{item.date}</span>
+                      </div>
+                      <p className="text-xs text-zinc-300 truncate max-w-md">
+                        Ponto: <strong>{item.ponto}</strong>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                      <div className="text-right">
+                        <span className="text-sm font-black font-mono text-white block">
+                          {item.evaluation.notaGeral.toFixed(1)}
+                          <span className="text-[10px] text-zinc-500">/10</span>
+                        </span>
+                        <span
+                          className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                            item.evaluation.isApproved
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                          }`}
+                        >
+                          {item.evaluation.isApproved ? "Aprovado" : "Reprovado"}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenHistoricalExam(item)}
+                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all cursor-pointer"
+                      >
+                        Ver Espelho
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => deleteHistoryItem(item.id, e)}
+                        title="Excluir sabatina"
+                        className="p-1.5 rounded-xl text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ================= 1. SETUP DE CARGO E MATÉRIA ================= */}
-        {stage === "SETUP" && (
+        {activeTab === "EXAM" && stage === "SETUP" && (
           <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl space-y-6 animate-fade-in">
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -783,8 +1003,17 @@ export default function ProvaOralClient({
               </div>
             </div>
 
-            {/* BOTÃO NOVA SABATINA */}
-            <div className="pt-2 text-center">
+            {/* BOTÕES DE AÇÃO: NOVA SABATINA & EMITIR ESPELHO */}
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsPrintModalOpen(true)}
+                className="px-6 py-3.5 rounded-2xl bg-indigo-600/30 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/40 font-extrabold text-xs tracking-wide transition-all shadow-xl shadow-indigo-600/20 active:scale-95 inline-flex items-center gap-2 cursor-pointer"
+              >
+                <Printer size={15} />
+                <span>Emitir Espelho da Banca (PDF) 📄</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -802,6 +1031,19 @@ export default function ProvaOralClient({
           </div>
         )}
       </div>
+
+      {/* MODAL IMPRESSÃO ESPELHO OFICIAL DA BANCA */}
+      {evaluation && (
+        <PrintableOralExamModal
+          isOpen={isPrintModalOpen}
+          onClose={() => setIsPrintModalOpen(false)}
+          evaluation={evaluation}
+          questionData={questionData}
+          cargo={selectedCargo}
+          disciplina={selectedDisciplina}
+          transcript={transcript}
+        />
+      )}
     </div>
   );
 }

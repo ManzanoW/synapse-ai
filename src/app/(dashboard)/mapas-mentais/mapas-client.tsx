@@ -1,7 +1,6 @@
-// src/app/(dashboard)/mapas-mentais/mapas-client.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,6 +15,8 @@ import {
   Layers,
   Lightbulb,
   BookOpen,
+  Trash2,
+  FolderHeart,
 } from "lucide-react";
 import { MindmapViewer } from "@/components/mindmap/MindmapViewer";
 import {
@@ -184,8 +185,49 @@ export function MapasMentaisClient() {
   const [subjectInput, setSubjectInput] = useState("Direito Constitucional");
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
+  const [savedMindmaps, setSavedMindmaps] = useState<MindmapData[]>([]);
+  const [activeCatalogTab, setActiveCatalogTab] = useState<"presets" | "my_maps">("presets");
 
   const { playClick, playChime } = useSound();
+
+  // Carrega mapas salvos do localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("synapse_saved_mindmaps");
+      if (stored) {
+        setSavedMindmaps(JSON.parse(stored));
+      }
+    } catch (err) {
+      console.warn("Falha ao carregar mapas salvos:", err);
+    }
+  }, []);
+
+  const saveMindmap = (mm: MindmapData) => {
+    setSavedMindmaps((prev) => {
+      const exists = prev.some((item) => item.id === mm.id);
+      const updated = exists ? prev.map((item) => (item.id === mm.id ? mm : item)) : [mm, ...prev];
+      try {
+        localStorage.setItem("synapse_saved_mindmaps", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const deleteSavedMindmap = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    playClick();
+    triggerHaptic("medium");
+    setSavedMindmaps((prev) => {
+      const updated = prev.filter((m) => m.id !== id);
+      try {
+        localStorage.setItem("synapse_saved_mindmaps", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    if (activeMindmap.id === id) {
+      setActiveMindmap(PRESET_MINDMAPS[0]);
+    }
+  };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,6 +245,8 @@ export function MapasMentaisClient() {
 
       if (res.success && res.data) {
         setActiveMindmap(res.data);
+        saveMindmap(res.data);
+        setActiveCatalogTab("my_maps");
         playChime();
         triggerHaptic("success");
       }
@@ -220,6 +264,12 @@ export function MapasMentaisClient() {
   };
 
   const filteredPresets = PRESET_MINDMAPS.filter(
+    (mm) =>
+      mm.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      mm.subject.toLowerCase().includes(searchFilter.toLowerCase())
+  );
+
+  const filteredSaved = savedMindmaps.filter(
     (mm) =>
       mm.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
       mm.subject.toLowerCase().includes(searchFilter.toLowerCase())
@@ -310,29 +360,106 @@ export function MapasMentaisClient() {
           </div>
         </form>
 
-        {/* CATÁLOGO DE MAPAS DE ALTA INCIDÊNCIA */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          <span className="text-[11px] font-extrabold uppercase text-slate-400 shrink-0 flex items-center gap-1.5 mr-1">
-            <Bookmark size={13} className="text-indigo-500" />
-            <span>Mais Cobrados:</span>
-          </span>
-          {filteredPresets.map((mm) => {
-            const isCurrent = activeMindmap.id === mm.id;
-            return (
+        {/* SELETOR DE CATÁLOGO & MEUS MAPAS SALVOS */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="inline-flex items-center p-1 rounded-2xl bg-slate-200/60 dark:bg-slate-900/80 border border-slate-200 dark:border-white/10">
               <button
-                key={mm.id}
                 type="button"
-                onClick={() => handleSelectPreset(mm)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 border ${
-                  isCurrent
-                    ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
-                    : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+                onClick={() => {
+                  playClick();
+                  setActiveCatalogTab("presets");
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeCatalogTab === "presets"
+                    ? "bg-white dark:bg-indigo-600 text-slate-900 dark:text-white shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
-                {mm.title}
+                <Bookmark size={13} className={activeCatalogTab === "presets" ? "text-indigo-500 dark:text-white" : ""} />
+                <span>Mais Cobrados ({PRESET_MINDMAPS.length})</span>
               </button>
-            );
-          })}
+
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setActiveCatalogTab("my_maps");
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeCatalogTab === "my_maps"
+                    ? "bg-white dark:bg-indigo-600 text-slate-900 dark:text-white shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <FolderHeart size={13} className={activeCatalogTab === "my_maps" ? "text-indigo-500 dark:text-white" : ""} />
+                <span>Meus Mapas Salvos ({savedMindmaps.length})</span>
+              </button>
+            </div>
+
+            {searchFilter && (
+              <span className="text-[11px] text-slate-400">
+                Filtro ativo: &quot;{searchFilter}&quot;
+              </span>
+            )}
+          </div>
+
+          {/* LISTAGEM DE BOTÕES DO CATÁLOGO */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {activeCatalogTab === "presets" ? (
+              filteredPresets.map((mm) => {
+                const isCurrent = activeMindmap.id === mm.id;
+                return (
+                  <button
+                    key={mm.id}
+                    type="button"
+                    onClick={() => handleSelectPreset(mm)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 border ${
+                      isCurrent
+                        ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
+                        : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    {mm.title}
+                  </button>
+                );
+              })
+            ) : filteredSaved.length > 0 ? (
+              filteredSaved.map((mm) => {
+                const isCurrent = activeMindmap.id === mm.id;
+                return (
+                  <div
+                    key={mm.id}
+                    className={`inline-flex items-center gap-1.5 pl-3.5 pr-2 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 border ${
+                      isCurrent
+                        ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
+                        : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPreset(mm)}
+                      className="cursor-pointer"
+                    >
+                      {mm.title}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => deleteSavedMindmap(mm.id, e)}
+                      title="Excluir este mapa mental salvo"
+                      className="p-1 rounded-full hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-2 px-3 text-xs text-slate-400 flex items-center gap-2">
+                <span>Você ainda não gerou mapas personalizados. Digite um tema acima e clique em &quot;Gerar Mapa Mental com IA&quot;!</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* VISUALIZADOR INTERATIVO DO MAPA MENTAL SELECIONADO */}

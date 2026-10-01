@@ -22,6 +22,7 @@ export async function GET() {
       studySessions,
       totalDecks,
       totalFlashcards,
+      dueFlashcards,
       totalTopics,
       completedTopics,
       user,
@@ -52,6 +53,13 @@ export async function GET() {
       prisma.deck.count({ where: { userId } }),
       // Total de Flashcards
       prisma.flashcard.count({ where: { deck: { userId } } }),
+      // Flashcards vencidos / devidos hoje para revisão FSRS
+      prisma.flashcard.count({
+        where: {
+          deck: { userId },
+          nextReviewDate: { lte: now },
+        },
+      }),
       // Total de tópicos do edital
       prisma.topic.count({ where: { subject: { userId } } }),
       // Tópicos concluídos ou em revisão
@@ -190,6 +198,7 @@ export async function GET() {
         sessionsCount: totalDecks + studySessions.length,
         questionsCount: totalQuestions,
         totalFlashcards: totalFlashcards,
+        dueFlashcards: dueFlashcards,
         averageTimePerSession:
           totalDecks + studySessions.length > 0
             ? `${Math.round(totalMinutes / (totalDecks + studySessions.length))}min`
