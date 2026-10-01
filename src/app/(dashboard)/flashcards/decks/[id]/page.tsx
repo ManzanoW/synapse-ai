@@ -16,10 +16,12 @@ import {
   Clock,
   Repeat,
   Download,
+  Printer,
 } from "lucide-react";
 import { Flashcard, Deck } from "@/types";
 import FlashcardModal from "@/components/flashcards/FlashcardModal";
 import { AnkiExportModal } from "@/components/flashcards/AnkiExportModal";
+import { PrintableDeckModal } from "@/components/flashcards/PrintableDeckModal";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -35,6 +37,7 @@ export default function DeckDetailPage({ params }: PageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAnkiModalOpen, setIsAnkiModalOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -200,7 +203,16 @@ export default function DeckDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full lg:w-auto relative z-10 pt-2 lg:pt-0">
+          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto relative z-10 pt-2 lg:pt-0">
+            <button
+              onClick={() => setIsPrintModalOpen(true)}
+              className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs px-3.5 py-3 rounded-xl border border-slate-700/80 transition-all active:scale-95 cursor-pointer shadow-sm"
+              title="Visualizar e Imprimir Fichas / PDF"
+            >
+              <Printer size={15} className="text-indigo-400" />
+              <span>Imprimir / PDF</span>
+            </button>
+
             <button
               onClick={() => setIsAnkiModalOpen(true)}
               className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-blue-950/50 hover:bg-blue-900/60 text-blue-200 font-semibold text-xs px-4 py-3 rounded-xl border border-blue-500/30 transition-all active:scale-95 cursor-pointer shadow-sm"
@@ -393,6 +405,15 @@ export default function DeckDetailPage({ params }: PageProps) {
           onClose={() => setIsAnkiModalOpen(false)}
           deckId={deck.id}
           deckTitle={deck.title}
+        />
+      )}
+
+      {isPrintModalOpen && deck && (
+        <PrintableDeckModal
+          isOpen={isPrintModalOpen}
+          onClose={() => setIsPrintModalOpen(false)}
+          deck={deck}
+          flashcards={flashcards}
         />
       )}
     </div>

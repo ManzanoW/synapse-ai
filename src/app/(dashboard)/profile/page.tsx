@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ProfileTargetForm from "@/components/profile/target-form";
+import { LocalDataBackupCard } from "@/components/profile/LocalDataBackupCard";
 import {
   ArrowLeft,
   User,
@@ -296,6 +297,9 @@ export default async function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Bloco 4: Central de Backup & Portabilidade de Dados */}
+        <LocalDataBackupCard />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useCallback, useEffect } from "react";
 import {
   Scale,
   Search,
@@ -25,6 +25,14 @@ import {
   ArrowLeft,
   CheckCircle2,
   XCircle,
+  Volume2,
+  VolumeX,
+  Pause,
+  Play,
+  Headphones,
+  Square,
+  Printer,
+  Bookmark,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -38,6 +46,7 @@ import {
 } from "@/actions/jurisprudence-actions";
 import { updateUserCareerFocusAction } from "@/actions/edital-templates-actions";
 import { enableLawModuleInTargetRole } from "@/lib/career-utils";
+import { PrintableJurisprudenceModal } from "./_components/PrintableJurisprudenceModal";
 
 interface JurisprudenciaClientProps {
   initialItems: JurisprudenceItem[];
@@ -74,6 +83,136 @@ export default function JurisprudenciaClient({
   const [activeDrillId, setActiveDrillId] = useState<string | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [confirmedAnswers, setConfirmedAnswers] = useState<Record<string, boolean>>({});
+
+  // Estados de Reprodução de Áudio (Audiolivro de Jurisprudência)
+  const [playingCardId, setPlayingCardId] = useState<string | null>(null);
+  const [isAudioPaused, setIsAudioPaused] = useState<boolean>(false);
+
+  // Estados de Favoritos / Meus Julgados Salvos & Impressão
+  const [bookmarkedIds, setBookmarkedIds] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState<"ALL" | "SAVED">("ALL");
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
+
+  // Carrega favoritos salvos do localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("synapse_jurisprudence_bookmarks");
+      if (stored) {
+        setBookmarkedIds(JSON.parse(stored));
+      }
+    } catch {}
+  }, []);
+
+  const handleToggleBookmark = (item: JurisprudenceItem) => {
+    setBookmarkedIds((prev) => {
+      const updated = { ...prev, [item.id]: !prev[item.id] };
+      try {
+        localStorage.setItem("synapse_jurisprudence_bookmarks", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  // Limpeza de síntese de voz no desmonte do componente
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  // Seleção da melhor voz neural em português do Brasil
+  const getBestPtBrVoice = useCallback((): SpeechSynthesisVoice | null => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    const preferred = ["Google português do Brasil", "Francisca", "Antonio", "Luciana", "Maria", "Letícia"];
+    for (const name of preferred) {
+      const match = voices.find(
+        (v) => (v.lang.includes("pt-BR") || v.lang.includes("pt_BR")) && v.name.toLowerCase().includes(name.toLowerCase())
+      );
+      if (match) return match;
+    }
+
+    const ptBrVoice = voices.find((v) => v.lang.includes("pt-BR") || v.lang.includes("pt_BR"));
+    if (ptBrVoice) return ptBrVoice;
+
+    return voices.find((v) => v.lang.startsWith("pt")) || null;
+  }, []);
+
+  // Parar áudio
+  const handleStopAudio = useCallback(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setPlayingCardId(null);
+    setIsAudioPaused(false);
+  }, []);
+
+  // Alternar Play / Pause / Troca de Card
+  const handleToggleAudio = useCallback(
+    (item: JurisprudenceItem) => {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+        alert("Seu navegador não possui suporte para síntese de voz nativa.");
+        return;
+      }
+
+      // Se o card clicado já é o que está ativo
+      if (playingCardId === item.id) {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+          setIsAudioPaused(false);
+        } else if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.pause();
+          setIsAudioPaused(true);
+        } else {
+          handleStopAudio();
+        }
+        return;
+      }
+
+      // Caso seja um novo card
+      window.speechSynthesis.cancel();
+      setPlayingCardId(item.id);
+      setIsAudioPaused(false);
+
+      const textParts = [
+        `${item.tribunal}. ${item.numero}. ${item.titulo}.`,
+        `Disciplina: ${item.disciplina}. Assunto: ${item.assunto}.`,
+        `Tese fixada pela Corte: ${item.teseResumida}.`,
+        `Alerta de pegadinha da banca examinadora: ${item.pegadinhaBanca}.`,
+      ];
+      if (item.casoPratico) {
+        textParts.push(`Exemplo prático de prova: ${item.casoPratico}`);
+      }
+
+      const speechText = textParts.join(" ");
+      const utterance = new SpeechSynthesisUtterance(speechText);
+      utterance.lang = "pt-BR";
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      const voice = getBestPtBrVoice();
+      if (voice) {
+        utterance.voice = voice;
+      }
+
+      utterance.onend = () => {
+        setPlayingCardId(null);
+        setIsAudioPaused(false);
+      };
+
+      utterance.onerror = () => {
+        setPlayingCardId(null);
+        setIsAudioPaused(false);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    },
+    [playingCardId, getBestPtBrVoice, handleStopAudio]
+  );
 
   // Ativação do Módulo de Direito para usuários de outras áreas
   const handleEnableLawModule = async () => {
@@ -307,6 +446,15 @@ export default function JurisprudenciaClient({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPrintModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl border border-indigo-500/30 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 dark:text-indigo-200 text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
+            >
+              <Printer size={15} />
+              <span>Exportar Caderno (PDF)</span>
+            </button>
+
             <Link
               href="/questions"
               className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-zinc-200 text-xs font-bold transition-all flex items-center gap-2 shadow-xs active:scale-95"
@@ -394,27 +542,66 @@ export default function JurisprudenciaClient({
           </div>
         </div>
 
-        {/* ================= LISTA DE SÚMULAS & PRECEDENTES ================= */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-              {items.length} {items.length === 1 ? "Precedente Encontrado" : "Precedentes Catalogados"}
-            </span>
-          </div>
+        {/* ================= ABAS: TODOS OS JULGADOS vs MEUS JULGADOS SALVOS ================= */}
+        {(() => {
+          const bookmarkedCount = Object.keys(bookmarkedIds).filter((id) => bookmarkedIds[id]).length;
+          const displayedItems = activeTab === "SAVED"
+            ? items.filter((it) => Boolean(bookmarkedIds[it.id]))
+            : items;
 
-          {items.length === 0 && !isSearching && (
-            <div className="p-8 rounded-3xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/40 text-center space-y-3">
-              <Scale size={32} className="mx-auto text-slate-400" />
-              <h3 className="text-sm font-bold text-slate-700 dark:text-zinc-300">
-                Nenhum precedente localizado com esses filtros.
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
-                Digite um tema no campo de busca acima e clique em &quot;Pesquisar com IA&quot; para que o motor jurídico sintetize o entendimento das Cortes Superiores.
-              </p>
-            </div>
-          )}
+          return (
+            <>
+              <div className="flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("ALL")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === "ALL"
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                      : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  Todos os Julgados ({items.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("SAVED")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === "SAVED"
+                      ? "bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/30"
+                      : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <BookmarkCheck size={14} className={activeTab === "SAVED" ? "fill-slate-950" : ""} />
+                  <span>Meus Julgados Salvos ({bookmarkedCount})</span>
+                </button>
+              </div>
 
-          {items.map((item) => {
+              {/* ================= LISTA DE SÚMULAS & PRECEDENTES ================= */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
+                    {displayedItems.length} {displayedItems.length === 1 ? "Precedente Exibido" : "Precedentes Exibidos"}
+                  </span>
+                </div>
+
+                {displayedItems.length === 0 && !isSearching && (
+                  <div className="p-8 rounded-3xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/40 text-center space-y-3">
+                    <Scale size={32} className="mx-auto text-slate-400" />
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-zinc-300">
+                      {activeTab === "SAVED"
+                        ? "Nenhum julgado salvo nos favoritos ainda."
+                        : "Nenhum precedente localizado com esses filtros."}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
+                      {activeTab === "SAVED"
+                        ? "Clique no ícone de marcador em qualquer julgado para adicioná-lo aos seus favoritos e gerar seu Caderno de Véspera!"
+                        : "Digite um tema no campo de busca acima e clique em 'Pesquisar com IA' para sintetizar o entendimento das Cortes Superiores."}
+                    </p>
+                  </div>
+                )}
+
+                {displayedItems.map((item) => {
             const isExpanded = expandedCardId === item.id;
             const isSavedCard = Boolean(savedFlashcardIds[item.id]);
             const isSavingCard = savingFlashcardId === item.id;
@@ -483,8 +670,64 @@ export default function JurisprudenciaClient({
                     )}
                   </div>
 
-                  <div className="shrink-0 p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-all">
-                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleAudio(item);
+                      }}
+                      className={`p-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                        playingCardId === item.id
+                          ? isAudioPaused
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                            : "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 animate-pulse border border-indigo-400"
+                          : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 border border-transparent hover:border-indigo-500/20"
+                      }`}
+                      title={
+                        playingCardId === item.id
+                          ? isAudioPaused
+                            ? "Continuar áudio"
+                            : "Pausar áudio"
+                          : "Ouvir Tese & Pegadinha com Voz Neural"
+                      }
+                    >
+                      {playingCardId === item.id ? (
+                        isAudioPaused ? <Play size={15} /> : <Pause size={15} />
+                      ) : (
+                        <Volume2 size={15} />
+                      )}
+                      <span className="hidden sm:inline text-[11px]">
+                        {playingCardId === item.id
+                          ? isAudioPaused
+                            ? "Pausado"
+                            : "Ouvindo..."
+                          : "Ouvir"}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleBookmark(item);
+                      }}
+                      className={`p-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                        bookmarkedIds[item.id]
+                          ? "bg-amber-500/20 text-amber-500 dark:text-amber-300 border border-amber-500/40 shadow-xs"
+                          : "bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 border border-transparent"
+                      }`}
+                      title={bookmarkedIds[item.id] ? "Remover dos favoritos" : "Salvar julgado nos favoritos"}
+                    >
+                      <BookmarkCheck
+                        size={15}
+                        className={bookmarkedIds[item.id] ? "fill-amber-500 dark:fill-amber-300" : ""}
+                      />
+                    </button>
+
+                    <div className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-all">
+                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
                   </div>
                 </div>
 
@@ -687,6 +930,32 @@ export default function JurisprudenciaClient({
                       </button>
 
                       <div className="flex items-center gap-2 flex-wrap">
+                        {/* Botão Ouvir Tese com Voz Neural */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleAudio(item)}
+                          className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                            playingCardId === item.id
+                              ? isAudioPaused
+                                ? "border-amber-500/40 bg-amber-500/20 text-amber-400"
+                                : "border-indigo-500 bg-indigo-600 text-white shadow-md shadow-indigo-600/30 animate-pulse"
+                              : "border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-zinc-300"
+                          }`}
+                        >
+                          {playingCardId === item.id ? (
+                            isAudioPaused ? <Play size={13} /> : <Pause size={13} />
+                          ) : (
+                            <Volume2 size={13} className="text-indigo-400" />
+                          )}
+                          <span>
+                            {playingCardId === item.id
+                              ? isAudioPaused
+                                ? "Continuar Áudio"
+                                : "Pausar Áudio"
+                              : "Ouvir Tese & Pegadinha"}
+                          </span>
+                        </button>
+
                         {/* Botão Criar Flashcard FSRS */}
                         <button
                           type="button"
@@ -727,7 +996,67 @@ export default function JurisprudenciaClient({
             );
           })}
         </div>
+      </>
+    );
+  })()}
+
+        {/* MINI-PLAYER FLUTUANTE DE JURISPRUDÊNCIA */}
+        {playingCardId && (() => {
+          const currentItem = items.find((i) => i.id === playingCardId);
+          if (!currentItem) return null;
+
+          return (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-lg w-[92%] sm:w-auto bg-slate-950/95 border border-indigo-500/50 shadow-2xl shadow-indigo-950/70 rounded-2xl px-4 py-3 flex items-center justify-between gap-4 backdrop-blur-2xl text-white">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 shrink-0">
+                  <Headphones size={18} className="animate-pulse text-indigo-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300">
+                      {currentItem.tribunal} • {currentItem.numero}
+                    </span>
+                    <span className="text-[10px] text-slate-400 truncate">
+                      {isAudioPaused ? "Em Pausa" : "Narrando..."}
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-slate-200 truncate max-w-[200px] sm:max-w-xs">
+                    {currentItem.titulo}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleToggleAudio(currentItem)}
+                  className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer shadow-md"
+                  title={isAudioPaused ? "Continuar" : "Pausar"}
+                >
+                  {isAudioPaused ? <Play size={16} /> : <Pause size={16} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStopAudio}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-all cursor-pointer"
+                  title="Parar e Fechar"
+                >
+                  <Square size={16} />
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
+
+      {/* MODAL DE IMPRESSÃO DO CADERNO DE VÉSPERA (PDF) */}
+      <PrintableJurisprudenceModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        items={activeTab === "SAVED" ? items.filter((it) => Boolean(bookmarkedIds[it.id])) : items}
+        tribunal={selectedTribunal}
+        disciplina={selectedDisciplina}
+      />
     </div>
   );
 }

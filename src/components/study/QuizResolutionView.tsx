@@ -151,6 +151,7 @@ export function QuizResolutionView({
   const [isMentorOpen, setIsMentorOpen] = useState(false);
   const [mentorGuidanceMap, setMentorGuidanceMap] = useState<Record<number, any>>({});
   const [isPrintMode, setIsPrintMode] = useState(false);
+  const [filterOnlyFlagged, setFilterOnlyFlagged] = useState(false);
 
   // Atalho global ⌘J / Ctrl+J para alternar o Mentor IA
   useEffect(() => {
@@ -290,6 +291,49 @@ export function QuizResolutionView({
     },
     [activeQuestionIndex, totalQuestions],
   );
+
+  const flaggedCount = Object.keys(flaggedQuestions).filter(
+    (k) => flaggedQuestions[Number(k)],
+  ).length;
+
+  const flaggedIndices = questions
+    .map((_, idx) => idx)
+    .filter((idx) => Boolean(flaggedQuestions[idx]));
+
+  const getNextIndex = useCallback(
+    (dir: 1 | -1) => {
+      if (filterOnlyFlagged) {
+        if (flaggedIndices.length === 0) return activeQuestionIndex;
+        if (dir === 1) {
+          const next = flaggedIndices.find((idx) => idx > activeQuestionIndex);
+          return next !== undefined ? next : flaggedIndices[0];
+        } else {
+          const prev = [...flaggedIndices]
+            .reverse()
+            .find((idx) => idx < activeQuestionIndex);
+          return prev !== undefined
+            ? prev
+            : flaggedIndices[flaggedIndices.length - 1];
+        }
+      }
+      return activeQuestionIndex + dir;
+    },
+    [filterOnlyFlagged, flaggedIndices, activeQuestionIndex],
+  );
+
+  const toggleFilterOnlyFlagged = useCallback(() => {
+    setFilterOnlyFlagged((prev) => {
+      const nextVal = !prev;
+      if (
+        nextVal &&
+        flaggedIndices.length > 0 &&
+        !flaggedQuestions[activeQuestionIndex]
+      ) {
+        navigateTo(flaggedIndices[0]);
+      }
+      return nextVal;
+    });
+  }, [flaggedIndices, flaggedQuestions, activeQuestionIndex, navigateTo]);
 
   // Seleção de alternativa
   const handleSelectAnswer = useCallback(
@@ -453,12 +497,12 @@ export function QuizResolutionView({
       // Navegação por setas: Esquerda e Direita
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        navigateTo(activeQuestionIndex - 1);
+        navigateTo(getNextIndex(-1));
         return;
       }
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        navigateTo(activeQuestionIndex + 1);
+        navigateTo(getNextIndex(1));
         return;
       }
 
@@ -467,12 +511,15 @@ export function QuizResolutionView({
         if (!isCurrentAnswered && currentSelectedAlt) {
           e.preventDefault();
           handleConfirmAnswer();
-        } else if (isCurrentAnswered && activeQuestionIndex < totalQuestions - 1) {
+        } else if (isCurrentAnswered) {
           e.preventDefault();
-          navigateTo(activeQuestionIndex + 1);
-        } else if (isCurrentAnswered && activeQuestionIndex >= totalQuestions - 1) {
-          e.preventDefault();
-          handlePromptFinalize();
+          if (filterOnlyFlagged) {
+            navigateTo(getNextIndex(1));
+          } else if (activeQuestionIndex < totalQuestions - 1) {
+            navigateTo(activeQuestionIndex + 1);
+          } else {
+            handlePromptFinalize();
+          }
         }
         return;
       }
@@ -551,6 +598,8 @@ export function QuizResolutionView({
     currentSelectedAlt,
     isCurrentAnswered,
     navigateTo,
+    getNextIndex,
+    filterOnlyFlagged,
     handleConfirmAnswer,
     handleSelectAnswer,
     totalQuestions,
@@ -673,6 +722,26 @@ export function QuizResolutionView({
               </button>
             </div>
 
+            {/* Botão de Filtrar Questões Sinalizadas */}
+            <button
+              onClick={toggleFilterOnlyFlagged}
+              type="button"
+              className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                filterOnlyFlagged
+                  ? "bg-amber-500 text-black border-amber-400 font-black shadow-lg shadow-amber-500/20"
+                  : "bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300 hover:text-amber-300"
+              }`}
+              title="Filtrar e navegar apenas pelas questões sinalizadas para revisão"
+            >
+              <Flag
+                size={14}
+                className={filterOnlyFlagged ? "fill-black text-black" : "fill-amber-400 text-amber-400"}
+              />
+              <span className="hidden xl:inline">
+                {filterOnlyFlagged ? "Apenas Marcadas" : `Marcadas (${flaggedCount})`}
+              </span>
+            </button>
+
             {/* Botão de Imprimir Caderno de Prova (PDF) */}
             <button
               onClick={() => setIsPrintMode(true)}
@@ -721,6 +790,24 @@ export function QuizResolutionView({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {/* Botão Marcadas Mobile */}
+          <button
+            onClick={toggleFilterOnlyFlagged}
+            type="button"
+            className={`p-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold ${
+              filterOnlyFlagged
+                ? "bg-amber-500 text-black border-amber-400 font-black"
+                : "bg-white/5 border-white/10 text-amber-300 hover:bg-white/10"
+            }`}
+            title="Filtrar apenas questões marcadas"
+          >
+            <Flag
+              size={12}
+              className={filterOnlyFlagged ? "fill-black text-black" : "fill-amber-400 text-amber-400"}
+            />
+            <span>{flaggedCount}</span>
+          </button>
+
           {/* Botão de Imprimir Prova Mobile */}
           <button
             onClick={() => setIsPrintMode(true)}
@@ -753,7 +840,26 @@ export function QuizResolutionView({
       {/* ========================================================================= */}
       <div className="lg:hidden fixed top-[57px] left-0 right-0 z-30 bg-[#050811]/90 backdrop-blur-md border-b border-white/10 px-3 py-2 overflow-x-auto scrollbar-none shadow-lg">
         <div className="flex items-center gap-2 min-w-max">
+          <button
+            onClick={toggleFilterOnlyFlagged}
+            type="button"
+            className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer transition-all ${
+              filterOnlyFlagged
+                ? "bg-amber-500 text-black border-amber-400 font-black"
+                : "bg-slate-900/90 border-amber-500/30 text-amber-300 hover:bg-slate-800"
+            }`}
+            title="Filtrar régua por questões marcadas"
+          >
+            <Flag
+              size={11}
+              className={filterOnlyFlagged ? "fill-black text-black" : "fill-amber-400 text-amber-400"}
+            />
+            <span>{filterOnlyFlagged ? "Marcadas" : `${flaggedCount}`}</span>
+          </button>
+
           {questions.map((_, idx) => {
+            if (filterOnlyFlagged && !flaggedQuestions[idx]) return null;
+
             const isCurrent = idx === activeQuestionIndex;
             const isAnswered = Boolean(checkedQuestions[idx]);
             const isFlagged = Boolean(flaggedQuestions[idx]);
@@ -786,6 +892,12 @@ export function QuizResolutionView({
               </button>
             );
           })}
+
+          {filterOnlyFlagged && flaggedCount === 0 && (
+            <span className="text-xs text-amber-300/80 px-2 font-medium">
+              Nenhuma questão marcada ainda
+            </span>
+          )}
         </div>
       </div>
 
@@ -1467,7 +1579,9 @@ export function QuizResolutionView({
                         type="button"
                         disabled={isFinalizing}
                         onClick={() => {
-                          if (activeQuestionIndex < totalQuestions - 1) {
+                          if (filterOnlyFlagged) {
+                            navigateTo(getNextIndex(1));
+                          } else if (activeQuestionIndex < totalQuestions - 1) {
                             navigateTo(activeQuestionIndex + 1);
                           } else {
                             handlePromptFinalize();
@@ -1483,7 +1597,9 @@ export function QuizResolutionView({
                         ) : (
                           <>
                             <span>
-                              {activeQuestionIndex < totalQuestions - 1
+                              {filterOnlyFlagged
+                                ? "Próxima Marcada"
+                                : activeQuestionIndex < totalQuestions - 1
                                 ? "Próxima Questão"
                                 : "Finalizar Simulado"}
                             </span>
@@ -1566,8 +1682,8 @@ export function QuizResolutionView({
                   {/* Botões de Ação Desktop */}
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => navigateTo(activeQuestionIndex - 1)}
-                      disabled={activeQuestionIndex === 0}
+                      onClick={() => navigateTo(getNextIndex(-1))}
+                      disabled={filterOnlyFlagged ? flaggedIndices.length <= 1 : activeQuestionIndex === 0}
                       type="button"
                       className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all flex items-center gap-2 cursor-pointer active:scale-95"
                     >
@@ -1586,8 +1702,14 @@ export function QuizResolutionView({
                       </button>
                     ) : (
                       <button
-                        onClick={() => navigateTo(activeQuestionIndex + 1)}
-                        disabled={activeQuestionIndex === totalQuestions - 1}
+                        onClick={() => {
+                          if (filterOnlyFlagged) {
+                            navigateTo(getNextIndex(1));
+                          } else {
+                            navigateTo(activeQuestionIndex + 1);
+                          }
+                        }}
+                        disabled={filterOnlyFlagged ? flaggedIndices.length <= 1 : activeQuestionIndex === totalQuestions - 1}
                         type="button"
                         className="px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-violet-950/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-95 flex items-center gap-2"
                       >
@@ -1627,46 +1749,89 @@ export function QuizResolutionView({
               </div>
             </div>
 
+            {/* Seletor de Modo: Todas vs Marcadas */}
+            <div className="flex items-center gap-1.5 p-1 bg-white/5 rounded-xl border border-white/10">
+              <button
+                type="button"
+                onClick={() => setFilterOnlyFlagged(false)}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
+                  !filterOnlyFlagged
+                    ? "bg-violet-600 text-white shadow-xs"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                Todas ({totalQuestions})
+              </button>
+              <button
+                type="button"
+                onClick={toggleFilterOnlyFlagged}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  filterOnlyFlagged
+                    ? "bg-amber-500 text-black shadow-xs font-black"
+                    : "text-amber-300/90 hover:text-amber-200"
+                }`}
+              >
+                <Flag
+                  size={12}
+                  className={filterOnlyFlagged ? "fill-black text-black" : "fill-amber-400 text-amber-400"}
+                />
+                <span>Marcadas ({flaggedCount})</span>
+              </button>
+            </div>
+
             {/* Grid 4x5 de Questões (botões de 1 a 20) */}
-            <div className="grid grid-cols-5 gap-2">
-              {questions.map((_, idx) => {
-                const isCurrent = idx === activeQuestionIndex;
-                const isAnswered = Boolean(checkedQuestions[idx]);
-                const isFlagged = Boolean(flaggedQuestions[idx]);
+            {filterOnlyFlagged && flaggedCount === 0 ? (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center space-y-1.5">
+                <p className="text-xs text-amber-200 font-bold">
+                  Nenhuma questão sinalizada ainda
+                </p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Pressione <kbd className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-300 font-mono font-bold">R</kbd> ou clique no botão "Revisar" na questão para destacá-la aqui.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-5 gap-2">
+                {questions.map((_, idx) => {
+                  if (filterOnlyFlagged && !flaggedQuestions[idx]) return null;
 
-                let buttonStyle =
-                  "bg-white/5 text-zinc-400 hover:bg-white/10 border-transparent";
+                  const isCurrent = idx === activeQuestionIndex;
+                  const isAnswered = Boolean(checkedQuestions[idx]);
+                  const isFlagged = Boolean(flaggedQuestions[idx]);
 
-                if (isCurrent) {
-                  if (isAnswered) {
-                    buttonStyle =
-                      "bg-violet-600 ring-2 ring-violet-400 text-white font-bold shadow-[0_0_12px_rgba(139,92,246,0.5)]";
+                  let buttonStyle =
+                    "bg-white/5 text-zinc-400 hover:bg-white/10 border-transparent";
+
+                  if (isCurrent) {
+                    if (isAnswered) {
+                      buttonStyle =
+                        "bg-violet-600 ring-2 ring-violet-400 text-white font-bold shadow-[0_0_12px_rgba(139,92,246,0.5)]";
+                    } else if (isFlagged) {
+                      buttonStyle =
+                        "bg-amber-500/20 border-amber-500/50 text-amber-300 ring-2 ring-violet-500 font-bold";
+                    } else {
+                      buttonStyle =
+                        "ring-2 ring-violet-500 bg-violet-500/20 text-white font-bold";
+                    }
                   } else if (isFlagged) {
                     buttonStyle =
-                      "bg-amber-500/20 border-amber-500/50 text-amber-300 ring-2 ring-violet-500 font-bold";
-                  } else {
-                    buttonStyle =
-                      "ring-2 ring-violet-500 bg-violet-500/20 text-white font-bold";
+                      "border border-amber-500/50 bg-amber-500/10 text-amber-300 font-bold";
+                  } else if (isAnswered) {
+                    buttonStyle = "bg-violet-600 text-white font-bold";
                   }
-                } else if (isFlagged) {
-                  buttonStyle =
-                    "border border-amber-500/50 bg-amber-500/10 text-amber-300 font-bold";
-                } else if (isAnswered) {
-                  buttonStyle = "bg-violet-600 text-white font-bold";
-                }
 
-                return (
-                  <button
-                    key={`desktop-grid-${idx}`}
-                    onClick={() => navigateTo(idx)}
-                    type="button"
-                    className={`h-10 rounded-xl text-xs font-mono flex items-center justify-center transition-all cursor-pointer active:scale-95 border ${buttonStyle}`}
-                  >
-                    {String(idx + 1).padStart(2, "0")}
-                  </button>
-                );
-              })}
-            </div>
+                  return (
+                    <button
+                      key={`desktop-grid-${idx}`}
+                      onClick={() => navigateTo(idx)}
+                      type="button"
+                      className={`h-10 rounded-xl text-xs font-mono flex items-center justify-center transition-all cursor-pointer active:scale-95 border ${buttonStyle}`}
+                    >
+                      {String(idx + 1).padStart(2, "0")}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Legenda de Status */}
             <div className="grid grid-cols-2 gap-2 text-[11px] font-medium text-zinc-400 pt-3 border-t border-white/5">
@@ -1741,8 +1906,8 @@ export function QuizResolutionView({
       <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-black/95 backdrop-blur-md border-t border-white/10 z-40 pb-[env(safe-area-inset-bottom,1rem)] shadow-2xl">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigateTo(activeQuestionIndex - 1)}
-            disabled={activeQuestionIndex === 0}
+            onClick={() => navigateTo(getNextIndex(-1))}
+            disabled={filterOnlyFlagged ? flaggedIndices.length <= 1 : activeQuestionIndex === 0}
             type="button"
             className="flex-1 py-3 px-3 rounded-xl border border-white/10 bg-white/5 text-slate-300 disabled:opacity-20 disabled:cursor-not-allowed font-bold text-xs flex items-center justify-center gap-1 cursor-pointer active:scale-95"
           >
@@ -1762,7 +1927,9 @@ export function QuizResolutionView({
           ) : (
             <button
               onClick={() => {
-                if (activeQuestionIndex < totalQuestions - 1) {
+                if (filterOnlyFlagged) {
+                  navigateTo(getNextIndex(1));
+                } else if (activeQuestionIndex < totalQuestions - 1) {
                   navigateTo(activeQuestionIndex + 1);
                 } else {
                   handlePromptFinalize();
@@ -1772,7 +1939,9 @@ export function QuizResolutionView({
               className="flex-[2] py-3 px-4 rounded-xl bg-violet-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-violet-950/50 cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
             >
               <span>
-                {activeQuestionIndex < totalQuestions - 1
+                {filterOnlyFlagged
+                  ? "Próxima Marcada"
+                  : activeQuestionIndex < totalQuestions - 1
                   ? "Próxima"
                   : "Finalizar"}
               </span>
@@ -1781,8 +1950,8 @@ export function QuizResolutionView({
           )}
 
           <button
-            onClick={() => navigateTo(activeQuestionIndex + 1)}
-            disabled={activeQuestionIndex === totalQuestions - 1}
+            onClick={() => navigateTo(getNextIndex(1))}
+            disabled={filterOnlyFlagged ? flaggedIndices.length <= 1 : activeQuestionIndex === totalQuestions - 1}
             type="button"
             className="flex-1 py-3 px-3 rounded-xl border border-white/10 bg-white/5 text-slate-300 disabled:opacity-20 disabled:cursor-not-allowed font-bold text-xs flex items-center justify-center gap-1 cursor-pointer active:scale-95"
           >

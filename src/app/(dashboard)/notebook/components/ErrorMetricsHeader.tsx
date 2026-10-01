@@ -17,6 +17,8 @@ import {
   FileStack,
   ArrowRight,
   ShieldCheck,
+  Printer,
+  Download,
 } from "lucide-react";
 import { ErrorNotebookMetrics, ErrorTaxonomyMetric } from "@/types/quiz";
 import { SpotlightTriggerButton } from "@/components/onboarding/PageSpotlightBanner";
@@ -34,6 +36,7 @@ interface ErrorMetricsHeaderProps {
   isCreatingBatchFlashcards?: boolean;
   onStartRedemption?: (count?: number) => Promise<void> | void;
   isGeneratingRedemption?: boolean;
+  onOpenExportModal?: (tab?: "print" | "anki") => void;
 }
 
 const TAXONOMY_ICONS: Record<string, React.ElementType> = {
@@ -57,6 +60,7 @@ export function ErrorMetricsHeader({
   isCreatingBatchFlashcards = false,
   onStartRedemption,
   isGeneratingRedemption = false,
+  onOpenExportModal,
 }: ErrorMetricsHeaderProps) {
   const classifyHandler = onBatchClassify || onAutoClassify;
   const { totalErrors, pendingErrors, masteredErrors, masteryRate, taxonomyDistribution } =
@@ -94,6 +98,33 @@ export function ErrorMetricsHeader({
               onClick={onToggleSpotlight}
               label="Como Funciona?"
             />
+          )}
+
+          {onOpenExportModal && totalErrors > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => onOpenExportModal("print")}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-200 border border-violet-500/40 text-xs md:text-sm font-bold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[44px]"
+                title="Apostila diagramada para impressão/PDF das suas questões erradas"
+              >
+                <Printer size={16} className="text-violet-400" />
+                <span>Apostila (PDF)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onOpenExportModal("anki")}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 border border-blue-500/40 text-xs md:text-sm font-bold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[44px]"
+                title="Exportar Caderno de Erros diretamente para o Anki (.txt)"
+              >
+                <Download size={16} className="text-blue-400" />
+                <span>Exportar Anki</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-500/30 text-blue-300 font-mono font-bold">
+                  .txt
+                </span>
+              </button>
+            </>
           )}
 
           {onBatchCreateFlashcards && pendingErrors > 0 && (

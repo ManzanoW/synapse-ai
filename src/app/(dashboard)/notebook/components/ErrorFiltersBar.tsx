@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, Filter, BookOpen, Brain, CheckCircle, Clock, X, ShieldCheck, Loader2 } from "lucide-react";
+import { Search, Filter, BookOpen, Brain, CheckCircle, Clock, X, ShieldCheck, Loader2, Timer } from "lucide-react";
 import { ErrorNotebookFilters } from "@/types/quiz";
 import { TAXONOMY_METADATA } from "@/lib/error-taxonomy";
 
@@ -50,6 +50,7 @@ export function ErrorFiltersBar({
     (filters.errorReason && filters.errorReason !== "ALL") ||
     (filters.status && filters.status !== "ALL") ||
     (filters.period && filters.period !== "all") ||
+    (filters.origin && filters.origin !== "ALL") ||
     (filters.search && filters.search.trim() !== "");
 
   return (
@@ -162,6 +163,27 @@ export function ErrorFiltersBar({
               <option value="90d">Últimos 90 dias</option>
             </select>
             <Clock
+              size={14}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            />
+          </div>
+
+          {/* Seletor de Origem (Simulado Cronometrado vs Treino Avulso) */}
+          <div className="relative min-w-[130px] flex-1 sm:flex-initial">
+            <select
+              value={filters.origin || "ALL"}
+              onChange={(e) =>
+                onFilterChange({
+                  origin: e.target.value as "ALL" | "TIMED" | "PRACTICE",
+                })
+              }
+              className="w-full px-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8 min-h-[44px]"
+            >
+              <option value="ALL">Origem: Todas</option>
+              <option value="TIMED">⏱️ Simulado / Prova</option>
+              <option value="PRACTICE">📖 Treino Avulso</option>
+            </select>
+            <Timer
               size={14}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
             />

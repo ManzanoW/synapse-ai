@@ -65,6 +65,48 @@ export async function finishFocusSessionAction(
       duration,
     );
 
+    // Enriquece a sessão de estudo gravada com metadados da matéria e tarefas
+    try {
+      let subjectName: string | null = null;
+      if (input.subjectId) {
+        const subject = await prisma.subject.findFirst({
+          where: { id: input.subjectId, userId },
+          select: { name: true },
+        });
+        subjectName = subject?.name ?? null;
+      }
+
+      const latestSession = await prisma.studySession.findFirst({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (latestSession) {
+        const notesParts: string[] = [latestSession.notes || "ACTIVITY:POMODORO"];
+        if (subjectName) {
+          notesParts.push(`MATERIA:${subjectName}`);
+        }
+        if (input.subjectId) {
+          notesParts.push(`SUBJECT_ID:${input.subjectId}`);
+        }
+        if (input.tasksCompleted && input.tasksCompleted.length > 0) {
+          notesParts.push(`TASKS:${input.tasksCompleted.join(";")}`);
+        }
+        if (input.notes) {
+          notesParts.push(`NOTES:${input.notes}`);
+        }
+
+        await prisma.studySession.update({
+          where: { id: latestSession.id },
+          data: {
+            notes: notesParts.join(" | "),
+          },
+        });
+      }
+    } catch (enrichErr) {
+      console.warn("⚠️ [finishFocusSessionAction] Não foi possível enriquecer notas da sessão:", enrichErr);
+    }
+
     // Invalida os caches das páginas afetadas
     revalidatePath("/dashboard");
     revalidatePath("/study-room");

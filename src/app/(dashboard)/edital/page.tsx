@@ -17,11 +17,13 @@ import {
   ArrowRight,
   Scale,
   CalendarDays,
+  Printer,
 } from "lucide-react";
 import PendingSubjects from "./PendingSubjects";
 import { Topic } from "@/types";
 import { ImportEditalModal } from "@/components/edital/import-edital-modal";
 import { CalibrateWeightsModal } from "@/components/edital/calibrate-weights-modal";
+import { PrintableEditalModal } from "@/components/edital/PrintableEditalModal";
 import { PlannerView } from "@/components/edital/planner-table";
 import { EditalSkillTree } from "@/components/edital/edital-skill-tree";
 import { NewContentModal } from "@/components/create-subject-modal";
@@ -79,6 +81,8 @@ function PlannerContent() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   // Modal de Calibrar Pesos
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
+  // Modal de Impressão do Edital Verticalizado
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   // Modo de visualização: Tabela vs Árvore RPG
   const [viewMode, setViewMode] = useState<"table" | "skill-tree">("table");
 
@@ -345,6 +349,16 @@ function PlannerContent() {
                   >
                     <Scale size={14} className="text-amber-400" />
                     <span className="truncate">Calibrar Pesos</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsPrintModalOpen(true)}
+                    className="flex items-center justify-center gap-1.5 bg-cyan-600/10 hover:bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm hover:border-cyan-500/50 active:scale-95"
+                    title="Imprimir Edital Verticalizado em formato de Checklist de Mesa"
+                  >
+                    <Printer size={14} className="text-cyan-400" />
+                    <span className="truncate">Imprimir Edital</span>
                   </button>
 
                   <Link
@@ -676,6 +690,13 @@ function PlannerContent() {
         onSuccess={async () => {
           await refreshData();
         }}
+      />
+
+      <PrintableEditalModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        subjects={subjects}
+        topics={mappedTopicsForView}
       />
     </div>
   );

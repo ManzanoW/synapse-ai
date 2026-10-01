@@ -151,6 +151,7 @@ export interface ErrorNotebookFilters {
   status?: "ALL" | "PENDING" | "MASTERED";
   period?: "7d" | "30d" | "90d" | "all";
   search?: string;
+  origin?: "ALL" | "TIMED" | "PRACTICE";
 }
 
 export type Question = ErrorNotebookItem;

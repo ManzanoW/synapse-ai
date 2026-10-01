@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { FileSpreadsheet, Zap, Camera } from "lucide-react";
+import { FileSpreadsheet, Zap, Camera, Flag } from "lucide-react";
 import { QuestaoIA } from "../page";
 
 interface QuestionMinimapProps {
@@ -14,6 +14,8 @@ interface QuestionMinimapProps {
   onOpenOpticalSheet?: () => void;
   onOpenSpeedQuiz?: () => void;
   onOpenScanner?: () => void;
+  filterOnlyFlagged?: boolean;
+  onToggleFilterFlagged?: () => void;
 }
 
 export function QuestionMinimap({
@@ -26,9 +28,15 @@ export function QuestionMinimap({
   onOpenOpticalSheet,
   onOpenSpeedQuiz,
   onOpenScanner,
+  filterOnlyFlagged = false,
+  onToggleFilterFlagged,
 }: QuestionMinimapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLButtonElement>(null);
+
+  const flaggedCount = Object.keys(flaggedQuestions).filter(
+    (k) => flaggedQuestions[Number(k)],
+  ).length;
 
   useEffect(() => {
     if (activeItemRef.current && containerRef.current) {
@@ -42,7 +50,7 @@ export function QuestionMinimap({
 
   return (
     <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.75rem)] sm:bottom-6 left-0 right-0 z-30 px-3 pointer-events-none flex justify-center">
-      <div className="bg-[#090d16]/95 border border-white/10 backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl flex items-center justify-between gap-2 pointer-events-auto max-w-lg w-full">
+      <div className="bg-[#090d16]/95 border border-white/10 backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl flex items-center justify-between gap-2 pointer-events-auto max-w-xl w-full">
         {onOpenOpticalSheet && (
           <button
             type="button"
@@ -79,11 +87,33 @@ export function QuestionMinimap({
           </button>
         )}
 
+        {onToggleFilterFlagged && (
+          <button
+            type="button"
+            onClick={onToggleFilterFlagged}
+            className={`shrink-0 px-2 sm:px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-xs ${
+              filterOnlyFlagged
+                ? "bg-amber-500 text-black border-amber-400 font-black shadow-amber-500/20"
+                : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30"
+            }`}
+            title="Filtrar apenas questões marcadas com bandeira"
+          >
+            <Flag
+              size={14}
+              className={filterOnlyFlagged ? "fill-black text-black" : "fill-amber-400 text-amber-400"}
+            />
+            <span className="hidden sm:inline text-[11px]">Marcadas ({flaggedCount})</span>
+            <span className="sm:hidden text-[11px] font-mono">{flaggedCount}</span>
+          </button>
+        )}
+
         <div
           ref={containerRef}
           className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5 px-1 scroll-smooth w-full"
         >
           {questions.map((q, idx) => {
+            if (filterOnlyFlagged && !flaggedQuestions[idx]) return null;
+
             const isAnswered = Boolean(checkedQuestions[idx]);
             const isSelected = selectedAnswers[idx] !== undefined;
             const isFlagged = Boolean(flaggedQuestions[idx]);
@@ -122,6 +152,11 @@ export function QuestionMinimap({
               </button>
             );
           })}
+          {filterOnlyFlagged && flaggedCount === 0 && (
+            <span className="text-[11px] text-amber-300/80 px-2 whitespace-nowrap">
+              Nenhuma questão marcada.
+            </span>
+          )}
         </div>
       </div>
     </div>

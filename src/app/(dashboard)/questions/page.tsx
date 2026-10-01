@@ -38,6 +38,7 @@ import {
   Calendar,
   FileSpreadsheet,
   Camera,
+  Flag,
 } from "lucide-react";
 
 import { FloatingTimer } from "./_components/FloatingTimer";
@@ -299,6 +300,7 @@ export default function QuestoesPage() {
   const [flaggedQuestions, setFlaggedQuestions] = useState<
     Record<number, boolean>
   >({});
+  const [filterOnlyFlagged, setFilterOnlyFlagged] = useState(false);
   const [currentQuizId, setCurrentQuizId] = useState<string | null>(null);
   const [savedErrors, setSavedErrors] = useState<Record<number, boolean>>({});
   const [errorClassifications, setErrorClassifications] = useState<
@@ -2317,46 +2319,102 @@ export default function QuestoesPage() {
                   ) : (
                     /* LISTA DE QUESTÕES COM PADDING INFERIOR ADEQUADO */
                     <div className="space-y-6 pb-40">
-                      {questions.map((questao, index) => (
-                        <QuestionCard
-                          key={`questao-${index}`}
-                          questao={questao}
-                          index={index}
-                          isFocused={index === focusedQuestionIndex}
-                          respondida={Boolean(checkedQuestions[index])}
-                          alternativaSelecionada={selectedAnswers[index]}
-                          isSavedError={Boolean(savedErrors[index])}
-                          isFlashcardCreated={Boolean(createdFlashcards[index])}
-                          isCreatingFlashcard={creatingFlashcardIndex === index}
-                          isFlagged={Boolean(flaggedQuestions[index])}
-                          onSelectAnswer={(altId) =>
-                            setSelectedAnswers((prev) => ({
-                              ...prev,
-                              [index]: altId,
-                            }))
+                      {/* BARRA DE FILTRO DE MARCADAS */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white dark:bg-[#0b0f19]/80 border border-slate-200 dark:border-white/10 shadow-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                            {filterOnlyFlagged
+                              ? `Filtrando ${Object.keys(flaggedQuestions).filter((k) => flaggedQuestions[Number(k)]).length} questão(ões) marcada(s) com bandeira`
+                              : `Exibindo todas as ${questions.length} questões`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFilterOnlyFlagged((prev) => !prev)}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                              filterOnlyFlagged
+                                ? "bg-amber-500 text-black border-amber-400 font-black shadow-xs"
+                                : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-300"
+                            }`}
+                          >
+                            <Flag
+                              size={13}
+                              className={
+                                filterOnlyFlagged
+                                  ? "fill-black text-black"
+                                  : "text-amber-500 fill-amber-500"
+                              }
+                            />
+                            <span>
+                              {filterOnlyFlagged
+                                ? "Mostrar Todas as Questões"
+                                : `Apenas Marcadas (${Object.keys(flaggedQuestions).filter((k) => flaggedQuestions[Number(k)]).length})`}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {filterOnlyFlagged &&
+                      Object.keys(flaggedQuestions).filter(
+                        (k) => flaggedQuestions[Number(k)],
+                      ).length === 0 ? (
+                        <div className="p-8 rounded-2xl bg-slate-50 dark:bg-zinc-900/40 border border-slate-200 dark:border-white/5 text-center space-y-2">
+                          <Flag size={28} className="mx-auto text-amber-500/70" />
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-zinc-200">
+                            Nenhuma questão marcada com bandeira
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
+                            Clique na bandeirinha de qualquer questão para adicioná-la a este filtro rápido de revisão.
+                          </p>
+                        </div>
+                      ) : (
+                        questions.map((questao, index) => {
+                          if (filterOnlyFlagged && !flaggedQuestions[index]) {
+                            return null;
                           }
-                          onAnswerQuestion={() => handleAnswerQuestion(index)}
-                          onToggleSaveError={() =>
-                            setSavedErrors((prev) => ({
-                              ...prev,
-                              [index]: !prev[index],
-                            }))
-                          }
-                          onCreateFlashcard={() => handleCreateFlashcard(index)}
-                          onToggleFlag={() =>
-                            setFlaggedQuestions((prev) => ({
-                              ...prev,
-                              [index]: !prev[index],
-                            }))
-                          }
-                          onClassifyError={(reason: ErrorClassification) =>
-                            setErrorClassifications((prev) => ({
-                              ...prev,
-                              [index]: reason,
-                            }))
-                          }
-                        />
-                      ))}
+                          return (
+                            <QuestionCard
+                              key={`questao-${index}`}
+                              questao={questao}
+                              index={index}
+                              isFocused={index === focusedQuestionIndex}
+                              respondida={Boolean(checkedQuestions[index])}
+                              alternativaSelecionada={selectedAnswers[index]}
+                              isSavedError={Boolean(savedErrors[index])}
+                              isFlashcardCreated={Boolean(createdFlashcards[index])}
+                              isCreatingFlashcard={creatingFlashcardIndex === index}
+                              isFlagged={Boolean(flaggedQuestions[index])}
+                              onSelectAnswer={(altId) =>
+                                setSelectedAnswers((prev) => ({
+                                  ...prev,
+                                  [index]: altId,
+                                }))
+                              }
+                              onAnswerQuestion={() => handleAnswerQuestion(index)}
+                              onToggleSaveError={() =>
+                                setSavedErrors((prev) => ({
+                                  ...prev,
+                                  [index]: !prev[index],
+                                }))
+                              }
+                              onCreateFlashcard={() => handleCreateFlashcard(index)}
+                              onToggleFlag={() =>
+                                setFlaggedQuestions((prev) => ({
+                                  ...prev,
+                                  [index]: !prev[index],
+                                }))
+                              }
+                              onClassifyError={(reason: ErrorClassification) =>
+                                setErrorClassifications((prev) => ({
+                                  ...prev,
+                                  [index]: reason,
+                                }))
+                              }
+                            />
+                          );
+                        })
+                      )}
                     </div>
                   )}
                 </>
@@ -2431,6 +2489,8 @@ export default function QuestoesPage() {
           selectedAnswers={selectedAnswers}
           flaggedQuestions={flaggedQuestions}
           focusedIndex={focusedQuestionIndex}
+          filterOnlyFlagged={filterOnlyFlagged}
+          onToggleFilterFlagged={() => setFilterOnlyFlagged((prev) => !prev)}
           onOpenOpticalSheet={() => setIsOpticalSheetOpen(true)}
           onOpenSpeedQuiz={() => setIsSpeedQuizOpen(true)}
           onOpenScanner={() => setIsScannerModalOpen(true)}

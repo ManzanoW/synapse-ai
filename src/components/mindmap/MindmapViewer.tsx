@@ -17,8 +17,18 @@ import {
   Brain,
   Info,
   Layers,
+  Eye,
+  EyeOff,
+  Printer,
+  Check,
+  Loader2,
 } from "lucide-react";
-import { MindmapData, MindmapNode } from "@/actions/mindmap-actions";
+import Link from "next/link";
+import {
+  MindmapData,
+  MindmapNode,
+  convertMindmapToDeckAction,
+} from "@/actions/mindmap-actions";
 import { useSound } from "@/hooks/useSound";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 
@@ -46,8 +56,14 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<MindmapNode | null>(data.rootNode);
   const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({});
+  const [isActiveRecallMode, setIsActiveRecallMode] = useState<boolean>(false);
+  const [revealedNodes, setRevealedNodes] = useState<Record<string, boolean>>({});
+  const [isExportingPng, setIsExportingPng] = useState<boolean>(false);
+  const [isCreatingDeck, setIsCreatingDeck] = useState<boolean>(false);
+  const [createdDeckInfo, setCreatedDeckInfo] = useState<{ id: string; count: number } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const { playClick, playChime } = useSound();
 
   const toggleCollapse = (nodeId: string, e: React.MouseEvent) => {
@@ -57,10 +73,141 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
     setCollapsedNodes((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
+  const toggleActiveRecall = () => {
+    playClick();
+    triggerHaptic("medium");
+    setIsActiveRecallMode((prev) => {
+      if (!prev) {
+        setRevealedNodes({});
+      }
+      return !prev;
+    });
+  };
+
   const handleSelectNode = (node: MindmapNode) => {
     playClick();
     triggerHaptic("light");
     setSelectedNode(node);
+    if (isActiveRecallMode) {
+      setRevealedNodes((prev) => ({ ...prev, [node.id]: true }));
+    }
+  };
+
+  // Exportação em SVG Vetorial de Alta Resolução
+  const handleExportSvg = () => {
+    if (!svgRef.current) return;
+    playChime();
+    triggerHaptic("medium");
+
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgRef.current);
+
+    if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+      source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeTitle = (data.title || "mapa-mental")
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-");
+    a.download = `synapse-mapa-${safeTitle}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Exportação em PNG de Alta Resolução (Retina / 2x)
+  const handleExportPng = () => {
+    if (!svgRef.current || isExportingPng) return;
+    setIsExportingPng(true);
+    playChime();
+    triggerHaptic("medium");
+
+    const svgElement = svgRef.current;
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgElement);
+
+    if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+      source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    const svgBlob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const scaleFactor = 2; // 2x para Retina e alta nitidez
+      const width = svgElement.viewBox.baseVal.width || 1200;
+      const height = svgElement.viewBox.baseVal.height || 800;
+
+      canvas.width = width * scaleFactor;
+      canvas.height = height * scaleFactor;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#030712";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.scale(scaleFactor, scaleFactor);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const pngUrl = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = pngUrl;
+        const safeTitle = (data.title || "mapa-mental")
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/\s+/g, "-");
+        a.download = `synapse-mapa-${safeTitle}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      URL.revokeObjectURL(url);
+      setIsExportingPng(false);
+    };
+    img.onerror = () => {
+      setIsExportingPng(false);
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
+
+  // Impressão direta do Mapa Mental
+  const handlePrint = () => {
+    playClick();
+    triggerHaptic("light");
+    window.print();
+  };
+
+  // Transformar Mapa Mental em Baralho de Flashcards FSRS
+  const handleConvertToDeck = async () => {
+    if (isCreatingDeck) return;
+    setIsCreatingDeck(true);
+    playClick();
+    triggerHaptic("medium");
+
+    try {
+      const res = await convertMindmapToDeckAction({
+        title: data.title,
+        subject: data.subject,
+        rootNode: data.rootNode,
+      });
+
+      if (res.success && res.deckId) {
+        setCreatedDeckInfo({ id: res.deckId, count: res.cardsCount || 0 });
+        playChime();
+        triggerHaptic("success");
+      }
+    } catch (err) {
+      console.error("Erro ao converter para deck:", err);
+    } finally {
+      setIsCreatingDeck(false);
+    }
   };
 
   // Cálculo da árvore de layout para o SVG
@@ -248,6 +395,76 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
           >
             <RotateCcw size={14} />
           </button>
+
+          <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-0.5" />
+
+          {/* Botão Active Recall (Desafio de Memória) */}
+          <button
+            type="button"
+            data-mindmap-interactive
+            onClick={toggleActiveRecall}
+            className={`px-2 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold ${
+              isActiveRecallMode
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                : "text-slate-600 dark:text-slate-300 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-white/5"
+            }`}
+            title={
+              isActiveRecallMode
+                ? "Desativar modo Active Recall"
+                : "Ativar modo Active Recall (oculta respostas para testar sua memória)"
+            }
+          >
+            {isActiveRecallMode ? <EyeOff size={14} className="text-amber-400" /> : <Eye size={14} />}
+            <span className="hidden sm:inline text-[11px]">Active Recall</span>
+            <span
+              className={`text-[9px] px-1 rounded font-mono ${
+                isActiveRecallMode
+                  ? "bg-amber-500 text-slate-950 font-bold"
+                  : "bg-slate-200 dark:bg-slate-800 text-slate-500"
+              }`}
+            >
+              {isActiveRecallMode ? "ON" : "OFF"}
+            </span>
+          </button>
+
+          {/* Botão Exportar PNG HD */}
+          <button
+            type="button"
+            data-mindmap-interactive
+            onClick={handleExportPng}
+            disabled={isExportingPng}
+            className="px-2 py-1 rounded-xl text-slate-600 dark:text-slate-300 hover:text-cyan-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1 text-xs font-bold disabled:opacity-50"
+            title="Baixar Mapa Mental em Imagem PNG em Alta Resolução (Retina 2x)"
+          >
+            {isExportingPng ? (
+              <Loader2 size={13} className="animate-spin text-cyan-400" />
+            ) : (
+              <Download size={13} />
+            )}
+            <span className="text-[11px]">PNG HD</span>
+          </button>
+
+          {/* Botão Exportar SVG */}
+          <button
+            type="button"
+            data-mindmap-interactive
+            onClick={handleExportSvg}
+            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+            title="Exportar Mapa Mental em Vetor SVG"
+          >
+            <span className="text-[10px] font-mono font-bold">SVG</span>
+          </button>
+
+          {/* Botão Imprimir */}
+          <button
+            type="button"
+            data-mindmap-interactive
+            onClick={handlePrint}
+            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+            title="Imprimir Mapa Mental (Folha A4 Paisagem)"
+          >
+            <Printer size={14} />
+          </button>
         </div>
 
         {/* Canvas SVG */}
@@ -260,6 +477,7 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
           className="absolute inset-0 w-full h-full pointer-events-none"
         >
           <svg
+            ref={svgRef}
             width={layoutTree.totalWidth + 100}
             height={layoutTree.totalHeight + 100}
             className="w-full h-full pointer-events-auto"
@@ -327,46 +545,59 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
                     />
                   )}
 
-                  {/* Título do Nó */}
-                  <text
-                    x={item.depth > 0 ? 14 : 16}
-                    y={hasMnemonic || hasTrap ? 24 : 32}
-                    fill={isSelected ? "#ffffff" : "currentColor"}
-                    className={`${
-                      item.depth === 0
-                        ? "text-xs font-black"
-                        : "text-[11px] font-bold"
-                    } select-none fill-slate-900 dark:fill-slate-100`}
-                  >
-                    {item.node.label.length > 24
-                      ? `${item.node.label.slice(0, 22)}...`
-                      : item.node.label}
-                  </text>
+                  {/* Título do Nó (Suporte a Active Recall) */}
+                  {isActiveRecallMode && item.depth > 0 && !revealedNodes[item.node.id] ? (
+                    <text
+                      x={14}
+                      y={32}
+                      fill="#f59e0b"
+                      className="text-[11px] font-extrabold select-none fill-amber-500 animate-pulse"
+                    >
+                      ❓ [Clique p/ Lembrar]
+                    </text>
+                  ) : (
+                    <>
+                      <text
+                        x={item.depth > 0 ? 14 : 16}
+                        y={hasMnemonic || hasTrap ? 24 : 32}
+                        fill={isSelected ? "#ffffff" : "currentColor"}
+                        className={`${
+                          item.depth === 0
+                            ? "text-xs font-black"
+                            : "text-[11px] font-bold"
+                        } select-none fill-slate-900 dark:fill-slate-100`}
+                      >
+                        {item.node.label.length > 24
+                          ? `${item.node.label.slice(0, 22)}...`
+                          : item.node.label}
+                      </text>
 
-                  {/* Badges de Mnemônico ou Pegadinha no Nó */}
-                  {(hasMnemonic || hasTrap) && (
-                    <g transform="translate(14, 34)">
-                      {hasMnemonic && (
-                        <text
-                          x={0}
-                          y={10}
-                          fill="#f59e0b"
-                          className="text-[9px] font-extrabold select-none"
-                        >
-                          💡 MACETE
-                        </text>
+                      {/* Badges de Mnemônico ou Pegadinha no Nó */}
+                      {(hasMnemonic || hasTrap) && (
+                        <g transform="translate(14, 34)">
+                          {hasMnemonic && (
+                            <text
+                              x={0}
+                              y={10}
+                              fill="#f59e0b"
+                              className="text-[9px] font-extrabold select-none"
+                            >
+                              💡 MACETE
+                            </text>
+                          )}
+                          {hasTrap && (
+                            <text
+                              x={hasMnemonic ? 56 : 0}
+                              y={10}
+                              fill="#f43f5e"
+                              className="text-[9px] font-extrabold select-none"
+                            >
+                              ⚠️ PEGADINHA
+                            </text>
+                          )}
+                        </g>
                       )}
-                      {hasTrap && (
-                        <text
-                          x={hasMnemonic ? 56 : 0}
-                          y={10}
-                          fill="#f43f5e"
-                          className="text-[9px] font-extrabold select-none"
-                        >
-                          ⚠️ PEGADINHA
-                        </text>
-                      )}
-                    </g>
+                    </>
                   )}
 
                   {/* Botão de Expandir/Recolher Filhos */}
@@ -454,10 +685,46 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
           )}
         </div>
 
-        <div className="pt-4 border-t border-slate-100 dark:border-white/10 space-y-2">
+        <div className="pt-4 border-t border-slate-100 dark:border-white/10 space-y-2.5">
+          {createdDeckInfo ? (
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold">
+                <Check size={14} />
+                <span>Baralho Criado! ({createdDeckInfo.count} cards)</span>
+              </div>
+              <Link
+                href={`/flashcards/study/${createdDeckInfo.id}`}
+                className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold transition-all shadow-md shadow-emerald-600/30 active:scale-95 cursor-pointer"
+              >
+                <span>Revisar Flashcards Agora</span>
+                <ChevronRight size={13} />
+              </Link>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleConvertToDeck}
+              disabled={isCreatingDeck}
+              className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-600/25 active:scale-95 disabled:opacity-50 cursor-pointer"
+              title="Gera um baralho de repetição espaçada (FSRS) com todos os ramos e regras deste mapa"
+            >
+              {isCreatingDeck ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Criando Baralho FSRS...</span>
+                </>
+              ) : (
+                <>
+                  <Layers size={14} />
+                  <span>Gerar Baralho FSRS ({data.rootNode.children?.length || 3}+ cards)</span>
+                </>
+              )}
+            </button>
+          )}
+
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span>Matéria: {data.subject}</span>
-            <span className="font-mono">FSRS Linked</span>
+            <span className="font-mono text-indigo-400 font-semibold">FSRS Ready</span>
           </div>
         </div>
       </div>
