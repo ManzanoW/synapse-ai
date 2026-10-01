@@ -17,6 +17,8 @@ import {
   Brain,
   Info,
   Layers,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { MindmapData, MindmapNode } from "@/actions/mindmap-actions";
 import { useSound } from "@/hooks/useSound";
@@ -46,8 +48,11 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<MindmapNode | null>(data.rootNode);
   const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({});
+  const [isActiveRecallMode, setIsActiveRecallMode] = useState<boolean>(false);
+  const [revealedNodes, setRevealedNodes] = useState<Record<string, boolean>>({});
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const { playClick, playChime } = useSound();
 
   const toggleCollapse = (nodeId: string, e: React.MouseEvent) => {
@@ -57,10 +62,52 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
     setCollapsedNodes((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
+  const toggleActiveRecall = () => {
+    playClick();
+    triggerHaptic("medium");
+    setIsActiveRecallMode((prev) => {
+      if (!prev) {
+        setRevealedNodes({});
+      }
+      return !prev;
+    });
+  };
+
   const handleSelectNode = (node: MindmapNode) => {
     playClick();
     triggerHaptic("light");
     setSelectedNode(node);
+    if (isActiveRecallMode) {
+      setRevealedNodes((prev) => ({ ...prev, [node.id]: true }));
+    }
+  };
+
+  // Exportação em SVG Vetorial de Alta Resolução
+  const handleExportSvg = () => {
+    if (!svgRef.current) return;
+    playChime();
+    triggerHaptic("medium");
+
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgRef.current);
+
+    if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+      source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeTitle = (data.title || "mapa-mental")
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-");
+    a.download = `synapse-mapa-${safeTitle}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // Cálculo da árvore de layout para o SVG
@@ -248,6 +295,48 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
           >
             <RotateCcw size={14} />
           </button>
+
+          <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-0.5" />
+
+          {/* Botão Active Recall (Desafio de Memória) */}
+          <button
+            type="button"
+            data-mindmap-interactive
+            onClick={toggleActiveRecall}
+            className={`px-2 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold ${
+              isActiveRecallMode
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                : "text-slate-600 dark:text-slate-300 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-white/5"
+            }`}
+            title={
+              isActiveRecallMode
+                ? "Desativar modo Active Recall"
+                : "Ativar modo Active Recall (oculta respostas para testar sua memória)"
+            }
+          >
+            {isActiveRecallMode ? <EyeOff size={14} className="text-amber-400" /> : <Eye size={14} />}
+            <span className="hidden sm:inline text-[11px]">Active Recall</span>
+            <span
+              className={`text-[9px] px-1 rounded font-mono ${
+                isActiveRecallMode
+                  ? "bg-amber-500 text-slate-950 font-bold"
+                  : "bg-slate-200 dark:bg-slate-800 text-slate-500"
+              }`}
+            >
+              {isActiveRecallMode ? "ON" : "OFF"}
+            </span>
+          </button>
+
+          {/* Botão Exportar SVG */}
+          <button
+            type="button"
+            data-mindmap-interactive
+            onClick={handleExportSvg}
+            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+            title="Exportar Mapa Mental em SVG Vetorial de Alta Resolução"
+          >
+            <Download size={15} />
+          </button>
         </div>
 
         {/* Canvas SVG */}
@@ -260,6 +349,7 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
           className="absolute inset-0 w-full h-full pointer-events-none"
         >
           <svg
+            ref={svgRef}
             width={layoutTree.totalWidth + 100}
             height={layoutTree.totalHeight + 100}
             className="w-full h-full pointer-events-auto"
@@ -327,46 +417,59 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
                     />
                   )}
 
-                  {/* Título do Nó */}
-                  <text
-                    x={item.depth > 0 ? 14 : 16}
-                    y={hasMnemonic || hasTrap ? 24 : 32}
-                    fill={isSelected ? "#ffffff" : "currentColor"}
-                    className={`${
-                      item.depth === 0
-                        ? "text-xs font-black"
-                        : "text-[11px] font-bold"
-                    } select-none fill-slate-900 dark:fill-slate-100`}
-                  >
-                    {item.node.label.length > 24
-                      ? `${item.node.label.slice(0, 22)}...`
-                      : item.node.label}
-                  </text>
+                  {/* Título do Nó (Suporte a Active Recall) */}
+                  {isActiveRecallMode && item.depth > 0 && !revealedNodes[item.node.id] ? (
+                    <text
+                      x={14}
+                      y={32}
+                      fill="#f59e0b"
+                      className="text-[11px] font-extrabold select-none fill-amber-500 animate-pulse"
+                    >
+                      ❓ [Clique p/ Lembrar]
+                    </text>
+                  ) : (
+                    <>
+                      <text
+                        x={item.depth > 0 ? 14 : 16}
+                        y={hasMnemonic || hasTrap ? 24 : 32}
+                        fill={isSelected ? "#ffffff" : "currentColor"}
+                        className={`${
+                          item.depth === 0
+                            ? "text-xs font-black"
+                            : "text-[11px] font-bold"
+                        } select-none fill-slate-900 dark:fill-slate-100`}
+                      >
+                        {item.node.label.length > 24
+                          ? `${item.node.label.slice(0, 22)}...`
+                          : item.node.label}
+                      </text>
 
-                  {/* Badges de Mnemônico ou Pegadinha no Nó */}
-                  {(hasMnemonic || hasTrap) && (
-                    <g transform="translate(14, 34)">
-                      {hasMnemonic && (
-                        <text
-                          x={0}
-                          y={10}
-                          fill="#f59e0b"
-                          className="text-[9px] font-extrabold select-none"
-                        >
-                          💡 MACETE
-                        </text>
+                      {/* Badges de Mnemônico ou Pegadinha no Nó */}
+                      {(hasMnemonic || hasTrap) && (
+                        <g transform="translate(14, 34)">
+                          {hasMnemonic && (
+                            <text
+                              x={0}
+                              y={10}
+                              fill="#f59e0b"
+                              className="text-[9px] font-extrabold select-none"
+                            >
+                              💡 MACETE
+                            </text>
+                          )}
+                          {hasTrap && (
+                            <text
+                              x={hasMnemonic ? 56 : 0}
+                              y={10}
+                              fill="#f43f5e"
+                              className="text-[9px] font-extrabold select-none"
+                            >
+                              ⚠️ PEGADINHA
+                            </text>
+                          )}
+                        </g>
                       )}
-                      {hasTrap && (
-                        <text
-                          x={hasMnemonic ? 56 : 0}
-                          y={10}
-                          fill="#f43f5e"
-                          className="text-[9px] font-extrabold select-none"
-                        >
-                          ⚠️ PEGADINHA
-                        </text>
-                      )}
-                    </g>
+                    </>
                   )}
 
                   {/* Botão de Expandir/Recolher Filhos */}

@@ -25,6 +25,7 @@ import {
   RotateCcw,
   AlertTriangle,
   LifeBuoy,
+  Download,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
@@ -334,6 +335,88 @@ export default function WeekPage() {
     } finally {
       setIsManualRebalancing(false);
     }
+  };
+
+  // Exportação da Grade Semanal em formato iCalendar (.ics)
+  const handleExportIcs = () => {
+    if (!data?.scheduleByDay || data.scheduleByDay.length === 0) return;
+
+    const now = new Date();
+    const currentDayOfWeek = now.getDay();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - currentDayOfWeek);
+
+    const lines: string[] = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Synapse AI//Cronograma Semanal de Estudos//PT",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "X-WR-CALNAME:Synapse AI - Cronograma de Estudos",
+      "X-WR-TIMEZONE:America/Sao_Paulo",
+    ];
+
+    const pad = (n: number) => n.toString().padStart(2, "0");
+
+    const formatIcsDate = (date: Date) => {
+      return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}00Z`;
+    };
+
+    data.scheduleByDay.forEach((day: DaySchedule) => {
+      const dayDate = new Date(startOfWeek);
+      dayDate.setDate(startOfWeek.getDate() + day.dayIndex);
+
+      let startHour = 9;
+      let startMin = 0;
+
+      day.subjects.forEach((subj) => {
+        if (!subj.dailyMinutesAllocated || subj.dailyMinutesAllocated <= 0) return;
+
+        const startDate = new Date(dayDate);
+        startDate.setHours(startHour, startMin, 0, 0);
+
+        const endDate = new Date(startDate);
+        endDate.setMinutes(startDate.getMinutes() + subj.dailyMinutesAllocated);
+
+        const topicList = (subj.assignedTopics || []).map((t) => `• ${t.title}`).join("\\n");
+        const uid = `synapse-week-${day.dayIndex}-${subj.id}-${Date.now()}@synapse.ai`;
+
+        lines.push("BEGIN:VEVENT");
+        lines.push(`UID:${uid}`);
+        lines.push(`DTSTAMP:${formatIcsDate(now)}`);
+        lines.push(`DTSTART:${formatIcsDate(startDate)}`);
+        lines.push(`DTEND:${formatIcsDate(endDate)}`);
+        lines.push(`SUMMARY:📚 Estudo: ${subj.name} (${subj.dailyMinutesAllocated} min)`);
+        lines.push(
+          `DESCRIPTION:Estudo programado no Synapse AI.\\nMatéria: ${subj.name}\\nMeta: ${subj.dailyMinutesAllocated} minutos\\nTópicos:\\n${topicList || "Revisão geral"}`
+        );
+        lines.push("STATUS:CONFIRMED");
+
+        lines.push("BEGIN:VALARM");
+        lines.push("TRIGGER:-PT15M");
+        lines.push("ACTION:DISPLAY");
+        lines.push(`DESCRIPTION:Lembrete de estudo: ${subj.name}`);
+        lines.push("END:VALARM");
+
+        lines.push("END:VEVENT");
+
+        startHour = endDate.getHours();
+        startMin = endDate.getMinutes();
+      });
+    });
+
+    lines.push("END:VCALENDAR");
+
+    const icsContent = lines.join("\r\n");
+    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "synapse-cronograma-semanal.ics";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleToggleMode = (mode: "WEEKLY" | "CYCLE") => {
@@ -687,6 +770,17 @@ export default function WeekPage() {
             >
               <Settings2 size={14} />
               <span className="hidden sm:inline">Configurações</span>
+            </button>
+
+            <button
+              onClick={handleExportIcs}
+              disabled={!hasSubjects}
+              title="Exportar grade semanal de estudos para o Google Agenda, Apple Calendar ou Outlook (.ics)"
+              className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <Download size={14} className="text-emerald-400" />
+              <span className="hidden sm:inline">Exportar .ics</span>
+              <span className="sm:hidden">.ics</span>
             </button>
           </div>
         </div>
