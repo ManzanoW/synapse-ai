@@ -397,6 +397,32 @@ export default function Sidebar({ user }: SidebarProps) {
     } catch {}
   }, []);
 
+  // Ao navegar para uma nova rota, expande automaticamente o grupo de destino caso estivesse colapsado
+  useEffect(() => {
+    const activeGroup = NAV_GROUPS.find((g) =>
+      g.items.some((item) =>
+        item.href === "/"
+          ? pathname === "/"
+          : pathname === item.href || pathname.startsWith(`${item.href}/`)
+      )
+    );
+    if (activeGroup) {
+      setCollapsedGroups((prev) => {
+        if (prev[activeGroup.id]) {
+          const next = { ...prev, [activeGroup.id]: false };
+          try {
+            localStorage.setItem(
+              "synapse_sidebar_collapsed_groups",
+              JSON.stringify(next)
+            );
+          } catch {}
+          return next;
+        }
+        return prev;
+      });
+    }
+  }, [pathname]);
+
   const toggleGroupCollapse = (groupId: string) => {
     setCollapsedGroups((prev) => {
       const next = { ...prev, [groupId]: !prev[groupId] };
@@ -625,17 +651,17 @@ export default function Sidebar({ user }: SidebarProps) {
           </div>
         </div>
 
-        {/* Conteúdo com Rolagem Fluida: Navegação + Card de Gamificação & Usuário */}
-        <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-h-0 pr-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain">
-          <nav className="space-y-2 pb-2">
+        {/* 2. Área de Navegação com Rolagem Fluida, Invisível e Sem Reduzir a Largura */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-0.5 no-scrollbar scrollbar-none overscroll-contain">
+          <nav className="space-y-1.5 pb-2">
             {filteredNavGroups.map((group) => {
               const hasActiveItem = group.items.some((item) =>
                 item.href === "/"
                   ? pathname === "/"
                   : pathname === item.href || pathname.startsWith(`${item.href}/`)
               );
-              // Se o grupo contém a rota ativa, mantém expandido obrigatoriamente para não desorientar o usuário
-              const isCollapsed = !hasActiveItem && Boolean(collapsedGroups[group.id]);
+              // Respeita a decisão de fechamento do usuário
+              const isCollapsed = Boolean(collapsedGroups[group.id]);
 
               return (
                 <div key={group.id} className="space-y-0.5">
@@ -643,15 +669,24 @@ export default function Sidebar({ user }: SidebarProps) {
                   <button
                     type="button"
                     onClick={() => toggleGroupCollapse(group.id)}
-                    className="w-full flex items-center justify-between px-2.5 py-1.5 mt-2.5 mb-0.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-white/4 transition-colors group/header cursor-pointer select-none text-left"
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 mt-2 mb-0.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-white/4 transition-colors group/header cursor-pointer select-none text-left"
                     aria-expanded={!isCollapsed}
                   >
-                    <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-400 group-hover/header:text-slate-600 dark:text-slate-500 dark:group-hover/header:text-slate-300 transition-colors">
-                      {group.label}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-400 group-hover/header:text-slate-600 dark:text-slate-500 dark:group-hover/header:text-slate-300 transition-colors truncate">
+                        {group.label}
+                      </span>
+                      {/* Se o grupo estiver colapsado mas contiver a rota ativa, exibe indicador sutil de contexto */}
+                      {isCollapsed && hasActiveItem && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25 text-[8.5px] font-semibold tracking-normal lowercase shrink-0 animate-fade-in shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                          ativo
+                        </span>
+                      )}
+                    </div>
                     <ChevronDown
                       size={12}
-                      className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 ${
+                      className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 shrink-0 ${
                         isCollapsed ? "-rotate-90 opacity-60" : "rotate-0 opacity-100"
                       }`}
                     />
@@ -769,9 +804,10 @@ export default function Sidebar({ user }: SidebarProps) {
               );
             })}
           </nav>
+        </div>
 
-          {/* Rodapé: Card de Gamificação & Usuário (com mt-auto para fixar embaixo no desktop e rolar suavemente no mobile) */}
-          <div className="mt-auto pt-3 shrink-0 pb-[max(env(safe-area-inset-bottom),14px)]">
+        {/* 3. Rodapé Fixo: Card de Gamificação & Usuário (Sempre ancorado na base, sem corte) */}
+        <div className="shrink-0 pt-2 pb-[max(env(safe-area-inset-bottom),4px)] mt-auto border-t border-slate-100 dark:border-white/5">
             <div className={`group relative overflow-hidden rounded-2xl ${
               isLight
                 ? "bg-white border border-slate-200/90 shadow-xs"
@@ -950,7 +986,6 @@ export default function Sidebar({ user }: SidebarProps) {
               </div>
             </div>
           </div>
-        </div>
       </aside>
     </>
   );

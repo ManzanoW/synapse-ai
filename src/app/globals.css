@@ -556,6 +556,19 @@ html.light *::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
 
+/* Utilitário para ocultar barras de rolagem mantendo funcionalidade intacta em qualquer navegador */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
 @layer utilities {
   .perspective-1000 {
     perspective: 1000px;
