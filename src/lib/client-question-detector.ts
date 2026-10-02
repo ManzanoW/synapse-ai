@@ -21,7 +21,103 @@ export interface ImageQuestionValidationResult {
 }
 
 /**
- * Analisa a imagem localmente via HTML5 Canvas (executa em ~5ms a 15ms no navegador)
+ * Executa a análise heurística de contraste e transições de caracteres sobre os pixels do Canvas.
+ */
+function evaluatePixelData(
+  data: Uint8ClampedArray,
+  sampleSize: number,
+): ImageQuestionValidationResult {
+  let totalLuma = 0;
+  const lumaList = new Float32Array(sampleSize * sampleSize);
+
+  // Converte cada pixel para luminância perceptiva (Rec. 601)
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    const luma = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    lumaList[p] = luma;
+    totalLuma += luma;
+  }
+
+  const meanLuma = totalLuma / lumaList.length;
+
+  // Calcula desvio padrão de luminância
+  let varianceSum = 0;
+  for (let p = 0; p < lumaList.length; p++) {
+    const diff = lumaList[p] - meanLuma;
+    varianceSum += diff * diff;
+  }
+  const stdDevLuma = Math.sqrt(varianceSum / lumaList.length);
+
+  // Se o desvio padrão de luminância for quase nulo (< 12), é uma imagem lisa/sólida (preta, branca ou cor única)
+  if (stdDevLuma < 12) {
+    return {
+      isValid: false,
+      textConfidenceScore: 2,
+      confidenceLevel: "low",
+      message: "A imagem não apresenta contraste ou conteúdo legível.",
+      suggestion: "Envie uma foto de um documento com texto visível.",
+    };
+  }
+
+  // Contagem de transições de alto contraste (bordas de texto horizontais)
+  // Documentos de questões contêm centenas de alternâncias entre papel e caracteres
+  let horizontalTransitions = 0;
+  const contrastThreshold = 38;
+
+  for (let y = 10; y < sampleSize - 10; y += 2) {
+    const rowOffset = y * sampleSize;
+    for (let x = 1; x < sampleSize; x++) {
+      const diff = Math.abs(lumaList[rowOffset + x] - lumaList[rowOffset + x - 1]);
+      if (diff > contrastThreshold) {
+        horizontalTransitions++;
+      }
+    }
+  }
+
+  // Normalização de densidade de transição
+  const testedComparisons = ((sampleSize - 20) / 2) * sampleSize;
+  const transitionRatio = (horizontalTransitions / testedComparisons) * 100;
+
+  // Distribuição de luminância extrema (típica de fundo claro + texto escuro ou vice-versa)
+  let extremePixels = 0;
+  for (let p = 0; p < lumaList.length; p++) {
+    const luma = lumaList[p];
+    if (luma < 60 || luma > 200) {
+      extremePixels++;
+    }
+  }
+  const extremeRatio = (extremePixels / lumaList.length) * 100;
+
+  let score = Math.round(
+    Math.min(100, Math.max(0, transitionRatio * 3.5 + extremeRatio * 0.25)),
+  );
+
+  if (transitionRatio >= 4.5 && extremeRatio > 35) {
+    score = Math.max(70, score);
+  }
+
+  // Limiar de rejeição para evitar envio de imagens que não são questões (logos lisos, comidas, fotos sem texto)
+  if (score < 26 || transitionRatio < 2.2) {
+    return {
+      isValid: false,
+      textConfidenceScore: score,
+      confidenceLevel: "low",
+      message: "A imagem não parece conter uma questão de prova ou texto de concurso.",
+      suggestion:
+        "Certifique-se de fotografar uma apostila, folha de caderno, livro ou captura de simulado com enunciado e alternativas.",
+    };
+  }
+
+  return {
+    isValid: true,
+    textConfidenceScore: score,
+    confidenceLevel: score >= 65 ? "high" : "moderate",
+    message: "Texto e conteúdo de questão identificados.",
+  };
+}
+
+/**
+ * Analisa a imagem localmente via HTML5 Canvas (executa em ~5ms a 15ms no navegador).
+ * Utiliza createImageBitmap quando disponível para prevenir SecurityError por cross-origin tainting.
  */
 export async function validateImageForQuestion(
   file: File,
@@ -46,181 +142,158 @@ export async function validateImageForQuestion(
     };
   }
 
-  return new Promise<ImageQuestionValidationResult>((resolve) => {
-    let objectUrl: string | null = null;
+  const sampleSize = 240;
+
+  // 2. Método Primário Seguro: createImageBitmap (sem risco de canvas tainting por blob URL)
+  if (typeof createImageBitmap === "function") {
     try {
-      objectUrl = URL.createObjectURL(file);
-      const img = new Image();
+      const bitmap = await createImageBitmap(file);
+      const width = bitmap.width;
+      const height = bitmap.height;
 
-      img.onload = async () => {
-        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      // Dimensões mínimas razoáveis para uma questão de concurso
+      if (width < 140 || height < 100) {
+        bitmap.close?.();
+        return {
+          isValid: false,
+          textConfidenceScore: 10,
+          confidenceLevel: "low",
+          message: "Dimensões da imagem muito reduzidas para conter uma questão.",
+          suggestion: "Envie uma foto ou print maior da apostila ou prova.",
+        };
+      }
 
-        const { width, height } = img;
+      const canvas = document.createElement("canvas");
+      canvas.width = sampleSize;
+      canvas.height = sampleSize;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
-        // 2. Dimensões mínimas razoáveis para uma questão de concurso
-        if (width < 140 || height < 100) {
-          resolve({
-            isValid: false,
-            textConfidenceScore: 10,
-            confidenceLevel: "low",
-            message: "Dimensões da imagem muito reduzidas para conter uma questão.",
-            suggestion: "Envie uma foto ou print maior da apostila ou prova.",
-          });
-          return;
-        }
+      if (!ctx) {
+        bitmap.close?.();
+        return {
+          isValid: true,
+          textConfidenceScore: 65,
+          confidenceLevel: "moderate",
+        };
+      }
 
-        // 3. Suporte opcional à TextDetector API nativa do Chromium (se disponível no navegador)
-        if ("TextDetector" in window) {
-          try {
-            // @ts-expect-error - TextDetector é API experimental em navegadores Chromium
-            const detector = new window.TextDetector();
-            const detectedBlocks = await detector.detect(img);
-            if (Array.isArray(detectedBlocks) && detectedBlocks.length >= 2) {
+      ctx.drawImage(bitmap, 0, 0, sampleSize, sampleSize);
+      bitmap.close?.();
+
+      try {
+        const imgData = ctx.getImageData(0, 0, sampleSize, sampleSize);
+        return evaluatePixelData(imgData.data, sampleSize);
+      } catch (ctxErr) {
+        console.warn("Aviso ao extrair pixels do canvas:", ctxErr);
+        // Fallback seguro caso haja restrição de sandbox do navegador
+        return {
+          isValid: true,
+          textConfidenceScore: 70,
+          confidenceLevel: "moderate",
+        };
+      }
+    } catch (bitmapErr) {
+      console.warn("createImageBitmap falhou, tentando fallback com FileReader:", bitmapErr);
+    }
+  }
+
+  // 3. Método Secundário: FileReader como Data URL (mesma origem, sem cross-origin tainting)
+  return new Promise<ImageQuestionValidationResult>((resolve) => {
+    try {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        try {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+
+          img.onload = () => {
+            try {
+              const width = img.naturalWidth || img.width;
+              const height = img.naturalHeight || img.height;
+
+              if (width < 140 || height < 100) {
+                resolve({
+                  isValid: false,
+                  textConfidenceScore: 10,
+                  confidenceLevel: "low",
+                  message: "Dimensões da imagem muito reduzidas para conter uma questão.",
+                  suggestion: "Envie uma foto ou print maior da apostila ou prova.",
+                });
+                return;
+              }
+
+              const canvas = document.createElement("canvas");
+              canvas.width = sampleSize;
+              canvas.height = sampleSize;
+              const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+              if (!ctx) {
+                resolve({
+                  isValid: true,
+                  textConfidenceScore: 65,
+                  confidenceLevel: "moderate",
+                });
+                return;
+              }
+
+              ctx.drawImage(img, 0, 0, sampleSize, sampleSize);
+
+              try {
+                const imgData = ctx.getImageData(0, 0, sampleSize, sampleSize);
+                resolve(evaluatePixelData(imgData.data, sampleSize));
+              } catch (getImageDataErr) {
+                console.warn("SecurityError ignorado no getImageData:", getImageDataErr);
+                // Fallback seguro: se o navegador bloquear leitura direta de pixels, permite avançar
+                resolve({
+                  isValid: true,
+                  textConfidenceScore: 70,
+                  confidenceLevel: "moderate",
+                });
+              }
+            } catch (innerErr) {
+              console.warn("Erro no processamento da imagem:", innerErr);
               resolve({
                 isValid: true,
-                textConfidenceScore: 95,
-                confidenceLevel: "high",
-                message: "Texto e estrutura de questão identificados com sucesso.",
+                textConfidenceScore: 65,
+                confidenceLevel: "moderate",
               });
-              return;
             }
-          } catch {
-            // Se falhar ou não suportar, segue para a análise heurística de Canvas abaixo
-          }
-        }
+          };
 
-        // 4. Análise Heurística via Canvas em escala reduzida (240x240 para ultra performance)
-        const sampleSize = 240;
-        const canvas = document.createElement("canvas");
-        canvas.width = sampleSize;
-        canvas.height = sampleSize;
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          img.onerror = () => {
+            resolve({
+              isValid: true,
+              textConfidenceScore: 60,
+              confidenceLevel: "moderate",
+            });
+          };
 
-        if (!ctx) {
-          // Fallback seguro se canvas 2d não estiver disponível
+          img.src = reader.result as string;
+        } catch (imgSetupErr) {
+          console.warn("Erro ao configurar imagem no FileReader:", imgSetupErr);
           resolve({
             isValid: true,
             textConfidenceScore: 60,
             confidenceLevel: "moderate",
           });
-          return;
         }
-
-        ctx.drawImage(img, 0, 0, sampleSize, sampleSize);
-        const imgData = ctx.getImageData(0, 0, sampleSize, sampleSize);
-        const data = imgData.data;
-
-        let totalLuma = 0;
-        const lumaList = new Float32Array(sampleSize * sampleSize);
-
-        // Converte cada pixel para luminância perceptiva (Rec. 601)
-        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
-          const luma = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-          lumaList[p] = luma;
-          totalLuma += luma;
-        }
-
-        const meanLuma = totalLuma / lumaList.length;
-
-        // Calcula desvio padrão de luminância
-        let varianceSum = 0;
-        for (let p = 0; p < lumaList.length; p++) {
-          const diff = lumaList[p] - meanLuma;
-          varianceSum += diff * diff;
-        }
-        const stdDevLuma = Math.sqrt(varianceSum / lumaList.length);
-
-        // Se o desvio padrão de luminância for quase nulo (< 12), é uma imagem lisa/sólida (preta, branca ou cor única)
-        if (stdDevLuma < 12) {
-          resolve({
-            isValid: false,
-            textConfidenceScore: 2,
-            confidenceLevel: "low",
-            message: "A imagem não apresenta contraste ou conteúdo legível.",
-            suggestion: "Envie uma foto de um documento com texto visível.",
-          });
-          return;
-        }
-
-        // Contagem de transições de alto contraste (bordas de texto horizontais)
-        // Documentos de questões contêm centenas de alternâncias entre papel e caracteres
-        let horizontalTransitions = 0;
-        const contrastThreshold = 40; // Variação mínima entre fundo e tinta
-
-        for (let y = 10; y < sampleSize - 10; y += 2) {
-          const rowOffset = y * sampleSize;
-          for (let x = 1; x < sampleSize; x++) {
-            const diff = Math.abs(lumaList[rowOffset + x] - lumaList[rowOffset + x - 1]);
-            if (diff > contrastThreshold) {
-              horizontalTransitions++;
-            }
-          }
-        }
-
-        // Normalização de densidade de transição
-        // Amostra de ~110 linhas analisadas com 240 pixels cada = ~26.400 comparações
-        const testedComparisons = (sampleSize - 20) / 2 * sampleSize;
-        const transitionRatio = (horizontalTransitions / testedComparisons) * 100;
-
-        // Distribuição de luminância extrema (típica de fundo claro + texto escuro ou vice-versa)
-        let extremePixels = 0;
-        for (let p = 0; p < lumaList.length; p++) {
-          const luma = lumaList[p];
-          if (luma < 60 || luma > 200) {
-            extremePixels++;
-          }
-        }
-        const extremeRatio = (extremePixels / lumaList.length) * 100;
-
-        // Cálculo da pontuação final
-        // transitionRatio em documentos costuma variar entre 6% e 35%
-        // Imagens sem texto (logos lisos, comidas, fotos) costumam ter transitionRatio < 3.2%
-        let score = Math.round(
-          Math.min(100, Math.max(0, transitionRatio * 3.5 + extremeRatio * 0.25)),
-        );
-
-        // Se tiver boa bimodalidade e transições razoáveis, sobe o score
-        if (transitionRatio >= 4.5 && extremeRatio > 35) {
-          score = Math.max(70, score);
-        }
-
-        // Limiar de rejeição para evitar envio de imagens que não são questões
-        // Imagens como logos simples de restaurantes ou desenhos isolados pontuam < 25
-        if (score < 28 || transitionRatio < 2.5) {
-          resolve({
-            isValid: false,
-            textConfidenceScore: score,
-            confidenceLevel: "low",
-            message: "A imagem não parece conter uma questão de prova ou texto de concurso.",
-            suggestion:
-              "Certifique-se de fotografar uma apostila, folha de caderno, livro ou captura de simulado com enunciado e alternativas.",
-          });
-          return;
-        }
-
-        resolve({
-          isValid: true,
-          textConfidenceScore: score,
-          confidenceLevel: score >= 65 ? "high" : "moderate",
-          message: "Texto e conteúdo de questão identificados.",
-        });
       };
 
-      img.onerror = () => {
-        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      reader.onerror = () => {
         resolve({
           isValid: true,
-          textConfidenceScore: 50,
+          textConfidenceScore: 60,
           confidenceLevel: "moderate",
         });
       };
 
-      img.src = objectUrl;
-    } catch {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      reader.readAsDataURL(file);
+    } catch (readerErr) {
+      console.warn("FileReader falhou:", readerErr);
       resolve({
         isValid: true,
-        textConfidenceScore: 50,
+        textConfidenceScore: 60,
         confidenceLevel: "moderate",
       });
     }

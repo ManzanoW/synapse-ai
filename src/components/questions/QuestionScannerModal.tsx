@@ -143,6 +143,14 @@ export function QuestionScannerModal({
           setErrorMsg(res.message || "A imagem selecionada não parece conter uma questão de prova.");
         }
       })
+      .catch((err) => {
+        console.warn("Pré-validação óptica ignorada:", err);
+        setValidationResult({
+          isValid: true,
+          textConfidenceScore: 70,
+          confidenceLevel: "moderate",
+        });
+      })
       .finally(() => {
         setIsValidatingClient(false);
       });
