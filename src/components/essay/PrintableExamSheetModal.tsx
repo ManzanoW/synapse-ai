@@ -247,58 +247,85 @@ export function PrintableExamSheetModal({
       {/* ========================================================================= */}
       {/* REGRAS CSS NATIVAS DE IMPRESSÃO A4 (VIA PORTAL DIRETO NO BODY) */}
       {/* ========================================================================= */}
-      <style jsx global>{`
-        @media screen {
-          #synapse-print-section {
-            display: none !important;
-          }
-        }
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @media screen {
+              #synapse-print-section {
+                display: none !important;
+              }
+            }
 
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 6mm 10mm 6mm 10mm;
-          }
+            @media print {
+              @page {
+                size: A4 portrait;
+                margin: 6mm 10mm 6mm 10mm;
+              }
 
-          html,
-          body {
-            width: 100% !important;
-            height: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-            overflow: visible !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
+              *, *:before, *:after {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
 
-          /* Oculta tudo que é filho direto do body exceto o container de impressão oficial */
-          body > *:not(#synapse-print-section) {
-            display: none !important;
-          }
+              html,
+              body {
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                overflow: visible !important;
+              }
 
-          /* Exibe exclusivamente o documento oficial de redação na raiz */
-          body > #synapse-print-section {
-            display: block !important;
-            position: static !important;
-            width: 100% !important;
-            max-width: 190mm !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-            font-family: "Times New Roman", Times, Georgia, serif !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-        }
-      `}</style>
+              /* Oculta tudo que estiver no body durante a impressão */
+              body * {
+                visibility: hidden !important;
+              }
+
+              /* Força desaparecimento de qualquer modal, overlay ou elemento web */
+              .print\\:hidden,
+              .print-hidden,
+              [role="dialog"] {
+                display: none !important;
+              }
+
+              /* Revela única e exclusivamente o documento oficial de redação */
+              #synapse-print-section,
+              #synapse-print-section * {
+                visibility: visible !important;
+              }
+
+              #synapse-print-section {
+                display: block !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                max-width: 190mm !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+                border: none !important;
+                font-family: "Times New Roman", Times, Georgia, serif !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+              }
+            }
+          `,
+        }}
+      />
 
       {/* PORTAL DE IMPRESSÃO NATIVO: RENDERIZADO DIRETAMENTE NA RAIZ DO BODY */}
       {mounted &&
         createPortal(
-          <div id="synapse-print-section" className="bg-white text-black">
+          <div id="synapse-print-section" className="bg-white text-black p-0 m-0">
             <ExamSheetPaper
               theme={theme}
               sheetMode={sheetMode}
@@ -312,7 +339,7 @@ export function PrintableExamSheetModal({
         )}
 
       {/* MODAL WEB DE VISUALIZAÇÃO E CONFIGURAÇÃO NA TELA */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans print:hidden print-hidden">
         <div className="relative w-full max-w-4xl flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh]">
           {/* CABEÇALHO DO MODAL */}
           <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-slate-950/60 shrink-0">
