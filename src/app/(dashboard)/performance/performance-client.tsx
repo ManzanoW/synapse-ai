@@ -686,49 +686,23 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                 transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
-                {/* BANNER DE REVISÕES OU CURVA ESTABILIZADA */}
-                {data.metrics.materiasPendentes > 0 ? (
-                  <div className="relative overflow-hidden rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-500/30 p-5 shadow-sm dark:shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5 relative z-10">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                        <Flame size={20} className="text-indigo-600 dark:text-indigo-400" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                          Revisões Prontas para Consolidação
-                          <span className="px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-mono font-bold">
-                            {data.metrics.materiasPendentes}
-                          </span>
-                        </h3>
-                        <p className="text-slate-600 dark:text-slate-300 text-xs">
-                          Você tem {data.metrics.materiasPendentes} tópicos/cards atingindo o ponto ideal na curva de Ebbinghaus hoje.
-                        </p>
-                      </div>
+                {/* ALERTA COMPACTO DE REVISÕES PENDENTES */}
+                {data.metrics.materiasPendentes > 0 && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4.5 py-3 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-500/20 text-xs shadow-xs">
+                    <div className="flex items-center gap-2.5">
+                      <Flame size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                      <span className="text-slate-700 dark:text-slate-300">
+                        Você possui <strong className="text-slate-900 dark:text-white font-mono font-bold">{data.metrics.materiasPendentes} tópicos/cards</strong> prontos para consolidação na curva de Ebbinghaus hoje.
+                      </span>
                     </div>
 
                     <Link
                       href="/edital"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs transition-all active:scale-98 shrink-0 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all active:scale-98 shrink-0 cursor-pointer self-end sm:self-auto shadow-2xs"
                     >
                       <span>Ir para o Planner</span>
-                      <ArrowRight size={13} />
+                      <ArrowRight size={12} />
                     </Link>
-                  </div>
-                ) : (
-                  <div className="relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 p-4.5 backdrop-blur-xl flex items-center justify-between shadow-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                        <Sparkles size={18} />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                          Curva de Esquecimento Estabilizada
-                        </h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-                          Você não possui nenhuma revisão pendente acumulada para hoje. Excelente constância!
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 )}
 

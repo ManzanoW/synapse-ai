@@ -30,7 +30,9 @@ export interface ApprovalPredictorData {
     name: string;
     color: string | null;
     weight: number;
+    weightPercentage?: number;
     accuracy: number;
+    totalQuestions?: number;
     gainPotentialPoints: number;
     recommendation: string;
   }>;
@@ -191,7 +193,9 @@ export async function getApprovalPredictorDataAction(
         name: item.name,
         color: item.color,
         weight: item.weight,
+        weightPercentage: item.weightPercentage,
         accuracy: item.accuracy,
+        totalQuestions: item.totalQuestions,
         gainPotentialPoints,
         recommendation,
       };

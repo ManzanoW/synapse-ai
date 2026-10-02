@@ -157,6 +157,40 @@ export function ApprovalPredictorSection({
   const activeScore = isSimulationActive ? simulatedWeightedScore : realScore;
   const deltaToCutoff = Number((activeScore - cutoffScore).toFixed(1));
 
+  // Métricas de Cobertura Amostral do Edital
+  const untestedSubjects = useMemo(
+    () => (data?.subjects || []).filter((s) => s.totalQuestions === 0),
+    [data?.subjects],
+  );
+  const testedSubjects = useMemo(
+    () => (data?.subjects || []).filter((s) => s.totalQuestions > 0),
+    [data?.subjects],
+  );
+  const totalSubjectsCount = data?.subjects?.length ?? 1;
+  const untestedWeight = useMemo(
+    () => untestedSubjects.reduce((acc, s) => acc + s.weight, 0),
+    [untestedSubjects],
+  );
+  const totalWeight = data?.totalWeight ?? 1;
+  const untestedWeightPercent = Math.round((untestedWeight / totalWeight) * 100);
+
+  // Amostragem inicial quando:
+  // 1) Menos de 30 questões no total, OU
+  // 2) Mais de 35% do peso do edital ainda não foi testado (matérias com 0 questões)
+  const isEarlyStage =
+    (data?.totalQuestionsAnswered ?? 0) < 30 ||
+    untestedSubjects.length >= Math.ceil(totalSubjectsCount / 2) ||
+    untestedWeightPercent >= 35;
+
+  const sampleConfidencePercent = Math.min(
+    100,
+    Math.round(
+      (((totalSubjectsCount - untestedSubjects.length) / Math.max(1, totalSubjectsCount)) * 0.5 +
+        Math.min(30, data?.totalQuestionsAnswered ?? 0) / 60) *
+        100,
+    ),
+  );
+
   // Diagnóstico de Zona
   const zone = useMemo(() => {
     if (deltaToCutoff >= 0) {
@@ -177,9 +211,21 @@ export function ApprovalPredictorSection({
         accentBg: "from-amber-500/20 to-orange-500/10 border-amber-500/40",
         message: `Apenas ${Math.abs(deltaToCutoff)}% para entrar nas vagas diretas. Pequenos ajustes em disciplinas de peso alto garantem a vaga.`,
       };
+    } else if (isEarlyStage) {
+      return {
+        id: "COLETA",
+        label: "Amostragem Inicial",
+        color: "text-indigo-300",
+        bg: "bg-indigo-500/10 border-indigo-500/30 text-indigo-300",
+        accentBg: "from-indigo-500/15 via-slate-900/60 to-slate-900/80 border-indigo-500/30",
+        message:
+          untestedSubjects.length > 0
+            ? `${untestedSubjects.length} de ${totalSubjectsCount} disciplinas ainda aguardam o 1º simulado (${untestedWeightPercent}% da nota em aberto). Conforme você testar essas matérias, sua nota convergirá para o índice real.`
+            : `Você está na fase inicial de coleta de dados (${data?.totalQuestionsAnswered ?? 0} questões). Continue praticando para calibrar sua pontuação real.`,
+      };
     } else {
       return {
-        id: "RISCO",
+        id: "ATENÇÃO",
         label: "Abaixo da Linha de Corte",
         color: "text-rose-400",
         bg: "bg-rose-500/10 border-rose-500/30 text-rose-300",
@@ -187,7 +233,14 @@ export function ApprovalPredictorSection({
         message: `Faltam ${Math.abs(deltaToCutoff)}% para alcançar a nota de corte. Foque na matriz de maior alavancagem abaixo para encurtar o caminho.`,
       };
     }
-  }, [deltaToCutoff]);
+  }, [
+    deltaToCutoff,
+    isEarlyStage,
+    untestedSubjects.length,
+    totalSubjectsCount,
+    untestedWeightPercent,
+    data?.totalQuestionsAnswered,
+  ]);
 
   // Probabilidade linear
   const approvalProbability = useMemo(() => {
@@ -364,26 +417,18 @@ export function ApprovalPredictorSection({
     return null;
   }
 
-  // Se estiver no estágio inicial com poucas questões resolvidas
-  const isEarlyStage = (data?.totalQuestionsAnswered ?? 0) < 15;
-  const sampleConfidencePercent = Math.min(
-    100,
-    Math.round(((data?.totalQuestionsAnswered ?? 0) / 30) * 100),
-  );
-
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#0a0f1f] via-[#070a16] to-[#04060c] border border-violet-500/30 p-5 sm:p-7 md:p-8 shadow-2xl backdrop-blur-2xl space-y-6">
-      {/* Luz Neon Cósmica Superior */}
-      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/60 to-transparent" />
-      <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-violet-600/15 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-cyan-600/10 blur-3xl" />
+    <div className="relative overflow-hidden rounded-3xl bg-slate-900/70 border border-slate-800/80 p-5 sm:p-7 backdrop-blur-2xl space-y-6 shadow-xl">
+      {/* Luz Neon Sutil Superior */}
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/40 to-transparent" />
+      <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-violet-600/10 blur-3xl" />
 
       {/* 1. CABEÇALHO HERO & SELETOR DE NOTA DE CORTE */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs font-bold uppercase tracking-wider">
             <BrainCircuit size={14} className="text-violet-400" />
-            <span>Preditor de Aprovação & Pesos Reais do Edital</span>
+            <span>Preditor de Aprovação &amp; Pesos Reais do Edital</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
             <span>Diagnóstico Preditivo da Prova</span>
@@ -407,14 +452,17 @@ export function ApprovalPredictorSection({
                 key={preset.id}
                 type="button"
                 onClick={() => handleSelectPreset(preset)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                   selectedPreset === preset.id
-                    ? "bg-violet-600 text-white shadow-sm font-bold"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-slate-800 text-white shadow-xs font-semibold border border-white/10"
+                    : "text-slate-400 hover:text-white hover:bg-white/5 font-medium"
                 }`}
               >
+                {selectedPreset === preset.id && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                )}
                 <span>{preset.label}</span>
-                <span className="ml-1 text-[10px] opacity-75 font-mono">({preset.score}%)</span>
+                <span className="text-[10px] opacity-75 font-mono">({preset.score}%)</span>
               </button>
             ))}
           </div>
@@ -438,8 +486,8 @@ export function ApprovalPredictorSection({
         </div>
       </div>
 
-      {/* BANNER EDUCATIVO DE CALIBRAÇÃO AMOSTRAL (QUANDO O ALUNO TEM POUCAS QUESTÕES) */}
-      {(data.totalQuestionsAnswered ?? 0) < 30 && (
+      {/* BANNER EDUCATIVO DE CALIBRAÇÃO AMOSTRAL (QUANDO HOUVER MATÉRIAS NÃO TESTADAS OU POUCAS QUESTÕES) */}
+      {isEarlyStage && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs">
           <div className="flex items-center gap-2.5">
             <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 shrink-0">
@@ -447,10 +495,12 @@ export function ApprovalPredictorSection({
             </div>
             <div>
               <span className="font-bold text-white block">
-                Calibração Amostral Inicial ({data.totalQuestionsAnswered}/30 questões resolvidas)
+                Calibração Amostral em Andamento ({testedSubjects.length}/{totalSubjectsCount} disciplinas testadas)
               </span>
               <span className="text-[11px] text-slate-400 leading-tight">
-                Você está na fase inicial de coleta de dados. A fidelidade estatística atinge 100% de precisão à medida que novos simulados forem respondidos.
+                {untestedSubjects.length > 0
+                  ? `Sua nota atual (${activeScore}%) reflete apenas as matérias com questões respondidas. ${untestedWeightPercent}% do peso do edital ainda aguarda o 1º simulado diagnóstico.`
+                  : `Você está na fase inicial de coleta de dados (${data.totalQuestionsAnswered ?? 0}/30 questões). A precisão estatística sobe a cada novo simulado.`}
               </span>
             </div>
           </div>
@@ -554,11 +604,15 @@ export function ApprovalPredictorSection({
                   <Scale size={15} className="text-violet-400" />
                   <span>Nota Ponderada Global</span>
                 </span>
-                {isSimulationActive && (
+                {untestedSubjects.length > 0 ? (
+                  <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 text-[10px] font-bold border border-indigo-500/20 font-mono">
+                    Parcial ({testedSubjects.length}/{totalSubjectsCount} mat.)
+                  </span>
+                ) : isSimulationActive ? (
                   <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
                     Simulado
                   </span>
-                )}
+                ) : null}
               </div>
 
               <div className="mt-4 flex items-baseline gap-2">
@@ -578,41 +632,31 @@ export function ApprovalPredictorSection({
               )}
 
               <p className="text-[11px] text-slate-400 mt-2">
-                Calculada a partir de {data.totalWeight.toFixed(1)} pontos de peso distribuídos no edital.
+                {untestedSubjects.length > 0
+                  ? `Calculada sobre as matérias já testadas. ${untestedWeightPercent}% do peso do edital ainda aguarda o 1º simulado.`
+                  : `Calculada a partir de ${data.totalWeight.toFixed(1)} pontos de peso distribuídos no edital.`}
               </p>
             </div>
 
             {/* Card 2: Comparativo com o Corte & Zona de Classificação */}
             <div
-              className={`relative overflow-hidden rounded-2xl bg-linear-to-br ${
-                isEarlyStage
-                  ? "from-indigo-950/40 via-slate-900/80 to-slate-900/90 border-indigo-500/30"
-                  : zone.accentBg
-              } border p-5 shadow-xl flex flex-col justify-between`}
+              className={`relative overflow-hidden rounded-2xl bg-linear-to-br ${zone.accentBg} border p-5 shadow-xl flex flex-col justify-between`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
                   Linha de Corte: {cutoffScore}%
                 </span>
-                {isEarlyStage ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-indigo-500/15 border-indigo-500/30 text-indigo-300 font-mono">
-                    Coleta Inicial
-                  </span>
-                ) : (
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${zone.bg}`}>
-                    {zone.id}
-                  </span>
-                )}
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${zone.bg}`}>
+                  {zone.id}
+                </span>
               </div>
 
               <div className="mt-3">
-                <h3 className={`text-lg font-black tracking-tight ${isEarlyStage ? "text-indigo-200" : zone.color}`}>
-                  {isEarlyStage ? "Calibração Amostral" : zone.label}
+                <h3 className={`text-lg font-black tracking-tight ${zone.color}`}>
+                  {zone.label}
                 </h3>
                 <p className="text-xs text-slate-200 mt-1 leading-relaxed">
-                  {isEarlyStage
-                    ? `Amostra em desenvolvimento (${data.totalQuestionsAnswered ?? 0} questões). Conforme você avança nas listas, sua nota convergirá para a probabilidade real de aprovação.`
-                    : zone.message}
+                  {zone.message}
                 </p>
               </div>
 
@@ -634,6 +678,8 @@ export function ApprovalPredictorSection({
                         ? "bg-linear-to-r from-emerald-500 to-teal-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
                         : activeScore >= cutoffScore - 5
                         ? "bg-linear-to-r from-amber-500 to-orange-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                        : isEarlyStage
+                        ? "bg-linear-to-r from-indigo-500 to-violet-500"
                         : "bg-linear-to-r from-rose-500 to-violet-500"
                     }`}
                     style={{ width: `${Math.min(100, activeScore)}%` }}
@@ -650,7 +696,7 @@ export function ApprovalPredictorSection({
                   <span>Chance Estimada de Vaga</span>
                 </span>
                 <span className="text-[10px] font-mono font-bold text-cyan-300">
-                  Previsão Linear
+                  {isEarlyStage ? "Preliminar" : "Previsão Linear"}
                 </span>
               </div>
 
@@ -671,13 +717,15 @@ export function ApprovalPredictorSection({
               </div>
 
               <p className="text-[11px] text-slate-400 mt-2">
-                Pondera precisão das disciplinas, cobertura do edital ({data.coveragePercentage}%) e margem de corte.
+                {untestedSubjects.length > 0
+                  ? `Projeção estimada considerando ${testedSubjects.length} de ${totalSubjectsCount} matérias avaliadas.`
+                  : `Pondera precisão das disciplinas, cobertura do edital (${data.coveragePercentage}%) e margem de corte.`}
               </p>
             </div>
           </div>
 
           {/* TERMÔMETRO DE CORTE REAL & DISTÂNCIA DAS VAGAS */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-linear-to-br from-slate-900/90 via-[#0a0f1f] to-slate-950/90 border border-violet-500/30 space-y-5 shadow-2xl relative overflow-hidden">
+          <div className="p-5 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-5 relative overflow-hidden">
             <div className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full bg-violet-600/10 blur-3xl" />
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
@@ -687,7 +735,7 @@ export function ApprovalPredictorSection({
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
-                    <span>Termômetro de Corte Real & Distância das Vagas</span>
+                    <span>Termômetro de Corte Real &amp; Distância das Vagas</span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
                       Escala 100Q
                     </span>
@@ -703,6 +751,8 @@ export function ApprovalPredictorSection({
                 className={`px-3.5 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-2 ${
                   questionGapMetrics.isAhead
                     ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                    : isEarlyStage
+                    ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-300"
                     : "bg-rose-500/15 border-rose-500/30 text-rose-300"
                 }`}
               >
@@ -710,6 +760,11 @@ export function ApprovalPredictorSection({
                   <>
                     <CheckCircle2 size={14} className="text-emerald-400" />
                     <span>+{questionGapMetrics.questionsAhead} questões de folga</span>
+                  </>
+                ) : isEarlyStage ? (
+                  <>
+                    <Sparkles size={14} className="text-indigo-400" />
+                    <span>Amostragem em Coleta (~{questionGapMetrics.questionsNeeded} q. de corte)</span>
                   </>
                 ) : (
                   <>
@@ -817,6 +872,8 @@ export function ApprovalPredictorSection({
                 <p className="text-slate-300 leading-relaxed text-[11.5px]">
                   {questionGapMetrics.isAhead
                     ? `Sua nota ponderada atual (${activeScore}%) garante a vaga no patamar selecionado (${cutoffScore}%). Mantenha o ritmo de revisões para reter esse domínio no dia da prova.`
+                    : questionGapMetrics.topLeverage.length > 0 && (questionGapMetrics.topLeverage[0].totalQuestions ?? 0) === 0
+                    ? `Para reduzir o déficit de ~${questionGapMetrics.questionsNeeded} questões, o caminho mais rápido é realizar o 1º simulado diagnóstico em ${questionGapMetrics.topLeverage[0].name}, matéria de maior peso do edital (${questionGapMetrics.topLeverage[0].weight.toFixed(1)}).`
                     : `Para compensar o déficit de ~${questionGapMetrics.questionsNeeded} questões líquidas, priorize aumentar a acurácia nas matérias de maior peso do seu edital.`}
                 </p>
               </div>
@@ -824,10 +881,14 @@ export function ApprovalPredictorSection({
               {!questionGapMetrics.isAhead && questionGapMetrics.topLeverage.length > 0 && (
                 <div className="shrink-0 flex items-center gap-2">
                   <Link
-                    href={`/questions?subjectId=${questionGapMetrics.topLeverage[0].id}`}
+                    href={`/questions?subjectId=${encodeURIComponent(questionGapMetrics.topLeverage[0].name)}`}
                     className="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-all shadow-md flex items-center gap-1.5 active:scale-95"
                   >
-                    <span>Focar em {questionGapMetrics.topLeverage[0].name}</span>
+                    <span>
+                      {(questionGapMetrics.topLeverage[0].totalQuestions ?? 0) === 0
+                        ? `Diagnóstico em ${questionGapMetrics.topLeverage[0].name}`
+                        : `Focar em ${questionGapMetrics.topLeverage[0].name}`}
+                    </span>
                     <ArrowRight size={13} />
                   </Link>
                 </div>
@@ -837,7 +898,7 @@ export function ApprovalPredictorSection({
 
           {/* CAMINHO CRÍTICO DE MAIOR ALAVANCAGEM (MENOR ESFORÇO) */}
           {data.topLeverageSubjects && data.topLeverageSubjects.length > 0 && (
-            <div className="p-5 rounded-2xl bg-linear-to-r from-violet-950/40 via-indigo-950/20 to-slate-900/60 border border-violet-500/30 space-y-3">
+            <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Zap size={16} className="text-amber-400 fill-amber-400" />
@@ -855,59 +916,74 @@ export function ApprovalPredictorSection({
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
-                {data.topLeverageSubjects.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 hover:border-violet-500/40 transition-all flex flex-col justify-between space-y-3 group shadow-lg"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-white truncate group-hover:text-violet-300 transition-colors">
-                          {item.name}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30 shrink-0">
-                          Peso {item.weight.toFixed(1)}
-                        </span>
+                {data.topLeverageSubjects.map((item) => {
+                  const isUntested = (item.totalQuestions ?? 0) === 0;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 hover:border-violet-500/40 transition-all flex flex-col justify-between space-y-3 group shadow-lg"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-white truncate group-hover:text-violet-300 transition-colors">
+                            {item.name}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30 shrink-0">
+                            Peso {item.weight.toFixed(1)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-baseline gap-1.5 pt-1 text-emerald-400 font-mono font-bold text-xs">
+                          <TrendingUp size={13} className="shrink-0" />
+                          <span>+{item.gainPotentialPoints} pts na nota global</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          {isUntested
+                            ? "Matéria com alto peso ainda sem simulado. Inicie o diagnóstico!"
+                            : "A cada +10% de evolução nesta disciplina."}
+                        </p>
                       </div>
 
-                      <div className="flex items-baseline gap-1.5 pt-1 text-emerald-400 font-mono font-bold text-xs">
-                        <TrendingUp size={13} className="shrink-0" />
-                        <span>+{item.gainPotentialPoints} pts na nota global</span>
-                      </div>
-                      <p className="text-[10px] text-slate-400">
-                        A cada +10% de evolução nesta disciplina.
-                      </p>
-                    </div>
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-400">
+                            {isUntested ? "Status:" : "Acerto atual:"}
+                          </span>
+                          {isUntested ? (
+                            <span className="text-[10px] font-mono font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.2 rounded">
+                              Ainda não testada
+                            </span>
+                          ) : (
+                            <span
+                              className={`text-xs font-mono font-bold ${
+                                item.accuracy >= 70
+                                  ? "text-emerald-400"
+                                  : item.accuracy >= 50
+                                  ? "text-amber-400"
+                                  : "text-rose-400"
+                              }`}
+                            >
+                              {item.accuracy}%
+                            </span>
+                          )}
+                        </div>
 
-                    <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-slate-400">Acerto atual:</span>
-                        <span
-                          className={`text-xs font-mono font-bold ${
-                            item.accuracy >= 70
-                              ? "text-emerald-400"
-                              : item.accuracy >= 50
-                              ? "text-amber-400"
-                              : "text-rose-400"
-                          }`}
+                        <Link
+                          href={`/questions?subjectId=${encodeURIComponent(item.name)}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-violet-600/20 hover:bg-violet-600 border border-violet-500/30 hover:border-violet-500 text-violet-300 hover:text-white text-[11px] font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
                         >
-                          {item.accuracy}%
-                        </span>
+                          <span>{isUntested ? "Fazer Diagnóstico" : "Treinar"}</span>
+                          <ArrowRight size={11} />
+                        </Link>
                       </div>
-
-                      <Link
-                        href={`/questions?subjectId=${item.id}`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-violet-600/20 hover:bg-violet-600 border border-violet-500/30 hover:border-violet-500 text-violet-300 hover:text-white text-[11px] font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
-                      >
-                        <span>Treinar</span>
-                        <ArrowRight size={11} />
-                      </Link>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
+
 
           {/* SIMULADOR INTERATIVO WHAT-IF */}
           <div className="rounded-2xl border border-white/10 bg-slate-900/40 overflow-hidden">
