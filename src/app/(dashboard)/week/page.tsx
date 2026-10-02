@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useTransition, useOptimistic } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useTransition,
+  useOptimistic,
+} from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -27,6 +33,8 @@ import {
   LifeBuoy,
   Download,
   Printer,
+  MoreHorizontal,
+  ChevronDown,
 } from "lucide-react";
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
@@ -137,6 +145,35 @@ export default function WeekPage() {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isPrintPlannerOpen, setIsPrintPlannerOpen] = useState(false);
+  const [isRescueMenuOpen, setIsRescueMenuOpen] = useState(false);
+  const rescueMenuRef = useRef<HTMLDivElement>(null);
+
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        rescueMenuRef.current &&
+        !rescueMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsRescueMenuOpen(false);
+      }
+      if (
+        actionsMenuRef.current &&
+        !actionsMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsActionsMenuOpen(false);
+      }
+    }
+    if (isRescueMenuOpen || isActionsMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isRescueMenuOpen, isActionsMenuOpen]);
+
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
   const [isPending, startTransition] = useTransition();
 
@@ -697,110 +734,240 @@ export default function WeekPage() {
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-3 sm:p-6 md:p-8 font-sans antialiased selection:bg-indigo-500/30 pb-16">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-        {/* Top Navigation & Controls */}
-        <div className="flex items-center justify-between gap-2">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors group px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 shadow-sm"
-          >
-            <ArrowLeft
-              size={14}
-              className="transition-transform group-hover:-translate-x-1"
-            />
-            <span className="hidden sm:inline">Voltar para Dashboard</span>
-            <span className="sm:hidden">Voltar</span>
-          </Link>
+      <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6">
+        {/* Top Header & Executive Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-1.5">
+              <Link
+                href="/dashboard"
+                className="hover:text-white transition-colors flex items-center gap-1 group"
+              >
+                <ArrowLeft
+                  size={13}
+                  className="transition-transform group-hover:-translate-x-0.5 text-slate-400 group-hover:text-white"
+                />
+                <span>Dashboard</span>
+              </Link>
+              <span className="text-slate-600">/</span>
+              <span className="text-slate-300 font-medium">
+                {studyMode === "CYCLE"
+                  ? "Ciclo de Estudos"
+                  : "Cronograma Semanal"}
+              </span>
+            </nav>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsEmergencyModalOpen(true)}
-              disabled={!hasSubjects}
-              title="A rotina apertou? Reorganize a semana com IA"
-              className="flex items-center gap-1.5 text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
-            >
-              <AlertTriangle size={14} className="text-rose-400" />
-              <span className="hidden sm:inline">SOS Emergência</span>
-              <span className="sm:hidden">SOS</span>
-            </button>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                {studyMode === "CYCLE"
+                  ? "Seu Ciclo de Estudos"
+                  : "Seu Planejamento Semanal"}
+              </h1>
+              <span className="text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                Rebalanceador Ativo
+              </span>
+            </div>
 
-            <button
-              onClick={() => setIsResetModalOpen(true)}
-              disabled={isPending || !hasSubjects}
-              title="Reiniciar checks de matérias concluídas na semana"
-              className="flex items-center gap-1.5 text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
-            >
-              <RotateCcw size={14} className="text-amber-400" />
-              <span className="hidden sm:inline">Resetar Semana</span>
-              <span className="sm:hidden">Resetar</span>
-            </button>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              {studyMode === "CYCLE"
+                ? `${data?.cycle?.totalBlocks || 0} blocos mapeados • Total: ${formatMinutes(
+                    data?.cycle?.totalMinutes || 0,
+                  )} de foco distribuído`
+                : "Distribuição inteligente de matérias e equilíbrio adaptativo por relevância."}
+            </p>
+          </div>
 
-            <button
-              onClick={() => setIsRescueModalOpen(true)}
-              disabled={!hasSubjects}
-              title="Modo Resgate de Semana: redistribua matérias atrasadas pelos dias restantes com IA e sem culpa"
-              className="flex items-center gap-1.5 text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
-            >
-              <LifeBuoy size={14} className="animate-pulse text-amber-500" />
-              <span className="hidden sm:inline">Modo Resgate (IA)</span>
-              <span className="sm:hidden">Resgate</span>
-            </button>
-
+          {/* Action Toolbar Consolidada: IA (Primário) + Resgate (Contingência) + Mais Ações */}
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            {/* Primary Action: Rebalancear com IA */}
             <button
               onClick={handleManualAIRebalance}
               disabled={isManualRebalancing || isPending || !hasSubjects}
               title="Rebalanceamento Preditivo com IA: cruza seus erros e acertos para redistribuir horas com foco nos pontos fracos"
-              className="flex items-center gap-1.5 text-xs font-semibold bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 border border-violet-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold px-3.5 sm:px-4 py-2 rounded-xl transition-all shadow-md shadow-violet-600/25 active:scale-95 cursor-pointer disabled:opacity-50"
             >
-              <Sparkles size={14} className={isManualRebalancing ? "animate-spin text-violet-400" : "text-violet-400"} />
-              <span className="hidden sm:inline">{isManualRebalancing ? "Otimizando..." : "⚡ Rebalancear com IA"}</span>
-              <span className="sm:hidden">{isManualRebalancing ? "..." : "⚡ IA"}</span>
+              <Sparkles
+                size={14}
+                className={
+                  isManualRebalancing ? "animate-spin" : "animate-pulse"
+                }
+              />
+              <span>
+                {isManualRebalancing ? "Otimizando..." : "Otimizar com IA"}
+              </span>
             </button>
 
-            <button
-              onClick={handleTriggerRebalance}
-              disabled={isPending || !hasSubjects}
-              title="Recalcular distribuição adaptativa com base nas suas metas e desempenho"
-              className="flex items-center gap-1.5 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
-            >
-              <Sliders size={14} className={isPending ? "animate-spin" : ""} />
-              <span>Rebalancear</span>
-            </button>
+            {/* Contingência: Menu Modo Resgate & SOS */}
+            <div className="relative" ref={rescueMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsRescueMenuOpen(!isRescueMenuOpen)}
+                disabled={!hasSubjects}
+                title="Opções de emergência e resgate quando a rotina aperta"
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer disabled:opacity-50 ${
+                  isRescueMenuOpen
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
+                    : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/30"
+                }`}
+              >
+                <LifeBuoy size={14} className="text-amber-400" />
+                <span className="hidden sm:inline">Modo Resgate</span>
+                <span className="sm:hidden">Resgate</span>
+                <ChevronDown
+                  size={12}
+                  className={`transition-transform duration-200 ${
+                    isRescueMenuOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
 
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
-            >
-              <Settings2 size={14} />
-              <span className="hidden sm:inline">Configurações</span>
-            </button>
+              {isRescueMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#090d16] border border-slate-800 shadow-2xl p-2 z-40 animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRescueMenuOpen(false);
+                      setIsRescueModalOpen(true);
+                    }}
+                    className="w-full flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-amber-500/10 text-left transition-colors cursor-pointer group"
+                  >
+                    <LifeBuoy
+                      size={16}
+                      className="text-amber-400 shrink-0 mt-0.5"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-white group-hover:text-amber-300">
+                        Modo Resgate (IA)
+                      </p>
+                      <p className="text-[11px] text-slate-400 leading-tight mt-0.5">
+                        Redistribua atrasos pelos dias restantes sem culpa
+                      </p>
+                    </div>
+                  </button>
 
-            <button
-              onClick={handleExportIcs}
-              disabled={!hasSubjects}
-              title="Exportar grade semanal de estudos para o Google Agenda, Apple Calendar ou Outlook (.ics)"
-              className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
-            >
-              <Download size={14} className="text-emerald-400" />
-              <span className="hidden sm:inline">Exportar .ics</span>
-              <span className="sm:hidden">.ics</span>
-            </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRescueMenuOpen(false);
+                      setIsEmergencyModalOpen(true);
+                    }}
+                    className="w-full flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-rose-500/10 text-left transition-colors cursor-pointer group"
+                  >
+                    <AlertTriangle
+                      size={16}
+                      className="text-rose-400 shrink-0 mt-0.5"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-white group-hover:text-rose-300">
+                        SOS Emergência
+                      </p>
+                      <p className="text-[11px] text-slate-400 leading-tight mt-0.5">
+                        Alivie a carga da semana com cortes cirúrgicos
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
 
-            <button
-              onClick={() => setIsPrintPlannerOpen(true)}
-              disabled={!hasSubjects}
-              title="Gerar e imprimir folha de mesa A4 (Planner Semanal) com horários e checkboxes de estudo"
-              className="flex items-center gap-1.5 text-xs font-semibold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
-            >
-              <Printer size={14} className="text-blue-400" />
-              <span className="hidden sm:inline">Imprimir Planner</span>
-              <span className="sm:hidden">Imprimir</span>
-            </button>
+            {/* Menu Utilitários: Mais Ações */}
+            <div className="relative" ref={actionsMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                  isActionsMenuOpen
+                    ? "bg-slate-800 text-white border-indigo-500/50"
+                    : "bg-slate-100 dark:bg-slate-900/80 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800"
+                }`}
+                title="Configurações, exportação e relatórios"
+              >
+                <MoreHorizontal size={14} />
+                <span className="hidden md:inline">Mais Ações</span>
+                <ChevronDown
+                  size={12}
+                  className={`transition-transform duration-200 ${
+                    isActionsMenuOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {isActionsMenuOpen && (
+                <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-[#090d16] border border-slate-800 shadow-2xl p-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsActionsMenuOpen(false);
+                      setIsModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors text-left cursor-pointer"
+                  >
+                    <Settings2 size={14} className="text-indigo-400" />
+                    <span>Configurar Metas de Horas</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsActionsMenuOpen(false);
+                      handleExportIcs();
+                    }}
+                    disabled={!hasSubjects}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors text-left cursor-pointer disabled:opacity-50"
+                  >
+                    <Download size={14} className="text-emerald-400" />
+                    <span>Exportar Calendário (.ics)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsActionsMenuOpen(false);
+                      setIsPrintPlannerOpen(true);
+                    }}
+                    disabled={!hasSubjects}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors text-left cursor-pointer disabled:opacity-50"
+                  >
+                    <Printer size={14} className="text-cyan-400" />
+                    <span>Imprimir Planner de Mesa (A4)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsActionsMenuOpen(false);
+                      handleTriggerRebalance();
+                    }}
+                    disabled={isPending || !hasSubjects}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-sky-300 hover:bg-sky-500/10 transition-colors text-left cursor-pointer disabled:opacity-50"
+                  >
+                    <Sliders size={14} className="text-sky-400" />
+                    <span>Recalcular Distribuição Rápida</span>
+                  </button>
+
+                  <div className="border-t border-slate-800 my-1" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsActionsMenuOpen(false);
+                      setIsResetModalOpen(true);
+                    }}
+                    disabled={isPending || !hasSubjects}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 transition-colors text-left cursor-pointer disabled:opacity-50"
+                  >
+                    <RotateCcw size={14} className="text-rose-400" />
+                    <span>Resetar Checks da Semana</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Mode Selector Header Bar */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-2 bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-xs dark:shadow-2xl">
+        {/* Mode Selector & Meta Bar */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-2 bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-xs dark:shadow-xl">
           <div className="inline-flex items-center bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80 w-full md:w-auto">
             <button
               onClick={() => handleToggleMode("WEEKLY")}
@@ -819,7 +986,9 @@ export default function WeekPage() {
               <CalendarDays
                 size={14}
                 className={
-                  studyMode === "WEEKLY" ? "text-cyan-600 dark:text-cyan-400" : "text-slate-500"
+                  studyMode === "WEEKLY"
+                    ? "text-cyan-600 dark:text-cyan-400"
+                    : "text-slate-500"
                 }
               />
               <span>Cronograma Semanal</span>
@@ -842,65 +1011,51 @@ export default function WeekPage() {
               <RefreshCw
                 size={13}
                 className={
-                  studyMode === "CYCLE" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500"
+                  studyMode === "CYCLE"
+                    ? "text-indigo-600 dark:text-indigo-400"
+                    : "text-slate-500"
                 }
               />
               <span>Ciclo de Estudos</span>
             </button>
           </div>
 
+          {/* Meta & Dias Úteis */}
           <div className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800/50 text-xs font-mono text-slate-600 dark:text-slate-400 self-end md:self-auto w-full md:w-auto justify-between md:justify-start shadow-2xs">
-            <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-1.5 hover:text-indigo-400 transition-colors cursor-pointer group"
+              title="Ajustar Meta Semanal"
+            >
               <span className="text-[10px] text-slate-500 font-sans tracking-wider uppercase font-semibold">
                 Meta
               </span>
-              <span className="text-slate-900 dark:text-slate-200 font-bold">
+              <span className="text-slate-900 dark:text-slate-200 font-bold group-hover:text-indigo-400">
                 {data?.weeklyGoalHours ?? 10}h
               </span>
-              <span className="text-slate-400 dark:text-slate-600 text-[10px]">/sem</span>
-            </div>
+              <span className="text-slate-400 dark:text-slate-600 text-[10px]">
+                /sem
+              </span>
+            </button>
             <span className="text-slate-300 dark:text-slate-800">|</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-slate-900 dark:text-slate-200 font-bold">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-1.5 hover:text-indigo-400 transition-colors cursor-pointer group"
+              title="Ajustar Dias Úteis"
+            >
+              <span className="text-slate-900 dark:text-slate-200 font-bold group-hover:text-indigo-400">
                 {data?.activeDaysPerWeek ?? 5}
               </span>
               <span className="text-[10px] text-slate-500 font-sans tracking-wider uppercase font-semibold">
                 dias úteis
               </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Title Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800/60 pb-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-              {studyMode === "CYCLE"
-                ? "Seu Ciclo de Estudos"
-                : "Seu Planejamento Semanal"}
-            </h1>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              {studyMode === "CYCLE"
-                ? `${data?.cycle?.totalBlocks || 0} blocos • Total: ${formatMinutes(
-                    data?.cycle?.totalMinutes || 0
-                  )}`
-                : "Selecione o dia do planejamento e execute seus alvos com prioridade dinâmica."}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-            <button
-              onClick={handleManualAIRebalance}
-              disabled={isManualRebalancing || isPending || !hasSubjects}
-              title="Executar rebalanceamento adaptativo com IA baseado em erros e acertos"
-              className="text-[11px] bg-gradient-to-r from-violet-600/20 to-indigo-600/20 hover:from-violet-600/30 hover:to-indigo-600/30 text-violet-300 border border-violet-500/40 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
-            >
-              <Sparkles size={13} className={isManualRebalancing ? "animate-spin text-violet-400" : "text-violet-400 animate-pulse"} />
-              <span>{isManualRebalancing ? "Otimizando..." : "⚡ Rebalancear com IA"}</span>
+              <Settings2
+                size={12}
+                className="text-slate-500 group-hover:text-indigo-400 ml-0.5"
+              />
             </button>
-            <span className="text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-              Rebalanceador Ativo
-            </span>
           </div>
         </div>
 
