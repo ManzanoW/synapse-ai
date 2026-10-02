@@ -415,39 +415,54 @@ export function QuestionScannerModal({
                 {/* Linha laser de Scanner animada de cima para baixo */}
                 {isScanning && (
                   <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
-                    {/* Moldura óptica com miras de enquadramento nos cantos */}
-                    <div className="absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 border-cyan-400/80 rounded-tl-xs" />
-                    <div className="absolute top-2.5 right-2.5 w-4 h-4 border-t-2 border-r-2 border-cyan-400/80 rounded-tr-xs" />
-                    <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-cyan-400/80 rounded-bl-xs" />
-                    <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-cyan-400/80 rounded-br-xs" />
+                    <style dangerouslySetInnerHTML={{
+                      __html: `
+                        @keyframes synapseScannerSweep {
+                          0% {
+                            top: 0%;
+                          }
+                          50% {
+                            top: calc(100% - 4px);
+                          }
+                          100% {
+                            top: 0%;
+                          }
+                        }
+                      `
+                    }} />
 
-                    {/* Badge flutuante informando que está analisando o documento */}
-                    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-slate-950/85 border border-cyan-500/40 text-[11px] font-semibold text-cyan-300 shadow-xl shadow-cyan-950/60 backdrop-blur-md flex items-center gap-1.5 animate-pulse">
+                    {/* Moldura óptica com miras sutis nos cantos */}
+                    <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t-2 border-l-2 border-cyan-400/60 rounded-tl-xs" />
+                    <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t-2 border-r-2 border-cyan-400/60 rounded-tr-xs" />
+                    <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b-2 border-l-2 border-cyan-400/60 rounded-bl-xs" />
+                    <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b-2 border-r-2 border-cyan-400/60 rounded-br-xs" />
+
+                    {/* Badge discreto no canto superior sem obstruir o centro do documento */}
+                    <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full bg-slate-950/90 border border-cyan-500/40 text-[10px] font-semibold text-cyan-300 shadow-xl shadow-cyan-950/70 backdrop-blur-md flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
                       <span>Analisando documento...</span>
                     </div>
 
-                    {/* Feixe laser animado de cima para baixo */}
-                    <motion.div
-                      className="absolute left-0 right-0 w-full z-10"
-                      animate={{
-                        top: ["2%", "94%", "2%"],
-                      }}
-                      transition={{
-                        duration: 2.4,
-                        repeat: Infinity,
-                        ease: "easeInOut",
+                    {/* Feixe laser animado de cima para baixo via CSS GPU */}
+                    <div
+                      className="absolute left-0 right-0 w-full z-10 pointer-events-none"
+                      style={{
+                        animation: "synapseScannerSweep 2.8s ease-in-out infinite",
+                        willChange: "top",
                       }}
                     >
-                      {/* Feixe de luz de varredura (gradiente de luz do scanner) */}
-                      <div className="h-14 w-full bg-linear-to-b from-cyan-500/25 via-cyan-400/10 to-transparent pointer-events-none" />
+                      {/* Feixe de luz de varredura (sombra luminosa difusa) */}
+                      <div className="h-8 w-full bg-gradient-to-b from-transparent via-cyan-400/10 to-cyan-400/20 pointer-events-none" />
 
-                      {/* Linha laser ciano neon de alta intensidade */}
-                      <div className="relative w-full h-1 bg-linear-to-r from-transparent via-cyan-300 via-sky-400 to-transparent shadow-[0_0_15px_#22d3ee,0_0_30px_#06b6d4]">
+                      {/* Linha laser de alta precisão ciano neon */}
+                      <div className="relative w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-300 via-sky-400 to-transparent shadow-[0_0_12px_#22d3ee,0_0_24px_rgba(6,182,212,0.6)]">
                         {/* Ponto focal central brilhante */}
-                        <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-12 h-3 rounded-full bg-cyan-200/90 blur-xs" />
+                        <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-16 h-3 rounded-full bg-cyan-200/80 blur-[2px]" />
                       </div>
-                    </motion.div>
+
+                      {/* Rastro suave inferior */}
+                      <div className="h-4 w-full bg-gradient-to-t from-transparent to-cyan-400/10 pointer-events-none" />
+                    </div>
 
                     {/* Brilho translúcido sutil sobre a imagem */}
                     <div className="absolute inset-0 bg-cyan-500/5 pointer-events-none animate-pulse" />
