@@ -235,7 +235,47 @@ export function PrintableExamSheetModal({
   const rowHeight = sheetMode === "with-theme" ? "7.0mm" : "7.8mm";
 
   const handlePrint = () => {
-    window.print();
+    if (typeof window === "undefined") return;
+
+    const html = document.documentElement;
+    const body = document.body;
+    const wasDark =
+      html.classList.contains("dark") ||
+      html.getAttribute("data-theme") === "dark" ||
+      html.style.colorScheme === "dark";
+    const previousColorScheme = html.style.colorScheme;
+    const previousBodyBg = body.style.backgroundColor;
+
+    // Força o ambiente completo para Light Mode durante a impressão nativa
+    if (wasDark) {
+      html.classList.remove("dark");
+      html.classList.add("light");
+      html.setAttribute("data-theme", "light");
+      html.style.colorScheme = "light";
+      body.style.backgroundColor = "#ffffff";
+    }
+
+    const restoreTheme = () => {
+      if (wasDark) {
+        html.classList.remove("light");
+        html.classList.add("dark");
+        html.setAttribute("data-theme", "dark");
+        html.style.colorScheme = previousColorScheme || "dark";
+        body.style.backgroundColor = previousBodyBg;
+      }
+      window.removeEventListener("afterprint", restoreTheme);
+    };
+
+    window.addEventListener("afterprint", restoreTheme);
+
+    // Permite que o DOM renderize o frame no modo light antes de abrir a janela de impressão
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.print();
+        // Fallback caso afterprint não dispare
+        setTimeout(restoreTheme, 1500);
+      }, 50);
+    });
   };
 
   const qrImageUrl = qrUrl
@@ -257,20 +297,30 @@ export function PrintableExamSheetModal({
             }
 
             @media print {
-              @page {
-                size: A4 portrait;
-                margin: 6mm 10mm 6mm 10mm;
-              }
-
-              *, *:before, *:after {
+              :root,
+              html,
+              html.dark,
+              html[data-theme="dark"],
+              body {
+                color-scheme: light !important;
+                --background: #ffffff !important;
+                --foreground: #000000 !important;
+                background: #ffffff !important;
+                background-color: #ffffff !important;
+                color: #000000 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+              }
+
+              @page {
+                size: A4 portrait;
+                margin: 0 !important;
               }
 
               html,
               body {
                 width: 100% !important;
-                height: auto !important;
+                height: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background: #ffffff !important;
@@ -280,6 +330,10 @@ export function PrintableExamSheetModal({
               }
 
               /* Oculta tudo que estiver no body durante a impressão */
+              body > *:not(#synapse-print-section) {
+                display: none !important;
+              }
+
               body * {
                 visibility: hidden !important;
               }
@@ -302,10 +356,11 @@ export function PrintableExamSheetModal({
                 position: absolute !important;
                 left: 0 !important;
                 top: 0 !important;
-                width: 100% !important;
-                max-width: 190mm !important;
-                margin: 0 auto !important;
-                padding: 0 !important;
+                width: 210mm !important;
+                min-height: 297mm !important;
+                margin: 0 !important;
+                padding: 6mm 10mm !important;
+                box-sizing: border-box !important;
                 background: #ffffff !important;
                 background-color: #ffffff !important;
                 color: #000000 !important;
