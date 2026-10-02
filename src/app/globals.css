@@ -556,6 +556,19 @@ html.light *::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
 
+/* Utilitário para ocultar barras de rolagem mantendo funcionalidade intacta em qualquer navegador */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
 @layer utilities {
   .perspective-1000 {
     perspective: 1000px;
@@ -683,4 +696,24 @@ html.light *::-webkit-scrollbar-thumb:hover {
 }
 .animate-spin-slow {
   animation: spin-slow 6s linear infinite;
+}
+
+/* ==========================================================================
+   REGRAS GLOBAIS DE IMPRESSÃO A4 (PREVENÇÃO DE DARK CANVAS LEAK NO CHROME)
+   ========================================================================== */
+@media print {
+  :root,
+  html,
+  html.dark,
+  html[data-theme="dark"],
+  body {
+    color-scheme: light !important;
+    --background: #ffffff !important;
+    --foreground: #000000 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }

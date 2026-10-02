@@ -50,6 +50,7 @@ import {
   Cpu,
   Brain,
   UploadCloud,
+  ChevronDown,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -68,9 +69,24 @@ interface SidebarProps {
   };
 }
 
-const NAV_GROUPS = [
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
+  badge?: string;
+  isSpecial?: boolean;
+}
+
+interface NavGroup {
+  id: string;
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Estudos",
+    id: "planejamento",
+    label: "Planejamento",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Edital Verticalizado", href: "/edital", icon: FileSpreadsheet },
@@ -78,25 +94,27 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Prática & Performance",
+    id: "pratica",
+    label: "Prática com IA",
     items: [
       { label: "Simulados & Questões", href: "/questions", icon: FileStack },
-      {
-        label: "Importar Prova",
-        href: "#import-pdf",
-        icon: UploadCloud,
-        badge: "OCR",
-      },
       {
         label: "Redação Oficial",
         href: "/redacao",
         icon: PenTool,
         badge: "IA",
       },
+      { label: "Flashcards FSRS", href: "/flashcards", icon: Layers },
       {
         label: "Caderno de Erros",
         href: "/notebook",
         icon: BookOpenCheck,
+        badge: "IA",
+      },
+      {
+        label: "Mapas Mentais",
+        href: "/mapas-mentais",
+        icon: Brain,
         badge: "IA",
       },
       {
@@ -111,19 +129,12 @@ const NAV_GROUPS = [
         icon: Mic,
         badge: "VOZ",
       },
-      {
-        label: "Sala de Foco",
-        href: "/study-room",
-        icon: Headphones,
-        badge: "ZEN",
-      },
-      { label: "Flashcards FSRS", href: "/flashcards", icon: Layers },
-      {
-        label: "Mapas Mentais",
-        href: "/mapas-mentais",
-        icon: Brain,
-        badge: "IA",
-      },
+    ],
+  },
+  {
+    id: "evolucao",
+    label: "Evolução & Ligas",
+    items: [
       { label: "Performance", href: "/performance", icon: TrendingUp },
       {
         label: "Ligas Semanais",
@@ -137,10 +148,29 @@ const NAV_GROUPS = [
         href: "/achievements",
         icon: Award,
       },
-      { label: "Calendário", href: "/calendar", icon: CalendarDays },
     ],
   },
   {
+    id: "ferramentas",
+    label: "Foco & Ferramentas",
+    items: [
+      {
+        label: "Sala de Foco",
+        href: "/study-room",
+        icon: Headphones,
+        badge: "ZEN",
+      },
+      { label: "Calendário de Provas", href: "/calendar", icon: CalendarDays },
+      {
+        label: "Importar Prova",
+        href: "#import-pdf",
+        icon: UploadCloud,
+        badge: "OCR",
+      },
+    ],
+  },
+  {
+    id: "conta",
     label: "Conta & Planos",
     items: [
       {
@@ -355,9 +385,83 @@ export default function Sidebar({ user }: SidebarProps) {
     user?.isAdmin || user?.role === "ADMIN"
   );
 
+  // Estado para seções colapsadas com persistência no localStorage
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("synapse_sidebar_collapsed_groups");
+      if (saved) {
+        setCollapsedGroups(JSON.parse(saved));
+      }
+    } catch {}
+  }, []);
+
+  // Ao navegar para uma nova rota, expande automaticamente o grupo de destino caso estivesse colapsado
+  useEffect(() => {
+    const activeGroup = NAV_GROUPS.find((g) =>
+      g.items.some((item) =>
+        item.href === "/"
+          ? pathname === "/"
+          : pathname === item.href || pathname.startsWith(`${item.href}/`)
+      )
+    );
+    if (activeGroup) {
+      setCollapsedGroups((prev) => {
+        if (prev[activeGroup.id]) {
+          const next = { ...prev, [activeGroup.id]: false };
+          try {
+            localStorage.setItem(
+              "synapse_sidebar_collapsed_groups",
+              JSON.stringify(next)
+            );
+          } catch {}
+          return next;
+        }
+        return prev;
+      });
+    }
+  }, [pathname]);
+
+  const toggleGroupCollapse = (groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = { ...prev, [groupId]: !prev[groupId] };
+      try {
+        localStorage.setItem(
+          "synapse_sidebar_collapsed_groups",
+          JSON.stringify(next)
+        );
+      } catch {}
+      return next;
+    });
+  };
+
+  const getBadgeStyles = (badge: string) => {
+    switch (badge) {
+      case "IA":
+        return "bg-violet-50 text-violet-700 border-violet-200/80 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-500/30";
+      case "OCR":
+        return "bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30";
+      case "ZEN":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30";
+      case "D30":
+        return "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30";
+      case "PRO":
+        return "bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/30";
+      case "VOZ":
+        return "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200/80 dark:bg-fuchsia-500/15 dark:text-fuchsia-300 dark:border-fuchsia-500/30";
+      case "DEV":
+        return "bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30";
+      case "BETA":
+        return "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30";
+      default:
+        return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-white/10 dark:text-slate-300 dark:border-white/10";
+    }
+  };
+
   // Filtra módulos de Direito/Carreiras Jurídicas e adiciona link do Admin IA se for administrador
   const filteredNavGroups = NAV_GROUPS.map((group) => {
-    if (group.label === "Prática & Performance") {
+    if (group.id === "pratica") {
       return {
         ...group,
         items: group.items.filter((item) => {
@@ -368,7 +472,7 @@ export default function Sidebar({ user }: SidebarProps) {
         }),
       };
     }
-    if (group.label === "Conta & Planos") {
+    if (group.id === "conta") {
       if (!isAdmin) return group;
       const hasAdmin = group.items.some((i) => i.href === "/admin/ai");
       if (hasAdmin) return group;
@@ -547,118 +651,163 @@ export default function Sidebar({ user }: SidebarProps) {
           </div>
         </div>
 
-        {/* Conteúdo com Rolagem Fluida: Navegação + Card de Gamificação & Usuário */}
-        <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-h-0 pr-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain">
-          <nav className="space-y-2.5 pb-2">
-            {filteredNavGroups.map((group) => (
-              <div key={group.label} className="space-y-0.5">
-                <span className="px-2.5 text-[11px] font-sans font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5 block select-none">
-                  {group.label}
-                </span>
+        {/* 2. Área de Navegação com Rolagem Fluida, Invisível e Sem Reduzir a Largura */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-0.5 no-scrollbar scrollbar-none overscroll-contain">
+          <nav className="space-y-1.5 pb-2">
+            {filteredNavGroups.map((group) => {
+              const hasActiveItem = group.items.some((item) =>
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`)
+              );
+              // Respeita a decisão de fechamento do usuário
+              const isCollapsed = Boolean(collapsedGroups[group.id]);
 
-                <div className="space-y-0.5">
-                  {/* Card Unificado: Synapse Pro + Cota Diária de IA */}
-                  {(group.label.toLowerCase().includes("conta") ||
-                    group.label.toLowerCase().includes("planos")) && (
-                    <div className="pb-1.5 px-0.5">
-                      <AiQuotaBadge onNavigate={closeSidebar} />
+              return (
+                <div key={group.id} className="space-y-0.5">
+                  {/* Cabeçalho do Grupo Interativo & Colapsável */}
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupCollapse(group.id)}
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 mt-2 mb-0.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-white/4 transition-colors group/header cursor-pointer select-none text-left"
+                    aria-expanded={!isCollapsed}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-400 group-hover/header:text-slate-600 dark:text-slate-500 dark:group-hover/header:text-slate-300 transition-colors truncate">
+                        {group.label}
+                      </span>
+                      {/* Se o grupo estiver colapsado mas contiver a rota ativa, exibe indicador sutil de contexto */}
+                      {isCollapsed && hasActiveItem && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25 text-[8.5px] font-semibold tracking-normal lowercase shrink-0 animate-fade-in shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                          ativo
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <ChevronDown
+                      size={12}
+                      className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 shrink-0 ${
+                        isCollapsed ? "-rotate-90 opacity-60" : "rotate-0 opacity-100"
+                      }`}
+                    />
+                  </button>
 
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    const isActive =
-                      item.href === "/"
-                        ? pathname === "/"
-                        : pathname === item.href ||
-                          pathname.startsWith(`${item.href}/`);
+                  {/* Lista de Itens do Grupo com animação suave de colapso */}
+                  <div
+                    className={`transition-all duration-200 ease-in-out ${
+                      isCollapsed
+                        ? "max-h-0 opacity-0 overflow-hidden pointer-events-none"
+                        : "max-h-[600px] opacity-100 overflow-visible space-y-0.5"
+                    }`}
+                  >
+                    {/* Card Unificado: Synapse Pro + Cota Diária de IA na seção Conta */}
+                    {group.id === "conta" && (
+                      <div className="pb-1.5 px-0.5">
+                        <AiQuotaBadge onNavigate={closeSidebar} />
+                      </div>
+                    )}
 
-                    const isSpecial = item.isSpecial;
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive =
+                        item.href === "/"
+                          ? pathname === "/"
+                          : pathname === item.href ||
+                            pathname.startsWith(`${item.href}/`);
 
-                    return (
-                      <Link
-                        key={item.href}
-                        href={getHref(item.href)}
-                        onClick={(e) => {
-                          if (item.href === "#import-pdf") {
-                            e.preventDefault();
+                      const isSpecial = item.isSpecial;
+
+                      return (
+                        <Link
+                          key={item.href}
+                          href={getHref(item.href)}
+                          onClick={(e) => {
+                            if (item.href === "#import-pdf") {
+                              e.preventDefault();
+                              closeSidebar();
+                              window.dispatchEvent(
+                                new CustomEvent("open-pdf-importer")
+                              );
+                              return;
+                            }
                             closeSidebar();
-                            window.dispatchEvent(new CustomEvent("open-pdf-importer"));
-                            return;
-                          }
-                          closeSidebar();
-                        }}
-                        className={`relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-all duration-200 ${
-                          isActive
-                            ? isSpecial
-                              ? "text-amber-800 bg-amber-500/15 font-semibold border border-amber-500/30 dark:text-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
-                              : "text-indigo-700 bg-indigo-50 font-semibold dark:text-indigo-200 dark:bg-indigo-500/10"
-                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/3"
-                        }`}
-                      >
-                        {isActive && (
-                          <div
-                            className={`absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full ${
-                              isSpecial
-                                ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
-                                : "bg-indigo-500 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
-                            }`}
-                          />
-                        )}
-
-                        <Icon
-                          size={15}
-                          strokeWidth={isActive ? 2 : 1.5}
-                          className={`transition-all duration-200 ${
+                          }}
+                          className={`relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
                             isActive
                               ? isSpecial
-                                ? "text-amber-600 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
-                                : "text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]"
-                              : "text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300"
+                                ? "text-amber-800 bg-amber-500/15 font-semibold border border-amber-500/30 dark:text-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                                : "text-indigo-700 bg-indigo-50 font-semibold dark:text-indigo-200 dark:bg-indigo-500/10"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/4"
                           }`}
-                        />
+                        >
+                          {isActive && (
+                            <div
+                              className={`absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full ${
+                                isSpecial
+                                  ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
+                                  : "bg-indigo-500 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
+                              }`}
+                            />
+                          )}
 
-                        <span className="tracking-wide">{item.label}</span>
+                          <Icon
+                            size={15}
+                            strokeWidth={isActive ? 2 : 1.5}
+                            className={`transition-all duration-200 shrink-0 ${
+                              isActive
+                                ? isSpecial
+                                  ? "text-amber-600 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                                  : "text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]"
+                                : "text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300"
+                            }`}
+                          />
 
-                        {"badge" in item && Boolean((item as any).badge) && (
-                          <span className="ml-auto text-[8.5px] font-bold px-1.5 py-0.2 rounded-full bg-violet-500/15 text-violet-700 border border-violet-500/30 dark:bg-violet-500/20 dark:text-violet-300 tracking-tight">
-                            {(item as any).badge}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
+                          <span className="tracking-wide truncate">{item.label}</span>
 
-                  {/* Botão de Dar Feedback integrado na seção Conta */}
-                  {(group.label.toLowerCase().includes("conta") ||
-                    group.label.toLowerCase().includes("planos")) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        closeSidebar();
-                        setIsFeedbackModalOpen(true);
-                      }}
-                      className="w-full relative group flex items-center justify-between px-2.5 py-1.5 rounded-md text-[12px] font-medium text-slate-400 hover:text-white hover:bg-white/3 transition-all duration-200 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <MessageSquarePlus
-                          size={15}
-                          className="text-amber-400 group-hover:scale-110 transition-transform"
-                        />
-                        <span className="tracking-wide">Dar Feedback</span>
-                      </div>
-                      <span className="text-[8.5px] font-mono font-bold text-amber-300 bg-amber-400/10 px-1.5 py-0.2 rounded-md border border-amber-400/20">
-                        BETA
-                      </span>
-                    </button>
-                  )}
+                          {item.badge && (
+                            <span
+                              className={`ml-auto text-[8.5px] font-bold px-1.5 py-0.2 rounded-full border tracking-tight shrink-0 transition-colors ${getBadgeStyles(
+                                item.badge
+                              )}`}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+
+                    {/* Botão de Dar Feedback integrado na seção Conta */}
+                    {group.id === "conta" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          closeSidebar();
+                          setIsFeedbackModalOpen(true);
+                        }}
+                        className="w-full relative group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/4 transition-all duration-150 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <MessageSquarePlus
+                            size={15}
+                            className="text-amber-500 dark:text-amber-400 group-hover:scale-110 transition-transform shrink-0"
+                          />
+                          <span className="tracking-wide">Dar Feedback</span>
+                        </div>
+                        <span className="text-[8.5px] font-mono font-bold text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-400/10 px-1.5 py-0.2 rounded-md border border-amber-200 dark:border-amber-400/20 shrink-0">
+                          BETA
+                        </span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
+        </div>
 
-          {/* Rodapé: Card de Gamificação & Usuário (com mt-auto para fixar embaixo no desktop e rolar suavemente no mobile) */}
-          <div className="mt-auto pt-3 shrink-0 pb-[max(env(safe-area-inset-bottom),14px)]">
+        {/* 3. Rodapé Fixo: Card de Gamificação & Usuário (Sempre ancorado na base, sem corte) */}
+        <div className="shrink-0 pt-2 pb-[max(env(safe-area-inset-bottom),4px)] mt-auto border-t border-slate-100 dark:border-white/5">
             <div className={`group relative overflow-hidden rounded-2xl ${
               isLight
                 ? "bg-white border border-slate-200/90 shadow-xs"
@@ -837,7 +986,6 @@ export default function Sidebar({ user }: SidebarProps) {
               </div>
             </div>
           </div>
-        </div>
       </aside>
     </>
   );

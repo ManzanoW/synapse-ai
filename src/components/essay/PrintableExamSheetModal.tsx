@@ -47,7 +47,7 @@ function ExamSheetPaper({
       className={`w-full bg-white text-black font-serif leading-tight ${
         isPrintVersion
           ? "max-w-[190mm] mx-auto p-0 border-none shadow-none"
-          : "max-w-[210mm] p-5 sm:p-7 shadow-2xl rounded-xs border border-slate-300 shrink-0 flex flex-col justify-between"
+          : "max-w-[210mm] p-5 sm:p-7 shadow-none border-none shrink-0 flex flex-col justify-between"
       }`}
       style={{
         boxSizing: "border-box",
@@ -235,7 +235,47 @@ export function PrintableExamSheetModal({
   const rowHeight = sheetMode === "with-theme" ? "7.0mm" : "7.8mm";
 
   const handlePrint = () => {
-    window.print();
+    if (typeof window === "undefined") return;
+
+    const html = document.documentElement;
+    const body = document.body;
+    const wasDark =
+      html.classList.contains("dark") ||
+      html.getAttribute("data-theme") === "dark" ||
+      html.style.colorScheme === "dark";
+    const previousColorScheme = html.style.colorScheme;
+    const previousBodyBg = body.style.backgroundColor;
+
+    // Força o ambiente completo para Light Mode durante a impressão nativa
+    if (wasDark) {
+      html.classList.remove("dark");
+      html.classList.add("light");
+      html.setAttribute("data-theme", "light");
+      html.style.colorScheme = "light";
+      body.style.backgroundColor = "#ffffff";
+    }
+
+    const restoreTheme = () => {
+      if (wasDark) {
+        html.classList.remove("light");
+        html.classList.add("dark");
+        html.setAttribute("data-theme", "dark");
+        html.style.colorScheme = previousColorScheme || "dark";
+        body.style.backgroundColor = previousBodyBg;
+      }
+      window.removeEventListener("afterprint", restoreTheme);
+    };
+
+    window.addEventListener("afterprint", restoreTheme);
+
+    // Permite que o DOM renderize o frame no modo light antes de abrir a janela de impressão
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.print();
+        // Fallback caso afterprint não dispare
+        setTimeout(restoreTheme, 1500);
+      }, 50);
+    });
   };
 
   const qrImageUrl = qrUrl
@@ -247,58 +287,100 @@ export function PrintableExamSheetModal({
       {/* ========================================================================= */}
       {/* REGRAS CSS NATIVAS DE IMPRESSÃO A4 (VIA PORTAL DIRETO NO BODY) */}
       {/* ========================================================================= */}
-      <style jsx global>{`
-        @media screen {
-          #synapse-print-section {
-            display: none !important;
-          }
-        }
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @media screen {
+              #synapse-print-section {
+                display: none !important;
+              }
+            }
 
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 6mm 10mm 6mm 10mm;
-          }
+            @media print {
+              :root,
+              html,
+              html.dark,
+              html[data-theme="dark"],
+              body {
+                color-scheme: light !important;
+                --background: #ffffff !important;
+                --foreground: #000000 !important;
+                background: #ffffff !important;
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
 
-          html,
-          body {
-            width: 100% !important;
-            height: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-            overflow: visible !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
+              @page {
+                size: A4 portrait;
+                margin: 0 !important;
+              }
 
-          /* Oculta tudo que é filho direto do body exceto o container de impressão oficial */
-          body > *:not(#synapse-print-section) {
-            display: none !important;
-          }
+              html,
+              body {
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                overflow: visible !important;
+              }
 
-          /* Exibe exclusivamente o documento oficial de redação na raiz */
-          body > #synapse-print-section {
-            display: block !important;
-            position: static !important;
-            width: 100% !important;
-            max-width: 190mm !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-            font-family: "Times New Roman", Times, Georgia, serif !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-        }
-      `}</style>
+              /* Oculta tudo que estiver no body durante a impressão */
+              body > *:not(#synapse-print-section) {
+                display: none !important;
+              }
+
+              body * {
+                visibility: hidden !important;
+              }
+
+              /* Força desaparecimento de qualquer modal, overlay ou elemento web */
+              .print\\:hidden,
+              .print-hidden,
+              [role="dialog"] {
+                display: none !important;
+              }
+
+              /* Revela única e exclusivamente o documento oficial de redação */
+              #synapse-print-section,
+              #synapse-print-section * {
+                visibility: visible !important;
+              }
+
+              #synapse-print-section {
+                display: block !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 210mm !important;
+                min-height: 297mm !important;
+                margin: 0 !important;
+                padding: 6mm 10mm !important;
+                box-sizing: border-box !important;
+                background: #ffffff !important;
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+                border: none !important;
+                font-family: "Times New Roman", Times, Georgia, serif !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+              }
+            }
+          `,
+        }}
+      />
 
       {/* PORTAL DE IMPRESSÃO NATIVO: RENDERIZADO DIRETAMENTE NA RAIZ DO BODY */}
       {mounted &&
         createPortal(
-          <div id="synapse-print-section" className="bg-white text-black">
+          <div id="synapse-print-section" className="bg-white text-black p-0 m-0">
             <ExamSheetPaper
               theme={theme}
               sheetMode={sheetMode}
@@ -312,7 +394,7 @@ export function PrintableExamSheetModal({
         )}
 
       {/* MODAL WEB DE VISUALIZAÇÃO E CONFIGURAÇÃO NA TELA */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans print:hidden print-hidden">
         <div className="relative w-full max-w-4xl flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh]">
           {/* CABEÇALHO DO MODAL */}
           <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-slate-950/60 shrink-0">
@@ -387,7 +469,7 @@ export function PrintableExamSheetModal({
           </div>
 
           {/* PRÉVIA VISUAL DA FOLHA DE REDAÇÃO A4 */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-200/80 dark:bg-slate-950 flex flex-col items-center">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-white dark:bg-white flex flex-col items-center">
             <ExamSheetPaper
               theme={theme}
               sheetMode={sheetMode}

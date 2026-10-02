@@ -32,7 +32,9 @@ import {
   Minimize2,
   Printer,
   BookOpen,
+  Focus,
 } from "lucide-react";
+import confetti from "canvas-confetti";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 import { ErrorClassification } from "@/types/quiz";
 import {
@@ -152,6 +154,9 @@ export function QuizResolutionView({
   const [mentorGuidanceMap, setMentorGuidanceMap] = useState<Record<number, any>>({});
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [filterOnlyFlagged, setFilterOnlyFlagged] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [deepeningStep, setDeepeningStep] = useState(0);
+  const [isShortcutsBarOpen, setIsShortcutsBarOpen] = useState(true);
 
   // Atalho global ⌘J / Ctrl+J para alternar o Mentor IA
   useEffect(() => {
@@ -414,6 +419,11 @@ export function QuizResolutionView({
     if (deepenedExplanations[activeQuestionIndex]) return;
 
     setIsDeepeningLoading(true);
+    setDeepeningStep(0);
+    const stepInterval = setInterval(() => {
+      setDeepeningStep((prev) => (prev < 2 ? prev + 1 : prev));
+    }, 1400);
+
     try {
       const res = await deepenExplanationAction({
         enunciado: currentQuestion.enunciado,
@@ -436,6 +446,7 @@ export function QuizResolutionView({
     } catch (err) {
       console.error("Erro ao aprofundar explicação:", err);
     } finally {
+      clearInterval(stepInterval);
       setIsDeepeningLoading(false);
     }
   };
@@ -449,6 +460,19 @@ export function QuizResolutionView({
     ) {
       document.exitFullscreen().catch(() => {});
     }
+
+    const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+    if (accuracy >= 65) {
+      try {
+        confetti({
+          particleCount: 75,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#818cf8", "#a855f7", "#10b981", "#fbbf24"],
+        });
+      } catch {}
+    }
+
     setIsFinalizing(true);
     onFinishQuiz({
       totalQuestions,
@@ -549,6 +573,13 @@ export function QuizResolutionView({
       if (keyUpper === "P") {
         e.preventDefault();
         setIsPrintMode((prev) => !prev);
+        return;
+      }
+
+      // Atalho Z: Alternar Modo Foco Zen
+      if (keyUpper === "Z") {
+        e.preventDefault();
+        setIsZenMode((prev) => !prev);
         return;
       }
 
@@ -753,6 +784,26 @@ export function QuizResolutionView({
               <span className="hidden xl:inline">Imprimir Prova (PDF)</span>
             </button>
 
+            {/* Botão de Modo Foco Zen */}
+            <button
+              onClick={() => setIsZenMode((prev) => !prev)}
+              type="button"
+              className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                isZenMode
+                  ? "bg-violet-600/30 text-violet-300 border-violet-400/50 shadow-md shadow-violet-950/40 ring-1 ring-violet-400"
+                  : "bg-white/5 hover:bg-white/10 border-white/10 text-zinc-400 hover:text-white"
+              }`}
+              title={isZenMode ? "Desativar Modo Foco Zen (Atalho: Z)" : "Ativar Modo Foco Zen (Atalho: Z)"}
+            >
+              <Focus size={15} className={isZenMode ? "text-violet-300" : ""} />
+              <span className="hidden xl:inline">
+                {isZenMode ? "Modo Zen" : "Modo Zen"}
+              </span>
+              <kbd className="hidden 2xl:inline text-[9px] font-mono px-1 py-0.2 rounded bg-white/10 text-zinc-300 border border-white/10">
+                Z
+              </kbd>
+            </button>
+
             {/* Botão de Tela Cheia */}
             <button
               onClick={toggleFullscreen}
@@ -765,6 +816,55 @@ export function QuizResolutionView({
           </div>
         </div>
       </header>
+
+      {/* ========================================================================= */}
+      {/* BARRA DE PROGRESSO SEGMENTADA SUPERIOR (Top Segmented Progress Strip)     */}
+      {/* ========================================================================= */}
+      <div className="hidden lg:block w-full bg-[#050811]/90 border-b border-white/5 backdrop-blur-md px-6 py-2 sticky top-[69px] z-20">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex-1 flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            {questions.map((q, idx) => {
+              const isCurrent = idx === activeQuestionIndex;
+              const isAnswered = Boolean(checkedQuestions[idx]);
+              const isFlagged = Boolean(flaggedQuestions[idx]);
+              const isCorrect = isAnswered && selectedAnswers[idx] === q.gabaritoCorreto;
+
+              return (
+                <button
+                  key={`seg-progress-${idx}`}
+                  type="button"
+                  onClick={() => navigateTo(idx)}
+                  title={`Questão ${idx + 1}${isFlagged ? " (Revisão)" : isAnswered ? (isCorrect ? " (Acertou)" : " (Errou)") : " (Pendente)"}`}
+                  className={`flex-1 min-w-[12px] sm:min-w-[16px] max-w-[36px] h-1.5 sm:h-2 rounded-full transition-all duration-200 cursor-pointer ${
+                    isCurrent
+                      ? "bg-violet-400 ring-2 ring-violet-400/60 shadow-[0_0_10px_rgba(167,139,250,0.8)] scale-y-125"
+                      : isFlagged
+                      ? "bg-amber-400 ring-1 ring-amber-400/60"
+                      : isAnswered
+                      ? isCorrect
+                        ? "bg-emerald-500 hover:bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.3)]"
+                        : "bg-rose-500 hover:bg-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.3)]"
+                      : "bg-white/10 hover:bg-white/25"
+                  }`}
+                />
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 text-xs font-mono font-bold">
+            <span className="text-zinc-400">
+              {answeredCount}/{totalQuestions}
+            </span>
+            {answeredCount > 0 && (
+              <span className={`px-2 py-0.5 rounded-md text-[11px] ${
+                percentageAcc >= 70 ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+              }`}>
+                {percentageAcc}%
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ========================================================================= */}
       {/* 2. HEADER FIXO MOBILE (Apenas < lg) */}
@@ -904,11 +1004,13 @@ export function QuizResolutionView({
       {/* ========================================================================= */}
       {/* 4. CONTAINER PRINCIPAL (Desktop Grid 12 cols / Mobile scroll) */}
       {/* ========================================================================= */}
-      <div className="max-w-7xl mx-auto px-4 pt-28 lg:pt-0 pb-32 lg:pb-12 lg:grid lg:grid-cols-12 lg:gap-8 items-start">
+      <div className={`max-w-7xl mx-auto px-4 pt-28 lg:pt-6 pb-32 lg:pb-12 ${
+        isZenMode ? "flex justify-center" : "lg:grid lg:grid-cols-12 lg:gap-8 items-start"
+      }`}>
         {/* ===================================================================== */}
-        {/* COLUNA PRINCIPAL: 8 COLUNAS NO DESKTOP */}
+        {/* COLUNA PRINCIPAL: 8 COLUNAS NO DESKTOP OU CENTRALIZADA NO MODO ZEN */}
         {/* ===================================================================== */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className={`${isZenMode ? "w-full max-w-3xl" : "lg:col-span-8"} space-y-6 transition-all duration-300`}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={`question-${activeQuestionIndex}`}
@@ -1425,11 +1527,62 @@ export function QuizResolutionView({
                     {feedbackTab === "DISTRATORES" && (
                       <div className="space-y-3 pt-1 animate-fadeIn">
                         {isDeepeningLoading ? (
-                          <div className="p-8 rounded-2xl bg-slate-900/40 border border-white/5 flex flex-col items-center justify-center gap-3 text-center">
-                            <Loader2 size={24} className="text-violet-400 animate-spin" />
-                            <p className="text-xs font-bold text-slate-300">
-                              A IA está analisando cada alternativa e os truques da banca...
-                            </p>
+                          <div className="p-6 rounded-2xl bg-slate-950/70 border border-violet-500/20 backdrop-blur-xl space-y-4 shadow-xl">
+                            <div className="flex items-center justify-between text-xs border-b border-white/10 pb-3">
+                              <div className="flex items-center gap-2">
+                                <Sparkles size={15} className="text-violet-400 animate-pulse" />
+                                <span className="font-bold text-slate-200">
+                                  Raciocínio Pedagógico da IA
+                                </span>
+                              </div>
+                              <span className="font-mono text-[10px] text-violet-300 bg-violet-500/15 border border-violet-500/30 px-2 py-0.5 rounded-full">
+                                Passo {deepeningStep + 1} de 3
+                              </span>
+                            </div>
+
+                            {/* Stepper Visual */}
+                            <div className="space-y-2.5">
+                              {[
+                                `Mapeando critérios e jurisprudência da banca ${banca}...`,
+                                "Isolando distratores e pegadinhas nas alternativas...",
+                                "Sintetizando fundamentação legal e regra prática...",
+                              ].map((stepText, sIdx) => {
+                                const isDone = deepeningStep > sIdx;
+                                const isCurrent = deepeningStep === sIdx;
+
+                                return (
+                                  <div
+                                    key={`ai-step-${sIdx}`}
+                                    className={`flex items-center gap-3 p-2.5 rounded-xl text-xs transition-all ${
+                                      isCurrent
+                                        ? "bg-violet-500/15 border border-violet-500/40 text-violet-200 font-semibold shadow-xs"
+                                        : isDone
+                                        ? "text-emerald-300 opacity-80"
+                                        : "text-slate-500 opacity-40"
+                                    }`}
+                                  >
+                                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+                                      {isDone ? (
+                                        <CheckCircle2 size={15} className="text-emerald-400" />
+                                      ) : isCurrent ? (
+                                        <Loader2 size={14} className="text-violet-400 animate-spin" />
+                                      ) : (
+                                        <span className="w-2 h-2 rounded-full bg-slate-700" />
+                                      )}
+                                    </div>
+                                    <span>{stepText}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Barra de Shimmer */}
+                            <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-linear-to-r from-violet-500 via-indigo-400 to-violet-500 rounded-full transition-all duration-500"
+                                style={{ width: `${((deepeningStep + 1) / 3) * 100}%` }}
+                              />
+                            </div>
                           </div>
                         ) : currentDeepExplanation ? (
                           <div className="space-y-3">
@@ -1724,12 +1877,13 @@ export function QuizResolutionView({
         </div>
 
         {/* ===================================================================== */}
-        {/* PAINEL LATERAL FIXO: 4 COLUNAS NO DESKTOP */}
+        {/* PAINEL LATERAL FIXO: 4 COLUNAS NO DESKTOP (Oculto no Modo Zen) */}
         {/* ===================================================================== */}
-        <aside
-          data-quiz-sidebar="true"
-          className="hidden lg:block lg:col-span-4 sticky top-24 space-y-5"
-        >
+        {!isZenMode && (
+          <aside
+            data-quiz-sidebar="true"
+            className="hidden lg:block lg:col-span-4 sticky top-24 space-y-5 animate-fade-in"
+          >
           {/* CARD GLASSMORPHISM */}
           <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 space-y-5 backdrop-blur-md shadow-2xl">
             {/* Título & Estatística */}
@@ -1898,7 +2052,54 @@ export function QuizResolutionView({
             </button>
           </div>
         </aside>
+        )}
       </div>
+
+      {/* ========================================================================= */}
+      {/* 5. POWER-USER KEYBOARD CHEATSHEET (Flutuante Desktop)                      */}
+      {/* ========================================================================= */}
+      {isShortcutsBarOpen && (
+        <div className="hidden lg:flex fixed bottom-4 left-1/2 -translate-x-1/2 z-30 items-center gap-2 px-4 py-2 rounded-full bg-slate-950/85 hover:bg-slate-950/95 border border-white/10 backdrop-blur-xl shadow-2xl text-[11px] text-zinc-300 transition-all select-none animate-fade-in">
+          <span className="flex items-center gap-1.5">
+            <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-zinc-100">A-E</kbd>
+            <span className="text-zinc-400">Escolher</span>
+          </span>
+          <span className="opacity-25 text-zinc-500">•</span>
+          <span className="flex items-center gap-1.5">
+            <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-zinc-100">Enter</kbd>
+            <span className="text-zinc-400">{isCurrentAnswered ? "Avançar" : "Responder"}</span>
+          </span>
+          <span className="opacity-25 text-zinc-500">•</span>
+          <span className="flex items-center gap-1.5">
+            <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1 py-0.5 rounded text-zinc-100">←</kbd>
+            <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1 py-0.5 rounded text-zinc-100">→</kbd>
+            <span className="text-zinc-400">Navegar</span>
+          </span>
+          <span className="opacity-25 text-zinc-500">•</span>
+          <span className="flex items-center gap-1.5">
+            <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-zinc-100">R</kbd>
+            <span className="text-zinc-400">Revisar</span>
+          </span>
+          <span className="opacity-25 text-zinc-500">•</span>
+          <span className="flex items-center gap-1.5">
+            <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-zinc-100">Z</kbd>
+            <span className="text-zinc-400">{isZenMode ? "Sair Zen" : "Modo Zen"}</span>
+          </span>
+          <span className="opacity-25 text-zinc-500">•</span>
+          <span className="flex items-center gap-1.5">
+            <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-zinc-100">M</kbd>
+            <span className="text-zinc-400">Mentor IA</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsShortcutsBarOpen(false)}
+            className="ml-1.5 text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full transition-colors"
+            title="Ocultar barra de atalhos"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 4. BARRA DE AÇÕES FIXA NO RODAPÉ MOBILE (Apenas < lg) */}

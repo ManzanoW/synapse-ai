@@ -658,15 +658,15 @@ export default function DashboardClient({
     visibleCards.heatmap;
 
   return (
-    <div className="min-h-screen w-full bg-transparent p-4 sm:p-6 md:p-8 font-sans text-slate-100 selection:bg-indigo-500/30">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <div className="min-h-screen w-full bg-transparent p-4 sm:p-6 md:p-8 font-sans text-slate-900 dark:text-slate-100 selection:bg-indigo-500/30">
+      <div className={`mx-auto space-y-6 transition-all duration-300 ${!hasRightColumnCards || dashboardMode === "minimal" ? "max-w-5xl" : "max-w-7xl"}`}>
         
         {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               onClick={openSidebar}
-              className="cursor-pointer rounded-xl border border-white/10 bg-slate-900/60 p-2.5 text-slate-400 transition-colors hover:text-white md:hidden"
+              className="cursor-pointer rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-900/60 p-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors md:hidden"
             >
               <Menu size={18} />
             </button>
@@ -676,12 +676,12 @@ export default function DashboardClient({
             </div>
 
             <div>
-              <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-white">
+              <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                 Dashboard
               </h1>
-              <p className="mt-0.5 text-xs text-slate-400">
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                 Bem-vindo de volta,{" "}
-                <strong className="font-bold text-slate-200">
+                <strong className="font-bold text-slate-800 dark:text-slate-200">
                   {user.name || "Estudante"}
                 </strong>
               </p>
@@ -689,104 +689,107 @@ export default function DashboardClient({
           </div>
 
           {/* Ações e Controles Superiores do Dashboard */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Seletor de Modo: Minimalista (Essencial) vs Prática vs Completo vs Personalizado */}
-            <div className="flex items-center p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-inner">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Seletor de Modo: Segmented Control estilo Apple / Linear */}
+            <div className="flex items-center p-1 rounded-xl bg-slate-200/60 dark:bg-slate-900/90 border border-slate-300/60 dark:border-white/10 shadow-inner">
               <button
                 type="button"
                 onClick={() => handleSwitchMode("minimal")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                   dashboardMode === "minimal"
-                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
                 }`}
-                title="Modo Foco Essencial: apenas metas do dia e matérias, sem sobrecarga de gráficos"
+                title="Modo Foco Essencial: visão limpa com metas do dia e matérias, sem sobrecarga visual"
               >
-                <span>🌟 Essencial</span>
+                <Sparkles size={12} className={dashboardMode === "minimal" ? "text-amber-500" : "text-slate-400"} />
+                <span>Essencial</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSwitchMode("practice")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                   dashboardMode === "practice"
-                    ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
                 }`}
                 title="Modo Prática: foco em simulados, flashcards e metas diárias"
               >
-                <span>🎯 Prática</span>
+                <Target size={12} className={dashboardMode === "practice" ? "text-indigo-500" : "text-slate-400"} />
+                <span>Prática</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSwitchMode("full")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                   dashboardMode === "full"
-                    ? "bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
                 }`}
-                title="Modo Completo: exibe todos os indicadores, predição de aprovação e métricas neurais"
+                title="Modo Completo: cockpit analítico com todos os indicadores, predição de aprovação e métricas neurais"
               >
-                <span>🚀 Completo</span>
+                <Layers size={12} className={dashboardMode === "full" ? "text-cyan-500" : "text-slate-400"} />
+                <span>Completo</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsCustomizeModalOpen(true)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                   dashboardMode === "custom"
-                    ? "bg-violet-600/30 text-violet-300 border border-violet-500/40"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium"
                 }`}
-                title="Escolha exatamente quais cards aparecem na tela"
+                title="Personalizar cards exibidos na tela"
               >
-                <SlidersHorizontal size={13} />
-                <span className="hidden sm:inline">Cards</span>
+                <SlidersHorizontal size={12} />
+                <span className="hidden sm:inline">Personalizar</span>
               </button>
             </div>
 
-            {/* Botão de Personalização / Meu Perfil */}
+            {/* Botão de Perfil */}
             <button
               type="button"
               onClick={() => setIsWelcomeQuizOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:border-white/20 active:scale-95"
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200/80 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl transition-all hover:border-slate-300 dark:hover:border-white/20 active:scale-95 shadow-2xs"
               title="Ajustar perfil de estudos e tempo diário"
             >
-              <Sparkles size={13} className="text-amber-400" />
+              <Sparkles size={13} className="text-amber-500 dark:text-amber-400" />
               <span className="hidden sm:inline">Meu Perfil</span>
             </button>
 
-            {/* Botão de Tour pelo Sistema */}
+            {/* Botão de Tour */}
             <button
               type="button"
               onClick={() => setIsTutorialOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-500/40 bg-indigo-950/40 hover:bg-indigo-900/50 px-3.5 py-2 text-xs font-bold text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all hover:border-indigo-400 active:scale-95 relative"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition-all active:scale-95 relative"
               title="Iniciar tour guiado pela plataforma"
             >
-              <Compass size={15} className="text-indigo-400 animate-spin-slow" />
-              <span>Tour do Sistema</span>
+              <Compass size={14} className="text-indigo-600 dark:text-indigo-400 animate-spin-slow" />
+              <span className="hidden sm:inline">Tour</span>
               {!hasCompletedTutorial && (
-                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping absolute -top-0.5 -right-0.5" />
+                <span className="w-2 h-2 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-ping absolute -top-0.5 -right-0.5" />
               )}
             </button>
 
             {/* Modo Zen */}
             <button
               onClick={() => setIsZenModeOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-bold text-slate-300 backdrop-blur-xl transition-all hover:bg-white/[0.08] hover:border-white/20 active:scale-95"
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200/80 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl transition-all hover:border-slate-300 dark:hover:border-white/20 active:scale-95 shadow-2xs"
               title="Tela cheia minimalista para estudo focado"
             >
-              <Maximize2 size={13} className="text-violet-400" />
+              <Maximize2 size={13} className="text-violet-600 dark:text-violet-400" />
               <span className="hidden sm:inline">Modo Zen</span>
             </button>
 
-            {/* Iniciar Estudos */}
+            {/* Iniciar Estudos (Pacificado: visual clean para não concorrer com a Trilha do Dia) */}
             <Link
               href={getHref(!isLoading && hasEditalSubjects ? "/flashcards" : "/edital")}
-              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 px-4 py-2 text-xs font-black text-white shadow-lg shadow-indigo-600/20 transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-95"
+              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:hover:bg-indigo-500/25 dark:text-indigo-300 px-3.5 py-2 text-xs font-bold transition-all active:scale-95 shadow-2xs"
             >
-              <Zap size={14} className="fill-white" />
+              <Zap size={14} className="fill-indigo-600 dark:fill-indigo-400 text-indigo-600 dark:text-indigo-400" />
               <span>
                 {isLoading
                   ? "Carregando..."
@@ -800,38 +803,38 @@ export default function DashboardClient({
 
         {/* ================= ATALHOS RÁPIDOS (2x2 no mobile, 5 colunas no desktop) ================= */}
         {visibleCards.quickActions && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
             {[
               {
                 title: "Resolver Questões",
                 icon: HelpCircle,
-                color: "text-amber-400",
+                color: "text-amber-500 dark:text-amber-400",
                 href: "/questions",
               },
               {
                 title: "Scanner OCR",
                 icon: Camera,
-                color: "text-rose-400",
+                color: "text-rose-500 dark:text-rose-400",
                 href: "/questions?scan=true",
                 badge: "IA",
               },
               {
                 title: "Praticar Cards",
                 icon: Layers,
-                color: "text-indigo-400",
+                color: "text-indigo-500 dark:text-indigo-400",
                 href: "/flashcards",
               },
               {
                 title: "Edital Verticalizado",
                 icon: BookOpen,
-                color: "text-cyan-400",
+                color: "text-cyan-500 dark:text-cyan-400",
                 href: "/edital",
                 badge: !isLoading && !hasEditalSubjects ? "Passo 1" : undefined,
               },
               {
                 title: "Hall de Conquistas",
                 icon: Trophy,
-                color: "text-emerald-400",
+                color: "text-emerald-500 dark:text-emerald-400",
                 href: "/achievements",
               },
             ].map((item, idx) => {
@@ -840,18 +843,18 @@ export default function DashboardClient({
                 <Link
                   key={idx}
                   href={getHref(item.href)}
-                  className="relative flex items-center justify-between gap-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 p-3.5 backdrop-blur-xl transition-all duration-200 hover:border-white/15 hover:bg-slate-900/40 active:scale-[0.98]"
+                  className="relative flex items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50/90 p-2.5 sm:p-3 backdrop-blur-xl transition-all duration-200 hover:border-slate-300 dark:border-white/[0.07] dark:bg-slate-950/40 dark:hover:border-white/15 dark:hover:bg-slate-900/40 active:scale-[0.98] shadow-2xs hover:shadow-xs group"
                 >
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <div className={`shrink-0 rounded-xl p-2 bg-white/[0.03] border border-white/5 ${item.color}`}>
-                      <Icon size={16} />
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className={`shrink-0 rounded-lg p-1.5 bg-slate-50 border border-slate-200/80 dark:bg-white/[0.03] dark:border-white/5 ${item.color} group-hover:scale-105 transition-transform`}>
+                      <Icon size={15} />
                     </div>
-                    <span className="text-xs font-bold text-slate-200 truncate">
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
                       {item.title}
                     </span>
                   </div>
                   {item.badge && (
-                    <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-300">
+                    <span className="shrink-0 rounded-full border border-amber-300 bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 px-1.5 py-0.2 text-[8px] font-extrabold uppercase text-amber-800 dark:text-amber-300">
                       {item.badge}
                     </span>
                   )}
@@ -877,64 +880,64 @@ export default function DashboardClient({
 
         {/* ================= 2. BANNER HERO DE JORNADA ================= */}
         {visibleCards.heroJourney && (
-          <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
-            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+          <section className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
 
           {/* LAYOUT MOBILE */}
-          <div className="grid grid-cols-3 gap-2 text-center divide-x divide-white/5 md:hidden">
+          <div className="grid grid-cols-3 gap-2 text-center divide-x divide-slate-200 dark:divide-white/5 md:hidden">
             <div className="px-1 flex flex-col items-center justify-center">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                 Dias
               </span>
               {isLoading ? (
-                <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
+                <div className="my-1 h-6 w-10 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
               ) : stats?.journey?.hasObjective && (stats.journey.daysRemaining ?? 0) > 0 ? (
-                <span className="font-mono text-xl font-black text-white">
+                <span className="font-mono text-xl font-black text-slate-900 dark:text-white">
                   {stats.journey.daysRemaining}
                 </span>
               ) : (
                 <Link
                   href={getHref("/edital")}
-                  className="font-mono text-xs font-bold text-indigo-400 underline decoration-indigo-500/40 my-1 hover:text-indigo-300"
+                  className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 underline decoration-indigo-500/40 my-1 hover:text-indigo-500"
                 >
                   Definir
                 </Link>
               )}
-              <span className="text-[9px] text-slate-500 block">restantes</span>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 block">restantes</span>
             </div>
 
             <div className="px-1 flex flex-col items-center justify-center">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-400 block">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
                 Ritmo
               </span>
               {isLoading ? (
-                <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
+                <div className="my-1 h-6 w-10 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
               ) : stats?.journey?.hasObjective && (stats.journey.topicsPerWeek ?? 0) > 0 ? (
-                <span className="font-mono text-xl font-black text-amber-300">
+                <span className="font-mono text-xl font-black text-amber-600 dark:text-amber-300">
                   {stats.journey.topicsPerWeek}
                 </span>
               ) : (
-                <span className="font-mono text-xs font-bold text-amber-300/80 my-1">
+                <span className="font-mono text-xs font-bold text-amber-500/80 my-1">
                   —
                 </span>
               )}
-              <span className="text-[9px] text-slate-500 block">
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 block">
                 tópicos/sem
               </span>
             </div>
 
             <div className="px-1 flex flex-col items-center justify-center">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-cyan-400 block">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block">
                 Progresso
               </span>
               {isLoading ? (
-                <div className="my-1 h-6 w-10 rounded bg-white/10 animate-pulse" />
+                <div className="my-1 h-6 w-10 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
               ) : (
-                <span className="font-mono text-xl font-black text-cyan-300">
+                <span className="font-mono text-xl font-black text-cyan-600 dark:text-cyan-300">
                   {stats?.journey?.percentage ?? 0}%
                 </span>
               )}
-              <span className="text-[9px] text-slate-500 block">do edital</span>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 block">do edital</span>
             </div>
           </div>
 
@@ -942,10 +945,10 @@ export default function DashboardClient({
           <div className="hidden md:grid relative z-10 grid-cols-3 items-stretch gap-0">
             <div className="flex flex-col justify-between space-y-4 pr-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   Tempo Restante
                 </span>
-                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-2 text-indigo-400">
+                <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-2 text-indigo-600 dark:text-indigo-400">
                   <Target size={18} />
                 </div>
               </div>
@@ -953,24 +956,24 @@ export default function DashboardClient({
               <div>
                 <div className="flex items-baseline gap-2">
                   {isLoading ? (
-                    <div className="h-10 w-24 rounded-lg bg-white/10 animate-pulse" />
+                    <div className="h-10 w-24 rounded-lg bg-slate-200 dark:bg-white/10 animate-pulse" />
                   ) : stats?.journey?.hasObjective && (stats.journey.daysRemaining ?? 0) > 0 ? (
                     <>
-                      <span className="font-mono text-4xl font-black tracking-tight text-white">
+                      <span className="font-mono text-4xl font-black tracking-tight text-slate-900 dark:text-white">
                         {stats.journey.daysRemaining}
                       </span>
-                      <span className="text-xs font-semibold text-slate-400">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                         dias restantes
                       </span>
                     </>
                   ) : (
                     <div className="space-y-1">
-                      <span className="font-sans text-sm font-bold text-slate-200 block">
+                      <span className="font-sans text-sm font-bold text-slate-800 dark:text-slate-200 block">
                         Data não definida
                       </span>
                       <Link
                         href={getHref("/profile")}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors"
                       >
                         <span>Definir data do concurso</span>
                         <ArrowUpRight size={12} />
@@ -980,12 +983,12 @@ export default function DashboardClient({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+              <div className="flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-3 text-xs text-slate-500 dark:text-slate-400">
                 <span>Semanas até a prova:</span>
                 {isLoading ? (
-                  <div className="h-4 w-12 rounded bg-white/10 animate-pulse" />
+                  <div className="h-4 w-12 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
                 ) : (
-                  <strong className="font-mono text-slate-200">
+                  <strong className="font-mono text-slate-800 dark:text-slate-200">
                     {stats?.journey?.hasObjective && (stats.journey.weeksRemaining ?? 0) > 0
                       ? `${stats.journey.weeksRemaining} sem`
                       : "—"}
@@ -994,37 +997,37 @@ export default function DashboardClient({
               </div>
             </div>
 
-            <div className="pointer-events-none absolute top-4 bottom-4 left-1/3 w-px bg-linear-to-b from-transparent via-white/10 to-transparent" />
+            <div className="pointer-events-none absolute top-4 bottom-4 left-1/3 w-px bg-linear-to-b from-transparent via-slate-200/80 dark:via-white/10 to-transparent" />
 
             <div className="flex flex-col justify-between space-y-4 px-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400/90">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400/90">
                   Ritmo Sugerido
                 </span>
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2 text-amber-400">
-                  <Zap size={18} className="fill-amber-400/20" />
+                <div className="rounded-xl border border-amber-300 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-2 text-amber-600 dark:text-amber-400">
+                  <Zap size={18} className="fill-amber-500/20" />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-baseline gap-2">
                   {isLoading ? (
-                    <div className="h-10 w-24 rounded-lg bg-amber-400/10 animate-pulse" />
+                    <div className="h-10 w-24 rounded-lg bg-amber-100 dark:bg-amber-400/10 animate-pulse" />
                   ) : stats?.journey?.hasObjective && (stats.journey.topicsPerWeek ?? 0) > 0 ? (
                     <>
-                      <span className="font-mono text-4xl font-black tracking-tight text-amber-300">
+                      <span className="font-mono text-4xl font-black tracking-tight text-amber-600 dark:text-amber-300">
                         {stats.journey.topicsPerWeek}
                       </span>
-                      <span className="text-xs font-medium text-slate-400">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                         tópicos / sem
                       </span>
                     </>
                   ) : (
                     <div className="space-y-1">
-                      <span className="font-sans text-sm font-bold text-amber-300/90 block">
+                      <span className="font-sans text-sm font-bold text-amber-700 dark:text-amber-300/90 block">
                         Calibrando Ritmo
                       </span>
-                      <span className="text-[11px] text-slate-400 block">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
                         {hasEditalSubjects ? "Defina data para meta semanal" : "Aguardando matérias"}
                       </span>
                     </div>
@@ -1032,12 +1035,12 @@ export default function DashboardClient({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+              <div className="flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-3 text-xs text-slate-500 dark:text-slate-400">
                 <span>Ritmo atual:</span>
                 {isLoading ? (
-                  <div className="h-4 w-16 rounded bg-white/10 animate-pulse" />
+                  <div className="h-4 w-16 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
                 ) : (
-                  <strong className="font-mono text-amber-300/90">
+                  <strong className="font-mono text-amber-600 dark:text-amber-300/90">
                     {hasEditalSubjects && stats?.journey?.currentPace && stats.journey.currentPace > 0
                       ? `${stats.journey.currentPace} / sem`
                       : "—"}
@@ -1046,14 +1049,14 @@ export default function DashboardClient({
               </div>
             </div>
 
-            <div className="pointer-events-none absolute top-4 bottom-4 left-2/3 w-px bg-linear-to-b from-transparent via-white/10 to-transparent" />
+            <div className="pointer-events-none absolute top-4 bottom-4 left-2/3 w-px bg-linear-to-b from-transparent via-slate-200/80 dark:via-white/10 to-transparent" />
 
             <div className="flex flex-col justify-between space-y-4 pl-8">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   Progresso do Edital
                 </span>
-                <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400">
+                <div className="rounded-xl border border-cyan-200 dark:border-cyan-500/20 bg-cyan-50 dark:bg-cyan-500/10 p-2 text-cyan-600 dark:text-cyan-400">
                   <TrendingUp size={18} />
                 </div>
               </div>
@@ -1061,17 +1064,17 @@ export default function DashboardClient({
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between">
                   {isLoading ? (
-                    <div className="h-10 w-20 rounded-lg bg-cyan-400/10 animate-pulse" />
+                    <div className="h-10 w-20 rounded-lg bg-cyan-100 dark:bg-cyan-400/10 animate-pulse" />
                   ) : (
-                    <span className="font-mono text-4xl font-black tracking-tight text-white">
+                    <span className="font-mono text-4xl font-black tracking-tight text-slate-900 dark:text-white">
                       {stats?.journey?.percentage ?? 0}%
                     </span>
                   )}
                   {isLoading ? (
-                    <div className="h-4 w-24 rounded bg-white/10 animate-pulse" />
+                    <div className="h-4 w-24 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
                   ) : (
-                    <span className="font-mono text-[11px] text-slate-400">
-                      <strong className="font-bold text-slate-100">
+                    <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                      <strong className="font-bold text-slate-900 dark:text-slate-100">
                         {stats?.journey?.completedTopics ?? 0}
                       </strong>
                       /{stats?.journey?.totalTopics ?? 0} tópicos
@@ -1079,9 +1082,9 @@ export default function DashboardClient({
                   )}
                 </div>
 
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-950 p-0.5 border border-slate-200/80 dark:border-white/5">
                   <div
-                    className="h-full rounded-full bg-linear-to-r from-cyan-500 to-emerald-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"
+                    className="h-full rounded-full bg-linear-to-r from-cyan-500 to-emerald-400 shadow-[0_0_10px_rgba(34,211,238,0.4)]"
                     style={{
                       width: `${Math.max(3, stats?.journey?.percentage ?? 0)}%`,
                     }}
@@ -1090,17 +1093,17 @@ export default function DashboardClient({
               </div>
 
               {isLoading ? (
-                <div className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400">
+                <div className="flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-3 text-xs text-slate-500 dark:text-slate-400">
                   <span>Status:</span>
-                  <div className="h-4 w-20 rounded bg-white/10 animate-pulse" />
+                  <div className="h-4 w-20 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
                 </div>
               ) : !hasEditalSubjects ? (
                 <Link
                   href="/edital?import=true"
-                  className="group/cta flex items-center justify-between rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-3 py-2 text-xs font-semibold text-cyan-300 transition-all hover:scale-[1.02]"
+                  className="group/cta flex items-center justify-between rounded-xl bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/20 dark:border-cyan-500/30 px-3 py-2 text-xs font-semibold text-cyan-700 dark:text-cyan-300 transition-all hover:scale-[1.02]"
                 >
                   <div className="flex items-center gap-1.5">
-                    <Sparkles size={13} className="text-amber-400" />
+                    <Sparkles size={13} className="text-amber-500 dark:text-amber-400" />
                     <span>Importar com IA</span>
                   </div>
                   <ArrowRight size={13} className="transition-transform group-hover/cta:translate-x-1" />
@@ -1108,14 +1111,14 @@ export default function DashboardClient({
               ) : (
                 <Link
                   href="/edital"
-                  className="flex items-center justify-between border-t border-white/5 pt-3 text-xs text-slate-400 hover:text-cyan-300 transition-colors group/link"
+                  className="flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-3 text-xs text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors group/link"
                 >
                   <span className="flex items-center gap-1 font-medium">
                     Ver Edital
-                    <ArrowRight size={12} className="transition-transform group-hover/link:translate-x-1 text-cyan-400" />
+                    <ArrowRight size={12} className="transition-transform group-hover/link:translate-x-1 text-cyan-500" />
                   </span>
-                  <span className="inline-flex items-center gap-1.5 font-bold text-indigo-300">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
+                  <span className="inline-flex items-center gap-1.5 font-bold text-indigo-600 dark:text-indigo-300">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500" />
                     {stats?.journey?.percentage === 100
                       ? "Edital Completo"
                       : "Em Andamento"}
@@ -1132,15 +1135,19 @@ export default function DashboardClient({
           <DailyFlowCard flowData={initialDailyFlow || null} />
         )}
 
-        {/* ================= WIDGET DE REVISÃO FSRS PENDENTE HOJE ================= */}
-        <FsrsReviewWidget
-          dueCount={stats?.metrics?.dueFlashcards ?? 0}
-          totalCount={stats?.metrics?.totalFlashcards ?? 0}
-          isLoading={isLoading}
-        />
+        {/* ================= WIDGET DE REVISÃO FSRS PENDENTE HOJE (Apenas se não houver Daily Flow ativo) ================= */}
+        {!isLoading &&
+          !initialDailyFlow?.hasActivity &&
+          (stats?.metrics?.dueFlashcards ?? 0) > 0 && (
+            <FsrsReviewWidget
+              dueCount={stats?.metrics?.dueFlashcards ?? 0}
+              totalCount={stats?.metrics?.totalFlashcards ?? 0}
+              isLoading={isLoading}
+            />
+          )}
 
-        {/* ================= 3. PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS) ================= */}
-        {!isLoading && (
+        {/* ================= PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS) ================= */}
+        {!isLoading && !hasEditalSubjects && (
           <FirstStepsChecklistCard
             hasEditalSubjects={hasEditalSubjects}
             sessionsCount={stats?.metrics?.sessionsCount ?? 0}
@@ -1151,14 +1158,14 @@ export default function DashboardClient({
 
         {/* ================= 4. SELETOR DE ABAS E CONTEÚDO EXCLUSIVO MOBILE ================= */}
         <div className="block md:hidden space-y-4">
-          <div className="flex items-center p-1 bg-slate-950/60 border border-white/[0.08] rounded-2xl">
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-white/[0.08] rounded-2xl shadow-xs">
             <button
               type="button"
               onClick={() => setMobileTab("missions")}
               className={`flex-1 py-2 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
                 mobileTab === "missions"
                   ? "bg-indigo-600 text-white shadow-md"
-                  : "text-slate-400 hover:text-white"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               Missões
@@ -1169,7 +1176,7 @@ export default function DashboardClient({
               className={`flex-1 py-2 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
                 mobileTab === "stats"
                   ? "bg-indigo-600 text-white shadow-md"
-                  : "text-slate-400 hover:text-white"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               Estatísticas
@@ -1180,7 +1187,7 @@ export default function DashboardClient({
               className={`flex-1 py-2 text-center text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
                 mobileTab === "gamification"
                   ? "bg-indigo-600 text-white shadow-md"
-                  : "text-slate-400 hover:text-white"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               Nível / Meta
@@ -1200,42 +1207,42 @@ export default function DashboardClient({
               {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
               <ApprovalOddsCard initialData={initialApprovalOdds} />
 
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
-                <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+                <div className="mb-4 flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                     Estatísticas Chave
                   </span>
-                  <span className="flex items-center gap-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-400">
+                  <span className="flex items-center gap-1 rounded-full border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-indigo-700 dark:text-indigo-400">
                     <Zap size={11} /> Tempo Real
                   </span>
                 </div>
 
                 <div className="mb-6 flex gap-6">
                   <div>
-                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Tempo Total
                     </span>
                     {isLoading ? (
-                      <div className="h-8 w-20 rounded bg-white/10 animate-pulse" />
+                      <div className="h-8 w-20 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
                     ) : (
-                      <span className="font-mono text-2xl font-black text-white">
+                      <span className="font-mono text-2xl font-black text-slate-900 dark:text-white">
                         {stats?.metrics?.totalTimeFormatted || "0h 0m"}
                       </span>
                     )}
                   </div>
 
                   <div className="flex-1">
-                    <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       <span>Precisão</span>
                       {isLoading ? (
                         <div className="h-3 w-8 rounded bg-emerald-400/20 animate-pulse" />
                       ) : (
-                        <span className="font-mono font-bold text-emerald-400">
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                           {stats?.metrics?.precision || "0%"}
                         </span>
                       )}
                     </div>
-                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-950 p-0.5 border border-white/5">
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-950 p-0.5 border border-slate-200 dark:border-white/5">
                       <div
                         className="rounded-full bg-linear-to-r from-emerald-500 to-teal-400 h-full"
                         style={{ width: stats?.metrics?.precision || "0%" }}
@@ -1244,39 +1251,39 @@ export default function DashboardClient({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4 text-center">
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-white/5 pt-4 text-center">
+                  <div className="rounded-2xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02] p-2.5">
+                    <span className="block text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">
                       Sessões
                     </span>
                     {isLoading ? (
-                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
+                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
                     ) : (
-                      <span className="font-mono text-sm font-extrabold text-white">
+                      <span className="font-mono text-sm font-extrabold text-slate-900 dark:text-white">
                         {stats?.metrics?.sessionsCount ?? 0}
                       </span>
                     )}
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                  <div className="rounded-2xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02] p-2.5">
+                    <span className="block text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">
                       Questões
                     </span>
                     {isLoading ? (
-                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-white/10 animate-pulse" />
+                      <div className="mx-auto my-0.5 h-5 w-8 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
                     ) : (
-                      <span className="font-mono text-sm font-extrabold text-white">
+                      <span className="font-mono text-sm font-extrabold text-slate-900 dark:text-white">
                         {stats?.metrics?.questionsCount ?? 0}
                       </span>
                     )}
                   </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-400">
+                  <div className="rounded-2xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02] p-2.5">
+                    <span className="block text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">
                       Méd/Dia
                     </span>
                     {isLoading ? (
-                      <div className="mx-auto my-0.5 h-5 w-12 rounded bg-white/10 animate-pulse" />
+                      <div className="mx-auto my-0.5 h-5 w-12 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
                     ) : (
-                      <span className="font-mono text-sm font-extrabold text-white">
+                      <span className="font-mono text-sm font-extrabold text-slate-900 dark:text-white">
                         {stats?.metrics?.averageTimePerSession || "0min"}
                       </span>
                     )}
@@ -1284,7 +1291,7 @@ export default function DashboardClient({
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">
+              <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
                 <DomainRadarChart subjects={subjects} isLoading={isLoading} />
               </div>
             </div>
@@ -1315,267 +1322,597 @@ export default function DashboardClient({
           )}
         </div>
 
-        {/* ================= 5. GRID PRINCIPAL (DESKTOP) ================= */}
-        <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-12">
-          
-          {/* COLUNA ESQUERDA (expandida dinamicamente se a coluna direita estiver oculta) */}
-          <div className={`space-y-6 ${hasRightColumnCards ? "lg:col-span-8" : "lg:col-span-12"}`}>
-            
-            {/* PAINEL DUPLO APENAS NO DESKTOP */}
-            {(visibleCards.dailyQuests || visibleCards.keyMetrics) && (
-              <div className={`hidden md:grid gap-6 items-start ${visibleCards.dailyQuests && visibleCards.keyMetrics ? "grid-cols-2" : "grid-cols-1"}`}>
-                {/* CARD 1: Missões do Dia */}
-                {visibleCards.dailyQuests && <DailyQuestsPanel />}
-
-                {/* CARD 2: Métricas de Desempenho & Ritmo Semanal */}
-                {visibleCards.keyMetrics && (
-                  <KeyMetricsCard
-                    isLoading={isLoading}
-                    totalTime={stats?.metrics?.totalTimeFormatted || "0h 0m"}
-                    precision={stats?.metrics?.precision || "0%"}
-                    sessionsCount={stats?.metrics?.sessionsCount ?? 0}
-                    questionsCount={stats?.metrics?.questionsCount ?? 0}
-                    averageTimePerSession={stats?.metrics?.averageTimePerSession || "0min"}
-                    heatmap={stats?.heatmap}
-                  />
-                )}
+        {/* ================= 5. CONTEÚDO PRINCIPAL (DESKTOP) ================= */}
+        {dashboardMode === "practice" ? (
+          /* ================= DOJO DE PRÁTICA ATIVA (WORKOUT STATION) ================= */
+          <div className="space-y-6">
+            {/* CABEÇALHO DO MODO PRÁTICA */}
+            <div className="flex items-center justify-between border-b border-indigo-200/80 dark:border-indigo-500/20 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400">
+                  <Target size={16} />
+                </div>
+                <div>
+                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                    Central de Prática Ativa
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Baterias de questões, consolidação FSRS e foco profundo
+                  </p>
+                </div>
               </div>
-            )}
+              <span className="rounded-full border border-indigo-300 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                Treino Ativo
+              </span>
+            </div>
 
-            {/* CARD: DICA DIÁRIA (EVIDÊNCIA CIENTÍFICA & GEMINI) */}
-            <DailyTipCard />
-
-            {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
-            {visibleCards.radarDomain && (
-              <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 shadow-2xl backdrop-blur-2xl">
-                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-                <DomainRadarChart subjects={subjects} isLoading={isLoading} />
-              </div>
-            )}
-
-            {/* CARD 3: Sugestões com IA */}
-            {!isLoading && hasEditalSubjects && (
-              <div className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
-                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 p-2">
-                      <Sparkles size={18} />
+            {/* HUBS DE AÇÃO IMEDIATA: QUESTÕES & FLASHCARDS (GRID 2 COLS) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* CARD: TREINO DE QUESTÕES & SIMULADOS */}
+              <div className="relative overflow-hidden rounded-3xl border border-indigo-200/90 dark:border-indigo-500/30 bg-white dark:bg-slate-950/60 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-2xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 p-2.5 text-indigo-600 dark:text-indigo-400">
+                      <HelpCircle size={20} />
                     </div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
-                      Sugestões Inteligentes da IA
-                    </h3>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                        Treino de Questões
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Resolução com IA & gabarito comentado
+                      </p>
+                    </div>
                   </div>
-                  <span className="rounded-full border border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 px-2.5 py-0.5 font-mono text-[9px] font-bold">
-                    Synapse Neural
+                  <span className="rounded-full border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                    Simulados
                   </span>
                 </div>
 
-                <div className="space-y-3">
-                  {suggestions.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 dark:border-white/10 p-4 text-center text-xs text-slate-500 dark:text-slate-400">
-                      Seu cronograma está 100% otimizado!
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+                  <Link
+                    href={getHref("/questions")}
+                    className="flex items-center justify-between p-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 hover:bg-indigo-50 hover:border-indigo-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:bg-indigo-950/30 dark:hover:border-indigo-500/30 transition-all group/btn"
+                  >
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                        Simulado Rápido
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                        10 questões aleatórias
+                      </span>
                     </div>
-                  ) : (
-                    suggestions.map((item: Suggestion) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100/80 hover:border-slate-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:border-white/10 p-3 transition-colors"
-                      >
-                        <Link
-                          href={getSuggestionUrl(item)}
-                          className="flex items-center gap-3 flex-1 min-w-0"
-                        >
-                          <div className="shrink-0 rounded-xl p-2 bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
-                            <BrainCircuit size={16} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">
-                              {item.title}
-                            </h4>
-                            <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
-                              {item.description}
-                            </p>
-                          </div>
-                        </Link>
-                      </div>
-                    ))
-                  )}
+                    <ArrowRight size={14} className="text-slate-400 group-hover/btn:translate-x-1 group-hover/btn:text-indigo-500 transition-all" />
+                  </Link>
+
+                  <Link
+                    href={getHref("/quiz/timed")}
+                    className="flex items-center justify-between p-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 hover:bg-indigo-50 hover:border-indigo-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:bg-indigo-950/30 dark:hover:border-indigo-500/30 transition-all group/btn"
+                  >
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                        Cronometrado
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Simulação de prova real
+                      </span>
+                    </div>
+                    <ArrowRight size={14} className="text-slate-400 group-hover/btn:translate-x-1 group-hover/btn:text-indigo-500 transition-all" />
+                  </Link>
+
+                  <Link
+                    href={getHref("/questions?filter=errors")}
+                    className="flex items-center justify-between p-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 hover:bg-rose-50 hover:border-rose-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:bg-rose-950/30 dark:hover:border-rose-500/30 transition-all group/btn"
+                  >
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                        Caderno de Erros
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Remediação de falhas
+                      </span>
+                    </div>
+                    <ArrowRight size={14} className="text-slate-400 group-hover/btn:translate-x-1 group-hover/btn:text-rose-500 transition-all" />
+                  </Link>
+
+                  <Link
+                    href={getHref("/questions?scan=true")}
+                    className="flex items-center justify-between p-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 hover:bg-cyan-50 hover:border-cyan-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:bg-cyan-950/30 dark:hover:border-cyan-500/30 transition-all group/btn"
+                  >
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                        Scanner OCR (IA)
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Foto de prova/livro
+                      </span>
+                    </div>
+                    <ArrowRight size={14} className="text-slate-400 group-hover/btn:translate-x-1 group-hover/btn:text-cyan-500 transition-all" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* CARD: CONSOLIDAÇÃO FSRS (FLASHCARDS) */}
+              <div className="relative overflow-hidden rounded-3xl border border-amber-200/90 dark:border-amber-500/30 bg-white dark:bg-slate-950/60 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-500/40 to-transparent" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-2.5 text-amber-600 dark:text-amber-400">
+                      <Layers size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                        Consolidação FSRS
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Repetição espaçada com curva de esquecimento
+                      </p>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold text-amber-700 dark:text-amber-300">
+                    FSRS 4.5
+                  </span>
                 </div>
 
-                <button
-                  onClick={handleOptimizeSchedule}
-                  disabled={isOptimizing}
-                  className={`mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-bold transition-all ${
-                    isOptimized
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300 shadow-2xs"
-                      : "border-cyan-200 bg-cyan-50/90 text-cyan-800 hover:bg-cyan-100 hover:border-cyan-300 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20 shadow-2xs"
-                  }`}
-                >
-                  {isOptimizing ? (
-                    <span>Otimizando Cronograma com IA...</span>
-                  ) : isOptimized ? (
-                    <>
-                      <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
-                      <span>Cronograma e Metas Otimizados!</span>
-                    </>
+                <div className="space-y-3 pt-2">
+                  {(stats?.metrics?.dueFlashcards ?? 0) > 0 ? (
+                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-3">
+                      <div>
+                        <span className="font-mono text-xl font-black text-amber-600 dark:text-amber-400 block">
+                          {stats?.metrics?.dueFlashcards} {stats?.metrics?.dueFlashcards === 1 ? "card pendente" : "cards pendentes"}
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Prontos para consolidação ativa hoje
+                        </span>
+                      </div>
+                      <Link
+                        href="/flashcards/study/all?filter=due"
+                        className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span>Revisar Agora</span>
+                        <ArrowRight size={13} />
+                      </Link>
+                    </div>
                   ) : (
-                    <>
-                      <Sparkles size={14} />
-                      <span>Otimizar Cronograma com IA</span>
-                    </>
+                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-3">
+                      <div>
+                        <span className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400 block">
+                          Memória 100% em dia!
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Nenhum flashcard pendente para hoje
+                        </span>
+                      </div>
+                      <Link
+                        href={getHref("/flashcards")}
+                        className="px-3 py-1.5 rounded-xl border border-emerald-300/60 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-all cursor-pointer"
+                      >
+                        Ver Baralhos
+                      </Link>
+                    </div>
                   )}
-                </button>
-              </div>
-            )}
 
-            {/* CARD 4: Minhas Matérias */}
+                  <div className="flex gap-2">
+                    <Link
+                      href={getHref("/flashcards")}
+                      className="flex-1 text-center py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.02] hover:bg-slate-100 dark:hover:bg-white/[0.05] text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors"
+                    >
+                      Explorar Todos os Baralhos
+                    </Link>
+                    <Link
+                      href={getHref("/flashcards?create=true")}
+                      className="py-2 px-3.5 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/80 dark:bg-indigo-500/15 text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition-colors"
+                    >
+                      + Criar Cards
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* MINHAS MATÉRIAS (MODO PRÁTICA) */}
             {visibleCards.subjects && (
-              <div className="space-y-4 rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl relative">
-                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-                
+              <div className="space-y-4 rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl relative">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <BookOpen size={18} className="text-indigo-400" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                      Minhas Matérias
+                    <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
+                      Disciplinas para Treino
                     </h3>
                   </div>
                   <Link
                     href={getHref("/edital")}
-                    className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
+                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors"
                   >
                     Ver todas ({subjects.length})
                   </Link>
                 </div>
 
-                {isLoading ? (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {[...Array(2)].map((_, i) => (
-                      <SubjectCardSkeleton key={i} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {displayedSubjects.map((sub) => (
-                      <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
-                        <SubjectCard
-                          title={sub.name}
-                          colorClass={sub.color || "#3B82F6"}
-                          progress={sub.progress ?? 0}
-                          accuracy={sub.accuracy ?? 0}
-                          timeSpent={sub.timeSpent ?? "0min"}
-                          totalCards={sub._count?.topics ?? 0}
-                        />
-                      </Link>
-                    ))}
-                  </div>
-                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {displayedSubjects.map((sub) => (
+                    <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
+                      <SubjectCard
+                        title={sub.name}
+                        colorClass={sub.color || "#3B82F6"}
+                        progress={sub.progress ?? 0}
+                        accuracy={sub.accuracy ?? 0}
+                        timeSpent={sub.timeSpent ?? "0min"}
+                        totalCards={sub._count?.topics ?? 0}
+                      />
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
+
+            {/* METAS DIÁRIAS & SALA DE FOCO (GRID 2 COLS) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              <DailyQuestsPanel />
+
+              {/* SALA DE FOCO ZEN */}
+              <div className="relative overflow-hidden rounded-3xl border border-indigo-200 dark:border-indigo-500/20 bg-linear-to-br from-indigo-50/70 via-white to-purple-50/60 dark:from-indigo-950/40 dark:via-slate-950/70 dark:to-purple-950/30 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl group hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all duration-300">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-indigo-300 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                      <Headphones size={20} className="text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                        Sala de Foco
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Deep Work & Ondas Alpha 10Hz
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsZenModeOpen(true)}
+                    className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200 dark:bg-white/[0.03] px-2.5 py-1 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300"
+                  >
+                    <Maximize2 size={11} className="text-violet-600 dark:text-violet-400" />
+                    <span>Modo Zen</span>
+                  </button>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300/90 leading-relaxed mb-4">
+                  Elimine distrações externas com bioacústica procedural enquanto resolve suas baterias de questões.
+                </p>
+                <Link
+                  href={getHref("/study-room")}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-600/90 via-purple-600/90 to-indigo-600/90 hover:from-indigo-500 hover:to-purple-500 py-3 px-4 text-xs font-bold text-white shadow-md shadow-indigo-600/20 active:scale-98 transition-all group/btn cursor-pointer"
+                >
+                  <Headphones size={15} />
+                  <span>Entrar na Sala de Foco</span>
+                  <ArrowRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                </Link>
+              </div>
+            </div>
           </div>
+        ) : (
+          /* ================= MODOS COMPLETO & ESSENCIAL (ORGANIZADOS EM CAPÍTULOS EXECUTIVOS) ================= */
+          <div className="space-y-8">
+            {/* ================= CAPÍTULO 01: ROTINA DE HOJE & EXECUÇÃO ================= */}
+            <section className="space-y-4">
+              <div className="hidden md:flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/10 text-xs font-mono font-black text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                    01
+                  </span>
+                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    Rotina & Execução de Hoje
+                  </h2>
+                </div>
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Disciplinas ativas do seu edital
+                </span>
+              </div>
 
-          {/* BARRA LATERAL DIREITA (`lg:col-span-4` - APENAS DESKTOP) */}
-          {hasRightColumnCards && (
-            <div className="hidden md:block space-y-6 lg:col-span-4">
-              {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
-              {visibleCards.approvalOdds && (
-                <ApprovalOddsCard initialData={initialApprovalOdds} />
-              )}
+              {/* GRADE DE MATÉRIAS (4 COLUNAS EM UMA ÚNICA LINHA NO DESKTOP) */}
+              {visibleCards.subjects && (
+                <div className="space-y-4 rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl relative">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
+                        Minhas Matérias
+                      </h3>
+                    </div>
+                    <Link
+                      href={getHref("/edital")}
+                      className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors"
+                    >
+                      Ver todas ({subjects.length})
+                    </Link>
+                  </div>
 
-              {/* COCKPIT DE GAMIFICAÇÃO & CONSTÂNCIA */}
-              {visibleCards.gamification && (
-                <GamificationCockpitCard
-                  totalXp={currentXp}
-                  level={level}
-                  levelTitle={levelTitle}
-                  currentLevelXp={xpProgressInLevel}
-                  nextLevelXp={xpSpanForLevel}
-                  progressPercent={levelProgressPercent}
-                  streakDays={Number(
-                    gStats.streakDays ??
-                      globalGamification?.streak?.currentDays ??
-                      stats?.streak?.currentDays ??
-                      0,
+                  {isLoading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {[...Array(4)].map((_, i) => (
+                        <SubjectCardSkeleton key={i} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {displayedSubjects.map((sub) => (
+                        <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
+                          <SubjectCard
+                            title={sub.name}
+                            colorClass={sub.color || "#3B82F6"}
+                            progress={sub.progress ?? 0}
+                            accuracy={sub.accuracy ?? 0}
+                            timeSpent={sub.timeSpent ?? "0min"}
+                            totalCards={sub._count?.topics ?? 0}
+                          />
+                        </Link>
+                      ))}
+                    </div>
                   )}
-                  streakFreezes={streakFreezeCount}
-                  weekDays={stats?.streak?.weekDays}
-                  weeklyGoalPercentage={stats?.weeklyGoal?.percentage ?? 0}
-                  weeklyGoalTarget={stats?.weeklyGoal?.target ?? 50}
-                  weeklyGoalCurrent={stats?.weeklyGoal?.current ?? 0}
-                  onOpenStreakModal={() => setIsStreakFreezeModalOpen(true)}
-                  getHref={getHref}
-                />
+                </div>
               )}
+            </section>
 
-              {/* LIGAS SEMANAIS & GAMIFICAÇÃO D30 */}
-              <LeagueWidgetCard />
+            {/* ================= CAPÍTULO 02: INTELIGÊNCIA, RADAR & DIAGNÓSTICO ================= */}
+            {dashboardMode !== "minimal" &&
+              (visibleCards.radarDomain ||
+                visibleCards.approvalOdds ||
+                visibleCards.keyMetrics ||
+                visibleCards.aiSuggestions) && (
+                <section className="space-y-4 pt-2">
+                  <div className="hidden md:flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-500/10 text-xs font-mono font-black text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                        02
+                      </span>
+                      <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                        Inteligência, Radar & Diagnóstico
+                      </h2>
+                    </div>
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      Predição neural e pontos cegos do edital
+                    </span>
+                  </div>
 
-              {/* SALA DE FOCO & DEEP WORK (ZEN COCKPIT) */}
-              {visibleCards.focusRoom && (
-                <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-linear-to-br from-indigo-950/40 via-slate-950/70 to-purple-950/30 p-6 shadow-2xl backdrop-blur-2xl group hover:border-indigo-500/40 transition-all duration-300">
-                  <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-400/50 to-transparent" />
-                  <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-indigo-500/10 blur-2xl" />
-
-                  <div className="relative z-10 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)] group-hover:scale-105 transition-transform">
-                          <Headphones size={20} className="animate-pulse text-indigo-400" />
+                  {/* BENTO GRID 12 COLS: Radar (7 cols) + Chances e Métricas (5 cols) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                    {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
+                    {visibleCards.radarDomain && (
+                      <div className="lg:col-span-7 flex flex-col">
+                        <div className="relative flex-1 overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+                          <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
+                          <DomainRadarChart subjects={subjects} isLoading={isLoading} />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                              Sala de Foco
-                            </h3>
-                            <span className="rounded-full border border-violet-500/30 bg-violet-500/15 px-1.5 py-0.5 font-mono text-[9px] font-bold text-violet-300">
-                              ZEN
-                            </span>
+                      </div>
+                    )}
+
+                    {/* LADO DIREITO: CHANCES DE APROVAÇÃO + MÉTRICAS CHAVE */}
+                    {(visibleCards.approvalOdds || visibleCards.keyMetrics) && (
+                      <div className={`${visibleCards.radarDomain ? "lg:col-span-5" : "lg:col-span-12"} space-y-6 flex flex-col justify-between`}>
+                        {visibleCards.approvalOdds && (
+                          <ApprovalOddsCard initialData={initialApprovalOdds} />
+                        )}
+
+                        {visibleCards.keyMetrics && (
+                          <KeyMetricsCard
+                            isLoading={isLoading}
+                            totalTime={stats?.metrics?.totalTimeFormatted || "0h 0m"}
+                            precision={stats?.metrics?.precision || "0%"}
+                            sessionsCount={stats?.metrics?.sessionsCount ?? 0}
+                            questionsCount={stats?.metrics?.questionsCount ?? 0}
+                            averageTimePerSession={stats?.metrics?.averageTimePerSession || "0min"}
+                            heatmap={stats?.heatmap}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SUGESTÕES INTELIGENTES DA IA */}
+                  {visibleCards.aiSuggestions && !isLoading && hasEditalSubjects && (
+                    <div className="group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+                      <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 p-2">
+                            <Sparkles size={18} />
                           </div>
-                          <p className="text-[11px] text-slate-400">
-                            Deep Work & Bioacústica
-                          </p>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
+                            Sugestões Inteligentes da IA
+                          </h3>
                         </div>
+                        <span className="rounded-full border border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 px-2.5 py-0.5 font-mono text-[9px] font-bold">
+                          Synapse Neural
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        {suggestions.length === 0 ? (
+                          <div className="rounded-2xl border border-dashed border-slate-200 dark:border-white/10 p-4 text-center text-xs text-slate-500 dark:text-slate-400">
+                            Seu cronograma está 100% otimizado!
+                          </div>
+                        ) : (
+                          suggestions.map((item: Suggestion) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100/80 hover:border-slate-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:border-white/10 p-3 transition-colors"
+                            >
+                              <Link
+                                href={getSuggestionUrl(item)}
+                                className="flex items-center gap-3 flex-1 min-w-0"
+                              >
+                                <div className="shrink-0 rounded-xl p-2 bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
+                                  <BrainCircuit size={16} />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">
+                                    {item.title}
+                                  </h4>
+                                  <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
+                                    {item.description}
+                                  </p>
+                                </div>
+                              </Link>
+                            </div>
+                          ))
+                        )}
                       </div>
 
                       <button
-                        onClick={() => setIsZenModeOpen(true)}
-                        className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-mono font-bold text-slate-300 hover:bg-white/[0.08] hover:text-white transition-all active:scale-95"
-                        title="Ativar tela cheia minimalista"
+                        onClick={handleOptimizeSchedule}
+                        disabled={isOptimizing}
+                        className={`mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-bold transition-all ${
+                          isOptimized
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300 shadow-2xs"
+                            : "border-cyan-200 bg-cyan-50/90 text-cyan-800 hover:bg-cyan-100 hover:border-cyan-300 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20 shadow-2xs"
+                        }`}
                       >
-                        <Maximize2 size={11} className="text-violet-400" />
-                        <span>Modo Zen</span>
+                        {isOptimizing ? (
+                          <span>Otimizando Cronograma com IA...</span>
+                        ) : isOptimized ? (
+                          <>
+                            <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
+                            <span>Cronograma e Metas Otimizados!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={14} />
+                            <span>Otimizar Cronograma com IA</span>
+                          </>
+                        )}
                       </button>
                     </div>
+                  )}
+                </section>
+              )}
 
-                    <p className="text-xs text-slate-300/90 leading-relaxed">
-                      Treine em estado de flow com sons binaurais procedurais (Alpha 10Hz), chuva, ruído marrom e timer pomodoro inteligente.
-                    </p>
+            {/* ================= CAPÍTULO 03: HÁBITOS, COMUNIDADE & FLOW ================= */}
+            {dashboardMode !== "minimal" &&
+              (visibleCards.dailyQuests ||
+                visibleCards.gamification ||
+                visibleCards.focusRoom ||
+                visibleCards.heatmap) && (
+                <section className="space-y-4 pt-2">
+                  <div className="hidden md:flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/10 text-xs font-mono font-black text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        03
+                      </span>
+                      <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                        Hábitos, Comunidade & Flow
+                      </h2>
+                    </div>
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      Gamificação, ligas semanais e estado de foco
+                    </span>
+                  </div>
 
-                    <div className="pt-1">
-                      <Link
-                        href={getHref("/study-room")}
-                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-600/80 via-purple-600/80 to-indigo-600/80 hover:from-indigo-500 hover:to-purple-500 py-3 px-4 text-xs font-bold text-white shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/30 active:scale-98 transition-all group/btn cursor-pointer"
-                      >
-                        <Headphones size={15} className="group-hover/btn:rotate-12 transition-transform" />
-                        <span>Entrar na Sala de Foco</span>
-                        <ArrowRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
-                      </Link>
+                  {/* GRID 3 COLUNAS HARMONIOSO (DESKTOP) */}
+                  <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+                    {/* COLUNA 1: EVOLUÇÃO & LIGAS */}
+                    <div className="space-y-6">
+                      {visibleCards.gamification && (
+                        <GamificationCockpitCard
+                          totalXp={currentXp}
+                          level={level}
+                          levelTitle={levelTitle}
+                          currentLevelXp={xpProgressInLevel}
+                          nextLevelXp={xpSpanForLevel}
+                          progressPercent={levelProgressPercent}
+                          streakDays={Number(
+                            gStats.streakDays ??
+                              globalGamification?.streak?.currentDays ??
+                              stats?.streak?.currentDays ??
+                              0,
+                          )}
+                          streakFreezes={streakFreezeCount}
+                          weekDays={stats?.streak?.weekDays}
+                          weeklyGoalPercentage={stats?.weeklyGoal?.percentage ?? 0}
+                          weeklyGoalTarget={stats?.weeklyGoal?.target ?? 50}
+                          weeklyGoalCurrent={stats?.weeklyGoal?.current ?? 0}
+                          onOpenStreakModal={() => setIsStreakFreezeModalOpen(true)}
+                          getHref={getHref}
+                        />
+                      )}
+                      <LeagueWidgetCard />
+                    </div>
+
+                    {/* COLUNA 2: MISSÕES DO DIA & CIÊNCIA DA APRENDIZAGEM */}
+                    <div className="space-y-6">
+                      {visibleCards.dailyQuests && <DailyQuestsPanel />}
+                      <DailyTipCard />
+                    </div>
+
+                    {/* COLUNA 3: SALA DE FOCO & HEATMAP ANUAL */}
+                    <div className="space-y-6">
+                      {visibleCards.focusRoom && (
+                        <div className="relative overflow-hidden rounded-3xl border border-indigo-200 dark:border-indigo-500/20 bg-linear-to-br from-indigo-50/70 via-white to-purple-50/60 dark:from-indigo-950/40 dark:via-slate-950/70 dark:to-purple-950/30 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl group hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all duration-300">
+                          <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
+                          <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-indigo-500/10 blur-2xl" />
+
+                          <div className="relative z-10 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-indigo-300 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)] group-hover:scale-105 transition-transform">
+                                  <Headphones size={20} className="animate-pulse text-indigo-600 dark:text-indigo-400" />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                                      Sala de Foco
+                                    </h3>
+                                    <span className="rounded-full border border-violet-300 bg-violet-100 text-violet-800 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300 px-1.5 py-0.5 font-mono text-[9px] font-bold">
+                                      ZEN
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                    Deep Work & Bioacústica
+                                  </p>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => setIsZenModeOpen(true)}
+                                className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200 dark:bg-white/[0.03] px-2.5 py-1 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all active:scale-95"
+                                title="Ativar tela cheia minimalista"
+                              >
+                                <Maximize2 size={11} className="text-violet-600 dark:text-violet-400" />
+                                <span>Modo Zen</span>
+                              </button>
+                            </div>
+
+                            <p className="text-xs text-slate-600 dark:text-slate-300/90 leading-relaxed">
+                              Treine em estado de flow com sons binaurais procedurais (Alpha 10Hz), chuva, ruído marrom e timer pomodoro inteligente.
+                            </p>
+
+                            <div className="pt-1">
+                              <Link
+                                href={getHref("/study-room")}
+                                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-600/90 via-purple-600/90 to-indigo-600/90 hover:from-indigo-500 hover:to-purple-500 py-3 px-4 text-xs font-bold text-white shadow-md shadow-indigo-600/20 active:scale-98 transition-all group/btn cursor-pointer"
+                              >
+                                <Headphones size={15} className="group-hover/btn:rotate-12 transition-transform" />
+                                <span>Entrar na Sala de Foco</span>
+                                <ArrowRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {visibleCards.heatmap && (
+                        <div className="rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl relative">
+                          <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
+                          <Heatmap />
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                </section>
               )}
-
-              {/* HEATMAP */}
-              {visibleCards.heatmap && (
-                <div className="rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl relative">
-                  <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-                  <Heatmap />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* LIGAS SEMANAIS NO MOBILE */}
         <div className="block md:hidden">
@@ -1583,27 +1920,27 @@ export default function DashboardClient({
         </div>
 
         {/* SALA DE FOCO NO MOBILE */}
-        <div className="block md:hidden rounded-3xl border border-indigo-500/20 bg-linear-to-br from-indigo-950/40 via-slate-950/70 to-purple-950/30 p-4 shadow-2xl backdrop-blur-2xl">
+        <div className="block md:hidden rounded-3xl border border-indigo-200 dark:border-indigo-500/20 bg-linear-to-br from-indigo-50/70 via-white to-purple-50/60 dark:from-indigo-950/40 dark:via-slate-950/70 dark:to-purple-950/30 p-4 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-300 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
                 <Headphones size={16} />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <h4 className="text-xs font-bold text-white truncate">Sala de Foco</h4>
-                  <span className="rounded-full border border-violet-500/30 bg-violet-500/15 px-1 py-0.2 font-mono text-[8px] font-bold text-violet-300">ZEN</span>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">Sala de Foco</h4>
+                  <span className="rounded-full border border-violet-300 bg-violet-100 text-violet-800 dark:border-violet-500/30 dark:bg-violet-500/15 px-1 py-0.2 font-mono text-[8px] font-bold dark:text-violet-300">ZEN</span>
                 </div>
-                <p className="text-[10px] text-slate-400 truncate">Sons binaurais & Pomodoro</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Sons binaurais & Pomodoro</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setIsZenModeOpen(true)}
-                className="cursor-pointer inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-mono font-bold text-slate-300 active:scale-95"
+                className="cursor-pointer inline-flex items-center gap-1 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300 active:scale-95"
               >
-                <Maximize2 size={11} className="text-violet-400" />
+                <Maximize2 size={11} className="text-violet-600 dark:text-violet-400" />
                 <span>Zen</span>
               </button>
 
@@ -1619,7 +1956,7 @@ export default function DashboardClient({
         </div>
 
         {/* HEATMAP NO MOBILE */}
-        <div className="block md:hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 shadow-2xl backdrop-blur-2xl">
+        <div className="block md:hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
           <Heatmap />
         </div>
       </div>

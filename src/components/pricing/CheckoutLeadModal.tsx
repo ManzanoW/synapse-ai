@@ -90,22 +90,22 @@ export function CheckoutLeadModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-slate-900 border border-indigo-500/30 p-6 md:p-8 shadow-2xl shadow-indigo-950/50"
+          className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-indigo-500/30 p-6 md:p-8 shadow-2xl shadow-slate-900/20 dark:shadow-indigo-950/50"
         >
           {/* Efeitos de Luz de Fundo */}
-          <div className="absolute -top-24 -right-24 w-60 h-60 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-60 h-60 bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-purple-500/10 dark:bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
 
           {/* Botão de Fechar */}
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -114,38 +114,38 @@ export function CheckoutLeadModal({
             <div className="space-y-6">
               {/* Header */}
               <div className="text-center space-y-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-linear-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold">
-                  <Crown size={14} className="text-amber-400 fill-amber-400" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-linear-to-r dark:from-indigo-500/20 dark:to-purple-500/20 dark:border-indigo-400/30 dark:text-indigo-300 text-xs font-bold">
+                  <Crown size={14} className="text-amber-500 fill-amber-400" />
                   <span>CONDIÇÃO ESPECIAL DE LANÇAMENTO</span>
                 </div>
-                <h3 className="text-2xl font-black text-white tracking-tight">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                   Desbloqueie o Synapse Pro
                 </h3>
-                <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
                   Acesso imediato e ilimitado a todas as ferramentas com IA para acelerar sua aprovação.
                 </p>
               </div>
 
               {/* Seletor de Ciclo de Cobrança */}
-              <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-950/60 rounded-2xl border border-slate-800">
+              <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setCycle("ANNUAL")}
                   className={`relative p-3 rounded-xl text-left transition-all cursor-pointer ${
                     cycle === "ANNUAL"
-                      ? "bg-indigo-600/30 border border-indigo-500/50 shadow-sm"
-                      : "hover:bg-slate-800/40 border border-transparent"
+                      ? "bg-white dark:bg-indigo-600/30 border border-indigo-500 shadow-sm"
+                      : "hover:bg-slate-200/60 dark:hover:bg-slate-800/40 border border-transparent"
                   }`}
                 >
-                  <span className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-bold">
+                  <span className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:border-emerald-400/40 dark:text-emerald-300 text-[10px] font-bold">
                     -30% OFF
                   </span>
-                  <div className="text-xs font-bold text-white">Plano Anual</div>
-                  <div className="text-lg font-black text-indigo-300">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Plano Anual</div>
+                  <div className="text-lg font-black text-indigo-600 dark:text-indigo-300">
                     R$ 29,90
-                    <span className="text-[11px] font-normal text-slate-400">/mês</span>
+                    <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">/mês</span>
                   </div>
-                  <div className="text-[10px] text-slate-400">R$ 358,80 faturado anualmente</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">R$ 358,80 faturado anualmente</div>
                 </button>
 
                 <button
@@ -153,16 +153,16 @@ export function CheckoutLeadModal({
                   onClick={() => setCycle("MONTHLY")}
                   className={`p-3 rounded-xl text-left transition-all cursor-pointer ${
                     cycle === "MONTHLY"
-                      ? "bg-indigo-600/30 border border-indigo-500/50 shadow-sm"
-                      : "hover:bg-slate-800/40 border border-transparent"
+                      ? "bg-white dark:bg-indigo-600/30 border border-indigo-500 shadow-sm"
+                      : "hover:bg-slate-200/60 dark:hover:bg-slate-800/40 border border-transparent"
                   }`}
                 >
-                  <div className="text-xs font-bold text-white">Plano Mensal</div>
-                  <div className="text-lg font-black text-white">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Plano Mensal</div>
+                  <div className="text-lg font-black text-slate-900 dark:text-white">
                     R$ 39,90
-                    <span className="text-[11px] font-normal text-slate-400">/mês</span>
+                    <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">/mês</span>
                   </div>
-                  <div className="text-[10px] text-slate-400">Sem fidelidade, cancele quando quiser</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">Sem fidelidade, cancele quando quiser</div>
                 </button>
               </div>
 
@@ -177,8 +177,8 @@ export function CheckoutLeadModal({
                   "Importador Inteligente de Editais em PDF por IA",
                   "Prioridade máxima nos servidores Gemini 2.5 Pro",
                 ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-200">
-                    <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+                  <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200 font-medium">
+                    <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>{item}</span>
                   </div>
                 ))}
@@ -187,7 +187,7 @@ export function CheckoutLeadModal({
               {/* Formulário / Ação */}
               <form onSubmit={handleCheckout} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">
                     WhatsApp para suporte prioritário VIP (opcional):
                   </label>
                   <input
@@ -195,12 +195,12 @@ export function CheckoutLeadModal({
                     value={phoneOrWhatsapp}
                     onChange={(e) => setPhoneOrWhatsapp(e.target.value)}
                     placeholder="(11) 99999-9999"
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 transition-colors"
                   />
                 </div>
 
                 {statusMessage && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs">
                     {statusMessage}
                   </div>
                 )}
@@ -208,7 +208,7 @@ export function CheckoutLeadModal({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3.5 px-4 bg-linear-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs sm:text-sm font-extrabold rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  className="w-full py-3.5 px-4 bg-linear-to-r from-indigo-600 via-indigo-700 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white text-xs sm:text-sm font-extrabold rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>
@@ -224,17 +224,17 @@ export function CheckoutLeadModal({
                   )}
                 </button>
 
-                <div className="flex items-center justify-center gap-4 text-[10px] text-slate-400 pt-1">
+                <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 dark:text-slate-400 pt-1 font-medium">
                   <span className="flex items-center gap-1">
-                    <ShieldCheck size={12} className="text-emerald-400" />
+                    <ShieldCheck size={12} className="text-emerald-600 dark:text-emerald-400" />
                     Garantia de 7 Dias
                   </span>
                   <span className="flex items-center gap-1">
-                    <Lock size={12} className="text-indigo-400" />
+                    <Lock size={12} className="text-indigo-600 dark:text-indigo-400" />
                     Sem cobrança imediata
                   </span>
                   <span className="flex items-center gap-1">
-                    <Zap size={12} className="text-amber-400" />
+                    <Zap size={12} className="text-amber-500 dark:text-amber-400" />
                     Ativação Instantânea
                   </span>
                 </div>
@@ -242,25 +242,25 @@ export function CheckoutLeadModal({
             </div>
           ) : (
             <div className="py-6 text-center space-y-5">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 flex items-center justify-center mx-auto">
-                <Crown size={32} className="fill-emerald-400/20" />
+              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:border-emerald-400/40 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-300">
+                <Crown size={32} className="fill-emerald-600/20 dark:fill-emerald-400/20" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-white">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white">
                   Acesso Pro Ativado! 💎
                 </h3>
-                <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto leading-relaxed">
                   {statusMessage ||
                     "Você agora tem acesso ilimitado a todas as ferramentas com inteligência artificial da Synapse AI."}
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-left space-y-2 text-xs text-slate-300">
-                <div className="font-bold text-white flex items-center gap-1.5">
-                  <Sparkles size={14} className="text-indigo-400" />
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-left space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-indigo-600 dark:text-indigo-400" />
                   <span>O que você já pode fazer agora:</span>
                 </div>
-                <p className="text-slate-400 text-[11px] space-y-1">
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] space-y-1">
                   • 📸 <strong>OCR de Redação:</strong> Envie fotos da sua folha de redação sem limite semanal.<br />
                   • 🧠 <strong>Caderno de Erros:</strong> Gere explicações e macetes em todas as questões.<br />
                   • 🗺️ <strong>Mapas Mentais:</strong> Aprofunde ramos conceituais com IA e exporte em PDF A4 / PNG HD.<br />
@@ -272,7 +272,7 @@ export function CheckoutLeadModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-600/20"
               >
                 Começar a Estudar Sem Limites
               </button>

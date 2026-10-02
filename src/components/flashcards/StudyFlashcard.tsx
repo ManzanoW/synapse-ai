@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useGamification } from "@/context/GamificationContext";
 import { useAchievement } from "@/context/AchievementContext";
 import { useSound } from "@/hooks/useSound";
@@ -87,6 +88,7 @@ export default function StudyFlashcard({
   deckId,
   userId,
 }: StudyFlashcardProps) {
+  const { isLight } = useTheme();
   const [cards, setCards] = useState<Flashcard[]>(initialCards || []);
   const [index, setIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -530,7 +532,11 @@ export default function StudyFlashcard({
       </div>
 
       {/* Contêiner Principal Expandido para visualização imersiva e clara */}
-      <div className="w-full max-w-4xl lg:max-w-5xl p-3 sm:p-8 md:p-10 bg-transparent sm:bg-[#090d16]/90 sm:border sm:border-slate-800/80 rounded-none sm:rounded-[2.5rem] sm:backdrop-blur-3xl sm:shadow-[0_0_60px_-10px_rgba(99,102,241,0.25)] select-none transition-all relative z-10">
+      <div className={`w-full max-w-4xl lg:max-w-5xl p-3 sm:p-8 md:p-10 rounded-none sm:rounded-[2.5rem] sm:backdrop-blur-3xl select-none transition-all relative z-10 ${
+        isLight
+          ? "bg-transparent sm:bg-white/95 sm:border sm:border-slate-200/90 sm:shadow-[0_20px_50px_rgba(15,23,42,0.08)]"
+          : "bg-transparent sm:bg-[#090d16]/90 sm:border sm:border-slate-800/80 sm:shadow-[0_0_60px_-10px_rgba(99,102,241,0.25)]"
+      }`}>
         <div className="hidden sm:block absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
 
         {isFinished ? (
@@ -547,15 +553,23 @@ export default function StudyFlashcard({
             </div>
 
             <div className="space-y-1.5 sm:space-y-2">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-emerald-400 uppercase bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30 backdrop-blur-md">
+              <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full border backdrop-blur-md ${
+                isLight
+                  ? "text-emerald-700 bg-emerald-50 border-emerald-300"
+                  : "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
+              }`}>
                 <Sparkles size={12} /> Sessão Concluída
               </span>
-              <h2 className="text-2xl sm:text-4xl font-black text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text pt-1">
+              <h2 className={`text-2xl sm:text-4xl font-black pt-1 ${
+                isLight
+                  ? "text-slate-900"
+                  : "text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text"
+              }`}>
                 Sinapses Reforçadas!
               </h2>
-              <p className="text-slate-400 text-xs max-w-xs mx-auto leading-relaxed">
+              <p className={`text-xs max-w-xs mx-auto leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                 Você concluiu a revisão de{" "}
-                <strong className="text-indigo-300 font-semibold">
+                <strong className={isLight ? "text-indigo-600 font-semibold" : "text-indigo-300 font-semibold"}>
                   {cards.length} cards
                 </strong>{" "}
                 com sucesso.
@@ -576,27 +590,39 @@ export default function StudyFlashcard({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto bg-slate-900/40 border border-white/5 p-3.5 sm:p-4 rounded-3xl backdrop-blur-md shadow-inner">
-              <div className="border-r border-slate-800/80 pr-2">
-                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+            <div className={`grid grid-cols-2 gap-3 max-w-xs mx-auto p-3.5 sm:p-4 rounded-3xl backdrop-blur-md shadow-inner ${
+              isLight
+                ? "bg-slate-50 border border-slate-200"
+                : "bg-slate-900/40 border border-white/5"
+            }`}>
+              <div className={`pr-2 border-r ${isLight ? "border-slate-200" : "border-slate-800/80"}`}>
+                <span className={`block text-[9px] font-bold uppercase tracking-wider mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                   Dominados
                 </span>
-                <span className="text-lg sm:text-xl font-black text-emerald-400 font-mono tracking-tight">
+                <span className="text-lg sm:text-xl font-black text-emerald-500 font-mono tracking-tight">
                   {performanceStats.acertos}
                 </span>
               </div>
               <div className="pl-2">
-                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+                <span className={`block text-[9px] font-bold uppercase tracking-wider mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                   Revisar
                 </span>
-                <span className="text-lg sm:text-xl font-black text-rose-400 font-mono tracking-tight">
+                <span className="text-lg sm:text-xl font-black text-rose-500 font-mono tracking-tight">
                   {performanceStats.erros}
                 </span>
               </div>
             </div>
 
-            <div className="text-xs text-indigo-300/90 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent border border-indigo-500/20 p-3.5 rounded-2xl max-w-md mx-auto flex items-center gap-3 text-left">
-              <div className="p-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 shrink-0">
+            <div className={`text-xs p-3.5 rounded-2xl max-w-md mx-auto flex items-center gap-3 text-left border ${
+              isLight
+                ? "bg-indigo-50/70 border-indigo-200/80 text-indigo-950"
+                : "text-indigo-300/90 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent border-indigo-500/20"
+            }`}>
+              <div className={`p-2 rounded-xl border shrink-0 ${
+                isLight
+                  ? "bg-indigo-100 border-indigo-200 text-indigo-700"
+                  : "bg-indigo-500/20 border-indigo-500/30 text-indigo-300"
+              }`}>
                 <Brain size={18} />
               </div>
               <span className="text-[11px] leading-relaxed">
@@ -614,7 +640,11 @@ export default function StudyFlashcard({
                   setPerformanceStats({ erros: 0, acertos: 0 });
                   setLevelUpData(null);
                 }}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-2xl font-semibold text-xs transition-all active:scale-95 shadow-md cursor-pointer"
+                className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-xs transition-all active:scale-95 shadow-sm cursor-pointer border ${
+                  isLight
+                    ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800"
+                    : "bg-slate-900/90 hover:bg-slate-800 border-slate-800 text-slate-300"
+                }`}
               >
                 <RotateCw size={14} /> Recomeçar
               </button>
@@ -633,11 +663,13 @@ export default function StudyFlashcard({
             <div className="flex items-center justify-between mb-3 relative z-10 px-1">
               <Link
                 href="/flashcards/decks"
-                className="group inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-indigo-300 transition-colors truncate max-w-[200px] sm:max-w-none"
+                className={`group inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-colors truncate max-w-[200px] sm:max-w-none ${
+                  isLight ? "text-slate-600 hover:text-indigo-600" : "text-slate-400 hover:text-indigo-300"
+                }`}
               >
                 <ArrowLeft
                   size={14}
-                  className="group-hover:-translate-x-1 transition-transform text-indigo-400 shrink-0"
+                  className="group-hover:-translate-x-1 transition-transform text-indigo-500 shrink-0"
                 />
                 <span className="truncate">
                   {deckTitle || "Sair do Estudo"}
@@ -650,17 +682,17 @@ export default function StudyFlashcard({
                     type="button"
                     onClick={triggerSync}
                     disabled={isSyncing || !isOnline}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono text-amber-300 transition-colors disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono text-amber-500 dark:text-amber-300 transition-colors disabled:opacity-50 cursor-pointer"
                     title={
                       !isOnline
                         ? "Sem conexão: revisões salvas localmente no dispositivo"
                         : "Clique para sincronizar com o servidor"
                     }
                   >
-                    <WifiOff size={11} className="text-amber-400" />
+                    <WifiOff size={11} className="text-amber-500 dark:text-amber-400" />
                     <span>{!isOnline ? "Offline" : `${pendingCount} na fila`}</span>
                     {isSyncing && (
-                      <RefreshCw size={10} className="animate-spin text-amber-300" />
+                      <RefreshCw size={10} className="animate-spin text-amber-500 dark:text-amber-300" />
                     )}
                   </button>
                 )}
@@ -668,40 +700,60 @@ export default function StudyFlashcard({
                 <button
                   type="button"
                   onClick={() => setIsAudioPlayerOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 hover:text-indigo-300 text-[10px] sm:text-[11px] font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition-all shadow-xs cursor-pointer active:scale-95 ${
+                    isLight
+                      ? "bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700"
+                      : "bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 hover:text-indigo-300"
+                  }`}
                   title="Estudo com áudio contínuo para fones de ouvido (Atalho: H)"
                 >
-                  <Headphones size={13} className="text-indigo-400" />
+                  <Headphones size={13} className="text-indigo-500 dark:text-indigo-400" />
                   <span className="hidden sm:inline">Modo Fones</span>
-                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 hidden sm:inline">
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border hidden sm:inline ${
+                    isLight
+                      ? "bg-indigo-200/60 border-indigo-300 text-indigo-800"
+                      : "bg-indigo-500/25 border-indigo-500/40 text-indigo-300"
+                  }`}>
                     H
                   </span>
                 </button>
 
                 <div
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] sm:text-[11px] font-bold font-mono shadow-inner"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold font-mono shadow-inner ${
+                    isLight
+                      ? "bg-amber-50 border border-amber-200/90 text-amber-800"
+                      : "bg-amber-500/10 border border-amber-500/30 text-amber-300"
+                  }`}
                   title="Saldo de XP em tempo real"
                 >
-                  <Zap size={11} className="text-amber-400 fill-amber-400" />
+                  <Zap size={11} className={isLight ? "text-amber-600 fill-amber-600" : "text-amber-400 fill-amber-400"} />
                   <span>{currentTotalXp} XP</span>
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-slate-300 text-[10px] sm:text-[11px] font-mono shadow-inner">
+                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-mono shadow-inner ${
+                  isLight
+                    ? "bg-slate-100 border border-slate-200 text-slate-700"
+                    : "bg-slate-900/90 border border-slate-800 text-slate-300"
+                }`}>
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                  <span className="font-bold text-indigo-400">
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">
                     {currentIndex + 1}
                   </span>
-                  <span className="text-slate-600">/</span>
-                  <span className="text-slate-400">{cards.length}</span>
+                  <span className="text-slate-400 dark:text-slate-600">/</span>
+                  <span className="text-slate-500 dark:text-slate-400">{cards.length}</span>
                 </div>
               </div>
             </div>
 
             {/* Barra de Progresso */}
             <div className="mb-4 relative z-10 px-1">
-              <div className="h-1.5 w-full bg-slate-900/90 rounded-full overflow-hidden border border-slate-800/80 p-0.5 shadow-inner">
+              <div className={`h-1.5 w-full rounded-full overflow-hidden border p-0.5 shadow-inner ${
+                isLight
+                  ? "bg-slate-100 border-slate-200"
+                  : "bg-slate-900/90 border-slate-800/80"
+              }`}>
                 <div
-                  className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 rounded-full transition-all duration-300 ease-out shadow-[0_0_12px_rgba(99,102,241,0.8)]"
+                  className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 rounded-full transition-all duration-300 ease-out shadow-[0_0_12px_rgba(99,102,241,0.5)]"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -750,12 +802,16 @@ export default function StudyFlashcard({
                 style={{
                   transformStyle: "preserve-3d",
                   transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-                  transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+                  transition: "transform 0.38s cubic-bezier(0.16, 1, 0.3, 1)",
                 }}
               >
                 {/* FRENTE DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors duration-300 border-t-indigo-400/40"
+                  className={`absolute inset-0 w-full h-full rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl transition-colors duration-300 ${
+                    isLight
+                      ? "bg-white border border-slate-200/90 shadow-[0_12px_40px_-10px_rgba(15,23,42,0.1)] border-t-indigo-500"
+                      : "bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-indigo-400/40"
+                  }`}
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",
@@ -787,6 +843,18 @@ export default function StudyFlashcard({
                         >
                           <Brain size={12} />
                           <span>Retenção {memoryRetention}%</span>
+                          <span className="w-8 h-1.5 bg-black/30 dark:bg-black/40 rounded-full overflow-hidden inline-flex">
+                            <span
+                              className={`h-full rounded-full transition-all duration-300 ${
+                                memoryRetention >= 85
+                                  ? "bg-emerald-400"
+                                  : memoryRetention >= 70
+                                  ? "bg-amber-400"
+                                  : "bg-rose-400"
+                              }`}
+                              style={{ width: `${Math.min(100, memoryRetention)}%` }}
+                            />
+                          </span>
                           <span className="text-[9px] opacity-70">📈</span>
                         </button>
                       </div>
@@ -889,10 +957,12 @@ export default function StudyFlashcard({
                   )}
 
                   <div className="my-auto space-y-4 sm:space-y-5 max-w-2xl sm:max-w-3xl mx-auto relative z-10 py-4 sm:py-6">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform shadow-[0_0_25px_rgba(99,102,241,0.2)]">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-500 dark:text-indigo-400 flex items-center justify-center mx-auto group-hover:scale-105 transition-transform shadow-[0_0_25px_rgba(99,102,241,0.15)]">
                       <HelpCircle size={26} />
                     </div>
-                    <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-100 leading-relaxed tracking-tight select-text">
+                    <h2 className={`text-lg sm:text-2xl md:text-3xl font-bold leading-relaxed tracking-tight select-text ${
+                      isLight ? "text-slate-900" : "text-slate-100"
+                    }`}>
                       {frontText}
                     </h2>
                   </div>
@@ -900,28 +970,36 @@ export default function StudyFlashcard({
                   {/* Instrução de Ação Integrada */}
                   <div className="inline-flex items-center justify-center relative z-10">
                     {/* Exclusivo Mobile */}
-                    <div className="sm:hidden inline-flex items-center gap-1.5 text-[10px] text-indigo-300 font-medium bg-indigo-950/40 border border-indigo-500/20 px-3.5 py-1.5 rounded-full backdrop-blur-md">
+                    <div className="sm:hidden inline-flex items-center gap-1.5 text-[10px] text-indigo-600 dark:text-indigo-300 font-medium bg-indigo-500/10 dark:bg-indigo-950/40 border border-indigo-500/20 px-3.5 py-1.5 rounded-full backdrop-blur-md">
                       <TouchpadIcon
                         size={12}
-                        className="animate-pulse text-indigo-400"
+                        className="animate-pulse text-indigo-500 dark:text-indigo-400"
                       />
                       <span>Toque para virar • Deslize para avaliar</span>
                     </div>
 
                     {/* Exclusivo Desktop */}
-                    <div className="hidden sm:inline-flex items-center gap-2 text-xs text-slate-400 uppercase tracking-widest font-semibold">
-                      <span className="text-slate-500">Arraste para avaliar ou</span>
-                      <kbd className="px-3 py-1 rounded-md bg-slate-900 text-slate-200 border border-slate-700/80 text-xs font-mono shadow-md flex items-center gap-1">
+                    <div className="hidden sm:inline-flex items-center gap-2 text-xs uppercase tracking-widest font-semibold">
+                      <span className={isLight ? "text-slate-500" : "text-slate-400"}>Arraste para avaliar ou</span>
+                      <kbd className={`px-2.5 py-1 rounded-md text-xs font-mono shadow-sm flex items-center gap-1 ${
+                        isLight
+                          ? "bg-slate-100 text-slate-800 border border-slate-300"
+                          : "bg-slate-900 text-slate-200 border border-slate-700/80 shadow-md"
+                      }`}>
                         <Command size={11} /> Espaço
                       </kbd>
-                      <span className="text-slate-500">para virar</span>
+                      <span className={isLight ? "text-slate-500" : "text-slate-400"}>para virar</span>
                     </div>
                   </div>
                 </div>
 
                 {/* VERSO DO CARD */}
                 <div
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40"
+                  className={`absolute inset-0 w-full h-full rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl transition-colors duration-300 ${
+                    isLight
+                      ? "bg-white border-2 border-emerald-500/40 shadow-[0_15px_35px_rgba(16,185,129,0.1)] text-slate-900"
+                      : "bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40 text-slate-100"
+                  }`}
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",
@@ -929,36 +1007,52 @@ export default function StudyFlashcard({
                   }}
                 >
                   <div className="w-full flex justify-between items-center">
-                    <span className="text-[10px] sm:text-xs font-extrabold tracking-widest text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-lg uppercase backdrop-blur-md">
+                    <span className={`text-[10px] sm:text-xs font-extrabold tracking-widest px-3 py-1 rounded-lg uppercase backdrop-blur-md ${
+                      isLight
+                        ? "text-emerald-700 bg-emerald-50 border border-emerald-300"
+                        : "text-emerald-300 bg-emerald-500/15 border border-emerald-500/30"
+                    }`}>
                       Resposta
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-emerald-400/80 font-mono tracking-wider">
+                      <span className={`text-[11px] font-mono tracking-wider ${
+                        isLight ? "text-emerald-700 font-semibold" : "text-emerald-400/80"
+                      }`}>
                         FSRS • S: {currentCard?.stability ? `${currentCard.stability.toFixed(1)}d` : "1d"}
                       </span>
                     </div>
                   </div>
 
                   <div className="my-auto space-y-4 max-w-2xl sm:max-w-3xl mx-auto overflow-y-auto max-h-72 sm:max-h-96 px-2 custom-scrollbar py-3">
-                    <h3 className="text-base sm:text-xl md:text-2xl font-semibold text-slate-100 leading-relaxed select-text">
+                    <h3 className={`text-base sm:text-xl md:text-2xl font-semibold leading-relaxed select-text ${
+                      isLight ? "text-slate-900" : "text-slate-100"
+                    }`}>
                       {backText}
                     </h3>
 
                     {/* Mnemônico / Detalhes de Aprendizagem */}
                     {currentDetails ? (
-                      <div className="text-[11px] sm:text-xs text-slate-200 bg-slate-900/90 border border-indigo-500/30 p-3.5 rounded-xl leading-relaxed text-left shadow-inner space-y-2">
+                      <div className={`text-[11px] sm:text-xs p-3.5 rounded-xl leading-relaxed text-left shadow-inner space-y-2 border ${
+                        isLight
+                          ? "bg-slate-50 border-slate-200 text-slate-800"
+                          : "bg-slate-900/90 border-indigo-500/30 text-slate-200"
+                      }`}>
                         {currentDetails.includes("💡 Mnemônico IA:") || currentDetails.includes("💡 Macete IA:") ? (
                           <>
-                            <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs border-b border-white/10 pb-1.5">
-                              <Lightbulb size={14} className="text-amber-400" />
+                            <div className={`flex items-center gap-1.5 font-bold text-xs border-b pb-1.5 ${
+                              isLight ? "text-amber-700 border-amber-200" : "text-amber-300 border-white/10"
+                            }`}>
+                              <Lightbulb size={14} className={isLight ? "text-amber-600" : "text-amber-400"} />
                               <span>Macete de Memorização</span>
                             </div>
-                            <div className="whitespace-pre-line text-indigo-100 font-medium">
+                            <div className={`whitespace-pre-line font-medium ${
+                              isLight ? "text-indigo-950" : "text-indigo-100"
+                            }`}>
                               {currentDetails}
                             </div>
                           </>
                         ) : (
-                          <p className="whitespace-pre-line text-slate-300">
+                          <p className={`whitespace-pre-line ${isLight ? "text-slate-700" : "text-slate-300"}`}>
                             {currentDetails}
                           </p>
                         )}
@@ -968,12 +1062,16 @@ export default function StudyFlashcard({
                         <button
                           onClick={handleGenerateMnemonic}
                           disabled={isGeneratingMnemonic}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all cursor-pointer shadow-sm active:scale-95 border ${
+                            isLight
+                              ? "bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-700"
+                              : "bg-indigo-500/15 hover:bg-indigo-500/25 border-indigo-500/30 text-indigo-300"
+                          }`}
                         >
                           {isGeneratingMnemonic ? (
                             <Loader2 size={12} className="animate-spin" />
                           ) : (
-                            <Sparkles size={12} className="text-indigo-400" />
+                            <Sparkles size={12} className={isLight ? "text-indigo-600" : "text-indigo-400"} />
                           )}
                           <span>Criar Macete com IA</span>
                         </button>
@@ -981,14 +1079,16 @@ export default function StudyFlashcard({
                     )}
                   </div>
 
-                  <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                  <span className={`text-[9px] sm:text-[10px] uppercase tracking-widest font-bold ${
+                    isLight ? "text-slate-500" : "text-slate-400"
+                  }`}>
                     Classifique sua facilidade
                   </span>
                 </div>
               </div>
             </motion.div>
 
-            {/* BOTÕES DE FSRS COM VISUAL RENOVADO, GLASSMORPHISM E INTERVALOS PROJETADOS */}
+            {/* BOTÕES DE FSRS COM ERGONOMIA ESTILO ANKI E ALTO CONTRASTE */}
             <div
               className={`grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 transition-all duration-300 ${
                 isFlipped
@@ -1004,10 +1104,15 @@ export default function StudyFlashcard({
                   key: "1",
                   icon: RotateCcw,
                   interval: projections[1]?.label ?? "1d",
-                  style:
-                    "from-rose-950/40 via-rose-900/20 to-slate-900/80 hover:from-rose-900/50 hover:to-slate-900 border-rose-500/40 text-rose-300 hover:border-rose-400/80 shadow-[0_0_20px_-5px_rgba(244,63,94,0.25)]",
-                  badgeStyle:
-                    "bg-rose-500/20 text-rose-200 border-rose-500/30",
+                  style: isLight
+                    ? "bg-rose-50/90 hover:bg-rose-100 border-rose-200 text-rose-700 hover:border-rose-300 shadow-sm"
+                    : "from-rose-950/40 via-rose-900/20 to-slate-900/80 hover:from-rose-900/50 hover:to-slate-900 border-rose-500/40 text-rose-300 hover:border-rose-400/80 shadow-[0_0_20px_-5px_rgba(244,63,94,0.25)]",
+                  badgeStyle: isLight
+                    ? "bg-rose-100 text-rose-800 border-rose-200"
+                    : "bg-rose-500/20 text-rose-200 border-rose-500/30",
+                  kbdStyle: isLight
+                    ? "bg-white text-rose-700 border-rose-200 shadow-xs"
+                    : "bg-slate-950/80 text-rose-200 border-rose-500/30",
                 },
                 {
                   label: "DIFÍCIL",
@@ -1016,22 +1121,32 @@ export default function StudyFlashcard({
                   key: "2",
                   icon: AlertCircle,
                   interval: projections[2]?.label ?? "2d",
-                  style:
-                    "from-amber-950/40 via-amber-900/20 to-slate-900/80 hover:from-amber-900/50 hover:to-slate-900 border-amber-500/40 text-amber-300 hover:border-amber-400/80 shadow-[0_0_20px_-5px_rgba(245,158,11,0.25)]",
-                  badgeStyle:
-                    "bg-amber-500/20 text-amber-200 border-amber-500/30",
+                  style: isLight
+                    ? "bg-amber-50/90 hover:bg-amber-100 border-amber-200 text-amber-800 hover:border-amber-300 shadow-sm"
+                    : "from-amber-950/40 via-amber-900/20 to-slate-900/80 hover:from-amber-900/50 hover:to-slate-900 border-amber-500/40 text-amber-300 hover:border-amber-400/80 shadow-[0_0_20px_-5px_rgba(245,158,11,0.25)]",
+                  badgeStyle: isLight
+                    ? "bg-amber-100 text-amber-900 border-amber-200"
+                    : "bg-amber-500/20 text-amber-200 border-amber-500/30",
+                  kbdStyle: isLight
+                    ? "bg-white text-amber-800 border-amber-200 shadow-xs"
+                    : "bg-slate-950/80 text-amber-200 border-amber-500/30",
                 },
                 {
                   label: "BOM",
                   sublabel: "Good",
                   grade: 3 as ReviewGrade,
-                  key: "3 [Espaço]",
+                  key: "3 • Espaço",
                   icon: Check,
                   interval: projections[3]?.label ?? "4d",
-                  style:
-                    "from-emerald-950/40 via-emerald-900/20 to-slate-900/80 hover:from-emerald-900/50 hover:to-slate-900 border-emerald-500/40 text-emerald-300 hover:border-emerald-400/80 shadow-[0_0_20px_-5px_rgba(16,185,129,0.25)]",
-                  badgeStyle:
-                    "bg-emerald-500/20 text-emerald-200 border-emerald-500/30",
+                  style: isLight
+                    ? "bg-emerald-50/90 hover:bg-emerald-100 border-emerald-300 text-emerald-800 hover:border-emerald-400 shadow-sm ring-1 ring-emerald-400/30 font-semibold"
+                    : "from-emerald-950/40 via-emerald-900/20 to-slate-900/80 hover:from-emerald-900/50 hover:to-slate-900 border-emerald-500/40 text-emerald-300 hover:border-emerald-400/80 shadow-[0_0_20px_-5px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500/20",
+                  badgeStyle: isLight
+                    ? "bg-emerald-100 text-emerald-900 border-emerald-300"
+                    : "bg-emerald-500/20 text-emerald-200 border-emerald-500/30",
+                  kbdStyle: isLight
+                    ? "bg-white text-emerald-900 border-emerald-300 shadow-xs font-semibold"
+                    : "bg-slate-950/80 text-emerald-200 border-emerald-500/30 font-semibold",
                 },
                 {
                   label: "FÁCIL",
@@ -1040,10 +1155,15 @@ export default function StudyFlashcard({
                   key: "4",
                   icon: Zap,
                   interval: projections[4]?.label ?? "7d",
-                  style:
-                    "from-indigo-950/40 via-indigo-900/20 to-slate-900/80 hover:from-indigo-900/50 hover:to-slate-900 border-indigo-500/40 text-indigo-300 hover:border-indigo-400/80 shadow-[0_0_20px_-5px_rgba(99,102,241,0.25)]",
-                  badgeStyle:
-                    "bg-indigo-500/20 text-indigo-200 border-indigo-500/30",
+                  style: isLight
+                    ? "bg-indigo-50/90 hover:bg-indigo-100 border-indigo-200 text-indigo-700 hover:border-indigo-300 shadow-sm"
+                    : "from-indigo-950/40 via-indigo-900/20 to-slate-900/80 hover:from-indigo-900/50 hover:to-slate-900 border-indigo-500/40 text-indigo-300 hover:border-indigo-400/80 shadow-[0_0_20px_-5px_rgba(99,102,241,0.25)]",
+                  badgeStyle: isLight
+                    ? "bg-indigo-100 text-indigo-900 border-indigo-200"
+                    : "bg-indigo-500/20 text-indigo-200 border-indigo-500/30",
+                  kbdStyle: isLight
+                    ? "bg-white text-indigo-800 border-indigo-200 shadow-xs"
+                    : "bg-slate-950/80 text-indigo-200 border-indigo-500/30",
                 },
               ].map((btn) => (
                 <motion.button
@@ -1055,11 +1175,13 @@ export default function StudyFlashcard({
                     e.stopPropagation();
                     handleAnswer(btn.grade);
                   }}
-                  className={`group relative flex flex-col items-center justify-center gap-1 py-3 px-2 sm:py-3.5 sm:px-3 rounded-2xl border bg-gradient-to-b backdrop-blur-xl transition-all duration-200 cursor-pointer ${btn.style}`}
+                  className={`group relative flex flex-col items-center justify-center gap-1 py-3 px-2 sm:py-3.5 sm:px-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                    isLight ? "bg-white" : "bg-gradient-to-b backdrop-blur-xl"
+                  } ${btn.style}`}
                 >
-                  <span className="hidden sm:block absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-slate-950/80 text-[9px] font-mono opacity-50 group-hover:opacity-100 transition-opacity border border-white/10">
+                  <kbd className={`hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-mono border transition-opacity absolute top-2 right-2 ${btn.kbdStyle}`}>
                     {btn.key}
-                  </span>
+                  </kbd>
 
                   <btn.icon
                     size={18}

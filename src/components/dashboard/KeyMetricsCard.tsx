@@ -79,7 +79,7 @@ export function KeyMetricsCard({
 
   return (
     <div
-      className={`group relative flex flex-col justify-start gap-2.5 sm:gap-3 overflow-hidden rounded-3xl border border-white/[0.08] bg-linear-to-br from-slate-950/80 via-[#0a0d1a]/90 to-slate-950/90 p-4 sm:p-5 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30 ${className}`}
+      className={`group relative flex flex-col justify-start gap-2.5 sm:gap-3 overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-linear-to-br dark:from-slate-950/80 dark:via-[#0a0d1a]/90 dark:to-slate-950/90 p-4 sm:p-5 shadow-sm dark:shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/30 ${className}`}
     >
       {/* Luz ambiente de fundo */}
       <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
@@ -87,21 +87,21 @@ export function KeyMetricsCard({
       <div className="pointer-events-none absolute -bottom-16 -left-16 h-36 w-36 rounded-full bg-emerald-500/10 blur-3xl" />
 
       {/* ================= 1. CABEÇALHO ================= */}
-      <div className="relative z-10 flex items-center justify-between border-b border-white/5 pb-2.5">
+      <div className="relative z-10 flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2.5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.15)]">
             <Zap size={16} />
           </div>
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-white">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
               Estatísticas Chave
             </h3>
-            <p className="text-[10px] text-slate-400">Seu ritmo de estudos em tempo real</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">Seu ritmo de estudos em tempo real</p>
           </div>
         </div>
 
-        <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[9px] font-black uppercase text-indigo-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
+        <span className="flex items-center gap-1 rounded-full border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[9px] font-black uppercase text-indigo-700 dark:text-indigo-300">
+          <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
           Tempo Real
         </span>
       </div>
@@ -109,48 +109,48 @@ export function KeyMetricsCard({
       {/* ================= 2. LINHA DE MÉTRICAS PRINCIPAIS ================= */}
       <div className="relative z-10 grid grid-cols-2 gap-2.5 sm:gap-3">
         {/* Tempo Total */}
-        <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3">
+        <div className="rounded-2xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-slate-950/60 p-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Tempo Total
             </span>
-            <Clock size={12} className="text-indigo-400" />
+            <Clock size={12} className="text-indigo-500 dark:text-indigo-400" />
           </div>
           {isLoading ? (
-            <div className="h-7 w-20 rounded bg-white/10 animate-pulse my-0.5" />
+            <div className="h-7 w-20 rounded bg-slate-200 dark:bg-white/10 animate-pulse my-0.5" />
           ) : (
-            <span className="font-mono text-xl font-black text-white tracking-tight">
+            <span className="font-mono text-xl font-black text-slate-900 dark:text-white tracking-tight">
               {totalTime}
             </span>
           )}
-          <span className="text-[10px] text-slate-500 block mt-0.5">
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">
             Acumulado em estudos
           </span>
         </div>
 
         {/* Precisão Geral */}
-        <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3">
+        <div className="rounded-2xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-slate-950/60 p-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Precisão
             </span>
-            <Target size={12} className="text-emerald-400" />
+            <Target size={12} className="text-emerald-500 dark:text-emerald-400" />
           </div>
           <div className="flex items-baseline justify-between">
             {isLoading ? (
               <div className="h-7 w-16 rounded bg-emerald-400/20 animate-pulse my-0.5" />
             ) : (
-              <span className="font-mono text-xl font-black text-emerald-400 tracking-tight">
+              <span className="font-mono text-xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
                 {precision}
               </span>
             )}
-            <span className="text-[9px] font-mono font-bold text-slate-400">
+            <span className="text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400">
               Média de acertos
             </span>
           </div>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-900 border border-white/5 p-0.2">
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-900 border border-slate-300/40 dark:border-white/5 p-0.2">
             <div
-              className="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-500"
+              className="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-400 shadow-[0_0_8px_rgba(16,185,129,0.3)] transition-all duration-500"
               style={{ width: precision }}
             />
           </div>
@@ -158,13 +158,13 @@ export function KeyMetricsCard({
       </div>
 
       {/* ================= 3. MINI HISTOGRAMA DE RITMO SEMANAL ================= */}
-      <div className="relative z-10 rounded-2xl border border-white/5 bg-slate-950/50 p-2.5 sm:p-3">
+      <div className="relative z-10 rounded-2xl border border-slate-200/80 dark:border-white/5 bg-slate-50/70 dark:bg-slate-950/50 p-2.5 sm:p-3">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-            <TrendingUp size={12} className="text-cyan-400" />
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <TrendingUp size={12} className="text-cyan-600 dark:text-cyan-400" />
             Ritmo dos Últimos 7 Dias
           </span>
-          <span className="font-mono text-[9px] text-slate-400">
+          <span className="font-mono text-[9px] text-slate-500 dark:text-slate-400">
             {totalWeeklyActions} revisões na semana
           </span>
         </div>
@@ -187,15 +187,15 @@ export function KeyMetricsCard({
                 </div>
 
                 {/* Barra */}
-                <div className="w-full max-w-[18px] bg-slate-900 rounded-lg overflow-hidden h-full flex items-end border border-white/5">
+                <div className="w-full max-w-[18px] bg-slate-200/80 dark:bg-slate-900 rounded-lg overflow-hidden h-full flex items-end border border-slate-300/40 dark:border-white/5">
                   <div
                     style={{ height: `${heightPercent}%` }}
                     className={`w-full rounded-md transition-all duration-500 ${
                       day.isToday
-                        ? "bg-linear-to-t from-cyan-500 to-indigo-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]"
+                        ? "bg-linear-to-t from-cyan-500 to-indigo-500 shadow-[0_0_8px_rgba(6,182,212,0.4)]"
                         : day.count > 0
-                          ? "bg-linear-to-t from-indigo-600 to-indigo-400"
-                          : "bg-slate-800/40"
+                          ? "bg-linear-to-t from-indigo-500 to-indigo-400"
+                          : "bg-slate-300/50 dark:bg-slate-800/40"
                     }`}
                   />
                 </div>
@@ -203,7 +203,7 @@ export function KeyMetricsCard({
                 {/* Rótulo do Dia */}
                 <span
                   className={`mt-1.5 font-mono text-[9px] font-bold ${
-                    day.isToday ? "text-cyan-400 font-black" : "text-slate-500"
+                    day.isToday ? "text-cyan-600 dark:text-cyan-400 font-black" : "text-slate-500"
                   }`}
                 >
                   {day.label}
@@ -215,41 +215,41 @@ export function KeyMetricsCard({
       </div>
 
       {/* ================= 4. RODAPÉ DE MÉTRICAS COMPACTAS ================= */}
-      <div className="relative z-10 grid grid-cols-3 gap-2 border-t border-white/5 pt-2.5 text-center">
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-2">
-          <span className="block text-[9px] font-bold uppercase text-slate-400">
+      <div className="relative z-10 grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-white/5 pt-2.5 text-center">
+        <div className="rounded-xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02] p-2">
+          <span className="block text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">
             Sessões
           </span>
           {isLoading ? (
-            <div className="mx-auto my-0.5 h-4 w-8 rounded bg-white/10 animate-pulse" />
+            <div className="mx-auto my-0.5 h-4 w-8 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
           ) : (
-            <span className="font-mono text-sm font-black text-white">
+            <span className="font-mono text-sm font-black text-slate-900 dark:text-white">
               {sessionsCount}
             </span>
           )}
         </div>
 
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-2">
-          <span className="block text-[9px] font-bold uppercase text-slate-400">
+        <div className="rounded-xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02] p-2">
+          <span className="block text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">
             Questões
           </span>
           {isLoading ? (
-            <div className="mx-auto my-0.5 h-4 w-8 rounded bg-white/10 animate-pulse" />
+            <div className="mx-auto my-0.5 h-4 w-8 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
           ) : (
-            <span className="font-mono text-sm font-black text-white">
+            <span className="font-mono text-sm font-black text-slate-900 dark:text-white">
               {questionsCount}
             </span>
           )}
         </div>
 
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-2">
-          <span className="block text-[9px] font-bold uppercase text-slate-400">
+        <div className="rounded-xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02] p-2">
+          <span className="block text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">
             Méd/Dia
           </span>
           {isLoading ? (
-            <div className="mx-auto my-0.5 h-4 w-10 rounded bg-white/10 animate-pulse" />
+            <div className="mx-auto my-0.5 h-4 w-10 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
           ) : (
-            <span className="font-mono text-sm font-black text-white">
+            <span className="font-mono text-sm font-black text-slate-900 dark:text-white">
               {averageTimePerSession}
             </span>
           )}

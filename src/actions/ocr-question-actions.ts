@@ -91,7 +91,15 @@ export async function scanQuestionFromImageAction(
 
 Analise com atenção a imagem enviada (que pode ser uma foto de apostila, livro de questões, caderno de erros, folha de prova ou captura de tela).
 
-Siga rigorosamente estas instruções:
+PASSO 0 (VERIFICAÇÃO DE VALIDADE OBRIGATÓRIA):
+Antes de qualquer extração, verifique se a imagem contém DE FATO uma questão avaliativa de concurso público, vestibular, prova ou simulado (contendo um enunciado com problema/pergunta e/ou assertiva ou alternativas de teste).
+Se a imagem for apenas um logotipo comercial (ex: marcas, empresas, restaurantes), foto pessoal, paisagem, cardápio, meme, comprovante, imagem sólida ou qualquer conteúdo SEM questão de prova, responda ESTRITAMENTE:
+{
+  "isQuestion": false,
+  "motivo": "A imagem enviada não contém uma questão de prova, concurso ou simulado identificável para resolução."
+}
+
+SE E SOMENTE SE a imagem contiver uma questão real de prova/simulado, siga as instruções abaixo:
 1. Transcreva com fidelidade e sem supressões o ENUNCIADO COMPLETO da questão. Se houver caso hipotético, texto motivador, contextualização fática ou tabela, inclua tudo no enunciado.
 2. Identifique o formato da questão:
    - "MULTIPLA_ESCOLHA" se houver alternativas (A, B, C, D, E ou A, B, C, D).
@@ -115,6 +123,7 @@ Siga rigorosamente estas instruções:
 
 Retorne EXCLUSIVAMENTE um objeto JSON estrito com esta estrutura:
 {
+  "isQuestion": true,
   "enunciado": "Texto integral e limpo do enunciado",
   "formato": "MULTIPLA_ESCOLHA",
   "alternativas": [
@@ -171,13 +180,48 @@ Retorne EXCLUSIVAMENTE um objeto JSON estrito com esta estrutura:
       rawText = rawText.replace(/^```/, "").replace(/```$/, "").trim();
     }
 
-    let parsedResult: ScannedQuestionResult;
+    let parsedResult: ScannedQuestionResult & {
+      isQuestion?: boolean;
+      motivo?: string;
+    };
+
     try {
       parsedResult = JSON.parse(rawText);
     } catch {
       return {
         success: false,
         error: "Falha ao estruturar os dados da questão digitalizada. Tente novamente com melhor iluminação.",
+      };
+    }
+
+    // 2. Barreira Server-Side: se a imagem NÃO for uma questão de concurso, rejeita SEM consumir cota
+    if (parsedResult.isQuestion === false) {
+      return {
+        success: false,
+        error:
+          parsedResult.motivo ||
+          "A imagem enviada não contém uma questão de prova ou concurso público reconhecível. Envie uma foto que contenha o enunciado e/ou alternativas.",
+      };
+    }
+
+    // Heurística de segurança contra respostas evasivas ou imagens não avaliativas
+    const enunciadoLower = (parsedResult.enunciado || "").toLowerCase();
+    const gabaritoLower = (parsedResult.gabaritoCorreto || "").toLowerCase();
+    const justificativaLower = (parsedResult.justificativa || "").toLowerCase();
+
+    if (
+      gabaritoLower === "n/a" ||
+      gabaritoLower.includes("não aplicável") ||
+      gabaritoLower.includes("nenhum") ||
+      enunciadoLower.includes("apenas o logotipo") ||
+      enunciadoLower.includes("não apresenta nenhuma questão") ||
+      enunciadoLower.includes("não contém nenhuma questão") ||
+      justificativaLower.includes("não foi possível identificar uma questão")
+    ) {
+      return {
+        success: false,
+        error:
+          "A imagem enviada contém apenas ilustrações ou logotipo comercial. Por favor, envie uma foto de uma questão de concurso com enunciado legível.",
       };
     }
 
@@ -199,7 +243,7 @@ Retorne EXCLUSIVAMENTE um objeto JSON estrito com esta estrutura:
       }
     }
 
-    // 3. Consome a cota com sucesso
+    // 3. Consome a cota do usuário SOMENTE após certificar 100% que é uma questão válida!
     await consumeAiQuota(userId, "OCR_QUESTION");
 
     // 4. Registra atividade de gamificação (+25 XP por digitalização de estudo)
