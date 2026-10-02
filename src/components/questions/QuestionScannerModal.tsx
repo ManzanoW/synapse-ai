@@ -30,6 +30,10 @@ import {
 } from "@/actions/ocr-question-actions";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import { compressClientImage } from "@/lib/client-image-compression";
+import {
+  validateImageForQuestion,
+  ImageQuestionValidationResult,
+} from "@/lib/client-question-detector";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 
 interface QuestionScannerModalProps {
@@ -49,6 +53,11 @@ export function QuestionScannerModal({
   const [scanStepIndex, setScanStepIndex] = useState(0);
   const [scannedResult, setScannedResult] = useState<ScannedQuestionResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Barreira client-side de pré-validação de questão
+  const [validationResult, setValidationResult] =
+    useState<ImageQuestionValidationResult | null>(null);
+  const [isValidatingClient, setIsValidatingClient] = useState(false);
 
   // Interatividade da questão escaneada
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
@@ -123,6 +132,20 @@ export function QuestionScannerModal({
     setIsSavedToNotebook(false);
     setIsSavedToFlashcards(false);
     setIsAddedToQuiz(false);
+
+    // Executa a barreira de pré-validação no navegador imediatamente
+    setIsValidatingClient(true);
+    setValidationResult(null);
+    validateImageForQuestion(file)
+      .then((res) => {
+        setValidationResult(res);
+        if (!res.isValid) {
+          setErrorMsg(res.message || "A imagem selecionada não parece conter uma questão de prova.");
+        }
+      })
+      .finally(() => {
+        setIsValidatingClient(false);
+      });
   };
 
   const handleReset = () => {
@@ -133,6 +156,8 @@ export function QuestionScannerModal({
     setPreviewUrl(null);
     setScannedResult(null);
     setErrorMsg(null);
+    setValidationResult(null);
+    setIsValidatingClient(false);
     setSelectedOptionId(null);
     setHasRevealedAnswer(false);
     setIsSavedToNotebook(false);
@@ -142,6 +167,15 @@ export function QuestionScannerModal({
 
   const handleStartScan = async () => {
     if (!selectedImage) return;
+
+    // Barreira client-side estrita: impede envio para a API se a imagem não for questão
+    if (validationResult && !validationResult.isValid) {
+      setErrorMsg(
+        validationResult.message ||
+          "A imagem selecionada não contém uma questão válida. Fotografe uma prova ou apostila com enunciado e alternativas.",
+      );
+      return;
+    }
 
     setIsScanning(true);
     setErrorMsg(null);
@@ -470,6 +504,46 @@ export function QuestionScannerModal({
                 )}
               </div>
 
+              {/* Barreira de Pré-Validação de Imagem no Navegador */}
+              {!isScanning && (
+                <div>
+                  {isValidatingClient && (
+                    <div className="flex items-center gap-2 text-xs text-cyan-400 bg-cyan-950/40 border border-cyan-500/20 px-3.5 py-2.5 rounded-xl animate-pulse">
+                      <Loader2 size={14} className="animate-spin text-cyan-400 shrink-0" />
+                      <span>Verificando estrutura e texto da questão no navegador...</span>
+                    </div>
+                  )}
+
+                  {!isValidatingClient && validationResult && validationResult.isValid && (
+                    <div className="flex items-center justify-between text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
+                        <span>Questão com texto identificada • Pronto para resolver</span>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                        Válido
+                      </span>
+                    </div>
+                  )}
+
+                  {!isValidatingClient && validationResult && !validationResult.isValid && (
+                    <div className="flex items-start gap-2.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-xl">
+                      <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="font-bold text-amber-200">
+                          {validationResult.message || "Imagem sem questão identificada."}
+                        </p>
+                        {validationResult.suggestion && (
+                          <p className="text-[11px] text-zinc-400 leading-relaxed">
+                            {validationResult.suggestion}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {isScanning ? (
                 <div className="p-4 rounded-2xl border border-violet-500/30 bg-violet-950/20 text-center space-y-2">
                   <div className="flex items-center justify-center gap-2 text-violet-400 font-semibold text-xs">
@@ -485,7 +559,7 @@ export function QuestionScannerModal({
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 font-medium text-xs transition-all flex items-center gap-2"
+                    className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 font-medium text-xs transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <RefreshCw size={14} />
                     <span>Trocar Foto</span>
@@ -494,10 +568,31 @@ export function QuestionScannerModal({
                   <button
                     type="button"
                     onClick={handleStartScan}
-                    className="flex-1 px-5 py-2.5 rounded-xl bg-linear-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white font-bold text-xs tracking-wide transition-all shadow-lg shadow-violet-600/30 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    disabled={validationResult !== null && !validationResult.isValid}
+                    className={`flex-1 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide transition-all shadow-lg flex items-center justify-center gap-2 ${
+                      validationResult !== null && !validationResult.isValid
+                        ? "bg-slate-800/80 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-60"
+                        : "bg-linear-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white shadow-violet-600/30 active:scale-95 cursor-pointer"
+                    }`}
+                    title={
+                      validationResult !== null && !validationResult.isValid
+                        ? "Selecione uma imagem contendo uma questão de prova para liberar a análise."
+                        : "Digitalizar e Analisar com IA"
+                    }
                   >
-                    <Sparkles size={16} className="text-amber-300" />
-                    <span>Digitalizar e Analisar com IA</span>
+                    <Sparkles
+                      size={16}
+                      className={
+                        validationResult !== null && !validationResult.isValid
+                          ? "text-slate-500"
+                          : "text-amber-300"
+                      }
+                    />
+                    <span>
+                      {validationResult !== null && !validationResult.isValid
+                        ? "Imagem Inválida (Sem Questão)"
+                        : "Digitalizar e Analisar com IA"}
+                    </span>
                   </button>
                 </div>
               )}
