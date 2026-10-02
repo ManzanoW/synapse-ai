@@ -47,7 +47,7 @@ function ExamSheetPaper({
       className={`w-full bg-white text-black font-serif leading-tight ${
         isPrintVersion
           ? "max-w-[190mm] mx-auto p-0 border-none shadow-none"
-          : "max-w-[210mm] p-5 sm:p-7 shadow-2xl rounded-xs border border-slate-300 shrink-0 flex flex-col justify-between"
+          : "max-w-[210mm] p-5 sm:p-7 shadow-none border-none shrink-0 flex flex-col justify-between"
       }`}
       style={{
         boxSizing: "border-box",
@@ -414,7 +414,7 @@ export function PrintableExamSheetModal({
           </div>
 
           {/* PRÉVIA VISUAL DA FOLHA DE REDAÇÃO A4 */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-200/80 dark:bg-slate-950 flex flex-col items-center">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-white dark:bg-white flex flex-col items-center">
             <ExamSheetPaper
               theme={theme}
               sheetMode={sheetMode}
