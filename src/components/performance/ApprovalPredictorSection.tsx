@@ -364,8 +364,15 @@ export function ApprovalPredictorSection({
     return null;
   }
 
+  // Se estiver no estágio inicial com poucas questões resolvidas
+  const isEarlyStage = (data?.totalQuestionsAnswered ?? 0) < 15;
+  const sampleConfidencePercent = Math.min(
+    100,
+    Math.round(((data?.totalQuestionsAnswered ?? 0) / 30) * 100),
+  );
+
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#0a0f1f] via-[#070a16] to-[#04060c] border border-violet-500/30 p-6 md:p-8 shadow-2xl backdrop-blur-2xl space-y-6">
+    <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#0a0f1f] via-[#070a16] to-[#04060c] border border-violet-500/30 p-5 sm:p-7 md:p-8 shadow-2xl backdrop-blur-2xl space-y-6">
       {/* Luz Neon Cósmica Superior */}
       <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/60 to-transparent" />
       <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-violet-600/15 blur-3xl" />
@@ -389,24 +396,25 @@ export function ApprovalPredictorSection({
           </p>
         </div>
 
-        {/* Seletor de Nota de Corte do Concurso */}
-        <div className="space-y-2 lg:text-right">
+        {/* Seletor de Nota de Corte do Concurso (Segmented Control Estilo Linear) */}
+        <div className="space-y-1.5 lg:text-right">
           <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
             Nota de Corte Alvo do Concurso:
           </span>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center p-1 bg-slate-950/80 border border-slate-800 rounded-xl flex-wrap sm:flex-nowrap gap-1">
             {CUTOFF_PRESETS.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
                 onClick={() => handleSelectPreset(preset)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   selectedPreset === preset.id
-                    ? "bg-violet-600 text-white border-violet-400 shadow-md shadow-violet-900/40 scale-105"
-                    : "bg-slate-800/60 border-white/10 text-slate-300 hover:bg-slate-800"
+                    ? "bg-violet-600 text-white shadow-sm font-bold"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
-                {preset.label} ({preset.score}%)
+                <span>{preset.label}</span>
+                <span className="ml-1 text-[10px] opacity-75 font-mono">({preset.score}%)</span>
               </button>
             ))}
           </div>
@@ -429,6 +437,36 @@ export function ApprovalPredictorSection({
           )}
         </div>
       </div>
+
+      {/* BANNER EDUCATIVO DE CALIBRAÇÃO AMOSTRAL (QUANDO O ALUNO TEM POUCAS QUESTÕES) */}
+      {(data.totalQuestionsAnswered ?? 0) < 30 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 shrink-0">
+              <Sparkles size={14} className="animate-pulse" />
+            </div>
+            <div>
+              <span className="font-bold text-white block">
+                Calibração Amostral Inicial ({data.totalQuestionsAnswered}/30 questões resolvidas)
+              </span>
+              <span className="text-[11px] text-slate-400 leading-tight">
+                Você está na fase inicial de coleta de dados. A fidelidade estatística atinge 100% de precisão à medida que novos simulados forem respondidos.
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-indigo-400 rounded-full transition-all duration-500"
+                style={{ width: `${sampleConfidencePercent}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-mono text-indigo-300 font-bold">
+              {sampleConfidencePercent}%
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* SELETOR DE MODO: CLÁSSICO VS ORÁCULO DE MONTE CARLO */}
       <div className="flex items-center justify-between gap-3 bg-black/40 border border-white/10 p-1.5 rounded-2xl flex-wrap">
@@ -546,23 +584,35 @@ export function ApprovalPredictorSection({
 
             {/* Card 2: Comparativo com o Corte & Zona de Classificação */}
             <div
-              className={`relative overflow-hidden rounded-2xl bg-linear-to-br ${zone.accentBg} border p-5 shadow-xl flex flex-col justify-between`}
+              className={`relative overflow-hidden rounded-2xl bg-linear-to-br ${
+                isEarlyStage
+                  ? "from-indigo-950/40 via-slate-900/80 to-slate-900/90 border-indigo-500/30"
+                  : zone.accentBg
+              } border p-5 shadow-xl flex flex-col justify-between`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
                   Linha de Corte: {cutoffScore}%
                 </span>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${zone.bg}`}>
-                  {zone.id}
-                </span>
+                {isEarlyStage ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-indigo-500/15 border-indigo-500/30 text-indigo-300 font-mono">
+                    Coleta Inicial
+                  </span>
+                ) : (
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${zone.bg}`}>
+                    {zone.id}
+                  </span>
+                )}
               </div>
 
               <div className="mt-3">
-                <h3 className={`text-lg font-black tracking-tight ${zone.color}`}>
-                  {zone.label}
+                <h3 className={`text-lg font-black tracking-tight ${isEarlyStage ? "text-indigo-200" : zone.color}`}>
+                  {isEarlyStage ? "Calibração Amostral" : zone.label}
                 </h3>
                 <p className="text-xs text-slate-200 mt-1 leading-relaxed">
-                  {zone.message}
+                  {isEarlyStage
+                    ? `Amostra em desenvolvimento (${data.totalQuestionsAnswered ?? 0} questões). Conforme você avança nas listas, sua nota convergirá para a probabilidade real de aprovação.`
+                    : zone.message}
                 </p>
               </div>
 
@@ -672,29 +722,50 @@ export function ApprovalPredictorSection({
 
             {/* RÉGUA GRADUADA DO TERMÔMETRO */}
             <div className="space-y-3 pt-2 relative z-10">
-              {/* Marcadores de Topo (Ponteiros do Aluno e do Corte) */}
+              {/* Marcadores de Topo (Ponteiros do Aluno e do Corte com Prevenção de Colisão) */}
               <div className="relative h-6 text-[11px] font-mono font-bold">
-                {/* Pino da Nota do Aluno */}
-                <div
-                  className="absolute -top-1 flex flex-col items-center -translate-x-1/2 transition-all duration-700 z-20"
-                  style={{ left: `${Math.min(95, Math.max(5, activeScore))}%` }}
-                >
-                  <span className="px-2 py-0.5 rounded-md bg-white text-slate-950 shadow-md text-[10px] font-black whitespace-nowrap border border-slate-300">
-                    Você: {activeScore}%
-                  </span>
-                  <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-white mt-0.5" />
-                </div>
+                {(() => {
+                  const isColliding = Math.abs(activeScore - cutoffScore) < 9;
+                  const isYouLeft = activeScore <= cutoffScore;
 
-                {/* Pino da Nota de Corte Alvo */}
-                <div
-                  className="absolute -top-1 flex flex-col items-center -translate-x-1/2 transition-all duration-700 z-10"
-                  style={{ left: `${Math.min(95, Math.max(5, cutoffScore))}%` }}
-                >
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 shadow-md text-[10px] font-black whitespace-nowrap">
-                    Corte: {cutoffScore}%
-                  </span>
-                  <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-amber-500 mt-0.5" />
-                </div>
+                  return (
+                    <>
+                      {/* Pino da Nota do Aluno */}
+                      <div
+                        className={`absolute -top-1 flex flex-col items-center transition-all duration-700 z-20 ${
+                          isColliding
+                            ? isYouLeft
+                              ? "-translate-x-full pr-1"
+                              : "translate-x-0 pl-1"
+                            : "-translate-x-1/2"
+                        }`}
+                        style={{ left: `${Math.min(95, Math.max(5, activeScore))}%` }}
+                      >
+                        <span className="px-2 py-0.5 rounded-md bg-white text-slate-950 shadow-md text-[10px] font-black whitespace-nowrap border border-slate-300">
+                          Você: {activeScore}%
+                        </span>
+                        <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-white mt-0.5" />
+                      </div>
+
+                      {/* Pino da Nota de Corte Alvo */}
+                      <div
+                        className={`absolute -top-1 flex flex-col items-center transition-all duration-700 z-10 ${
+                          isColliding
+                            ? isYouLeft
+                              ? "translate-x-0 pl-1"
+                              : "-translate-x-full pr-1"
+                            : "-translate-x-1/2"
+                        }`}
+                        style={{ left: `${Math.min(95, Math.max(5, cutoffScore))}%` }}
+                      >
+                        <span className="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 shadow-md text-[10px] font-black whitespace-nowrap">
+                          Corte: {cutoffScore}%
+                        </span>
+                        <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-amber-500 mt-0.5" />
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Barra de Gradiente Contínuo com as Zonas */}
@@ -764,7 +835,7 @@ export function ApprovalPredictorSection({
             </div>
           </div>
 
-          {/* CAMINHO CRÍTICO DE MAIOR ALAVANCAGEM */}
+          {/* CAMINHO CRÍTICO DE MAIOR ALAVANCAGEM (MENOR ESFORÇO) */}
           {data.topLeverageSubjects && data.topLeverageSubjects.length > 0 && (
             <div className="p-5 rounded-2xl bg-linear-to-r from-violet-950/40 via-indigo-950/20 to-slate-900/60 border border-violet-500/30 space-y-3">
               <div className="flex items-center justify-between">
@@ -783,32 +854,50 @@ export function ApprovalPredictorSection({
                 A IA analisou os pesos do edital e sua precisão atual. Estas são as matérias onde seu tempo terá o maior impacto direto na nota final:
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
                 {data.topLeverageSubjects.map((item) => (
                   <div
                     key={item.id}
-                    className="p-3.5 rounded-xl bg-slate-900/80 border border-white/10 hover:border-violet-500/40 transition-all flex flex-col justify-between space-y-2 group"
+                    className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 hover:border-violet-500/40 transition-all flex flex-col justify-between space-y-3 group shadow-lg"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white truncate group-hover:text-violet-300 transition-colors">
-                        {item.name}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                        Peso {item.weight.toFixed(1)}
-                      </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-white truncate group-hover:text-violet-300 transition-colors">
+                          {item.name}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30 shrink-0">
+                          Peso {item.weight.toFixed(1)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-baseline gap-1.5 pt-1 text-emerald-400 font-mono font-bold text-xs">
+                        <TrendingUp size={13} className="shrink-0" />
+                        <span>+{item.gainPotentialPoints} pts na nota global</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">
+                        A cada +10% de evolução nesta disciplina.
+                      </p>
                     </div>
 
-                    <p className="text-[11px] text-slate-300 leading-snug">
-                      {item.recommendation}
-                    </p>
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400">Acerto atual:</span>
+                        <span
+                          className={`text-xs font-mono font-bold ${
+                            item.accuracy >= 70
+                              ? "text-emerald-400"
+                              : item.accuracy >= 50
+                              ? "text-amber-400"
+                              : "text-rose-400"
+                          }`}
+                        >
+                          {item.accuracy}%
+                        </span>
+                      </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px]">
-                      <span className="text-slate-400">
-                        Acerto atual: <strong className="text-white">{item.accuracy}%</strong>
-                      </span>
                       <Link
                         href={`/questions?subjectId=${item.id}`}
-                        className="text-violet-400 hover:text-white font-bold flex items-center gap-1 transition-colors"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-violet-600/20 hover:bg-violet-600 border border-violet-500/30 hover:border-violet-500 text-violet-300 hover:text-white text-[11px] font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
                       >
                         <span>Treinar</span>
                         <ArrowRight size={11} />
