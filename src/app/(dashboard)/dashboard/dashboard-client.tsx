@@ -659,7 +659,7 @@ export default function DashboardClient({
 
   return (
     <div className="min-h-screen w-full bg-transparent p-4 sm:p-6 md:p-8 font-sans text-slate-900 dark:text-slate-100 selection:bg-indigo-500/30">
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className={`mx-auto space-y-6 transition-all duration-300 ${!hasRightColumnCards || dashboardMode === "minimal" ? "max-w-5xl" : "max-w-7xl"}`}>
         
         {/* ================= 1. CABEÇALHO PRINCIPAL ================= */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -689,64 +689,67 @@ export default function DashboardClient({
           </div>
 
           {/* Ações e Controles Superiores do Dashboard */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Seletor de Modo: Minimalista (Essencial) vs Prática vs Completo vs Personalizado */}
-            <div className="flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200/90 dark:border-white/10 shadow-xs dark:shadow-inner">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Seletor de Modo: Segmented Control estilo Apple / Linear */}
+            <div className="flex items-center p-1 rounded-xl bg-slate-200/60 dark:bg-slate-900/90 border border-slate-300/60 dark:border-white/10 shadow-inner">
               <button
                 type="button"
                 onClick={() => handleSwitchMode("minimal")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                   dashboardMode === "minimal"
-                    ? "bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                    ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
                 }`}
-                title="Modo Foco Essencial: apenas metas do dia e matérias, sem sobrecarga de gráficos"
+                title="Modo Foco Essencial: visão limpa com metas do dia e matérias, sem sobrecarga visual"
               >
-                <span>🌟 Essencial</span>
+                <Sparkles size={12} className={dashboardMode === "minimal" ? "text-amber-500" : "text-slate-400"} />
+                <span>Essencial</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSwitchMode("practice")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                   dashboardMode === "practice"
-                    ? "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-600/30 dark:text-indigo-300 dark:border-indigo-500/40 shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                    ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
                 }`}
                 title="Modo Prática: foco em simulados, flashcards e metas diárias"
               >
-                <span>🎯 Prática</span>
+                <Target size={12} className={dashboardMode === "practice" ? "text-indigo-500" : "text-slate-400"} />
+                <span>Prática</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSwitchMode("full")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                   dashboardMode === "full"
-                    ? "bg-cyan-100 text-cyan-900 border border-cyan-300 dark:bg-cyan-600/30 dark:text-cyan-300 dark:border-cyan-500/40 shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                    ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
                 }`}
-                title="Modo Completo: exibe todos os indicadores, predição de aprovação e métricas neurais"
+                title="Modo Completo: cockpit analítico com todos os indicadores, predição de aprovação e métricas neurais"
               >
-                <span>🚀 Completo</span>
+                <Layers size={12} className={dashboardMode === "full" ? "text-cyan-500" : "text-slate-400"} />
+                <span>Completo</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsCustomizeModalOpen(true)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                   dashboardMode === "custom"
-                    ? "bg-violet-100 text-violet-900 border border-violet-300 dark:bg-violet-600/30 dark:text-violet-300 dark:border-violet-500/40"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                    ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium"
                 }`}
-                title="Escolha exatamente quais cards aparecem na tela"
+                title="Personalizar cards exibidos na tela"
               >
-                <SlidersHorizontal size={13} />
-                <span className="hidden sm:inline">Cards</span>
+                <SlidersHorizontal size={12} />
+                <span className="hidden sm:inline">Personalizar</span>
               </button>
             </div>
 
-            {/* Botão de Personalização / Meu Perfil */}
+            {/* Botão de Perfil */}
             <button
               type="button"
               onClick={() => setIsWelcomeQuizOpen(true)}
@@ -757,15 +760,15 @@ export default function DashboardClient({
               <span className="hidden sm:inline">Meu Perfil</span>
             </button>
 
-            {/* Botão de Tour pelo Sistema */}
+            {/* Botão de Tour */}
             <button
               type="button"
               onClick={() => setIsTutorialOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3.5 py-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 shadow-xs dark:shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all hover:border-indigo-400 active:scale-95 relative"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition-all active:scale-95 relative"
               title="Iniciar tour guiado pela plataforma"
             >
-              <Compass size={15} className="text-indigo-600 dark:text-indigo-400 animate-spin-slow" />
-              <span>Tour do Sistema</span>
+              <Compass size={14} className="text-indigo-600 dark:text-indigo-400 animate-spin-slow" />
+              <span className="hidden sm:inline">Tour</span>
               {!hasCompletedTutorial && (
                 <span className="w-2 h-2 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-ping absolute -top-0.5 -right-0.5" />
               )}
@@ -781,12 +784,12 @@ export default function DashboardClient({
               <span className="hidden sm:inline">Modo Zen</span>
             </button>
 
-            {/* Iniciar Estudos */}
+            {/* Iniciar Estudos (Pacificado: visual clean para não concorrer com a Trilha do Dia) */}
             <Link
               href={getHref(!isLoading && hasEditalSubjects ? "/flashcards" : "/edital")}
-              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 px-4 py-2 text-xs font-black text-white shadow-md shadow-indigo-600/20 transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-95"
+              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:hover:bg-indigo-500/25 dark:text-indigo-300 px-3.5 py-2 text-xs font-bold transition-all active:scale-95 shadow-2xs"
             >
-              <Zap size={14} className="fill-white" />
+              <Zap size={14} className="fill-indigo-600 dark:fill-indigo-400 text-indigo-600 dark:text-indigo-400" />
               <span>
                 {isLoading
                   ? "Carregando..."
@@ -800,38 +803,38 @@ export default function DashboardClient({
 
         {/* ================= ATALHOS RÁPIDOS (2x2 no mobile, 5 colunas no desktop) ================= */}
         {visibleCards.quickActions && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
             {[
               {
                 title: "Resolver Questões",
                 icon: HelpCircle,
-                color: "text-amber-400",
+                color: "text-amber-500 dark:text-amber-400",
                 href: "/questions",
               },
               {
                 title: "Scanner OCR",
                 icon: Camera,
-                color: "text-rose-400",
+                color: "text-rose-500 dark:text-rose-400",
                 href: "/questions?scan=true",
                 badge: "IA",
               },
               {
                 title: "Praticar Cards",
                 icon: Layers,
-                color: "text-indigo-400",
+                color: "text-indigo-500 dark:text-indigo-400",
                 href: "/flashcards",
               },
               {
                 title: "Edital Verticalizado",
                 icon: BookOpen,
-                color: "text-cyan-400",
+                color: "text-cyan-500 dark:text-cyan-400",
                 href: "/edital",
                 badge: !isLoading && !hasEditalSubjects ? "Passo 1" : undefined,
               },
               {
                 title: "Hall de Conquistas",
                 icon: Trophy,
-                color: "text-emerald-400",
+                color: "text-emerald-500 dark:text-emerald-400",
                 href: "/achievements",
               },
             ].map((item, idx) => {
@@ -840,18 +843,18 @@ export default function DashboardClient({
                 <Link
                   key={idx}
                   href={getHref(item.href)}
-                  className="relative flex items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white hover:bg-slate-50/90 p-3.5 backdrop-blur-xl transition-all duration-200 hover:border-slate-300 dark:border-white/[0.07] dark:bg-slate-950/40 dark:hover:border-white/15 dark:hover:bg-slate-900/40 active:scale-[0.98] shadow-2xs hover:shadow-xs"
+                  className="relative flex items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50/90 p-2.5 sm:p-3 backdrop-blur-xl transition-all duration-200 hover:border-slate-300 dark:border-white/[0.07] dark:bg-slate-950/40 dark:hover:border-white/15 dark:hover:bg-slate-900/40 active:scale-[0.98] shadow-2xs hover:shadow-xs group"
                 >
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <div className={`shrink-0 rounded-xl p-2 bg-slate-50 border border-slate-200/80 dark:bg-white/[0.03] dark:border-white/5 ${item.color}`}>
-                      <Icon size={16} />
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className={`shrink-0 rounded-lg p-1.5 bg-slate-50 border border-slate-200/80 dark:bg-white/[0.03] dark:border-white/5 ${item.color} group-hover:scale-105 transition-transform`}>
+                      <Icon size={15} />
                     </div>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
                       {item.title}
                     </span>
                   </div>
                   {item.badge && (
-                    <span className="shrink-0 rounded-full border border-amber-300 bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase text-amber-800 dark:text-amber-300">
+                    <span className="shrink-0 rounded-full border border-amber-300 bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 px-1.5 py-0.2 text-[8px] font-extrabold uppercase text-amber-800 dark:text-amber-300">
                       {item.badge}
                     </span>
                   )}
@@ -1132,12 +1135,19 @@ export default function DashboardClient({
           <DailyFlowCard flowData={initialDailyFlow || null} />
         )}
 
-        {/* ================= WIDGET DE REVISÃO FSRS PENDENTE HOJE ================= */}
-        <FsrsReviewWidget
-          dueCount={stats?.metrics?.dueFlashcards ?? 0}
-          totalCount={stats?.metrics?.totalFlashcards ?? 0}
-          isLoading={isLoading}
-        />
+        {/* ================= WIDGET DE REVISÃO FSRS PENDENTE HOJE (Exibido de forma não-redundante com o Daily Flow) ================= */}
+        {(!initialDailyFlow?.hasActivity ||
+          !initialDailyFlow?.steps?.some(
+            (s) => s.id === "flashcards" && !s.isCompleted
+          )) &&
+          (dashboardMode !== "minimal" ||
+            (stats?.metrics?.dueFlashcards ?? 0) > 0) && (
+            <FsrsReviewWidget
+              dueCount={stats?.metrics?.dueFlashcards ?? 0}
+              totalCount={stats?.metrics?.totalFlashcards ?? 0}
+              isLoading={isLoading}
+            />
+          )}
 
         {/* ================= 3. PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS) ================= */}
         {!isLoading && (
@@ -1342,8 +1352,50 @@ export default function DashboardClient({
               </div>
             )}
 
-            {/* CARD: DICA DIÁRIA (EVIDÊNCIA CIENTÍFICA & GEMINI) */}
-            <DailyTipCard />
+            {/* CARD 2: Minhas Matérias (Acesso prioritário logo após metas e métricas) */}
+            {visibleCards.subjects && (
+              <div className="space-y-4 rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl relative">
+                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
+                      Minhas Matérias
+                    </h3>
+                  </div>
+                  <Link
+                    href={getHref("/edital")}
+                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors"
+                  >
+                    Ver todas ({subjects.length})
+                  </Link>
+                </div>
+
+                {isLoading ? (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {[...Array(2)].map((_, i) => (
+                      <SubjectCardSkeleton key={i} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {displayedSubjects.map((sub) => (
+                      <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
+                        <SubjectCard
+                          title={sub.name}
+                          colorClass={sub.color || "#3B82F6"}
+                          progress={sub.progress ?? 0}
+                          accuracy={sub.accuracy ?? 0}
+                          timeSpent={sub.timeSpent ?? "0min"}
+                          totalCards={sub._count?.topics ?? 0}
+                        />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
             {visibleCards.radarDomain && (
@@ -1354,7 +1406,7 @@ export default function DashboardClient({
             )}
 
             {/* CARD 3: Sugestões com IA */}
-            {!isLoading && hasEditalSubjects && (
+            {visibleCards.aiSuggestions && !isLoading && hasEditalSubjects && (
               <div className="group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
                 <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
                 <div className="mb-4 flex items-center justify-between">
@@ -1429,49 +1481,9 @@ export default function DashboardClient({
               </div>
             )}
 
-            {/* CARD 4: Minhas Matérias */}
-            {visibleCards.subjects && (
-              <div className="space-y-4 rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl relative">
-                <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
-                      Minhas Matérias
-                    </h3>
-                  </div>
-                  <Link
-                    href={getHref("/edital")}
-                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors"
-                  >
-                    Ver todas ({subjects.length})
-                  </Link>
-                </div>
-
-                {isLoading ? (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {[...Array(2)].map((_, i) => (
-                      <SubjectCardSkeleton key={i} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {displayedSubjects.map((sub) => (
-                      <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
-                        <SubjectCard
-                          title={sub.name}
-                          colorClass={sub.color || "#3B82F6"}
-                          progress={sub.progress ?? 0}
-                          accuracy={sub.accuracy ?? 0}
-                          timeSpent={sub.timeSpent ?? "0min"}
-                          totalCards={sub._count?.topics ?? 0}
-                        />
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* Dica diária na coluna principal apenas se a coluna lateral não estiver visível e não for modo minimalista */}
+            {!hasRightColumnCards && dashboardMode !== "minimal" && (
+              <DailyTipCard />
             )}
           </div>
 
@@ -1510,6 +1522,9 @@ export default function DashboardClient({
 
               {/* LIGAS SEMANAIS & GAMIFICAÇÃO D30 */}
               <LeagueWidgetCard />
+
+              {/* DICA DIÁRIA (EVIDÊNCIA CIENTÍFICA & NEUROCIÊNCIA) */}
+              <DailyTipCard />
 
               {/* SALA DE FOCO & DEEP WORK (ZEN COCKPIT) */}
               {visibleCards.focusRoom && (
