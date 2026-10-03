@@ -108,7 +108,7 @@ export function PricingSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="rounded-3xl bg-slate-950/60 border border-white/[0.08] p-7 sm:p-9 flex flex-col justify-between backdrop-blur-xl relative overflow-hidden hover:border-white/20 transition-all"
+            className="rounded-3xl bg-slate-950/60 border border-white/[0.08] p-7 sm:p-9 flex flex-col justify-between backdrop-blur-xl relative hover:border-white/20 transition-all"
           >
             <div className="space-y-6">
               <div className="space-y-2">
@@ -171,10 +171,10 @@ export function PricingSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="rounded-3xl bg-gradient-to-b from-indigo-950/70 via-slate-950/90 to-purple-950/70 border-2 border-indigo-500/60 p-7 sm:p-9 flex flex-col justify-between backdrop-blur-2xl relative overflow-hidden shadow-2xl shadow-indigo-950/80 hover:border-indigo-400 transition-all group"
+            className="rounded-3xl bg-gradient-to-b from-indigo-950/70 via-slate-950/90 to-purple-950/70 border-2 border-indigo-500/60 p-7 sm:p-9 flex flex-col justify-between backdrop-blur-2xl relative shadow-2xl shadow-indigo-950/80 hover:border-indigo-400 transition-all group"
           >
             {/* Top Amber Ribbon */}
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5 whitespace-nowrap z-20">
               <Crown className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
               <span>Mais Escolhido • Acesso Ilimitado & Zero Anúncios</span>
             </div>
