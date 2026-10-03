@@ -12,34 +12,34 @@ export function PainTransitionSection() {
     offset: ["start start", "end end"],
   });
 
-  // Frase 1: "Sobrecarga mental de editais infinitos" (0.05 a 0.28)
-  const opacity1 = useTransform(scrollYProgress, [0.05, 0.12, 0.22, 0.28], [0, 1, 1, 0]);
-  const scale1 = useTransform(scrollYProgress, [0.05, 0.12, 0.22, 0.28], [0.85, 1, 1, 1.1]);
-  const blur1 = useTransform(scrollYProgress, [0.05, 0.12, 0.22, 0.28], ["10px", "0px", "0px", "12px"]);
-  const y1 = useTransform(scrollYProgress, [0.05, 0.12, 0.28], [30, 0, -30]);
+  // Frase 1: "Sobrecarga mental de editais infinitos" (0.02 a 0.26)
+  const opacity1 = useTransform(scrollYProgress, [0.02, 0.10, 0.20, 0.26], [0, 1, 1, 0]);
+  const scale1 = useTransform(scrollYProgress, [0.02, 0.10, 0.20, 0.26], [0.88, 1, 1, 1.08]);
+  const blur1 = useTransform(scrollYProgress, [0.02, 0.10, 0.20, 0.26], ["10px", "0px", "0px", "12px"]);
+  const y1 = useTransform(scrollYProgress, [0.02, 0.10, 0.26], [25, 0, -25]);
 
-  // Frase 2: "Falta de consistência e horas perdidas no trânsito" (0.28 a 0.52)
-  const opacity2 = useTransform(scrollYProgress, [0.28, 0.35, 0.45, 0.52], [0, 1, 1, 0]);
-  const scale2 = useTransform(scrollYProgress, [0.28, 0.35, 0.45, 0.52], [0.85, 1, 1, 1.1]);
-  const blur2 = useTransform(scrollYProgress, [0.28, 0.35, 0.45, 0.52], ["10px", "0px", "0px", "12px"]);
-  const y2 = useTransform(scrollYProgress, [0.28, 0.35, 0.52], [30, 0, -30]);
+  // Frase 2: "Falta de consistência e horas perdidas no trânsito" (0.26 a 0.50)
+  const opacity2 = useTransform(scrollYProgress, [0.26, 0.34, 0.44, 0.50], [0, 1, 1, 0]);
+  const scale2 = useTransform(scrollYProgress, [0.26, 0.34, 0.44, 0.50], [0.88, 1, 1, 1.08]);
+  const blur2 = useTransform(scrollYProgress, [0.26, 0.34, 0.44, 0.50], ["10px", "0px", "0px", "12px"]);
+  const y2 = useTransform(scrollYProgress, [0.26, 0.34, 0.50], [25, 0, -25]);
 
-  // Frase 3: "Planilhas confusas e matérias esquecidas na véspera" (0.52 a 0.74)
-  const opacity3 = useTransform(scrollYProgress, [0.52, 0.58, 0.68, 0.74], [0, 1, 1, 0]);
-  const scale3 = useTransform(scrollYProgress, [0.52, 0.58, 0.68, 0.74], [0.85, 1, 1, 1.1]);
-  const blur3 = useTransform(scrollYProgress, [0.52, 0.58, 0.68, 0.74], ["10px", "0px", "0px", "12px"]);
-  const y3 = useTransform(scrollYProgress, [0.52, 0.58, 0.74], [30, 0, -30]);
+  // Frase 3: "Planilhas confusas e matérias esquecidas na véspera" (0.50 a 0.74)
+  const opacity3 = useTransform(scrollYProgress, [0.50, 0.58, 0.68, 0.74], [0, 1, 1, 0]);
+  const scale3 = useTransform(scrollYProgress, [0.50, 0.58, 0.68, 0.74], [0.88, 1, 1, 1.08]);
+  const blur3 = useTransform(scrollYProgress, [0.50, 0.58, 0.68, 0.74], ["10px", "0px", "0px", "12px"]);
+  const y3 = useTransform(scrollYProgress, [0.50, 0.58, 0.74], [25, 0, -25]);
 
   // Frase 4 (O Alívio): "Calma. Seu cérebro só precisava do algoritmo certo." (0.74 a 1.0)
-  const opacityRelief = useTransform(scrollYProgress, [0.74, 0.83, 0.96, 1.0], [0, 1, 1, 0.95]);
-  const scaleRelief = useTransform(scrollYProgress, [0.74, 0.83, 1.0], [0.85, 1, 1.05]);
-  const glowOpacity = useTransform(scrollYProgress, [0.74, 0.85], [0, 0.8]);
+  const opacityRelief = useTransform(scrollYProgress, [0.74, 0.82, 0.98, 1.0], [0, 1, 1, 0.95]);
+  const scaleRelief = useTransform(scrollYProgress, [0.74, 0.82, 1.0], [0.9, 1, 1.05]);
+  const glowOpacity = useTransform(scrollYProgress, [0.74, 0.84], [0, 0.8]);
 
   return (
     <div
       id="pain-transition"
       ref={containerRef}
-      className="relative h-[220vh] w-full bg-[#030712] select-none"
+      className="relative h-[160vh] w-full bg-[#030712] select-none"
     >
       {/* Sticky Fullscreen Container */}
       <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden px-4">
