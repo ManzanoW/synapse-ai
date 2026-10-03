@@ -38,6 +38,70 @@ export function InteractiveStickyShowcase() {
   // Screen selection state: 0 = FSRS, 1 = Discursiva, 2 = Audio
   const [activeScreen, setActiveScreen] = useState<0 | 1 | 2>(0);
   const [isManualOverride, setIsManualOverride] = useState(false);
+  const [userRating, setUserRating] = useState<"again" | "hard" | "good" | "easy">("good");
+
+  const ratingConfig = {
+    again: {
+      percentage: "58.4%",
+      barWidth: "58%",
+      statusBadge: "QUEDA DE RETENÇÃO • REVISÃO HOJE",
+      statusColor: "text-rose-400 bg-rose-500/10 border-rose-500/25",
+      pulseColor: "bg-rose-400",
+      barGradient: "from-rose-600 to-rose-400",
+      textColor: "text-rose-400",
+      nextReview: "Hoje (Recomeço)",
+      reviewPill: "text-rose-300 bg-rose-500/20 border-rose-500/30",
+      safeLabel: "58.4% Abaixo do corte",
+      intervalText: "Intervalo: Imediato (Hoje)",
+      tagColor: "text-rose-300 bg-rose-500/15 border-rose-500/25",
+      feedback: "⚠️ Falha na retenção. O algoritmo reagendou para hoje para restaurar as vias neurais.",
+    },
+    hard: {
+      percentage: "79.2%",
+      barWidth: "79%",
+      statusBadge: "RETENÇÃO SOB TENSÃO • REFORÇO EM 48H",
+      statusColor: "text-amber-400 bg-amber-500/10 border-amber-500/25",
+      pulseColor: "bg-amber-400",
+      barGradient: "from-amber-600 via-amber-500 to-amber-400",
+      textColor: "text-amber-400",
+      nextReview: "em 2 dias",
+      reviewPill: "text-amber-300 bg-amber-500/20 border-amber-500/30",
+      safeLabel: "79.2% Atenção",
+      intervalText: "Intervalo: +2 dias",
+      tagColor: "text-amber-300 bg-amber-500/15 border-amber-500/25",
+      feedback: "⚡ Lembrança custosa. O FSRS encurtou o intervalo para 48h para fixar a sinapse enquanto fresca.",
+    },
+    good: {
+      percentage: "94.8%",
+      barWidth: "95%",
+      statusBadge: "MEMÓRIA ESTABILIZADA • NÍVEL 4/5",
+      statusColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
+      pulseColor: "bg-emerald-400",
+      barGradient: "from-indigo-500 via-cyan-400 to-emerald-400",
+      textColor: "text-emerald-400",
+      nextReview: "em 7 dias",
+      reviewPill: "text-indigo-300 bg-indigo-500/20 border-indigo-500/30",
+      safeLabel: "94.8% Seguro",
+      intervalText: "Intervalo Otimizado: +7 dias",
+      tagColor: "text-indigo-300 bg-indigo-500/15 border-indigo-500/25",
+      feedback: "✓ Recuperação ideal. O algoritmo calculou 7 dias de estabilidade biológica — zero repetições inúteis.",
+    },
+    easy: {
+      percentage: "98.6%",
+      barWidth: "98%",
+      statusBadge: "MEMÓRIA PERMANENTE • NÍVEL 5/5",
+      statusColor: "text-cyan-400 bg-cyan-500/10 border-cyan-500/25",
+      pulseColor: "bg-cyan-400",
+      barGradient: "from-cyan-500 via-teal-400 to-emerald-400",
+      textColor: "text-cyan-400",
+      nextReview: "em 21 dias",
+      reviewPill: "text-cyan-300 bg-cyan-500/20 border-cyan-500/30",
+      safeLabel: "98.6% Dominado",
+      intervalText: "Intervalo Otimizado: +21 dias",
+      tagColor: "text-cyan-300 bg-cyan-500/15 border-cyan-500/25",
+      feedback: "💎 Domínio total. Próximo contato em 3 semanas, poupando seu tempo para novos tópicos.",
+    },
+  }[userRating];
 
   // Sync scroll progress com as 3 telas de forma contínua e sem lacunas
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
@@ -208,9 +272,9 @@ export function InteractiveStickyShowcase() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-mono font-bold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                MEMÓRIA ESTABILIZADA • NÍVEL 4/5
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-bold transition-colors ${ratingConfig.statusColor}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${ratingConfig.pulseColor}`} />
+                                {ratingConfig.statusBadge}
                               </span>
                               <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
                                 Algoritmo FSRS de 4ª Geração
@@ -222,9 +286,14 @@ export function InteractiveStickyShowcase() {
                           </div>
 
                           <div className="text-right shrink-0">
-                            <span className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tight block">
-                              94.8%
-                            </span>
+                            <motion.span
+                              key={ratingConfig.percentage}
+                              initial={{ scale: 0.9, opacity: 0.8 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className={`text-2xl sm:text-3xl font-black font-mono tracking-tight block transition-colors ${ratingConfig.textColor}`}
+                            >
+                              {ratingConfig.percentage}
+                            </motion.span>
                             <span className="text-[10px] text-slate-400 font-mono block">
                               Lembrança Estimada
                             </span>
@@ -239,8 +308,8 @@ export function InteractiveStickyShowcase() {
                             </span>
                             <div className="flex items-center gap-1.5 font-mono text-[11px]">
                               <span className="text-slate-400">Próximo Contato Ótimo:</span>
-                              <span className="text-indigo-300 font-bold bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">
-                                em 7 dias
+                              <span className={`font-bold px-2 py-0.5 rounded border transition-colors ${ratingConfig.reviewPill}`}>
+                                {ratingConfig.nextReview}
                               </span>
                             </div>
                           </div>
@@ -248,12 +317,18 @@ export function InteractiveStickyShowcase() {
                           {/* Retention Bar with Threshold Marker */}
                           <div className="space-y-1">
                             <div className="h-2.5 w-full bg-slate-900 rounded-full overflow-hidden p-0.5 border border-white/5 relative">
-                              <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 w-[95%]" />
+                              <motion.div
+                                animate={{ width: ratingConfig.barWidth }}
+                                transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                                className={`h-full rounded-full bg-gradient-to-r transition-all ${ratingConfig.barGradient}`}
+                              />
                             </div>
                             <div className="flex justify-between items-center text-[10px] font-mono text-slate-500">
                               <span>0%</span>
                               <span className="text-slate-400">Meta Segura: 90%</span>
-                              <span className="text-emerald-400 font-semibold">94.8% Retido</span>
+                              <span className={`font-semibold transition-colors ${ratingConfig.textColor}`}>
+                                {ratingConfig.safeLabel}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -271,38 +346,102 @@ export function InteractiveStickyShowcase() {
                             <div className="text-slate-300">
                               <strong className="text-emerald-400">Gabarito:</strong> Convocação do segundo colocado nas mesmas condições da proposta ofertada.
                             </div>
-                            <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded border border-indigo-500/25 shrink-0 self-start sm:self-auto">
-                              Intervalo Otimizado: +7 dias
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 self-start sm:self-auto transition-colors ${ratingConfig.tagColor}`}>
+                              {ratingConfig.intervalText}
                             </span>
                           </div>
                         </div>
 
                         {/* Interactive Evaluation Rating Simulator */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                            <span>Como foi sua lembrança?</span>
-                            <span className="text-indigo-300 text-[10px]">O algoritmo calcula o intervalo ideal:</span>
+                            <span className="text-cyan-300 font-bold flex items-center gap-1">
+                              <span>👉 Clique para simular o recálculo do algoritmo:</span>
+                            </span>
+                            <span className="text-slate-500 text-[10px]">Feedback do Concurseiro</span>
                           </div>
+
                           <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center text-xs font-mono">
-                            <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300">
+                            {/* Errei */}
+                            <button
+                              type="button"
+                              onClick={() => setUserRating("again")}
+                              className={`p-2 rounded-xl transition-all cursor-pointer relative ${
+                                userRating === "again"
+                                  ? "bg-rose-600/30 border-2 border-rose-400 text-white shadow-md shadow-rose-600/30"
+                                  : "bg-rose-500/10 border border-rose-500/20 text-rose-300 hover:bg-rose-500/20"
+                              }`}
+                            >
+                              {userRating === "again" && (
+                                <div className="absolute -top-2 right-1 px-1.5 py-0.2 rounded bg-rose-500 text-[8px] font-bold uppercase tracking-wider text-white">
+                                  Ativo
+                                </div>
+                              )}
                               <span className="font-bold block text-[10px] sm:text-[11px]">Errei</span>
-                              <span className="text-[9px] sm:text-[10px] text-rose-400/80">Rever Hoje</span>
-                            </div>
-                            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300">
+                              <span className="text-[9px] sm:text-[10px] text-rose-300/80">Rever Hoje</span>
+                            </button>
+
+                            {/* Difícil */}
+                            <button
+                              type="button"
+                              onClick={() => setUserRating("hard")}
+                              className={`p-2 rounded-xl transition-all cursor-pointer relative ${
+                                userRating === "hard"
+                                  ? "bg-amber-600/30 border-2 border-amber-400 text-white shadow-md shadow-amber-600/30"
+                                  : "bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20"
+                              }`}
+                            >
+                              {userRating === "hard" && (
+                                <div className="absolute -top-2 right-1 px-1.5 py-0.2 rounded bg-amber-500 text-[8px] font-bold uppercase tracking-wider text-white">
+                                  Ativo
+                                </div>
+                              )}
                               <span className="font-bold block text-[10px] sm:text-[11px]">Difícil</span>
-                              <span className="text-[9px] sm:text-[10px] text-amber-400/80">+2 dias</span>
-                            </div>
-                            <div className="p-2 rounded-xl bg-indigo-600/30 border-2 border-indigo-400 text-white shadow-md shadow-indigo-600/30 relative">
-                              <div className="absolute -top-2 right-1 px-1.5 py-0.2 rounded bg-indigo-500 text-[8px] font-bold uppercase tracking-wider text-white">
-                                Ativo
-                              </div>
-                              <span className="font-bold block text-[10px] sm:text-[11px] text-indigo-200">Bom</span>
-                              <span className="text-[9px] sm:text-[10px] text-indigo-300 font-bold">+7 dias</span>
-                            </div>
-                            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+                              <span className="text-[9px] sm:text-[10px] text-amber-300/80">+2 dias</span>
+                            </button>
+
+                            {/* Bom */}
+                            <button
+                              type="button"
+                              onClick={() => setUserRating("good")}
+                              className={`p-2 rounded-xl transition-all cursor-pointer relative ${
+                                userRating === "good"
+                                  ? "bg-indigo-600/30 border-2 border-indigo-400 text-white shadow-md shadow-indigo-600/30"
+                                  : "bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"
+                              }`}
+                            >
+                              {userRating === "good" && (
+                                <div className="absolute -top-2 right-1 px-1.5 py-0.2 rounded bg-indigo-500 text-[8px] font-bold uppercase tracking-wider text-white">
+                                  Ativo
+                                </div>
+                              )}
+                              <span className="font-bold block text-[10px] sm:text-[11px]">Bom</span>
+                              <span className="text-[9px] sm:text-[10px] text-indigo-300/80">+7 dias</span>
+                            </button>
+
+                            {/* Fácil */}
+                            <button
+                              type="button"
+                              onClick={() => setUserRating("easy")}
+                              className={`p-2 rounded-xl transition-all cursor-pointer relative ${
+                                userRating === "easy"
+                                  ? "bg-cyan-600/30 border-2 border-cyan-400 text-white shadow-md shadow-cyan-600/30"
+                                  : "bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20"
+                              }`}
+                            >
+                              {userRating === "easy" && (
+                                <div className="absolute -top-2 right-1 px-1.5 py-0.2 rounded bg-cyan-500 text-[8px] font-bold uppercase tracking-wider text-white">
+                                  Ativo
+                                </div>
+                              )}
                               <span className="font-bold block text-[10px] sm:text-[11px]">Fácil</span>
-                              <span className="text-[9px] sm:text-[10px] text-emerald-400/80">+21 dias</span>
-                            </div>
+                              <span className="text-[9px] sm:text-[10px] text-cyan-300/80">+21 dias</span>
+                            </button>
+                          </div>
+
+                          {/* Dynamic Feedback Banner */}
+                          <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 text-[11px] text-slate-300 font-mono">
+                            {ratingConfig.feedback}
                           </div>
                         </div>
                       </div>

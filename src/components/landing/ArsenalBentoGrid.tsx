@@ -26,8 +26,9 @@ import {
 import Link from "next/link";
 
 export function ArsenalBentoGrid() {
-  // Estado Card 1: Discursiva Banca Selector
+  // Estado Card 1: Discursiva Banca Selector & Comparison Mode
   const [selectedBanca, setSelectedBanca] = useState<"cebraspe" | "fgv" | "fcc">("cebraspe");
+  const [redacaoMode, setRedacaoMode] = useState<"draft" | "gold">("gold");
 
   // Estado Card 2: Audio Player Simulator
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -135,13 +136,44 @@ export function ArsenalBentoGrid() {
                   </h3>
                 </div>
               </div>
+            </div>
 
-              {/* Seletor de Banca Interativo */}
-              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/50 border border-white/10 self-start sm:self-auto">
+            {/* Controles: Seletor de Modo (Antes vs Depois) & Seletor de Banca */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              {/* Comparador Antes vs Depois */}
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-black/60 border border-white/10 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setRedacaoMode("draft")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    redacaoMode === "draft"
+                      ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                  <span>Rascunho Inicial (62 pts)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRedacaoMode("gold")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    redacaoMode === "gold"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Versão Ouro Synapse (96.4 pts)</span>
+                </button>
+              </div>
+
+              {/* Seletor de Banca */}
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-black/50 border border-white/10 self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setSelectedBanca("cebraspe")}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedBanca === "cebraspe"
                       ? "bg-violet-600 text-white shadow-sm"
                       : "text-slate-400 hover:text-white"
@@ -152,7 +184,7 @@ export function ArsenalBentoGrid() {
                 <button
                   type="button"
                   onClick={() => setSelectedBanca("fgv")}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedBanca === "fgv"
                       ? "bg-violet-600 text-white shadow-sm"
                       : "text-slate-400 hover:text-white"
@@ -163,7 +195,7 @@ export function ArsenalBentoGrid() {
                 <button
                   type="button"
                   onClick={() => setSelectedBanca("fcc")}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedBanca === "fcc"
                       ? "bg-violet-600 text-white shadow-sm"
                       : "text-slate-400 hover:text-white"
@@ -176,7 +208,7 @@ export function ArsenalBentoGrid() {
 
             {/* Descrição */}
             <p className="text-sm text-slate-300 leading-relaxed">
-              Chega de correções genéricas. O Synapse calcula sua nota oficial com as fórmulas exatas de desconto por linha, avalia macroestrutura temática e microestrutura gramatical, e gera a <strong className="text-white">Versão Ouro</strong> para gabaritar o espelho.
+              Chega de feedbacks genéricos de professores particulares que levam dias para responder. O Synapse calcula sua nota oficial com as fórmulas reais da banca e gera a <strong className="text-white">Versão Ouro</strong> para você aprender a escrever no padrão nota máxima.
             </p>
 
             {/* Live Interactive Evaluation Simulator */}
@@ -191,38 +223,67 @@ export function ArsenalBentoGrid() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400 font-mono">Nota Simulada:</span>
-                  <span className="text-lg font-black text-emerald-400 font-mono">
-                    {selectedBanca === "cebraspe" && "96.4 / 100"}
-                    {selectedBanca === "fgv" && "9.4 / 10"}
-                    {selectedBanca === "fcc" && "94.0 / 100"}
+                  <span className={`text-lg font-black font-mono ${redacaoMode === "gold" ? "text-emerald-400" : "text-rose-400"}`}>
+                    {redacaoMode === "gold"
+                      ? (selectedBanca === "cebraspe" ? "96.4 / 100" : selectedBanca === "fgv" ? "9.6 / 10" : "95.0 / 100")
+                      : (selectedBanca === "cebraspe" ? "62.0 / 100" : selectedBanca === "fgv" ? "6.2 / 10" : "60.0 / 100")}
                   </span>
                 </div>
               </div>
 
-              {/* Linha a linha com apontamento de erro */}
+              {/* Linha a linha com apontamento de erro / versão ouro */}
               <div className="space-y-2 text-xs">
-                <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 space-y-1">
-                  <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
-                    <span className="text-rose-400 font-bold">Linha 12 • Desconto de Microestrutura</span>
-                    <span>Regência Verbal</span>
-                  </div>
-                  <p className="text-slate-300 font-mono">
-                    &quot;...o que <del className="text-rose-400 bg-rose-500/10 px-1 rounded">implica em sanções</del> administrativas ao servidor...&quot;
-                  </p>
-                  <p className="text-emerald-300 font-mono text-[11px] pt-1">
-                    ↳ Sugestão da Banca: Substitua por &quot;implica sanções&quot; (verbo transitivo direto).
-                  </p>
-                </div>
+                {redacaoMode === "draft" ? (
+                  <>
+                    <div className="p-3 rounded-xl bg-rose-950/20 border border-rose-500/20 space-y-1">
+                      <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
+                        <span className="text-rose-400 font-bold">Linha 12 • Erro de Regência Verbal</span>
+                        <span className="text-rose-400/80">-2.0 pts Microestrutura</span>
+                      </div>
+                      <p className="text-slate-300 font-mono">
+                        &quot;...a nova portaria ministerial <del className="text-rose-400 bg-rose-500/10 px-1 rounded">implica em restrições</del> à ampla concorrência...&quot;
+                      </p>
+                      <p className="text-rose-300 font-mono text-[11px] pt-1">
+                        ↳ Falha Grave: O verbo &quot;implicar&quot; no sentido de acarretar é transitivo direto (não aceita &quot;em&quot;).
+                      </p>
+                    </div>
 
-                <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 space-y-1">
-                  <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
-                    <span className="text-emerald-400 font-bold">Macroestrutura • Padrão Ouro Atendido</span>
-                    <span>Tópico 2.1 (STF & STJ)</span>
-                  </div>
-                  <p className="text-slate-300">
-                    Jurisprudência pacificada citada com precisão terminológica. Pontuação integral atribuída ao quesito.
-                  </p>
-                </div>
+                    <div className="p-3 rounded-xl bg-rose-950/20 border border-rose-500/20 space-y-1">
+                      <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
+                        <span className="text-rose-400 font-bold">Macroestrutura • Tópico 2.1 Incompleto</span>
+                        <span className="text-rose-400/80">-15.0 pts Tema</span>
+                      </div>
+                      <p className="text-slate-300">
+                        O candidato tangenciou o tema ao deixar de citar a tese de repercussão geral pacificada no STF, recebendo pontuação mínima no espelho oficial.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 space-y-1">
+                      <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
+                        <span className="text-emerald-400 font-bold">Linha 12 • Regência Impecável & Coesão</span>
+                        <span className="text-emerald-400/80">Microestrutura Nota Máxima</span>
+                      </div>
+                      <p className="text-slate-300 font-mono">
+                        &quot;...a referida portaria ministerial <strong className="text-emerald-300 bg-emerald-500/10 px-1 rounded">implica restrições</strong> estritas à livre concorrência...&quot;
+                      </p>
+                      <p className="text-emerald-300 font-mono text-[11px] pt-1">
+                        ↳ Versão Ouro: Adequação sintática ao padrão culto e vocabulário técnico de auditoria.
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 space-y-1">
+                      <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
+                        <span className="text-emerald-400 font-bold">Macroestrutura • Tópico 2.1 Gabaritado</span>
+                        <span className="text-emerald-400/80">30.0 / 30.0 pts</span>
+                      </div>
+                      <p className="text-slate-300">
+                        Fundamentação jurídica sólida citando a Lei 14.133/21 e o Tema 899/STF, estruturada em parágrafo padrão com conectivos argumentativos de alta densidade.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { Navbar } from "./Navbar";
 import { HeroSection } from "./HeroSection";
+import { BancasMarquee } from "./BancasMarquee";
 import { PainTransitionSection } from "./PainTransitionSection";
 import { InteractiveStickyShowcase } from "./InteractiveStickyShowcase";
 import { RealityCheckSection } from "./RealityCheckSection";
 import { ArsenalBentoGrid } from "./ArsenalBentoGrid";
 import { StickyShowcaseWorkflow } from "./StickyShowcaseWorkflow";
+import { TimeRecoveryCalculator } from "./TimeRecoveryCalculator";
 import { PricingSection } from "./PricingSection";
 import { FaqSection } from "./FaqSection";
 import { FinalCtaSection } from "./FinalCtaSection";
@@ -38,6 +40,14 @@ export function LandingPageView() {
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 selection:bg-indigo-500/30 selection:text-cyan-200 relative overflow-x-clip font-sans">
+      {/* Subtle Film Grain Noise Overlay (Big Tech Polish) */}
+      <div
+        className="pointer-events-none fixed inset-0 z-50 opacity-[0.02] mix-blend-screen select-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
       {/* Top Scroll Progress Indicator */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400 z-50 origin-left"
@@ -52,28 +62,34 @@ export function LandingPageView() {
         {/* 1. Hero com Parallax Cognitivo (100vh) */}
         <HeroSection />
 
-        {/* 2. Transição da Dor ao Alívio (Scrollytelling Sticky) */}
+        {/* 2. Faixa Institucional de Bancas & Concursos Mapeados (Trust Marquee) */}
+        <BancasMarquee />
+
+        {/* 3. Transição da Dor ao Alívio (Scrollytelling Sticky) */}
         <PainTransitionSection />
 
-        {/* 3. Sticky Showcase 3D do Cockpit Synapse (Efeito UAU) */}
+        {/* 4. Sticky Showcase 3D do Cockpit Synapse (Táctil & Interativo) */}
         <InteractiveStickyShowcase />
 
-        {/* 4. O Choque de Realidade: Método Arcaico vs. Synapse AI */}
+        {/* 5. O Choque de Realidade: Método Arcaico vs. Synapse AI */}
         <RealityCheckSection />
 
-        {/* 5. O Arsenal Cognitivo (Bento Grid Interativo) */}
+        {/* 6. O Arsenal Cognitivo (Bento Grid Interativo com Antes vs. Depois) */}
         <ArsenalBentoGrid />
 
-        {/* 6. Do Edital Bruto ao Cronograma em 3 Passos */}
+        {/* 7. Do Edital Bruto ao Cronograma em 3 Passos */}
         <StickyShowcaseWorkflow />
 
-        {/* 7. Planos Transparentes */}
+        {/* 8. Calculadora Interativa de Horas Líquidas (ROI do Concurseiro) */}
+        <TimeRecoveryCalculator />
+
+        {/* 9. Planos Transparentes */}
         <PricingSection />
 
-        {/* 8. FAQ em Accordion */}
+        {/* 10. FAQ em Accordion */}
         <FaqSection />
 
-        {/* 9. Chamada Final à Ação */}
+        {/* 11. Chamada Final à Ação */}
         <FinalCtaSection />
       </main>
 
