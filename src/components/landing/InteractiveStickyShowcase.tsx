@@ -5,9 +5,12 @@ import {
   motion,
   useScroll,
   useTransform,
+  useMotionValue,
+  useSpring,
   useMotionValueEvent,
   AnimatePresence,
 } from "framer-motion";
+import { BorderBeam } from "./BorderBeam";
 import {
   Brain,
   FileCheck2,
@@ -34,6 +37,34 @@ export function InteractiveStickyShowcase() {
   const scale = useTransform(scrollYProgress, [0, 0.15], [0.95, 1]);
   const y = useTransform(scrollYProgress, [0, 0.15], [20, 0]);
   const glowOpacity = useTransform(scrollYProgress, [0, 0.25], [0.35, 0.8]);
+
+  // Mouse Gyroscope Tracking com física de mola suave (Inspiração Mentoris / Linear)
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const smoothMouseX = useSpring(mouseX, { stiffness: 95, damping: 22 });
+  const smoothMouseY = useSpring(mouseY, { stiffness: 95, damping: 22 });
+
+  const mouseTiltX = useTransform(smoothMouseY, [-0.5, 0.5], [6, -6]);
+  const mouseTiltY = useTransform(smoothMouseX, [-0.5, 0.5], [-8, 8]);
+
+  const totalRotateX = useTransform([rotateX, mouseTiltX], ([rX, mX]) => (rX as number) + (mX as number));
+  const totalRotateY = mouseTiltY;
+
+  const glareX = useTransform(smoothMouseX, [-0.5, 0.5], ["20%", "80%"]);
+  const glareY = useTransform(smoothMouseY, [-0.5, 0.5], ["20%", "80%"]);
+
+  const handleCockpitMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
+  const handleCockpitMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+  };
 
   // Screen selection state: 0 = FSRS, 1 = Discursiva, 2 = Audio
   const [activeScreen, setActiveScreen] = useState<0 | 1 | 2>(0);
@@ -162,23 +193,40 @@ export function InteractiveStickyShowcase() {
         {/* 🛸 3D PERSPECTIVE COCKPIT CONTAINER                                       */}
         {/* ========================================================================= */}
         <div
-          className="w-full max-w-5xl"
+          className="w-full max-w-5xl relative"
           style={{ perspective: 1200 }}
+          onMouseMove={handleCockpitMouseMove}
+          onMouseLeave={handleCockpitMouseLeave}
         >
           <motion.div
             style={{
-              rotateX,
+              rotateX: totalRotateX,
+              rotateY: totalRotateY,
               scale,
               y,
-              boxShadow: "0 0 50px rgba(99, 102, 241, 0.25)",
+              boxShadow: "0 0 50px rgba(99, 102, 241, 0.28)",
             }}
-            className="relative rounded-2xl sm:rounded-3xl p-1 bg-gradient-to-b from-white/[0.22] via-white/[0.08] to-transparent border border-white/[0.12] overflow-hidden group shadow-2xl"
+            className="relative rounded-2xl sm:rounded-3xl p-[1.5px] overflow-hidden group shadow-2xl transition-shadow"
           >
+            {/* Border Beam Neon Circular Contínuo */}
+            <BorderBeam duration={8} colorFrom="#06b6d4" colorTo="#818cf8" />
+
+            {/* Specular Glare que acompanha o cursor do mouse em tempo real */}
+            <motion.div
+              className="pointer-events-none absolute inset-0 z-20 opacity-35 mix-blend-overlay"
+              style={{
+                background: useTransform(
+                  [glareX, glareY],
+                  ([gX, gY]) => `radial-gradient(circle 500px at ${gX} ${gY}, rgba(255,255,255,0.22), transparent 70%)`
+                ),
+              }}
+            />
+
             {/* Glass Reflection Highlight Sweep */}
-            <div className="pointer-events-none absolute -top-40 -left-40 w-96 h-96 bg-white/[0.08] rounded-full blur-3xl transform -rotate-45" />
+            <div className="pointer-events-none absolute -top-40 -left-40 w-96 h-96 bg-white/[0.06] rounded-full blur-3xl transform -rotate-45" />
 
             {/* Inner Dashboard Card */}
-            <div className="relative rounded-[18px] sm:rounded-[22px] bg-[#070b14]/95 backdrop-blur-2xl border border-white/[0.08] overflow-hidden">
+            <div className="relative rounded-[inherit] bg-[#070b14]/95 backdrop-blur-2xl border border-white/[0.08] overflow-hidden z-10">
               {/* Window Header */}
               <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3 border-b border-white/[0.08] bg-white/[0.02]">
                 <div className="flex items-center gap-2">
@@ -691,6 +739,15 @@ export function InteractiveStickyShowcase() {
               </div>
             </div>
           </motion.div>
+
+          {/* Ambient Volumetric Floor Reflection / Ground Mirror */}
+          <div
+            className="pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 w-4/5 h-20 opacity-60 blur-2xl"
+            style={{
+              background:
+                "radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.35) 0%, rgba(6,182,212,0.18) 40%, transparent 75%)",
+            }}
+          />
         </div>
 
         {/* Scroll Progress Bar indicator under the Cockpit */}
