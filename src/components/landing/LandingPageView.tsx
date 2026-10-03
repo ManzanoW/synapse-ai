@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { Navbar } from "./Navbar";
 import { HeroSection } from "./HeroSection";
+import { PainTransitionSection } from "./PainTransitionSection";
+import { InteractiveStickyShowcase } from "./InteractiveStickyShowcase";
 import { RealityCheckSection } from "./RealityCheckSection";
 import { ArsenalBentoGrid } from "./ArsenalBentoGrid";
 import { StickyShowcaseWorkflow } from "./StickyShowcaseWorkflow";
@@ -45,18 +47,37 @@ export function LandingPageView() {
       {/* Floating Navbar */}
       <Navbar />
 
-      {/* Main Content Sections */}
+      {/* Scrollytelling Main Content Flow */}
       <main className="w-full">
+        {/* 1. Hero com Parallax Cognitivo (100vh) */}
         <HeroSection />
+
+        {/* 2. Transição da Dor ao Alívio (Scrollytelling Sticky) */}
+        <PainTransitionSection />
+
+        {/* 3. Sticky Showcase 3D do Cockpit Synapse (Efeito UAU) */}
+        <InteractiveStickyShowcase />
+
+        {/* 4. O Choque de Realidade: Método Arcaico vs. Synapse AI */}
         <RealityCheckSection />
+
+        {/* 5. O Arsenal Cognitivo (Bento Grid Interativo) */}
         <ArsenalBentoGrid />
+
+        {/* 6. Do Edital Bruto ao Cronograma em 3 Passos */}
         <StickyShowcaseWorkflow />
+
+        {/* 7. Planos Transparentes */}
         <PricingSection />
+
+        {/* 8. FAQ em Accordion */}
         <FaqSection />
+
+        {/* 9. Chamada Final à Ação */}
         <FinalCtaSection />
       </main>
 
-      {/* Footer */}
+      {/* Footer Cinematográfico */}
       <Footer />
 
       {/* Floating Back to Top Button */}
