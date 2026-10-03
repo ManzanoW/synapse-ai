@@ -2,7 +2,18 @@
 
 import React, { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Zap, Sparkles, BrainCircuit, ArrowDown } from "lucide-react";
+import {
+  Activity,
+  Brain,
+  AlertTriangle,
+  Car,
+  Clock,
+  Sparkles,
+  CheckCircle2,
+  ChevronDown,
+  Cpu,
+  Layers,
+} from "lucide-react";
 
 export function PainTransitionSection() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -13,223 +24,284 @@ export function PainTransitionSection() {
   });
 
   // =========================================================================
-  // SCROLL MAPPING COREOGRÁFICO CONTÍNUO (ESTILO MENTORIS)
-  // Conforme o usuário rola, uma palavra sobe e desvanece enquanto a próxima entra
+  // SCROLL-DRIVEN COGNITIVE DIAGNOSTIC (IDENTIDADE AUTÊNTICA SYNAPSE AI)
+  // 4 Fases de Telemetria Neural:
+  // 1. Ruído Sináptico (Sobrecarga de Editais)
+  // 2. Fuga de Foco (Horas Mortas no Deslocamento)
+  // 3. Colapso de Retenção (Curva de Esquecimento)
+  // 4. Sincronização Harmônica (O Alívio do Algoritmo FSRS)
   // =========================================================================
 
-  // 1. "Sobrecarga mental" (0.02 a 0.30)
-  const opacity1 = useTransform(scrollYProgress, [0.02, 0.10, 0.22, 0.30], [0, 1, 1, 0]);
-  const y1 = useTransform(scrollYProgress, [0.02, 0.10, 0.22, 0.30], [60, 0, 0, -80]);
-  const blur1 = useTransform(scrollYProgress, [0.02, 0.10, 0.22, 0.30], ["blur(10px)", "blur(0px)", "blur(0px)", "blur(12px)"]);
+  // Fase 1: Sobrecarga (0.04 a 0.28)
+  const opacity1 = useTransform(scrollYProgress, [0.04, 0.12, 0.22, 0.28], [0, 1, 1, 0]);
+  const y1 = useTransform(scrollYProgress, [0.04, 0.12, 0.22, 0.28], [40, 0, 0, -40]);
+  const scale1 = useTransform(scrollYProgress, [0.04, 0.12, 0.28], [0.95, 1, 0.95]);
 
-  // 2. "Falta de consistência" (0.24 a 0.54) - Começa a entrar antes da 1 sumir, como na foto do Mentoris!
-  const opacity2 = useTransform(scrollYProgress, [0.24, 0.34, 0.44, 0.54], [0, 1, 1, 0]);
-  const y2 = useTransform(scrollYProgress, [0.24, 0.34, 0.44, 0.54], [80, 0, 0, -80]);
-  const blur2 = useTransform(scrollYProgress, [0.24, 0.34, 0.44, 0.54], ["blur(10px)", "blur(0px)", "blur(0px)", "blur(12px)"]);
+  // Fase 2: Horas Mortas no Trânsito (0.28 a 0.52)
+  const opacity2 = useTransform(scrollYProgress, [0.28, 0.36, 0.46, 0.52], [0, 1, 1, 0]);
+  const y2 = useTransform(scrollYProgress, [0.28, 0.36, 0.46, 0.52], [40, 0, 0, -40]);
+  const scale2 = useTransform(scrollYProgress, [0.28, 0.36, 0.52], [0.95, 1, 0.95]);
 
-  // 3. "Planilhas confusas e esquecimento" (0.48 a 0.76)
-  const opacity3 = useTransform(scrollYProgress, [0.48, 0.58, 0.68, 0.76], [0, 1, 1, 0]);
-  const y3 = useTransform(scrollYProgress, [0.48, 0.58, 0.68, 0.76], [80, 0, 0, -80]);
-  const blur3 = useTransform(scrollYProgress, [0.48, 0.58, 0.68, 0.76], ["blur(10px)", "blur(0px)", "blur(0px)", "blur(12px)"]);
+  // Fase 3: Esquecimento na Véspera (0.52 a 0.74)
+  const opacity3 = useTransform(scrollYProgress, [0.52, 0.60, 0.68, 0.74], [0, 1, 1, 0]);
+  const y3 = useTransform(scrollYProgress, [0.52, 0.60, 0.68, 0.74], [40, 0, 0, -40]);
+  const scale3 = useTransform(scrollYProgress, [0.52, 0.60, 0.74], [0.95, 1, 0.95]);
 
-  // 4. A VIRADA: "Calma. Seu cérebro só precisava do algoritmo certo." (0.74 a 1.0)
-  const opacityRelief = useTransform(scrollYProgress, [0.74, 0.84, 0.96, 1.0], [0, 1, 1, 0.9]);
-  const yRelief = useTransform(scrollYProgress, [0.74, 0.84, 1.0], [70, 0, -10]);
-  const scaleRelief = useTransform(scrollYProgress, [0.74, 0.84, 1.0], [0.92, 1, 1.02]);
+  // Fase 4: A Sincronização Sináptica (0.74 a 1.0)
+  const opacity4 = useTransform(scrollYProgress, [0.74, 0.82, 0.95, 1.0], [0, 1, 1, 1]);
+  const y4 = useTransform(scrollYProgress, [0.74, 0.82, 1.0], [50, 0, 0]);
+  const scale4 = useTransform(scrollYProgress, [0.74, 0.82, 1.0], [0.92, 1, 1.02]);
 
-  // Transição de Iluminação: do Vermelho Estresse (Dor) para Ciano/Índigo (Alívio)
-  const redGlowOpacity = useTransform(scrollYProgress, [0, 0.65, 0.78], [0.7, 0.7, 0]);
-  const cyanGlowOpacity = useTransform(scrollYProgress, [0.72, 0.85, 1.0], [0, 0.85, 0.9]);
+  // Onda Caótica -> Onda Harmônica Sincronizada
+  const waveHarmonicProgress = useTransform(scrollYProgress, [0.65, 0.85], [0, 1]);
 
-  // Barra de progresso contínua estilo story
-  const storyProgress = useTransform(scrollYProgress, [0.05, 0.95], ["0%", "100%"]);
+  // Iluminação Sináptica Cósmica
+  const chaosAuraOpacity = useTransform(scrollYProgress, [0, 0.65, 0.75], [0.5, 0.6, 0]);
+  const syncAuraOpacity = useTransform(scrollYProgress, [0.72, 0.85, 1.0], [0, 0.8, 0.9]);
 
-  // Faíscas e brasas determinísticas fixas
-  const embers = [
-    { top: "15%", left: "12%", size: 3, delay: 0.2, duration: 3.2 },
-    { top: "25%", left: "85%", size: 4, delay: 0.5, duration: 4.1 },
-    { top: "35%", left: "20%", size: 2.5, delay: 1.1, duration: 3.8 },
-    { top: "45%", left: "75%", size: 3.5, delay: 0.8, duration: 4.5 },
-    { top: "55%", left: "10%", size: 4, delay: 1.5, duration: 3.6 },
-    { top: "65%", left: "88%", size: 3, delay: 0.3, duration: 4.2 },
-    { top: "75%", left: "28%", size: 2.5, delay: 1.8, duration: 3.9 },
-    { top: "82%", left: "70%", size: 4, delay: 0.7, duration: 4.7 },
-    { top: "18%", left: "60%", size: 3, delay: 2.1, duration: 3.4 },
-    { top: "68%", left: "45%", size: 2, delay: 1.2, duration: 4.0 },
-  ];
+  // Progresso Linear da Telemetria
+  const diagnosticProgress = useTransform(scrollYProgress, [0.05, 0.95], ["0%", "100%"]);
 
   return (
     <div
       id="pain-transition"
       ref={containerRef}
-      className="relative h-[380vh] w-full bg-[#030712] select-none"
+      className="relative h-[360vh] w-full bg-[#030712] select-none"
     >
-      {/* Sticky Fullscreen Viewport Container */}
-      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden px-4">
-        
+      {/* Sticky Fullscreen HUD Viewport */}
+      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6">
+
         {/* ===================================================================== */}
-        {/* 1. ATMOSFERA CÓSMICA DE ESTRESSE: BRASAS & FAÍSCAS (ESTILO MENTORIS)  */}
+        {/* ILUMINAÇÃO DE FUNDO: REDE NEURAL & HALOS CÓSMICOS SYNAPSE              */}
         {/* ===================================================================== */}
+        {/* Aura de Tensão Cognitiva (Índigo & Violeta Profundo) */}
         <motion.div
-          style={{ opacity: redGlowOpacity }}
-          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden transition-opacity"
+          style={{ opacity: chaosAuraOpacity }}
+          className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center"
         >
-          {/* Halo Vermelho de Estresse Cognitivo */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] sm:w-[950px] h-[550px] sm:h-[750px] bg-rose-600/18 rounded-full blur-[180px]" />
-          <div className="absolute top-1/4 -left-20 w-80 h-80 bg-rose-700/12 rounded-full blur-[140px]" />
-          <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-amber-600/10 rounded-full blur-[140px]" />
-
-          {/* Brasas e Partículas Vermelhas Flutuantes */}
-          {embers.map((ember, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full bg-rose-400 shadow-[0_0_10px_#f43f5e]"
-              style={{
-                top: ember.top,
-                left: ember.left,
-                width: `${ember.size}px`,
-                height: `${ember.size}px`,
-              }}
-              animate={{
-                opacity: [0.2, 0.9, 0.3],
-                scale: [0.8, 1.4, 0.9],
-                y: [-5, -25, -5],
-              }}
-              transition={{
-                duration: ember.duration,
-                repeat: Infinity,
-                delay: ember.delay,
-                ease: "easeInOut",
-              }}
-            />
-          ))}
-
-          {/* Faíscas / Riscos de Luz Cortando o Fundo */}
-          <div className="absolute top-1/3 left-1/4 w-32 h-[1px] bg-gradient-to-r from-transparent via-rose-500/60 to-transparent -rotate-12 blur-[0.5px]" />
-          <div className="absolute bottom-1/3 right-1/4 w-44 h-[1px] bg-gradient-to-r from-transparent via-rose-400/50 to-transparent rotate-6 blur-[0.5px]" />
+          <div className="w-[700px] sm:w-[950px] h-[500px] sm:h-[700px] bg-gradient-to-r from-violet-900/20 via-indigo-900/25 to-purple-900/15 rounded-full blur-[170px]" />
+          <div className="absolute top-1/3 -left-20 w-80 h-80 bg-indigo-700/15 rounded-full blur-[140px]" />
         </motion.div>
 
-        {/* ===================================================================== */}
-        {/* 2. ATMOSFERA CÓSMICA DO ALÍVIO (CIANO & ÍNDIGO NEON)                  */}
-        {/* ===================================================================== */}
+        {/* Aura de Sincronização (Ciano Neon & Azul Elétrico) */}
         <motion.div
-          style={{ opacity: cyanGlowOpacity }}
-          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden transition-opacity"
+          style={{ opacity: syncAuraOpacity }}
+          className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center"
         >
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] sm:w-[1100px] h-[600px] sm:h-[800px] bg-gradient-to-r from-cyan-500/25 via-indigo-600/25 to-violet-600/25 rounded-full blur-[170px]" />
+          <div className="w-[800px] sm:w-[1100px] h-[600px] sm:h-[800px] bg-gradient-to-r from-cyan-500/25 via-indigo-600/30 to-teal-500/20 rounded-full blur-[180px]" />
         </motion.div>
 
-        {/* Constellation Grid Overlay */}
+        {/* Grade de Telemetria e Coordenadas Cósmicas */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.03]"
+          className="pointer-events-none absolute inset-0 opacity-[0.035]"
           style={{
             backgroundImage: `radial-gradient(rgba(255,255,255,0.7) 1px, transparent 1px)`,
-            backgroundSize: "36px 36px",
+            backgroundSize: "32px 32px",
           }}
         />
 
-        {/* ===================================================================== */}
-        {/* FRASE 1: SOBRECARGA MENTAL (MONUMENTAL & CÓSMICA)                      */}
-        {/* ===================================================================== */}
-        <motion.div
-          style={{
-            opacity: opacity1,
-            y: y1,
-            filter: blur1,
-          }}
-          className="absolute text-center max-w-4xl px-4 pointer-events-none flex flex-col items-center"
-        >
-          <h2 className="text-4xl sm:text-7xl md:text-8xl font-black text-white tracking-tight leading-none drop-shadow-[0_0_40px_rgba(244,63,94,0.4)]">
-            Sobrecarga mental
-          </h2>
-          <p className="mt-5 text-sm sm:text-xl text-rose-300/80 font-mono tracking-wide max-w-lg">
-            Centenas de páginas de editais infinitos e a sensação de que nada fixa.
-          </p>
-        </motion.div>
+        {/* HUD Header Superior (Assinatura Sináptica Autêntica) */}
+        <div className="absolute top-8 sm:top-12 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl z-20">
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+          </span>
+          <span className="text-[10px] sm:text-xs font-mono font-bold text-slate-300 uppercase tracking-widest">
+            Diagnóstico Neural //{" "}
+            <span className="text-cyan-400">
+              {scrollYProgress.get() < 0.72 ? "Sobrecarga Biológica Detectada" : "Memória Sincronizada"}
+            </span>
+          </span>
+        </div>
 
         {/* ===================================================================== */}
-        {/* FRASE 2: FALTA DE CONSISTÊNCIA                                        */}
+        {/* VISUALIZADOR DE ONDAS NEURAIS (OSCILOSCÓPIO COGNITIVO SYNAPSE)         */}
         {/* ===================================================================== */}
-        <motion.div
-          style={{
-            opacity: opacity2,
-            y: y2,
-            filter: blur2,
-          }}
-          className="absolute text-center max-w-4xl px-4 pointer-events-none flex flex-col items-center"
-        >
-          <h2 className="text-4xl sm:text-7xl md:text-8xl font-black text-white tracking-tight leading-none drop-shadow-[0_0_40px_rgba(245,158,11,0.4)]">
-            Falta de consistência
-          </h2>
-          <p className="mt-5 text-sm sm:text-xl text-amber-300/80 font-mono tracking-wide max-w-lg">
-            2 horas por dia perdidas no trânsito querendo estudar sem conseguir.
-          </p>
-        </motion.div>
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-64 -z-10 flex items-center justify-center opacity-30">
+          <svg
+            className="w-full max-w-4xl h-32 overflow-visible"
+            viewBox="0 0 800 120"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Linha de Base */}
+            <line x1="0" y1="60" x2="800" y2="60" stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
+
+            {/* Onda Neural Caótica */}
+            <motion.path
+              d="M0,60 Q50,20 100,85 T200,30 T300,95 T400,15 T500,105 T600,35 T700,80 T800,60"
+              stroke="url(#neuralGradient)"
+              strokeWidth="2.5"
+              fill="none"
+              style={{
+                opacity: useTransform(waveHarmonicProgress, [0, 1], [0.9, 0]),
+              }}
+            />
+
+            {/* Onda Harmônica Sincronizada (Entra na Fase 4) */}
+            <motion.path
+              d="M0,60 Q100,10 200,60 T400,60 T600,60 T800,60"
+              stroke="#06b6d4"
+              strokeWidth="3"
+              fill="none"
+              style={{
+                opacity: useTransform(waveHarmonicProgress, [0, 1], [0, 1]),
+                filter: "drop-shadow(0 0 12px rgba(6,182,212,0.8))",
+              }}
+            />
+
+            <defs>
+              <linearGradient id="neuralGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#818cf8" />
+                <stop offset="50%" stopColor="#c084fc" />
+                <stop offset="100%" stopColor="#06b6d4" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
 
         {/* ===================================================================== */}
-        {/* FRASE 3: PLANILHAS CONFUSAS & ESQUECIMENTO                            */}
+        {/* PAINEL 1: SOBRECARGA DE EDITAIS                                       */}
         {/* ===================================================================== */}
         <motion.div
-          style={{
-            opacity: opacity3,
-            y: y3,
-            filter: blur3,
-          }}
-          className="absolute text-center max-w-4xl px-4 pointer-events-none flex flex-col items-center"
+          style={{ opacity: opacity1, y: y1, scale: scale1 }}
+          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none"
         >
-          <h2 className="text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-tight drop-shadow-[0_0_40px_rgba(244,63,94,0.4)]">
-            Esquecimento na véspera
-          </h2>
-          <p className="mt-5 text-sm sm:text-xl text-rose-300/80 font-mono tracking-wide max-w-lg">
-            A dor de errar na prova exatamente aquilo que você estudou há 2 meses.
-          </p>
-        </motion.div>
-
-        {/* ===================================================================== */}
-        {/* A VIRADA: O ALÍVIO DA NEUROCIÊNCIA (A TRANSIÇÃO PERFEITA PARA O COCKPIT) */}
-        {/* ===================================================================== */}
-        <motion.div
-          style={{
-            opacity: opacityRelief,
-            y: yRelief,
-            scale: scaleRelief,
-          }}
-          className="absolute text-center max-w-4xl px-4 pointer-events-none flex flex-col items-center space-y-4 sm:space-y-6"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/15 border border-cyan-500/35 text-cyan-300 text-xs sm:text-sm font-mono font-bold tracking-wider shadow-[0_0_25px_rgba(6,182,212,0.3)]">
-            <BrainCircuit className="w-4 h-4 text-cyan-300 animate-pulse" />
-            <span>A RESPOSTA DA NEUROCIÊNCIA</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 font-mono text-xs font-bold uppercase tracking-wider mb-5">
+            <Layers className="w-3.5 h-3.5 text-violet-400" />
+            <span>Fase 01 • Saturação Cognitiva</span>
           </div>
 
-          <h2 className="text-3xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-tight">
-            Calma. Seu cérebro só precisava do{" "}
-            <span className="bg-gradient-to-r from-cyan-300 via-indigo-200 to-violet-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(99,102,241,0.5)]">
-              algoritmo certo.
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.1]">
+            O cérebro humano não foi feito para decorar{" "}
+            <span className="bg-gradient-to-r from-violet-300 to-indigo-300 bg-clip-text text-transparent">
+              1.200 páginas de edital.
             </span>
           </h2>
 
-          <p className="text-sm sm:text-xl text-slate-300/90 font-normal max-w-2xl mx-auto leading-relaxed">
-            O Synapse AI assume o cálculo exato da sua curva de esquecimento, audita suas redações e transforma seu trânsito em horas líquidas de estudo.
-          </p>
-
-          <div className="pt-2 flex items-center gap-2 text-cyan-400 font-mono text-xs sm:text-sm font-bold animate-bounce">
-            <span>Role para conhecer o Cockpit Synapse</span>
-            <ArrowDown className="w-4 h-4" />
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:gap-6 font-mono text-xs sm:text-sm text-slate-300">
+            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
+              <span className="text-violet-400 font-bold block text-base sm:text-lg">&lt; 18%</span>
+              <span className="text-slate-400 text-[11px]">Retenção espontânea em 14 dias</span>
+            </div>
+            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
+              <span className="text-rose-400 font-bold block text-base sm:text-lg">Ruído Neural</span>
+              <span className="text-slate-400 text-[11px]">Sensação de estagnação mental</span>
+            </div>
           </div>
         </motion.div>
 
         {/* ===================================================================== */}
-        {/* INDICADOR DE PROGRESSO DE ROLAGEM CONTÍNUA                            */}
+        {/* PAINEL 2: HORAS PERDIDAS NO TRÂNSITO                                  */}
         {/* ===================================================================== */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 rounded-full bg-slate-950/80 border border-white/10 backdrop-blur-xl z-20 shadow-xl">
-          <div className="h-1.5 w-32 sm:w-44 bg-white/10 rounded-full overflow-hidden">
+        <motion.div
+          style={{ opacity: opacity2, y: y2, scale: scale2 }}
+          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider mb-5">
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Fase 02 • O Dreno Invisível</span>
+          </div>
+
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.1]">
+            2 horas por dia perdidas no trânsito{" "}
+            <span className="bg-gradient-to-r from-amber-300 to-orange-300 bg-clip-text text-transparent">
+              são 500 horas mortas por ano.
+            </span>
+          </h2>
+
+          <p className="mt-4 text-sm sm:text-lg text-slate-300 font-mono max-w-xl mx-auto leading-relaxed">
+            Preso no volante ou no transporte público querendo estudar, enquanto a concorrência avança.
+          </p>
+
+          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 font-mono text-xs">
+            <Car className="w-4 h-4 text-amber-400" />
+            <span>Tempo líquido irrecuperável sem estudo hands-free</span>
+          </div>
+        </motion.div>
+
+        {/* ===================================================================== */}
+        {/* PAINEL 3: A CURVA DO ESQUECIMENTO DE EBBINGHAUS                       */}
+        {/* ===================================================================== */}
+        <motion.div
+          style={{ opacity: opacity3, y: y3, scale: scale3 }}
+          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-300 font-mono text-xs font-bold uppercase tracking-wider mb-5">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+            <span>Fase 03 • A Amnésia de Véspera</span>
+          </div>
+
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.1]">
+            A dor de errar na prova exatamente aquilo que você{" "}
+            <span className="bg-gradient-to-r from-rose-300 via-pink-300 to-amber-300 bg-clip-text text-transparent">
+              estudou com afinco há 2 meses.
+            </span>
+          </h2>
+
+          <p className="mt-4 text-sm sm:text-lg text-slate-300 font-mono max-w-xl mx-auto leading-relaxed">
+            Revisar na data errada é o motivo nº 1 de reprovação: cedo demais você perde tempo; tarde demais, a memória já apagou.
+          </p>
+        </motion.div>
+
+        {/* ===================================================================== */}
+        {/* PAINEL 4: A SINCRONIZAÇÃO NEURAL SYNAPSE (A RESPOSTA DEFINITIVA)       */}
+        {/* ===================================================================== */}
+        <motion.div
+          style={{ opacity: opacity4, y: y4, scale: scale4 }}
+          className="absolute max-w-4xl w-full px-4 text-center pointer-events-none space-y-5 sm:space-y-6"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-teal-500/20 border border-cyan-500/40 text-cyan-300 font-mono text-xs sm:text-sm font-bold uppercase tracking-wider shadow-[0_0_25px_rgba(6,182,212,0.35)]">
+            <Brain className="w-4 h-4 text-cyan-400" />
+            <span>Sincronização Sináptica Completa</span>
+          </div>
+
+          <h2 className="text-3xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-[1.08]">
+            Calma. Seu cérebro só precisava da{" "}
+            <span className="bg-gradient-to-r from-cyan-300 via-indigo-200 to-violet-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(99,102,241,0.5)]">
+              neurociência certa.
+            </span>
+          </h2>
+
+          <p className="text-sm sm:text-xl text-slate-300/95 max-w-2xl mx-auto leading-relaxed font-normal">
+            O Synapse AI assume o cálculo biológico do seu esquecimento, audita suas redações no critério oficial da banca e transforma seu trânsito em horas líquidas de estudo.
+          </p>
+
+          {/* Telemetria de Vitória Cognitiva */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 max-w-xl mx-auto pt-2 font-mono text-xs">
+            <div className="p-3 rounded-2xl bg-black/50 border border-cyan-500/30 backdrop-blur-xl">
+              <span className="text-cyan-400 text-lg sm:text-xl font-black block">94.8%</span>
+              <span className="text-slate-400 text-[10px] sm:text-[11px]">Retenção FSRS</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-black/50 border border-indigo-500/30 backdrop-blur-xl">
+              <span className="text-indigo-400 text-lg sm:text-xl font-black block">+2h / dia</span>
+              <span className="text-slate-400 text-[10px] sm:text-[11px]">Hands-Free Áudio</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-black/50 border border-violet-500/30 backdrop-blur-xl">
+              <span className="text-violet-400 text-lg sm:text-xl font-black block">Nota 96+</span>
+              <span className="text-slate-400 text-[10px] sm:text-[11px]">Espelho Cebraspe</span>
+            </div>
+          </div>
+
+          <div className="pt-2 flex items-center justify-center gap-2 text-cyan-400 font-mono text-xs sm:text-sm font-bold animate-bounce">
+            <span>Role para entrar no Cockpit Synapse</span>
+            <ChevronDown className="w-4 h-4" />
+          </div>
+        </motion.div>
+
+        {/* ===================================================================== */}
+        {/* BARRA DE TELEMETRIA NA BASE (ESTILO SCANNER SINÁPTICO)                 */}
+        {/* ===================================================================== */}
+        <div className="absolute bottom-8 sm:bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 rounded-full bg-slate-950/80 border border-white/10 backdrop-blur-xl z-20 shadow-xl">
+          <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+          <div className="h-1.5 w-36 sm:w-52 bg-white/10 rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-rose-500 via-amber-400 to-cyan-400 rounded-full"
-              style={{ width: storyProgress }}
+              className="h-full bg-gradient-to-r from-violet-500 via-indigo-400 to-cyan-400 rounded-full"
+              style={{ width: diagnosticProgress }}
             />
           </div>
           <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-            Do Estresse à Solução
+            Diagnóstico ➔ FSRS
           </span>
         </div>
       </div>
