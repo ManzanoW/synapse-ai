@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Activity,
   Zap,
+  Flame,
 } from "lucide-react";
 
 export function InteractiveStickyShowcase() {
@@ -75,17 +76,22 @@ export function InteractiveStickyShowcase() {
         </motion.div>
 
         {/* Floating Cockpit Subtitle / Progress Header */}
-        <div className="text-center space-y-1 sm:space-y-2 mb-3 sm:mb-5 max-w-2xl px-2">
+        <div className="text-center space-y-1.5 sm:space-y-2 mb-3 sm:mb-5 max-w-2xl px-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(99,102,241,0.2)]">
             <Activity className="w-3.5 h-3.5 text-cyan-400" />
             <span>Cockpit Synapse em Ação</span>
           </div>
 
           <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight">
-            {activeScreen === 0 && "1. O Algoritmo FSRS de Memória Biológica"}
+            {activeScreen === 0 && "1. Revisão Preditiva & Curva de Fixação Ativa"}
             {activeScreen === 1 && "2. Correção de Redação Discursiva no Rigor da Banca"}
             {activeScreen === 2 && "3. Modo Hands-Free com Áudio Neural Humanizado"}
           </h3>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
+            {activeScreen === 0 && "O algoritmo antecipa a curva de esquecimento e agenda o momento exato de revisar."}
+            {activeScreen === 1 && "Espelho oficial Cebraspe/FGV com cálculo rigoroso de notas e versão ouro recomendada."}
+            {activeScreen === 2 && "Estude no trânsito ou caminhada com áudio estéreo natural e pausa para recuperação ativa."}
+          </p>
         </div>
 
         {/* ========================================================================= */}
@@ -121,16 +127,17 @@ export function InteractiveStickyShowcase() {
                   <span className="text-[11px] sm:text-xs font-mono font-bold text-slate-300">
                     synapse.cockpit //{" "}
                     <span className="text-cyan-400">
-                      {activeScreen === 0 && "fsrs_engine"}
-                      {activeScreen === 1 && "discursiva_evaluator"}
-                      {activeScreen === 2 && "neural_audio_player"}
+                      {activeScreen === 0 && "memoria_preditiva"}
+                      {activeScreen === 1 && "corretor_discursivo"}
+                      {activeScreen === 2 && "audio_hands_free"}
                     </span>
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-bold font-mono">
-                    <span>🔥 18 Dias</span>
+                    <Flame className="w-3.5 h-3.5 text-amber-400" />
+                    <span>18 Dias de Foco</span>
                   </div>
                   <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold font-mono">
                     <Award className="w-3.5 h-3.5 text-indigo-400" />
@@ -146,12 +153,12 @@ export function InteractiveStickyShowcase() {
                   onClick={() => handleManualTab(0)}
                   className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
                     activeScreen === 0
-                      ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30"
+                      ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30 border border-indigo-400/30"
                       : "text-slate-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   <Brain className="w-3.5 h-3.5 text-indigo-300" />
-                  <span>1. Motor FSRS ($R = 0.9^{'{'}t/S{'}'}$)</span>
+                  <span>1. Revisão Preditiva (FSRS)</span>
                 </button>
 
                 <button
@@ -159,12 +166,12 @@ export function InteractiveStickyShowcase() {
                   onClick={() => handleManualTab(1)}
                   className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
                     activeScreen === 1
-                      ? "bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-md shadow-violet-600/30"
+                      ? "bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-md shadow-violet-600/30 border border-violet-400/30"
                       : "text-slate-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   <FileCheck2 className="w-3.5 h-3.5 text-violet-300" />
-                  <span>2. Analista Discursiva (Banca)</span>
+                  <span>2. Redação Discursiva</span>
                 </button>
 
                 <button
@@ -172,12 +179,12 @@ export function InteractiveStickyShowcase() {
                   onClick={() => handleManualTab(2)}
                   className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
                     activeScreen === 2
-                      ? "bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-md shadow-cyan-600/30"
+                      ? "bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-md shadow-cyan-600/30 border border-cyan-400/30"
                       : "text-slate-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   <Headphones className="w-3.5 h-3.5 text-cyan-300" />
-                  <span>3. Áudio Hands-Free (Bluetooth)</span>
+                  <span>3. Áudio Hands-Free</span>
                 </button>
               </div>
 
@@ -185,7 +192,7 @@ export function InteractiveStickyShowcase() {
               <div className="p-3 sm:p-6 min-h-[310px] sm:min-h-[350px] flex items-center justify-center">
                 <AnimatePresence mode="wait">
                   {/* ================================================================= */}
-                  {/* TELA 1: MOTOR FSRS & CURVA DE RETENÇÃO                            */}
+                  {/* TELA 1: REVISÃO PREDITIVA & CURVA DE FIXAÇÃO ATIVA                */}
                   {/* ================================================================= */}
                   {activeScreen === 0 && (
                     <motion.div
@@ -197,85 +204,151 @@ export function InteractiveStickyShowcase() {
                       className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5"
                     >
                       <div className="md:col-span-2 rounded-2xl bg-white/[0.03] border border-white/[0.08] p-4 sm:p-5 space-y-3.5">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-[11px] font-mono font-bold text-indigo-400 uppercase">
-                              Estabilidade FSRS (Free Spaced Repetition Scheduler)
-                            </span>
-                            <h4 className="text-sm sm:text-base font-bold text-white mt-0.5">
+                        {/* Topic Header & Retention Probability */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-mono font-bold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                MEMÓRIA ESTABILIZADA • NÍVEL 4/5
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
+                                Algoritmo FSRS de 4ª Geração
+                              </span>
+                            </div>
+                            <h4 className="text-sm sm:text-base font-bold text-white">
                               Direito Administrativo • Licitações & Contratos (Lei 14.133/21)
                             </h4>
                           </div>
-                          <span className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
-                            94.8%
-                          </span>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tight block">
+                              94.8%
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono block">
+                              Lembrança Estimada
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Retention Progress */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-[11px] font-mono text-slate-400">
-                            <span>Retenção Calculada ($R = 0.9^{'{'}t/S{'}'}$)</span>
-                            <span className="text-indigo-300 font-bold">Próxima Revisão: +7 dias</span>
+                        {/* Visual Memory Curve Indicator */}
+                        <div className="p-3 rounded-xl bg-slate-950/60 border border-white/[0.06] space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-300 font-medium text-[11px] sm:text-xs">
+                              Curva de Fixação no Dia da Prova
+                            </span>
+                            <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                              <span className="text-slate-400">Próximo Contato Ótimo:</span>
+                              <span className="text-indigo-300 font-bold bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">
+                                em 7 dias
+                              </span>
+                            </div>
                           </div>
-                          <div className="h-2.5 w-full bg-slate-900 rounded-full overflow-hidden p-0.5 border border-white/5">
-                            <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-emerald-400 w-[95%]" />
+
+                          {/* Retention Bar with Threshold Marker */}
+                          <div className="space-y-1">
+                            <div className="h-2.5 w-full bg-slate-900 rounded-full overflow-hidden p-0.5 border border-white/5 relative">
+                              <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 w-[95%]" />
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] font-mono text-slate-500">
+                              <span>0%</span>
+                              <span className="text-slate-400">Meta Segura: 90%</span>
+                              <span className="text-emerald-400 font-semibold">94.8% Retido</span>
+                            </div>
                           </div>
                         </div>
 
                         {/* Question Preview */}
-                        <div className="p-3.5 rounded-xl bg-slate-950/70 border border-white/[0.06] text-xs space-y-1.5">
-                          <p className="font-bold text-slate-200">
-                            Pergunta: No Pregão Eletrônico, qual a consequência da não comprovação da habilitação fiscal pelo licitante primeiro colocado?
+                        <div className="p-3.5 rounded-xl bg-slate-950/80 border border-white/[0.08] text-xs space-y-2">
+                          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                            <span className="text-indigo-400 font-bold">QUESTÃO #142 • PROVA COMENTADA</span>
+                            <span className="text-emerald-400/90 font-medium">✓ Respondido com Confiança</span>
+                          </div>
+                          <p className="font-semibold text-slate-200 leading-snug">
+                            No Pregão Eletrônico, qual a consequência da não comprovação da habilitação fiscal pelo licitante primeiro colocado?
                           </p>
-                          <div className="pt-1.5 border-t border-white/5 flex items-center justify-between text-slate-400 font-mono text-[10px] sm:text-[11px]">
-                            <span className="text-emerald-300">Resposta: Convocação do segundo colocado nas mesmas condições.</span>
-                            <span className="text-slate-500">Intervalo FSRS: +7 dias</span>
+                          <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px]">
+                            <div className="text-slate-300">
+                              <strong className="text-emerald-400">Gabarito:</strong> Convocação do segundo colocado nas mesmas condições da proposta ofertada.
+                            </div>
+                            <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded border border-indigo-500/25 shrink-0 self-start sm:self-auto">
+                              Intervalo Otimizado: +7 dias
+                            </span>
                           </div>
                         </div>
 
-                        {/* Badges FSRS */}
-                        <div className="grid grid-cols-4 gap-2 text-center text-xs font-mono">
-                          <div className="p-1.5 sm:p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300">
-                            <span className="font-bold block text-[10px]">Errei</span>
-                            <span className="text-[11px]">Hoje</span>
+                        {/* Interactive Evaluation Rating Simulator */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                            <span>Como foi sua lembrança?</span>
+                            <span className="text-indigo-300 text-[10px]">O algoritmo calcula o intervalo ideal:</span>
                           </div>
-                          <div className="p-1.5 sm:p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300">
-                            <span className="font-bold block text-[10px]">Difícil</span>
-                            <span className="text-[11px]">+2 dias</span>
-                          </div>
-                          <div className="p-1.5 sm:p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
-                            <span className="font-bold block text-[10px]">Bom</span>
-                            <span className="text-[11px]">+7 dias</span>
-                          </div>
-                          <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
-                            <span className="font-bold block text-[10px]">Fácil</span>
-                            <span className="text-[11px]">+21 dias</span>
+                          <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center text-xs font-mono">
+                            <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300">
+                              <span className="font-bold block text-[10px] sm:text-[11px]">Errei</span>
+                              <span className="text-[9px] sm:text-[10px] text-rose-400/80">Rever Hoje</span>
+                            </div>
+                            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300">
+                              <span className="font-bold block text-[10px] sm:text-[11px]">Difícil</span>
+                              <span className="text-[9px] sm:text-[10px] text-amber-400/80">+2 dias</span>
+                            </div>
+                            <div className="p-2 rounded-xl bg-indigo-600/30 border-2 border-indigo-400 text-white shadow-md shadow-indigo-600/30 relative">
+                              <div className="absolute -top-2 right-1 px-1.5 py-0.2 rounded bg-indigo-500 text-[8px] font-bold uppercase tracking-wider text-white">
+                                Ativo
+                              </div>
+                              <span className="font-bold block text-[10px] sm:text-[11px] text-indigo-200">Bom</span>
+                              <span className="text-[9px] sm:text-[10px] text-indigo-300 font-bold">+7 dias</span>
+                            </div>
+                            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+                              <span className="font-bold block text-[10px] sm:text-[11px]">Fácil</span>
+                              <span className="text-[9px] sm:text-[10px] text-emerald-400/80">+21 dias</span>
+                            </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Right Insight Box */}
-                      <div className="rounded-2xl bg-gradient-to-b from-indigo-950/40 to-slate-950/60 border border-indigo-500/20 p-4 sm:p-5 flex flex-col justify-between space-y-3">
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-300 font-bold block">
-                            Impacto no Cronograma
-                          </span>
-                          <div className="text-2xl sm:text-3xl font-black text-white">
-                            -65% <span className="text-xs font-normal text-slate-400">cards diários</span>
+                      <div className="rounded-2xl bg-gradient-to-b from-indigo-950/40 to-slate-950/60 border border-indigo-500/25 p-4 sm:p-5 flex flex-col justify-between space-y-3">
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-300 font-bold">
+                              Eficiência Real de Estudo
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[9px] font-mono font-bold">
+                              vs. Anki SM-2
+                            </span>
                           </div>
-                          <p className="text-xs text-slate-300 leading-relaxed">
-                            O FSRS ajusta a estabilidade dinamicamente para que você nunca revise matéria que já fixou nem esqueça o que é difícil.
-                          </p>
+
+                          <div className="space-y-0.5">
+                            <div className="text-2xl sm:text-3xl font-black text-white">
+                              -65% <span className="text-xs font-normal text-slate-400">revisões diárias</span>
+                            </div>
+                            <p className="text-xs text-slate-300 leading-relaxed pt-1">
+                              O Synapse só aciona revisões quando a retenção atinge 90%. Sem repetições inúteis do que você já domina.
+                            </p>
+                          </div>
+
+                          {/* Comparativo Visual */}
+                          <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1.5 text-xs">
+                            <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                              <span>Método Tradicional:</span>
+                              <span className="font-mono text-rose-400 font-semibold">120 cards/dia</span>
+                            </div>
+                            <div className="flex items-center justify-between text-white text-[11px]">
+                              <span className="font-medium text-cyan-300">Synapse FSRS:</span>
+                              <span className="font-mono text-emerald-400 font-bold">24 cards/dia</span>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1 text-xs font-mono">
                           <div className="flex justify-between">
-                            <span className="text-slate-400">Cards Hoje:</span>
-                            <span className="text-cyan-300 font-bold">24 revisões</span>
+                            <span className="text-slate-400">Tempo Poupado:</span>
+                            <span className="text-cyan-300 font-bold">~45 min/dia</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-400">Retenção no Dia D:</span>
-                            <span className="text-emerald-400 font-bold">92%</span>
+                            <span className="text-slate-400">Retenção na Prova:</span>
+                            <span className="text-emerald-400 font-bold">92%+ garantida</span>
                           </div>
                         </div>
                       </div>
@@ -317,9 +390,9 @@ export function InteractiveStickyShowcase() {
                         </div>
 
                         {/* Formula Bar */}
-                        <div className="p-2.5 rounded-xl bg-violet-950/30 border border-violet-500/20 font-mono text-[11px] sm:text-xs flex items-center justify-between">
-                          <span className="text-violet-300 font-bold">Fórmula Oficial: NF = NC - 2 × (NE / TL)</span>
-                          <span className="text-slate-400">NC: 98 pts • NE: 2 erros • TL: 30 linhas</span>
+                        <div className="p-2.5 rounded-xl bg-violet-950/30 border border-violet-500/20 font-mono text-[11px] sm:text-xs flex flex-wrap items-center justify-between gap-1">
+                          <span className="text-violet-300 font-bold">Critério Oficial Cebraspe: NF = NC - 2 × (NE / TL)</span>
+                          <span className="text-slate-400">Nota Conteúdo: 98 • 2 Erros • 30 Linhas</span>
                         </div>
 
                         {/* Line by line error annotations */}
@@ -338,7 +411,10 @@ export function InteractiveStickyShowcase() {
                           </div>
 
                           <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs flex items-center justify-between">
-                            <span>✨ <strong>Versão Ouro Recomendada:</strong> Reescrita com termos técnicos aprovados pela banca.</span>
+                            <span className="flex items-center gap-1.5">
+                              <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              <span><strong>Versão Ouro Recomendada:</strong> Reescrita com termos técnicos aprovados pela banca.</span>
+                            </span>
                             <ChevronRight className="w-4 h-4 text-amber-400 shrink-0" />
                           </div>
                         </div>

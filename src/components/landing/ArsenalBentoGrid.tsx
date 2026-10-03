@@ -395,7 +395,7 @@ export function ArsenalBentoGrid() {
                     O Cérebro Matemático
                   </span>
                   <h3 className="text-xl sm:text-2xl font-black text-white">
-                    Motor FSRS: Curva do Esquecimento Domada ($R = 0.9^{'{'}t/S{'}'}$)
+                    Motor FSRS: Curva do Esquecimento Domada
                   </h3>
                 </div>
               </div>
@@ -408,7 +408,7 @@ export function ArsenalBentoGrid() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
               <div className="lg:col-span-2 space-y-4">
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  Enquanto métodos arcaicos fazem você revisar matérias que já domina ou deixam conteúdos difíceis caírem no esquecimento, o motor <strong className="text-white">FSRS (Free Spaced Repetition Scheduler)</strong> calcula a taxa de decaimento exata de cada conceito na sua memória biológica.
+                  Enquanto métodos arcaicos fazem você revisar matérias que já domina ou deixam conteúdos difíceis caírem no esquecimento, o motor preditivo <strong className="text-white">FSRS</strong> calcula o momento exato antes da perda de memória para agendar revisões cirúrgicas.
                 </p>
 
                 {/* Interactive Rating Simulator */}

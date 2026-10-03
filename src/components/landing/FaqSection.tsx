@@ -10,7 +10,7 @@ export function FaqSection() {
   const FAQS = [
     {
       q: "Como o motor FSRS difere do algoritmo tradicional do Anki?",
-      a: "O Anki tradicional utiliza o algoritmo SM-2 criado nos anos 80, que aplica intervalos de revisão fixos e gera acúmulo descontrolado de centenas de cards caso você falte alguns dias. O motor FSRS (Free Spaced Repetition Scheduler) do Synapse AI é baseado em modelagem contínua de memória (R = 0.9^{t/S}), calculando a probabilidade de esquecimento exata e reduzindo a carga diária de revisões em até 65% com a mesma retenção de 90%+ no dia da prova.",
+      a: "O Anki tradicional utiliza o algoritmo SM-2 criado nos anos 80, que aplica intervalos de revisão fixos e gera acúmulo descontrolado de centenas de cards caso você falte alguns dias. O motor FSRS do Synapse AI é baseado em modelagem matemática preditiva de memória, calculando a probabilidade de esquecimento exata e reduzindo a carga diária de revisões em até 65% com a mesma retenção de 90%+ no dia da prova.",
     },
     {
       q: "Como funciona o áudio neural hands-free com a tela do celular bloqueada?",
