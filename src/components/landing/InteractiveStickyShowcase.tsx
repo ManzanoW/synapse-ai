@@ -53,6 +53,15 @@ export function InteractiveStickyShowcase() {
   const glareX = useTransform(smoothMouseX, [-0.5, 0.5], ["20%", "80%"]);
   const glareY = useTransform(smoothMouseY, [-0.5, 0.5], ["20%", "80%"]);
 
+  // Parallax Multi-Plano dos Painéis Laterais de Fundo (Estilo Mentoris Imagem 3)
+  const bgPanelLeftX = useTransform(scrollYProgress, [0, 1], [-10, -85]);
+  const bgPanelLeftY = useTransform(scrollYProgress, [0, 1], [30, -50]);
+  const bgPanelLeftRotate = useTransform(scrollYProgress, [0, 1], [16, 26]);
+
+  const bgPanelRightX = useTransform(scrollYProgress, [0, 1], [10, 85]);
+  const bgPanelRightY = useTransform(scrollYProgress, [0, 1], [-30, 50]);
+  const bgPanelRightRotate = useTransform(scrollYProgress, [0, 1], [-16, -26]);
+
   const handleCockpitMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
@@ -158,7 +167,7 @@ export function InteractiveStickyShowcase() {
     <div
       id="cockpit-showcase"
       ref={containerRef}
-      className="relative h-[250vh] w-full bg-[#030712] select-none"
+      className="relative h-[290vh] w-full bg-[#030712] select-none"
     >
       {/* Sticky Viewport Container - Centralizado perfeitamente na tela */}
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-3 sm:px-6 lg:px-8 py-6">
@@ -198,6 +207,86 @@ export function InteractiveStickyShowcase() {
           onMouseMove={handleCockpitMouseMove}
           onMouseLeave={handleCockpitMouseLeave}
         >
+          {/* ======================================================================= */}
+          {/* PAINÉIS DE FUNDO EM 3D PARALLAX (PROFUNDIDADE MULTI-PLANO ESTILO MENTORIS)*/}
+          {/* ======================================================================= */}
+          {/* Painel Esquerdo: Edital Mapeado */}
+          <motion.div
+            style={{
+              x: bgPanelLeftX,
+              y: bgPanelLeftY,
+              rotateY: bgPanelLeftRotate,
+              rotateZ: -4,
+            }}
+            className="hidden xl:block absolute -left-28 top-1/2 -translate-y-1/2 w-64 p-4 rounded-2xl bg-[#090d1a]/85 backdrop-blur-xl border border-white/10 shadow-2xl pointer-events-none -z-10 opacity-70"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-white/5">
+              <span className="text-[11px] font-mono font-bold text-cyan-300">Edital Verticalizado</span>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">84% Coberto</span>
+            </div>
+            <div className="space-y-2 pt-2.5 text-[11px] font-mono">
+              <div className="space-y-1">
+                <div className="flex justify-between text-slate-300 text-[10px]">
+                  <span>Dir. Administrativo</span>
+                  <span className="text-cyan-400">92%</span>
+                </div>
+                <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-cyan-400 w-[92%]" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-slate-300 text-[10px]">
+                  <span>Dir. Constitucional</span>
+                  <span className="text-indigo-400">86%</span>
+                </div>
+                <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 w-[86%]" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-slate-300 text-[10px]">
+                  <span>Língua Portuguesa</span>
+                  <span className="text-violet-400">78%</span>
+                </div>
+                <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-violet-500 w-[78%]" />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Painel Direito: Planner de Revisões */}
+          <motion.div
+            style={{
+              x: bgPanelRightX,
+              y: bgPanelRightY,
+              rotateY: bgPanelRightRotate,
+              rotateZ: 4,
+            }}
+            className="hidden xl:block absolute -right-28 top-1/2 -translate-y-1/2 w-64 p-4 rounded-2xl bg-[#090d1a]/85 backdrop-blur-xl border border-white/10 shadow-2xl pointer-events-none -z-10 opacity-70"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-white/5">
+              <span className="text-[11px] font-mono font-bold text-violet-300">Planner de Revisões</span>
+              <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-1.5 py-0.2 rounded border border-cyan-500/20">+27% Retenção</span>
+            </div>
+            <div className="space-y-2.5 pt-2.5 text-[11px] font-mono">
+              <div className="p-2 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] text-slate-400">Amanhã • 08:30</div>
+                  <div className="text-xs font-bold text-white">Contratos Públicos</div>
+                </div>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">FSRS +7d</span>
+              </div>
+              <div className="p-2 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] text-slate-400">Quinta • 19:00</div>
+                  <div className="text-xs font-bold text-white">Habeas Corpus / Data</div>
+                </div>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold">Áudio</span>
+              </div>
+            </div>
+          </motion.div>
+
           <motion.div
             style={{
               rotateX: totalRotateX,
