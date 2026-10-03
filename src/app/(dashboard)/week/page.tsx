@@ -736,7 +736,7 @@ export default function WeekPage() {
     <div className="min-h-screen bg-[#030712] text-slate-100 p-3 sm:p-6 md:p-8 font-sans antialiased selection:bg-indigo-500/30 pb-16">
       <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6">
         {/* Top Header & Executive Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-1.5">
               <Link
@@ -872,7 +872,7 @@ export default function WeekPage() {
             </div>
 
             {/* Menu Utilitários: Mais Ações */}
-            <div className="relative" ref={actionsMenuRef}>
+            <div className="relative z-30" ref={actionsMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
@@ -894,7 +894,7 @@ export default function WeekPage() {
               </button>
 
               {isActionsMenuOpen && (
-                <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-[#090d16] border border-slate-800 shadow-2xl p-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-[#090d16] border border-slate-700/80 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1">
                   <button
                     type="button"
                     onClick={() => {

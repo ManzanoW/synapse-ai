@@ -336,7 +336,7 @@ function PlannerContent() {
         </div>
 
         {/* Command Bar Consolidada (Linear / macOS Style) */}
-        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-[#090d16]/90 border border-slate-800/80 p-2.5 sm:p-3 rounded-2xl shadow-xl backdrop-blur-md">
+        <div className="relative z-30 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-[#090d16]/90 border border-slate-800/80 p-2.5 sm:p-3 rounded-2xl shadow-xl backdrop-blur-md">
           {/* Search Bar */}
           <div className="relative flex-1 min-w-[220px]">
             <Search
@@ -417,7 +417,7 @@ function PlannerContent() {
             </button>
 
             {subjects.length > 0 && (
-              <div className="relative" ref={actionsMenuRef}>
+              <div className="relative z-30" ref={actionsMenuRef}>
                 <button
                   type="button"
                   onClick={() => setIsActionsOpen(!isActionsOpen)}
@@ -439,7 +439,7 @@ function PlannerContent() {
                 </button>
 
                 {isActionsOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-[#090d16] border border-slate-800 shadow-2xl p-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-[#090d16] border border-slate-700/80 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1">
                     <button
                       type="button"
                       onClick={() => {
