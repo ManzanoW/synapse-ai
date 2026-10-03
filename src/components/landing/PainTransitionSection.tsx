@@ -14,6 +14,7 @@ import {
   Activity,
   Flame,
 } from "lucide-react";
+import { NeuralWaveCanvas } from "./NeuralWaveCanvas";
 
 export function PainTransitionSection() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -129,113 +130,11 @@ export function PainTransitionSection() {
         </div>
 
         {/* ===================================================================== */}
-        {/* ⚡ OSCILOSCÓPIO NEURAL VIVO & FLUINDO EM TEMPO REAL                     */}
-        {/* Multi-camadas com fluxo horizontal contínuo e disparos elétricos      */}
+        {/* ⚡ OSCILOSCÓPIO NEURAL LÍQUIDO A 60 FPS (FÍSICA SENOIDAL PURA)        */}
+        {/* Zero trancos, zero saltos para a esquerda, ondulação contínua orgânica */}
         {/* ===================================================================== */}
         <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-80 -z-10 flex items-center justify-center overflow-hidden">
-          {/* 1. ONDA CAÓTICA EM FLUXO CONTÍNUO (Fases 1 a 3) */}
-          <motion.div
-            style={{
-              opacity: useTransform(waveHarmonicProgress, [0, 0.8], [0.85, 0]),
-            }}
-            className="w-full max-w-5xl h-44 relative flex items-center justify-center"
-          >
-            {/* SVG com onda dupla que se move horizontalmente em loop contínuo */}
-            <motion.svg
-              className="w-[200%] h-full overflow-visible shrink-0"
-              viewBox="0 0 1600 140"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              animate={{ x: [0, -800] }}
-              transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
-            >
-              {/* Linha de Base */}
-              <line x1="0" y1="70" x2="1600" y2="70" stroke="rgba(255,255,255,0.06)" strokeDasharray="6 6" />
-
-              {/* Camada 1: Glow Difuso da Onda Caótica */}
-              <path
-                d="M0,70 Q50,15 100,105 T200,35 T300,110 T400,20 T500,120 T600,40 T700,95 T800,70 Q850,15 900,105 T1000,35 T1100,110 T1200,20 T1300,120 T1400,40 T1500,95 T1600,70"
-                stroke="#6366f1"
-                strokeWidth="7"
-                strokeLinecap="round"
-                className="opacity-25 blur-sm"
-              />
-
-              {/* Camada 2: Onda Neural Caótica Principal */}
-              <path
-                d="M0,70 Q50,15 100,105 T200,35 T300,110 T400,20 T500,120 T600,40 T700,95 T800,70 Q850,15 900,105 T1000,35 T1100,110 T1200,20 T1300,120 T1400,40 T1500,95 T1600,70"
-                stroke="url(#chaosGradient)"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-
-              {/* Camada 3: Feixes Elétricos de Ação Rápida Correndo ao Longo do Fio */}
-              <path
-                d="M0,70 Q50,15 100,105 T200,35 T300,110 T400,20 T500,120 T600,40 T700,95 T800,70 Q850,15 900,105 T1000,35 T1100,110 T1200,20 T1300,120 T1400,40 T1500,95 T1600,70"
-                stroke="#38bdf8"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeDasharray="30 200"
-                className="filter drop-shadow-[0_0_8px_#38bdf8]"
-              />
-
-              <defs>
-                <linearGradient id="chaosGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#818cf8" />
-                  <stop offset="30%" stopColor="#c084fc" />
-                  <stop offset="60%" stopColor="#38bdf8" />
-                  <stop offset="100%" stopColor="#818cf8" />
-                </linearGradient>
-              </defs>
-            </motion.svg>
-          </motion.div>
-
-          {/* 2. ONDA HARMÔNICA SINCRONIZADA (Entra triunfante na Fase 4) */}
-          <motion.div
-            style={{
-              opacity: useTransform(waveHarmonicProgress, [0.3, 1], [0, 1]),
-            }}
-            className="w-full max-w-5xl h-44 absolute flex items-center justify-center"
-          >
-            <motion.svg
-              className="w-[200%] h-full overflow-visible shrink-0"
-              viewBox="0 0 1600 140"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              animate={{ x: [0, -800] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-            >
-              {/* Linha de Base Harmônica */}
-              <line x1="0" y1="70" x2="1600" y2="70" stroke="rgba(6,182,212,0.15)" strokeDasharray="4 4" />
-
-              {/* Glow Ciano Suave */}
-              <path
-                d="M0,70 Q100,20 200,70 T400,70 T600,70 T800,70 Q900,20 1000,70 T1200,70 T1400,70 T1600,70"
-                stroke="#06b6d4"
-                strokeWidth="8"
-                strokeLinecap="round"
-                className="opacity-35 blur-md"
-              />
-
-              {/* Linha Harmônica Neon Laser */}
-              <path
-                d="M0,70 Q100,20 200,70 T400,70 T600,70 T800,70 Q900,20 1000,70 T1200,70 T1400,70 T1600,70"
-                stroke="#22d3ee"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                className="drop-shadow-[0_0_15px_rgba(6,182,212,0.9)]"
-              />
-
-              {/* Impulso Elétrico Perfeito */}
-              <path
-                d="M0,70 Q100,20 200,70 T400,70 T600,70 T800,70 Q900,20 1000,70 T1200,70 T1400,70 T1600,70"
-                stroke="#ffffff"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeDasharray="20 280"
-              />
-            </motion.svg>
-          </motion.div>
+          <NeuralWaveCanvas scrollProgress={scrollYProgress} className="w-full max-w-6xl h-64" />
         </div>
 
         {/* ===================================================================== */}
