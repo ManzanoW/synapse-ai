@@ -19,18 +19,17 @@ import {
   Headphones,
   Flame,
   Activity,
-  Volume2,
+  Award,
 } from "lucide-react";
-import { BorderBeam } from "./BorderBeam";
 
 export function HeroSection() {
   const containerRef = useRef<HTMLElement>(null);
 
-  // Mouse Gyroscope Tracking com Física de Mola Suave
+  // Mouse Gyroscope Tracking para iluminação cósmica interativa
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const smoothMouseX = useSpring(mouseX, { stiffness: 85, damping: 22 });
-  const smoothMouseY = useSpring(mouseY, { stiffness: 85, damping: 22 });
+  const smoothMouseX = useSpring(mouseX, { stiffness: 60, damping: 25 });
+  const smoothMouseY = useSpring(mouseY, { stiffness: 60, damping: 25 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -45,44 +44,27 @@ export function HeroSection() {
     mouseY.set(0);
   };
 
-  // Parallax de Scroll
+  // Parallax suave de Scroll
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
 
-  const heroScale = useTransform(scrollYProgress, [0, 0.35], [1, 0.94]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.4], [1, 0.94]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.35], [1, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 0.35], [0, -50]);
-  const bgY = useTransform(scrollYProgress, [0, 1], [0, 160]);
+  const heroY = useTransform(scrollYProgress, [0, 0.4], [0, -40]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, 140]);
 
-  // Rotação 3D da Base do Cockpit Teaser
-  const cockpitRotateX = useTransform(smoothMouseY, [-0.5, 0.5], [18, 6]);
-  const cockpitRotateY = useTransform(smoothMouseX, [-0.5, 0.5], [-8, 8]);
-
-  // Parallax Multi-Camadas nos 4 Satélites Orbitais
-  // Satélite 1 (Top Left): Profundidade -20px
-  const sat1X = useTransform(smoothMouseX, [-0.5, 0.5], [-24, 24]);
-  const sat1Y = useTransform(smoothMouseY, [-0.5, 0.5], [-18, 18]);
-
-  // Satélite 2 (Top Right): Profundidade +25px
-  const sat2X = useTransform(smoothMouseX, [-0.5, 0.5], [28, -28]);
-  const sat2Y = useTransform(smoothMouseY, [-0.5, 0.5], [-22, 22]);
-
-  // Satélite 3 (Bottom Left): Profundidade +22px
-  const sat3X = useTransform(smoothMouseX, [-0.5, 0.5], [-32, 32]);
-  const sat3Y = useTransform(smoothMouseY, [-0.5, 0.5], [20, -20]);
-
-  // Satélite 4 (Bottom Right): Profundidade +15px
-  const sat4X = useTransform(smoothMouseX, [-0.5, 0.5], [22, -22]);
-  const sat4Y = useTransform(smoothMouseY, [-0.5, 0.5], [18, -18]);
+  // Iluminação cósmica que segue sutilmente o cursor
+  const lightX = useTransform(smoothMouseX, [-0.5, 0.5], ["35%", "65%"]);
+  const lightY = useTransform(smoothMouseY, [-0.5, 0.5], ["25%", "55%"]);
 
   return (
     <section
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative min-h-screen w-full flex flex-col items-center justify-between overflow-hidden bg-[#030712] pt-28 pb-12 px-4 select-none"
+      className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-[#030712] pt-24 pb-16 px-4 select-none"
     >
       {/* ========================================================================= */}
       {/* CAMADA DE FUNDO (Z-0): GRADIENTES CÓSMICOS & REDE NEURAL ESTELAR          */}
@@ -91,12 +73,14 @@ export function HeroSection() {
         style={{ y: bgY }}
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
       >
-        {/* Halos Cósmicos Radiais */}
-        <div
-          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] sm:w-[1100px] h-[600px] sm:h-[800px] opacity-75 blur-[160px]"
+        {/* Halo Cósmico Principal com física reativa ao mouse */}
+        <motion.div
+          className="absolute w-[700px] sm:w-[1000px] h-[600px] sm:h-[800px] rounded-full opacity-70 blur-[150px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
           style={{
+            left: lightX,
+            top: lightY,
             background:
-              "radial-gradient(circle, rgba(99,102,241,0.22) 0%, rgba(139,92,246,0.18) 40%, rgba(6,182,212,0.12) 75%, transparent 100%)",
+              "radial-gradient(circle, rgba(99,102,241,0.25) 0%, rgba(139,92,246,0.18) 40%, rgba(6,182,212,0.14) 70%, transparent 100%)",
           }}
         />
 
@@ -105,7 +89,7 @@ export function HeroSection() {
 
         {/* Constellation Grid Pattern */}
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute inset-0 opacity-[0.035]"
           style={{
             backgroundImage: `radial-gradient(rgba(255,255,255,0.85) 1px, transparent 1px)`,
             backgroundSize: "36px 36px",
@@ -114,11 +98,11 @@ export function HeroSection() {
       </motion.div>
 
       {/* ========================================================================= */}
-      {/* CAMADA MÉDIA (Z-10): TÍTULO MONUMENTAL & COPY PRINCIPAL                   */}
+      {/* CONTEÚDO HERO CENTRALIZADO & PERFEITAMENTE PROPORCIONADO                  */}
       {/* ========================================================================= */}
       <motion.div
         style={{ scale: heroScale, opacity: heroOpacity, y: heroY }}
-        className="relative z-10 text-center max-w-5xl mx-auto space-y-6 sm:space-y-8 my-auto"
+        className="relative z-10 text-center max-w-5xl mx-auto flex flex-col items-center justify-center space-y-6 sm:space-y-8 my-auto"
       >
         {/* Badge Superior Animado */}
         <motion.div
@@ -166,7 +150,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.35 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 w-full sm:w-auto"
         >
           <Link
             href="/login"
@@ -200,200 +184,84 @@ export function HeroSection() {
           <span className="text-slate-600 hidden sm:inline">•</span>
           <span>+87% de Retenção FSRS</span>
         </motion.div>
-      </motion.div>
-
-      {/* ========================================================================= */}
-      {/* 🛸 CAMADA FRONTAL 3D: COCKPIT TEASER & SATÉLITES ORBITAIS PARALLAX        */}
-      {/* ========================================================================= */}
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, delay: 0.5 }}
-        className="relative w-full max-w-5xl mx-auto mt-8 sm:mt-12 mb-4"
-        style={{ perspective: 1200 }}
-      >
-        {/* ======================================================================= */}
-        {/* 4 SATÉLITES ORBITAIS (DESKTOP / TABLET): PARALLAX DINÂMICO MULTI-CAMADA   */}
-        {/* ======================================================================= */}
-        
-        {/* Satélite 1 (Top Left): Motor FSRS */}
-        <motion.div
-          style={{ x: sat1X, y: sat1Y }}
-          className="hidden md:flex absolute -top-8 -left-8 lg:-left-12 z-30 items-center gap-3 p-3 rounded-2xl bg-[#090d1a]/90 backdrop-blur-xl border border-cyan-500/30 shadow-xl shadow-cyan-950/40 pointer-events-none"
-        >
-          <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center shrink-0">
-            <BrainCircuit className="w-5 h-5 text-cyan-400" />
-          </div>
-          <div className="text-left font-mono">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="text-[11px] font-bold text-white">FSRS 4.0</span>
-            </div>
-            <div className="text-xs font-black text-cyan-300">94.8% Retenção</div>
-            <span className="text-[10px] text-slate-400">Próx. Revisão: 7d</span>
-          </div>
-        </motion.div>
-
-        {/* Satélite 2 (Top Right): Espelho Cebraspe */}
-        <motion.div
-          style={{ x: sat2X, y: sat2Y }}
-          className="hidden md:flex absolute -top-10 -right-8 lg:-right-12 z-30 items-center gap-3 p-3 rounded-2xl bg-[#090d1a]/90 backdrop-blur-xl border border-violet-500/30 shadow-xl shadow-violet-950/40 pointer-events-none"
-        >
-          <div className="w-9 h-9 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center shrink-0">
-            <FileCheck2 className="w-5 h-5 text-violet-400" />
-          </div>
-          <div className="text-left font-mono">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Espelho Cebraspe</span>
-            <div className="text-xs font-black text-violet-300">96.4 pts Nota Ouro</div>
-            <span className="text-[10px] text-emerald-400">Zero desvios formais</span>
-          </div>
-        </motion.div>
-
-        {/* Satélite 3 (Bottom Left): Áudio Neural */}
-        <motion.div
-          style={{ x: sat3X, y: sat3Y }}
-          className="hidden md:flex absolute -bottom-6 -left-6 lg:-left-10 z-30 items-center gap-3 p-3 rounded-2xl bg-[#090d1a]/90 backdrop-blur-xl border border-indigo-500/30 shadow-xl shadow-indigo-950/40 pointer-events-none"
-        >
-          <div className="w-9 h-9 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center shrink-0">
-            <Headphones className="w-5 h-5 text-indigo-400" />
-          </div>
-          <div className="text-left font-mono">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Áudio Neural</span>
-            <div className="text-xs font-black text-indigo-300">1.25x Hands-Free</div>
-            <span className="text-[10px] text-cyan-400">Bluetooth Ativo</span>
-          </div>
-        </motion.div>
-
-        {/* Satélite 4 (Bottom Right): Consistência & Ofensiva */}
-        <motion.div
-          style={{ x: sat4X, y: sat4Y }}
-          className="hidden md:flex absolute -bottom-6 -right-6 lg:-right-10 z-30 items-center gap-3 p-3 rounded-2xl bg-[#090d1a]/90 backdrop-blur-xl border border-amber-500/30 shadow-xl shadow-amber-950/40 pointer-events-none"
-        >
-          <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-            <Flame className="w-5 h-5 text-amber-400" />
-          </div>
-          <div className="text-left font-mono">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Consistência</span>
-            <div className="text-xs font-black text-amber-300">18 Dias de Foco</div>
-            <span className="text-[10px] text-slate-400">Ofensiva Imparável 🔥</span>
-          </div>
-        </motion.div>
 
         {/* ======================================================================= */}
-        {/* MOCKUP 3D DO COCKPIT TEASER COM BORDER BEAM SINÁPTICO                    */}
+        {/* DOCK TELEMÉTRICO DE NEUROCIÊNCIA (4 PILARES INTEGRADOS & REFINADOS)      */}
         {/* ======================================================================= */}
         <motion.div
-          style={{
-            rotateX: cockpitRotateX,
-            rotateY: cockpitRotateY,
-            boxShadow: "0 25px 60px -15px rgba(99, 102, 241, 0.35)",
-          }}
-          className="relative rounded-2xl sm:rounded-3xl p-[1.5px] overflow-hidden group"
+          initial={{ opacity: 0, y: 25 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.55 }}
+          className="w-full pt-4 sm:pt-6"
         >
-          {/* Border Beam Contínuo */}
-          <BorderBeam duration={7} colorFrom="#06b6d4" colorTo="#818cf8" />
-
-          {/* Cartão Interno Dark */}
-          <div className="relative rounded-[inherit] bg-[#070b14]/95 backdrop-blur-2xl p-4 sm:p-6 border border-white/10 overflow-hidden">
-            {/* Header da Janela */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-                </div>
-                <div className="h-3 w-px bg-white/10 mx-2" />
-                <span className="text-[11px] sm:text-xs font-mono font-bold text-slate-300">
-                  synapse.os // <span className="text-cyan-400">copiloto_cognitivo</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto">
+            {/* Pilar 1: Motor FSRS */}
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-cyan-500/30 backdrop-blur-xl transition-all group text-left space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
+                  <BrainCircuit className="w-4 h-4" />
                 </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
               </div>
-
-              <div className="flex items-center gap-2 font-mono text-[10px] sm:text-xs text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/25">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                <span>ONLINE • 60 FPS</span>
+              <div className="font-mono text-sm sm:text-base font-black text-white">
+                94.8% <span className="text-[10px] font-normal text-slate-400">Retenção</span>
+              </div>
+              <div className="text-[10px] sm:text-[11px] font-mono text-cyan-300/80 truncate">
+                FSRS 4.0 • Revisão em 7d
               </div>
             </div>
 
-            {/* Grid de Alta Densidade: Visão Geral Rápida do Cockpit */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-4">
-              {/* Mini Card 1: FSRS Retention Curve */}
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex flex-col justify-between space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-cyan-300 uppercase">
-                    Memória Preditiva
-                  </span>
-                  <Activity className="w-3.5 h-3.5 text-cyan-400" />
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xl sm:text-2xl font-black font-mono text-white">94.8%</div>
-                  <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden p-0.5 border border-white/5">
-                    <div className="h-full w-[95%] bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full" />
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400 block">
-                  Estabilidade: +14 dias sem esquecer
+            {/* Pilar 2: Espelho Cebraspe */}
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-violet-500/30 backdrop-blur-xl transition-all group text-left space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/25 flex items-center justify-center text-violet-400 group-hover:scale-105 transition-transform">
+                  <FileCheck2 className="w-4 h-4" />
+                </span>
+                <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                  OURO
                 </span>
               </div>
-
-              {/* Mini Card 2: Neural Audio Stream */}
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex flex-col justify-between space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-indigo-300 uppercase">
-                    Áudio Hands-Free
-                  </span>
-                  <Volume2 className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xs font-bold text-white truncate">
-                    Art. 37 CF/88 • Princípios LIMPE
-                  </div>
-                  {/* Mini Sound Equalizer */}
-                  <div className="flex items-center gap-1 h-5 pt-1">
-                    {[40, 75, 55, 90, 65, 80, 45, 95, 70, 85].map((h, i) => (
-                      <span
-                        key={i}
-                        className="w-1 bg-gradient-to-t from-indigo-500 to-cyan-400 rounded-full animate-pulse"
-                        style={{ height: `${h}%`, animationDelay: `${i * 0.1}s` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400 block">
-                  Pausa ativa para recall de 5s
-                </span>
+              <div className="font-mono text-sm sm:text-base font-black text-white">
+                96.4 pts <span className="text-[10px] font-normal text-slate-400">Nota Final</span>
               </div>
+              <div className="text-[10px] sm:text-[11px] font-mono text-violet-300/80 truncate">
+                Critério Oficial Cebraspe
+              </div>
+            </div>
 
-              {/* Mini Card 3: Discursiva Cebraspe */}
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex flex-col justify-between space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-violet-300 uppercase">
-                    Redação Cebraspe
-                  </span>
-                  <FileCheck2 className="w-3.5 h-3.5 text-violet-400" />
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xl sm:text-2xl font-black font-mono text-white">96.4 pts</div>
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 inline-block">
-                    Nota Máxima Recomendada
-                  </span>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400 block">
-                  Fórmula oficial: NF = NC - 2(NE/TL)
+            {/* Pilar 3: Áudio Neural */}
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-indigo-500/30 backdrop-blur-xl transition-all group text-left space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition-transform">
+                  <Headphones className="w-4 h-4" />
                 </span>
+                <span className="text-[9px] font-mono text-indigo-300">1.25x HD</span>
+              </div>
+              <div className="font-mono text-sm sm:text-base font-black text-white">
+                +2h / dia <span className="text-[10px] font-normal text-slate-400">no trânsito</span>
+              </div>
+              <div className="text-[10px] sm:text-[11px] font-mono text-indigo-300/80 truncate">
+                Flashcards Hands-Free
+              </div>
+            </div>
+
+            {/* Pilar 4: Consistência */}
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-amber-500/30 backdrop-blur-xl transition-all group text-left space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
+                  <Flame className="w-4 h-4" />
+                </span>
+                <span className="text-[9px] font-mono text-amber-300">Ofensiva</span>
+              </div>
+              <div className="font-mono text-sm sm:text-base font-black text-white">
+                18 Dias <span className="text-[10px] font-normal text-slate-400">de Foco</span>
+              </div>
+              <div className="text-[10px] sm:text-[11px] font-mono text-amber-300/80 truncate">
+                Hábito Inquebrável 🔥
               </div>
             </div>
           </div>
         </motion.div>
-
-        {/* Ambient Ground Reflection Glow */}
-        <div
-          className="pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 w-4/5 h-20 opacity-50 blur-2xl"
-          style={{
-            background:
-              "radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.4) 0%, rgba(6,182,212,0.2) 40%, transparent 80%)",
-          }}
-        />
       </motion.div>
 
       {/* ========================================================================= */}
@@ -403,7 +271,7 @@ export function HeroSection() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.7 }}
-        className="relative z-10 flex flex-col items-center gap-2 mt-4"
+        className="relative z-10 flex flex-col items-center gap-2 mt-6 sm:mt-8"
       >
         <a
           href="#pain-transition"
