@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Menu, X, ArrowRight, ShieldCheck, Zap } from "lucide-react";
+import { Menu, X, ArrowRight, ShieldCheck, Zap } from "lucide-react";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -85,16 +85,10 @@ export function Navbar() {
 
               <Link
                 href="/login"
-                className="relative group inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white overflow-hidden transition-all duration-300 focus:outline-hidden"
+                className="group inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border border-indigo-400/30 hover:border-indigo-300/50 shadow-md shadow-indigo-950/50 transition-all duration-200 focus:outline-hidden"
               >
-                {/* Glow Background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-500 rounded-xl group-hover:opacity-90 transition-opacity" />
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400 rounded-xl blur-sm opacity-50 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="relative flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
-                  <span>Começar Grátis</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </div>
+                <span>Começar Grátis</span>
+                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
 

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 
 export function FinalCtaSection() {
@@ -41,15 +41,10 @@ export function FinalCtaSection() {
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/login"
-              className="w-full sm:w-auto relative group inline-flex items-center justify-center gap-2.5 px-8 py-4.5 rounded-2xl font-black text-sm sm:text-base text-white overflow-hidden shadow-[0_0_50px_rgba(99,102,241,0.4)] transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]"
+              className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 px-8 py-4.5 rounded-2xl font-bold text-sm sm:text-base text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border border-indigo-400/30 hover:border-indigo-300/50 shadow-xl shadow-indigo-950/60 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-500 rounded-2xl" />
-              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400 rounded-2xl blur-md opacity-70 group-hover:opacity-100 transition-opacity" />
-              <div className="relative flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-cyan-200 animate-pulse" />
-                <span>Começar Gratuitamente</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </div>
+              <span>Começar Gratuitamente</span>
+              <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
 

@@ -11,7 +11,8 @@ import {
   FileSpreadsheet,
   FileX2,
   TrendingDown,
-  Sparkles,
+  FileCheck2,
+  BrainCircuit,
   Headphones,
   Flame,
   ArrowRight,
@@ -34,7 +35,7 @@ export function RealityCheckSection() {
       painIcon: FileX2,
       painTitle: "Redações sem correção oficial ou com semanas de espera",
       painDesc: "Contratar professores particulares custa uma fortuna e leva até 10 dias para receber um feedback genérico, enquanto você precisa treinar temas toda semana.",
-      solIcon: Sparkles,
+      solIcon: FileCheck2,
       solTitle: "Corretor Discursivo no Rigor da Banca",
       solDesc: "Correção instantânea com as fórmulas exatas de desconto do Cebraspe, FGV e FCC. Análise de macroestrutura, microestrutura linha a linha e versão ouro gerada em 10 segundos.",
     },
@@ -189,7 +190,7 @@ export function RealityCheckSection() {
             >
               {/* Top Neon Badge */}
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400 text-white text-[11px] font-black uppercase tracking-wider shadow-lg shadow-indigo-500/40 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
+                <BrainCircuit className="w-3.5 h-3.5 text-cyan-200" />
                 <span>O Futuro da Aprovação</span>
               </div>
 

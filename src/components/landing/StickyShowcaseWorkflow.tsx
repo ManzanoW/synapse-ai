@@ -8,7 +8,6 @@ import {
   CalendarCheck2,
   CheckCircle2,
   ArrowRight,
-  Sparkles,
   UploadCloud,
   Layers,
   Clock,
@@ -179,7 +178,7 @@ export function StickyShowcaseWorkflow() {
                       </div>
 
                       <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 font-mono flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
                         <span>Edital verticalizado com 100% de precisão. Zero necessidade de formatação manual.</span>
                       </div>
                     </motion.div>

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Sparkles,
+  Target,
   Crown,
   CheckCircle2,
   ArrowRight,
@@ -44,7 +44,7 @@ export function PricingSection() {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 text-xs font-mono font-bold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <Target className="w-3.5 h-3.5 text-indigo-400" />
             <span>Investimento na sua Posse</span>
           </div>
 
@@ -237,14 +237,10 @@ export function PricingSection() {
             <div className="pt-8 space-y-3">
               <Link
                 href="/login"
-                className="w-full relative group inline-flex items-center justify-center gap-2 py-4 px-6 rounded-2xl font-black text-sm text-white overflow-hidden shadow-xl shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full group inline-flex items-center justify-center gap-2 py-4 px-6 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border border-indigo-400/30 hover:border-indigo-300/50 shadow-xl shadow-indigo-950/60 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-500 rounded-2xl" />
-                <div className="relative flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-cyan-200" />
-                  <span>Quero Ser Synapse Pro 🚀</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
+                <span>Quero Ser Synapse Pro</span>
+                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
 
               <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-mono">

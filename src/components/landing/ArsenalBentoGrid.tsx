@@ -9,7 +9,6 @@ import {
   ScanText,
   BookmarkX,
   Target,
-  Sparkles,
   Play,
   Pause,
   RotateCcw,

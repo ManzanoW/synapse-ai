@@ -13,7 +13,6 @@ import {
   FileCheck2,
   Headphones,
   Award,
-  Sparkles,
   Volume2,
   CheckCircle2,
   ChevronRight,
