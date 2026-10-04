@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import {
   XCircle,
@@ -16,59 +16,82 @@ import {
   Headphones,
   Flame,
   ArrowRight,
+  ShieldAlert,
 } from "lucide-react";
 import Link from "next/link";
 
 export function RealityCheckSection() {
-  const [activeTab, setActiveTab] = useState<"all" | "arcaico" | "synapse">("all");
-
-  const PAIN_POINTS = [
+  const DUELS = [
     {
-      painIcon: FileSpreadsheet,
-      painTitle: "Planilhas de Excel que viram um cemitério",
-      painDesc: "Você gasta 3 dias montando um cronograma colorido perfeito no Excel. Na segunda semana, um imprevisto acontece, o arquivo desorganiza e você abandona tudo com sensação de culpa.",
-      solIcon: Zap,
-      solTitle: "Ciclo Adaptativo Inteligente",
-      solDesc: "O algoritmo reequilibra seu cronograma automaticamente quando você perde um dia. Sem culpa, sem empilhar matéria atrasada e sem precisar refazer planilhas.",
+      id: "01",
+      topic: "Gestão do Cronograma",
+      iconArcaico: FileSpreadsheet,
+      arcaicoTitle: "Planilhas de Excel que viram cemitério",
+      arcaicoDesc:
+        "Você gasta 3 dias montando um cronograma colorido. No primeiro imprevisto, o arquivo desorganiza e você abandona tudo com sensação de culpa.",
+      arcaicoBadge: "Rígido & Frágil",
+      iconSynapse: Zap,
+      synapseTitle: "Ciclo Adaptativo Auto-Rebalanceável",
+      synapseDesc:
+        "O algoritmo reequilibra seu cronograma automaticamente quando você perde um dia. Sem culpa, sem empilhar matéria atrasada e sem refazer nada.",
+      synapseBadge: "100% Automático",
     },
     {
-      painIcon: FileX2,
-      painTitle: "Redações sem correção oficial ou com semanas de espera",
-      painDesc: "Contratar professores particulares custa uma fortuna e leva até 10 dias para receber um feedback genérico, enquanto você precisa treinar temas toda semana.",
-      solIcon: FileCheck2,
-      solTitle: "Corretor Discursivo no Rigor da Banca",
-      solDesc: "Correção instantânea com as fórmulas exatas de desconto do Cebraspe, FGV e FCC. Análise de macroestrutura, microestrutura linha a linha e versão ouro gerada em 10 segundos.",
+      id: "02",
+      topic: "Redação Discursiva",
+      iconArcaico: FileX2,
+      arcaicoTitle: "Correções caras e 15 dias de espera",
+      arcaicoDesc:
+        "Contratar professores particulares custa uma fortuna para receber um feedback genérico semanas depois, quando você já esqueceu o tema.",
+      arcaicoBadge: "Lento & Dispendioso",
+      iconSynapse: FileCheck2,
+      synapseTitle: "Espelho Oficial Cebraspe em 8 Segundos",
+      synapseDesc:
+        "Fórmula exata de desconto da banca (NF = NC - 2×NE/TL), análise linha a linha de microestrutura e versão ouro sugerida na hora.",
+      synapseBadge: "Critério Oficial",
     },
     {
-      painIcon: Clock,
-      painTitle: "Horas líquidas jogadas no lixo no trânsito",
-      painDesc: "Você passa 2 a 3 horas diárias preso no trânsito, no metrô ou lavando louça querendo estudar, mas não consegue ler apostilas ou manusear telas.",
-      solIcon: Headphones,
-      solTitle: "Flashcards Hands-Free com Voz Neural",
-      solDesc: "Coloque os fones de ouvido e estude com o celular no bolso. O Synapse faz a pergunta com voz natural, dá uma pausa reflexiva para você pensar e solta o gabarito oficial.",
+      id: "03",
+      topic: "Horas Mortas no Deslocamento",
+      iconArcaico: Clock,
+      arcaicoTitle: "2h diárias jogadas no lixo no trânsito",
+      arcaicoDesc:
+        "Preso no trânsito, no metrô ou lavando louça querendo estudar, mas é impossível ler apostilas ou manusear telas sem enjoar ou se distrair.",
+      arcaicoBadge: "Tempo Perdido",
+      iconSynapse: Headphones,
+      synapseTitle: "Áudio Hands-Free com Voz Neural",
+      synapseDesc:
+        "Estude com o celular no bolso. A IA pergunta no fone Bluetooth, aguarda 3s para você pensar e solta a resolução oficial completa.",
+      synapseBadge: "+2h Líquidas / dia",
     },
     {
-      painIcon: TrendingDown,
-      painTitle: "A bola de neve incontrolável do Anki tradicional",
-      painDesc: "Com o algoritmo SM-2 básico dos anos 80, se você fica 4 dias sem abrir o app, se depara com 800 cards acumulados para revisar num único dia desesperador.",
-      solIcon: Flame,
-      solTitle: "Motor FSRS com Estabilidade de Memória",
-      solDesc: "Modelo moderno de repetição espaçada que calcula o limiar exato da sua retenção, diminuindo em até 65% a quantidade de revisões necessárias com 90%+ de acerto.",
+      id: "04",
+      topic: "Retenção de Longo Prazo",
+      iconArcaico: TrendingDown,
+      arcaicoTitle: "A bola de neve incontrolável do Anki antigo",
+      arcaicoDesc:
+        "Com o algoritmo SM-2 básico dos anos 80, 4 dias sem abrir o app resultam em 600 revisões acumuladas em um único dia desesperador.",
+      arcaicoBadge: "Burnout Garantido",
+      iconSynapse: Flame,
+      synapseTitle: "Motor FSRS com Estabilidade Biológica",
+      synapseDesc:
+        "Calcula o limiar exato do esquecimento biológico, eliminando 65% das repetições inúteis do que você já domina, garantindo 92%+ na prova.",
+      synapseBadge: "-65% Revisões Inúteis",
     },
   ];
 
   return (
-    <section id="metodo" className="relative py-24 sm:py-32 overflow-hidden bg-[#030712]">
-      {/* Glow Divisor */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-5xl h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
+    <section id="metodo" className="relative py-20 sm:py-28 overflow-hidden bg-[#030712]">
+      {/* Glow Divisor Superior */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-5xl h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
 
       {/* Volumetric Lights */}
-      <div className="pointer-events-none absolute top-1/2 -left-60 w-96 h-96 bg-rose-600/10 rounded-full blur-[140px]" />
-      <div className="pointer-events-none absolute top-1/2 -right-60 w-96 h-96 bg-cyan-600/10 rounded-full blur-[140px]" />
+      <div className="pointer-events-none absolute top-1/3 -left-60 w-96 h-96 bg-rose-600/10 rounded-full blur-[150px]" />
+      <div className="pointer-events-none absolute top-1/3 -right-60 w-96 h-96 bg-cyan-600/10 rounded-full blur-[150px]" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4">
+        <div className="text-center max-w-3xl mx-auto space-y-3 mb-12 sm:mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs font-mono font-bold uppercase tracking-wider">
             <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
             <span>O Choque de Realidade</span>
@@ -83,177 +106,110 @@ export function RealityCheckSection() {
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-            Estudar para concurso com as ferramentas da década passada é como tentar disputar uma corrida de Fórmula 1 pedalando uma bicicleta enferrujada.
+            Estudar para concurso de ponta com métodos da década passada é disputar uma corrida de Fórmula 1 pedalando uma bicicleta enferrujada.
           </p>
         </div>
 
-        {/* Mobile View Toggle */}
-        <div className="flex sm:hidden justify-center items-center gap-2 mt-8">
-          <button
-            type="button"
-            onClick={() => setActiveTab("all")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === "all" ? "bg-white/10 text-white" : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Lado a Lado
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("arcaico")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === "arcaico" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Método Arcaico
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("synapse")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === "synapse" ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30" : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Synapse AI
-          </button>
+        {/* ========================================================================= */}
+        {/* GRID TÁTICO DE DUELOS (ANTES vs. DEPOIS LADO A LADO)                      */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          {DUELS.map((duel, idx) => {
+            const IconArc = duel.iconArcaico;
+            const IconSyn = duel.iconSynapse;
+
+            return (
+              <motion.div
+                key={duel.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                className="relative rounded-2xl bg-white/[0.02] hover:bg-white/[0.035] border border-white/[0.07] hover:border-white/[0.14] backdrop-blur-xl p-4 sm:p-5 transition-all shadow-xl space-y-3.5 group overflow-hidden"
+              >
+                {/* Topic Pill & Counter */}
+                <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.06]">
+                  <span className="text-[11px] font-mono text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-md bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-[10px] text-cyan-300">
+                      {duel.id}
+                    </span>
+                    <span>{duel.topic}</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase">
+                    Duelo Tático
+                  </span>
+                </div>
+
+                {/* Sub-grid: Arcaico vs. Synapse */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Lado Esquerdo: O Método Arcaico */}
+                  <div className="rounded-xl bg-rose-950/15 border border-rose-500/20 p-3 sm:p-3.5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1 text-[10px] font-mono text-rose-400 font-bold uppercase">
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Arcaico</span>
+                      </span>
+                      <span className="text-[9px] font-mono text-rose-300/80 bg-rose-500/15 px-1.5 py-0.2 rounded border border-rose-500/25">
+                        {duel.arcaicoBadge}
+                      </span>
+                    </div>
+                    <h4 className="text-xs sm:text-sm font-bold text-slate-200 leading-snug">
+                      {duel.arcaicoTitle}
+                    </h4>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {duel.arcaicoDesc}
+                    </p>
+                  </div>
+
+                  {/* Lado Direito: O Padrão Synapse AI */}
+                  <div className="rounded-xl bg-cyan-950/20 border border-cyan-500/30 p-3 sm:p-3.5 space-y-1.5 relative overflow-hidden group-hover:border-cyan-400/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1 text-[10px] font-mono text-cyan-300 font-bold uppercase">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Synapse AI</span>
+                      </span>
+                      <span className="text-[9px] font-mono text-cyan-300 bg-cyan-500/15 px-1.5 py-0.2 rounded border border-cyan-500/30 font-bold">
+                        {duel.synapseBadge}
+                      </span>
+                    </div>
+                    <h4 className="text-xs sm:text-sm font-bold text-white leading-snug">
+                      {duel.synapseTitle}
+                    </h4>
+                    <p className="text-[11px] text-slate-300/90 leading-relaxed">
+                      {duel.synapseDesc}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
 
-        {/* Grid Comparativo */}
-        <div className="mt-12 sm:mt-16 grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-          {/* ================= COLUNA 1: MÉTODO ARCAICO ================= */}
-          {(activeTab === "all" || activeTab === "arcaico") && (
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="rounded-3xl bg-gradient-to-b from-rose-950/20 via-slate-950/60 to-black/80 border border-rose-500/20 p-6 sm:p-8 space-y-6 flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between pb-6 border-b border-rose-500/15">
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-mono uppercase tracking-wider text-rose-400 font-black">
-                      O Método Tradicional
-                    </span>
-                    <h3 className="text-xl sm:text-2xl font-black text-slate-200">
-                      O Ciclo do Desespero & Caos
-                    </h3>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">
-                    <XCircle className="w-6 h-6" />
-                  </div>
-                </div>
+        {/* Bottom Epiphany Callout & CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mt-10 sm:mt-12 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-cyan-950/40 border border-indigo-500/25 p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-xl"
+        >
+          <div className="space-y-1 text-center sm:text-left">
+            <h4 className="text-sm sm:text-base font-bold text-white">
+              A aprovação não premia quem sofre mais. Premia quem retém mais com método.
+            </h4>
+            <p className="text-xs text-slate-300 font-mono">
+              Economize centenas de horas de estudo inútil e chegue à prova com memória blindada.
+            </p>
+          </div>
 
-                <div className="mt-6 space-y-5">
-                  {PAIN_POINTS.map((item, idx) => {
-                    const Icon = item.painIcon;
-                    return (
-                      <div
-                        key={idx}
-                        className="rounded-2xl bg-black/40 border border-white/[0.04] p-4 space-y-2 hover:border-rose-500/30 transition-colors"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 shrink-0 mt-0.5">
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
-                              <span>{item.painTitle}</span>
-                            </h4>
-                            <p className="text-xs text-slate-400 leading-relaxed mt-1">
-                              {item.painDesc}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-rose-500/15 text-center">
-                <span className="text-xs font-mono text-rose-300/80">
-                  Resultado: Sobrecarga cognitiva, burnout e mais 1 ano pagando cursinho.
-                </span>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ================= COLUNA 2: O ECOSSISTEMA SYNAPSE AI ================= */}
-          {(activeTab === "all" || activeTab === "synapse") && (
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="relative rounded-3xl bg-gradient-to-b from-indigo-950/40 via-slate-950/80 to-purple-950/30 border-2 border-indigo-500/50 p-6 sm:p-8 space-y-6 shadow-[0_0_60px_rgba(99,102,241,0.2)] flex flex-col justify-between"
-            >
-              {/* Top Neon Badge */}
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400 text-white text-[11px] font-black uppercase tracking-wider shadow-lg shadow-indigo-500/40 flex items-center gap-1.5">
-                <BrainCircuit className="w-3.5 h-3.5 text-cyan-200" />
-                <span>O Futuro da Aprovação</span>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between pb-6 border-b border-indigo-500/20 pt-2 sm:pt-0">
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-300 font-black">
-                      O Ecossistema Synapse AI
-                    </span>
-                    <h3 className="text-xl sm:text-2xl font-black text-white">
-                      Neurociência Pura & Velocidade 3.8x
-                    </h3>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-6 h-6" />
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-5">
-                  {PAIN_POINTS.map((item, idx) => {
-                    const Icon = item.solIcon;
-                    return (
-                      <div
-                        key={idx}
-                        className="rounded-2xl bg-slate-900/60 border border-indigo-500/20 p-4 space-y-2 hover:border-cyan-400/50 hover:bg-slate-900/90 transition-all shadow-sm group"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 text-cyan-300 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-                              <span>{item.solTitle}</span>
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 font-bold">
-                                Ativo
-                              </span>
-                            </h4>
-                            <p className="text-xs text-slate-300 leading-relaxed mt-1">
-                              {item.solDesc}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-indigo-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <span className="text-xs font-mono text-cyan-300 font-bold text-center sm:text-left">
-                  ⚡ Menos esforço inútil. Mais retenção definitiva no dia da prova.
-                </span>
-                <Link
-                  href="/login"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 text-white text-xs font-black hover:opacity-90 transition-opacity shadow-md shadow-cyan-500/20"
-                >
-                  <span>Experimentar Agora</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </motion.div>
-          )}
-        </div>
+          <Link
+            href="/login"
+            className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 text-white text-xs sm:text-sm font-bold hover:opacity-95 transition-opacity shadow-lg shadow-indigo-950/50"
+          >
+            <span>Romper com o Método Arcaico</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </motion.div>
       </div>
     </section>
   );
