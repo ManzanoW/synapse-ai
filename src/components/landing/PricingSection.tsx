@@ -11,7 +11,7 @@ import {
   Zap,
   Flame,
   Star,
-  Lock,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -19,7 +19,7 @@ export function PricingSection() {
   const [billingCycle, setBillingCycle] = useState<"ANNUAL" | "MONTHLY">("ANNUAL");
 
   return (
-    <section id="planos" className="relative py-24 sm:py-32 overflow-hidden bg-[#030712]">
+    <section id="planos" className="relative py-20 sm:py-28 overflow-hidden bg-[#030712]">
       {/* Background Volumetric Glows */}
       <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-gradient-to-b from-indigo-500/15 via-purple-500/10 to-transparent blur-[160px] -z-10" />
 
@@ -33,16 +33,16 @@ export function PricingSection() {
                 Lote de Lançamento
               </span>
               <span>
-                Garanta o Synapse Pro no plano anual com{" "}
-                <strong className="text-white font-black">50% de desconto</strong> por apenas{" "}
-                <strong className="text-white font-black">R$ 29,90/mês</strong>.
+                Garanta o Synapse Pro no plano anual por apenas{" "}
+                <strong className="text-white font-black">R$ 29,90/mês</strong>{" "}
+                <span className="text-amber-300 font-mono text-xs">(menos de R$ 1,00/dia)</span>.
               </span>
             </div>
           </div>
         </div>
 
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4">
+        <div className="text-center max-w-3xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 text-xs font-mono font-bold uppercase tracking-wider">
             <Target className="w-3.5 h-3.5 text-indigo-400" />
             <span>Investimento na sua Posse</span>
@@ -56,7 +56,7 @@ export function PricingSection() {
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-            Comece 100% gratuito para conhecer o motor FSRS. Evolua para o Pro quando quiser acelerar suas discursivas e estudar no trânsito sem restrições.
+            Comece gratuito para testar a retenção neural. Destrave o Pro quando quiser áudio hands-free no trânsito e discursivas ilimitadas.
           </p>
 
           {/* Toggle Mensal / Anual */}
@@ -101,27 +101,27 @@ export function PricingSection() {
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className="mt-14 sm:mt-18 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto items-stretch">
+        <div className="mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto items-stretch">
           {/* ================= CARD 1: PLANO GRATUITO ================= */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="rounded-3xl bg-slate-950/60 border border-white/[0.08] p-7 sm:p-9 flex flex-col justify-between backdrop-blur-xl relative hover:border-white/20 transition-all"
+            className="rounded-3xl bg-[#070b14]/70 border border-white/[0.08] p-6 sm:p-8 flex flex-col justify-between backdrop-blur-xl relative hover:border-white/20 transition-all shadow-xl"
           >
             <div className="space-y-6">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
                   Para Iniciar com Foco
                 </span>
                 <h3 className="text-2xl font-black text-white">Plano Básico</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Acesso aos recursos essenciais para testar a neurociência do Synapse e manter seu ciclo diário de questões.
+                  Recursos essenciais para conhecer o algoritmo FSRS e manter seu ciclo diário de revisão.
                 </p>
               </div>
 
-              <div className="py-2 border-y border-white/[0.06]">
+              <div className="py-3 border-y border-white/[0.06]">
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-4xl font-black text-white">R$ 0</span>
                   <span className="text-xs text-slate-400 font-medium">/mês para sempre</span>
@@ -135,16 +135,14 @@ export function PricingSection() {
                 <span className="text-xs font-mono uppercase tracking-wider text-slate-300 font-bold block">
                   Incluso no Grátis:
                 </span>
-                <ul className="space-y-3 text-xs text-slate-300">
+                <ul className="space-y-2.5 text-xs text-slate-300">
                   {[
                     "7 requisições diárias de Inteligência Artificial",
-                    "Motor FSRS ativo com cálculo matemático de retenção",
-                    "Até 2 simulados com IA por dia (+1 com anúncio opcional)",
+                    "Motor FSRS com cálculo matemático da curva de retenção",
+                    "Até 2 simulados gerados por IA ao dia",
                     "1 correção de redação discursiva por dia",
-                    "1 OCR de folha de redação manuscrita por semana",
-                    "Edital verticalizado com acompanhamento de progresso",
-                    "Caderno de erros básico com diagnóstico de causa-raiz",
-                    "Créditos extras assistindo a anúncios recompensados voluntários",
+                    "Edital verticalizado com controle de progresso",
+                    "Caderno de erros básico com diagnóstico de causa",
                   ].map((feat, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
@@ -158,9 +156,9 @@ export function PricingSection() {
             <div className="pt-8">
               <Link
                 href="/login"
-                className="w-full block py-3.5 px-4 rounded-2xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-center text-xs sm:text-sm font-bold transition-all shadow-sm"
+                className="w-full block py-3.5 px-4 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-center text-xs sm:text-sm font-bold transition-all shadow-sm"
               >
-                Criar Conta Gratuita
+                Começar Grátis Agora
               </Link>
             </div>
           </motion.div>
@@ -171,7 +169,7 @@ export function PricingSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="rounded-3xl bg-gradient-to-b from-indigo-950/70 via-slate-950/90 to-purple-950/70 border-2 border-indigo-500/60 p-7 sm:p-9 flex flex-col justify-between backdrop-blur-2xl relative shadow-2xl shadow-indigo-950/80 hover:border-indigo-400 transition-all group"
+            className="rounded-3xl bg-gradient-to-b from-indigo-950/70 via-[#070b14] to-purple-950/60 border-2 border-indigo-500/60 p-6 sm:p-8 flex flex-col justify-between backdrop-blur-2xl relative shadow-2xl shadow-indigo-950/80 hover:border-indigo-400 transition-all group"
           >
             {/* Top Amber Ribbon */}
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5 whitespace-nowrap z-20">
@@ -180,7 +178,7 @@ export function PricingSection() {
             </div>
 
             <div className="space-y-6 pt-2">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-indigo-300">
                   Para Aprovação Imediata
                 </span>
@@ -191,16 +189,21 @@ export function PricingSection() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Todo o arsenal da IA trabalhando pelo seu nome no Diário Oficial. Sem limites, sem anúncios e com áudio neural hands-free.
+                  Todo o arsenal da IA trabalhando pelo seu nome no Diário Oficial. Sem limites, sem anúncios e com áudio hands-free.
                 </p>
               </div>
 
-              <div className="py-2 border-y border-indigo-500/20">
-                <div className="flex items-baseline gap-1.5">
+              <div className="py-3 border-y border-indigo-500/20">
+                <div className="flex items-baseline gap-2">
                   <span className="text-4xl sm:text-5xl font-black text-white">
                     {billingCycle === "ANNUAL" ? "R$ 29,90" : "R$ 39,90"}
                   </span>
                   <span className="text-xs text-slate-300 font-bold">/mês</span>
+                  {billingCycle === "ANNUAL" && (
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 font-mono text-[10px] font-bold">
+                      ~R$ 0,99 / dia
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-indigo-300 mt-1 font-semibold font-mono">
                   {billingCycle === "ANNUAL"
@@ -213,17 +216,15 @@ export function PricingSection() {
                 <span className="text-xs font-mono uppercase tracking-wider text-indigo-200 font-black block">
                   Superpoderes Exclusivos do Pro:
                 </span>
-                <ul className="space-y-3 text-xs text-slate-200">
+                <ul className="space-y-2.5 text-xs text-slate-200">
                   {[
-                    "IA 100% Ilimitada & Zero Anúncios (sem filas ou bloqueios diários)",
+                    "IA 100% Ilimitada & Zero Anúncios (sem filas ou travamentos)",
                     "Flashcards em Áudio Neural Humanizado Ilimitado (Modo Hands-Free no trânsito)",
-                    "Correções Discursivas no rigor da banca com cálculo de fórmulas e Versão Ouro",
-                    "OCR de Redação Manuscrita Ilimitado (foto da folha de prova real)",
-                    "Raio-X de Incidência da Banca no Edital Verticalizado (Cebraspe, FGV, FCC)",
-                    "Importador de Edital em PDF (extração automática completa)",
-                    "Mapas Mentais Neurais: aprofundamento e exportação em PDF A4 / PNG HD",
-                    "Exportação de Flashcards para Anki (.apkg) e apostilas",
-                    "Prioridade máxima nos servidores Gemini 2.5 Pro",
+                    "Correções Discursivas no rigor oficial (Cebraspe/FGV/FCC) com Versão Ouro",
+                    "OCR de Redação Manuscrita Ilimitado (escaneamento direto da folha de prova)",
+                    "Raio-X de Incidência da Banca no Edital Verticalizado",
+                    "Importador de Edital em PDF com extração automática completa",
+                    "Mapas Mentais Neurais com exportação para PDF A4 de alta resolução",
                   ].map((feat, i) => (
                     <li key={i} className="flex items-start gap-2.5 font-medium">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -237,7 +238,7 @@ export function PricingSection() {
             <div className="pt-8 space-y-3">
               <Link
                 href="/login"
-                className="w-full group inline-flex items-center justify-center gap-2 py-4 px-6 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border border-indigo-400/30 hover:border-indigo-300/50 shadow-xl shadow-indigo-950/60 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full group inline-flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border border-indigo-400/30 hover:border-indigo-300/50 shadow-xl shadow-indigo-950/60 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <span>Quero Ser Synapse Pro</span>
                 <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
@@ -245,7 +246,7 @@ export function PricingSection() {
 
               <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-mono">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Garantia incondicional de 7 dias • Cancele quando quiser</span>
+                <span>Garantia incondicional de 7 dias • Cancele com 1 clique</span>
               </div>
             </div>
           </motion.div>
