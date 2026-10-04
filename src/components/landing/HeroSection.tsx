@@ -19,7 +19,6 @@ import {
   Headphones,
   Flame,
 } from "lucide-react";
-import { BorderBeam } from "./BorderBeam";
 
 export function HeroSection() {
   const containerRef = useRef<HTMLElement>(null);
@@ -245,9 +244,9 @@ export function HeroSection() {
           transition={{ duration: 0.9, delay: 0.55 }}
           className="w-full pt-2 sm:pt-4"
         >
-          <div className="relative max-w-4xl mx-auto rounded-2xl bg-white/[0.03] hover:bg-white/[0.045] border border-white/[0.08] hover:border-white/[0.14] backdrop-blur-2xl p-2 sm:p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all">
-            {/* Border Beam iluminando o perímetro do Dock */}
-            <BorderBeam duration={10} colorFrom="#06b6d4" colorTo="#6366f1" />
+          <div className="relative max-w-4xl mx-auto rounded-2xl bg-[#070b14]/80 border border-white/[0.08] hover:border-white/[0.14] backdrop-blur-2xl p-2 sm:p-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.6)] transition-all overflow-hidden">
+            {/* Top Specular Light Rail - Linha de precisão sutil no topo do vidro */}
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/40 via-indigo-400/30 to-transparent" />
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
               {/* 1. Motor FSRS */}
