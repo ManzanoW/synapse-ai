@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
+import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   Brain,
@@ -24,6 +25,10 @@ export function PainTransitionSection() {
     target: containerRef,
     offset: ["start start", "end end"],
   });
+
+  // Parallax cinematográfico do Vórtice de Editais
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, -35]);
 
   // =========================================================================
   // SCROLL-DRIVEN COGNITIVE DIAGNOSTIC (MASTER UI/UX INTERACTION)
@@ -71,47 +76,54 @@ export function PainTransitionSection() {
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6">
 
         {/* ===================================================================== */}
-        {/* ILUMINAÇÃO DE FUNDO REATIVA & RESPIRANDO                              */}
+        {/* 🌌 OBRA DE ARTE CINEMATOGRÁFICA: O VÓRTICE DA SOBRECARGA COGNITIVA     */}
         {/* ===================================================================== */}
-        {/* Aura de Tensão Cognitiva (Índigo & Violeta) */}
         <motion.div
-          style={{ opacity: chaosAuraOpacity }}
-          className="pointer-events-none absolute inset-0 -z-20 flex items-center justify-center"
+          style={{ scale: bgScale, y: bgY }}
+          className="pointer-events-none absolute inset-0 z-0 w-full h-full overflow-hidden"
         >
-          <motion.div
-            animate={{ scale: [1, 1.1, 1], opacity: [0.6, 0.8, 0.6] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-            className="w-[700px] sm:w-[1000px] h-[500px] sm:h-[750px] bg-gradient-to-r from-violet-900/25 via-indigo-900/30 to-purple-900/20 rounded-full blur-[180px]"
+          <Image
+            src="/synapse-pain-storm.jpg"
+            alt="Synapse AI - O Vórtice da Sobrecarga Cognitiva"
+            fill
+            priority
+            unoptimized
+            className="object-cover object-center"
           />
-        </motion.div>
 
-        {/* Aura de Sincronização (Ciano Neon & Azul Elétrico) */}
-        <motion.div
-          style={{ opacity: syncAuraOpacity }}
-          className="pointer-events-none absolute inset-0 -z-20 flex items-center justify-center"
-        >
+          {/* Overlay Escuro com Contraste para Legibilidade Perfeita */}
+          <div className="absolute inset-0 bg-[#02050e]/65 backdrop-contrast-115" />
+
+          {/* Halo de Energia Central no Feixe Sináptico */}
+          <div className="absolute top-[28%] left-1/2 -translate-x-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-cyan-400/25 blur-3xl animate-pulse pointer-events-none" />
+
+          {/* Aura de Tensão nas Fases Iniciais (Violeta/Índigo) */}
           <motion.div
-            animate={{ scale: [1, 1.08, 1], opacity: [0.7, 0.9, 0.7] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            className="w-[800px] sm:w-[1150px] h-[600px] sm:h-[850px] bg-gradient-to-r from-cyan-500/30 via-indigo-600/35 to-teal-400/25 rounded-full blur-[180px]"
+            style={{ opacity: chaosAuraOpacity }}
+            className="pointer-events-none absolute inset-0 bg-violet-950/30 mix-blend-screen"
           />
+
+          {/* Aura de Alívio e Sincronização na Fase 4 (Ciano Neon) */}
+          <motion.div
+            style={{ opacity: syncAuraOpacity }}
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-cyan-950/40 via-indigo-950/20 to-transparent"
+          />
+
+          {/* Scanner de Grade Holográfica Cósmica */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.035]"
+            style={{
+              backgroundImage: `radial-gradient(rgba(255,255,255,0.7) 1px, transparent 1px)`,
+              backgroundSize: "32px 32px",
+            }}
+          />
+
+          {/* Vinhetas Suaves de Transição Superior e Inferior */}
+          <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-[#030712] via-[#030712]/75 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#030712] via-[#030712]/85 to-transparent" />
+          <div className="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-[#030712]/70 to-transparent" />
+          <div className="absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-[#030712]/70 to-transparent" />
         </motion.div>
-
-        {/* Feixe de Scanner Vertical Animado */}
-        <motion.div
-          animate={{ y: ["-100%", "200%"] }}
-          transition={{ duration: 9, repeat: Infinity, ease: "linear" }}
-          className="pointer-events-none absolute inset-x-0 h-32 bg-gradient-to-b from-transparent via-cyan-500/[0.035] to-transparent -z-20"
-        />
-
-        {/* Grade de Telemetria e Coordenadas Cósmicas */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.035] -z-20"
-          style={{
-            backgroundImage: `radial-gradient(rgba(255,255,255,0.7) 1px, transparent 1px)`,
-            backgroundSize: "32px 32px",
-          }}
-        />
 
         {/* HUD Header Superior (Assinatura Sináptica Autêntica) */}
         <div className="absolute top-8 sm:top-12 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-1.5 rounded-full bg-[#080d1a]/85 border border-white/[0.08] backdrop-blur-xl z-20 shadow-lg shadow-black/40">
@@ -131,7 +143,7 @@ export function PainTransitionSection() {
         {/* ⚡ OSCILOSCÓPIO NEURAL LÍQUIDO A 60 FPS (FÍSICA SENOIDAL PURA)        */}
         {/* Posicionado como horizonte de luz fluido abaixo do texto               */}
         {/* ===================================================================== */}
-        <div className="pointer-events-none absolute inset-x-0 top-[52%] -translate-y-1/2 h-96 -z-10 flex items-center justify-center overflow-hidden opacity-85">
+        <div className="pointer-events-none absolute inset-x-0 top-[52%] -translate-y-1/2 h-96 z-[1] flex items-center justify-center overflow-hidden opacity-35 mix-blend-screen">
           <NeuralWaveCanvas scrollProgress={scrollYProgress} className="w-full max-w-7xl h-full" />
         </div>
 
@@ -140,7 +152,7 @@ export function PainTransitionSection() {
         {/* ===================================================================== */}
         <motion.div
           style={{ opacity: opacity1, y: y1, scale: scale1 }}
-          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none"
+          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none z-10"
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 font-mono text-xs font-bold uppercase tracking-wider mb-5 backdrop-blur-md">
             <Layers className="w-3.5 h-3.5 text-violet-400 animate-pulse" />
@@ -207,7 +219,7 @@ export function PainTransitionSection() {
         {/* ===================================================================== */}
         <motion.div
           style={{ opacity: opacity2, y: y2, scale: scale2 }}
-          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none"
+          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none z-10"
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider mb-5 backdrop-blur-md">
             <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
@@ -240,7 +252,7 @@ export function PainTransitionSection() {
         {/* ===================================================================== */}
         <motion.div
           style={{ opacity: opacity3, y: y3, scale: scale3 }}
-          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none"
+          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none z-10"
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-300 font-mono text-xs font-bold uppercase tracking-wider mb-5 backdrop-blur-md">
             <AlertTriangle className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
@@ -273,7 +285,7 @@ export function PainTransitionSection() {
         {/* ===================================================================== */}
         <motion.div
           style={{ opacity: opacity4, y: y4, scale: scale4 }}
-          className="absolute max-w-4xl w-full px-4 text-center pointer-events-none space-y-5 sm:space-y-6"
+          className="absolute max-w-4xl w-full px-4 text-center pointer-events-none space-y-5 sm:space-y-6 z-10"
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-teal-500/20 border border-cyan-500/40 text-cyan-300 font-mono text-xs sm:text-sm font-bold uppercase tracking-wider shadow-[0_0_25px_rgba(6,182,212,0.35)]">
             <Brain className="w-4 h-4 text-cyan-400 animate-pulse" />
