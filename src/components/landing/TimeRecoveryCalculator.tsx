@@ -2,31 +2,31 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Headphones, Clock, ArrowRight, Zap, Target, CheckCircle2 } from "lucide-react";
+import { Headphones, Clock, ArrowRight, Zap, Target, CheckCircle2, TrendingUp, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export function TimeRecoveryCalculator() {
   const [dailyMinutes, setDailyMinutes] = useState<number>(90); // 90 min (1h30) default
   const [daysPerWeek, setDaysPerWeek] = useState<number>(6); // 6 dias default
 
-  // Calculations
+  // Cálculos de ROI de Tempo
   const hoursPerDay = dailyMinutes / 60;
   const monthlyHours = Math.round(hoursPerDay * daysPerWeek * 4.3);
   const yearlyHours = monthlyHours * 12;
-  const fullWorkDays = Math.round(yearlyHours / 8); // 8-hour study days
-  const flashcardsPerMonth = Math.round(monthlyHours * 22); // ~22 active recall audio cards per hour
+  const fullWorkDays = Math.round(yearlyHours / 8); // Dias inteiros de 8h de estudo
+  const flashcardsPerMonth = Math.round(monthlyHours * 22); // ~22 cards ativos por hora
 
   return (
     <section id="calculadora-tempo" className="relative py-20 sm:py-28 bg-[#030712] border-t border-white/[0.06] overflow-hidden">
       {/* Background Volumetric Glows */}
-      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-cyan-600/10 via-indigo-600/15 to-violet-600/10 rounded-full blur-[150px] -z-10" />
+      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[450px] bg-gradient-to-r from-cyan-600/10 via-indigo-600/15 to-violet-600/10 rounded-full blur-[160px] -z-10" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-3 mb-12 sm:mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono font-bold uppercase tracking-wider shadow-sm">
             <Clock className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Calculadora de Horas Líquidas Invisíveis</span>
+            <span>Simulador de Horas Líquidas Invisíveis</span>
           </div>
 
           <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
@@ -42,18 +42,29 @@ export function TimeRecoveryCalculator() {
         </div>
 
         {/* Interactive Calculator Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          {/* Controls Column (5 cols) */}
-          <div className="lg:col-span-5 rounded-3xl bg-slate-900/60 border border-white/[0.08] p-6 sm:p-8 backdrop-blur-2xl flex flex-col justify-between space-y-8 shadow-xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-stretch">
+          {/* ================= CONTROLES INTERATIVOS (5 cols) ================= */}
+          <div className="lg:col-span-5 rounded-3xl bg-[#070b14]/80 border border-white/[0.08] p-6 sm:p-8 backdrop-blur-2xl flex flex-col justify-between space-y-6 shadow-xl">
             <div className="space-y-6">
-              {/* Control 1: Tempo Diário Desperdiçado */}
+              <div>
+                <span className="text-[11px] font-mono text-cyan-400 uppercase tracking-wider font-bold block">
+                  Configuração de Rotina
+                </span>
+                <h3 className="text-lg font-bold text-white mt-1">
+                  Seus Momentos de Deslocamento
+                </h3>
+              </div>
+
+              {/* Control 1: Tempo Diário */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-slate-300 uppercase tracking-wider font-bold">
-                    Tempo Diário em Deslocamento / Treino:
+                  <span className="text-slate-300 font-bold">
+                    Tempo no Trânsito / Treino por dia:
                   </span>
-                  <span className="text-cyan-300 font-black text-sm bg-cyan-500/15 px-2.5 py-0.5 rounded-lg border border-cyan-500/25">
-                    {dailyMinutes >= 60 ? `${Math.floor(dailyMinutes / 60)}h${dailyMinutes % 60 ? ` ${dailyMinutes % 60}m` : ""}` : `${dailyMinutes} min`}
+                  <span className="text-cyan-300 font-black text-sm bg-cyan-500/15 px-2.5 py-0.5 rounded-lg border border-cyan-500/30">
+                    {dailyMinutes >= 60
+                      ? `${Math.floor(dailyMinutes / 60)}h${dailyMinutes % 60 ? ` ${dailyMinutes % 60}m` : ""}`
+                      : `${dailyMinutes} min`}
                   </span>
                 </div>
 
@@ -76,7 +87,7 @@ export function TimeRecoveryCalculator() {
 
               {/* Control 2: Dias por Semana */}
               <div className="space-y-3">
-                <span className="text-xs font-mono text-slate-300 uppercase tracking-wider font-bold block">
+                <span className="text-xs font-mono text-slate-300 font-bold block">
                   Frequência Semanal:
                 </span>
                 <div className="grid grid-cols-3 gap-2">
@@ -102,31 +113,36 @@ export function TimeRecoveryCalculator() {
             <div className="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-200/90 space-y-1">
               <div className="font-bold flex items-center gap-1.5 text-cyan-300">
                 <Headphones className="w-3.5 h-3.5" />
-                <span>Como funciona o Modo Hands-Free?</span>
+                <span>Como funciona no dia a dia?</span>
               </div>
               <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
-                O Synapse fala a pergunta no fone Bluetooth com a tela no bolso, aguarda 3s para você pensar e profere a resolução oficial.
+                Basta plugar o fone Bluetooth e manter o celular no bolso. A IA pergunta, dá uma pausa reflexiva e profere a resolução comentada.
               </p>
             </div>
           </div>
 
-          {/* Results Column (7 cols) */}
-          <div className="lg:col-span-7 rounded-3xl bg-gradient-to-b from-indigo-950/60 via-slate-950/80 to-cyan-950/40 border-2 border-cyan-500/30 p-6 sm:p-8 backdrop-blur-2xl flex flex-col justify-between space-y-6 shadow-2xl shadow-cyan-950/50">
+          {/* ================= EXTRATO DE VANTAGEM COMPETITIVA (7 cols) ================= */}
+          <div className="lg:col-span-7 rounded-3xl bg-gradient-to-b from-indigo-950/50 via-[#070b14] to-cyan-950/30 border-2 border-cyan-500/30 p-6 sm:p-8 backdrop-blur-2xl flex flex-col justify-between space-y-6 shadow-2xl shadow-cyan-950/40">
             <div>
-              <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-300 font-bold block">
-                Seu Retorno Cognitivo Estimado
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-300 font-bold">
+                  Extrato de Vantagem Competitiva
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                  RETORNO LÍQUIDO
+                </span>
+              </div>
               <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
-                Uma Vantagem Desleal Sobre a Concorrência
+                Uma Vantagem Desleal Sobre Seus Concorrentes
               </h3>
             </div>
 
             {/* Dynamic Metric Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {/* Card 1: Horas por Mês */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-black/40 border border-white/[0.08] space-y-1">
+              <div className="p-4 sm:p-5 rounded-2xl bg-black/50 border border-white/[0.08] space-y-1">
                 <span className="text-[11px] font-mono text-slate-400 block">
-                  Horas Líquidas Recuperadas
+                  Horas Líquidas no Bolso
                 </span>
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -140,14 +156,14 @@ export function TimeRecoveryCalculator() {
                   </motion.div>
                 </AnimatePresence>
                 <p className="text-[11px] text-slate-300 font-mono pt-1">
-                  Equivalente a +{yearlyHours} horas a mais por ano estudadas sem esforço.
+                  Equivale a <strong className="text-cyan-300">+{yearlyHours} horas</strong> extras a mais estudadas por ano.
                 </p>
               </div>
 
               {/* Card 2: Flashcards Fixados */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-black/40 border border-white/[0.08] space-y-1">
+              <div className="p-4 sm:p-5 rounded-2xl bg-black/50 border border-white/[0.08] space-y-1">
                 <span className="text-[11px] font-mono text-slate-400 block">
-                  Conceitos & Questões Fixadas
+                  Questões & Conceitos Fixados
                 </span>
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -161,21 +177,21 @@ export function TimeRecoveryCalculator() {
                   </motion.div>
                 </AnimatePresence>
                 <p className="text-[11px] text-slate-300 font-mono pt-1">
-                  Revisados com pausa reflexiva e recuperação ativa comprovada.
+                  Revisados com pausa de recuperação ativa comprovada.
                 </p>
               </div>
             </div>
 
-            {/* Equivalency Highlight */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-cyan-500/10 to-emerald-500/10 border border-cyan-500/25 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-white">
+            {/* Equivalency Highlight (A Frase de Ouro) */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-500/15 via-cyan-500/15 to-emerald-500/15 border border-cyan-500/30 space-y-2">
+              <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-white">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>
-                  Isso equivale a <strong className="text-cyan-300 font-mono">{fullWorkDays} dias inteiros</strong> (de 8h líquidas de estudo) de vantagem por ano.
+                  Isso equivale a <strong className="text-cyan-300 font-mono text-base">{fullWorkDays} dias inteiros</strong> (de 8h líquidas de estudo) de vantagem por ano.
                 </span>
               </div>
               <p className="text-[11px] text-slate-300 leading-relaxed font-mono pl-6">
-                Enquanto os outros concurseiros perdem esse tempo reclamando do trânsito, você zera editais verticalizados direto no fone de ouvido.
+                Enquanto os outros concorrentes perdem esse tempo reclamando do trânsito, você zera editais verticalizados direto no fone de ouvido.
               </p>
             </div>
 
@@ -190,7 +206,7 @@ export function TimeRecoveryCalculator() {
               </Link>
 
               <span className="text-[11px] font-mono text-slate-400 text-center sm:text-right">
-                Incluso em todos os planos Pro • Sem custo adicional
+                Incluso no plano Pro • Sem custo por áudio
               </span>
             </div>
           </div>
