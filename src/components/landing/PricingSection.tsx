@@ -20,8 +20,20 @@ export function PricingSection() {
 
   return (
     <section id="planos" className="relative py-20 sm:py-28 overflow-hidden bg-[#030712]">
+      {/* Glow Divisor Superior */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-5xl h-px bg-gradient-to-r from-transparent via-indigo-500/35 via-violet-500/35 to-transparent" />
+
       {/* Background Volumetric Glows */}
       <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-gradient-to-b from-indigo-500/15 via-purple-500/10 to-transparent blur-[160px] -z-10" />
+
+      {/* Grade Cósmica Estelar */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage: `radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px)`,
+          backgroundSize: "36px 36px",
+        }}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Banner de Lote Especial */}

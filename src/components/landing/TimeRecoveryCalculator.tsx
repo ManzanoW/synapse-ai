@@ -18,8 +18,20 @@ export function TimeRecoveryCalculator() {
 
   return (
     <section id="calculadora-tempo" className="relative py-20 sm:py-28 bg-[#030712] border-t border-white/[0.06] overflow-hidden">
+      {/* Glow Divisor Superior */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-5xl h-px bg-gradient-to-r from-transparent via-cyan-500/35 via-indigo-500/35 to-transparent" />
+
       {/* Background Volumetric Glows */}
-      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[450px] bg-gradient-to-r from-cyan-600/10 via-indigo-600/15 to-violet-600/10 rounded-full blur-[160px] -z-10" />
+      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[450px] bg-gradient-to-r from-cyan-600/[0.09] via-indigo-600/[0.12] to-violet-600/[0.09] rounded-full blur-[160px] -z-10" />
+
+      {/* Grade Cósmica Estelar */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage: `radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px)`,
+          backgroundSize: "36px 36px",
+        }}
+      />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}

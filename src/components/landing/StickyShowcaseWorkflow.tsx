@@ -51,10 +51,22 @@ export function StickyShowcaseWorkflow() {
 
   return (
     <section id="fluxo" className="relative py-24 sm:py-32 overflow-hidden bg-[#030712]">
-      {/* Decorative Lights */}
-      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-indigo-600/10 via-violet-600/10 to-cyan-600/10 blur-[150px] -z-10" />
+      {/* Glow Divisor Superior */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-5xl h-px bg-gradient-to-r from-transparent via-cyan-500/35 via-violet-500/35 to-transparent" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Decorative Volumetric Lights */}
+      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[450px] bg-gradient-to-r from-indigo-600/[0.09] via-violet-600/[0.09] to-cyan-600/[0.09] blur-[160px] -z-10" />
+
+      {/* Grade Cósmica Estelar */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage: `radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px)`,
+          backgroundSize: "36px 36px",
+        }}
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono font-bold uppercase tracking-wider">

@@ -81,23 +81,32 @@ export function RealityCheckSection() {
   ];
 
   return (
-    <section id="metodo" className="relative py-20 sm:py-28 overflow-hidden bg-[#030712]">
+    <section id="metodo" className="relative py-24 sm:py-32 overflow-hidden bg-[#030712]">
       {/* Glow Divisor Superior */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-5xl h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-5xl h-px bg-gradient-to-r from-transparent via-cyan-500/40 via-indigo-500/40 to-transparent" />
 
-      {/* Volumetric Lights */}
-      <div className="pointer-events-none absolute top-1/3 -left-60 w-96 h-96 bg-rose-600/10 rounded-full blur-[150px]" />
-      <div className="pointer-events-none absolute top-1/3 -right-60 w-96 h-96 bg-cyan-600/10 rounded-full blur-[150px]" />
+      {/* Volumetric Lights Cinematográficas (Duelo: Rose vs. Cyan) */}
+      <div className="pointer-events-none absolute top-1/4 -left-48 w-[550px] h-[550px] bg-rose-600/[0.09] rounded-full blur-[170px]" />
+      <div className="pointer-events-none absolute top-1/4 -right-48 w-[550px] h-[550px] bg-cyan-500/[0.11] rounded-full blur-[170px]" />
+
+      {/* Grade Cósmica Estelar Sutil */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage: `radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px)`,
+          backgroundSize: "36px 36px",
+        }}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-3 mb-12 sm:mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs font-mono font-bold uppercase tracking-wider">
+        <div className="text-center max-w-3xl mx-auto space-y-3 mb-14 sm:mb-20">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs font-mono font-bold uppercase tracking-wider backdrop-blur-md shadow-[0_0_15px_rgba(244,63,94,0.15)]">
             <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
             <span>O Choque de Realidade</span>
           </div>
 
-          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight drop-shadow-[0_4px_20px_rgba(0,0,0,0.9)]">
             Por que 95% dos concurseiros{" "}
             <span className="bg-gradient-to-r from-rose-400 via-amber-300 to-rose-300 bg-clip-text text-transparent">
               reprovam por cansaço
@@ -105,7 +114,7 @@ export function RealityCheckSection() {
             e não por falta de esforço?
           </h2>
 
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
+          <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
             Estudar para concurso de ponta com métodos da década passada é disputar uma corrida de Fórmula 1 pedalando uma bicicleta enferrujada.
           </p>
         </div>
@@ -125,17 +134,17 @@ export function RealityCheckSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
-                className="relative rounded-2xl bg-white/[0.02] hover:bg-white/[0.035] border border-white/[0.07] hover:border-white/[0.14] backdrop-blur-xl p-4 sm:p-5 transition-all shadow-xl space-y-3.5 group overflow-hidden"
+                className="relative rounded-2xl bg-slate-900/40 hover:bg-slate-900/70 border border-white/[0.08] hover:border-cyan-500/35 backdrop-blur-2xl p-4 sm:p-5 transition-all duration-300 shadow-xl space-y-3.5 group overflow-hidden hover:shadow-[0_0_30px_rgba(6,182,212,0.12)]"
               >
                 {/* Topic Pill & Counter */}
                 <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.06]">
                   <span className="text-[11px] font-mono text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-md bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-[10px] text-cyan-300">
+                    <span className="w-5 h-5 rounded-md bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-[10px] text-cyan-300 font-mono">
                       {duel.id}
                     </span>
                     <span>{duel.topic}</span>
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400 uppercase">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
                     Duelo Tático
                   </span>
                 </div>
@@ -143,13 +152,13 @@ export function RealityCheckSection() {
                 {/* Sub-grid: Arcaico vs. Synapse */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Lado Esquerdo: O Método Arcaico */}
-                  <div className="rounded-xl bg-rose-950/15 border border-rose-500/20 p-3 sm:p-3.5 space-y-1.5">
+                  <div className="rounded-xl bg-rose-950/20 border border-rose-500/25 p-3 sm:p-3.5 space-y-1.5 transition-colors">
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1 text-[10px] font-mono text-rose-400 font-bold uppercase">
                         <XCircle className="w-3.5 h-3.5" />
                         <span>Arcaico</span>
                       </span>
-                      <span className="text-[9px] font-mono text-rose-300/80 bg-rose-500/15 px-1.5 py-0.2 rounded border border-rose-500/25">
+                      <span className="text-[9px] font-mono text-rose-300/80 bg-rose-500/20 px-1.5 py-0.5 rounded border border-rose-500/30">
                         {duel.arcaicoBadge}
                       </span>
                     </div>
@@ -162,13 +171,13 @@ export function RealityCheckSection() {
                   </div>
 
                   {/* Lado Direito: O Padrão Synapse AI */}
-                  <div className="rounded-xl bg-cyan-950/20 border border-cyan-500/30 p-3 sm:p-3.5 space-y-1.5 relative overflow-hidden group-hover:border-cyan-400/50 transition-colors">
+                  <div className="rounded-xl bg-gradient-to-br from-cyan-950/30 via-slate-900/60 to-cyan-950/20 border border-cyan-500/35 p-3 sm:p-3.5 space-y-1.5 relative overflow-hidden group-hover:border-cyan-400/60 transition-all shadow-[0_0_20px_rgba(6,182,212,0.1)]">
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1 text-[10px] font-mono text-cyan-300 font-bold uppercase">
                         <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
                         <span>Synapse AI</span>
                       </span>
-                      <span className="text-[9px] font-mono text-cyan-300 bg-cyan-500/15 px-1.5 py-0.2 rounded border border-cyan-500/30 font-bold">
+                      <span className="text-[9px] font-mono text-cyan-300 bg-cyan-500/20 px-1.5 py-0.5 rounded border border-cyan-500/35 font-bold shadow-xs">
                         {duel.synapseBadge}
                       </span>
                     </div>

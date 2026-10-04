@@ -84,10 +84,19 @@ export function ArsenalBentoGrid() {
 
   return (
     <section id="arsenal" className="relative py-24 sm:py-32 overflow-hidden bg-[#030712]">
-      {/* Background Neon Glows */}
-      <div className="pointer-events-none absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-indigo-500/10 via-violet-500/10 to-transparent blur-[140px] -z-10" />
+      {/* Background Neon Glows Cinematográficos */}
+      <div className="pointer-events-none absolute top-10 left-1/2 -translate-x-1/2 w-[850px] h-[450px] bg-gradient-to-b from-indigo-500/12 via-violet-500/12 to-cyan-500/8 blur-[160px] -z-10" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Grade Cósmica Estelar */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage: `radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px)`,
+          backgroundSize: "36px 36px",
+        }}
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 text-xs font-mono font-bold uppercase tracking-wider">
