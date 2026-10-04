@@ -66,63 +66,64 @@ export function HeroSection() {
       {/* ========================================================================= */}
       <motion.div
         style={{ scale: bgScale, y: bgY, x: artworkX }}
-        className="pointer-events-none absolute inset-0 -z-20 w-full h-full overflow-hidden"
+        className="pointer-events-none absolute inset-0 z-0 w-full h-full overflow-hidden"
       >
         <Image
           src="/synapse-cinematic-prologue.jpg"
           alt="Synapse AI - O Portal Cognitivo"
           fill
           priority
-          quality={95}
-          className="object-cover object-center sm:object-[center_35%]"
+          unoptimized
+          className="object-cover object-center"
         />
 
         {/* Halo de Luz no Ponto Ápice do Cérebro Cósmico */}
-        <div className="absolute top-[12%] sm:top-[16%] left-1/2 -translate-x-1/2 w-48 sm:w-72 h-48 sm:h-72 rounded-full bg-cyan-400/25 blur-3xl animate-pulse pointer-events-none" />
+        <div className="absolute top-[18%] left-1/2 -translate-x-1/2 w-64 sm:w-96 h-64 sm:h-96 rounded-full bg-cyan-400/20 blur-3xl animate-pulse pointer-events-none" />
 
-        {/* Gradiente Superior para Legibilidade da Navbar */}
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#02050e]/95 via-[#02050e]/50 to-transparent" />
+        {/* Gradiente Superior Suave para Legibilidade da Navbar */}
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#02050e]/85 via-[#02050e]/30 to-transparent" />
 
-        {/* Vinheta Inferior Suave para Transição Perfeita de Scroll */}
-        <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#030712] via-[#030712]/75 to-transparent" />
+        {/* Vinheta Inferior Suave para Transição de Scroll */}
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#030712] via-[#030712]/60 to-transparent" />
 
-        {/* Vinhetas Laterais de Cinema */}
-        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#02050e]/80 to-transparent" />
-        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#02050e]/80 to-transparent" />
+        {/* Vinhetas Laterais Sutis de Cinema */}
+        <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#02050e]/60 to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#02050e]/60 to-transparent" />
       </motion.div>
 
       {/* Espaçador Topo */}
-      <div className="h-6" />
+      <div className="h-2 sm:h-4" />
 
       {/* ========================================================================= */}
       {/* 🎬 NARRATIVA CINEMATOGRÁFICA MONUMENTAL (O IMPACTO CENTRAL)                */}
       {/* ========================================================================= */}
       <motion.div
         style={{ y: contentY, opacity: contentOpacity }}
-        className="relative z-10 text-center max-w-5xl mx-auto flex flex-col items-center justify-center space-y-4 sm:space-y-5 my-auto"
+        className="relative z-10 text-center max-w-4xl mx-auto flex flex-col items-center justify-center space-y-3 sm:space-y-4 my-auto px-2"
       >
         {/* Prólogo Subtitle */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.1 }}
-          className="inline-flex items-center gap-2"
+          transition={{ duration: 0.8, delay: 0.1 }}
+          className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#030712]/60 border border-cyan-500/20 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.15)]"
         >
-          <span className="text-xs sm:text-sm md:text-base font-mono font-black tracking-[0.22em] text-cyan-300 uppercase drop-shadow-[0_2px_20px_rgba(0,0,0,0.95)]">
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="text-xs sm:text-sm font-mono font-bold tracking-[0.2em] text-cyan-300 uppercase">
             SUA APROVAÇÃO NÃO DEPENDE DE SORTE
           </span>
         </motion.div>
 
         {/* Título Épico Monumental */}
         <motion.h1
-          initial={{ opacity: 0, scale: 0.94 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, delay: 0.2 }}
-          className="text-4xl sm:text-7xl md:text-8xl lg:text-[5.8rem] font-black tracking-tight text-white uppercase leading-[0.96] drop-shadow-[0_10px_40px_rgba(0,0,0,0.98)]"
+          transition={{ duration: 0.9, delay: 0.2 }}
+          className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.2rem] font-black tracking-tight text-white uppercase leading-[0.98] drop-shadow-[0_8px_30px_rgba(0,0,0,0.95)]"
         >
           DEPENDE DE{" "}
           <motion.span
-            className="block mt-1 sm:mt-2 bg-gradient-to-r from-cyan-300 via-indigo-100 via-white to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_50px_rgba(6,182,212,0.7)]"
+            className="block mt-1 sm:mt-2 bg-gradient-to-r from-cyan-300 via-indigo-100 via-white to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(6,182,212,0.6)]"
             style={{ backgroundSize: "200% auto" }}
             animate={{ backgroundPosition: ["0% center", "200% center"] }}
             transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
@@ -135,8 +136,8 @@ export function HeroSection() {
         <motion.p
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.35 }}
-          className="text-xs sm:text-base md:text-lg text-slate-200/95 max-w-2xl mx-auto font-normal leading-relaxed drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] px-2"
+          transition={{ duration: 0.8, delay: 0.35 }}
+          className="text-xs sm:text-base md:text-lg text-slate-200/95 max-w-2xl mx-auto font-normal leading-relaxed drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] px-3 py-1.5 rounded-xl bg-[#02050e]/40 backdrop-blur-xs"
         >
           O cérebro humano não foi feito para memorizar 1.200 páginas no esforço bruto.
           Conecte sua preparação à inteligência do primeiro copiloto cognitivo.
@@ -155,7 +156,7 @@ export function HeroSection() {
         {/* Botão de Pular Apresentação (Estilo Mentoris, porém com acabamento Synapse) */}
         <a
           href="#cockpit-showcase"
-          className="group inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#040814]/70 hover:bg-cyan-950/70 border border-cyan-500/35 hover:border-cyan-400 text-xs sm:text-sm font-mono font-bold text-cyan-300 hover:text-white backdrop-blur-xl transition-all shadow-[0_0_25px_rgba(6,182,212,0.2)] active:scale-95"
+          className="group inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#040814]/80 hover:bg-cyan-950/80 border border-cyan-500/35 hover:border-cyan-400 text-xs sm:text-sm font-mono font-bold text-cyan-300 hover:text-white backdrop-blur-xl transition-all shadow-[0_0_25px_rgba(6,182,212,0.2)] active:scale-95"
         >
           <span>PULAR APRESENTAÇÃO</span>
           <ChevronRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
