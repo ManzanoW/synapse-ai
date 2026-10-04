@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { BorderBeam } from "./BorderBeam";
 
 export function PricingSection() {
   const [billingCycle, setBillingCycle] = useState<"ANNUAL" | "MONTHLY">("ANNUAL");
@@ -181,84 +182,93 @@ export function PricingSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="rounded-3xl bg-gradient-to-b from-indigo-950/70 via-[#070b14] to-purple-950/60 border-2 border-indigo-500/60 p-6 sm:p-8 flex flex-col justify-between backdrop-blur-2xl relative shadow-2xl shadow-indigo-950/80 hover:border-indigo-400 transition-all group"
+            className="rounded-3xl p-[2px] relative overflow-hidden group shadow-2xl shadow-indigo-950/80 transition-all duration-300 hover:scale-[1.01]"
           >
+            {/* Border Beam Neon Contínuo Giratório (Big Tech Finish) */}
+            <BorderBeam duration={7} colorFrom="#6366f1" colorTo="#06b6d4" />
+
+            {/* Volumetric Aura Glow behind Pro card */}
+            <div className="pointer-events-none absolute -inset-2 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-cyan-500/15 rounded-3xl blur-2xl -z-10 group-hover:opacity-100 opacity-70 transition-opacity" />
+
             {/* Top Amber Ribbon */}
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5 whitespace-nowrap z-20">
               <Crown className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
               <span>Mais Escolhido • Acesso Ilimitado & Zero Anúncios</span>
             </div>
 
-            <div className="space-y-6 pt-2">
-              <div className="space-y-1.5">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-indigo-300">
-                  Para Aprovação Imediata
-                </span>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-2xl font-black text-white">Synapse Pro</h3>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono font-bold">
-                    ILIMITADO
+            {/* Inner Content Card com Vidro Temperado */}
+            <div className="relative rounded-[inherit] bg-gradient-to-b from-indigo-950/85 via-[#070b14] to-purple-950/70 border border-indigo-500/40 p-6 sm:p-8 flex flex-col justify-between backdrop-blur-2xl h-full z-10">
+              <div className="space-y-6 pt-2">
+                <div className="space-y-1.5">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-indigo-300">
+                    Para Aprovação Imediata
                   </span>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Todo o arsenal da IA trabalhando pelo seu nome no Diário Oficial. Sem limites, sem anúncios e com áudio hands-free.
-                </p>
-              </div>
-
-              <div className="py-3 border-y border-indigo-500/20">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl sm:text-5xl font-black text-white">
-                    {billingCycle === "ANNUAL" ? "R$ 29,90" : "R$ 39,90"}
-                  </span>
-                  <span className="text-xs text-slate-300 font-bold">/mês</span>
-                  {billingCycle === "ANNUAL" && (
-                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 font-mono text-[10px] font-bold">
-                      ~R$ 0,99 / dia
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-2xl font-black text-white">Synapse Pro</h3>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono font-bold">
+                      ILIMITADO
                     </span>
-                  )}
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Todo o arsenal da IA trabalhando pelo seu nome no Diário Oficial. Sem limites, sem anúncios e com áudio hands-free.
+                  </p>
                 </div>
-                <p className="text-[11px] text-indigo-300 mt-1 font-semibold font-mono">
-                  {billingCycle === "ANNUAL"
-                    ? "R$ 358,80 faturado anualmente (Economia de R$ 120/ano)"
-                    : "Assinatura mensal sem fidelidade ou carência"}
-                </p>
+
+                <div className="py-3 border-y border-indigo-500/20">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl sm:text-5xl font-black text-white">
+                      {billingCycle === "ANNUAL" ? "R$ 29,90" : "R$ 39,90"}
+                    </span>
+                    <span className="text-xs text-slate-300 font-bold">/mês</span>
+                    {billingCycle === "ANNUAL" && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/35 text-cyan-300 font-mono text-[10px] font-bold shadow-[0_0_12px_rgba(6,182,212,0.25)]">
+                        ~R$ 0,99 / dia
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-indigo-300 mt-1 font-semibold font-mono">
+                    {billingCycle === "ANNUAL"
+                      ? "R$ 358,80 faturado anualmente (Economia de R$ 120/ano)"
+                      : "Assinatura mensal sem fidelidade ou carência"}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <span className="text-xs font-mono uppercase tracking-wider text-indigo-200 font-black block">
+                    Superpoderes Exclusivos do Pro:
+                  </span>
+                  <ul className="space-y-2.5 text-xs text-slate-200">
+                    {[
+                      "IA 100% Ilimitada & Zero Anúncios (sem filas ou travamentos)",
+                      "Flashcards em Áudio Neural Humanizado Ilimitado (Modo Hands-Free no trânsito)",
+                      "Correções Discursivas no rigor oficial (Cebraspe/FGV/FCC) com Versão Ouro",
+                      "OCR de Redação Manuscrita Ilimitado (escaneamento direto da folha de prova)",
+                      "Raio-X de Incidência da Banca no Edital Verticalizado",
+                      "Importador de Edital em PDF com extração automática completa",
+                      "Mapas Mentais Neurais com exportação para PDF A4 de alta resolução",
+                    ].map((feat, i) => (
+                      <li key={i} className="flex items-start gap-2.5 font-medium">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <span className="text-xs font-mono uppercase tracking-wider text-indigo-200 font-black block">
-                  Superpoderes Exclusivos do Pro:
-                </span>
-                <ul className="space-y-2.5 text-xs text-slate-200">
-                  {[
-                    "IA 100% Ilimitada & Zero Anúncios (sem filas ou travamentos)",
-                    "Flashcards em Áudio Neural Humanizado Ilimitado (Modo Hands-Free no trânsito)",
-                    "Correções Discursivas no rigor oficial (Cebraspe/FGV/FCC) com Versão Ouro",
-                    "OCR de Redação Manuscrita Ilimitado (escaneamento direto da folha de prova)",
-                    "Raio-X de Incidência da Banca no Edital Verticalizado",
-                    "Importador de Edital em PDF com extração automática completa",
-                    "Mapas Mentais Neurais com exportação para PDF A4 de alta resolução",
-                  ].map((feat, i) => (
-                    <li key={i} className="flex items-start gap-2.5 font-medium">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+              <div className="pt-8 space-y-3">
+                <Link
+                  href="/login"
+                  className="w-full group inline-flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 border border-cyan-400/30 hover:border-cyan-300 shadow-xl shadow-indigo-500/25 hover:shadow-cyan-500/35 transition-all duration-200 active:scale-[0.98]"
+                >
+                  <span>Quero Ser Synapse Pro</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
 
-            <div className="pt-8 space-y-3">
-              <Link
-                href="/login"
-                className="w-full group inline-flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border border-indigo-400/30 hover:border-indigo-300/50 shadow-xl shadow-indigo-950/60 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <span>Quero Ser Synapse Pro</span>
-                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-
-              <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-mono">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Garantia incondicional de 7 dias • Cancele com 1 clique</span>
+                <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-mono">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Garantia incondicional de 7 dias • Cancele com 1 clique</span>
+                </div>
               </div>
             </div>
           </motion.div>

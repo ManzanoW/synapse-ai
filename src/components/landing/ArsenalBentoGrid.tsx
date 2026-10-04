@@ -126,7 +126,7 @@ export function ArsenalBentoGrid() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="md:col-span-2 rounded-3xl bg-gradient-to-b from-violet-950/30 via-slate-950/70 to-black/90 border border-violet-500/30 p-6 sm:p-8 space-y-6 relative overflow-hidden group hover:border-violet-500/50 transition-all shadow-[0_15px_40px_rgba(139,92,246,0.1)]"
+            className="md:col-span-2 rounded-3xl bg-gradient-to-b from-violet-950/30 via-slate-950/70 to-black/90 border border-violet-500/30 p-6 sm:p-8 space-y-6 relative overflow-hidden group hover:border-violet-500/60 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(139,92,246,0.18)] transition-all duration-300"
           >
             <div className="absolute top-0 right-0 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -321,7 +321,7 @@ export function ArsenalBentoGrid() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="md:col-span-2 rounded-3xl bg-gradient-to-b from-cyan-950/30 via-slate-950/70 to-black/90 border border-cyan-500/30 p-6 sm:p-8 space-y-6 relative overflow-hidden group hover:border-cyan-500/50 transition-all shadow-[0_15px_40px_rgba(6,182,212,0.1)]"
+            className="md:col-span-2 rounded-3xl bg-gradient-to-b from-cyan-950/30 via-slate-950/70 to-black/90 border border-cyan-500/30 p-6 sm:p-8 space-y-6 relative overflow-hidden group hover:border-cyan-500/60 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(6,182,212,0.18)] transition-all duration-300"
           >
             <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -453,7 +453,7 @@ export function ArsenalBentoGrid() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="md:col-span-2 lg:col-span-3 rounded-3xl bg-gradient-to-b from-indigo-950/30 via-slate-950/70 to-black/90 border border-indigo-500/30 p-6 sm:p-8 space-y-6 relative overflow-hidden group hover:border-indigo-500/50 transition-all shadow-[0_15px_40px_rgba(99,102,241,0.1)]"
+            className="md:col-span-2 lg:col-span-3 rounded-3xl bg-gradient-to-b from-indigo-950/30 via-slate-950/70 to-black/90 border border-indigo-500/30 p-6 sm:p-8 space-y-6 relative overflow-hidden group hover:border-indigo-500/60 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(99,102,241,0.18)] transition-all duration-300"
           >
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -571,7 +571,7 @@ export function ArsenalBentoGrid() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="rounded-3xl bg-gradient-to-b from-slate-900/60 to-black/80 border border-white/[0.08] p-6 space-y-5 hover:border-cyan-500/40 transition-all group"
+            className="rounded-3xl bg-gradient-to-b from-slate-900/60 to-black/80 border border-white/[0.08] p-6 space-y-5 hover:border-cyan-500/50 hover:-translate-y-1 hover:shadow-[0_15px_35px_rgba(6,182,212,0.12)] transition-all duration-300 group"
           >
             <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
               <ScanText className="w-6 h-6" />
@@ -610,7 +610,7 @@ export function ArsenalBentoGrid() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="rounded-3xl bg-gradient-to-b from-slate-900/60 to-black/80 border border-white/[0.08] p-6 space-y-5 hover:border-amber-500/40 transition-all group"
+            className="rounded-3xl bg-gradient-to-b from-slate-900/60 to-black/80 border border-white/[0.08] p-6 space-y-5 hover:border-amber-500/50 hover:-translate-y-1 hover:shadow-[0_15px_35px_rgba(245,158,11,0.12)] transition-all duration-300 group"
           >
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center">
               <BookmarkX className="w-6 h-6" />
@@ -653,7 +653,7 @@ export function ArsenalBentoGrid() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="rounded-3xl bg-gradient-to-b from-slate-900/60 to-black/80 border border-white/[0.08] p-6 space-y-5 hover:border-emerald-500/40 transition-all group"
+            className="rounded-3xl bg-gradient-to-b from-slate-900/60 to-black/80 border border-white/[0.08] p-6 space-y-5 hover:border-emerald-500/50 hover:-translate-y-1 hover:shadow-[0_15px_35px_rgba(16,185,129,0.12)] transition-all duration-300 group"
           >
             <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
               <Target className="w-6 h-6" />
