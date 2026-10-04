@@ -13,9 +13,11 @@ import {
 import {
   ChevronDown,
   ChevronRight,
+  ArrowDownRight,
   Zap,
   BrainCircuit,
   Sparkles,
+  Activity,
 } from "lucide-react";
 
 export function HeroSection() {
@@ -145,28 +147,47 @@ export function HeroSection() {
       </motion.div>
 
       {/* ========================================================================= */}
-      {/* 🧭 CONTROLES DE IMERSÃO NARRATIVA (PULAR APRESENTAÇÃO & DESCER)           */}
+      {/* 🧭 HUD DE NAVEGAÇÃO & TELEMETRIA COGNITIVA (DOCK PROPRIETÁRIO SYNAPSE)    */}
       {/* ========================================================================= */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.55 }}
-        className="relative z-10 flex flex-col items-center gap-3 sm:gap-4 pb-2"
+        className="relative z-10 w-full max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 pb-2 px-2 sm:px-4"
       >
-        {/* Botão de Pular Apresentação (Estilo Mentoris, porém com acabamento Synapse) */}
+        {/* Esquerda: Telemetria do Algoritmo (Desktop) */}
+        <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-[#030712]/60 border border-white/5 backdrop-blur-md shadow-sm text-[11px] font-mono text-slate-300">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+          </span>
+          <span className="text-slate-400 tracking-wider">STATUS:</span>
+          <span className="font-bold text-cyan-300">MOTOR FSRS 4.5 ATIVO</span>
+        </div>
+
+        {/* Centro: Indicador Minimalista de Scroll (Mouse com Feixe Fluido) */}
+        <div className="flex flex-col items-center gap-1.5 text-center">
+          <span className="text-[10px] sm:text-[11px] font-mono font-medium tracking-[0.25em] text-slate-300 uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+            ROLE PARA INICIAR A JORNADA
+          </span>
+          <div className="w-4 h-7 rounded-full border border-cyan-400/40 flex items-start justify-center p-0.5 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              className="w-1 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_6px_#22d3ee]"
+            />
+          </div>
+        </div>
+
+        {/* Direita: Acesso Tático Direto ao Cockpit (Sem qualquer jargão de 'pular apresentação') */}
         <a
           href="#cockpit-showcase"
-          className="group inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#040814]/80 hover:bg-cyan-950/80 border border-cyan-500/35 hover:border-cyan-400 text-xs sm:text-sm font-mono font-bold text-cyan-300 hover:text-white backdrop-blur-xl transition-all shadow-[0_0_25px_rgba(6,182,212,0.2)] active:scale-95"
+          className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-[#030712]/80 hover:bg-cyan-950/70 border border-cyan-500/25 hover:border-cyan-400/60 backdrop-blur-md text-xs font-mono font-bold text-cyan-300 hover:text-white transition-all shadow-[0_0_20px_rgba(6,182,212,0.15)] hover:shadow-[0_0_25px_rgba(6,182,212,0.3)] active:scale-95"
         >
-          <span>PULAR APRESENTAÇÃO</span>
-          <ChevronRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
+          <BrainCircuit className="w-4 h-4 text-cyan-400 group-hover:rotate-12 transition-transform" />
+          <span className="tracking-wide">IR DIRETO AO COCKPIT</span>
+          <ArrowDownRight className="w-3.5 h-3.5 text-cyan-400/80 group-hover:translate-x-0.5 group-hover:translate-y-0.5 transition-transform" />
         </a>
-
-        {/* Indicador de Rolagem para Iniciar a Jornada */}
-        <div className="flex flex-col items-center gap-1 text-[10px] sm:text-[11px] font-mono text-slate-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-          <span className="tracking-wider">ROLE PARA INICIAR A JORNADA</span>
-          <ChevronDown className="w-4 h-4 text-cyan-400 animate-bounce" />
-        </div>
       </motion.div>
     </section>
   );
