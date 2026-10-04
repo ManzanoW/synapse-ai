@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import Image from "next/image";
 import {
   motion,
   useScroll,
@@ -31,6 +32,10 @@ export function InteractiveStickyShowcase() {
     target: containerRef,
     offset: ["start start", "end end"],
   });
+
+  // Parallax cinematográfico da Sala de Comando
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, -35]);
 
   // 3D Perspective Transforms: sutil e elegante, mantendo o Cockpit no centro do viewport
   const rotateX = useTransform(scrollYProgress, [0, 0.15], [10, 0]);
@@ -162,27 +167,59 @@ export function InteractiveStickyShowcase() {
     >
       {/* Sticky Viewport Container - Centralizado perfeitamente na tela */}
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-3 sm:px-6 lg:px-8 py-6">
-        {/* Dynamic Background Volumetric Light */}
+        {/* ========================================================================= */}
+        {/* 🌌 OBRA DE ARTE CINEMATOGRÁFICA: SALA DE COMANDO DO OBSERVATÓRIO NEURAL   */}
+        {/* ========================================================================= */}
         <motion.div
-          style={{ opacity: glowOpacity }}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center -z-10"
+          style={{ scale: bgScale, y: bgY }}
+          className="pointer-events-none absolute inset-0 z-0 w-full h-full overflow-hidden"
         >
-          <div className="w-[750px] sm:w-[950px] h-[450px] sm:h-[550px] bg-gradient-to-r from-indigo-600/25 via-violet-600/25 to-cyan-500/25 rounded-full blur-[150px]" />
+          <Image
+            src="/synapse-command-deck.jpg"
+            alt="Synapse AI - Central de Comando do Observatório Neural"
+            fill
+            priority
+            unoptimized
+            className="object-cover object-center"
+          />
+
+          {/* Overlay Escuro com Contraste para Destacar o Console Central */}
+          <div className="absolute inset-0 bg-[#02050e]/60 backdrop-contrast-115" />
+
+          {/* Luz Volumétrica Reativa à Tela Selecionada */}
+          <div
+            className={`absolute inset-0 transition-opacity duration-700 pointer-events-none ${
+              activeScreen === 0
+                ? "bg-cyan-950/20"
+                : activeScreen === 1
+                ? "bg-violet-950/20"
+                : "bg-indigo-950/20"
+            }`}
+          />
+
+          {/* Feixe Volumétrico Central Suave atrás do Cockpit */}
+          <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[600px] sm:w-[850px] h-[350px] sm:h-[450px] bg-cyan-400/15 rounded-full blur-[140px] pointer-events-none" />
+
+          {/* Vinhetas Suaves de Transição Superior e Inferior */}
+          <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-[#030712] via-[#030712]/75 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#030712] via-[#030712]/85 to-transparent" />
+          <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#030712]/70 to-transparent" />
+          <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#030712]/70 to-transparent" />
         </motion.div>
 
         {/* Floating Cockpit Subtitle / Progress Header */}
-        <div className="text-center space-y-1.5 sm:space-y-2 mb-3 sm:mb-5 max-w-2xl px-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+        <div className="relative z-10 text-center space-y-1.5 sm:space-y-2 mb-3 sm:mb-5 max-w-2xl px-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(99,102,241,0.2)] backdrop-blur-md">
             <Activity className="w-3.5 h-3.5 text-cyan-400" />
             <span>Cockpit Synapse em Ação</span>
           </div>
 
-          <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight">
+          <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
             {activeScreen === 0 && "1. Revisão Preditiva & Curva de Fixação Ativa"}
             {activeScreen === 1 && "2. Correção de Redação Discursiva no Rigor da Banca"}
             {activeScreen === 2 && "3. Modo Hands-Free com Áudio Neural Humanizado"}
           </h3>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
+          <p className="text-xs sm:text-sm text-slate-300/90 max-w-xl mx-auto drop-shadow-md">
             {activeScreen === 0 && "O algoritmo antecipa a curva de esquecimento e agenda o momento exato de revisar."}
             {activeScreen === 1 && "Espelho oficial Cebraspe/FGV com cálculo rigoroso de notas e versão ouro recomendada."}
             {activeScreen === 2 && "Estude no trânsito ou caminhada com áudio estéreo natural e pausa para recuperação ativa."}
@@ -193,7 +230,7 @@ export function InteractiveStickyShowcase() {
         {/* 🛸 3D PERSPECTIVE COCKPIT CONTAINER                                       */}
         {/* ========================================================================= */}
         <div
-          className="w-full max-w-5xl relative"
+          className="w-full max-w-5xl relative z-10"
           style={{ perspective: 1200 }}
           onMouseMove={handleCockpitMouseMove}
           onMouseLeave={handleCockpitMouseLeave}
@@ -704,7 +741,7 @@ export function InteractiveStickyShowcase() {
         </div>
 
         {/* Scroll Progress Bar indicator under the Cockpit */}
-        <div className="mt-3 sm:mt-5 flex items-center gap-3">
+        <div className="relative z-10 mt-3 sm:mt-5 flex items-center gap-3 px-4 py-1.5 rounded-full bg-[#030712]/75 border border-white/10 backdrop-blur-md shadow-lg shadow-black/50">
           <div className="flex gap-2">
             <span
               onClick={() => handleManualTab(0)}
@@ -725,7 +762,7 @@ export function InteractiveStickyShowcase() {
               }`}
             />
           </div>
-          <span className="text-[11px] font-mono text-slate-400">
+          <span className="text-[11px] font-mono text-slate-300">
             {activeScreen === 0 && "Role para ver o Corretor Discursivo (2/3) ↓"}
             {activeScreen === 1 && "Role para ver os Flashcards em Áudio (3/3) ↓"}
             {activeScreen === 2 && "Cockpit concluído! Continue rolando para o método ↓"}
