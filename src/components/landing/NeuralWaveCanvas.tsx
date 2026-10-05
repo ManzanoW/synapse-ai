@@ -163,6 +163,30 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
       }
       ctx.restore();
 
+      // Suavização das bordas horizontais e verticais (garante 0% de opacidade nas extremidades, sem cortes secos)
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-in";
+
+      // Fade horizontal suave nas bordas esquerda e direita
+      const hFade = ctx.createLinearGradient(0, 0, width, 0);
+      hFade.addColorStop(0, "rgba(0, 0, 0, 0)");
+      hFade.addColorStop(0.12, "rgba(0, 0, 0, 1)");
+      hFade.addColorStop(0.88, "rgba(0, 0, 0, 1)");
+      hFade.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = hFade;
+      ctx.fillRect(0, 0, width, height);
+
+      // Fade vertical suave no topo e na base
+      const vFade = ctx.createLinearGradient(0, 0, 0, height);
+      vFade.addColorStop(0, "rgba(0, 0, 0, 0)");
+      vFade.addColorStop(0.08, "rgba(0, 0, 0, 1)");
+      vFade.addColorStop(0.92, "rgba(0, 0, 0, 1)");
+      vFade.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = vFade;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.restore();
+
       animationFrameId = requestAnimationFrame(render);
     };
 

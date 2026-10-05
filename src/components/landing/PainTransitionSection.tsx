@@ -143,8 +143,14 @@ export function PainTransitionSection() {
         {/* ⚡ OSCILOSCÓPIO NEURAL LÍQUIDO A 60 FPS (FÍSICA SENOIDAL PURA)        */}
         {/* Posicionado como horizonte de luz fluido abaixo do texto               */}
         {/* ===================================================================== */}
-        <div className="pointer-events-none absolute inset-x-0 top-[52%] -translate-y-1/2 h-96 z-[1] flex items-center justify-center overflow-hidden opacity-35 mix-blend-screen">
-          <NeuralWaveCanvas scrollProgress={scrollYProgress} className="w-full max-w-7xl h-full" />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-[52%] -translate-y-1/2 h-96 z-[1] flex items-center justify-center overflow-hidden opacity-35 mix-blend-screen"
+          style={{
+            WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)",
+            maskImage: "linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)",
+          }}
+        >
+          <NeuralWaveCanvas scrollProgress={scrollYProgress} className="w-full h-full" />
         </div>
 
         {/* ===================================================================== */}
