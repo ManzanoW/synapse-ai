@@ -52,8 +52,15 @@ export function InteractiveStickyShowcase() {
   const mouseTiltX = useTransform(smoothMouseY, [-0.5, 0.5], [6, -6]);
   const mouseTiltY = useTransform(smoothMouseX, [-0.5, 0.5], [-8, 8]);
 
-  const totalRotateX = useTransform([rotateX, mouseTiltX], ([rX, mX]) => (rX as number) + (mX as number));
-  const totalRotateY = mouseTiltY;
+  // No mobile, manter o console plano (0 rotação) para 0ms de cálculo e máxima nitidez
+  const totalRotateX = useTransform([rotateX, mouseTiltX], ([rX, mX]) => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) return 0;
+    return (rX as number) + (mX as number);
+  });
+  const totalRotateY = useTransform(mouseTiltY, (mY) => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) return 0;
+    return mY;
+  });
 
   const glareX = useTransform(smoothMouseX, [-0.5, 0.5], ["20%", "80%"]);
   const glareY = useTransform(smoothMouseY, [-0.5, 0.5], ["20%", "80%"]);
@@ -139,9 +146,9 @@ export function InteractiveStickyShowcase() {
     },
   }[userRating];
 
-  // Sync scroll progress com as 3 telas de forma contínua e sem lacunas
+  // Sync scroll progress com as 3 telas no desktop (no mobile, as abas são manuais por toque sem scroll-jacking)
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    if (isManualOverride) return;
+    if (isManualOverride || (typeof window !== "undefined" && window.innerWidth < 768)) return;
 
     if (latest < 0.34) {
       if (activeScreen !== 0) setActiveScreen(0);
@@ -163,10 +170,10 @@ export function InteractiveStickyShowcase() {
     <div
       id="cockpit-showcase"
       ref={containerRef}
-      className="relative h-[180vh] sm:h-[220vh] md:h-[280vh] w-full bg-[#030712] select-none"
+      className="relative md:h-[280vh] w-full bg-[#030712] select-none"
     >
-      {/* Sticky Viewport Container (100dvh para fluidez e sem cortes em mobile) */}
-      <div className="sticky top-0 h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden px-2 sm:px-6 lg:px-8 py-3 sm:py-6">
+      {/* Viewport Container: sticky no desktop para scrollytelling, normal relativo no mobile */}
+      <div className="relative md:sticky md:top-0 md:h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden px-2 sm:px-6 lg:px-8 py-10 md:py-6">
         {/* ========================================================================= */}
         {/* 🌌 OBRA DE ARTE CINEMATOGRÁFICA: SALA DE COMANDO DO OBSERVATÓRIO NEURAL   */}
         {/* ========================================================================= */}

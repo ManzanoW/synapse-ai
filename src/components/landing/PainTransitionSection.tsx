@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { NeuralWaveCanvas } from "./NeuralWaveCanvas";
 
-export function PainTransitionSection() {
+function PainDesktopScrollytelling() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({
@@ -70,7 +70,7 @@ export function PainTransitionSection() {
     <div
       id="pain-transition"
       ref={containerRef}
-      className="relative h-[210vh] sm:h-[260vh] md:h-[340vh] w-full bg-[#030712] select-none"
+      className="hidden md:block relative h-[340vh] w-full bg-[#030712] select-none"
     >
       {/* Sticky Fullscreen HUD Viewport (100dvh previne jumps de barra de endereço mobile) */}
       <div className="sticky top-0 h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden px-3 sm:px-6">
@@ -348,5 +348,202 @@ export function PainTransitionSection() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Fluxo Mobile Nativo (Zero Sticky / Zero Scroll Jacking / 120 FPS Fluid Momentum)
+ * Apresenta as 3 dores com abas táteis interativas e a virada sináptica com métricas.
+ */
+function PainMobileFlow() {
+  const [activePainTab, setActivePainTab] = useState<0 | 1 | 2>(0);
+
+  return (
+    <section className="block md:hidden relative w-full py-16 px-4 bg-[#030712] overflow-hidden select-none border-b border-white/[0.06]">
+      {/* Background Artwork Otimizado */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/synapse-pain-storm.jpg"
+          alt="Synapse AI - O Vórtice da Sobrecarga Cognitiva"
+          fill
+          priority
+          unoptimized
+          className="object-cover object-center opacity-35"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#030712] via-[#030712]/75 to-[#030712]" />
+      </div>
+
+      <div className="relative z-10 max-w-lg mx-auto space-y-12">
+        {/* PARTE 1: O CHOQUE DE REALIDADE (3 DORES COM TABS INSTANTÂNEAS) */}
+        <div className="space-y-5 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 font-mono text-[11px] font-bold uppercase tracking-wider">
+            <Layers className="w-3.5 h-3.5 text-violet-400" />
+            <span>Diagnóstico // O Choque de Realidade</span>
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+            O cérebro humano não foi feito para decorar{" "}
+            <span className="block mt-1 bg-gradient-to-r from-violet-300 via-indigo-200 to-cyan-300 bg-clip-text text-transparent">
+              1.200 páginas de edital.
+            </span>
+          </h2>
+
+          {/* Seletor de Dores com Abas Táteis de Toque Instantâneo */}
+          <div className="flex items-center justify-center gap-1 p-1 rounded-2xl bg-black/60 border border-white/10">
+            <button
+              type="button"
+              onClick={() => setActivePainTab(0)}
+              className={`flex-1 py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                activePainTab === 0
+                  ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              1. Saturação
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePainTab(1)}
+              className={`flex-1 py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                activePainTab === 1
+                  ? "bg-amber-600 text-white shadow-md shadow-amber-600/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              2. Trânsito
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePainTab(2)}
+              className={`flex-1 py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                activePainTab === 2
+                  ? "bg-rose-600 text-white shadow-md shadow-rose-600/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              3. Amnésia
+            </button>
+          </div>
+
+          {/* Card de Telemetria Dinâmico */}
+          <div className="rounded-2xl bg-[#060a14]/90 border border-white/10 p-4 shadow-xl text-left font-mono">
+            {activePainTab === 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <span className="text-xs text-violet-300 font-bold uppercase">Sobrecarga de Conteúdo</span>
+                  <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 font-bold">Estado Crítico</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Retenção Sem IA:</span>
+                    <span className="text-xl font-black text-rose-400">&lt; 18.2%</span>
+                    <span className="text-[10px] text-slate-500 block">Queda em 14 dias</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Frequência Cerebral:</span>
+                    <span className="text-xl font-black text-violet-300">38.4 Hz</span>
+                    <span className="text-[10px] text-slate-500 block">Fadiga mental severa</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activePainTab === 1 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <span className="text-xs text-amber-300 font-bold uppercase">Horas no Deslocamento</span>
+                  <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-bold">Dreno Diário</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Tempo Confiscado:</span>
+                    <span className="text-xl font-black text-amber-400">-520h / ano</span>
+                    <span className="text-[10px] text-slate-500 block">2h diárias no volante</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Atraso no Edital:</span>
+                    <span className="text-xl font-black text-amber-300">-2.5 Meses</span>
+                    <span className="text-[10px] text-slate-500 block">Perdidos sem áudio</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activePainTab === 2 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <span className="text-xs text-rose-300 font-bold uppercase">Amnésia de Véspera</span>
+                  <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 font-bold">Curva Ebbinghaus</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Perda Espontânea:</span>
+                    <span className="text-xl font-black text-rose-400">-80% Conteúdo</span>
+                    <span className="text-[10px] text-slate-500 block">Sem algoritmo preditivo</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Revisão por Planilhas:</span>
+                    <span className="text-xl font-black text-rose-300">0% Precisão</span>
+                    <span className="text-[10px] text-slate-500 block">Palpites manuais</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* PARTE 2: A RESPOSTA DEFINITIVA (A VIRADA SINÁPTICA) */}
+        <div className="space-y-5 text-center pt-4 border-t border-white/[0.08]">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-[11px] font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.25)]">
+            <Brain className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <span>Sincronização Sináptica Completa</span>
+          </div>
+
+          <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+            Calma. Seu cérebro só precisava da{" "}
+            <span className="block mt-1 bg-gradient-to-r from-cyan-300 via-indigo-200 to-violet-400 bg-clip-text text-transparent">
+              neurociência certa.
+            </span>
+          </h3>
+
+          <p className="text-xs text-slate-300 leading-relaxed font-normal">
+            O Synapse AI assume o cálculo biológico do seu esquecimento, audita suas redações no critério oficial da banca e transforma seu trânsito em horas líquidas de estudo.
+          </p>
+
+          {/* 3 Métricas de Alta Conversão */}
+          <div className="grid grid-cols-3 gap-2 font-mono text-xs pt-1">
+            <div className="p-2.5 rounded-xl bg-[#070b14]/90 border border-cyan-500/35 shadow-lg shadow-cyan-950/30">
+              <span className="text-cyan-400 text-base font-black block">94.8%</span>
+              <span className="text-slate-400 text-[9px] block">Retenção FSRS</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-[#070b14]/90 border border-indigo-500/35 shadow-lg shadow-indigo-950/30">
+              <span className="text-indigo-400 text-base font-black block">+2h / dia</span>
+              <span className="text-slate-400 text-[9px] block">Hands-Free Áudio</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-[#070b14]/90 border border-violet-500/35 shadow-lg shadow-violet-950/30">
+              <span className="text-violet-400 text-base font-black block">Nota 96+</span>
+              <span className="text-slate-400 text-[9px] block">Espelho Cebraspe</span>
+            </div>
+          </div>
+
+          <a
+            href="#cockpit-showcase"
+            className="inline-flex items-center justify-center gap-2 w-full py-3.5 px-4 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 shadow-lg shadow-cyan-500/25 active:scale-98 cursor-pointer font-mono uppercase tracking-wider"
+          >
+            <span>Explorar Cockpit Interativo</span>
+            <ChevronDown className="w-4 h-4" />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function PainTransitionSection() {
+  return (
+    <>
+      <PainMobileFlow />
+      <PainDesktopScrollytelling />
+    </>
   );
 }
