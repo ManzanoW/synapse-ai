@@ -27,12 +27,15 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
     let phase = 0;
     let width = 0;
     let height = 0;
+    let isMobile = false;
 
     const handleResize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const rect = canvas.getBoundingClientRect();
       width = rect.width;
       height = rect.height;
+      isMobile = width < 768;
+      // No mobile, usar DPR 1 para eliminar gargalo de fill-rate em telas Retina
+      const dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = width * dpr;
       canvas.height = height * dpr;
       ctx.scale(dpr, dpr);
@@ -96,7 +99,7 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
       // Desenha cada camada com Ribbon volumétrico e traço de laser
       waves.forEach((wave) => {
         const points: { x: number; y: number }[] = [];
-        const step = 4; // Resolução por ponto para 60 FPS cravados
+        const step = isMobile ? 8 : 4; // Resolução otimizada para 60 FPS cravados em qualquer aparelho
 
         for (let x = 0; x <= width + step; x += step) {
           const baseSin = Math.sin(x * wave.frequency + wave.phaseOffset);
@@ -126,29 +129,41 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
         }
         ctx.restore();
 
-        // 2. Traço de Luz Neon Laser
+        // 2. Traço de Luz Neon Laser (Hardware-accelerated no mobile, blur suave no desktop)
         ctx.save();
         ctx.beginPath();
-        ctx.strokeStyle = wave.strokeColor;
-        ctx.lineWidth = wave.lineWidth;
-        ctx.shadowColor = wave.glowColor;
-        ctx.shadowBlur = wave.blur;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-
         if (points.length > 0) {
           ctx.moveTo(points[0].x, points[0].y);
           for (let i = 1; i < points.length; i++) {
             ctx.lineTo(points[i].x, points[i].y);
           }
         }
-        ctx.stroke();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        if (isMobile) {
+          // No mobile: traçado duplo acelerado pela GPU (elimina lag de software shadowBlur)
+          ctx.strokeStyle = wave.glowColor;
+          ctx.lineWidth = wave.lineWidth * 2.2;
+          ctx.stroke();
+
+          ctx.strokeStyle = wave.strokeColor;
+          ctx.lineWidth = wave.lineWidth;
+          ctx.stroke();
+        } else {
+          // No desktop: sombra difusa com blur cinematográfico completo
+          ctx.strokeStyle = wave.strokeColor;
+          ctx.lineWidth = wave.lineWidth;
+          ctx.shadowColor = wave.glowColor;
+          ctx.shadowBlur = wave.blur;
+          ctx.stroke();
+        }
         ctx.restore();
       });
 
       // Partículas de Potencial de Ação Sináptico (Pulsos de Luz Flutuantes)
       ctx.save();
-      const nodeCount = isRelief ? 4 : 2;
+      const nodeCount = isRelief ? (isMobile ? 2 : 4) : (isMobile ? 1 : 2);
       for (let n = 0; n < nodeCount; n++) {
         const nodeProgress = ((phase * 0.4 + n * (1 / nodeCount)) % 1);
         const nx = nodeProgress * width;
@@ -157,11 +172,39 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
         ctx.beginPath();
         ctx.arc(nx, ny, isRelief ? 3.5 : 2.5, 0, Math.PI * 2);
         ctx.fillStyle = isRelief ? "#ffffff" : "#c084fc";
-        ctx.shadowColor = isRelief ? "#06b6d4" : "#818cf8";
-        ctx.shadowBlur = isRelief ? 18 : 12;
+        if (!isMobile) {
+          ctx.shadowColor = isRelief ? "#06b6d4" : "#818cf8";
+          ctx.shadowBlur = isRelief ? 18 : 12;
+        }
         ctx.fill();
       }
       ctx.restore();
+
+      // Suavização das bordas no desktop (no mobile a máscara CSS nativa do container já faz o corte suave)
+      if (!isMobile) {
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-in";
+
+        // Fade horizontal suave nas bordas esquerda e direita
+        const hFade = ctx.createLinearGradient(0, 0, width, 0);
+        hFade.addColorStop(0, "rgba(0, 0, 0, 0)");
+        hFade.addColorStop(0.12, "rgba(0, 0, 0, 1)");
+        hFade.addColorStop(0.88, "rgba(0, 0, 0, 1)");
+        hFade.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = hFade;
+        ctx.fillRect(0, 0, width, height);
+
+        // Fade vertical suave no topo e na base
+        const vFade = ctx.createLinearGradient(0, 0, 0, height);
+        vFade.addColorStop(0, "rgba(0, 0, 0, 0)");
+        vFade.addColorStop(0.08, "rgba(0, 0, 0, 1)");
+        vFade.addColorStop(0.92, "rgba(0, 0, 0, 1)");
+        vFade.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = vFade;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.restore();
+      }
 
       animationFrameId = requestAnimationFrame(render);
     };

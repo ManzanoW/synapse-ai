@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
@@ -17,8 +17,9 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { NeuralWaveCanvas } from "./NeuralWaveCanvas";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
-export function PainTransitionSection() {
+function PainDesktopScrollytelling() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({
@@ -26,9 +27,9 @@ export function PainTransitionSection() {
     offset: ["start start", "end end"],
   });
 
-  // Parallax cinematográfico do Vórtice de Editais
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
-  const bgY = useTransform(scrollYProgress, [0, 1], [0, -35]);
+  // Parallax cinematográfico do Vórtice de Editais (calibrado para 60 FPS mobile)
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.06]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, -20]);
 
   // =========================================================================
   // SCROLL-DRIVEN COGNITIVE DIAGNOSTIC (MASTER UI/UX INTERACTION)
@@ -70,10 +71,10 @@ export function PainTransitionSection() {
     <div
       id="pain-transition"
       ref={containerRef}
-      className="relative h-[360vh] w-full bg-[#030712] select-none"
+      className="hidden md:block relative h-[340vh] w-full bg-[#030712] select-none"
     >
-      {/* Sticky Fullscreen HUD Viewport */}
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6">
+      {/* Sticky Fullscreen HUD Viewport (100dvh previne jumps de barra de endereço mobile) */}
+      <div className="sticky top-0 h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden px-3 sm:px-6">
 
         {/* ===================================================================== */}
         {/* 🌌 OBRA DE ARTE CINEMATOGRÁFICA: O VÓRTICE DA SOBRECARGA COGNITIVA     */}
@@ -143,8 +144,14 @@ export function PainTransitionSection() {
         {/* ⚡ OSCILOSCÓPIO NEURAL LÍQUIDO A 60 FPS (FÍSICA SENOIDAL PURA)        */}
         {/* Posicionado como horizonte de luz fluido abaixo do texto               */}
         {/* ===================================================================== */}
-        <div className="pointer-events-none absolute inset-x-0 top-[52%] -translate-y-1/2 h-96 z-[1] flex items-center justify-center overflow-hidden opacity-35 mix-blend-screen">
-          <NeuralWaveCanvas scrollProgress={scrollYProgress} className="w-full max-w-7xl h-full" />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-[52%] -translate-y-1/2 h-96 z-[1] flex items-center justify-center overflow-hidden opacity-35 mix-blend-screen"
+          style={{
+            WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)",
+            maskImage: "linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)",
+          }}
+        >
+          <NeuralWaveCanvas scrollProgress={scrollYProgress} className="w-full h-full" />
         </div>
 
         {/* ===================================================================== */}
@@ -152,29 +159,29 @@ export function PainTransitionSection() {
         {/* ===================================================================== */}
         <motion.div
           style={{ opacity: opacity1, y: y1, scale: scale1 }}
-          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none z-10"
+          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none z-10 will-change-[transform,opacity] transform-gpu"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 font-mono text-xs font-bold uppercase tracking-wider mb-5 backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 font-mono text-xs font-bold uppercase tracking-wider mb-3 sm:mb-5 backdrop-blur-md">
             <Layers className="w-3.5 h-3.5 text-violet-400 animate-pulse" />
             <span>Fase 01 • Saturação Cognitiva</span>
           </div>
 
-          <h2 className="relative z-10 text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.12] drop-shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
+          <h2 className="relative z-10 text-2xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.12] drop-shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
             O cérebro humano não foi feito para decorar{" "}
-            <span className="block mt-2 bg-gradient-to-r from-violet-300 via-indigo-200 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(139,92,246,0.35)]">
+            <span className="block mt-1 sm:mt-2 bg-gradient-to-r from-violet-300 via-indigo-200 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(139,92,246,0.35)]">
               1.200 páginas de edital.
             </span>
           </h2>
 
           {/* Console de Telemetria Unificado Glassmorphism */}
-          <div className="mt-8 mx-auto max-w-xl rounded-2xl bg-[#060a14]/85 border border-white/[0.1] backdrop-blur-2xl p-4 sm:p-5 shadow-2xl shadow-black/70 grid grid-cols-2 gap-4 text-left font-mono">
+          <div className="mt-5 sm:mt-8 mx-auto max-w-xl rounded-2xl bg-[#060a14]/85 border border-white/[0.1] backdrop-blur-2xl p-3.5 sm:p-5 shadow-2xl shadow-black/70 grid grid-cols-2 gap-3 sm:gap-4 text-left font-mono">
             {/* Coluna 1: Retenção */}
-            <div className="space-y-1.5 border-r border-white/5 pr-3 sm:pr-4">
+            <div className="space-y-1.5 border-r border-white/5 pr-2.5 sm:pr-4">
               <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider">
                 <span>Retenção Biológica</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
               </div>
-              <div className="text-xl sm:text-2xl font-black text-rose-400 tracking-tight flex items-baseline gap-2">
+              <div className="text-lg sm:text-2xl font-black text-rose-400 tracking-tight flex items-baseline gap-2">
                 &lt; 18.2%
                 <span className="text-[10px] font-normal text-rose-300/80">Crítico</span>
               </div>
@@ -194,17 +201,17 @@ export function PainTransitionSection() {
                 <span>Padrão EEG</span>
                 <span className="text-violet-400 font-bold text-[10px]">38.4 Hz</span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-violet-300 tracking-tight">
+              <div className="text-lg sm:text-2xl font-black text-violet-300 tracking-tight">
                 Sobrecarga Beta
               </div>
-              {/* Equalizador de Barras Fluido */}
+              {/* Equalizador de Barras Fluido (GPU scaleY acelerado) */}
               <div className="flex items-center gap-1.5 h-3 pt-0.5">
                 {[40, 85, 60, 95, 50, 80, 65].map((h, i) => (
                   <motion.span
                     key={i}
-                    animate={{ height: [`${h * 0.35}%`, `${h}%`, `${h * 0.4}%`] }}
+                    animate={{ scaleY: [0.35, 1, 0.4] }}
                     transition={{ duration: 0.7 + i * 0.12, repeat: Infinity, ease: "easeInOut" }}
-                    className="w-1.5 bg-gradient-to-t from-indigo-500 to-violet-400 rounded-full"
+                    className="w-1.5 bg-gradient-to-t from-indigo-500 to-violet-400 rounded-full origin-bottom"
                     style={{ height: `${h}%` }}
                   />
                 ))}
@@ -219,29 +226,29 @@ export function PainTransitionSection() {
         {/* ===================================================================== */}
         <motion.div
           style={{ opacity: opacity2, y: y2, scale: scale2 }}
-          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none z-10"
+          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none z-10 will-change-[transform,opacity] transform-gpu"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider mb-5 backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider mb-3 sm:mb-5 backdrop-blur-md">
             <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
             <span>Fase 02 • O Dreno Invisível</span>
           </div>
 
-          <h2 className="relative z-10 text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.12] drop-shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
+          <h2 className="relative z-10 text-2xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.12] drop-shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
             2 horas por dia perdidas no trânsito{" "}
-            <span className="block mt-2 bg-gradient-to-r from-amber-300 via-orange-300 to-amber-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.35)]">
+            <span className="block mt-1 sm:mt-2 bg-gradient-to-r from-amber-300 via-orange-300 to-amber-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,158,11,0.35)]">
               são 500 horas mortas por ano.
             </span>
           </h2>
 
-          <div className="mt-8 mx-auto max-w-xl rounded-2xl bg-[#060a14]/85 border border-white/[0.1] backdrop-blur-2xl p-4 sm:p-5 shadow-2xl shadow-black/70 grid grid-cols-2 gap-4 text-left font-mono">
-            <div className="space-y-1.5 border-r border-white/5 pr-3 sm:pr-4">
+          <div className="mt-5 sm:mt-8 mx-auto max-w-xl rounded-2xl bg-[#060a14]/85 border border-white/[0.1] backdrop-blur-2xl p-3.5 sm:p-5 shadow-2xl shadow-black/70 grid grid-cols-2 gap-3 sm:gap-4 text-left font-mono">
+            <div className="space-y-1.5 border-r border-white/5 pr-2.5 sm:pr-4">
               <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Déficit Temporal</span>
-              <div className="text-xl sm:text-2xl font-black text-amber-400 tracking-tight">-520 Horas</div>
+              <div className="text-lg sm:text-2xl font-black text-amber-400 tracking-tight">-520 Horas</div>
               <span className="text-[10px] text-slate-500 block truncate">Tempo líquido confiscado</span>
             </div>
             <div className="space-y-1.5 pl-2 sm:pl-3">
               <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Impacto no Edital</span>
-              <div className="text-xl sm:text-2xl font-black text-amber-300 tracking-tight">-2.5 Meses</div>
+              <div className="text-lg sm:text-2xl font-black text-amber-300 tracking-tight">-2.5 Meses</div>
               <span className="text-[10px] text-slate-500 block truncate">Atraso na preparação teórica</span>
             </div>
           </div>
@@ -252,29 +259,29 @@ export function PainTransitionSection() {
         {/* ===================================================================== */}
         <motion.div
           style={{ opacity: opacity3, y: y3, scale: scale3 }}
-          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none z-10"
+          className="absolute max-w-3xl w-full px-4 text-center pointer-events-none z-10 will-change-[transform,opacity] transform-gpu"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-300 font-mono text-xs font-bold uppercase tracking-wider mb-5 backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-300 font-mono text-xs font-bold uppercase tracking-wider mb-3 sm:mb-5 backdrop-blur-md">
             <AlertTriangle className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
             <span>Fase 03 • A Amnésia de Véspera</span>
           </div>
 
-          <h2 className="relative z-10 text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.12] drop-shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
+          <h2 className="relative z-10 text-2xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.12] drop-shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
             A dor de errar na prova exatamente aquilo que você{" "}
-            <span className="block mt-2 bg-gradient-to-r from-rose-300 via-pink-300 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(244,63,94,0.35)]">
+            <span className="block mt-1 sm:mt-2 bg-gradient-to-r from-rose-300 via-pink-300 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(244,63,94,0.35)]">
               estudou com afinco há 2 meses.
             </span>
           </h2>
 
-          <div className="mt-8 mx-auto max-w-xl rounded-2xl bg-[#060a14]/85 border border-white/[0.1] backdrop-blur-2xl p-4 sm:p-5 shadow-2xl shadow-black/70 grid grid-cols-2 gap-4 text-left font-mono">
-            <div className="space-y-1.5 border-r border-white/5 pr-3 sm:pr-4">
+          <div className="mt-5 sm:mt-8 mx-auto max-w-xl rounded-2xl bg-[#060a14]/85 border border-white/[0.1] backdrop-blur-2xl p-3.5 sm:p-5 shadow-2xl shadow-black/70 grid grid-cols-2 gap-3 sm:gap-4 text-left font-mono">
+            <div className="space-y-1.5 border-r border-white/5 pr-2.5 sm:pr-4">
               <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Curva de Ebbinghaus</span>
-              <div className="text-xl sm:text-2xl font-black text-rose-400 tracking-tight">-80% Memória</div>
+              <div className="text-lg sm:text-2xl font-black text-rose-400 tracking-tight">-80% Memória</div>
               <span className="text-[10px] text-slate-500 block truncate">Perda sem algoritmo preditivo</span>
             </div>
             <div className="space-y-1.5 pl-2 sm:pl-3">
               <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Timing das Revisões</span>
-              <div className="text-xl sm:text-2xl font-black text-rose-300 tracking-tight">Zero Precisão</div>
+              <div className="text-lg sm:text-2xl font-black text-rose-300 tracking-tight">Zero Precisão</div>
               <span className="text-[10px] text-slate-500 block truncate">Planilhas e palpites manuais</span>
             </div>
           </div>
@@ -285,41 +292,41 @@ export function PainTransitionSection() {
         {/* ===================================================================== */}
         <motion.div
           style={{ opacity: opacity4, y: y4, scale: scale4 }}
-          className="absolute max-w-4xl w-full px-4 text-center pointer-events-none space-y-5 sm:space-y-6 z-10"
+          className="absolute max-w-4xl w-full px-4 text-center pointer-events-none space-y-4 sm:space-y-6 z-10 will-change-[transform,opacity] transform-gpu"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-teal-500/20 border border-cyan-500/40 text-cyan-300 font-mono text-xs sm:text-sm font-bold uppercase tracking-wider shadow-[0_0_25px_rgba(6,182,212,0.35)]">
-            <Brain className="w-4 h-4 text-cyan-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-teal-500/20 border border-cyan-500/40 text-cyan-300 font-mono text-[11px] sm:text-sm font-bold uppercase tracking-wider shadow-[0_0_25px_rgba(6,182,212,0.35)]">
+            <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400 animate-pulse" />
             <span>Sincronização Sináptica Completa</span>
           </div>
 
-          <h2 className="relative z-10 text-3xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-[1.08] drop-shadow-[0_10px_35px_rgba(0,0,0,0.9)]">
+          <h2 className="relative z-10 text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.08] drop-shadow-[0_10px_35px_rgba(0,0,0,0.9)]">
             Calma. Seu cérebro só precisava da{" "}
-            <span className="block mt-2 bg-gradient-to-r from-cyan-300 via-indigo-200 to-violet-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(99,102,241,0.5)]">
+            <span className="block mt-1 sm:mt-2 bg-gradient-to-r from-cyan-300 via-indigo-200 to-violet-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(99,102,241,0.5)]">
               neurociência certa.
             </span>
           </h2>
 
-          <p className="text-sm sm:text-xl text-slate-300/95 max-w-2xl mx-auto leading-relaxed font-normal drop-shadow-md">
+          <p className="text-xs sm:text-lg text-slate-300/95 max-w-2xl mx-auto leading-relaxed font-normal drop-shadow-md">
             O Synapse AI assume o cálculo biológico do seu esquecimento, audita suas redações no critério oficial da banca e transforma seu trânsito em horas líquidas de estudo.
           </p>
 
           {/* Telemetria de Vitória Cognitiva com Bordas Brilhantes */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 max-w-xl mx-auto pt-2 font-mono text-xs">
-            <div className="p-3.5 rounded-2xl bg-[#070b14]/90 border border-cyan-500/35 backdrop-blur-2xl shadow-xl shadow-cyan-950/40">
-              <span className="text-cyan-400 text-lg sm:text-2xl font-black block">94.8%</span>
-              <span className="text-slate-400 text-[10px] sm:text-[11px]">Retenção FSRS</span>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 max-w-xl mx-auto pt-1 sm:pt-2 font-mono text-xs">
+            <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#070b14]/90 border border-cyan-500/35 backdrop-blur-2xl shadow-xl shadow-cyan-950/40">
+              <span className="text-cyan-400 text-base sm:text-2xl font-black block">94.8%</span>
+              <span className="text-slate-400 text-[9px] sm:text-[11px]">Retenção FSRS</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-[#070b14]/90 border border-indigo-500/35 backdrop-blur-2xl shadow-xl shadow-indigo-950/40">
-              <span className="text-indigo-400 text-lg sm:text-2xl font-black block">+2h / dia</span>
-              <span className="text-slate-400 text-[10px] sm:text-[11px]">Hands-Free Áudio</span>
+            <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#070b14]/90 border border-indigo-500/35 backdrop-blur-2xl shadow-xl shadow-indigo-950/40">
+              <span className="text-indigo-400 text-base sm:text-2xl font-black block">+2h / dia</span>
+              <span className="text-slate-400 text-[9px] sm:text-[11px]">Hands-Free Áudio</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-[#070b14]/90 border border-violet-500/35 backdrop-blur-2xl shadow-xl shadow-violet-950/40">
-              <span className="text-violet-400 text-lg sm:text-2xl font-black block">Nota 96+</span>
-              <span className="text-slate-400 text-[10px] sm:text-[11px]">Espelho Cebraspe</span>
+            <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#070b14]/90 border border-violet-500/35 backdrop-blur-2xl shadow-xl shadow-violet-950/40">
+              <span className="text-violet-400 text-base sm:text-2xl font-black block">Nota 96+</span>
+              <span className="text-slate-400 text-[9px] sm:text-[11px]">Espelho Cebraspe</span>
             </div>
           </div>
 
-          <div className="pt-2 flex items-center justify-center gap-2 text-cyan-400 font-mono text-xs sm:text-sm font-bold animate-bounce">
+          <div className="pt-1 sm:pt-2 flex items-center justify-center gap-2 text-cyan-400 font-mono text-xs sm:text-sm font-bold animate-bounce">
             <span>Role para entrar no Cockpit Synapse</span>
             <ChevronDown className="w-4 h-4" />
           </div>
@@ -342,5 +349,211 @@ export function PainTransitionSection() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Fluxo Mobile Nativo (Zero Sticky / Zero Scroll Jacking / 120 FPS Fluid Momentum)
+ * Apresenta as 3 dores com abas táteis interativas e a virada sináptica com métricas.
+ */
+function PainMobileFlow() {
+  const [activePainTab, setActivePainTab] = useState<0 | 1 | 2>(0);
+
+  return (
+    <section className="block md:hidden relative w-full py-16 px-4 bg-[#030712] overflow-hidden select-none border-b border-white/[0.06]">
+      {/* Background Artwork Otimizado */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/synapse-pain-storm.jpg"
+          alt="Synapse AI - O Vórtice da Sobrecarga Cognitiva"
+          fill
+          priority
+          unoptimized
+          className="object-cover object-center opacity-35"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#030712] via-[#030712]/75 to-[#030712]" />
+      </div>
+
+      <div className="relative z-10 max-w-lg mx-auto space-y-12">
+        {/* PARTE 1: O CHOQUE DE REALIDADE (3 DORES COM TABS INSTANTÂNEAS) */}
+        <div className="space-y-5 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 font-mono text-[11px] font-bold uppercase tracking-wider">
+            <Layers className="w-3.5 h-3.5 text-violet-400" />
+            <span>Diagnóstico // O Choque de Realidade</span>
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+            O cérebro humano não foi feito para decorar{" "}
+            <span className="block mt-1 bg-gradient-to-r from-violet-300 via-indigo-200 to-cyan-300 bg-clip-text text-transparent">
+              1.200 páginas de edital.
+            </span>
+          </h2>
+
+          {/* Seletor de Dores com Abas Táteis de Toque Instantâneo */}
+          <div className="flex items-center justify-center gap-1 p-1 rounded-2xl bg-black/60 border border-white/10">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("medium");
+                setActivePainTab(0);
+              }}
+              className={`flex-1 py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                activePainTab === 0
+                  ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              1. Saturação
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("medium");
+                setActivePainTab(1);
+              }}
+              className={`flex-1 py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                activePainTab === 1
+                  ? "bg-amber-600 text-white shadow-md shadow-amber-600/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              2. Trânsito
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("medium");
+                setActivePainTab(2);
+              }}
+              className={`flex-1 py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                activePainTab === 2
+                  ? "bg-rose-600 text-white shadow-md shadow-rose-600/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              3. Amnésia
+            </button>
+          </div>
+
+          {/* Card de Telemetria Dinâmico */}
+          <div className="rounded-2xl bg-[#060a14]/90 border border-white/10 p-4 shadow-xl text-left font-mono">
+            {activePainTab === 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <span className="text-xs text-violet-300 font-bold uppercase">Sobrecarga de Conteúdo</span>
+                  <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 font-bold">Estado Crítico</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Retenção Sem IA:</span>
+                    <span className="text-xl font-black text-rose-400">&lt; 18.2%</span>
+                    <span className="text-[10px] text-slate-500 block">Queda em 14 dias</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Frequência Cerebral:</span>
+                    <span className="text-xl font-black text-violet-300">38.4 Hz</span>
+                    <span className="text-[10px] text-slate-500 block">Fadiga mental severa</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activePainTab === 1 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <span className="text-xs text-amber-300 font-bold uppercase">Horas no Deslocamento</span>
+                  <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-bold">Dreno Diário</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Tempo Confiscado:</span>
+                    <span className="text-xl font-black text-amber-400">-520h / ano</span>
+                    <span className="text-[10px] text-slate-500 block">2h diárias no volante</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Atraso no Edital:</span>
+                    <span className="text-xl font-black text-amber-300">-2.5 Meses</span>
+                    <span className="text-[10px] text-slate-500 block">Perdidos sem áudio</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activePainTab === 2 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <span className="text-xs text-rose-300 font-bold uppercase">Amnésia de Véspera</span>
+                  <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 font-bold">Curva Ebbinghaus</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Perda Espontânea:</span>
+                    <span className="text-xl font-black text-rose-400">-80% Conteúdo</span>
+                    <span className="text-[10px] text-slate-500 block">Sem algoritmo preditivo</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Revisão por Planilhas:</span>
+                    <span className="text-xl font-black text-rose-300">0% Precisão</span>
+                    <span className="text-[10px] text-slate-500 block">Palpites manuais</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* PARTE 2: A RESPOSTA DEFINITIVA (A VIRADA SINÁPTICA) */}
+        <div className="space-y-5 text-center pt-4 border-t border-white/[0.08]">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-[11px] font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.25)]">
+            <Brain className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <span>Sincronização Sináptica Completa</span>
+          </div>
+
+          <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+            Calma. Seu cérebro só precisava da{" "}
+            <span className="block mt-1 bg-gradient-to-r from-cyan-300 via-indigo-200 to-violet-400 bg-clip-text text-transparent">
+              neurociência certa.
+            </span>
+          </h3>
+
+          <p className="text-xs text-slate-300 leading-relaxed font-normal">
+            O Synapse AI assume o cálculo biológico do seu esquecimento, audita suas redações no critério oficial da banca e transforma seu trânsito em horas líquidas de estudo.
+          </p>
+
+          {/* 3 Métricas de Alta Conversão */}
+          <div className="grid grid-cols-3 gap-2 font-mono text-xs pt-1">
+            <div className="p-2.5 rounded-xl bg-[#070b14]/90 border border-cyan-500/35 shadow-lg shadow-cyan-950/30">
+              <span className="text-cyan-400 text-base font-black block">94.8%</span>
+              <span className="text-slate-400 text-[9px] block">Retenção FSRS</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-[#070b14]/90 border border-indigo-500/35 shadow-lg shadow-indigo-950/30">
+              <span className="text-indigo-400 text-base font-black block">+2h / dia</span>
+              <span className="text-slate-400 text-[9px] block">Hands-Free Áudio</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-[#070b14]/90 border border-violet-500/35 shadow-lg shadow-violet-950/30">
+              <span className="text-violet-400 text-base font-black block">Nota 96+</span>
+              <span className="text-slate-400 text-[9px] block">Espelho Cebraspe</span>
+            </div>
+          </div>
+
+          <a
+            href="#cockpit-showcase"
+            className="inline-flex items-center justify-center gap-2 w-full py-3.5 px-4 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 shadow-lg shadow-cyan-500/25 active:scale-98 cursor-pointer font-mono uppercase tracking-wider"
+          >
+            <span>Explorar Cockpit Interativo</span>
+            <ChevronDown className="w-4 h-4" />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function PainTransitionSection() {
+  return (
+    <>
+      <PainMobileFlow />
+      <PainDesktopScrollytelling />
+    </>
   );
 }

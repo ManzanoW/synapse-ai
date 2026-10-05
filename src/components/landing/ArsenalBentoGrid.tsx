@@ -24,25 +24,51 @@ import {
   Cpu,
 } from "lucide-react";
 import Link from "next/link";
+import { triggerHaptic } from "@/lib/sensory/haptics";
+import { tts } from "@/lib/tts-engine";
 
 export function ArsenalBentoGrid() {
   // Estado Card 1: Discursiva Banca Selector & Comparison Mode
   const [selectedBanca, setSelectedBanca] = useState<"cebraspe" | "fgv" | "fcc">("cebraspe");
   const [redacaoMode, setRedacaoMode] = useState<"draft" | "gold">("gold");
 
-  // Estado Card 2: Audio Player Simulator
+  // Estado Card 2: Audio Player Simulator com Real Voice TTS
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioStep, setAudioStep] = useState<"question" | "thinking" | "answer">("question");
   const [thinkingSeconds, setThinkingSeconds] = useState(3);
 
+  // Parar áudio ao desmontar
+  useEffect(() => {
+    return () => {
+      tts.stop();
+    };
+  }, []);
+
+  // Controlar o fluxo do áudio quando ativo
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isPlayingAudio) {
       if (audioStep === "question") {
-        timer = setTimeout(() => {
-          setAudioStep("thinking");
-          setThinkingSeconds(3);
-        }, 3000);
+        const spoken = tts.speak(
+          "O mandado de segurança coletivo pode ser impetrado por partido político com representação no Congresso Nacional?",
+          {
+            onEnd: () => {
+              setAudioStep("thinking");
+              setThinkingSeconds(3);
+            },
+            onError: () => {
+              setAudioStep("thinking");
+              setThinkingSeconds(3);
+            },
+          }
+        );
+        // Fallback timer se TTS não estiver disponível
+        if (!spoken) {
+          timer = setTimeout(() => {
+            setAudioStep("thinking");
+            setThinkingSeconds(3);
+          }, 3200);
+        }
       } else if (audioStep === "thinking") {
         if (thinkingSeconds > 1) {
           timer = setTimeout(() => {
@@ -54,15 +80,45 @@ export function ArsenalBentoGrid() {
           }, 1000);
         }
       } else if (audioStep === "answer") {
-        timer = setTimeout(() => {
-          setIsPlayingAudio(false);
-          setAudioStep("question");
-          setThinkingSeconds(3);
-        }, 5000);
+        const spoken = tts.speak(
+          "Sim! Conforme Artigo quinto, inciso setenta da Constituição Federal. Macete: basta um único parlamentar em qualquer uma das casas para legitimar a impetração!",
+          {
+            onEnd: () => {
+              setIsPlayingAudio(false);
+              setAudioStep("question");
+              setThinkingSeconds(3);
+            },
+            onError: () => {
+              setIsPlayingAudio(false);
+              setAudioStep("question");
+              setThinkingSeconds(3);
+            },
+          }
+        );
+        if (!spoken) {
+          timer = setTimeout(() => {
+            setIsPlayingAudio(false);
+            setAudioStep("question");
+            setThinkingSeconds(3);
+          }, 4500);
+        }
       }
     }
     return () => clearTimeout(timer);
   }, [isPlayingAudio, audioStep, thinkingSeconds]);
+
+  const toggleAudio = () => {
+    triggerHaptic("medium");
+    if (isPlayingAudio) {
+      tts.stop();
+      setIsPlayingAudio(false);
+      setAudioStep("question");
+      setThinkingSeconds(3);
+    } else {
+      setIsPlayingAudio(true);
+      setAudioStep("question");
+    }
+  };
 
   // Estado Card 3: FSRS Simulator
   const [fsrsGrade, setFsrsGrade] = useState<"again" | "hard" | "good" | "easy">("good");
@@ -83,7 +139,7 @@ export function ArsenalBentoGrid() {
   const currentFsrs = getFsrsInterval();
 
   return (
-    <section id="arsenal" className="relative py-24 sm:py-32 overflow-hidden bg-[#030712]">
+    <section id="arsenal" className="relative py-24 sm:py-32 overflow-hidden bg-[#030712] scroll-mt-24">
       {/* Background Neon Glows Cinematográficos */}
       <div className="pointer-events-none absolute top-10 left-1/2 -translate-x-1/2 w-[850px] h-[450px] bg-gradient-to-b from-indigo-500/12 via-violet-500/12 to-cyan-500/8 blur-[160px] -z-10" />
 
@@ -153,7 +209,10 @@ export function ArsenalBentoGrid() {
               <div className="flex items-center gap-1 p-1 rounded-xl bg-black/60 border border-white/10 self-start sm:self-auto">
                 <button
                   type="button"
-                  onClick={() => setRedacaoMode("draft")}
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setRedacaoMode("draft");
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     redacaoMode === "draft"
                       ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-sm"
@@ -165,7 +224,10 @@ export function ArsenalBentoGrid() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setRedacaoMode("gold")}
+                  onClick={() => {
+                    triggerHaptic("medium");
+                    setRedacaoMode("gold");
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     redacaoMode === "gold"
                       ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm"
@@ -181,7 +243,10 @@ export function ArsenalBentoGrid() {
               <div className="flex items-center gap-1 p-1 rounded-xl bg-black/50 border border-white/10 self-start sm:self-auto">
                 <button
                   type="button"
-                  onClick={() => setSelectedBanca("cebraspe")}
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setSelectedBanca("cebraspe");
+                  }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedBanca === "cebraspe"
                       ? "bg-violet-600 text-white shadow-sm"
@@ -192,7 +257,10 @@ export function ArsenalBentoGrid() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedBanca("fgv")}
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setSelectedBanca("fgv");
+                  }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedBanca === "fgv"
                       ? "bg-violet-600 text-white shadow-sm"
@@ -203,7 +271,10 @@ export function ArsenalBentoGrid() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedBanca("fcc")}
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setSelectedBanca("fcc");
+                  }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedBanca === "fcc"
                       ? "bg-violet-600 text-white shadow-sm"
@@ -358,10 +429,7 @@ export function ArsenalBentoGrid() {
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsPlayingAudio(!isPlayingAudio);
-                      if (!isPlayingAudio) setAudioStep("question");
-                    }}
+                    onClick={toggleAudio}
                     className="w-11 h-11 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 flex items-center justify-center shadow-lg shadow-cyan-500/30 transition-transform active:scale-95 cursor-pointer"
                   >
                     {isPlayingAudio ? <Pause className="w-5 h-5 fill-slate-950" /> : <Play className="w-5 h-5 fill-slate-950 ml-0.5" />}
@@ -489,7 +557,10 @@ export function ArsenalBentoGrid() {
                   <div className="grid grid-cols-4 gap-2">
                     <button
                       type="button"
-                      onClick={() => setFsrsGrade("again")}
+                      onClick={() => {
+                        triggerHaptic("warning");
+                        setFsrsGrade("again");
+                      }}
                       className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
                         fsrsGrade === "again"
                           ? "bg-rose-500/20 border-rose-500 text-rose-300 font-bold shadow-md shadow-rose-500/20"
@@ -502,7 +573,10 @@ export function ArsenalBentoGrid() {
 
                     <button
                       type="button"
-                      onClick={() => setFsrsGrade("hard")}
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setFsrsGrade("hard");
+                      }}
                       className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
                         fsrsGrade === "hard"
                           ? "bg-amber-500/20 border-amber-500 text-amber-300 font-bold shadow-md shadow-amber-500/20"
@@ -515,7 +589,10 @@ export function ArsenalBentoGrid() {
 
                     <button
                       type="button"
-                      onClick={() => setFsrsGrade("good")}
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setFsrsGrade("good");
+                      }}
                       className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
                         fsrsGrade === "good"
                           ? "bg-indigo-500/20 border-indigo-500 text-indigo-300 font-bold shadow-md shadow-indigo-500/20"
@@ -528,7 +605,10 @@ export function ArsenalBentoGrid() {
 
                     <button
                       type="button"
-                      onClick={() => setFsrsGrade("easy")}
+                      onClick={() => {
+                        triggerHaptic("success");
+                        setFsrsGrade("easy");
+                      }}
                       className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
                         fsrsGrade === "easy"
                           ? "bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold shadow-md shadow-emerald-500/20"

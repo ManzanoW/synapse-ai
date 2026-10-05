@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import {
   motion,
@@ -23,7 +23,11 @@ import {
   Activity,
   Zap,
   Flame,
+  Play,
+  Pause,
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/sensory/haptics";
+import { tts } from "@/lib/tts-engine";
 
 export function InteractiveStickyShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,14 +37,14 @@ export function InteractiveStickyShowcase() {
     offset: ["start start", "end end"],
   });
 
-  // Parallax cinematográfico da Sala de Comando
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
-  const bgY = useTransform(scrollYProgress, [0, 1], [0, -35]);
+  // Parallax cinematográfico da Sala de Comando (suave e fluido a 60 FPS mobile)
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.06]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, -20]);
 
   // 3D Perspective Transforms: sutil e elegante, mantendo o Cockpit no centro do viewport
-  const rotateX = useTransform(scrollYProgress, [0, 0.15], [10, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.15], [0.95, 1]);
-  const y = useTransform(scrollYProgress, [0, 0.15], [20, 0]);
+  const rotateX = useTransform(scrollYProgress, [0, 0.15], [4, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.15], [0.96, 1]);
+  const y = useTransform(scrollYProgress, [0, 0.15], [15, 0]);
   const glowOpacity = useTransform(scrollYProgress, [0, 0.25], [0.35, 0.8]);
 
   // Mouse Gyroscope Tracking com física de mola suave (Inspiração Mentoris / Linear)
@@ -52,8 +56,15 @@ export function InteractiveStickyShowcase() {
   const mouseTiltX = useTransform(smoothMouseY, [-0.5, 0.5], [6, -6]);
   const mouseTiltY = useTransform(smoothMouseX, [-0.5, 0.5], [-8, 8]);
 
-  const totalRotateX = useTransform([rotateX, mouseTiltX], ([rX, mX]) => (rX as number) + (mX as number));
-  const totalRotateY = mouseTiltY;
+  // No mobile, manter o console plano (0 rotação) para 0ms de cálculo e máxima nitidez
+  const totalRotateX = useTransform([rotateX, mouseTiltX], ([rX, mX]) => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) return 0;
+    return (rX as number) + (mX as number);
+  });
+  const totalRotateY = useTransform(mouseTiltY, (mY) => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) return 0;
+    return mY;
+  });
 
   const glareX = useTransform(smoothMouseX, [-0.5, 0.5], ["20%", "80%"]);
   const glareY = useTransform(smoothMouseY, [-0.5, 0.5], ["20%", "80%"]);
@@ -139,9 +150,9 @@ export function InteractiveStickyShowcase() {
     },
   }[userRating];
 
-  // Sync scroll progress com as 3 telas de forma contínua e sem lacunas
+  // Sync scroll progress com as 3 telas no desktop (no mobile, as abas são manuais por toque sem scroll-jacking)
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    if (isManualOverride) return;
+    if (isManualOverride || (typeof window !== "undefined" && window.innerWidth < 768)) return;
 
     if (latest < 0.34) {
       if (activeScreen !== 0) setActiveScreen(0);
@@ -152,7 +163,45 @@ export function InteractiveStickyShowcase() {
     }
   });
 
+  // Audio player state para o Cockpit Hands-Free
+  const [isCockpitAudioPlaying, setIsCockpitAudioPlaying] = useState(false);
+
+  // Parar áudio do cockpit ao desmontar
+  useEffect(() => {
+    return () => {
+      tts.stop();
+    };
+  }, []);
+
+  const toggleCockpitAudio = () => {
+    triggerHaptic("medium");
+    if (isCockpitAudioPlaying) {
+      tts.stop();
+      setIsCockpitAudioPlaying(false);
+    } else {
+      setIsCockpitAudioPlaying(true);
+      tts.speak(
+        "Qual a legitimidade ativa extraordinária para impetração de Habeas Data segundo o Superior Tribunal de Justiça?",
+        {
+          onEnd: () => {
+            setTimeout(() => {
+              tts.speak(
+                "Segundo a jurisprudência do Superior Tribunal de Justiça, o cônjuge supérstite ou os herdeiros possuem legitimidade para impetrar Habeas Data em defesa da memória do falecido.",
+                {
+                  onEnd: () => setIsCockpitAudioPlaying(false),
+                  onError: () => setIsCockpitAudioPlaying(false),
+                }
+              );
+            }, 1200);
+          },
+          onError: () => setIsCockpitAudioPlaying(false),
+        }
+      );
+    }
+  };
+
   const handleManualTab = (index: 0 | 1 | 2) => {
+    triggerHaptic("medium");
     setIsManualOverride(true);
     setActiveScreen(index);
     // Libera a sincronização por scroll após 4 segundos se o usuário voltar a rolar
@@ -163,16 +212,17 @@ export function InteractiveStickyShowcase() {
     <div
       id="cockpit-showcase"
       ref={containerRef}
-      className="relative h-[290vh] w-full bg-[#030712] select-none"
+      className="relative md:h-[280vh] w-full bg-[#030712] select-none scroll-mt-24"
     >
-      {/* Sticky Viewport Container - Centralizado perfeitamente na tela */}
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-3 sm:px-6 lg:px-8 py-6">
+      <div id="cockpit" className="absolute -top-24 pointer-events-none" />
+      {/* Viewport Container: sticky no desktop para scrollytelling, normal relativo no mobile */}
+      <div className="relative md:sticky md:top-0 md:h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden px-2 sm:px-6 lg:px-8 py-10 md:py-6">
         {/* ========================================================================= */}
         {/* 🌌 OBRA DE ARTE CINEMATOGRÁFICA: SALA DE COMANDO DO OBSERVATÓRIO NEURAL   */}
         {/* ========================================================================= */}
         <motion.div
           style={{ scale: bgScale, y: bgY }}
-          className="pointer-events-none absolute inset-0 z-0 w-full h-full overflow-hidden"
+          className="pointer-events-none absolute inset-0 z-0 w-full h-full overflow-hidden will-change-transform"
         >
           <Image
             src="/synapse-command-deck.jpg"
@@ -208,18 +258,18 @@ export function InteractiveStickyShowcase() {
         </motion.div>
 
         {/* Floating Cockpit Subtitle / Progress Header */}
-        <div className="relative z-10 text-center space-y-1.5 sm:space-y-2 mb-3 sm:mb-5 max-w-2xl px-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(99,102,241,0.2)] backdrop-blur-md">
+        <div className="relative z-10 text-center space-y-1 sm:space-y-2 mb-2 sm:mb-5 max-w-2xl px-2">
+          <div className="inline-flex items-center gap-2 px-3 py-0.5 sm:py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(99,102,241,0.2)] backdrop-blur-md">
             <Activity className="w-3.5 h-3.5 text-cyan-400" />
             <span>Cockpit Synapse em Ação</span>
           </div>
 
-          <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
+          <h3 className="text-base sm:text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
             {activeScreen === 0 && "1. Revisão Preditiva & Curva de Fixação Ativa"}
             {activeScreen === 1 && "2. Correção de Redação Discursiva no Rigor da Banca"}
             {activeScreen === 2 && "3. Modo Hands-Free com Áudio Neural Humanizado"}
           </h3>
-          <p className="text-xs sm:text-sm text-slate-300/90 max-w-xl mx-auto drop-shadow-md">
+          <p className="text-[11px] sm:text-sm text-slate-300/90 max-w-xl mx-auto drop-shadow-md hidden sm:block">
             {activeScreen === 0 && "O algoritmo antecipa a curva de esquecimento e agenda o momento exato de revisar."}
             {activeScreen === 1 && "Espelho oficial Cebraspe/FGV com cálculo rigoroso de notas e versão ouro recomendada."}
             {activeScreen === 2 && "Estude no trânsito ou caminhada com áudio estéreo natural e pausa para recuperação ativa."}
@@ -230,7 +280,7 @@ export function InteractiveStickyShowcase() {
         {/* 🛸 3D PERSPECTIVE COCKPIT CONTAINER                                       */}
         {/* ========================================================================= */}
         <div
-          className="w-full max-w-5xl relative z-10"
+          className="w-full max-w-5xl relative z-10 will-change-[transform,opacity] transform-gpu"
           style={{ perspective: 1200 }}
           onMouseMove={handleCockpitMouseMove}
           onMouseLeave={handleCockpitMouseLeave}
@@ -443,7 +493,10 @@ export function InteractiveStickyShowcase() {
                           {/* Errei */}
                           <button
                             type="button"
-                            onClick={() => setUserRating("again")}
+                            onClick={() => {
+                              triggerHaptic("warning");
+                              setUserRating("again");
+                            }}
                             className={`p-3 rounded-xl transition-all cursor-pointer relative ${
                               userRating === "again"
                                 ? "bg-rose-600/30 border-2 border-rose-400 text-white shadow-lg shadow-rose-600/30 scale-[1.02]"
@@ -462,7 +515,10 @@ export function InteractiveStickyShowcase() {
                           {/* Difícil */}
                           <button
                             type="button"
-                            onClick={() => setUserRating("hard")}
+                            onClick={() => {
+                              triggerHaptic("light");
+                              setUserRating("hard");
+                            }}
                             className={`p-3 rounded-xl transition-all cursor-pointer relative ${
                               userRating === "hard"
                                 ? "bg-amber-600/30 border-2 border-amber-400 text-white shadow-lg shadow-amber-600/30 scale-[1.02]"
@@ -481,7 +537,10 @@ export function InteractiveStickyShowcase() {
                           {/* Bom */}
                           <button
                             type="button"
-                            onClick={() => setUserRating("good")}
+                            onClick={() => {
+                              triggerHaptic("light");
+                              setUserRating("good");
+                            }}
                             className={`p-3 rounded-xl transition-all cursor-pointer relative ${
                               userRating === "good"
                                 ? "bg-indigo-600/30 border-2 border-indigo-400 text-white shadow-lg shadow-indigo-600/30 scale-[1.02]"
@@ -500,7 +559,10 @@ export function InteractiveStickyShowcase() {
                           {/* Fácil */}
                           <button
                             type="button"
-                            onClick={() => setUserRating("easy")}
+                            onClick={() => {
+                              triggerHaptic("success");
+                              setUserRating("easy");
+                            }}
                             className={`p-3 rounded-xl transition-all cursor-pointer relative ${
                               userRating === "easy"
                                 ? "bg-cyan-600/30 border-2 border-cyan-400 text-white shadow-lg shadow-cyan-600/30 scale-[1.02]"
@@ -679,9 +741,23 @@ export function InteractiveStickyShowcase() {
                       {/* Visualizador de Onda Sonora & Card de Áudio */}
                       <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 sm:p-5 space-y-3">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-cyan-300 font-mono font-bold text-[11px] flex items-center gap-1.5">
-                            <Volume2 className="w-3.5 h-3.5" /> VOZ NEURAL HUMANA EM EXECUÇÃO
-                          </span>
+                          <button
+                            type="button"
+                            onClick={toggleCockpitAudio}
+                            className="text-cyan-300 hover:text-white font-mono font-bold text-[11px] flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+                          >
+                            {isCockpitAudioPlaying ? (
+                              <>
+                                <Pause className="w-3.5 h-3.5 text-cyan-400" />
+                                <span>Pausar Demonstração</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-3.5 h-3.5 fill-cyan-400 text-cyan-400" />
+                                <span>Ouvir Demonstração Real (PT-BR)</span>
+                              </>
+                            )}
+                          </button>
                           <span className="text-amber-300 font-mono text-[10px] bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                             Pausa Reflexiva: 03s
                           </span>
@@ -692,19 +768,32 @@ export function InteractiveStickyShowcase() {
                           {[30, 60, 85, 45, 25, 75, 100, 65, 40, 90, 55, 30, 75, 95, 45, 70, 35].map((h, i) => (
                             <motion.span
                               key={i}
-                              animate={{ height: [`${Math.max(15, h * 0.3)}%`, `${h}%`, `${Math.max(15, h * 0.35)}%`] }}
+                              animate={
+                                isCockpitAudioPlaying
+                                  ? { height: [`${Math.max(15, h * 0.3)}%`, `${h}%`, `${Math.max(15, h * 0.35)}%`] }
+                                  : { height: `${Math.max(20, h * 0.4)}%` }
+                              }
                               transition={{ duration: 0.8 + (i % 3) * 0.2, repeat: Infinity, ease: "easeInOut" }}
-                              className="w-1.5 sm:w-2 bg-gradient-to-t from-indigo-500 to-cyan-400 rounded-full"
+                              className={`w-1.5 sm:w-2 rounded-full transition-colors ${
+                                isCockpitAudioPlaying
+                                  ? "bg-gradient-to-t from-indigo-500 to-cyan-400"
+                                  : "bg-gradient-to-t from-slate-700 to-slate-500"
+                              }`}
                               style={{ height: `${h}%` }}
                             />
                           ))}
                         </div>
 
                         {/* Pergunta Falada pelo Fone */}
-                        <div className="p-3 rounded-xl bg-slate-950/70 border border-white/5 text-center">
+                        <div className="p-3.5 rounded-xl bg-slate-950/70 border border-white/5 text-center space-y-1.5">
                           <p className="text-xs sm:text-sm text-slate-200 font-mono italic">
                             &ldquo;Qual a legitimidade ativa extraordinária para impetração de Habeas Data segundo o STJ?&rdquo;
                           </p>
+                          {isCockpitAudioPlaying && (
+                            <p className="text-[11px] text-emerald-400 font-mono pt-1">
+                              ↳ <strong>Gabarito STJ:</strong> Cônjuge sobrevivente e herdeiros possuem legitimidade para proteger a memória do falecido.
+                            </p>
+                          )}
                         </div>
                       </div>
 
