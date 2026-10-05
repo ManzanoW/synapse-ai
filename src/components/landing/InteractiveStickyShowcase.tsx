@@ -33,14 +33,14 @@ export function InteractiveStickyShowcase() {
     offset: ["start start", "end end"],
   });
 
-  // Parallax cinematográfico da Sala de Comando
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
-  const bgY = useTransform(scrollYProgress, [0, 1], [0, -35]);
+  // Parallax cinematográfico da Sala de Comando (suave e fluido a 60 FPS mobile)
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.06]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, -20]);
 
   // 3D Perspective Transforms: sutil e elegante, mantendo o Cockpit no centro do viewport
-  const rotateX = useTransform(scrollYProgress, [0, 0.15], [10, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.15], [0.95, 1]);
-  const y = useTransform(scrollYProgress, [0, 0.15], [20, 0]);
+  const rotateX = useTransform(scrollYProgress, [0, 0.15], [4, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.15], [0.96, 1]);
+  const y = useTransform(scrollYProgress, [0, 0.15], [15, 0]);
   const glowOpacity = useTransform(scrollYProgress, [0, 0.25], [0.35, 0.8]);
 
   // Mouse Gyroscope Tracking com física de mola suave (Inspiração Mentoris / Linear)
@@ -163,16 +163,16 @@ export function InteractiveStickyShowcase() {
     <div
       id="cockpit-showcase"
       ref={containerRef}
-      className="relative h-[290vh] w-full bg-[#030712] select-none"
+      className="relative h-[180vh] sm:h-[220vh] md:h-[280vh] w-full bg-[#030712] select-none"
     >
-      {/* Sticky Viewport Container - Centralizado perfeitamente na tela */}
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-3 sm:px-6 lg:px-8 py-6">
+      {/* Sticky Viewport Container (100dvh para fluidez e sem cortes em mobile) */}
+      <div className="sticky top-0 h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden px-2 sm:px-6 lg:px-8 py-3 sm:py-6">
         {/* ========================================================================= */}
         {/* 🌌 OBRA DE ARTE CINEMATOGRÁFICA: SALA DE COMANDO DO OBSERVATÓRIO NEURAL   */}
         {/* ========================================================================= */}
         <motion.div
           style={{ scale: bgScale, y: bgY }}
-          className="pointer-events-none absolute inset-0 z-0 w-full h-full overflow-hidden"
+          className="pointer-events-none absolute inset-0 z-0 w-full h-full overflow-hidden will-change-transform"
         >
           <Image
             src="/synapse-command-deck.jpg"
@@ -208,18 +208,18 @@ export function InteractiveStickyShowcase() {
         </motion.div>
 
         {/* Floating Cockpit Subtitle / Progress Header */}
-        <div className="relative z-10 text-center space-y-1.5 sm:space-y-2 mb-3 sm:mb-5 max-w-2xl px-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(99,102,241,0.2)] backdrop-blur-md">
+        <div className="relative z-10 text-center space-y-1 sm:space-y-2 mb-2 sm:mb-5 max-w-2xl px-2">
+          <div className="inline-flex items-center gap-2 px-3 py-0.5 sm:py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(99,102,241,0.2)] backdrop-blur-md">
             <Activity className="w-3.5 h-3.5 text-cyan-400" />
             <span>Cockpit Synapse em Ação</span>
           </div>
 
-          <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
+          <h3 className="text-base sm:text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
             {activeScreen === 0 && "1. Revisão Preditiva & Curva de Fixação Ativa"}
             {activeScreen === 1 && "2. Correção de Redação Discursiva no Rigor da Banca"}
             {activeScreen === 2 && "3. Modo Hands-Free com Áudio Neural Humanizado"}
           </h3>
-          <p className="text-xs sm:text-sm text-slate-300/90 max-w-xl mx-auto drop-shadow-md">
+          <p className="text-[11px] sm:text-sm text-slate-300/90 max-w-xl mx-auto drop-shadow-md hidden sm:block">
             {activeScreen === 0 && "O algoritmo antecipa a curva de esquecimento e agenda o momento exato de revisar."}
             {activeScreen === 1 && "Espelho oficial Cebraspe/FGV com cálculo rigoroso de notas e versão ouro recomendada."}
             {activeScreen === 2 && "Estude no trânsito ou caminhada com áudio estéreo natural e pausa para recuperação ativa."}
@@ -230,7 +230,7 @@ export function InteractiveStickyShowcase() {
         {/* 🛸 3D PERSPECTIVE COCKPIT CONTAINER                                       */}
         {/* ========================================================================= */}
         <div
-          className="w-full max-w-5xl relative z-10"
+          className="w-full max-w-5xl relative z-10 will-change-[transform,opacity] transform-gpu"
           style={{ perspective: 1200 }}
           onMouseMove={handleCockpitMouseMove}
           onMouseLeave={handleCockpitMouseLeave}
