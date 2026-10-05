@@ -50,7 +50,7 @@ export function StickyShowcaseWorkflow() {
   ];
 
   return (
-    <section id="fluxo" className="relative py-24 sm:py-32 overflow-hidden bg-[#030712]">
+    <section id="fluxo" className="relative py-24 sm:py-32 overflow-hidden bg-[#030712] scroll-mt-24">
       {/* Glow Divisor Superior */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-5xl h-px bg-gradient-to-r from-transparent via-cyan-500/35 via-violet-500/35 to-transparent" />
 

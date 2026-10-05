@@ -18,7 +18,9 @@ import {
   BrainCircuit,
   Sparkles,
   Activity,
+  Star,
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export function HeroSection() {
   const containerRef = useRef<HTMLElement>(null);
@@ -144,6 +146,46 @@ export function HeroSection() {
           O cérebro humano não foi feito para memorizar 1.200 páginas no esforço bruto.
           Conecte sua preparação à inteligência do primeiro copiloto cognitivo.
         </motion.p>
+
+        {/* Prova Social & Avaliação dos Concurseiros */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.45 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-4 pt-1"
+        >
+          {/* Avatar stack */}
+          <div className="flex -space-x-2 items-center">
+            <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#02050e] bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white shadow-md ring-1 ring-cyan-400/40">
+              TR
+            </div>
+            <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#02050e] bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white shadow-md ring-1 ring-purple-400/40">
+              MS
+            </div>
+            <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#02050e] bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-[10px] font-bold text-white shadow-md ring-1 ring-emerald-400/40">
+              GA
+            </div>
+            <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#02050e] bg-gradient-to-tr from-amber-500 to-rose-600 flex items-center justify-center text-[10px] font-bold text-white shadow-md ring-1 ring-amber-400/40">
+              LF
+            </div>
+          </div>
+
+          {/* Stars & Metric */}
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+            <div className="flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className="w-3.5 h-3.5 text-amber-400 fill-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]"
+                />
+              ))}
+              <span className="text-xs font-bold text-white ml-1">4.9/5</span>
+            </div>
+            <span className="text-[11px] text-slate-300 font-mono tracking-tight drop-shadow-sm">
+              Mais de <strong className="text-cyan-300 font-bold">+1.480 concurseiros</strong> acelerando aprovações
+            </span>
+          </div>
+        </motion.div>
       </motion.div>
 
       {/* ========================================================================= */}
@@ -181,7 +223,8 @@ export function HeroSection() {
 
         {/* Direita: Acesso Tático Direto ao Cockpit (Sem qualquer jargão de 'pular apresentação') */}
         <a
-          href="#cockpit-showcase"
+          href="#cockpit"
+          onClick={() => triggerHaptic("medium")}
           className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-[#030712]/80 hover:bg-cyan-950/70 border border-cyan-500/25 hover:border-cyan-400/60 backdrop-blur-md text-xs font-mono font-bold text-cyan-300 hover:text-white transition-all shadow-[0_0_20px_rgba(6,182,212,0.15)] hover:shadow-[0_0_25px_rgba(6,182,212,0.3)] active:scale-95"
         >
           <BrainCircuit className="w-4 h-4 text-cyan-400 group-hover:rotate-12 transition-transform" />

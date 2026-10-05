@@ -17,6 +17,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { NeuralWaveCanvas } from "./NeuralWaveCanvas";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 function PainDesktopScrollytelling() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -392,7 +393,10 @@ function PainMobileFlow() {
           <div className="flex items-center justify-center gap-1 p-1 rounded-2xl bg-black/60 border border-white/10">
             <button
               type="button"
-              onClick={() => setActivePainTab(0)}
+              onClick={() => {
+                triggerHaptic("medium");
+                setActivePainTab(0);
+              }}
               className={`flex-1 py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                 activePainTab === 0
                   ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
@@ -403,7 +407,10 @@ function PainMobileFlow() {
             </button>
             <button
               type="button"
-              onClick={() => setActivePainTab(1)}
+              onClick={() => {
+                triggerHaptic("medium");
+                setActivePainTab(1);
+              }}
               className={`flex-1 py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                 activePainTab === 1
                   ? "bg-amber-600 text-white shadow-md shadow-amber-600/30"
@@ -414,7 +421,10 @@ function PainMobileFlow() {
             </button>
             <button
               type="button"
-              onClick={() => setActivePainTab(2)}
+              onClick={() => {
+                triggerHaptic("medium");
+                setActivePainTab(2);
+              }}
               className={`flex-1 py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                 activePainTab === 2
                   ? "bg-rose-600 text-white shadow-md shadow-rose-600/30"

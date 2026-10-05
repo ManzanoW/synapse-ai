@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import {
   motion,
@@ -23,7 +23,11 @@ import {
   Activity,
   Zap,
   Flame,
+  Play,
+  Pause,
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/sensory/haptics";
+import { tts } from "@/lib/tts-engine";
 
 export function InteractiveStickyShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -159,7 +163,45 @@ export function InteractiveStickyShowcase() {
     }
   });
 
+  // Audio player state para o Cockpit Hands-Free
+  const [isCockpitAudioPlaying, setIsCockpitAudioPlaying] = useState(false);
+
+  // Parar áudio do cockpit ao desmontar
+  useEffect(() => {
+    return () => {
+      tts.stop();
+    };
+  }, []);
+
+  const toggleCockpitAudio = () => {
+    triggerHaptic("medium");
+    if (isCockpitAudioPlaying) {
+      tts.stop();
+      setIsCockpitAudioPlaying(false);
+    } else {
+      setIsCockpitAudioPlaying(true);
+      tts.speak(
+        "Qual a legitimidade ativa extraordinária para impetração de Habeas Data segundo o Superior Tribunal de Justiça?",
+        {
+          onEnd: () => {
+            setTimeout(() => {
+              tts.speak(
+                "Segundo a jurisprudência do Superior Tribunal de Justiça, o cônjuge supérstite ou os herdeiros possuem legitimidade para impetrar Habeas Data em defesa da memória do falecido.",
+                {
+                  onEnd: () => setIsCockpitAudioPlaying(false),
+                  onError: () => setIsCockpitAudioPlaying(false),
+                }
+              );
+            }, 1200);
+          },
+          onError: () => setIsCockpitAudioPlaying(false),
+        }
+      );
+    }
+  };
+
   const handleManualTab = (index: 0 | 1 | 2) => {
+    triggerHaptic("medium");
     setIsManualOverride(true);
     setActiveScreen(index);
     // Libera a sincronização por scroll após 4 segundos se o usuário voltar a rolar
@@ -170,8 +212,9 @@ export function InteractiveStickyShowcase() {
     <div
       id="cockpit-showcase"
       ref={containerRef}
-      className="relative md:h-[280vh] w-full bg-[#030712] select-none"
+      className="relative md:h-[280vh] w-full bg-[#030712] select-none scroll-mt-24"
     >
+      <div id="cockpit" className="absolute -top-24 pointer-events-none" />
       {/* Viewport Container: sticky no desktop para scrollytelling, normal relativo no mobile */}
       <div className="relative md:sticky md:top-0 md:h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden px-2 sm:px-6 lg:px-8 py-10 md:py-6">
         {/* ========================================================================= */}
@@ -450,7 +493,10 @@ export function InteractiveStickyShowcase() {
                           {/* Errei */}
                           <button
                             type="button"
-                            onClick={() => setUserRating("again")}
+                            onClick={() => {
+                              triggerHaptic("warning");
+                              setUserRating("again");
+                            }}
                             className={`p-3 rounded-xl transition-all cursor-pointer relative ${
                               userRating === "again"
                                 ? "bg-rose-600/30 border-2 border-rose-400 text-white shadow-lg shadow-rose-600/30 scale-[1.02]"
@@ -469,7 +515,10 @@ export function InteractiveStickyShowcase() {
                           {/* Difícil */}
                           <button
                             type="button"
-                            onClick={() => setUserRating("hard")}
+                            onClick={() => {
+                              triggerHaptic("light");
+                              setUserRating("hard");
+                            }}
                             className={`p-3 rounded-xl transition-all cursor-pointer relative ${
                               userRating === "hard"
                                 ? "bg-amber-600/30 border-2 border-amber-400 text-white shadow-lg shadow-amber-600/30 scale-[1.02]"
@@ -488,7 +537,10 @@ export function InteractiveStickyShowcase() {
                           {/* Bom */}
                           <button
                             type="button"
-                            onClick={() => setUserRating("good")}
+                            onClick={() => {
+                              triggerHaptic("light");
+                              setUserRating("good");
+                            }}
                             className={`p-3 rounded-xl transition-all cursor-pointer relative ${
                               userRating === "good"
                                 ? "bg-indigo-600/30 border-2 border-indigo-400 text-white shadow-lg shadow-indigo-600/30 scale-[1.02]"
@@ -507,7 +559,10 @@ export function InteractiveStickyShowcase() {
                           {/* Fácil */}
                           <button
                             type="button"
-                            onClick={() => setUserRating("easy")}
+                            onClick={() => {
+                              triggerHaptic("success");
+                              setUserRating("easy");
+                            }}
                             className={`p-3 rounded-xl transition-all cursor-pointer relative ${
                               userRating === "easy"
                                 ? "bg-cyan-600/30 border-2 border-cyan-400 text-white shadow-lg shadow-cyan-600/30 scale-[1.02]"
@@ -686,9 +741,23 @@ export function InteractiveStickyShowcase() {
                       {/* Visualizador de Onda Sonora & Card de Áudio */}
                       <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 sm:p-5 space-y-3">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-cyan-300 font-mono font-bold text-[11px] flex items-center gap-1.5">
-                            <Volume2 className="w-3.5 h-3.5" /> VOZ NEURAL HUMANA EM EXECUÇÃO
-                          </span>
+                          <button
+                            type="button"
+                            onClick={toggleCockpitAudio}
+                            className="text-cyan-300 hover:text-white font-mono font-bold text-[11px] flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+                          >
+                            {isCockpitAudioPlaying ? (
+                              <>
+                                <Pause className="w-3.5 h-3.5 text-cyan-400" />
+                                <span>Pausar Demonstração</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-3.5 h-3.5 fill-cyan-400 text-cyan-400" />
+                                <span>Ouvir Demonstração Real (PT-BR)</span>
+                              </>
+                            )}
+                          </button>
                           <span className="text-amber-300 font-mono text-[10px] bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                             Pausa Reflexiva: 03s
                           </span>
@@ -699,19 +768,32 @@ export function InteractiveStickyShowcase() {
                           {[30, 60, 85, 45, 25, 75, 100, 65, 40, 90, 55, 30, 75, 95, 45, 70, 35].map((h, i) => (
                             <motion.span
                               key={i}
-                              animate={{ height: [`${Math.max(15, h * 0.3)}%`, `${h}%`, `${Math.max(15, h * 0.35)}%`] }}
+                              animate={
+                                isCockpitAudioPlaying
+                                  ? { height: [`${Math.max(15, h * 0.3)}%`, `${h}%`, `${Math.max(15, h * 0.35)}%`] }
+                                  : { height: `${Math.max(20, h * 0.4)}%` }
+                              }
                               transition={{ duration: 0.8 + (i % 3) * 0.2, repeat: Infinity, ease: "easeInOut" }}
-                              className="w-1.5 sm:w-2 bg-gradient-to-t from-indigo-500 to-cyan-400 rounded-full"
+                              className={`w-1.5 sm:w-2 rounded-full transition-colors ${
+                                isCockpitAudioPlaying
+                                  ? "bg-gradient-to-t from-indigo-500 to-cyan-400"
+                                  : "bg-gradient-to-t from-slate-700 to-slate-500"
+                              }`}
                               style={{ height: `${h}%` }}
                             />
                           ))}
                         </div>
 
                         {/* Pergunta Falada pelo Fone */}
-                        <div className="p-3 rounded-xl bg-slate-950/70 border border-white/5 text-center">
+                        <div className="p-3.5 rounded-xl bg-slate-950/70 border border-white/5 text-center space-y-1.5">
                           <p className="text-xs sm:text-sm text-slate-200 font-mono italic">
                             &ldquo;Qual a legitimidade ativa extraordinária para impetração de Habeas Data segundo o STJ?&rdquo;
                           </p>
+                          {isCockpitAudioPlaying && (
+                            <p className="text-[11px] text-emerald-400 font-mono pt-1">
+                              ↳ <strong>Gabarito STJ:</strong> Cônjuge sobrevivente e herdeiros possuem legitimidade para proteger a memória do falecido.
+                            </p>
+                          )}
                         </div>
                       </div>
 

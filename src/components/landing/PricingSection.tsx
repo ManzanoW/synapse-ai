@@ -15,12 +15,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { BorderBeam } from "./BorderBeam";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export function PricingSection() {
   const [billingCycle, setBillingCycle] = useState<"ANNUAL" | "MONTHLY">("ANNUAL");
 
   return (
-    <section id="planos" className="relative py-20 sm:py-28 overflow-hidden bg-[#030712]">
+    <section id="planos" className="relative py-20 sm:py-28 overflow-hidden bg-[#030712] scroll-mt-24">
       {/* Glow Divisor Superior */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-5xl h-px bg-gradient-to-r from-transparent via-indigo-500/35 via-violet-500/35 to-transparent" />
 
@@ -75,7 +76,10 @@ export function PricingSection() {
           {/* Toggle Mensal / Anual */}
           <div className="pt-4 flex items-center justify-center gap-3">
             <span
-              onClick={() => setBillingCycle("MONTHLY")}
+              onClick={() => {
+                triggerHaptic("medium");
+                setBillingCycle("MONTHLY");
+              }}
               className={`text-xs sm:text-sm font-bold cursor-pointer transition-colors ${
                 billingCycle === "MONTHLY" ? "text-white font-black" : "text-slate-400 hover:text-slate-200"
               }`}
@@ -85,7 +89,10 @@ export function PricingSection() {
 
             <button
               type="button"
-              onClick={() => setBillingCycle(billingCycle === "MONTHLY" ? "ANNUAL" : "MONTHLY")}
+              onClick={() => {
+                triggerHaptic("medium");
+                setBillingCycle(billingCycle === "MONTHLY" ? "ANNUAL" : "MONTHLY");
+              }}
               className="relative w-14 h-7 rounded-full bg-slate-800 p-1 border border-slate-700 transition-colors focus:outline-hidden cursor-pointer"
               aria-label="Alternar ciclo de faturamento"
             >
@@ -100,7 +107,10 @@ export function PricingSection() {
             </button>
 
             <span
-              onClick={() => setBillingCycle("ANNUAL")}
+              onClick={() => {
+                triggerHaptic("medium");
+                setBillingCycle("ANNUAL");
+              }}
               className={`text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-colors ${
                 billingCycle === "ANNUAL" ? "text-white font-black" : "text-slate-400 hover:text-slate-200"
               }`}
