@@ -18,8 +18,10 @@ import { motion, useScroll, useSpring, AnimatePresence } from "framer-motion";
 import { ChevronUp, Zap, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { useAdaptivePerformance } from "@/hooks/useAdaptivePerformance";
 
 export function LandingPageView() {
+  const { isLowPerformance } = useAdaptivePerformance();
   const [showBackToTop, setShowBackToTop] = useState(false);
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
@@ -41,7 +43,11 @@ export function LandingPageView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 selection:bg-indigo-500/30 selection:text-cyan-200 relative overflow-x-clip font-sans">
+    <div
+      className={`min-h-screen bg-[#030712] text-slate-100 selection:bg-indigo-500/30 selection:text-cyan-200 relative overflow-x-clip font-sans ${
+        isLowPerformance ? "perf-low" : ""
+      }`}
+    >
       {/* Subtle Film Grain Noise Overlay (Big Tech Polish - Apenas Desktop para poupar GPU mobile) */}
       <div
         className="pointer-events-none fixed inset-0 z-50 opacity-[0.02] mix-blend-screen select-none hidden md:block"
@@ -80,19 +86,29 @@ export function LandingPageView() {
         <ArsenalBentoGrid />
 
         {/* 7. Do Edital Bruto ao Cronograma em 3 Passos */}
-        <StickyShowcaseWorkflow />
+        <div className="landing-section-deferred">
+          <StickyShowcaseWorkflow />
+        </div>
 
         {/* 8. Calculadora Interativa de Horas Líquidas (ROI do Concurseiro) */}
-        <TimeRecoveryCalculator />
+        <div className="landing-section-deferred">
+          <TimeRecoveryCalculator />
+        </div>
 
         {/* 9. Planos Transparentes */}
-        <PricingSection />
+        <div className="landing-section-deferred">
+          <PricingSection />
+        </div>
 
         {/* 10. FAQ em Accordion */}
-        <FaqSection />
+        <div className="landing-section-deferred">
+          <FaqSection />
+        </div>
 
         {/* 11. Chamada Final à Ação */}
-        <FinalCtaSection />
+        <div className="landing-section-deferred">
+          <FinalCtaSection />
+        </div>
       </main>
 
       {/* Footer Cinematográfico */}

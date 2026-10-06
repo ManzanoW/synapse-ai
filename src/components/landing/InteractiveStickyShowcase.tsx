@@ -56,13 +56,18 @@ export function InteractiveStickyShowcase() {
   const mouseTiltX = useTransform(smoothMouseY, [-0.5, 0.5], [6, -6]);
   const mouseTiltY = useTransform(smoothMouseX, [-0.5, 0.5], [-8, 8]);
 
-  // No mobile, manter o console plano (0 rotação) para 0ms de cálculo e máxima nitidez
+  // No mobile ou PCs modestos, desativa tilt de mouse para 0ms de cálculo e máxima fluidez
+  const isReducedTilt = () => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 768 || document.documentElement.classList.contains("perf-low");
+  };
+
   const totalRotateX = useTransform([rotateX, mouseTiltX], ([rX, mX]) => {
-    if (typeof window !== "undefined" && window.innerWidth < 768) return 0;
+    if (isReducedTilt()) return (rX as number);
     return (rX as number) + (mX as number);
   });
   const totalRotateY = useTransform(mouseTiltY, (mY) => {
-    if (typeof window !== "undefined" && window.innerWidth < 768) return 0;
+    if (isReducedTilt()) return 0;
     return mY;
   });
 
@@ -70,6 +75,7 @@ export function InteractiveStickyShowcase() {
   const glareY = useTransform(smoothMouseY, [-0.5, 0.5], ["20%", "80%"]);
 
   const handleCockpitMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isReducedTilt()) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;

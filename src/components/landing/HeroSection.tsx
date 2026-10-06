@@ -42,7 +42,13 @@ export function HeroSection() {
   const smoothMouseX = useSpring(mouseX, { stiffness: 45, damping: 20 });
   const smoothMouseY = useSpring(mouseY, { stiffness: 45, damping: 20 });
 
+  const isReducedMouse = () => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 768 || document.documentElement.classList.contains("perf-low");
+  };
+
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (isReducedMouse()) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
