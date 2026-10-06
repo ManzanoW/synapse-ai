@@ -23,19 +23,29 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let animationFrameId: number;
+    let animationFrameId: number | null = null;
+    let isIntersecting = true;
     let phase = 0;
     let width = 0;
     let height = 0;
     let isMobile = false;
+
+    // Detecta se o cliente está em modo de baixa performance ou mobile
+    const checkLowTier = () => {
+      return (
+        width < 768 ||
+        (typeof document !== "undefined" && document.documentElement.classList.contains("perf-low"))
+      );
+    };
 
     const handleResize = () => {
       const rect = canvas.getBoundingClientRect();
       width = rect.width;
       height = rect.height;
       isMobile = width < 768;
-      // No mobile, usar DPR 1 para eliminar gargalo de fill-rate em telas Retina
-      const dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+      const isLowTier = checkLowTier();
+      // Em mobile ou PCs modestos, fixar DPR em 1 para poupar fill-rate
+      const dpr = isLowTier ? 1 : Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = width * dpr;
       canvas.height = height * dpr;
       ctx.scale(dpr, dpr);
@@ -43,6 +53,22 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
 
     handleResize();
     window.addEventListener("resize", handleResize);
+
+    // IntersectionObserver: congela completamente o render loop quando a seção estiver fora da tela
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        isIntersecting = entry.isIntersecting;
+        if (isIntersecting && animationFrameId === null) {
+          render();
+        } else if (!isIntersecting && animationFrameId !== null) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+      },
+      { rootMargin: "150px" }
+    );
+    observer.observe(canvas);
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
@@ -96,10 +122,17 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
         },
       ];
 
+      if (!isIntersecting) {
+        animationFrameId = null;
+        return;
+      }
+
+      const isLowTier = checkLowTier();
+
       // Desenha cada camada com Ribbon volumétrico e traço de laser
       waves.forEach((wave) => {
         const points: { x: number; y: number }[] = [];
-        const step = isMobile ? 8 : 4; // Resolução otimizada para 60 FPS cravados em qualquer aparelho
+        const step = isLowTier ? 8 : 4; // Resolução otimizada para 60 FPS cravados em qualquer aparelho
 
         for (let x = 0; x <= width + step; x += step) {
           const baseSin = Math.sin(x * wave.frequency + wave.phaseOffset);
@@ -129,7 +162,7 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
         }
         ctx.restore();
 
-        // 2. Traço de Luz Neon Laser (Hardware-accelerated no mobile, blur suave no desktop)
+        // 2. Traço de Luz Neon Laser (Hardware-accelerated no mobile/baixo-desempenho, blur suave no desktop potente)
         ctx.save();
         ctx.beginPath();
         if (points.length > 0) {
@@ -141,8 +174,8 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
 
-        if (isMobile) {
-          // No mobile: traçado duplo acelerado pela GPU (elimina lag de software shadowBlur)
+        if (isLowTier) {
+          // Traçado duplo acelerado pela GPU (elimina lag de software shadowBlur em GPUs integradas)
           ctx.strokeStyle = wave.glowColor;
           ctx.lineWidth = wave.lineWidth * 2.2;
           ctx.stroke();
@@ -151,7 +184,7 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
           ctx.lineWidth = wave.lineWidth;
           ctx.stroke();
         } else {
-          // No desktop: sombra difusa com blur cinematográfico completo
+          // No desktop potente: sombra difusa com blur cinematográfico completo
           ctx.strokeStyle = wave.strokeColor;
           ctx.lineWidth = wave.lineWidth;
           ctx.shadowColor = wave.glowColor;
@@ -163,7 +196,7 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
 
       // Partículas de Potencial de Ação Sináptico (Pulsos de Luz Flutuantes)
       ctx.save();
-      const nodeCount = isRelief ? (isMobile ? 2 : 4) : (isMobile ? 1 : 2);
+      const nodeCount = isRelief ? (isLowTier ? 2 : 4) : (isLowTier ? 1 : 2);
       for (let n = 0; n < nodeCount; n++) {
         const nodeProgress = ((phase * 0.4 + n * (1 / nodeCount)) % 1);
         const nx = nodeProgress * width;
@@ -172,7 +205,7 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
         ctx.beginPath();
         ctx.arc(nx, ny, isRelief ? 3.5 : 2.5, 0, Math.PI * 2);
         ctx.fillStyle = isRelief ? "#ffffff" : "#c084fc";
-        if (!isMobile) {
+        if (!isLowTier) {
           ctx.shadowColor = isRelief ? "#06b6d4" : "#818cf8";
           ctx.shadowBlur = isRelief ? 18 : 12;
         }
@@ -180,8 +213,8 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
       }
       ctx.restore();
 
-      // Suavização das bordas no desktop (no mobile a máscara CSS nativa do container já faz o corte suave)
-      if (!isMobile) {
+      // Suavização das bordas no desktop potente (em mobile ou PCs fracos a máscara CSS nativa do container já faz o corte suave)
+      if (!isLowTier) {
         ctx.save();
         ctx.globalCompositeOperation = "destination-in";
 
@@ -213,7 +246,10 @@ export function NeuralWaveCanvas({ scrollProgress, className = "" }: NeuralWaveC
 
     return () => {
       window.removeEventListener("resize", handleResize);
-      cancelAnimationFrame(animationFrameId);
+      observer.disconnect();
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
   }, [scrollProgress]);
 

@@ -721,3 +721,46 @@ html.light *::-webkit-scrollbar-thumb:hover {
     print-color-adjust: exact !important;
   }
 }
+
+/* ==========================================================================
+   ADAPTIVE HARDWARE ACCELERATION: TIER OTIMIZADO PARA DISPOSITIVOS MODESTOS
+   Ativado dinamicamente apenas em computadores/laptops com hardware modesto
+   ou quando detectada queda de taxa de quadros (FPS drops).
+   Em computadores potentes, absolutamente NADA é alterado!
+   ========================================================================== */
+.perf-low .backdrop-blur-3xl,
+.perf-low .backdrop-blur-2xl,
+.perf-low .backdrop-blur-xl,
+.perf-low .backdrop-blur-lg,
+.perf-low .backdrop-blur-md,
+.perf-low [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Reduz o custo de renderização de grandes gradientes borrados no background */
+.perf-low .blur-\[100px\],
+.perf-low .blur-\[120px\],
+.perf-low .blur-\[140px\],
+.perf-low .blur-\[160px\],
+.perf-low .blur-3xl {
+  filter: blur(24px) !important;
+  opacity: 0.6 !important;
+}
+
+/* Otimiza blend modes caros em GPUs integradas */
+.perf-low .mix-blend-screen,
+.perf-low .mix-blend-overlay {
+  mix-blend-mode: normal !important;
+}
+
+/* Otimiza sombras volumétricas excessivas em hardware modesto */
+.perf-low [class*="shadow-[0_0_"] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* CSS Content Visibility para adiar renderização de seções fora da tela */
+.landing-section-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 750px;
+}

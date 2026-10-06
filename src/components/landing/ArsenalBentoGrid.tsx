@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileCheck2,
@@ -25,50 +25,58 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { triggerHaptic } from "@/lib/sensory/haptics";
-import { tts } from "@/lib/tts-engine";
 
 export function ArsenalBentoGrid() {
   // Estado Card 1: Discursiva Banca Selector & Comparison Mode
   const [selectedBanca, setSelectedBanca] = useState<"cebraspe" | "fgv" | "fcc">("cebraspe");
   const [redacaoMode, setRedacaoMode] = useState<"draft" | "gold">("gold");
 
-  // Estado Card 2: Audio Player Simulator com Real Voice TTS
+  // Estado Card 2: Audio Player Simulator com Áudios Edge Neural Estáticos Pré-Renderizados
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioStep, setAudioStep] = useState<"question" | "thinking" | "answer">("question");
   const [thinkingSeconds, setThinkingSeconds] = useState(3);
+  const audioInstanceRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopAllAudio = () => {
+    if (audioInstanceRef.current) {
+      audioInstanceRef.current.pause();
+      audioInstanceRef.current.currentTime = 0;
+      audioInstanceRef.current = null;
+    }
+  };
 
   // Parar áudio ao desmontar
   useEffect(() => {
     return () => {
-      tts.stop();
+      stopAllAudio();
     };
   }, []);
 
   // Controlar o fluxo do áudio quando ativo
   useEffect(() => {
     let timer: NodeJS.Timeout;
+
     if (isPlayingAudio) {
       if (audioStep === "question") {
-        const spoken = tts.speak(
-          "O mandado de segurança coletivo pode ser impetrado por partido político com representação no Congresso Nacional?",
-          {
-            onEnd: () => {
-              setAudioStep("thinking");
-              setThinkingSeconds(3);
-            },
-            onError: () => {
-              setAudioStep("thinking");
-              setThinkingSeconds(3);
-            },
-          }
-        );
-        // Fallback timer se TTS não estiver disponível
-        if (!spoken) {
+        stopAllAudio();
+        const audio = new Audio("/audio/bento-question.mp3");
+        audioInstanceRef.current = audio;
+
+        audio.onended = () => {
+          setAudioStep("thinking");
+          setThinkingSeconds(3);
+        };
+        audio.onerror = () => {
+          setAudioStep("thinking");
+          setThinkingSeconds(3);
+        };
+        audio.play().catch(() => {
+          // Fallback caso autoplay seja restrito
           timer = setTimeout(() => {
             setAudioStep("thinking");
             setThinkingSeconds(3);
-          }, 3200);
-        }
+          }, 4000);
+        });
       } else if (audioStep === "thinking") {
         if (thinkingSeconds > 1) {
           timer = setTimeout(() => {
@@ -80,37 +88,39 @@ export function ArsenalBentoGrid() {
           }, 1000);
         }
       } else if (audioStep === "answer") {
-        const spoken = tts.speak(
-          "Sim! Conforme Artigo quinto, inciso setenta da Constituição Federal. Macete: basta um único parlamentar em qualquer uma das casas para legitimar a impetração!",
-          {
-            onEnd: () => {
-              setIsPlayingAudio(false);
-              setAudioStep("question");
-              setThinkingSeconds(3);
-            },
-            onError: () => {
-              setIsPlayingAudio(false);
-              setAudioStep("question");
-              setThinkingSeconds(3);
-            },
-          }
-        );
-        if (!spoken) {
+        stopAllAudio();
+        const audio = new Audio("/audio/bento-answer.mp3");
+        audioInstanceRef.current = audio;
+
+        audio.onended = () => {
+          setIsPlayingAudio(false);
+          setAudioStep("question");
+          setThinkingSeconds(3);
+        };
+        audio.onerror = () => {
+          setIsPlayingAudio(false);
+          setAudioStep("question");
+          setThinkingSeconds(3);
+        };
+        audio.play().catch(() => {
           timer = setTimeout(() => {
             setIsPlayingAudio(false);
             setAudioStep("question");
             setThinkingSeconds(3);
-          }, 4500);
-        }
+          }, 5000);
+        });
       }
+    } else {
+      stopAllAudio();
     }
+
     return () => clearTimeout(timer);
   }, [isPlayingAudio, audioStep, thinkingSeconds]);
 
   const toggleAudio = () => {
     triggerHaptic("medium");
     if (isPlayingAudio) {
-      tts.stop();
+      stopAllAudio();
       setIsPlayingAudio(false);
       setAudioStep("question");
       setThinkingSeconds(3);

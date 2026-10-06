@@ -42,7 +42,13 @@ export function HeroSection() {
   const smoothMouseX = useSpring(mouseX, { stiffness: 45, damping: 20 });
   const smoothMouseY = useSpring(mouseY, { stiffness: 45, damping: 20 });
 
+  const isReducedMouse = () => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 768 || document.documentElement.classList.contains("perf-low");
+  };
+
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (isReducedMouse()) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
@@ -110,7 +116,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#030712]/60 border border-cyan-500/20 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.15)]"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#030712]/80 border border-cyan-500/30 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.2)]"
         >
           <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
           <span className="text-xs sm:text-sm font-mono font-bold tracking-[0.2em] text-cyan-300 uppercase">
@@ -123,11 +129,11 @@ export function HeroSection() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, delay: 0.2 }}
-          className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.2rem] font-black tracking-tight text-white uppercase leading-[0.98] drop-shadow-[0_8px_30px_rgba(0,0,0,0.95)]"
+          className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.2rem] font-black tracking-tight text-white uppercase leading-[1.06] sm:leading-[1.04] drop-shadow-[0_8px_30px_rgba(0,0,0,0.95)]"
         >
           DEPENDE DE{" "}
           <motion.span
-            className="block mt-1 sm:mt-2 bg-gradient-to-r from-cyan-300 via-indigo-100 via-white to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(6,182,212,0.6)]"
+            className="block mt-1 sm:mt-1.5 pt-2 sm:pt-3 pb-1 leading-[1.1] bg-gradient-to-r from-cyan-300 via-indigo-100 via-white to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(6,182,212,0.6)]"
             style={{ backgroundSize: "200% auto" }}
             animate={{ backgroundPosition: ["0% center", "200% center"] }}
             transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
@@ -141,7 +147,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.35 }}
-          className="text-xs sm:text-base md:text-lg text-slate-200/95 max-w-2xl mx-auto font-normal leading-relaxed drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] px-3 py-1.5 rounded-xl bg-[#02050e]/40 backdrop-blur-xs"
+          className="text-sm sm:text-base md:text-lg text-slate-100 max-w-2xl mx-auto font-medium leading-relaxed drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-[#02050e]/80 border border-white/10 backdrop-blur-md shadow-xl"
         >
           O cérebro humano não foi feito para memorizar 1.200 páginas no esforço bruto.
           Conecte sua preparação à inteligência do primeiro copiloto cognitivo.
@@ -152,7 +158,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.45 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-4 pt-1"
+          className="inline-flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl bg-[#02050e]/80 border border-white/10 backdrop-blur-md shadow-lg"
         >
           {/* Avatar stack */}
           <div className="flex -space-x-2 items-center">
@@ -172,7 +178,7 @@ export function HeroSection() {
 
           {/* Stars & Metric */}
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
@@ -181,7 +187,7 @@ export function HeroSection() {
               ))}
               <span className="text-xs font-bold text-white ml-1">4.9/5</span>
             </div>
-            <span className="text-[11px] text-slate-300 font-mono tracking-tight drop-shadow-sm">
+            <span className="text-xs text-slate-200 font-sans tracking-tight">
               Mais de <strong className="text-cyan-300 font-bold">+1.480 concurseiros</strong> acelerando aprovações
             </span>
           </div>
@@ -198,7 +204,7 @@ export function HeroSection() {
         className="relative z-10 w-full max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 pb-2 px-2 sm:px-4"
       >
         {/* Esquerda: Telemetria do Algoritmo (Desktop) */}
-        <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-[#030712]/60 border border-white/5 backdrop-blur-md shadow-sm text-[11px] font-mono text-slate-300">
+        <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-[#030712]/80 border border-white/10 backdrop-blur-md shadow-sm text-xs font-mono text-slate-200">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
@@ -208,8 +214,8 @@ export function HeroSection() {
         </div>
 
         {/* Centro: Indicador Minimalista de Scroll (Mouse com Feixe Fluido) */}
-        <div className="flex flex-col items-center gap-1.5 text-center">
-          <span className="text-[10px] sm:text-[11px] font-mono font-medium tracking-[0.25em] text-slate-300 uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+        <div className="flex flex-col items-center gap-1.5 text-center px-3.5 py-1.5 rounded-xl bg-[#030712]/60 border border-white/5 backdrop-blur-xs">
+          <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-[0.25em] text-slate-200 uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
             ROLE PARA INICIAR A JORNADA
           </span>
           <div className="w-4 h-7 rounded-full border border-cyan-400/40 flex items-start justify-center p-0.5 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
@@ -225,7 +231,7 @@ export function HeroSection() {
         <a
           href="#cockpit"
           onClick={() => triggerHaptic("medium")}
-          className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-[#030712]/80 hover:bg-cyan-950/70 border border-cyan-500/25 hover:border-cyan-400/60 backdrop-blur-md text-xs font-mono font-bold text-cyan-300 hover:text-white transition-all shadow-[0_0_20px_rgba(6,182,212,0.15)] hover:shadow-[0_0_25px_rgba(6,182,212,0.3)] active:scale-95"
+          className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-[#030712]/85 hover:bg-cyan-950/80 border border-cyan-500/30 hover:border-cyan-400/60 backdrop-blur-md text-xs font-mono font-bold text-cyan-300 hover:text-white transition-all shadow-[0_0_20px_rgba(6,182,212,0.15)] hover:shadow-[0_0_25px_rgba(6,182,212,0.3)] active:scale-95"
         >
           <BrainCircuit className="w-4 h-4 text-cyan-400 group-hover:rotate-12 transition-transform" />
           <span className="tracking-wide">IR DIRETO AO COCKPIT</span>

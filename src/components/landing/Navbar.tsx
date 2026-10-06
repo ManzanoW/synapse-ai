@@ -29,10 +29,10 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 border-b transition-[background-color,border-color,padding,box-shadow] duration-300 ease-out ${
           scrolled
-            ? "bg-[#030712]/80 backdrop-blur-xl border-b border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.5)] py-3.5"
-            : "bg-transparent py-5"
+            ? "bg-[#030712]/85 backdrop-blur-xl border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.5)] py-3.5"
+            : "bg-transparent border-white/0 py-5"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -62,12 +62,12 @@ export function Navbar() {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1 lg:gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-md">
+            <nav className="hidden md:flex items-center gap-1 lg:gap-2 px-3 py-1.5 rounded-full bg-[#030712]/40 border border-white/10 backdrop-blur-md">
               {navLinks.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="px-3 py-1.5 text-xs lg:text-sm font-medium text-slate-300 hover:text-white hover:bg-white/[0.06] rounded-full transition-all duration-200"
+                  className="px-3 py-1.5 text-xs lg:text-sm font-medium text-slate-200 hover:text-white hover:bg-white/[0.08] rounded-full transition-all duration-200"
                 >
                   {link.label}
                 </a>
@@ -78,7 +78,7 @@ export function Navbar() {
             <div className="hidden sm:flex items-center gap-3">
               <Link
                 href="/login"
-                className="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-colors"
+                className="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-200 hover:text-white transition-colors"
               >
                 Entrar
               </Link>
