@@ -27,7 +27,6 @@ import {
   Pause,
 } from "lucide-react";
 import { triggerHaptic } from "@/lib/sensory/haptics";
-import { tts } from "@/lib/tts-engine";
 
 export function InteractiveStickyShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -169,45 +168,64 @@ export function InteractiveStickyShowcase() {
     }
   });
 
-  // Audio player state para o Cockpit Hands-Free
+  // Audio player state para o Cockpit Hands-Free (áudios estáticos Edge Neural)
   const [isCockpitAudioPlaying, setIsCockpitAudioPlaying] = useState(false);
+  const cockpitAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopCockpitAudio = () => {
+    if (cockpitAudioRef.current) {
+      cockpitAudioRef.current.pause();
+      cockpitAudioRef.current.currentTime = 0;
+      cockpitAudioRef.current = null;
+    }
+  };
 
   // Parar áudio do cockpit ao desmontar
   useEffect(() => {
     return () => {
-      tts.stop();
+      stopCockpitAudio();
     };
   }, []);
 
   const toggleCockpitAudio = () => {
     triggerHaptic("medium");
     if (isCockpitAudioPlaying) {
-      tts.stop();
+      stopCockpitAudio();
       setIsCockpitAudioPlaying(false);
     } else {
       setIsCockpitAudioPlaying(true);
-      tts.speak(
-        "Qual a legitimidade ativa extraordinária para impetração de Habeas Data segundo o Superior Tribunal de Justiça?",
-        {
-          onEnd: () => {
-            setTimeout(() => {
-              tts.speak(
-                "Segundo a jurisprudência do Superior Tribunal de Justiça, o cônjuge supérstite ou os herdeiros possuem legitimidade para impetrar Habeas Data em defesa da memória do falecido.",
-                {
-                  onEnd: () => setIsCockpitAudioPlaying(false),
-                  onError: () => setIsCockpitAudioPlaying(false),
-                }
-              );
-            }, 1200);
-          },
-          onError: () => setIsCockpitAudioPlaying(false),
-        }
-      );
+      const audioQ = new Audio("/audio/cockpit-question.mp3");
+      cockpitAudioRef.current = audioQ;
+
+      audioQ.onended = () => {
+        setTimeout(() => {
+          const audioA = new Audio("/audio/cockpit-answer.mp3");
+          cockpitAudioRef.current = audioA;
+          audioA.onended = () => {
+            setIsCockpitAudioPlaying(false);
+            cockpitAudioRef.current = null;
+          };
+          audioA.onerror = () => {
+            setIsCockpitAudioPlaying(false);
+          };
+          audioA.play().catch(() => setIsCockpitAudioPlaying(false));
+        }, 1200);
+      };
+
+      audioQ.onerror = () => {
+        setIsCockpitAudioPlaying(false);
+      };
+
+      audioQ.play().catch(() => setIsCockpitAudioPlaying(false));
     }
   };
 
   const handleManualTab = (index: 0 | 1 | 2) => {
     triggerHaptic("medium");
+    if (index !== 2 && isCockpitAudioPlaying) {
+      stopCockpitAudio();
+      setIsCockpitAudioPlaying(false);
+    }
     setIsManualOverride(true);
     setActiveScreen(index);
     // Libera a sincronização por scroll após 4 segundos se o usuário voltar a rolar
