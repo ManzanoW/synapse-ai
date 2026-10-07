@@ -124,7 +124,7 @@ export function PricingSection() {
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className="mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto items-stretch">
+        <div className="mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto items-stretch pt-3 sm:pt-4">
           {/* ================= CARD 1: PLANO GRATUITO ================= */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -192,7 +192,7 @@ export function PricingSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="rounded-3xl p-[2px] relative overflow-hidden group shadow-2xl shadow-indigo-950/80 transition-all duration-300 hover:scale-[1.01]"
+            className="rounded-3xl p-[2px] relative group shadow-2xl shadow-indigo-950/80 transition-all duration-300 hover:scale-[1.01]"
           >
             {/* Border Beam Neon Contínuo Giratório (Big Tech Finish) */}
             <BorderBeam duration={7} colorFrom="#6366f1" colorTo="#06b6d4" />
@@ -207,7 +207,7 @@ export function PricingSection() {
             </div>
 
             {/* Inner Content Card com Vidro Temperado */}
-            <div className="relative rounded-[inherit] bg-gradient-to-b from-indigo-950/85 via-[#070b14] to-purple-950/70 border border-indigo-500/40 p-6 sm:p-8 flex flex-col justify-between backdrop-blur-2xl h-full z-10">
+            <div className="relative rounded-[22px] bg-gradient-to-b from-indigo-950/85 via-[#070b14] to-purple-950/70 border border-indigo-500/40 p-6 sm:p-8 flex flex-col justify-between backdrop-blur-2xl h-full z-10">
               <div className="space-y-6 pt-2">
                 <div className="space-y-1.5">
                   <span className="text-xs font-mono font-bold uppercase tracking-wider text-indigo-300">
