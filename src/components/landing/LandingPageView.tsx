@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Navbar } from "./Navbar";
 import { HeroSection } from "./HeroSection";
 import { BancasMarquee } from "./BancasMarquee";
@@ -9,26 +10,77 @@ import { InteractiveStickyShowcase } from "./InteractiveStickyShowcase";
 import { RealityCheckSection } from "./RealityCheckSection";
 import { ArsenalBentoGrid } from "./ArsenalBentoGrid";
 import { StickyShowcaseWorkflow } from "./StickyShowcaseWorkflow";
-import { TimeRecoveryCalculator } from "./TimeRecoveryCalculator";
-import { PricingSection } from "./PricingSection";
-import { FaqSection } from "./FaqSection";
-import { FinalCtaSection } from "./FinalCtaSection";
-import { Footer } from "./Footer";
 import { motion, useScroll, useSpring, AnimatePresence } from "framer-motion";
 import { ChevronUp, Zap, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 import { useAdaptivePerformance } from "@/hooks/useAdaptivePerformance";
 
+// Dynamic Code Splitting para seções inferiores (First Contentful Paint ultra leve no mobile)
+const TimeRecoveryCalculator = dynamic(
+  () => import("./TimeRecoveryCalculator").then((m) => m.TimeRecoveryCalculator),
+  { ssr: true }
+);
+const OpportunityCostCalculator = dynamic(
+  () => import("./OpportunityCostCalculator").then((m) => m.OpportunityCostCalculator),
+  { ssr: true }
+);
+const ComparisonMatrixSection = dynamic(
+  () => import("./ComparisonMatrixSection").then((m) => m.ComparisonMatrixSection),
+  { ssr: true }
+);
+const TestimonialsSection = dynamic(
+  () => import("./TestimonialsSection").then((m) => m.TestimonialsSection),
+  { ssr: true }
+);
+const PricingSection = dynamic(
+  () => import("./PricingSection").then((m) => m.PricingSection),
+  { ssr: true }
+);
+const FaqSection = dynamic(
+  () => import("./FaqSection").then((m) => m.FaqSection),
+  { ssr: true }
+);
+const FinalCtaSection = dynamic(
+  () => import("./FinalCtaSection").then((m) => m.FinalCtaSection),
+  { ssr: true }
+);
+const Footer = dynamic(
+  () => import("./Footer").then((m) => m.Footer),
+  { ssr: true }
+);
+const CommandMenu = dynamic(
+  () => import("./CommandMenu").then((m) => m.CommandMenu),
+  { ssr: false }
+);
+const PwaInstallModal = dynamic(
+  () => import("./PwaInstallModal").then((m) => m.PwaInstallModal),
+  { ssr: false }
+);
+
 export function LandingPageView() {
   const { isLowPerformance } = useAdaptivePerformance();
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
+  const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
     damping: 30,
     restDelta: 0.001,
   });
+
+  // Global Spotlight Keyboard Shortcut (Ctrl+K ou ⌘K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsCommandMenuOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -63,7 +115,10 @@ export function LandingPageView() {
       />
 
       {/* Floating Navbar */}
-      <Navbar />
+      <Navbar
+        onOpenCommandMenu={() => setIsCommandMenuOpen(true)}
+        onOpenPwaModal={() => setIsPwaModalOpen(true)}
+      />
 
       {/* Scrollytelling Main Content Flow */}
       <main className="w-full">
@@ -95,7 +150,22 @@ export function LandingPageView() {
           <TimeRecoveryCalculator />
         </div>
 
-        {/* 9. Planos Transparentes */}
+        {/* 8.1. Calculadora do Custo de Oportunidade (O Salário da Posse) */}
+        <div className="landing-section-deferred">
+          <OpportunityCostCalculator />
+        </div>
+
+        {/* 9. Matriz Comparativa Racional: Synapse AI vs. Cursinhos vs. Anki */}
+        <div className="landing-section-deferred">
+          <ComparisonMatrixSection />
+        </div>
+
+        {/* 9.1. Muro de Prova Social • Depoimentos Verificados */}
+        <div className="landing-section-deferred">
+          <TestimonialsSection />
+        </div>
+
+        {/* 10. Planos Transparentes */}
         <div className="landing-section-deferred">
           <PricingSection />
         </div>
@@ -165,6 +235,19 @@ export function LandingPageView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Spotlight Command Palette (⌘K) */}
+      <CommandMenu
+        isOpen={isCommandMenuOpen}
+        onClose={() => setIsCommandMenuOpen(false)}
+        onOpenPwaModal={() => setIsPwaModalOpen(true)}
+      />
+
+      {/* PWA Mobile Installation Modal */}
+      <PwaInstallModal
+        isOpen={isPwaModalOpen}
+        onClose={() => setIsPwaModalOpen(false)}
+      />
     </div>
   );
 }
