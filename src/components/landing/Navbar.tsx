@@ -22,6 +22,7 @@ export function Navbar() {
     { label: "Cockpit", href: "#cockpit" },
     { label: "Arsenal Cognitivo", href: "#arsenal" },
     { label: "Como Funciona", href: "#fluxo" },
+    { label: "Comparativo", href: "#comparativo" },
     { label: "Planos", href: "#planos" },
     { label: "FAQ", href: "#faq" },
   ];

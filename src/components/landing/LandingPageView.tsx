@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Navbar } from "./Navbar";
 import { HeroSection } from "./HeroSection";
 import { BancasMarquee } from "./BancasMarquee";
@@ -9,16 +10,37 @@ import { InteractiveStickyShowcase } from "./InteractiveStickyShowcase";
 import { RealityCheckSection } from "./RealityCheckSection";
 import { ArsenalBentoGrid } from "./ArsenalBentoGrid";
 import { StickyShowcaseWorkflow } from "./StickyShowcaseWorkflow";
-import { TimeRecoveryCalculator } from "./TimeRecoveryCalculator";
-import { PricingSection } from "./PricingSection";
-import { FaqSection } from "./FaqSection";
-import { FinalCtaSection } from "./FinalCtaSection";
-import { Footer } from "./Footer";
 import { motion, useScroll, useSpring, AnimatePresence } from "framer-motion";
 import { ChevronUp, Zap, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 import { useAdaptivePerformance } from "@/hooks/useAdaptivePerformance";
+
+// Dynamic Code Splitting para seções inferiores (First Contentful Paint ultra leve no mobile)
+const TimeRecoveryCalculator = dynamic(
+  () => import("./TimeRecoveryCalculator").then((m) => m.TimeRecoveryCalculator),
+  { ssr: true }
+);
+const ComparisonMatrixSection = dynamic(
+  () => import("./ComparisonMatrixSection").then((m) => m.ComparisonMatrixSection),
+  { ssr: true }
+);
+const PricingSection = dynamic(
+  () => import("./PricingSection").then((m) => m.PricingSection),
+  { ssr: true }
+);
+const FaqSection = dynamic(
+  () => import("./FaqSection").then((m) => m.FaqSection),
+  { ssr: true }
+);
+const FinalCtaSection = dynamic(
+  () => import("./FinalCtaSection").then((m) => m.FinalCtaSection),
+  { ssr: true }
+);
+const Footer = dynamic(
+  () => import("./Footer").then((m) => m.Footer),
+  { ssr: true }
+);
 
 export function LandingPageView() {
   const { isLowPerformance } = useAdaptivePerformance();
@@ -95,7 +117,12 @@ export function LandingPageView() {
           <TimeRecoveryCalculator />
         </div>
 
-        {/* 9. Planos Transparentes */}
+        {/* 9. Matriz Comparativa Racional: Synapse AI vs. Cursinhos vs. Anki */}
+        <div className="landing-section-deferred">
+          <ComparisonMatrixSection />
+        </div>
+
+        {/* 10. Planos Transparentes */}
         <div className="landing-section-deferred">
           <PricingSection />
         </div>
