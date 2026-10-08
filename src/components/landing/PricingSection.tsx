@@ -70,7 +70,7 @@ export function PricingSection() {
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-            Comece gratuito para testar a retenção neural. Destrave o Pro quando quiser áudio hands-free no trânsito e discursivas ilimitadas.
+            Comece gratuito para testar a retenção neural. Destrave o Pro quando quiser áudio hands-free no trânsito e alta capacidade diária.
           </p>
 
           {/* Toggle Mensal / Anual */}
@@ -160,12 +160,13 @@ export function PricingSection() {
                 </span>
                 <ul className="space-y-2.5 text-xs text-slate-300">
                   {[
-                    "7 requisições diárias de Inteligência Artificial",
-                    "Motor FSRS com cálculo matemático da curva de retenção",
-                    "Até 2 simulados gerados por IA ao dia",
-                    "1 correção de redação discursiva por dia",
-                    "Edital verticalizado com controle de progresso",
-                    "Caderno de erros básico com diagnóstico de causa",
+                    "5 requisições diárias de Inteligência Artificial",
+                    "1 simulado com IA por dia (+1 bônus via anúncio voluntário)",
+                    "1 correção de redação digitada por semana (degustação)",
+                    "1 OCR de redação manuscrita de boas-vindas para testar",
+                    "2 remediações cognitivas no Caderno de Erros por dia",
+                    "Edital verticalizado com acompanhamento de progresso",
+                    "Recarga de créditos extras assistindo a anúncios recompensados",
                   ].map((feat, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
@@ -203,7 +204,7 @@ export function PricingSection() {
             {/* Top Amber Ribbon */}
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5 whitespace-nowrap z-20">
               <Crown className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
-              <span>Mais Escolhido • Acesso Ilimitado & Zero Anúncios</span>
+              <span>Mais Escolhido • Alta Capacidade & Zero Anúncios</span>
             </div>
 
             {/* Inner Content Card com Vidro Temperado */}
@@ -216,11 +217,11 @@ export function PricingSection() {
                   <div className="flex items-center gap-2">
                     <h3 className="text-2xl font-black text-white">Synapse Pro</h3>
                     <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono font-bold">
-                      ILIMITADO
+                      ALTA CAPACIDADE
                     </span>
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Todo o arsenal da IA trabalhando pelo seu nome no Diário Oficial. Sem limites, sem anúncios e com áudio hands-free.
+                    Todo o arsenal da IA trabalhando pelo seu nome no Diário Oficial. Alta capacidade diária, sem anúncios e com áudio hands-free.
                   </p>
                 </div>
 
@@ -249,13 +250,15 @@ export function PricingSection() {
                   </span>
                   <ul className="space-y-2.5 text-xs text-slate-200">
                     {[
-                      "IA 100% Ilimitada & Zero Anúncios (sem filas ou travamentos)",
-                      "Flashcards em Áudio Neural Humanizado Ilimitado (Modo Hands-Free no trânsito)",
-                      "Correções Discursivas no rigor oficial (Cebraspe/FGV/FCC) com Versão Ouro",
-                      "OCR de Redação Manuscrita Ilimitado (escaneamento direto da folha de prova)",
-                      "Raio-X de Incidência da Banca no Edital Verticalizado",
-                      "Importador de Edital em PDF com extração automática completa",
-                      "Mapas Mentais Neurais com exportação para PDF A4 de alta resolução",
+                      "Franquia generosa de até 60 requisições de IA por dia (Política de Uso Justo — 1.800+/mês)",
+                      "Até 3 correções técnicas de redação discursiva por dia (padrão Cebraspe/FGV)",
+                      "Até 2 OCRs de redação manuscrita (foto da folha real) por dia",
+                      "Até 5 simulados inéditos diários com filtros de banca e cargo",
+                      "Caderno de Erros avançado com 30 remediações cognitivas diárias",
+                      "Mapas Mentais Neurais: até 5 gerações diárias com exportação em PDF A4 / PNG HD",
+                      "Flashcards em Áudio Neural Hands-Free (até 2h diárias de estudo no trânsito)",
+                      "Importador de Edital em PDF (extração inteligente de disciplinas)",
+                      "Zero anúncios e foco visual absoluto",
                     ].map((feat, i) => (
                       <li key={i} className="flex items-start gap-2.5 font-medium">
                         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />

@@ -40,52 +40,52 @@ export function ComparisonMatrixSection() {
   const ROWS: ComparisonRow[] = [
     {
       feature: "Investimento Anual",
-      category: "Custo",
+      category: "Custo-Benefício",
       cursinho: { text: "R$ 1.800 a R$ 3.500 / ano", status: "bad" },
-      anki: { text: "Grátis (mas exige meses configurando)", status: "warning" },
+      anki: { text: "Grátis (meses configurando)", status: "warning" },
       synapse: { text: "R$ 29,90/mês (~R$ 0,99/dia)", status: "good", highlight: true },
     },
     {
-      feature: "Algoritmo de Retenção de Memória",
-      category: "Metodologia",
-      cursinho: { text: "Nenhum (PDFs estáticos e videoaulas passivas)", status: "bad" },
-      anki: { text: "SM-2 de 1987 (bola de neve de 600 revisões)", status: "warning" },
-      synapse: { text: "Motor FSRS 4.5 Preditivo (-65% revisões inúteis)", status: "good", highlight: true },
+      feature: "Algoritmo de Retenção",
+      category: "Memorização Ativa",
+      cursinho: { text: "Nenhum (PDFs estáticos)", status: "bad" },
+      anki: { text: "SM-2 de 1987 (acúmulo punitivo)", status: "warning" },
+      synapse: { text: "Motor FSRS 4.5 Preditivo (-65% revisões)", status: "good", highlight: true },
     },
     {
-      feature: "Áudio Neural Hands-Free no Trânsito",
-      category: "Produtividade",
-      cursinho: { text: "Não existe (videoaulas exigem tela ligada)", status: "bad" },
-      anki: { text: "TTS robótico e sem pausa de reflexão ativa", status: "bad" },
-      synapse: { text: "Vozes de estúdio com tela bloqueada no bolso", status: "good", highlight: true },
+      feature: "Áudio Neural Hands-Free",
+      category: "Aproveitamento de Tempo",
+      cursinho: { text: "Inexistente (tela obrigatória)", status: "bad" },
+      anki: { text: "TTS robótico sem pausa ativa", status: "bad" },
+      synapse: { text: "Vozes de estúdio com tela apagada no bolso", status: "good", highlight: true },
     },
     {
       feature: "Correção de Redação Discursiva",
-      category: "Discursivas",
-      cursinho: { text: "R$ 150/tema avulso e 15 dias de espera", status: "bad" },
+      category: "Bancas Concursais",
+      cursinho: { text: "R$ 150/tema (15 dias de espera)", status: "bad" },
       anki: { text: "Não oferece", status: "bad" },
       synapse: { text: "Espelho oficial (Cebraspe/FGV/FCC) em 8s", status: "good", highlight: true },
     },
     {
-      feature: "OCR de Manuscrito na Folha de Prova",
-      category: "Discursivas",
-      cursinho: { text: "Apenas digitação manual no teclado", status: "bad" },
+      feature: "OCR de Manuscrito na Folha Real",
+      category: "Visão Computacional",
+      cursinho: { text: "Apenas digitação no teclado", status: "bad" },
       anki: { text: "Não oferece", status: "bad" },
-      synapse: { text: "Foto direta da folha de prova via IA Vision", status: "good" },
+      synapse: { text: "Foto da folha de prova via IA Vision", status: "good" },
     },
     {
       feature: "Edital Verticalizado com Raio-X",
-      category: "Planejamento",
-      cursinho: { text: "Planilhas de Excel estáticas e manuais", status: "warning" },
+      category: "Planejamento Estratégico",
+      cursinho: { text: "Planilhas de Excel estáticas", status: "warning" },
       anki: { text: "Não oferece", status: "bad" },
-      synapse: { text: "Importação direta de PDF com incidência da banca", status: "good" },
+      synapse: { text: "Extração PDF + incidência real da banca", status: "good" },
     },
     {
       feature: "Ciclo Adaptativo Anti-Culpa",
-      category: "Metodologia",
-      cursinho: { text: "Cronograma racha no primeiro imprevisto", status: "bad" },
-      anki: { text: "Punição com centenas de cards acumulados", status: "bad" },
-      synapse: { text: "Rebalanceamento suave automático da semana", status: "good", highlight: true },
+      category: "Constância Psicológica",
+      cursinho: { text: "Cronograma rígido e punitivo", status: "bad" },
+      anki: { text: "Efeito bola de neve de revisões", status: "bad" },
+      synapse: { text: "Rebalanceamento suave inteligente", status: "good", highlight: true },
     },
   ];
 
@@ -177,16 +177,16 @@ export function ComparisonMatrixSection() {
                 }`}
               >
                 <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06]">
-                  <span className="text-xs font-mono text-slate-400 font-bold">
+                  <span className="text-xs font-mono text-slate-300 font-bold">
                     {row.feature}
                   </span>
                   <span className="text-[10px] font-mono text-slate-500 uppercase">
                     {row.category}
                   </span>
                 </div>
-                <div className="pt-2 flex items-start gap-2">
+                <div className="pt-2.5 flex items-start gap-2">
                   {data.status === "good" ? (
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
                   ) : data.status === "warning" ? (
                     <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                   ) : (
@@ -207,60 +207,66 @@ export function ComparisonMatrixSection() {
 
         {/* Desktop View: Tabela Magnífica de Vidro Temperado */}
         <div className="hidden md:block rounded-3xl bg-[#070b14]/70 border border-white/10 backdrop-blur-2xl shadow-2xl overflow-hidden">
-          <div className="grid grid-cols-12 border-b border-white/10 bg-slate-900/60 p-4 lg:p-6 items-center text-sm font-mono font-bold">
-            <div className="col-span-4 text-slate-300">
+          {/* Header Grid */}
+          <div className="grid grid-cols-[1.5fr_1.1fr_1.1fr_1.5fr] gap-3 border-b border-white/10 bg-slate-900/60 p-4 lg:p-6 items-center text-xs lg:text-sm font-mono font-bold">
+            <div className="text-slate-400 uppercase tracking-wider">
               RECURSO / CRITÉRIO TÁTICO
             </div>
-            <div className="col-span-2.5 text-center text-slate-400">
+            <div className="text-center text-slate-400 uppercase tracking-wider">
               CURSINHOS CLÁSSICOS
             </div>
-            <div className="col-span-2.5 text-center text-slate-400">
+            <div className="text-center text-slate-400 uppercase tracking-wider">
               ANKI TRADICIONAL
             </div>
-            <div className="col-span-3 text-center text-cyan-300 flex items-center justify-center gap-1.5 bg-gradient-to-r from-indigo-500/20 via-cyan-500/20 to-purple-500/20 py-2 rounded-xl border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+            <div className="text-center py-2 px-3 rounded-xl bg-gradient-to-r from-indigo-500/20 via-cyan-500/20 to-violet-500/20 border border-cyan-500/35 text-cyan-300 flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
               <Zap className="w-4 h-4 text-cyan-400" />
               <span>SYNAPSE AI</span>
             </div>
           </div>
 
+          {/* Rows Grid */}
           <div className="divide-y divide-white/[0.06]">
             {ROWS.map((row, idx) => (
               <div
                 key={idx}
-                className="grid grid-cols-12 p-4 lg:p-5 items-center hover:bg-white/[0.02] transition-colors text-xs lg:text-sm"
+                className="grid grid-cols-[1.5fr_1.1fr_1.1fr_1.5fr] gap-3 p-4 lg:p-5 items-center hover:bg-white/[0.02] transition-colors group"
               >
                 {/* Feature Name */}
-                <div className="col-span-4 font-bold text-white flex flex-col pr-4">
-                  <span>{row.feature}</span>
-                  <span className="text-[10px] font-mono text-slate-500 uppercase font-normal">
+                <div className="flex flex-col pr-3">
+                  <span className="font-bold text-white text-xs lg:text-sm leading-snug">
+                    {row.feature}
+                  </span>
+                  <span className="text-[10px] lg:text-[11px] font-mono text-slate-400 uppercase tracking-wider mt-0.5 font-medium">
                     {row.category}
                   </span>
                 </div>
 
                 {/* Cursinho Tradicional */}
-                <div className="col-span-2.5 px-3 text-center flex items-center justify-center gap-1.5 text-slate-400 text-xs">
+                <div className="flex items-center justify-center gap-1.5 text-center text-slate-300 text-xs lg:text-sm px-2">
                   {row.cursinho.status === "bad" ? (
-                    <X className="w-4 h-4 text-rose-500 shrink-0" />
+                    <X className="w-4 h-4 text-rose-400/90 shrink-0" />
                   ) : (
-                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                    <AlertTriangle className="w-4 h-4 text-amber-400/90 shrink-0" />
                   )}
-                  <span>{row.cursinho.text}</span>
+                  <span className="leading-snug">{row.cursinho.text}</span>
                 </div>
 
                 {/* Anki Tradicional */}
-                <div className="col-span-2.5 px-3 text-center flex items-center justify-center gap-1.5 text-slate-400 text-xs">
+                <div className="flex items-center justify-center gap-1.5 text-center text-slate-300 text-xs lg:text-sm px-2">
                   {row.anki.status === "bad" ? (
-                    <X className="w-4 h-4 text-rose-500 shrink-0" />
+                    <X className="w-4 h-4 text-rose-400/90 shrink-0" />
                   ) : (
-                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                    <AlertTriangle className="w-4 h-4 text-amber-400/90 shrink-0" />
                   )}
-                  <span>{row.anki.text}</span>
+                  <span className="leading-snug">{row.anki.text}</span>
                 </div>
 
                 {/* Synapse AI (Highlighted Column) */}
-                <div className="col-span-3 px-3 py-2 text-center rounded-xl bg-cyan-950/20 border border-cyan-500/25 flex items-center justify-center gap-2 text-cyan-200 font-bold text-xs lg:text-sm shadow-xs">
+                <div className="py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-cyan-500/[0.08] to-indigo-500/[0.08] border border-cyan-500/25 flex items-center justify-center gap-2 text-center text-xs lg:text-sm shadow-xs group-hover:border-cyan-500/40 transition-colors">
                   <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span className="font-semibold text-white">{row.synapse.text}</span>
+                  <span className="font-semibold text-white leading-snug">
+                    {row.synapse.text}
+                  </span>
                 </div>
               </div>
             ))}

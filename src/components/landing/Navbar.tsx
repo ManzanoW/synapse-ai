@@ -23,10 +23,10 @@ export function Navbar({ onOpenCommandMenu, onOpenPwaModal }: NavbarProps = {}) 
   }, []);
 
   const navLinks = [
-    { label: "O Método", href: "#metodo" },
+    { label: "Método", href: "#metodo" },
     { label: "Cockpit", href: "#cockpit" },
-    { label: "Arsenal Cognitivo", href: "#arsenal" },
-    { label: "Como Funciona", href: "#fluxo" },
+    { label: "Arsenal", href: "#arsenal" },
+    { label: "Workflow", href: "#fluxo" },
     { label: "Comparativo", href: "#comparativo" },
     { label: "Planos", href: "#planos" },
     { label: "FAQ", href: "#faq" },
@@ -46,7 +46,7 @@ export function Navbar({ onOpenCommandMenu, onOpenPwaModal }: NavbarProps = {}) 
             {/* Logo Synapse AI */}
             <Link
               href="/"
-              className="group flex items-center gap-2.5 focus:outline-hidden"
+              className="group flex items-center gap-2.5 focus:outline-hidden shrink-0"
               aria-label="Synapse AI - Página Inicial"
             >
               <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500/20 via-violet-500/15 to-cyan-500/10 border border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.25)] group-hover:border-indigo-400 group-hover:shadow-[0_0_25px_rgba(99,102,241,0.4)] transition-all">
@@ -68,12 +68,12 @@ export function Navbar({ onOpenCommandMenu, onOpenPwaModal }: NavbarProps = {}) 
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1 lg:gap-2 px-3 py-1.5 rounded-full bg-[#030712]/40 border border-white/10 backdrop-blur-md">
+            <nav className="hidden lg:flex items-center gap-1 xl:gap-2 px-3 py-1.5 rounded-full bg-[#030712]/50 border border-white/10 backdrop-blur-md">
               {navLinks.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="px-3 py-1.5 text-xs lg:text-sm font-medium text-slate-200 hover:text-white hover:bg-white/[0.08] rounded-full transition-all duration-200"
+                  className="px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-slate-200 hover:text-white hover:bg-white/[0.08] rounded-full transition-all duration-200 whitespace-nowrap shrink-0"
                 >
                   {link.label}
                 </a>
@@ -81,51 +81,40 @@ export function Navbar({ onOpenCommandMenu, onOpenPwaModal }: NavbarProps = {}) 
             </nav>
 
             {/* Desktop CTA Actions */}
-            <div className="hidden sm:flex items-center gap-2.5">
+            <div className="hidden sm:flex items-center gap-2 lg:gap-2.5">
               {onOpenCommandMenu && (
                 <button
                   type="button"
                   onClick={onOpenCommandMenu}
-                  className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-slate-300 hover:text-white transition-all cursor-pointer"
-                  title="Abrir Menu de Comandos (Ctrl+K ou ⌘K)"
+                  className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-slate-400 hover:text-white transition-all cursor-pointer whitespace-nowrap"
+                  title="Abrir Menu de Comandos (⌘K ou Ctrl+K)"
+                  aria-label="Buscar recursos (⌘K)"
                 >
                   <Search className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Buscar</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] text-slate-300 font-bold border border-white/10">
                     ⌘K
                   </kbd>
                 </button>
               )}
 
-              {onOpenPwaModal && (
-                <button
-                  type="button"
-                  onClick={onOpenPwaModal}
-                  className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/25 text-xs font-mono font-bold text-cyan-300 hover:text-cyan-200 transition-all cursor-pointer"
-                >
-                  <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Instalar App</span>
-                </button>
-              )}
-
               <Link
                 href="/login"
-                className="px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-200 hover:text-white transition-colors"
+                className="px-3 py-1.5 text-xs lg:text-sm font-semibold text-slate-200 hover:text-white transition-colors whitespace-nowrap"
               >
                 Entrar
               </Link>
 
               <Link
                 href="/login"
-                className="group inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border border-indigo-400/30 hover:border-indigo-300/50 shadow-md shadow-indigo-950/50 transition-all duration-200 focus:outline-hidden"
+                className="group inline-flex items-center gap-1.5 px-3.5 lg:px-4 py-2 sm:py-2 rounded-xl font-bold text-xs lg:text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border border-indigo-400/30 hover:border-indigo-300/50 shadow-md shadow-indigo-950/50 transition-all duration-200 focus:outline-hidden whitespace-nowrap shrink-0"
               >
                 <span>Começar Grátis</span>
                 <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
 
-            {/* Mobile Menu Toggle Button */}
-            <div className="flex md:hidden items-center gap-2">
+            {/* Mobile / Tablet Menu Toggle Button */}
+            <div className="flex lg:hidden items-center gap-2">
               {onOpenCommandMenu && (
                 <button
                   type="button"
@@ -163,7 +152,7 @@ export function Navbar({ onOpenCommandMenu, onOpenPwaModal }: NavbarProps = {}) 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-x-0 top-[65px] z-40 md:hidden bg-[#030712]/95 backdrop-blur-2xl border-b border-white/[0.08] p-6 shadow-2xl space-y-4"
+            className="fixed inset-x-0 top-[65px] z-40 lg:hidden bg-[#030712]/95 backdrop-blur-2xl border-b border-white/[0.08] p-6 shadow-2xl space-y-4"
           >
             <div className="flex flex-col space-y-2">
               {navLinks.map((link) => (
