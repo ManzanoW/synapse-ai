@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
-import { Sparkles, Brain, Cpu, CheckCircle2, AlertCircle, Crown, Gift, ArrowRight, X, Clock } from "lucide-react";
+import { Zap, Brain, Cpu, CheckCircle2, AlertCircle, Crown, Gift, ArrowRight, X, Clock } from "lucide-react";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
@@ -266,8 +266,8 @@ export function SimuladoGenerationModal({
                 </span>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-[11px] font-bold tracking-wider uppercase">
-                <Sparkles size={13} className="text-violet-400 animate-spin" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold tracking-wider uppercase">
+                <Zap size={13} className="text-cyan-400 fill-cyan-400/20" />
                 <span>Geração Cognitiva Paralela</span>
               </div>
             )}
@@ -433,18 +433,18 @@ export function SimuladoGenerationModal({
                     <button
                       type="button"
                       onClick={() => setIsRewardedModalOpen(true)}
-                      className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-white text-xs font-black rounded-xl shadow-lg shadow-amber-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer group"
+                      className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-400/30 border border-amber-400/40 text-amber-200 text-xs font-bold rounded-xl shadow-lg shadow-amber-950/40 flex items-center justify-center gap-2 transition-all cursor-pointer group"
                     >
-                      <Gift
-                        size={15}
-                        className="text-white group-hover:scale-110 transition-transform"
+                      <Zap
+                        size={14}
+                        className="text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform"
                       />
-                      <span>Assistir Vídeo (+1 Simulado)</span>
+                      <span>⚡ Recarregar +1 Sinapse (Vídeo Curto)</span>
                     </button>
                   ) : (
                     <div className="w-full sm:w-auto px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 select-none">
                       <Clock size={14} className="text-amber-400 shrink-0" />
-                      <span>Vídeos diários esgotados (2/2)</span>
+                      <span>Vídeos diários concluídos (2/2)</span>
                     </div>
                   )}
 
@@ -457,7 +457,7 @@ export function SimuladoGenerationModal({
                       size={14}
                       className="fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform"
                     />
-                    <span>Virar Pro (Ilimitado)</span>
+                    <span>👑 Acelerar com Synapse Pro (60 Sinapses/dia + Zero Espera)</span>
                   </Link>
                 </>
               ) : null}
