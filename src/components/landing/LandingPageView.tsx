@@ -21,8 +21,16 @@ const TimeRecoveryCalculator = dynamic(
   () => import("./TimeRecoveryCalculator").then((m) => m.TimeRecoveryCalculator),
   { ssr: true }
 );
+const OpportunityCostCalculator = dynamic(
+  () => import("./OpportunityCostCalculator").then((m) => m.OpportunityCostCalculator),
+  { ssr: true }
+);
 const ComparisonMatrixSection = dynamic(
   () => import("./ComparisonMatrixSection").then((m) => m.ComparisonMatrixSection),
+  { ssr: true }
+);
+const TestimonialsSection = dynamic(
+  () => import("./TestimonialsSection").then((m) => m.TestimonialsSection),
   { ssr: true }
 );
 const PricingSection = dynamic(
@@ -41,16 +49,38 @@ const Footer = dynamic(
   () => import("./Footer").then((m) => m.Footer),
   { ssr: true }
 );
+const CommandMenu = dynamic(
+  () => import("./CommandMenu").then((m) => m.CommandMenu),
+  { ssr: false }
+);
+const PwaInstallModal = dynamic(
+  () => import("./PwaInstallModal").then((m) => m.PwaInstallModal),
+  { ssr: false }
+);
 
 export function LandingPageView() {
   const { isLowPerformance } = useAdaptivePerformance();
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
+  const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
     damping: 30,
     restDelta: 0.001,
   });
+
+  // Global Spotlight Keyboard Shortcut (Ctrl+K ou ⌘K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsCommandMenuOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -85,7 +115,10 @@ export function LandingPageView() {
       />
 
       {/* Floating Navbar */}
-      <Navbar />
+      <Navbar
+        onOpenCommandMenu={() => setIsCommandMenuOpen(true)}
+        onOpenPwaModal={() => setIsPwaModalOpen(true)}
+      />
 
       {/* Scrollytelling Main Content Flow */}
       <main className="w-full">
@@ -117,9 +150,19 @@ export function LandingPageView() {
           <TimeRecoveryCalculator />
         </div>
 
+        {/* 8.1. Calculadora do Custo de Oportunidade (O Salário da Posse) */}
+        <div className="landing-section-deferred">
+          <OpportunityCostCalculator />
+        </div>
+
         {/* 9. Matriz Comparativa Racional: Synapse AI vs. Cursinhos vs. Anki */}
         <div className="landing-section-deferred">
           <ComparisonMatrixSection />
+        </div>
+
+        {/* 9.1. Muro de Prova Social • Depoimentos Verificados */}
+        <div className="landing-section-deferred">
+          <TestimonialsSection />
         </div>
 
         {/* 10. Planos Transparentes */}
@@ -192,6 +235,19 @@ export function LandingPageView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Spotlight Command Palette (⌘K) */}
+      <CommandMenu
+        isOpen={isCommandMenuOpen}
+        onClose={() => setIsCommandMenuOpen(false)}
+        onOpenPwaModal={() => setIsPwaModalOpen(true)}
+      />
+
+      {/* PWA Mobile Installation Modal */}
+      <PwaInstallModal
+        isOpen={isPwaModalOpen}
+        onClose={() => setIsPwaModalOpen(false)}
+      />
     </div>
   );
 }

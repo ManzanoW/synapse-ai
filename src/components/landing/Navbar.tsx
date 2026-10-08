@@ -3,9 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ArrowRight, ShieldCheck, Zap } from "lucide-react";
+import { Menu, X, ArrowRight, ShieldCheck, Zap, Search, Smartphone } from "lucide-react";
 
-export function Navbar() {
+interface NavbarProps {
+  onOpenCommandMenu?: () => void;
+  onOpenPwaModal?: () => void;
+}
+
+export function Navbar({ onOpenCommandMenu, onOpenPwaModal }: NavbarProps = {}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -76,10 +81,36 @@ export function Navbar() {
             </nav>
 
             {/* Desktop CTA Actions */}
-            <div className="hidden sm:flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2.5">
+              {onOpenCommandMenu && (
+                <button
+                  type="button"
+                  onClick={onOpenCommandMenu}
+                  className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-slate-300 hover:text-white transition-all cursor-pointer"
+                  title="Abrir Menu de Comandos (Ctrl+K ou ⌘K)"
+                >
+                  <Search className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Buscar</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] text-slate-300 font-bold border border-white/10">
+                    ⌘K
+                  </kbd>
+                </button>
+              )}
+
+              {onOpenPwaModal && (
+                <button
+                  type="button"
+                  onClick={onOpenPwaModal}
+                  className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/25 text-xs font-mono font-bold text-cyan-300 hover:text-cyan-200 transition-all cursor-pointer"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Instalar App</span>
+                </button>
+              )}
+
               <Link
                 href="/login"
-                className="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-200 hover:text-white transition-colors"
+                className="px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-200 hover:text-white transition-colors"
               >
                 Entrar
               </Link>
@@ -95,6 +126,16 @@ export function Navbar() {
 
             {/* Mobile Menu Toggle Button */}
             <div className="flex md:hidden items-center gap-2">
+              {onOpenCommandMenu && (
+                <button
+                  type="button"
+                  onClick={onOpenCommandMenu}
+                  className="p-2 rounded-xl text-slate-300 hover:text-white bg-white/[0.04] border border-white/[0.08]"
+                  aria-label="Abrir busca rápida"
+                >
+                  <Search className="w-4 h-4 text-cyan-400" />
+                </button>
+              )}
               <Link
                 href="/login"
                 className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600/80 border border-indigo-400/30"
@@ -135,6 +176,19 @@ export function Navbar() {
                   {link.label}
                 </a>
               ))}
+              {onOpenPwaModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenPwaModal();
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold text-cyan-300 hover:text-cyan-200 hover:bg-cyan-500/10 transition-colors flex items-center gap-2 text-left"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  <span>📲 Instalar Synapse no Celular</span>
+                </button>
+              )}
             </div>
 
             <div className="pt-4 border-t border-white/[0.08] flex flex-col gap-3">
