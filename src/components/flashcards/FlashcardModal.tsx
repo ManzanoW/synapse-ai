@@ -110,7 +110,12 @@ export default function FlashcardModal({
   if (!mounted || !isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="flashcard-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto"
+    >
       <div className="w-full max-w-xl bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl relative my-auto max-h-[92vh]">
         {/* Glow de fundo */}
         <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -123,7 +128,7 @@ export default function FlashcardModal({
               <Sparkles size={18} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white leading-tight">
+              <h2 id="flashcard-modal-title" className="text-base font-bold text-white leading-tight">
                 {initialData ? "Editar Flashcard" : "Novo Flashcard"}
               </h2>
               <p className="text-xs text-slate-400">
@@ -136,11 +141,13 @@ export default function FlashcardModal({
 
           <div className="flex items-center gap-2">
             {/* Seletor Editar / Preview */}
-            <div className="flex bg-slate-950/60 p-1 rounded-xl border border-slate-800/80 text-xs">
+            <div role="tablist" aria-label="Modo de edição ou visualização prévia" className="flex bg-slate-950/60 p-1 rounded-xl border border-slate-800/80 text-xs">
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === "edit"}
                 onClick={() => setActiveTab("edit")}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-colors ${
+                className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                   activeTab === "edit"
                     ? "bg-indigo-600 text-white shadow-sm"
                     : "text-slate-400 hover:text-white"
@@ -150,8 +157,10 @@ export default function FlashcardModal({
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === "preview"}
                 onClick={() => setActiveTab("preview")}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-colors ${
+                className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                   activeTab === "preview"
                     ? "bg-indigo-600 text-white shadow-sm"
                     : "text-slate-400 hover:text-white"
@@ -164,7 +173,8 @@ export default function FlashcardModal({
             <button
               onClick={onClose}
               type="button"
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+              aria-label="Fechar editor de flashcard"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
             >
               <X size={18} />
             </button>
@@ -176,46 +186,48 @@ export default function FlashcardModal({
           {activeTab === "edit" ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                <label htmlFor="flashcard-front" className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1.5">
                   <span className="flex items-center gap-1 text-indigo-400">
                     <HelpCircle size={13} /> Frente (Pergunta / Conceito)
                   </span>
-                  <span className="text-[10px] text-slate-500">
+                  <span className="text-[10px] text-slate-400">
                     Obrigatório
                   </span>
                 </label>
                 <textarea
+                  id="flashcard-front"
                   rows={3}
                   value={front}
                   onChange={(e) => setFront(e.target.value)}
                   placeholder="Ex: O que é Coesão e Acoplamento em Arquitetura de Software?"
                   required
-                  className="w-full bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500/60 focus:outline-none resize-none transition-all shadow-inner"
+                  className="w-full bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 resize-none transition-all shadow-inner"
                 />
               </div>
 
               <div>
-                <label className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                <label htmlFor="flashcard-back" className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1.5">
                   <span className="flex items-center gap-1 text-emerald-400">
                     <CheckCircle2 size={13} /> Verso (Resposta / Explicação)
                   </span>
-                  <span className="text-[10px] text-slate-500">
+                  <span className="text-[10px] text-slate-400">
                     Obrigatório
                   </span>
                 </label>
                 <textarea
+                  id="flashcard-back"
                   rows={4}
                   value={back}
                   onChange={(e) => setBack(e.target.value)}
                   placeholder="Ex: Coesão mede o grau de relação funcional das responsabilidades de um módulo. Acoplamento mede o nível de dependência entre diferentes módulos."
                   required
-                  className="w-full bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500/60 focus:outline-none resize-none transition-all shadow-inner"
+                  className="w-full bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 resize-none transition-all shadow-inner"
                 />
               </div>
 
               {/* Rodapé do Form */}
               <div className="pt-3 border-t border-slate-800/60 flex items-center justify-between">
-                <span className="text-[11px] text-slate-500 hidden sm:inline-block">
+                <span className="text-[11px] text-slate-400 hidden sm:inline-block">
                   Pressione{" "}
                   <kbd className="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono text-[10px]">
                     Ctrl
@@ -231,14 +243,14 @@ export default function FlashcardModal({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+                    className="min-h-[44px] px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none rounded-xl"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submitting || !front.trim() || !back.trim()}
-                    className="flex items-center justify-center gap-2 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="min-h-[44px] flex items-center justify-center gap-2 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                   >
                     {submitting && (
                       <Loader2 size={14} className="animate-spin" />
@@ -260,7 +272,7 @@ export default function FlashcardModal({
                   </span>
                   <p className="text-sm font-medium text-slate-100 mt-2 leading-relaxed">
                     {front || (
-                      <span className="italic text-slate-600">
+                      <span className="italic text-slate-500">
                         Escreva uma pergunta para visualizar...
                       </span>
                     )}
@@ -273,7 +285,7 @@ export default function FlashcardModal({
                   </span>
                   <p className="text-xs text-slate-300 mt-2 leading-relaxed">
                     {back || (
-                      <span className="italic text-slate-600">
+                      <span className="italic text-slate-500">
                         Escreva uma resposta para visualizar...
                       </span>
                     )}
@@ -285,7 +297,7 @@ export default function FlashcardModal({
                 <button
                   type="button"
                   onClick={() => setActiveTab("edit")}
-                  className="text-xs text-indigo-400 hover:underline font-medium"
+                  className="min-h-[36px] inline-flex items-center text-xs text-indigo-400 hover:underline font-medium cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none rounded-lg px-2"
                 >
                   Voltar para edição
                 </button>

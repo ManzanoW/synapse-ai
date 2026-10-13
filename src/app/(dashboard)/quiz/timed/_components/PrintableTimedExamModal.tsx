@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { X, Printer, Trophy, Clock, CheckCircle2, XCircle, Sparkles, BookOpen } from "lucide-react";
 import { TimedQuizQuestion } from "@/types/quiz";
 
@@ -36,6 +36,20 @@ export function PrintableTimedExamModal({
   questionsAudit,
   dateStr = new Date().toLocaleDateString("pt-BR"),
 }: PrintableTimedExamModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const minutesSpent = Math.floor(totalTimeSpentSeconds / 60);
@@ -49,7 +63,12 @@ export function PrintableTimedExamModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto font-sans">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="printable-exam-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto font-sans"
+    >
       <div className="relative w-full max-w-4xl bg-white text-slate-900 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col print:max-h-none print:shadow-none print:rounded-none print:m-0 print:p-0">
         {/* BARRA SUPERIOR (OCULTA NA IMPRESSÃO) */}
         <div className="flex items-center justify-between p-4 bg-slate-900 text-white shrink-0 print:hidden">
@@ -58,7 +77,7 @@ export function PrintableTimedExamModal({
               <Trophy size={18} />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-bold">
+              <h2 id="printable-exam-modal-title" className="text-sm sm:text-base font-bold">
                 Caderno Oficial do Simulado Cronometrado
               </h2>
               <p className="text-[11px] text-slate-400">
@@ -71,7 +90,8 @@ export function PrintableTimedExamModal({
             <button
               type="button"
               onClick={handlePrint}
-              className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-violet-900/30 cursor-pointer"
+              aria-label="Imprimir ou salvar caderno em PDF"
+              className="min-h-[44px] px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-violet-900/30 cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
             >
               <Printer size={15} />
               <span>Imprimir / Salvar PDF</span>
@@ -79,7 +99,8 @@ export function PrintableTimedExamModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Fechar caderno de impressão"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
             >
               <X size={18} />
             </button>

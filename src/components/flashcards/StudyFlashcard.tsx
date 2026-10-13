@@ -479,6 +479,14 @@ export default function StudyFlashcard({
 
       if (isFinished || !currentCard) return;
 
+      if (e.key === "Escape") {
+        if (showEbbinghausCurve) {
+          e.preventDefault();
+          setShowEbbinghausCurve(false);
+          return;
+        }
+      }
+
       if (e.code === "Space") {
         e.preventDefault();
         if (!isFlipped) {
@@ -513,7 +521,16 @@ export default function StudyFlashcard({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFlipped, isFinished, currentCard, handleAnswer, toggleFlip, setIsAudioPlayerOpen]);
+  }, [
+    isFlipped,
+    isFinished,
+    currentCard,
+    handleAnswer,
+    toggleFlip,
+    setIsAudioPlayerOpen,
+    showEbbinghausCurve,
+    setShowEbbinghausCurve,
+  ]);
 
   if (!cards || cards.length === 0) {
     return (
@@ -684,7 +701,8 @@ export default function StudyFlashcard({
             <div className="flex items-center justify-between mb-3 relative z-10 px-1">
               <Link
                 href="/flashcards/decks"
-                className={`group inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-colors truncate max-w-[200px] sm:max-w-none ${
+                aria-label={deckTitle ? `Sair do estudo: voltar para baralho ${deckTitle}` : "Sair do estudo e voltar para baralhos"}
+                className={`group min-h-[40px] inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-colors truncate max-w-[200px] sm:max-w-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none rounded-xl px-1 ${
                   isLight ? "text-slate-600 hover:text-indigo-600" : "text-slate-400 hover:text-indigo-300"
                 }`}
               >
@@ -703,7 +721,8 @@ export default function StudyFlashcard({
                     type="button"
                     onClick={triggerSync}
                     disabled={isSyncing || !isOnline}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono text-amber-500 dark:text-amber-300 transition-colors disabled:opacity-50 cursor-pointer"
+                    aria-label={!isOnline ? "Modo offline: revisões salvas localmente" : `Sincronizar ${pendingCount} revisões pendentes`}
+                    className="min-h-[36px] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono text-amber-500 dark:text-amber-300 transition-colors disabled:opacity-50 cursor-pointer focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none"
                     title={
                       !isOnline
                         ? "Sem conexão: revisões salvas localmente no dispositivo"
@@ -721,7 +740,8 @@ export default function StudyFlashcard({
                 <button
                   type="button"
                   onClick={() => setIsAudioPlayerOpen(true)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition-all shadow-xs cursor-pointer active:scale-95 ${
+                  aria-label="Abrir estudo contínuo por áudio para fones de ouvido (Atalho H)"
+                  className={`min-h-[36px] inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition-all shadow-xs cursor-pointer active:scale-95 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                     isLight
                       ? "bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700"
                       : "bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 hover:text-indigo-300"
@@ -855,11 +875,14 @@ export default function StudyFlashcard({
                         )}
                         <button
                           type="button"
+                          aria-expanded={showEbbinghausCurve}
+                          aria-haspopup="dialog"
+                          aria-label={`Ver curva de esquecimento de Ebbinghaus, retenção atual ${memoryRetention}%`}
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowEbbinghausCurve((prev) => !prev);
                           }}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-mono font-bold shadow-sm transition-all hover:scale-105 cursor-pointer ${memoryStatus.bgBadge} ${memoryStatus.textBadge} ${memoryStatus.borderBadge}`}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-mono font-bold shadow-sm transition-all hover:scale-105 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${memoryStatus.bgBadge} ${memoryStatus.textBadge} ${memoryStatus.borderBadge}`}
                           title="Clique para ver a Curva de Esquecimento de Ebbinghaus"
                         >
                           <Brain size={12} />
@@ -885,6 +908,9 @@ export default function StudyFlashcard({
                   <AnimatePresence>
                     {showEbbinghausCurve && (
                       <motion.div
+                        role="dialog"
+                        aria-modal="false"
+                        aria-label="Curva de esquecimento de Ebbinghaus"
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -902,8 +928,9 @@ export default function StudyFlashcard({
                           </div>
                           <button
                             type="button"
+                            aria-label="Fechar gráfico da curva de Ebbinghaus"
                             onClick={() => setShowEbbinghausCurve(false)}
-                            className="text-slate-400 hover:text-white text-xs cursor-pointer p-0.5"
+                            className="min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-white text-xs cursor-pointer rounded-lg hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                           >
                             ✕
                           </button>
@@ -1192,11 +1219,12 @@ export default function StudyFlashcard({
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.96 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  aria-label={`Classificar como ${btn.label} (${btn.sublabel}): intervalo previsto ${btn.interval} (Atalho ${btn.key})`}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAnswer(btn.grade);
                   }}
-                  className={`group relative flex flex-col items-center justify-center gap-1 py-3 px-2 sm:py-3.5 sm:px-3 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                  className={`group relative min-h-[58px] flex flex-col items-center justify-center gap-1 py-3 px-2 sm:py-3.5 sm:px-3 rounded-2xl border transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                     isLight ? "bg-white" : "bg-gradient-to-b backdrop-blur-xl"
                   } ${btn.style}`}
                 >

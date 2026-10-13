@@ -1116,7 +1116,9 @@ export default function TimedQuizPage() {
                     }))
                   }
                   type="button"
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  aria-pressed={Boolean(flaggedQuestions[currentIndex])}
+                  aria-label={flaggedQuestions[currentIndex] ? "Remover marcação de revisão (Atalho F ou R)" : "Marcar para revisão (Atalho F ou R)"}
+                  className={`min-h-[44px] px-3.5 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none ${
                     flaggedQuestions[currentIndex]
                       ? "bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-md shadow-amber-500/10"
                       : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-amber-500/30"
@@ -1147,13 +1149,26 @@ export default function TimedQuizPage() {
                   return (
                     <div
                       key={alt.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isSelected}
+                      aria-label={`Alternativa ${alt.id}: ${alt.texto}`}
                       onClick={() =>
                         setSelectedAnswers((prev) => ({
                           ...prev,
                           [currentIndex]: alt.id,
                         }))
                       }
-                      className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedAnswers((prev) => ({
+                            ...prev,
+                            [currentIndex]: alt.id,
+                          }));
+                        }
+                      }}
+                      className={`min-h-[50px] p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none ${
                         isSelected
                           ? "bg-violet-600/25 border-violet-500 text-white ring-2 ring-violet-500/30 shadow-lg shadow-violet-600/15"
                           : "bg-white/[0.02] border-white/10 text-slate-300 hover:bg-white/[0.05] hover:border-white/20"
@@ -1188,7 +1203,8 @@ export default function TimedQuizPage() {
                 onClick={() => navigateToQuestion(currentIndex - 1)}
                 disabled={currentIndex === 0}
                 type="button"
-                className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                aria-label="Ir para a questão anterior"
+                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
               >
                 <ArrowLeft size={14} />
                 <span>Anterior</span>
@@ -1197,7 +1213,8 @@ export default function TimedQuizPage() {
               <button
                 onClick={() => setIsConfirmModalOpen(true)}
                 type="button"
-                className="px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 font-bold text-xs transition-all cursor-pointer"
+                aria-label="Abrir confirmação para finalizar prova"
+                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 font-bold text-xs transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none"
               >
                 Finalizar Prova
               </button>
@@ -1206,7 +1223,8 @@ export default function TimedQuizPage() {
                 <button
                   onClick={() => navigateToQuestion(currentIndex + 1)}
                   type="button"
-                  className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-violet-600/20"
+                  aria-label="Ir para a próxima questão"
+                  className="min-h-[44px] px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-violet-600/20 focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
                 >
                   <span>Próxima</span>
                   <ArrowRight size={14} />
@@ -1215,7 +1233,8 @@ export default function TimedQuizPage() {
                 <button
                   onClick={() => setIsConfirmModalOpen(true)}
                   type="button"
-                  className="px-5 py-2.5 rounded-xl bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/20"
+                  aria-label="Concluir simulado e computar pontuação"
+                  className="min-h-[44px] px-5 py-2.5 rounded-xl bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/20 focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:outline-none"
                 >
                   <span>Concluir Simulado</span>
                   <CheckCircle2 size={15} />
