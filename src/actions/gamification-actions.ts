@@ -9,6 +9,7 @@ import {
 } from "@/lib/cache-service";
 import { calculateLevelData } from "@/lib/gamification/levels";
 import { RecordStudyActivitySchema } from "@/lib/validations/gamification.schema";
+import { addOnboardingActivationBonus } from "@/lib/ai-quota-service";
 
 export async function getUserStatsAction(userId: string) {
   try {
@@ -343,6 +344,7 @@ export async function recordStudyActivityAction(
 export async function claimOnboardingRewardAction(): Promise<{
   success: boolean;
   earnedXp?: number;
+  earnedSynapses?: number;
   newTotalXp?: number;
   alreadyClaimed?: boolean;
   error?: string;
@@ -405,6 +407,8 @@ export async function claimOnboardingRewardAction(): Promise<{
       }),
     ]);
 
+    const quotaBonus = await addOnboardingActivationBonus(userId);
+
     await invalidateUserCacheAction(userId);
     revalidatePath("/dashboard");
     revalidatePath("/achievements");
@@ -412,6 +416,7 @@ export async function claimOnboardingRewardAction(): Promise<{
     return {
       success: true,
       earnedXp: ONBOARDING_XP,
+      earnedSynapses: quotaBonus.success ? quotaBonus.earnedEnergy : 2,
       newTotalXp: updatedStats.totalXp,
       alreadyClaimed: false,
     };

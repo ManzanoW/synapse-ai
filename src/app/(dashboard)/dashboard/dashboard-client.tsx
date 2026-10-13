@@ -64,6 +64,7 @@ import {
   Camera,
 } from "lucide-react";
 import { ApprovalOddsCard } from "@/components/dashboard/ApprovalOddsCard";
+import { AiValueSummaryWidget } from "@/components/dashboard/AiValueSummaryWidget";
 import type { ApprovalOddsData } from "@/actions/analytics-actions";
 import { type OnboardingQuizResult } from "@/components/onboarding/WelcomeQuizModal";
 
@@ -88,6 +89,10 @@ const CustomizeCardsModal = dynamic(
 );
 const WelcomeQuizModal = dynamic(
   () => import("@/components/onboarding/WelcomeQuizModal").then((m) => m.WelcomeQuizModal),
+  { ssr: false }
+);
+const WeeklyReportModal = dynamic(
+  () => import("@/components/dashboard/WeeklyReportModal").then((m) => m.WeeklyReportModal),
   { ssr: false }
 );
 import { FirstStepsChecklistCard } from "@/components/dashboard/FirstStepsChecklistCard";
@@ -353,6 +358,9 @@ export default function DashboardClient({
   // Streak Freeze Modal
   const [isStreakFreezeModalOpen, setIsStreakFreezeModalOpen] = useState(false);
   const [streakFreezeCount, setStreakFreezeCount] = useState(0);
+
+  // Boletim Semanal do Concurseiro Modal
+  const [isWeeklyReportOpen, setIsWeeklyReportOpen] = useState(false);
 
   const getSuggestionUrl = (item: Suggestion): string => {
     let url = "/edital";
@@ -784,6 +792,17 @@ export default function DashboardClient({
               <span className="hidden sm:inline">Modo Zen</span>
             </button>
 
+            {/* Boletim Semanal */}
+            <button
+              type="button"
+              onClick={() => setIsWeeklyReportOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/80 hover:bg-indigo-100/90 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 px-3 py-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 backdrop-blur-xl transition-all hover:border-indigo-300 dark:hover:border-indigo-500/40 active:scale-95 shadow-2xs"
+              title="Visualizar e compartilhar meu Boletim Semanal de Estudos"
+            >
+              <Trophy size={13} className="text-indigo-600 dark:text-indigo-400" />
+              <span className="hidden sm:inline">Boletim Semanal</span>
+            </button>
+
             {/* Iniciar Estudos (Pacificado: visual clean para não concorrer com a Trilha do Dia) */}
             <Link
               href={getHref(!isLoading && hasEditalSubjects ? "/flashcards" : "/edital")}
@@ -1147,7 +1166,7 @@ export default function DashboardClient({
           )}
 
         {/* ================= PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS) ================= */}
-        {!isLoading && !hasEditalSubjects && (
+        {!isLoading && (
           <FirstStepsChecklistCard
             hasEditalSubjects={hasEditalSubjects}
             sessionsCount={stats?.metrics?.sessionsCount ?? 0}
@@ -1204,6 +1223,9 @@ export default function DashboardClient({
 
           {mobileTab === "stats" && (
             <div className="space-y-4">
+              {/* ROI & TEMPO ECONOMIZADO PELA IA */}
+              <AiValueSummaryWidget />
+
               {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
               <ApprovalOddsCard initialData={initialApprovalOdds} />
 
@@ -1710,6 +1732,9 @@ export default function DashboardClient({
                     )}
                   </div>
 
+                  {/* ROI & TEMPO ECONOMIZADO PELA IA */}
+                  <AiValueSummaryWidget />
+
                   {/* SUGESTÕES INTELIGENTES DA IA */}
                   {visibleCards.aiSuggestions && !isLoading && hasEditalSubjects && (
                     <div className="group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
@@ -2024,6 +2049,12 @@ export default function DashboardClient({
         onToggleCard={handleToggleCard}
         onApplyPreset={handleSwitchMode}
         currentMode={dashboardMode}
+      />
+
+      {/* MODAL BOLETIM SEMANAL DO CONCURSEIRO */}
+      <WeeklyReportModal
+        isOpen={isWeeklyReportOpen}
+        onClose={() => setIsWeeklyReportOpen(false)}
       />
     </div>
   );

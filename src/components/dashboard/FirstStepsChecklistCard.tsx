@@ -19,12 +19,14 @@ import {
   Trophy,
   Flame,
   Loader2,
+  Zap,
 } from "lucide-react";
 import {
   claimOnboardingRewardAction,
   getOnboardingRewardStatusAction,
 } from "@/actions/gamification-actions";
 import { useGamification } from "@/context/GamificationContext";
+import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 
 interface FirstStepsChecklistCardProps {
   hasEditalSubjects: boolean;
@@ -115,6 +117,7 @@ export function FirstStepsChecklistCard({
             saveState({ claimed: true });
             await refreshStats();
             window.dispatchEvent(new CustomEvent("xp-updated"));
+            triggerAiQuotaRefresh();
           } else if (res.alreadyClaimed) {
             if (isMounted) setIsClaimed(true);
           }
@@ -173,6 +176,7 @@ export function FirstStepsChecklistCard({
 
         await refreshStats();
         window.dispatchEvent(new CustomEvent("xp-updated"));
+        triggerAiQuotaRefresh();
       }
     } catch (err) {
       console.error("Erro ao resgatar XP de primeiras conquistas:", err);
@@ -210,7 +214,8 @@ export function FirstStepsChecklistCard({
             className="pointer-events-none absolute right-8 top-3 z-30 flex items-center gap-1.5 rounded-full bg-amber-500/25 border border-amber-500/50 px-3 py-1 font-mono text-xs font-black text-amber-300 shadow-xl backdrop-blur-md"
           >
             <Sparkles size={14} className="text-amber-400" />
-            <span>+100 XP Concedidos!</span>
+            <Zap size={13} className="text-amber-300 fill-amber-300" />
+            <span>+100 XP & +2⚡ Sinapses Concedidas!</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -231,13 +236,14 @@ export function FirstStepsChecklistCard({
                 {completedCount}/3 Concluídas
               </span>
               {isClaimed && (
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 font-mono text-[9px] font-black text-emerald-300">
-                  ✓ Recompensa Coletada
+                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 font-mono text-[9px] font-black text-emerald-300 flex items-center gap-1">
+                  <Zap size={9} className="text-emerald-300 fill-emerald-300" />
+                  ✓ +100 XP & +2⚡ Sinapses Coletadas
                 </span>
               )}
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
-              Complete os 3 passos iniciais para calibrar sua rotina e ganhar +100 XP
+              Complete os 3 passos iniciais para calibrar sua rotina e ganhar <strong className="text-amber-300 font-bold">+100 XP</strong> e <strong className="text-amber-300 font-bold">+2⚡ Sinapses de Bônus</strong>
             </p>
           </div>
         </div>
@@ -442,14 +448,15 @@ export function FirstStepsChecklistCard({
                       Parabéns! Todas as 3 metas iniciais concluídas!
                     </span>
                     <span className="text-[10px] text-amber-200/70 block">
-                      Você deu os primeiros passos com maestria. Resgate seus +100 XP agora!
+                      Você deu os primeiros passos com maestria. Resgate seus <strong className="text-amber-300 font-bold">+100 XP</strong> e <strong className="text-amber-300 font-bold">+2⚡ Sinapses</strong> agora!
                     </span>
                   </div>
                 </div>
 
                 {isClaimed ? (
-                  <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black text-xs">
-                    ✓ +100 XP Coletados!
+                  <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black text-xs flex items-center gap-1">
+                    <Zap size={12} className="fill-emerald-300 text-emerald-300" />
+                    ✓ +100 XP & +2⚡ Sinapses Coletadas!
                   </span>
                 ) : (
                   <button
@@ -463,7 +470,7 @@ export function FirstStepsChecklistCard({
                     ) : (
                       <Gift size={14} />
                     )}
-                    <span>{isClaiming ? "Resgatando..." : "Resgatar +100 XP"}</span>
+                    <span>{isClaiming ? "Resgatando..." : "Resgatar +100 XP & +2⚡ Sinapses"}</span>
                   </button>
                 )}
               </div>
