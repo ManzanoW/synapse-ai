@@ -74,6 +74,15 @@ export function RedemptionExamModal({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || questions.length === 0) return null;
 
   const currentQ = questions[currentIndex];
@@ -149,7 +158,12 @@ export function RedemptionExamModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="redemption-exam-title"
+        className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100"
+      >
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
@@ -168,7 +182,7 @@ export function RedemptionExamModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+                <h3 id="redemption-exam-title" className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">
                   {mode === "direct"
                     ? "Revanche Direta de Erros"
                     : "Simulado de Redenção"}
@@ -192,9 +206,10 @@ export function RedemptionExamModal({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-            aria-label="Fechar"
+            aria-label={mode === "direct" ? "Fechar revanche direta de erros" : "Fechar simulado de redenção"}
+            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none"
           >
             <X className="w-5 h-5" />
           </button>
@@ -309,7 +324,10 @@ export function RedemptionExamModal({
                         key={option.id}
                         disabled={isAnswered || isSubmitting}
                         onClick={() => handleSelectOption(option.id)}
-                        className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-start gap-3 text-sm ${optionStyle}`}
+                        type="button"
+                        aria-pressed={isSelected}
+                        aria-label={`Alternativa ${option.id}: ${option.texto}`}
+                        className={`w-full text-left p-3.5 min-h-[48px] rounded-2xl border transition-all flex items-start gap-3 text-sm cursor-pointer disabled:cursor-default focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none ${optionStyle}`}
                       >
                         <span
                           className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition ${
@@ -466,9 +484,11 @@ export function RedemptionExamModal({
             <div className="flex items-center gap-2">
               {!isAnswered ? (
                 <button
+                  type="button"
                   disabled={!selectedOption || isSubmitting}
                   onClick={handleConfirmAnswer}
-                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-sm shadow-md shadow-rose-600/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
+                  aria-label="Confirmar resposta selecionada"
+                  className="px-6 py-2.5 min-h-[44px] rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-sm shadow-md shadow-rose-600/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none"
                 >
                   {isSubmitting ? (
                     <>
@@ -484,8 +504,10 @@ export function RedemptionExamModal({
                 </button>
               ) : (
                 <button
+                  type="button"
                   onClick={handleNextQuestion}
-                  className="px-6 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold text-sm transition flex items-center gap-2 active:scale-95"
+                  aria-label="Avançar para a próxima questão"
+                  className="px-6 py-2.5 min-h-[44px] rounded-2xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold text-sm transition flex items-center gap-2 active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none"
                 >
                   <span>
                     {currentIndex < questions.length - 1

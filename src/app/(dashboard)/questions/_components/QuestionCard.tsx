@@ -502,7 +502,9 @@ export function QuestionCard({
                     disabled={respondida}
                     onClick={() => !isEliminated && onSelectAnswer(alt.id)}
                     type="button"
-                    className={`w-full text-left px-3.5 py-3.5 sm:px-4 sm:py-3.5 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] ${
+                    aria-pressed={isSelected}
+                    aria-label={`Alternativa ${alt.id}: ${alt.texto}`}
+                    className={`w-full text-left px-3.5 py-3.5 sm:px-4 sm:py-3.5 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                       isEliminated && !respondida
                         ? "opacity-30 line-through bg-slate-950/20 border-slate-900/50 text-slate-500"
                         : respondida
@@ -544,12 +546,17 @@ export function QuestionCard({
                     <button
                       type="button"
                       onClick={(e) => toggleEliminate(e, alt.id)}
+                      aria-label={
+                        isEliminated
+                          ? `Restaurar alternativa ${alt.id}`
+                          : `Riscar alternativa ${alt.id}`
+                      }
                       title={
                         isEliminated
                           ? "Restaurar alternativa"
                           : "Riscar alternativa"
                       }
-                      className={`p-2 rounded-lg transition-all shrink-0 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center ${
+                      className={`p-2 rounded-lg transition-all shrink-0 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none ${
                         isEliminated
                           ? "text-rose-400 hover:text-rose-300 opacity-100"
                           : "text-slate-600 hover:text-slate-300 sm:opacity-0 sm:group-hover:opacity-100"
@@ -561,8 +568,9 @@ export function QuestionCard({
                     <button
                       type="button"
                       onClick={() => handleDissectAlternative(alt.id, alt.texto)}
+                      aria-label={`Dissecar assertiva ${alt.id} com IA`}
                       title="Dissecar pegadinha desta assertiva com IA"
-                      className="px-2.5 py-1.5 rounded-lg text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 border border-indigo-500/20 text-[11px] font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 self-center active:scale-95"
+                      className="px-2.5 py-1.5 min-h-[36px] rounded-lg text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 border border-indigo-500/20 text-[11px] font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 self-center active:scale-95 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                     >
                       <Search size={12} />
                       <span className="hidden sm:inline">Por que?</span>
@@ -582,7 +590,9 @@ export function QuestionCard({
                     disabled={respondida}
                     onClick={() => onSelectAnswer(opcao)}
                     type="button"
-                    className={`flex-1 text-left px-4 py-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] ${
+                    aria-pressed={isSelected}
+                    aria-label={`Opção ${opcao}`}
+                    className={`flex-1 text-left px-4 py-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                       respondida
                         ? opcao === questao.gabaritoCorreto
                           ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 shadow-xs"
@@ -613,8 +623,9 @@ export function QuestionCard({
                     <button
                       type="button"
                       onClick={() => handleDissectAlternative(opcao, opcao)}
+                      aria-label={`Dissecar assertiva ${opcao} com IA`}
                       title="Dissecar com IA"
-                      className="px-2.5 py-2 rounded-xl text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 border border-indigo-500/20 text-[11px] font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 active:scale-95"
+                      className="px-2.5 py-2 min-h-[36px] rounded-xl text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 border border-indigo-500/20 text-[11px] font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 active:scale-95 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                     >
                       <Search size={12} />
                       <span className="hidden sm:inline">Por que?</span>
@@ -663,7 +674,8 @@ export function QuestionCard({
                 type="button"
                 onClick={handleGetSocraticHint}
                 disabled={isLoadingHint}
-                className="px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-xs disabled:opacity-50"
+                aria-label={socraticHint ? (showHintBox ? "Ocultar Pista Socrática" : "Ver Pista Socrática") : "Solicitar Pista Socrática do Mentor"}
+                className="px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-xs disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none min-h-[44px]"
               >
                 {isLoadingHint ? (
                   <>
@@ -690,7 +702,8 @@ export function QuestionCard({
               disabled={!alternativaSelecionada}
               onClick={handleAnswer}
               type="button"
-              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-indigo-950/50 ml-auto cursor-pointer min-h-[48px] flex items-center justify-center gap-2"
+              aria-label="Responder questão"
+              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-indigo-950/50 ml-auto cursor-pointer min-h-[48px] flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
             >
               <span>Responder Questão</span>
               <kbd className="hidden sm:inline-block bg-indigo-700/80 border border-indigo-400/40 text-[10px] px-1.5 py-0.5 rounded font-mono font-bold">
@@ -734,7 +747,8 @@ export function QuestionCard({
                     onClick={onCreateFlashcard}
                     disabled={isCreatingFlashcard || isFlashcardCreated}
                     type="button"
-                    className={`w-full sm:w-auto px-3.5 py-2.5 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer min-h-[44px] ${
+                    aria-label="Criar flashcard a partir deste erro"
+                    className={`w-full sm:w-auto px-3.5 py-2.5 rounded-lg border text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer min-h-[44px] focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                       isFlashcardCreated
                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed opacity-90"
                         : "bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-300"

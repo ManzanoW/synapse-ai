@@ -78,6 +78,18 @@ export function WeeklyReportModal({
     };
   }, [isOpen, initialData]);
 
+  // Fecha o modal ao pressionar Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Função para desenhar no Canvas em alta definição (1080x1920 ou 1080x1080)
   const drawCardToCanvas = useCallback(() => {
     if (!data) return;
@@ -437,6 +449,9 @@ Estude com inteligência artificial e acelere sua posse no Synapse AI: https://s
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-xl animate-in fade-in duration-200">
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="weekly-report-modal-title"
           initial={{ opacity: 0, scale: 0.94, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 15 }}
@@ -449,7 +464,7 @@ Estude com inteligência artificial e acelere sua posse no Synapse AI: https://s
                 <Trophy size={20} />
               </div>
               <div>
-                <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                <h3 id="weekly-report-modal-title" className="text-base sm:text-lg font-black text-white flex items-center gap-2">
                   Boletim Semanal do Concurseiro
                   <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-indigo-300">
                     Últimos 7 Dias
@@ -464,7 +479,8 @@ Estude com inteligência artificial e acelere sua posse no Synapse AI: https://s
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+              aria-label="Fechar boletim semanal"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 text-slate-400 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -500,7 +516,8 @@ Estude com inteligência artificial e acelere sua posse no Synapse AI: https://s
                   <button
                     type="button"
                     onClick={() => setAspectRatio("stories")}
-                    className={`flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition-all cursor-pointer ${
+                    aria-pressed={aspectRatio === "stories"}
+                    className={`flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 min-h-[44px] text-xs font-bold transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                       aspectRatio === "stories"
                         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40"
                         : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-transparent"
@@ -512,7 +529,8 @@ Estude com inteligência artificial e acelere sua posse no Synapse AI: https://s
                   <button
                     type="button"
                     onClick={() => setAspectRatio("feed")}
-                    className={`flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition-all cursor-pointer ${
+                    aria-pressed={aspectRatio === "feed"}
+                    className={`flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 min-h-[44px] text-xs font-bold transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                       aspectRatio === "feed"
                         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40"
                         : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-transparent"
@@ -571,7 +589,8 @@ Estude com inteligência artificial e acelere sua posse no Synapse AI: https://s
                   type="button"
                   onClick={handleDownloadImage}
                   disabled={loading || !data}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-500 py-3 px-4 font-black text-xs text-white shadow-xl shadow-indigo-600/25 hover:brightness-110 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+                  aria-label="Baixar boletim semanal em imagem de alta resolução"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-indigo-600 via-indigo-500 to-cyan-500 py-3 px-4 min-h-[44px] font-black text-xs text-white shadow-xl shadow-indigo-600/25 hover:brightness-110 active:scale-98 transition-all cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                 >
                   <Download size={16} />
                   <span>Baixar Imagem em Alta Resolução</span>
@@ -582,7 +601,8 @@ Estude com inteligência artificial e acelere sua posse no Synapse AI: https://s
                     type="button"
                     onClick={handleCopyImage}
                     disabled={loading || !data}
-                    className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer disabled:opacity-50"
+                    aria-label="Copiar imagem do boletim semanal para a área de transferência"
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 min-h-[44px] text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                   >
                     {copiedImage ? (
                       <>
@@ -601,7 +621,8 @@ Estude com inteligência artificial e acelere sua posse no Synapse AI: https://s
                     type="button"
                     onClick={handleShareWhatsApp}
                     disabled={loading || !data}
-                    className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/15 py-2.5 px-3 text-xs font-bold text-emerald-300 hover:bg-emerald-500/25 transition-all cursor-pointer disabled:opacity-50"
+                    aria-label="Compartilhar boletim semanal no WhatsApp"
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/15 py-2.5 px-3 min-h-[44px] text-xs font-bold text-emerald-300 hover:bg-emerald-500/25 transition-all cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:outline-none"
                   >
                     <MessageCircle size={14} />
                     <span>WhatsApp</span>

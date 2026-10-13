@@ -264,6 +264,15 @@ export function SocialShareModal({
     }
   }, [isOpen, drawCardToCanvas]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleDownloadImage = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -335,6 +344,9 @@ export function SocialShareModal({
         />
 
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="social-share-title"
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -348,7 +360,7 @@ export function SocialShareModal({
                 <Sparkles size={20} />
               </div>
               <div>
-                <h3 className="text-base sm:text-lg font-bold text-white">
+                <h3 id="social-share-title" className="text-base sm:text-lg font-bold text-white">
                   Compartilhar Rendimento
                 </h3>
                 <p className="text-xs text-slate-400">
@@ -360,7 +372,8 @@ export function SocialShareModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+              aria-label="Fechar compartilhamento"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-white rounded-xl hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -374,7 +387,8 @@ export function SocialShareModal({
                 playClick();
                 setAspectRatio("stories");
               }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+              aria-pressed={aspectRatio === "stories"}
+              className={`flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer border focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                 aspectRatio === "stories"
                   ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
                   : "bg-white/5 text-slate-400 border-white/10 hover:text-white"
@@ -390,7 +404,8 @@ export function SocialShareModal({
                 playClick();
                 setAspectRatio("feed");
               }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+              aria-pressed={aspectRatio === "feed"}
+              className={`flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer border focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                 aspectRatio === "feed"
                   ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
                   : "bg-white/5 text-slate-400 border-white/10 hover:text-white"
@@ -419,7 +434,8 @@ export function SocialShareModal({
               type="button"
               onClick={handleDownloadImage}
               disabled={isGenerating}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-md shadow-indigo-600/30 active:scale-95 cursor-pointer disabled:opacity-50"
+              aria-label="Baixar imagem em alta definição"
+              className="flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-md shadow-indigo-600/30 active:scale-95 cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
             >
               {isGenerating ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -432,7 +448,8 @@ export function SocialShareModal({
             <button
               type="button"
               onClick={handleCopyImage}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs transition-all active:scale-95 cursor-pointer"
+              aria-label="Copiar imagem para área de transferência"
+              className="flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs transition-all active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
             >
               {copiedImage ? (
                 <>
@@ -450,14 +467,15 @@ export function SocialShareModal({
             <button
               type="button"
               onClick={handleWhatsAppShare}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 font-bold text-xs transition-all active:scale-95 cursor-pointer"
+              aria-label="Compartilhar no WhatsApp"
+              className="flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] rounded-2xl bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 font-bold text-xs transition-all active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:outline-none"
             >
               <MessageCircle size={16} />
               <span>WhatsApp</span>
             </button>
           </div>
 
-          <p className="text-[11px] text-center text-slate-500 pt-1">
+          <p className="text-[11px] text-center text-slate-400 pt-1">
             Cada card compartilhado ajuda a divulgar o Synapse AI e estimula sua disciplina pública de estudos.
           </p>
         </motion.div>

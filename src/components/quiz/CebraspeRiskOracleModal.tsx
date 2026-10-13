@@ -114,6 +114,15 @@ export function CebraspeRiskOracleModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleApplyPreset = (preset: (typeof PRESETS)[0]) => {
     playClick();
     triggerHaptic("light");
@@ -137,6 +146,9 @@ export function CebraspeRiskOracleModal({
         />
 
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cebraspe-oracle-title"
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -151,7 +163,7 @@ export function CebraspeRiskOracleModal({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg sm:text-xl font-black text-white">
+                  <h2 id="cebraspe-oracle-title" className="text-lg sm:text-xl font-black text-white">
                     Oráculo de Risco Cebraspe
                   </h2>
                   <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-extrabold text-indigo-400 uppercase tracking-wider">
@@ -167,7 +179,8 @@ export function CebraspeRiskOracleModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+              aria-label="Fechar oráculo Cebraspe"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-white rounded-xl hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -184,7 +197,7 @@ export function CebraspeRiskOracleModal({
                   key={p.name}
                   type="button"
                   onClick={() => handleApplyPreset(p)}
-                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all whitespace-nowrap cursor-pointer shrink-0"
+                  className="px-3 py-2 min-h-[38px] rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all whitespace-nowrap cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                 >
                   {p.name} (~{p.cutoff} pts)
                 </button>
@@ -195,60 +208,64 @@ export function CebraspeRiskOracleModal({
           {/* PAINEL DE CONTROLES E PARÂMETROS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
             <div>
-              <label className="text-[11px] font-bold text-slate-300 block mb-1">
+              <label htmlFor="target-cutoff-input" className="text-[11px] font-bold text-slate-300 block mb-1">
                 Nota de Corte Alvo:
               </label>
               <div className="flex items-center gap-2">
                 <input
+                  id="target-cutoff-input"
                   type="number"
                   value={targetCutoff}
                   onChange={(e) => setTargetCutoff(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full min-h-[44px] bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-400"
                 />
                 <span className="text-xs text-slate-400 font-mono">pts</span>
               </div>
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-slate-300 block mb-1">
+              <label htmlFor="sure-count-input" className="text-[11px] font-bold text-slate-300 block mb-1">
                 Questões com Certeza:
               </label>
               <div className="flex items-center gap-2">
                 <input
+                  id="sure-count-input"
                   type="number"
                   value={sureCount}
                   onChange={(e) => setSureCount(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-emerald-400 focus:outline-none focus:border-emerald-500"
+                  className="w-full min-h-[44px] bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-emerald-400 focus:outline-none focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-400"
                 />
                 <span className="text-xs text-slate-400 font-mono">itens</span>
               </div>
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-slate-300 block mb-1">
+              <label htmlFor="doubt-count-input" className="text-[11px] font-bold text-slate-300 block mb-1">
                 Questões em Dúvida:
               </label>
               <div className="flex items-center gap-2">
                 <input
+                  id="doubt-count-input"
                   type="number"
                   value={doubtCount}
                   onChange={(e) => setDoubtCount(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-amber-400 focus:outline-none focus:border-amber-500"
+                  className="w-full min-h-[44px] bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-amber-400 focus:outline-none focus:border-amber-500 focus-visible:ring-2 focus-visible:ring-amber-400"
                 />
                 <span className="text-xs text-slate-400 font-mono">itens</span>
               </div>
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-slate-300 block mb-1">
+              <label htmlFor="blank-count-input" className="text-[11px] font-bold text-slate-300 block mb-1">
                 Deixadas em Branco:
               </label>
               <div className="flex items-center gap-2">
                 <input
+                  id="blank-count-input"
                   type="number"
                   disabled
                   value={Math.max(0, totalQuestions - sureCount - doubtCount)}
-                  className="w-full bg-slate-950/50 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono text-slate-400"
+                  className="w-full min-h-[44px] bg-slate-950/50 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono text-slate-400"
                 />
                 <span className="text-xs text-slate-500 font-mono">itens</span>
               </div>
@@ -278,7 +295,8 @@ export function CebraspeRiskOracleModal({
                 playClick();
                 setUsePersonalData(!usePersonalData);
               }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+              aria-label={usePersonalData ? "Desativar calibração do histórico de erros" : "Ativar calibração com histórico de erros"}
+              className={`px-3.5 py-2 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer border focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                 usePersonalData
                   ? "bg-indigo-600 text-white border-indigo-500 shadow-sm"
                   : "bg-white/5 text-slate-400 border-white/10 hover:text-white"
@@ -293,7 +311,8 @@ export function CebraspeRiskOracleModal({
             type="button"
             onClick={handleRunSimulation}
             disabled={isPending}
-            className="w-full py-3.5 rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs transition-all shadow-xl shadow-indigo-600/25 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            aria-label="Simular probabilidade e ponto de equilíbrio com 2.000 provas"
+            className="w-full py-3.5 min-h-[48px] rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs transition-all shadow-xl shadow-indigo-600/25 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
           >
             {isPending ? (
               <>

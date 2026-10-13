@@ -253,7 +253,8 @@ export function FirstStepsChecklistCard({
           <button
             type="button"
             onClick={handleToggleMinimize}
-            className="p-1.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label={isMinimized ? "Expandir checklist de primeiras conquistas" : "Recolher checklist de primeiras conquistas"}
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none transition-colors cursor-pointer"
             title={isMinimized ? "Expandir checklist" : "Recolher checklist"}
           >
             {isMinimized ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
@@ -261,7 +262,8 @@ export function FirstStepsChecklistCard({
           <button
             type="button"
             onClick={handleDismiss}
-            className="p-1.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Ocultar checklist de primeiras conquistas do painel"
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none transition-colors cursor-pointer"
             title="Ocultar do Dashboard"
           >
             <X size={15} />
@@ -328,7 +330,7 @@ export function FirstStepsChecklistCard({
                   ) : (
                     <Link
                       href={getHref("/edital")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-[11px] transition-all group/link"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-[11px] transition-all group/link focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none"
                     >
                       <span>Cadastrar Edital</span>
                       <ArrowRight size={11} className="group-hover/link:translate-x-0.5 transition-transform" />
@@ -377,7 +379,7 @@ export function FirstStepsChecklistCard({
                   ) : (
                     <Link
                       href={getHref("/study-room")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 font-bold text-[11px] transition-all group/link"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 font-bold text-[11px] transition-all group/link focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                     >
                       <span>Abrir Sala de Foco</span>
                       <ArrowRight size={11} className="group-hover/link:translate-x-0.5 transition-transform" />
@@ -426,7 +428,7 @@ export function FirstStepsChecklistCard({
                   ) : (
                     <Link
                       href={getHref("/questions")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-bold text-[11px] transition-all group/link"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-bold text-[11px] transition-all group/link focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:outline-none"
                     >
                       <span>Fazer Questões</span>
                       <ArrowRight size={11} className="group-hover/link:translate-x-0.5 transition-transform" />
@@ -463,7 +465,8 @@ export function FirstStepsChecklistCard({
                     type="button"
                     onClick={handleClaim}
                     disabled={isClaiming}
-                    className="px-4 py-2 rounded-xl bg-linear-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
+                    aria-label="Resgatar 100 XP e 2 Sinapses de Bônus de Boas-Vindas"
+                    className="px-4 py-2.5 min-h-[44px] rounded-xl bg-linear-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none"
                   >
                     {isClaiming ? (
                       <Loader2 size={14} className="animate-spin" />

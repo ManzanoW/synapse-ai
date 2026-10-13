@@ -208,7 +208,10 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
           ref={buttonRef}
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full text-left relative group overflow-hidden rounded-xl bg-violet-50/90 dark:bg-slate-950 dark:bg-gradient-to-r dark:from-violet-950/40 dark:via-indigo-950/40 dark:to-slate-900/60 border border-violet-300/80 dark:border-violet-500/25 hover:border-violet-400 dark:hover:border-violet-500/50 p-2.5 shadow-xs transition-all cursor-pointer"
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          aria-label="Abrir detalhes e limites de alta capacidade do Synapse Pro"
+          className="w-full text-left relative group overflow-hidden rounded-xl bg-violet-50/90 dark:bg-slate-950 dark:bg-gradient-to-r dark:from-violet-950/40 dark:via-indigo-950/40 dark:to-slate-900/60 border border-violet-300/80 dark:border-violet-500/25 hover:border-violet-400 dark:hover:border-violet-500/50 p-2.5 shadow-xs transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
           title="Clique para ver os limites e benefícios do Synapse Pro"
         >
           <div className="flex items-center justify-between">
@@ -240,7 +243,10 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
             <button
               type="button"
               onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center gap-2 group/title min-w-0 text-left cursor-pointer"
+              aria-haspopup="dialog"
+              aria-expanded={isOpen}
+              aria-label="Ver detalhes da Energia Sináptica"
+              className="flex items-center gap-2 group/title min-w-0 text-left cursor-pointer focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:outline-none rounded-lg"
             >
               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0 group-hover/title:scale-105 transition-transform shadow-xs">
                 <Zap size={12} className="text-cyan-600 dark:text-cyan-400 fill-cyan-400/20" />
@@ -256,8 +262,11 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                 ref={buttonRef}
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
+                aria-haspopup="dialog"
+                aria-expanded={isOpen}
+                aria-label={`Energia Sináptica: ${remainingEnergy} de 10 restantes. Clique para ver detalhes.`}
                 title="Ver detalhes da Energia Sináptica"
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-700 dark:text-cyan-300 hover:text-cyan-800 dark:hover:text-white transition-all text-[9.5px] font-mono font-bold cursor-pointer shrink-0"
+                className="flex items-center gap-1 px-2.5 py-1 min-h-[32px] rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-700 dark:text-cyan-300 hover:text-cyan-800 dark:hover:text-white transition-all text-[9.5px] font-mono font-bold cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:outline-none"
               >
                 <Zap size={9} className="text-cyan-600 dark:text-cyan-400 fill-cyan-400/30" />
                 <span>
@@ -352,6 +361,9 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                       ? { top: `${coords.top}px`, left: `${coords.left}px` }
                       : undefined
                   }
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="ai-quota-modal-title"
                   className={`fixed z-50 bg-white dark:bg-[#060913]/95 border border-slate-200 dark:border-slate-800/90 rounded-2xl shadow-2xl backdrop-blur-2xl overflow-hidden flex flex-col ${
                     coords
                       ? "w-[340px]"
@@ -375,7 +387,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                         )}
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-1.5">
+                        <h4 id="ai-quota-modal-title" className="text-xs font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-1.5">
                           {quota.isUnlimited
                             ? "Synapse Pro • Alta Capacidade"
                             : "Plano Básico • Energia Sináptica"}
@@ -395,7 +407,8 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                     <button
                       type="button"
                       onClick={() => setIsOpen(false)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                      aria-label="Fechar detalhes da cota"
+                      className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none transition-colors cursor-pointer"
                       title="Fechar"
                     >
                       <X size={15} />
@@ -577,7 +590,8 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                           setIsOpen(false);
                           setIsRewardedModalOpen(true);
                         }}
-                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-400/20 to-amber-500/15 hover:from-amber-500/25 hover:to-amber-400/25 border border-amber-400/40 text-amber-900 dark:text-amber-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-[0_0_15px_rgba(251,191,36,0.15)] hover:shadow-[0_0_20px_rgba(251,191,36,0.3)]"
+                        aria-label="Recarregar 1 Sinapse assistindo a vídeo curto de apoio"
+                        className="w-full py-2.5 px-3 min-h-[44px] rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-400/20 to-amber-500/15 hover:from-amber-500/25 hover:to-amber-400/25 border border-amber-400/40 text-amber-900 dark:text-amber-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-[0_0_15px_rgba(251,191,36,0.15)] hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none"
                       >
                         <Zap size={14} className="text-amber-500 dark:text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform" />
                         <span>⚡ Recarregar +1 Sinapse (Vídeo Curto)</span>
@@ -591,7 +605,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                         setIsOpen(false);
                         onNavigate?.();
                       }}
-                      className="w-full py-2.5 px-4 rounded-xl text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer group bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 hover:from-violet-700 hover:to-indigo-800"
+                      className="w-full py-2.5 px-4 min-h-[44px] rounded-xl text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer group bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 hover:from-violet-700 hover:to-indigo-800 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                     >
                       <Crown
                         size={14}

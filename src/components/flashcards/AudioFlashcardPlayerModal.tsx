@@ -175,7 +175,12 @@ export function AudioFlashcardPlayerModal({
         }`}
       />
 
-      <div className="relative w-full max-w-2xl bg-[#060913]/95 border border-slate-800/90 rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col justify-between my-auto max-h-[92vh] overflow-y-auto">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="audio-flashcard-title"
+        className="relative w-full max-w-2xl bg-[#060913]/95 border border-slate-800/90 rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col justify-between my-auto max-h-[92vh] overflow-y-auto"
+      >
         {/* Topo do Player */}
         <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 shrink-0">
           <div className="flex items-center gap-3">
@@ -188,11 +193,11 @@ export function AudioFlashcardPlayerModal({
                   Synapse Audio
                 </span>
                 <span className="text-slate-600">•</span>
-                <span className="text-xs text-slate-300 font-semibold truncate max-w-[200px]">
+                <span id="audio-flashcard-title" className="text-xs text-slate-300 font-semibold truncate max-w-[200px]">
                   {deckTitle}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-slate-400">
                 Card {currentIndex + 1} de {totalCards} (
                 {Math.round(progressPercent)}%)
               </p>
@@ -212,7 +217,7 @@ export function AudioFlashcardPlayerModal({
                 <button
                   type="button"
                   onClick={() => setShowLimitModal(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[10px] font-mono font-medium transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[10px] font-mono font-medium transition cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                   title="Degustação do plano Básico: até 15 minutos diários"
                 >
                   <Clock
@@ -232,8 +237,10 @@ export function AudioFlashcardPlayerModal({
               )}
 
               <button
+                type="button"
                 onClick={handleClose}
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
+                aria-label="Fechar player de áudio"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none transition-colors cursor-pointer"
                 title="Fechar player (Esc)"
               >
                 <X size={18} />
@@ -343,26 +350,32 @@ export function AudioFlashcardPlayerModal({
         <div className="space-y-5 pt-4 border-t border-slate-800/80 shrink-0">
           <div className="flex items-center justify-center gap-4 sm:gap-6">
             <button
+              type="button"
               onClick={prev}
               disabled={currentIndex === 0}
-              className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              aria-label="Card anterior"
+              className="p-3.5 min-h-[48px] min-w-[48px] flex items-center justify-center rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
               title="Card anterior (Seta esquerda)"
             >
               <SkipBack size={20} />
             </button>
 
             <button
+              type="button"
               onClick={handleTogglePlay}
-              className="py-4 px-8 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer min-w-36"
+              aria-label={isPlaying ? "Pausar reprodução de áudio" : "Iniciar reprodução de áudio"}
+              className="py-4 px-8 min-h-[48px] rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer min-w-36 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
             >
               {isPlaying ? <Pause size={20} /> : <Play size={20} />}
               <span>{isPlaying ? "Pausar" : "Ouvir Agora"}</span>
             </button>
 
             <button
+              type="button"
               onClick={next}
               disabled={currentIndex >= totalCards - 1}
-              className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              aria-label="Próximo card"
+              className="p-3.5 min-h-[48px] min-w-[48px] flex items-center justify-center rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
               title="Próximo card (Seta direita)"
             >
               <SkipForward size={20} />
@@ -402,8 +415,10 @@ export function AudioFlashcardPlayerModal({
               {[0.8, 1.0, 1.25, 1.5].map((s) => (
                 <button
                   key={s}
+                  type="button"
                   onClick={() => setPlaybackSpeed(s)}
-                  className={`px-2 py-1 rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer ${
+                  aria-label={`Definir velocidade para ${s} vezes`}
+                  className={`px-2 py-1 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                     playbackSpeed === s
                       ? "bg-indigo-600 text-white shadow-sm"
                       : "bg-slate-900 text-slate-400 hover:text-white"
@@ -423,8 +438,10 @@ export function AudioFlashcardPlayerModal({
               {[2, 3, 4, 5, 6].map((sec) => (
                 <button
                   key={sec}
+                  type="button"
                   onClick={() => setPauseDuration(sec)}
-                  className={`px-2 py-1 rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer ${
+                  aria-label={`Definir pausa reflexiva para ${sec} segundos`}
+                  className={`px-2 py-1 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none ${
                     pauseDuration === sec
                       ? "bg-amber-600 text-white shadow-sm"
                       : "bg-slate-900 text-slate-400 hover:text-white"

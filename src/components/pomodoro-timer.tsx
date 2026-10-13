@@ -153,17 +153,20 @@ export default function PomodoroTimer() {
       }`}
     >
       {/* Abas de Modo */}
-      <div className="w-full flex justify-between text-[11px] uppercase tracking-widest font-bold text-slate-500 border-b border-slate-800/60 pb-2">
+      <div role="tablist" aria-label="Modos do Cronômetro Pomodoro" className="w-full flex justify-between text-[11px] uppercase tracking-widest font-bold text-slate-400 border-b border-slate-800/60 pb-2">
         {(["foco", "curta", "longa"] as const).map((m) => (
           <button
             key={m}
+            role="tab"
+            aria-selected={mode === m}
+            aria-label={`Modo ${m === "curta" ? "Pausa Curta" : m === "longa" ? "Pausa Longa" : "Foco"}`}
             onClick={() => changeMode(m)}
-            className={`pb-2 -mb-2.5 transition-all duration-300 capitalize relative px-2 ${
+            className={`pb-2 -mb-2.5 min-h-[38px] transition-all duration-300 capitalize relative px-2.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none rounded-t-lg ${
               mode === m
                 ? isFocus
                   ? "text-indigo-400"
                   : "text-emerald-400"
-                : "hover:text-slate-300"
+                : "text-slate-400 hover:text-slate-200"
             }`}
           >
             {m === "curta" ? "Pausa Curta" : m === "longa" ? "Pausa Longa" : m}
@@ -270,7 +273,8 @@ export default function PomodoroTimer() {
         {/* Botão de Reset */}
         <button
           onClick={resetTimer}
-          className="flex-1 bg-slate-950 hover:bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-200 flex items-center justify-center active:scale-95 group"
+          aria-label="Reiniciar cronômetro pomodoro"
+          className="flex-1 bg-slate-950 hover:bg-slate-900 border border-slate-800 p-2.5 min-h-[44px] rounded-xl text-slate-400 hover:text-slate-200 transition-all duration-200 flex items-center justify-center active:scale-95 group cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
         >
           <RotateCcw
             size={16}
@@ -281,7 +285,8 @@ export default function PomodoroTimer() {
         {/* Botão Start/Pause */}
         <button
           onClick={toggleTimer}
-          className={`flex-2 ${themeActiveBg} text-white font-medium p-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-md ${themeShadow} active:scale-95`}
+          aria-label={isActive ? "Pausar cronômetro pomodoro" : "Iniciar cronômetro pomodoro"}
+          className={`flex-2 ${themeActiveBg} text-white font-medium p-2.5 min-h-[44px] rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 shadow-md ${themeShadow} active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none`}
         >
           <div className="transition-transform duration-200 group-hover:scale-110">
             {isActive ? <Pause size={16} /> : <Play size={16} />}
