@@ -10,6 +10,7 @@ import {
   calculateTopicFSRSReview,
   normalizeGrade,
 } from "@/lib/spaced-repetition";
+import { isUserPro } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,8 @@ export async function GET(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userIsPro = await isUserPro(userId);
 
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get("mode") || "topics";
@@ -138,6 +141,8 @@ export async function GET(request: Request) {
               nextRev: topic.nextRev,
               progress: topicProgress,
               quizId: activeQuizId,
+              // 🛡️ SEGURANÇA BACKEND: Raio-X de Incidência bloqueado no backend para não-Pro
+              relevance: userIsPro ? topic.relevance : null,
             };
           });
 
@@ -216,6 +221,8 @@ export async function GET(request: Request) {
         subjectName: t.subject?.name || "Geral",
         subjectColor: t.subject?.color || "#3B82F6",
         quizId: matchingQuiz?.id || null,
+        // 🛡️ SEGURANÇA BACKEND: Raio-X de Incidência bloqueado no backend para não-Pro
+        relevance: userIsPro ? t.relevance : null,
       };
     });
 

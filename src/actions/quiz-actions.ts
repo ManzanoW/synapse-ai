@@ -12,6 +12,7 @@ import { SubmitQuizAttemptInput, SubjectDomainMetric, MentorGuidance } from "@/t
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { normalizeTaxonomy } from "@/lib/error-taxonomy";
 import { SubmitQuizAttemptSchema } from "@/lib/validations/quiz.schema";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
   try {
@@ -419,6 +420,15 @@ export async function deepenExplanationAction(input: DeepenExplanationInput) {
       return { success: false, error: "Usuário não autenticado." };
     }
 
+    const quota = await checkAiQuota(session.user.id, "REMEDIATION");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Cota diária de aprofundamento com IA atingida.",
+        isQuotaExceeded: true,
+      };
+    }
+
     const {
       enunciado,
       alternativas = [],
@@ -488,6 +498,8 @@ Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
       };
     }
 
+    await consumeAiQuota(session.user.id, "REMEDIATION").catch(() => {});
+
     return {
       success: true,
       data: parsed,
@@ -514,11 +526,21 @@ export async function getQuestionMentorGuidanceAction(input: GetMentorGuidanceIn
   success: boolean;
   data?: MentorGuidance;
   error?: string;
+  isQuotaExceeded?: boolean;
 }> {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const quota = await checkAiQuota(session.user.id, "REMEDIATION");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Cota diária do Mentor IA atingida.",
+        isQuotaExceeded: true,
+      };
     }
 
     const {
@@ -568,6 +590,8 @@ Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
         temperature: 0.4,
       },
     });
+
+    await consumeAiQuota(session.user.id, "REMEDIATION").catch(() => {});
 
     let parsed: MentorGuidance;
     try {

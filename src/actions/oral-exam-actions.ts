@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { recordStudyActivityAction } from "@/actions/gamification-actions";
+import { isUserPro } from "@/lib/subscription";
 
 export interface OralQuestionData {
   id: string;
@@ -109,6 +110,9 @@ export async function generateOralQuestionAction(input: {
       return { success: false, data: PRESET_ORAL_QUESTIONS.DELEGADO[0], error: "Usuário não autenticado." };
     }
 
+    const userId = session.user.id;
+    const userIsPro = await isUserPro(userId);
+
     // Se houver preset direto
     const key = input.cargo.toUpperCase().includes("DELEGADO")
       ? "DELEGADO"
@@ -117,6 +121,12 @@ export async function generateOralQuestionAction(input: {
       : input.cargo.toUpperCase().includes("PROMOTOR") || input.cargo.toUpperCase().includes("MINISTÉRIO")
       ? "MINISTERIO_PUBLICO"
       : "DELEGADO";
+
+    if (!userIsPro && PRESET_ORAL_QUESTIONS[key]) {
+      const list = PRESET_ORAL_QUESTIONS[key];
+      const randomItem = list[Math.floor(Math.random() * list.length)];
+      return { success: true, data: randomItem };
+    }
 
     if (!input.ponto && PRESET_ORAL_QUESTIONS[key]) {
       const list = PRESET_ORAL_QUESTIONS[key];
@@ -201,6 +211,14 @@ export async function evaluateOralAnswerAction(input: {
     }
 
     const userId = session.user.id;
+
+    const userIsPro = await isUserPro(userId);
+    if (!userIsPro) {
+      return {
+        success: false,
+        error: "A avaliação individual de Prova Oral com IA e espelho nota 10 é um recurso exclusivo do Synapse Pro.",
+      };
+    }
 
     if (!input.candidateTranscript || input.candidateTranscript.trim().length < 10) {
       return {

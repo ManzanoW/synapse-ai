@@ -27,6 +27,11 @@ import {
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
 import { compressClientImage } from "@/lib/client-image-compression";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
+import {
+  triggerOptimisticEnergyConsumption,
+  triggerSynapticExhaustion,
+  triggerAiQuotaRefresh,
+} from "@/lib/quota-events";
 import Link from "next/link";
 
 interface HandwrittenOcrModalProps {
@@ -110,6 +115,13 @@ export function HandwrittenOcrModal({
       const formData = new FormData();
       formData.append("file", optimizedFile);
 
+      // Feedback imediato tátil (-1⚡)
+      triggerOptimisticEnergyConsumption({
+        cost: 1,
+        feature: "OCR_ESSAY",
+        label: "OCR Caligráfico",
+      });
+
       const res = await transcribeHandwrittenEssayAction(formData);
 
       clearTimeout(statusTimer1);
@@ -118,10 +130,15 @@ export function HandwrittenOcrModal({
       if (res.isQuotaExceeded) {
         setStep("quota");
         setErrorMessage(null);
+        triggerSynapticExhaustion({
+          feature: "OCR_ESSAY",
+          reason: "Limite diário de transcrições caligráficas com IA atingido.",
+        });
         return;
       }
 
       if (res.success && res.transcription) {
+        triggerAiQuotaRefresh();
         setOcrData(res);
         setTranscribedText(sanitizeOcrTranscription(res.transcription));
         setStep("review");
@@ -421,7 +438,7 @@ export function HandwrittenOcrModal({
                   className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
                 >
                   <Crown size={15} />
-                  <span>Desbloquear OCR Ilimitado com Synapse Pro</span>
+                  <span>Desbloquear Synapse Pro (Alta Capacidade)</span>
                 </Link>
               </div>
             </div>

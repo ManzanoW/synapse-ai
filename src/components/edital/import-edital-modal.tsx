@@ -129,21 +129,42 @@ export function ImportEditalModal({
         contentToProcess = rawText;
       }
 
-      if (!contentToProcess.trim()) {
-        alert("Por favor, insira o texto do edital antes de prosseguir.");
-        setIsProcessing(false);
-        return;
-      }
+      let response: Response;
 
-      const response = await fetch("/api/edital/parse-edital", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: contentToProcess }),
-      });
+      if (activeTab === "pdf" && selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("isPdf", "true");
+
+        response = await fetch("/api/edital/parse-edital", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        if (!contentToProcess.trim()) {
+          alert("Por favor, insira o texto do edital antes de prosseguir.");
+          setIsProcessing(false);
+          return;
+        }
+
+        response = await fetch("/api/edital/parse-edital", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: contentToProcess }),
+        });
+      }
 
       const result = await response.json();
 
       if (!response.ok) {
+        if (result.error === "FEATURE_LOCKED_PRO" || response.status === 403) {
+          alert(
+            result.message ||
+              "O upload e processamento de arquivos PDF com IA é exclusivo do plano Synapse Pro. Você pode utilizar a inserção manual na aba 'Colar Texto do Edital'.",
+          );
+          setActiveTab("text");
+          return;
+        }
         throw new Error(result.error || "Erro ao processar o edital");
       }
 

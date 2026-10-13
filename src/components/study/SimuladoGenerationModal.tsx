@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
 import { Zap, Brain, Cpu, CheckCircle2, AlertCircle, Crown, Gift, ArrowRight, X, Clock } from "lucide-react";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
-import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+import { triggerAiQuotaRefresh, triggerSynapticExhaustion } from "@/lib/quota-events";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 
 export interface SimuladoGenerationModalProps {
@@ -206,6 +206,11 @@ export function SimuladoGenerationModal({
     }
 
     let isCurrent = true;
+    triggerSynapticExhaustion({
+      feature: "SIMULADO",
+      reason: error || "Limite diário de simulados com IA atingido.",
+    });
+
     getAiQuotaStatusAction()
       .then((res) => {
         if (!isCurrent) return;
@@ -219,7 +224,7 @@ export function SimuladoGenerationModal({
     return () => {
       isCurrent = false;
     };
-  }, [isOpen, isQuotaError]);
+  }, [isOpen, isQuotaError, error]);
 
   if (!isOpen || !mounted) return null;
 
@@ -380,7 +385,7 @@ export function SimuladoGenerationModal({
                 {error}
               </p>
               <p className="text-[11px] text-slate-400">
-                No plano gratuito você conta com 2 simulados diários completos que renovam todo dia à meia-noite (Brasília).
+                No plano básico você conta com 10 Sinapses diárias renovadas à meia-noite (Brasília).
               </p>
             </div>
           )}

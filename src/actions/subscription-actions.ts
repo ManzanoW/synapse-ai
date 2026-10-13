@@ -113,8 +113,8 @@ export async function toggleDemoPlanTierAction(): Promise<{
       newPlanTier: targetTier,
       message:
         targetTier === "PREMIUM"
-          ? "🎉 Plano PREMIUM ativado com sucesso! Você agora tem IA ilimitada."
-          : "Plano FREE ativado. As cotas diárias de 7 requisições/dia voltam a valer.",
+          ? "🎉 Plano PREMIUM ativado com sucesso! Você agora tem 60 Sinapses/dia e acesso Pro total."
+          : "Plano FREE ativado. As cotas diárias de 10 Sinapses/dia voltam a valer.",
     };
   } catch (err) {
     console.error("[toggleDemoPlanTierAction] Erro ao alternar plano:", err);

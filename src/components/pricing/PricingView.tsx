@@ -74,11 +74,11 @@ export function PricingView({
   const FAQS = [
     {
       q: "Como funciona o limite do Plano Gratuito?",
-      a: "No Plano Gratuito, você tem até 7 requisições diárias de Inteligência Artificial para testar nossos recursos (como até 2 simulados diários e 1 correção de redação). O limite reinicia automaticamente todos os dias às 00:00 (horário de Brasília).",
+      a: "No Plano Gratuito, você tem 5 requisições diárias de Inteligência Artificial para testar nossos recursos (como 1 simulado diário, remediações de erro e 1 correção de redação semanal). O limite reinicia automaticamente todos os dias às 00:00 (horário de Brasília).",
     },
     {
       q: "O que são os Anúncios Recompensados no plano Gratuito?",
-      a: "Para que você nunca fique completamente travado nos estudos, permitimos que usuários do plano gratuito assistam a um anúncio de curta duração para desbloquear créditos extras (como +1 simulado ou +1 remediação de erro). Já no Synapse Pro, sua experiência é 100% livre de qualquer anúncio.",
+      a: "Para que você nunca fique completamente travado nos estudos, permitimos que usuários do plano gratuito assistam a um anúncio de curta duração para desbloquear créditos extras (como +1 simulado bônus). Já no Synapse Pro, sua experiência é 100% livre de qualquer anúncio com foco visual absoluto.",
     },
     {
       q: "Como funciona o OCR de Redação Manuscrita?",
@@ -90,7 +90,7 @@ export function PricingView({
     },
     {
       q: "O que ganho ao assinar o Synapse Concurseiro Pro?",
-      a: "Você tem acesso 100% ilimitado a todas as ferramentas com IA (sem fila nem bloqueio diário), OCR de redações manuscritas ilimitado, revisão de erros com macetes práticos, mapas mentais com aprofundamento neural e exportação HD/PDF A4, leitor de editais em PDF e exportação para o Anki (.apkg).",
+      a: "Você tem alta capacidade diária de até 60 requisições de IA (1.800+/mês sob Política de Uso Justo), até 3 correções discursivas diárias, até 2 OCRs de redação manuscrita diários, flashcards em áudio hands-free, revisão de erros com macetes práticos, mapas mentais neurais com exportação HD/PDF A4 e leitor de editais em PDF.",
     },
     {
       q: "A IA é calibrada para as principais bancas do Brasil?",
@@ -228,14 +228,13 @@ export function PricingView({
               </div>
               <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
                 {[
-                  "7 requisições diárias de Inteligência Artificial",
-                  "Até 2 simulados com IA por dia (+1 com anúncio opcional)",
-                  "1 correção de redação digitada por dia",
-                  "1 OCR de redação manuscrita (foto) por semana para testar",
-                  "1 remediação cognitiva no Caderno de Erros por dia",
-                  "1 Mapa Mental Neural por dia (exportação SVG)",
-                  "Edital verticalizado com acompanhamento de progresso",
-                  "Créditos extras assistindo a anúncios recompensados voluntários",
+                  "10 Sinapses / dia (Renovação diária)",
+                  "1 simulado com IA por dia (+1 bônus via anúncio voluntário)",
+                  "1 correção de redação digitada por semana (Degustação oficial)",
+                  "1 OCR de redação manuscrita de boas-vindas para testar",
+                  "Até 2 remediações e mnemônicos no Caderno de Erros por dia (+1 via anúncio)",
+                  "Edital verticalizado com inserção manual de disciplinas",
+                  "Com recargas voluntárias via anúncios",
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2.5">
                     <CheckCircle2 size={16} className="text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" />
@@ -269,7 +268,7 @@ export function PricingView({
           {/* Badge de Destaque */}
           <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-linear-to-r from-indigo-600 to-purple-600 text-white text-[11px] font-black tracking-wide uppercase shadow-lg shadow-indigo-600/30 flex items-center gap-1.5">
             <Crown size={13} className="fill-white" />
-            <span>Mais Escolhido • Acesso Ilimitado & Zero Anúncios</span>
+            <span>Mais Escolhido • Alta Capacidade & Zero Anúncios</span>
           </div>
 
           <div className="space-y-6">
@@ -280,7 +279,7 @@ export function PricingView({
               <h3 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <span>Synapse Pro</span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-400/30 font-black">
-                  ILIMITADO
+                  ALTA CAPACIDADE
                 </span>
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-300">
@@ -308,15 +307,15 @@ export function PricingView({
               </div>
               <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-200">
                 {[
-                  "IA 100% Ilimitada & Zero Anúncios (foco total sem interrupções)",
-                  "OCR de Redação Manuscrita Ilimitado (foto da folha de prova real)",
-                  "Revisão de Erros & Macetes de Memorização no Caderno de Erros ilimitados",
-                  "Mapas Mentais Neurais: Aprofundamento de nós com IA e exportação em PDF A4 / PNG HD",
-                  "Raio-X de Incidência da Banca no Edital Verticalizado (Cebraspe, FGV, FCC)",
-                  "Importador de Edital em PDF (extração automática por IA)",
-                  "Simulados Inéditos ilimitados com filtros de cargo e banca",
-                  "Exportação de Flashcards para Anki (.apkg) e apostilas em PDF",
-                  "Prioridade máxima nos servidores Gemini 2.5 Pro (zero tempo de fila)",
+                  "60 Sinapses / dia (Alta Capacidade / Fair Use)",
+                  "Até 3 correções de redação digitada por dia com Reescrita Modelo Ouro",
+                  "Até 2 OCRs de redação manuscrita (foto da folha real) por dia",
+                  "Até 5 simulados inéditos por dia por Banca e Cargo",
+                  "Caderno de Erros avançado com até 30 remediações diárias",
+                  "Mapas Mentais Neurais com aprofundamento e exportação em PDF A4 / PNG HD",
+                  "Flashcards em Áudio Neural Hands-Free e exportação ilimitada para Anki (.apkg)",
+                  "Importador de Edital em PDF com IA e Raio-X de Incidência da Banca",
+                  "100% Zero Anúncios (Foco Total)",
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2.5 font-medium">
                     <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
@@ -331,7 +330,7 @@ export function PricingView({
             {isUnlimited || currentTier === "PREMIUM" ? (
               <div className="w-full py-3.5 px-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-800 dark:bg-emerald-500/20 dark:border-emerald-400/40 dark:text-emerald-300 text-center text-xs font-black flex items-center justify-center gap-2 shadow-sm">
                 <Crown size={16} className="fill-emerald-600 dark:fill-emerald-400 text-emerald-600 dark:text-emerald-400" />
-                <span>Você é Membro Pro (Acesso Ilimitado Ativo)</span>
+                <span>Você é Membro Pro (Alta Capacidade Ativa)</span>
               </div>
             ) : (
               <button
@@ -474,11 +473,11 @@ export function PricingView({
               </tr>
               <tr>
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Cota Diária de Requisições com IA
+                  Cota Diária de Requisições
                 </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">7 requisições / dia</td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">10 Sinapses / dia (Renovação diária)</td>
                 <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Ilimitada ⚡
+                  60 Sinapses / dia (Alta Capacidade / Fair Use) ⚡
                 </td>
               </tr>
               <tr>
@@ -486,10 +485,10 @@ export function PricingView({
                   Experiência sem Anúncios
                 </td>
                 <td className="p-4 text-center text-slate-500 dark:text-slate-400">
-                  Com anúncios recompensados
+                  Com recargas voluntárias via anúncios
                 </td>
                 <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  100% Zero Anúncios ✨
+                  100% Zero Anúncios (Foco Total) ✨
                 </td>
               </tr>
               <tr>
@@ -510,20 +509,20 @@ export function PricingView({
               </tr>
               <tr>
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Correção de Redação Digitada (Padrão Banca)
+                  Correção de Redação Digitada
                 </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 por dia</td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 por semana (Degustação oficial)</td>
                 <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Ilimitada + Reescrita Modelo
+                  Até 3 por dia com Reescrita Modelo Ouro
                 </td>
               </tr>
               <tr>
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
                   OCR de Folha Manuscrita (Foto da Redação)
                 </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 por semana (teste)</td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 de boas-vindas para testar</td>
                 <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Ilimitado (Gemini Vision) 📸
+                  Até 2 por dia (folha real) 📸
                 </td>
               </tr>
 
@@ -535,20 +534,20 @@ export function PricingView({
               </tr>
               <tr>
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Simulados Inéditos com IA
+                  Simulados Inéditos
                 </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">2 por dia (+1 via anúncio)</td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 por dia (+1 bônus via anúncio)</td>
                 <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Ilimitados por Banca e Cargo
+                  Até 5 por dia por Banca e Cargo
                 </td>
               </tr>
               <tr>
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Explicação e Macetes no Caderno de Erros
+                  Mnemônicos no Caderno de Erros
                 </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 por dia (+1 via anúncio)</td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">Até 2 por dia (+1 via anúncio)</td>
                 <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Ilimitada + Macetes de Memorização por IA 🧠
+                  Até 30 remediações diárias 🧠
                 </td>
               </tr>
 
@@ -564,7 +563,7 @@ export function PricingView({
                 </td>
                 <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 por dia (+1 via anúncio)</td>
                 <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Ilimitados
+                  Até 5 por dia (PDF A4 / PNG HD)
                 </td>
               </tr>
               <tr>

@@ -160,13 +160,13 @@ export function PricingSection() {
                 </span>
                 <ul className="space-y-2.5 text-xs text-slate-300">
                   {[
-                    "5 requisições diárias de Inteligência Artificial",
+                    "10 Sinapses / dia (Renovação diária)",
                     "1 simulado com IA por dia (+1 bônus via anúncio voluntário)",
-                    "1 correção de redação digitada por semana (degustação)",
+                    "1 correção de redação digitada por semana (Degustação oficial)",
                     "1 OCR de redação manuscrita de boas-vindas para testar",
-                    "2 remediações cognitivas no Caderno de Erros por dia",
-                    "Edital verticalizado com acompanhamento de progresso",
-                    "Recarga de créditos extras assistindo a anúncios recompensados",
+                    "Até 2 remediações e mnemônicos no Caderno de Erros por dia (+1 via anúncio)",
+                    "Edital verticalizado com inserção manual de disciplinas",
+                    "Com recargas voluntárias via anúncios",
                   ].map((feat, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
@@ -250,15 +250,15 @@ export function PricingSection() {
                   </span>
                   <ul className="space-y-2.5 text-xs text-slate-200">
                     {[
-                      "Franquia generosa de até 60 requisições de IA por dia (Política de Uso Justo — 1.800+/mês)",
-                      "Até 3 correções técnicas de redação discursiva por dia (padrão Cebraspe/FGV)",
+                      "60 Sinapses / dia (Alta Capacidade / Fair Use)",
+                      "Até 3 correções de redação digitada por dia com Reescrita Modelo Ouro",
                       "Até 2 OCRs de redação manuscrita (foto da folha real) por dia",
-                      "Até 5 simulados inéditos diários com filtros de banca e cargo",
-                      "Caderno de Erros avançado com 30 remediações cognitivas diárias",
-                      "Mapas Mentais Neurais: até 5 gerações diárias com exportação em PDF A4 / PNG HD",
-                      "Flashcards em Áudio Neural Hands-Free (até 2h diárias de estudo no trânsito)",
-                      "Importador de Edital em PDF (extração inteligente de disciplinas)",
-                      "Zero anúncios e foco visual absoluto",
+                      "Até 5 simulados inéditos por dia por Banca e Cargo",
+                      "Caderno de Erros avançado com até 30 remediações diárias",
+                      "Mapas Mentais Neurais com aprofundamento e exportação em PDF A4 / PNG HD",
+                      "Flashcards em Áudio Neural Hands-Free e exportação ilimitada para Anki (.apkg)",
+                      "Importador de Edital em PDF com IA e Raio-X de Incidência da Banca",
+                      "100% Zero Anúncios (Foco Total)",
                     ].map((feat, i) => (
                       <li key={i} className="flex items-start gap-2.5 font-medium">
                         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />

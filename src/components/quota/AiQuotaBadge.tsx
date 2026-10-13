@@ -4,15 +4,26 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Zap, BatteryCharging, ShieldCheck, X, Crown, ChevronRight, Gift } from "lucide-react";
+import { Zap, BatteryCharging, ShieldCheck, X, Crown, ChevronRight, Gift, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
-import { AI_QUOTA_UPDATED_EVENT } from "@/lib/quota-events";
+import { useMidnightCountdown } from "@/lib/countdown-service";
+import {
+  AI_QUOTA_UPDATED_EVENT,
+  AI_QUOTA_CONSUMED_EVENT,
+  triggerSynapticExhaustion,
+  type QuotaConsumedDetail,
+} from "@/lib/quota-events";
 import type { UserQuotaStatus } from "@/types/quota";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 
 interface AiQuotaBadgeProps {
   onNavigate?: () => void;
+}
+
+interface FloatingDeduction {
+  id: string;
+  cost: number;
 }
 
 export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
@@ -23,7 +34,8 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
-
+  const [floatingDeductions, setFloatingDeductions] = useState<FloatingDeduction[]>([]);
+  const countdown = useMidnightCountdown();
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -75,11 +87,43 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
     window.addEventListener("focus", handleUpdate);
     document.addEventListener("visibilitychange", handleVisibility);
 
+    // Escuta evento de consumo otimista imediato (-1⚡, -2⚡)
+    const handleOptimisticConsume = (e: Event) => {
+      const customEvent = e as CustomEvent<QuotaConsumedDetail>;
+      const cost = customEvent.detail?.cost ?? 1;
+      const id = `${Date.now()}-${Math.random()}`;
+
+      setFloatingDeductions((prev) => [...prev, { id, cost }]);
+      setTimeout(() => {
+        setFloatingDeductions((prev) => prev.filter((item) => item.id !== id));
+      }, 1600);
+
+      setQuota((prev) => {
+        if (!prev) return prev;
+        const newUsed = prev.globalUsed + cost;
+        if (!prev.isUnlimited && newUsed >= 10) {
+          setTimeout(() => {
+            triggerSynapticExhaustion({
+              feature: customEvent.detail?.feature,
+              reason: "Teto de 10 sinapses diárias atingido.",
+            });
+          }, 450);
+        }
+        return {
+          ...prev,
+          globalUsed: newUsed,
+        };
+      });
+    };
+
+    window.addEventListener(AI_QUOTA_CONSUMED_EVENT, handleOptimisticConsume);
+
     // 5. Polling suave a cada 15 segundos para garantir sincronia
     const interval = setInterval(fetchQuota, 15000);
 
     return () => {
       window.removeEventListener(AI_QUOTA_UPDATED_EVENT, handleUpdate);
+      window.removeEventListener(AI_QUOTA_CONSUMED_EVENT, handleOptimisticConsume);
       window.removeEventListener("focus", handleUpdate);
       document.removeEventListener("visibilitychange", handleVisibility);
       clearInterval(interval);
@@ -207,18 +251,37 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
             </button>
 
             {/* Botão de Energia Diária clicável com Popover */}
-            <button
-              ref={buttonRef}
-              type="button"
-              onClick={() => setIsOpen(!isOpen)}
-              title="Ver detalhes da Energia Sináptica"
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-700 dark:text-cyan-300 hover:text-cyan-800 dark:hover:text-white transition-all text-[9.5px] font-mono font-bold cursor-pointer shrink-0"
-            >
-              <Zap size={9} className="text-cyan-600 dark:text-cyan-400 fill-cyan-400/30" />
-              <span>
-                {remainingEnergy}/10
-              </span>
-            </button>
+            <div className="relative">
+              <button
+                ref={buttonRef}
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                title="Ver detalhes da Energia Sináptica"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-700 dark:text-cyan-300 hover:text-cyan-800 dark:hover:text-white transition-all text-[9.5px] font-mono font-bold cursor-pointer shrink-0"
+              >
+                <Zap size={9} className="text-cyan-600 dark:text-cyan-400 fill-cyan-400/30" />
+                <span>
+                  {remainingEnergy}/10
+                </span>
+              </button>
+
+              {/* Indicador Flutuante Otimista (-1⚡) */}
+              <AnimatePresence>
+                {floatingDeductions.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 1, y: 0, scale: 0.8 }}
+                    animate={{ opacity: 0, y: -22, scale: 1.15 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1.3, ease: "easeOut" }}
+                    className="absolute -top-3 right-0 pointer-events-none z-30 font-mono font-black text-[10px] text-cyan-300 bg-cyan-950/95 border border-cyan-400/50 px-1.5 py-0.2 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.8)] flex items-center gap-0.5 whitespace-nowrap"
+                  >
+                    <span>-{item.cost}</span>
+                    <Zap size={9} className="fill-cyan-400 text-cyan-400" />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Barra de Progresso da Energia Diária */}
@@ -325,7 +388,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                         <span className="text-[9px] font-mono text-slate-600 dark:text-slate-400 block leading-none mt-0.5">
                           {quota.isUnlimited
                             ? "Alta franquia diária para estudos intensivos e zero anúncios"
-                            : "Renovação diária automática à meia-noite (Horário de Brasília)."}
+                            : `Renovação automática às 00:00 BRT (em ${countdown.formatted})`}
                         </span>
                       </div>
                     </div>
@@ -354,7 +417,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
 
                     {/* Card de Energia (Plano Básico: 10 Sinapses Diárias) */}
                     {!quota.isUnlimited && (
-                      <div className="p-3 rounded-xl bg-slate-900/90 dark:bg-slate-950 border border-slate-700/60 dark:border-white/10 space-y-2">
+                      <div className="p-3 rounded-xl bg-slate-900/90 dark:bg-slate-950 border border-slate-700/60 dark:border-white/10 space-y-2.5">
                         <div className="flex items-center justify-between text-xs font-semibold">
                           <span className="flex items-center gap-1.5 text-slate-200">
                             <BatteryCharging size={14} className="text-cyan-400" />
@@ -371,6 +434,17 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                             transition={{ duration: 0.5, ease: "easeOut" }}
                             className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"
                           />
+                        </div>
+
+                        {/* Contagem Regressiva Viva até 00:00 BRT */}
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-white/5 font-mono">
+                          <span className="flex items-center gap-1 text-slate-400">
+                            <Clock size={11} className="text-cyan-400 animate-pulse" />
+                            Renovação diária em:
+                          </span>
+                          <span className="font-bold text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-500/30">
+                            {countdown.formatted}
+                          </span>
                         </div>
                       </div>
                     )}

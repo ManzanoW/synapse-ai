@@ -9,6 +9,7 @@ import {
   consumeAiQuota,
   getUserQuotaStatus,
 } from "@/lib/ai-quota-service";
+import { isUserPro } from "@/lib/subscription";
 
 export interface MindMapNode {
   id: string;
@@ -249,13 +250,12 @@ export async function deepenMindMapNodeAction(input: {
     }
 
     const userId = session.user.id;
-    const userQuota = await getUserQuotaStatus(userId);
+    const hasProAccess = await isUserPro(userId);
 
-    if (!userQuota.isUnlimited) {
+    if (!hasProAccess) {
       return {
         success: false,
-        error:
-          "O Aprofundamento Neural de Nós com IA é um recurso exclusivo do plano Synapse Pro.",
+        error: "FEATURE_LOCKED_PRO",
         isProRequired: true,
       };
     }
@@ -315,8 +315,32 @@ export async function generateMindmapAction(input: {
   subject?: string;
   careerFocus?: string;
   banca?: string;
-}): Promise<{ success: boolean; data?: MindmapData; error?: string }> {
+}): Promise<{
+  success: boolean;
+  data?: MindmapData;
+  error?: string;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
+}> {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const userId = session.user.id;
+
+    // 🛡️ Proteção de Cota Diária de IA para Mapas Mentais
+    const quota = await checkAiQuota(userId, "MINDMAP");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Limite de mapas mentais com IA atingido.",
+        isQuotaExceeded: true,
+        canWatchRewardedAd: quota.canWatchRewardedAd,
+      };
+    }
+
     const prompt = `
 Você é o Especialista em Mapas Mentais de Alta Retenção e Mnemônicos para Concursos da Synapse AI.
 Crie um MAPA MENTAL ESQUEMATIZADO E HIERÁRQUICO para o seguinte tema:
@@ -379,6 +403,8 @@ Retorne EXCLUSIVAMENTE um JSON:
       rootNode: parsed.rootNode,
       createdAt: new Date().toISOString(),
     };
+
+    await consumeAiQuota(userId, "MINDMAP");
 
     return {
       success: true,

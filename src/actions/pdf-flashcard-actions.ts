@@ -7,6 +7,7 @@ import { extractText } from "unpdf";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { generateSimuladoInParallel } from "@/lib/simulado-generator";
 import { Type } from "@google/genai";
+import { isUserPro } from "@/lib/subscription";
 
 export interface ExtractedTopicItem {
   id: string;
@@ -68,6 +69,14 @@ export async function parsePdfAndExtractTopicsAction(
 
     if (!userId) {
       return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const hasProAccess = await isUserPro(userId);
+    if (!hasProAccess) {
+      return {
+        success: false,
+        error: "FEATURE_LOCKED_PRO",
+      };
     }
 
     const file = formData.get("file") as File | null;
