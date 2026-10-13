@@ -63,7 +63,11 @@ import { streamSimuladoGeneration } from "@/lib/sse-client";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
-import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+import {
+  triggerAiQuotaRefresh,
+  triggerOptimisticEnergyConsumption,
+  triggerSynapticExhaustion,
+} from "@/lib/quota-events";
 
 import {
   submitQuizAttemptAction,
@@ -268,6 +272,9 @@ export default function QuestoesPage() {
       return "create";
     },
   );
+  const [isOfflineMode, setIsOfflineMode] = useState<boolean>(
+    () => searchParams.get("mode") === "offline",
+  );
   const [pendingTab, setPendingTab] = useState<
     "create" | "history" | null
   >(null);
@@ -314,6 +321,7 @@ export default function QuestoesPage() {
   >({});
   const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
   const [isZenMode, setIsZenMode] = useState(false);
+  const [comboStreak, setComboStreak] = useState(0);
 
   // Cronômetro, Pacing Real-Time e conclusão
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -435,6 +443,39 @@ export default function QuestoesPage() {
       setIsLoadingHistory(false);
     }
   }, []);
+
+  const handleStartOfflineSession = useCallback(
+    (count = 10) => {
+      const allSavedQuestions: QuestaoIA[] = [];
+      quizHistory.forEach((qItem) => {
+        if (Array.isArray(qItem.questions)) {
+          allSavedQuestions.push(...qItem.questions);
+        }
+      });
+
+      if (allSavedQuestions.length === 0) {
+        alert(
+          "Nenhum simulado salvo encontrado no seu acervo ainda. Gere um simulado com IA ou carregue seu histórico para preencher as questões.",
+        );
+        return;
+      }
+
+      // Embaralha e seleciona até `count` questões do acervo sem consumir IA
+      const randomized = randomizeQuizSession(allSavedQuestions.slice(0, count));
+      setCurrentQuizId(`offline-session-${Date.now()}`);
+      setBanca("Acervo Offline (Zero Cota)");
+      setQuestions(randomized);
+      setSelectedAnswers({});
+      setCheckedQuestions({});
+      setFlaggedQuestions({});
+      setFocusedQuestionIndex(0);
+      setTimerSeconds(0);
+      setCurrentQuestionSeconds(0);
+      setIsTimerRunning(true);
+      setActiveTab("create");
+    },
+    [quizHistory],
+  );
 
   const loadErrorNotebookData = useCallback(async () => {
     try {
@@ -818,6 +859,13 @@ export default function QuestoesPage() {
 
   const handleAnswerQuestion = useCallback(
     async (index: number) => {
+      const isCorrect = selectedAnswers[index] === questions[index]?.gabaritoCorreto;
+      if (isCorrect) {
+        setComboStreak((prev) => prev + 1);
+      } else {
+        setComboStreak(0);
+      }
+
       const nextChecked = { ...checkedQuestions, [index]: true };
       setCheckedQuestions(nextChecked);
 
@@ -994,6 +1042,13 @@ export default function QuestoesPage() {
     pendingSimuladoDataRef.current = null;
     setIsSimuladoModalOpen(true);
 
+    // Disparo otimista visual (-2⚡ Sinapses para Simulado Inédito)
+    triggerOptimisticEnergyConsumption({
+      cost: 2,
+      feature: "SIMULADO",
+      label: "Simulado Inédito",
+    });
+
     try {
       const selectedTopicObj = availableTopics.find(
         (t) => t.id === selectedTopicId,
@@ -1059,6 +1114,19 @@ export default function QuestoesPage() {
 
       // Notifica em tempo real a Sidebar para refletir a cota atingida
       triggerAiQuotaRefresh();
+
+      const isQuota =
+        msg.toLowerCase().includes("cota") ||
+        msg.toLowerCase().includes("limite") ||
+        msg.toLowerCase().includes("premium") ||
+        msg.includes("429");
+
+      if (isQuota) {
+        triggerSynapticExhaustion({
+          feature: "SIMULADO",
+          reason: msg,
+        });
+      }
 
       // Mantém o modal aberto exibindo o aviso amigável e o botão de upgrade
       setSimuladoGenerationError(msg);
@@ -1701,6 +1769,22 @@ export default function QuestoesPage() {
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => setIsOfflineMode((prev) => !prev)}
+                type="button"
+                className={`py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-1.5 cursor-pointer shrink-0 transition-all duration-200 ${
+                  isOfflineMode
+                    ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-white/5"
+                }`}
+                title="Ativar/desativar estudo sem consumo de IA"
+              >
+                <Layers size={14} className={isOfflineMode ? "text-emerald-400" : "text-zinc-500"} />
+                <span>Modo Acervo (Zero Cota)</span>
+                {isOfflineMode && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                )}
+              </button>
             </div>
 
             {/* ATALHO DIRETO PARA O MÓDULO VIP CADERNO DE ERROS */}
@@ -1719,6 +1803,52 @@ export default function QuestoesPage() {
               <ArrowRight size={13} className="text-rose-400 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
+        )}
+
+        {/* BANNER DO MODO ACERVO OFFLINE */}
+        {isOfflineMode && !isZenMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900/80 to-slate-950/90 border border-emerald-500/35 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+          >
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
+                <ShieldAlert size={16} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-emerald-300 text-xs">
+                    Modo Acervo Offline Ativo • Zero Consumo de IA (0⚡)
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded-md bg-emerald-500/20 text-emerald-300 font-mono text-[9px] font-bold border border-emerald-500/30">
+                    100% LIVRE
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                  Estudo contínuo sem gastar Energia Sináptica. Pratique simulados do seu histórico ou resolva questões cacheadas com gabarito imediato.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleStartOfflineSession(10)}
+                className="py-2 px-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/25 transition-all cursor-pointer"
+              >
+                <Zap size={13} className="fill-slate-950 text-slate-950" />
+                <span>Praticar Acervo Salvo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOfflineMode(false)}
+                className="py-2 px-2.5 rounded-xl text-slate-400 hover:text-slate-200 text-xs transition-colors cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
+          </motion.div>
         )}
 
         {/* 3. CONTEÚDO DA ABA ATIVA COM TRANSIÇÃO SUAVE */}
@@ -2321,12 +2451,20 @@ export default function QuestoesPage() {
                     <div className="space-y-6 pb-40">
                       {/* BARRA DE FILTRO DE MARCADAS */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white dark:bg-[#0b0f19]/80 border border-slate-200 dark:border-white/10 shadow-xs">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5 flex-wrap">
                           <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
                             {filterOnlyFlagged
                               ? `Filtrando ${Object.keys(flaggedQuestions).filter((k) => flaggedQuestions[Number(k)]).length} questão(ões) marcada(s) com bandeira`
                               : `Exibindo todas as ${questions.length} questões`}
                           </span>
+
+                          {/* BADGE DE COMBO STREAK DINÂMICO */}
+                          {comboStreak >= 2 && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-linear-to-r from-amber-500/20 via-orange-500/20 to-amber-500/10 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-black shadow-lg shadow-amber-500/10 animate-pulse">
+                              <Flame size={12} className="fill-amber-400 text-amber-400 animate-bounce" />
+                              <span>{comboStreak}x Combo Sequencial!</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <button

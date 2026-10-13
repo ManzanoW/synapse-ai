@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
@@ -56,9 +56,13 @@ interface QuestionCardProps {
   onClassifyError?: (reason: ErrorClassification) => void;
 }
 
+const TRAP_WORDS_REGEX = /\b(EXCETO|INCORRETO|INCORRETA|INCORRETAS|INCORRETOS|VEDADO|VEDADA|VEDADOS|VEDADAS|DEFESO|DEFESA|PRESCINDE|PRESCINDÍVEL|PRIVATIVAMENTE|EXCLUSIVAMENTE|NUNCA|SEMPRE|SALVO|NÃO\s+PODE|NÃO\s+É|NÃO\s+SERÁ)\b/gi;
+
 const renderEnunciado = (texto: string) => {
   if (!texto) return null;
+  // 1. Separa por blocos em negrito explicitos (**texto**)
   const partes = texto.split(/(\*\*.*?\*\*)/g);
+
   return partes.map((parte, i) => {
     if (parte.startsWith("**") && parte.endsWith("**")) {
       const conteudoLimpo = parte.slice(2, -2);
@@ -71,7 +75,27 @@ const renderEnunciado = (texto: string) => {
         </span>
       );
     }
-    return <React.Fragment key={`text-${i}`}>{parte}</React.Fragment>;
+
+    // 2. Radar de Pegadinhas Automático em texto regular
+    const subPartes = parte.split(TRAP_WORDS_REGEX);
+    return (
+      <React.Fragment key={`text-frag-${i}`}>
+        {subPartes.map((sub, j) => {
+          if (sub.match(TRAP_WORDS_REGEX)) {
+            return (
+              <span
+                key={`trap-${i}-${j}`}
+                className="inline-block bg-amber-500/20 text-amber-300 dark:text-amber-200 px-1.5 py-0.5 mx-0.5 rounded-md border border-amber-400/50 font-black tracking-wide align-baseline shadow-xs underline decoration-amber-400/60 decoration-wavy"
+                title="Atenção à palavra restritiva ou negação da banca!"
+              >
+                {sub}
+              </span>
+            );
+          }
+          return <React.Fragment key={`sub-${i}-${j}`}>{sub}</React.Fragment>;
+        })}
+      </React.Fragment>
+    );
   });
 };
 
@@ -116,21 +140,6 @@ export function QuestionCard({
 
   const { playCorrect, playError, playClick, playChime } = useSound();
 
-  // Atalho global ⌘J / Ctrl+J para acionar o Mentor IA na questão focada
-  useEffect(() => {
-    if (!isFocused) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
-        e.preventDefault();
-        setIsMentorOpen((prev) => !prev);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFocused]);
-
   const toggleEliminate = (e: React.MouseEvent, altId: string) => {
     e.stopPropagation();
     if (respondida) return;
@@ -142,7 +151,8 @@ export function QuestionCard({
   const acertou = alternativaSelecionada === questao.gabaritoCorreto;
 
   // Resposta com classificação automática invisível para o Caderno de Erros e Sensory feedback
-  const handleAnswer = () => {
+  const handleAnswer = useCallback(() => {
+    if (!alternativaSelecionada) return;
     onAnswerQuestion();
     if (alternativaSelecionada === questao.gabaritoCorreto) {
       playCorrect();
@@ -159,7 +169,109 @@ export function QuestionCard({
         setSelectedReason(autoReason);
       }
     }
-  };
+  }, [
+    alternativaSelecionada,
+    questao,
+    onAnswerQuestion,
+    onClassifyError,
+    playCorrect,
+    playError,
+  ]);
+
+  // Atalhos de teclado ergonômicos na questão focada:
+  // A, B, C, D, E ou 1, 2, 3, 4, 5 (ou C/E para Cebraspe) + Enter para submeter
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignora se estiver em input, textarea ou editor ativo
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement)?.isContentEditable
+      ) {
+        return;
+      }
+
+      // Atalho ⌘J / Ctrl+J: Mentor IA
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        setIsMentorOpen((prev) => !prev);
+        return;
+      }
+
+      // Atalho R: Rascunho
+      if (e.key.toLowerCase() === "r" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setIsScratchpadOpen((prev) => !prev);
+        return;
+      }
+
+      // Atalhos antes de responder
+      if (!respondida) {
+        const key = e.key.toUpperCase();
+
+        if (questao.formato === "multipla") {
+          // Teclas A, B, C, D, E ou 1, 2, 3, 4, 5
+          const numIdx = parseInt(e.key, 10);
+          if (["A", "B", "C", "D", "E"].includes(key)) {
+            const targetAlt = questao.alternativas?.find(
+              (a) => a.id.toUpperCase() === key,
+            );
+            if (targetAlt && !eliminatedAlts[targetAlt.id]) {
+              e.preventDefault();
+              playClick();
+              triggerHaptic("light");
+              onSelectAnswer(targetAlt.id);
+            }
+          } else if (
+            !isNaN(numIdx) &&
+            numIdx >= 1 &&
+            numIdx <= (questao.alternativas?.length || 5)
+          ) {
+            const targetAlt = questao.alternativas?.[numIdx - 1];
+            if (targetAlt && !eliminatedAlts[targetAlt.id]) {
+              e.preventDefault();
+              playClick();
+              triggerHaptic("light");
+              onSelectAnswer(targetAlt.id);
+            }
+          }
+        } else {
+          // Formato Certo / Errado (Cebraspe)
+          if (key === "C" || key === "1") {
+            e.preventDefault();
+            playClick();
+            triggerHaptic("light");
+            onSelectAnswer("Certo");
+          } else if (key === "E" || key === "2") {
+            e.preventDefault();
+            playClick();
+            triggerHaptic("light");
+            onSelectAnswer("Errado");
+          }
+        }
+
+        // Enter: submeter resposta se houver alternativa selecionada
+        if (e.key === "Enter" && alternativaSelecionada) {
+          e.preventDefault();
+          handleAnswer();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    isFocused,
+    respondida,
+    questao,
+    alternativaSelecionada,
+    eliminatedAlts,
+    onSelectAnswer,
+    handleAnswer,
+    playClick,
+  ]);
 
   // Solicitar Pista Socrática pré-resposta
   const handleGetSocraticHint = async () => {
@@ -422,8 +534,8 @@ export function QuestionCard({
                     </div>
 
                     {!respondida && (
-                      <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-slate-400 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded shrink-0 self-center transition-colors">
-                        {atalhoNum}
+                      <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono text-slate-500 group-hover:text-slate-300 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded shrink-0 self-center transition-colors font-bold">
+                        {alt.id}
                       </kbd>
                     )}
                   </button>
@@ -461,6 +573,7 @@ export function QuestionCard({
             })
           : ["Certo", "Errado"].map((opcao, altIdx) => {
               const isSelected = alternativaSelecionada === opcao;
+              const atalhoLetra = opcao === "Certo" ? "C" : "E";
               const atalhoNum = altIdx + 1;
 
               return (
@@ -490,8 +603,8 @@ export function QuestionCard({
                       <span>{opcao}</span>
                     </div>
                     {!respondida && (
-                      <kbd className="hidden sm:inline-block text-[10px] font-mono text-slate-600 group-hover:text-slate-400 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded transition-colors">
-                        {atalhoNum}
+                      <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono text-slate-500 group-hover:text-slate-300 border border-slate-800/80 group-hover:border-slate-700 px-1.5 py-0.5 rounded font-bold transition-colors">
+                        {atalhoLetra} / {atalhoNum}
                       </kbd>
                     )}
                   </button>
@@ -577,9 +690,12 @@ export function QuestionCard({
               disabled={!alternativaSelecionada}
               onClick={handleAnswer}
               type="button"
-              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-indigo-950/50 ml-auto cursor-pointer min-h-[48px]"
+              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-indigo-950/50 ml-auto cursor-pointer min-h-[48px] flex items-center justify-center gap-2"
             >
-              Responder Questão
+              <span>Responder Questão</span>
+              <kbd className="hidden sm:inline-block bg-indigo-700/80 border border-indigo-400/40 text-[10px] px-1.5 py-0.5 rounded font-mono font-bold">
+                Enter ↵
+              </kbd>
             </button>
           </div>
         ) : (

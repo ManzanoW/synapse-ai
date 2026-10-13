@@ -15,6 +15,8 @@ import { ApprovalPredictorSection } from "@/components/performance/ApprovalPredi
 import { AdaptiveRebalanceComparisonModal } from "@/components/performance/AdaptiveRebalanceComparisonModal";
 import { MonteCarloRiskModal } from "@/components/analytics/MonteCarloRiskModal";
 import { ExecutiveWeeklyDossier } from "@/components/analytics/ExecutiveWeeklyDossier";
+import { UpcomingReviewsTimeline } from "@/components/analytics/UpcomingReviewsTimeline";
+
 import {
   runMonteCarloSimulationAction,
   MonteCarloSimulationResult,
@@ -706,8 +708,12 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                   </div>
                 )}
 
+                {/* LINHA DO TEMPO VISUAL DE REVISÕES FUTURAS (FSRS TIMELINE) */}
+                <UpcomingReviewsTimeline />
+
                 {/* PREDITOR DE APROVAÇÃO & NOTA DE CORTE DINÂMICA */}
                 <ApprovalPredictorSection />
+
 
                 {/* SUGESTÕES DE AJUSTE DO ALVO (ADAPTIVE REBALANCER) */}
                 <div className="relative overflow-hidden rounded-3xl bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 p-6 backdrop-blur-xl space-y-4 shadow-sm dark:shadow-2xl">

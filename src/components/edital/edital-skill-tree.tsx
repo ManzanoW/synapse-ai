@@ -77,23 +77,20 @@ interface TopicMasteryInfo {
 
 function getTopicIncidence(
   t: SkillTreeTopic,
-  index: number,
-): { label: string; level: "HIGH" | "MEDIUM" | "NORMAL" } {
-  if (t.relevance) {
-    const r = t.relevance.toLowerCase();
-    if (r.includes("alta") || r.includes("muito")) {
-      return { label: "Alta Incidência • 42%", level: "HIGH" };
-    }
-    if (r.includes("méd") || r.includes("med")) {
-      return { label: "Média Incidência • 22%", level: "MEDIUM" };
-    }
-    return { label: "Incidência Padrão • 10%", level: "NORMAL" };
+  _index: number,
+  isProUser: boolean = false,
+): { label: string; level: "HIGH" | "MEDIUM" | "NORMAL"; isLocked?: boolean } {
+  if (!isProUser || !t.relevance) {
+    return { label: "Incidência Bloqueada", level: "NORMAL", isLocked: true };
   }
-  const charCode = t.title ? t.title.charCodeAt(0) : 65;
-  const hash = (charCode + t.id.length + index) % 10;
-  if (hash <= 2) return { label: "Alta Incidência • 45%", level: "HIGH" };
-  if (hash <= 6) return { label: "Média Incidência • 24%", level: "MEDIUM" };
-  return { label: "Incidência Padrão • 9%", level: "NORMAL" };
+  const r = t.relevance.toLowerCase();
+  if (r.includes("alta") || r.includes("muito")) {
+    return { label: "Alta Incidência • 42%", level: "HIGH" };
+  }
+  if (r.includes("méd") || r.includes("med")) {
+    return { label: "Média Incidência • 22%", level: "MEDIUM" };
+  }
+  return { label: "Incidência Padrão • 10%", level: "NORMAL" };
 }
 
 function getTopicMastery(t: SkillTreeTopic): TopicMasteryInfo {
@@ -210,7 +207,7 @@ function SkillTreeTopicCard({
   const { isLight } = useTheme();
   const [isHovered, setIsHovered] = useState(false);
   const mastery = getTopicMastery(topic);
-  const inc = getTopicIncidence(topic, index);
+  const inc = getTopicIncidence(topic, index, isPro);
 
   return (
     <motion.div
@@ -848,7 +845,7 @@ export function EditalSkillTree({
                       </span>
                       {isPro ? (
                         <p className="text-xs font-bold text-amber-300">
-                          {getTopicIncidence(selectedTopic, 0).label} nas últimas provas oficiais
+                          {getTopicIncidence(selectedTopic, 0, isPro).label} nas últimas provas oficiais
                         </p>
                       ) : (
                         <p className="text-xs text-slate-400">

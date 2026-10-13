@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   Timer,
@@ -12,9 +12,12 @@ import {
   BookOpen,
   Zap,
   Target,
+  Scale,
 } from "lucide-react";
+import { CebraspeRiskOracleModal } from "@/components/quiz/CebraspeRiskOracleModal";
 
 export default function QuizHubPage() {
+  const [isOracleOpen, setIsOracleOpen] = useState(false);
   return (
     <div className="max-w-5xl mx-auto space-y-6 pt-4 pb-16">
       {/* HEADER HERO */}
@@ -143,6 +146,35 @@ export default function QuizHubPage() {
           </div>
         </Link>
       </div>
+
+      {/* 3. BANNER DE DESTAQUE: ORÁCULO DE RISCO CEBRASPE (PREMIUM) */}
+      <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-[#12102e] via-[#0d1226] to-[#080c18] border border-indigo-500/30 p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 max-w-xl text-center sm:text-left">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+            <Scale size={13} /> Oráculo de Risco Cebraspe • Novo
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-white">
+            Calculadora de Chute & Ponto de Equilíbrio
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            Descubra matematicamente quantas questões você deve deixar em branco para não afundar sua nota líquida. Simulação Monte Carlo com 2.000 iterações.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsOracleOpen(true)}
+          className="shrink-0 px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition-all shadow-xl shadow-indigo-600/30 active:scale-95 flex items-center gap-2 cursor-pointer"
+        >
+          <Sparkles size={16} />
+          <span>Calcular Ponto de Equilíbrio</span>
+        </button>
+      </div>
+
+      <CebraspeRiskOracleModal
+        isOpen={isOracleOpen}
+        onClose={() => setIsOracleOpen(false)}
+      />
     </div>
   );
 }

@@ -22,10 +22,12 @@ import {
   Flame,
   Layers,
   Printer,
+  Share2,
 } from "lucide-react";
 import { TimedQuizQuestion } from "@/types/quiz";
 import { ErrorClassification } from "@/types/quiz";
 import { PrintableTimedExamModal } from "./PrintableTimedExamModal";
+import { SocialShareModal } from "@/components/social/SocialShareModal";
 
 interface QuestionResultAudit {
   question: TimedQuizQuestion;
@@ -105,6 +107,7 @@ export function TimedExamResultView({
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
   const [filterReview, setFilterReview] = useState<"all" | "incorrect" | "correct">("all");
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [isSocialShareOpen, setIsSocialShareOpen] = useState(false);
 
   const minutesSpent = Math.floor(totalTimeSpentSeconds / 60);
   const secondsSpent = totalTimeSpentSeconds % 60;
@@ -227,8 +230,26 @@ export function TimedExamResultView({
         </div>
       </motion.div>
 
-      {/* 2. ATALHOS RÁPIDOS (CADERNO DE ERROS, IMPRESSÃO & NOVO SIMULADO) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* 2. ATALHOS RÁPIDOS (COMPARTILHAMENTO, CADERNO DE ERROS, IMPRESSÃO & NOVO SIMULADO) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <button
+          onClick={() => setIsSocialShareOpen(true)}
+          type="button"
+          className="p-4 rounded-2xl bg-indigo-600/15 border border-indigo-500/30 hover:border-indigo-500/60 transition-all flex items-center justify-between group cursor-pointer text-left shadow-lg shadow-indigo-500/10"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-300">
+              <Share2 size={18} />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-white group-hover:text-indigo-300">
+                Compartilhar
+              </h3>
+              <p className="text-[11px] text-indigo-300/80">Card para Stories & Zap</p>
+            </div>
+          </div>
+          <ArrowRight size={14} className="text-indigo-400 group-hover:translate-x-1 transition-transform" />
+        </button>
         <Link
           href="/notebook"
           className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-violet-500/40 transition-all flex items-center justify-between group"
@@ -550,6 +571,26 @@ export function TimedExamResultView({
         accuracyPercentage={accuracyPercentage}
         totalTimeSpentSeconds={totalTimeSpentSeconds}
         questionsAudit={questionsAudit}
+      />
+
+      {/* MODAL DE COMPARTILHAMENTO SOCIAL / STORIES & ZAP */}
+      <SocialShareModal
+        isOpen={isSocialShareOpen}
+        onClose={() => setIsSocialShareOpen(false)}
+        data={{
+          type: "simulado",
+          banca,
+          disciplineOrTheme: materia,
+          scoreOrAccuracy: accuracyPercentage,
+          secondaryMetrics: {
+            totalQuestions,
+            correctAnswers,
+            avgTimePerQuestion: `${avgMinutes}m ${avgSeconds}s`,
+            totalTimeFormatted: timeFormatted,
+            streakDays: 1,
+            earnedXp,
+          },
+        }}
       />
     </div>
   );

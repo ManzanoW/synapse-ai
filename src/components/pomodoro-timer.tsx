@@ -1,14 +1,51 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Pause, RotateCcw } from "lucide-react";
-import { motion } from "framer-motion";
+import { Play, Pause, RotateCcw, Zap } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { awardStudyMeritAction } from "@/actions/quota-actions";
+import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+
+function playTibetanBellSound() {
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const ctx = new AudioContextClass();
+    const now = ctx.currentTime;
+
+    // Frequências harmônicas do sino tibetano (fundamental 432 Hz e parciais harmônicos)
+    const harmonics = [432, 864, 1296];
+    harmonics.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now);
+
+      const peakGain = 0.15 / (idx + 1);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(peakGain, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.5);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 2.6);
+    });
+  } catch {}
+}
 
 export default function PomodoroTimer() {
   const [minutes, setMinutes] = useState(25);
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [mode, setMode] = useState<"foco" | "curta" | "longa">("foco");
+  const [meritBanner, setMeritBanner] = useState<string | null>(null);
 
   const toggleTimer = () => setIsActive(!isActive);
 
@@ -29,6 +66,27 @@ export default function PomodoroTimer() {
     if (newMode === "longa") setMinutes(15);
   };
 
+  // Atualiza o título da aba do navegador em tempo real com o tempo restante
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const originalTitle = "Synapse AI • Potência Cognitiva para Concursos";
+
+    if (isActive) {
+      const minStr = String(minutes).padStart(2, "0");
+      const secStr = String(seconds).padStart(2, "0");
+      const modeIcon = mode === "foco" ? "🍅" : "☕";
+      const modeLabel = mode === "foco" ? "Foco" : "Pausa";
+      document.title = `${modeIcon} ${minStr}:${secStr} (${modeLabel}) • Synapse AI`;
+    } else {
+      document.title = originalTitle;
+    }
+
+    return () => {
+      document.title = originalTitle;
+    };
+  }, [isActive, minutes, seconds, mode]);
+
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
@@ -39,7 +97,18 @@ export default function PomodoroTimer() {
         } else if (seconds === 0) {
           if (minutes === 0) {
             setIsActive(false);
-            alert("Bloco de estudos concluído! Hora de descansar.");
+            playTibetanBellSound();
+            if (mode === "foco") {
+              awardStudyMeritAction("POMODORO_FOCUS")
+                .then((res) => {
+                  if (res.success) {
+                    triggerAiQuotaRefresh();
+                    setMeritBanner(res.message || "+1⚡ de Energia Sináptica por Mérito de Estudo!");
+                    setTimeout(() => setMeritBanner(null), 5000);
+                  }
+                })
+                .catch(() => {});
+            }
             resetTimer();
           } else {
             setMinutes(minutes - 1);
@@ -54,7 +123,7 @@ export default function PomodoroTimer() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, minutes, seconds]);
+  }, [isActive, minutes, seconds, mode]);
 
   // Calcula a porcentagem baseada no tempo atual e no tempo total do modo
   const totalSeconds = mode === "foco" ? 25 * 60 : 5 * 60; // Exemplo de tempos
@@ -110,6 +179,21 @@ export default function PomodoroTimer() {
         ))}
       </div>
 
+      {/* Banner de Mérito Sináptico */}
+      <AnimatePresence>
+        {meritBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            className="w-full mt-2.5 p-2 rounded-xl bg-cyan-950/80 border border-cyan-400/40 text-cyan-300 text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse"
+          >
+            <Zap size={13} className="text-cyan-400 fill-cyan-400" />
+            <span>{meritBanner}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Relógio do Timer */}
       <div className="my-4 relative flex items-center justify-center w-full group">
         {/* Círculo de Progresso SVG */}
@@ -141,7 +225,15 @@ export default function PomodoroTimer() {
               cy="72"
               r="68"
               className="transition-all duration-1000 ease-linear"
-              stroke={isActive ? (isFocus ? "#6366f1" : "#10b981") : "#334155"}
+              stroke={
+                isActive
+                  ? isFocus
+                    ? minutes === 0 && seconds <= 60
+                      ? "#f59e0b"
+                      : "#6366f1"
+                    : "#10b981"
+                  : "#334155"
+              }
               strokeWidth="4"
               fill="transparent"
               strokeDasharray={427}
@@ -153,9 +245,22 @@ export default function PomodoroTimer() {
           </svg>
 
           {/* Display Numérico */}
-          <div className="absolute font-mono text-3xl font-bold tracking-widest text-slate-100">
-            {String(minutes).padStart(2, "0")}:
-            {String(seconds).padStart(2, "0")}
+          <div className="absolute flex flex-col items-center">
+            <span
+              className={`font-mono text-3xl font-bold tracking-widest transition-colors ${
+                isActive && isFocus && minutes === 0 && seconds <= 60
+                  ? "text-amber-300 animate-pulse"
+                  : "text-slate-100"
+              }`}
+            >
+              {String(minutes).padStart(2, "0")}:
+              {String(seconds).padStart(2, "0")}
+            </span>
+            {isActive && isFocus && minutes === 0 && seconds <= 60 && (
+              <span className="text-[8px] font-mono font-extrabold uppercase tracking-widest text-amber-400 mt-0.5">
+                Reta Final
+              </span>
+            )}
           </div>
         </motion.div>
       </div>

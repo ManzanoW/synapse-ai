@@ -32,7 +32,9 @@ import { EditalSkillTree } from "@/components/edital/edital-skill-tree";
 import { NewContentModal } from "@/components/create-subject-modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
+import { UpcomingReviewsTimeline } from "@/components/analytics/UpcomingReviewsTimeline";
 import { useSearchParams } from "next/navigation";
+
 
 interface ApiTopic {
   id: string;
@@ -610,7 +612,13 @@ function PlannerContent() {
           </div>
         </div>
 
+        {/* Projeção Visual de Revisões Futuras (FSRS Timeline) */}
+        {!loading && subjects.length > 0 && (
+          <UpcomingReviewsTimeline />
+        )}
+
         {/* GUIA DIDÁTICO QUANDO NÃO HÁ MATÉRIAS */}
+
         {!loading && subjects.length === 0 && (
           <div className="relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-linear-to-br from-[#090d19] via-[#050812] to-[#020409] p-5 sm:p-8 shadow-2xl">
             <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />

@@ -52,6 +52,8 @@ import {
   RebalanceImpactModal,
   RebalanceComparisonItem,
 } from "@/components/week/RebalanceImpactModal";
+import { CalendarExportModal } from "@/components/week/CalendarExportModal";
+
 
 const HIGH_CONTRAST_PALETTE = [
   "#f43f5e",
@@ -145,6 +147,7 @@ export default function WeekPage() {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isPrintPlannerOpen, setIsPrintPlannerOpen] = useState(false);
+  const [isCalendarExportOpen, setIsCalendarExportOpen] = useState(false);
   const [isRescueMenuOpen, setIsRescueMenuOpen] = useState(false);
   const rescueMenuRef = useRef<HTMLDivElement>(null);
 
@@ -778,10 +781,24 @@ export default function WeekPage() {
             </p>
           </div>
 
-          {/* Action Toolbar Consolidada: IA (Primário) + Resgate (Contingência) + Mais Ações */}
+          {/* Action Toolbar Consolidada: Agenda + IA (Primário) + Resgate (Contingência) + Mais Ações */}
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            {/* Sincronização de Agenda: Google & .ics */}
+            <button
+              type="button"
+              onClick={() => setIsCalendarExportOpen(true)}
+              disabled={!hasSubjects}
+              title="Sincronizar grade semanal com Google Calendar, Apple Calendar ou Outlook (.ics)"
+              className="inline-flex items-center justify-center gap-1.5 bg-slate-900/90 hover:bg-slate-800 text-indigo-400 dark:text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-500/60 text-xs font-bold px-3 sm:px-3.5 py-2 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
+            >
+              <Calendar size={14} className="text-indigo-400" />
+              <span className="hidden sm:inline">Sincronizar com Agenda (Google / .ics)</span>
+              <span className="sm:hidden">Agenda (.ics)</span>
+            </button>
+
             {/* Primary Action: Rebalancear com IA */}
             <button
+
               onClick={handleManualAIRebalance}
               disabled={isManualRebalancing || isPending || !hasSubjects}
               title="Rebalanceamento Preditivo com IA: cruza seus erros e acertos para redistribuir horas com foco nos pontos fracos"
@@ -911,14 +928,15 @@ export default function WeekPage() {
                     type="button"
                     onClick={() => {
                       setIsActionsMenuOpen(false);
-                      handleExportIcs();
+                      setIsCalendarExportOpen(true);
                     }}
                     disabled={!hasSubjects}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors text-left cursor-pointer disabled:opacity-50"
                   >
-                    <Download size={14} className="text-emerald-400" />
-                    <span>Exportar Calendário (.ics)</span>
+                    <Calendar size={14} className="text-emerald-400" />
+                    <span>Sincronizar com Agenda (Google / .ics)</span>
                   </button>
+
 
                   <button
                     type="button"
@@ -1899,6 +1917,15 @@ export default function WeekPage() {
         weeklyGoalHours={goalHours}
         activeDaysPerWeek={activeDays}
       />
+
+      {/* Modal de Sincronização com Google Calendar e .ics */}
+      <CalendarExportModal
+        isOpen={isCalendarExportOpen}
+        onClose={() => setIsCalendarExportOpen(false)}
+      />
     </div>
+
   );
 }
+
+

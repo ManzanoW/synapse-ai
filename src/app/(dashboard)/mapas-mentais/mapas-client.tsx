@@ -19,12 +19,18 @@ import {
   FolderHeart,
 } from "lucide-react";
 import { MindmapViewer } from "@/components/mindmap/MindmapViewer";
+import { ShareMindmapModal } from "@/components/mindmap/ShareMindmapModal";
 import {
   generateMindmapAction,
   MindmapData,
 } from "@/actions/mindmap-actions";
 import { useSound } from "@/hooks/useSound";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import {
+  triggerOptimisticEnergyConsumption,
+  triggerSynapticExhaustion,
+  triggerAiQuotaRefresh,
+} from "@/lib/quota-events";
 
 // Mapas Mentais Pré-compilados de Alta Incidência para Acesso Imediato
 const PRESET_MINDMAPS: MindmapData[] = [
@@ -187,6 +193,7 @@ export function MapasMentaisClient() {
   const [searchFilter, setSearchFilter] = useState("");
   const [savedMindmaps, setSavedMindmaps] = useState<MindmapData[]>([]);
   const [activeCatalogTab, setActiveCatalogTab] = useState<"presets" | "my_maps">("presets");
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const { playClick, playChime } = useSound();
 
@@ -237,18 +244,39 @@ export function MapasMentaisClient() {
     playClick();
     triggerHaptic("medium");
 
+    // Feedback tátil imediato de consumo (-1⚡)
+    triggerOptimisticEnergyConsumption({
+      cost: 1,
+      feature: "MINDMAP",
+      label: "Mapa Mental IA",
+    });
+
     try {
       const res = await generateMindmapAction({
         topic: topicInput.trim(),
         subject: subjectInput,
       });
 
+      if (res.isQuotaExceeded) {
+        triggerSynapticExhaustion({
+          feature: "MINDMAP",
+          reason: res.error || "Limite semanal de mapas mentais com IA atingido.",
+        });
+        return;
+      }
+
       if (res.success && res.data) {
+        triggerAiQuotaRefresh();
         setActiveMindmap(res.data);
         saveMindmap(res.data);
         setActiveCatalogTab("my_maps");
         playChime();
         triggerHaptic("success");
+      } else if (res.error) {
+        triggerSynapticExhaustion({
+          feature: "MINDMAP",
+          reason: res.error,
+        });
       }
     } catch (err) {
       console.error("Erro ao gerar mapa mental:", err);
@@ -476,16 +504,39 @@ export function MapasMentaisClient() {
                 {activeMindmap.summary}
               </p>
             </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
-              <span className="inline-flex items-center gap-1">
-                <Lightbulb size={13} className="text-amber-400" /> Macetes destacados
-              </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsShareModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                title="Compartilhar este mapa mental com um link público"
+              >
+                <Share2 size={13} />
+                <span>Compartilhar Mapa</span>
+              </button>
+
+              <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
+                <span className="inline-flex items-center gap-1">
+                  <Lightbulb size={13} className="text-amber-400" /> Macetes destacados
+                </span>
+              </div>
             </div>
           </div>
 
           <MindmapViewer data={activeMindmap} />
         </div>
       </div>
+
+      <ShareMindmapModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        mindmapId={activeMindmap.id}
+        mindmapTitle={activeMindmap.title}
+        subject={activeMindmap.subject}
+      />
     </div>
   );
 }
