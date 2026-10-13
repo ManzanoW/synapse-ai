@@ -30,6 +30,7 @@ interface RedemptionExamModalProps {
   onClose: () => void;
   questions: RedemptionExamQuestion[];
   onExamComplete?: () => void;
+  mode?: "direct" | "ai";
 }
 
 export function RedemptionExamModal({
@@ -37,6 +38,7 @@ export function RedemptionExamModal({
   onClose,
   questions,
   onExamComplete,
+  mode = "ai",
 }: RedemptionExamModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -151,20 +153,40 @@ export function RedemptionExamModal({
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-rose-500/20">
-              <ShieldCheck className="w-5 h-5" />
+            <div
+              className={`w-10 h-10 rounded-2xl text-white flex items-center justify-center shadow-md ${
+                mode === "direct"
+                  ? "bg-gradient-to-tr from-emerald-500 to-teal-500 shadow-emerald-500/20"
+                  : "bg-gradient-to-tr from-rose-500 to-amber-500 shadow-rose-500/20"
+              }`}
+            >
+              {mode === "direct" ? (
+                <RotateCcw className="w-5 h-5" />
+              ) : (
+                <ShieldCheck className="w-5 h-5" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">
-                  Simulado de Redenção
+                  {mode === "direct"
+                    ? "Revanche Direta de Erros"
+                    : "Simulado de Redenção"}
                 </h3>
-                <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
-                  Cicatrização Ativa
+                <span
+                  className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
+                    mode === "direct"
+                      ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900"
+                      : "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900"
+                  }`}
+                >
+                  {mode === "direct" ? "0⚡ Zero Cota" : "Cicatrização Ativa IA"}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Questões Gêmeas da IA para dominar as pegadinhas que te derrubaram
+                {mode === "direct"
+                  ? "Resolva as questões que você errou para cicatrizar as falhas e dominar o conteúdo"
+                  : "Questões Gêmeas da IA para dominar as pegadinhas que te derrubaram"}
               </p>
             </div>
           </div>

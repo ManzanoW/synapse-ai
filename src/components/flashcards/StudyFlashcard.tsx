@@ -50,6 +50,8 @@ import {
   generateFlashcardMnemonicAction,
   reviewFlashcardAction,
 } from "@/actions/flashcard-actions";
+import { awardStudyMeritAction } from "@/actions/quota-actions";
+import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 import {
   useOfflineSync,
   enqueueOfflineReview,
@@ -93,6 +95,7 @@ export default function StudyFlashcard({
   const [index, setIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [meritEarnedMessage, setMeritEarnedMessage] = useState<string | null>(null);
   const [showEbbinghausCurve, setShowEbbinghausCurve] = useState(false);
   const [isAudioPlayerOpen, setIsAudioPlayerOpen] = useState(false);
   const isDraggingRef = useRef(false);
@@ -315,6 +318,17 @@ export default function StudyFlashcard({
         });
 
         checkNewAchievements(notifyAchievement);
+
+        if (cards.length >= 10) {
+          awardStudyMeritAction("FSRS_STREAK")
+            .then((res) => {
+              if (res.success) {
+                triggerAiQuotaRefresh();
+                setMeritEarnedMessage(res.message || "+1⚡ de Energia Sináptica por Mérito de Estudo!");
+              }
+            })
+            .catch(() => {});
+        }
       }
 
       // 3. Reatividade Instantânea com useOptimistic gerenciada via startTransition
@@ -575,6 +589,13 @@ export default function StudyFlashcard({
                 com sucesso.
               </p>
             </div>
+
+            {meritEarnedMessage && (
+              <div className="mx-auto max-w-sm rounded-2xl border border-cyan-400/40 bg-gradient-to-r from-cyan-950/80 via-indigo-950/70 to-slate-900/80 p-3 shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2 text-cyan-300 text-xs font-bold animate-pulse">
+                <Zap size={15} className="text-cyan-400 fill-cyan-400 shrink-0" />
+                <span>{meritEarnedMessage}</span>
+              </div>
+            )}
 
             {levelUpData?.leveledUp && (
               <div className="mx-auto max-w-md rounded-2xl border border-purple-500/40 bg-gradient-to-r from-purple-900/50 via-indigo-900/50 to-purple-900/50 p-4 shadow-[0_0_25px_rgba(168,85,247,0.3)] animate-bounce">
