@@ -55,6 +55,18 @@ export function ThemeSelectorModal({
   const [manualText, setManualText] = useState<string>("");
   const [manualTopics, setManualTopics] = useState<string>("");
 
+  // Listener para fechar modal com Escape
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleGenerate = async () => {
@@ -125,7 +137,12 @@ export function ThemeSelectorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Escolher Tema de Redação"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+    >
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-500/30 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* CABEÇALHO DO MODAL */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-10">
@@ -146,7 +163,8 @@ export function ThemeSelectorModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Fechar escolha de tema"
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500"
           >
             <X size={18} />
           </button>
@@ -154,11 +172,13 @@ export function ThemeSelectorModal({
 
         {/* SELETOR DE MODO (IA vs MANUAL) */}
         <div className="p-4 sm:p-5 flex flex-col gap-4">
-          <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 border border-slate-200 dark:border-white/5">
+          <div role="tablist" aria-label="Modo de seleção do tema" className="flex rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 border border-slate-200 dark:border-white/5">
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "ai"}
               onClick={() => setActiveTab("ai")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500 ${
                 activeTab === "ai"
                   ? "bg-violet-600 text-white shadow-md"
                   : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
@@ -169,8 +189,10 @@ export function ThemeSelectorModal({
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "manual"}
               onClick={() => setActiveTab("manual")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500 ${
                 activeTab === "manual"
                   ? "bg-violet-600 text-white shadow-md"
                   : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
@@ -194,8 +216,9 @@ export function ThemeSelectorModal({
                     <button
                       key={banca.id}
                       type="button"
+                      aria-pressed={selectedBanca === banca.id}
                       onClick={() => setSelectedBanca(banca.id)}
-                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500 ${
                         selectedBanca === banca.id
                           ? "bg-violet-50 border-violet-500 text-violet-950 shadow-md ring-1 ring-violet-500 dark:bg-violet-500/15 dark:border-violet-500 dark:text-white dark:ring-violet-400 dark:shadow-violet-950/40"
                           : "bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-300 text-slate-800 dark:bg-slate-800/60 dark:border-white/5 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:border-white/10"
@@ -222,8 +245,9 @@ export function ThemeSelectorModal({
                     <button
                       key={area.id}
                       type="button"
+                      aria-pressed={selectedArea === area.id}
                       onClick={() => setSelectedArea(area.id)}
-                      className={`p-2 rounded-xl border text-center text-xs font-semibold transition-all cursor-pointer ${
+                      className={`p-2 rounded-xl border text-center text-xs font-semibold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500 ${
                         selectedArea === area.id
                           ? "bg-indigo-50 border-indigo-500 text-indigo-900 ring-1 ring-indigo-400 font-bold dark:bg-indigo-500/20 dark:border-indigo-500 dark:text-indigo-200"
                           : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800/60 dark:border-white/5 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"

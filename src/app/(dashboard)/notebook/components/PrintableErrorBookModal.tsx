@@ -59,6 +59,18 @@ export function PrintableErrorBookModal({
     }
   }, [isOpen, initialTab]);
 
+  // Fecha o modal ao pressionar a tecla Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Lista de matérias únicas disponíveis nos itens
   const uniqueSubjects = useMemo(() => {
     const map = new Map<string, string>();
@@ -193,7 +205,12 @@ export function PrintableErrorBookModal({
       `}</style>
 
       {/* MODAL DE TELA CHEIA / VISUALIZADOR */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto no-print">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Apostila de Véspera e Exportação"
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto no-print"
+      >
         <div className="relative w-full max-w-5xl bg-white dark:bg-[#090d16] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
           {/* HEADER DO MODAL */}
           <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-4 bg-slate-50/80 dark:bg-white/[0.02]">
@@ -217,7 +234,8 @@ export function PrintableErrorBookModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+              aria-label="Fechar visualizador de apostila"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500"
             >
               <X size={20} />
             </button>
@@ -226,11 +244,13 @@ export function PrintableErrorBookModal({
           {/* BARRA DE CONTROLE E FILTROS */}
           <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-3 text-xs">
             {/* Abas Impressão vs Anki */}
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/5">
+            <div role="tablist" aria-label="Formatos de exportação" className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/5">
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === "print"}
                 onClick={() => setActiveTab("print")}
-                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500 ${
                   activeTab === "print"
                     ? "bg-violet-600 text-white shadow"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -241,8 +261,10 @@ export function PrintableErrorBookModal({
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === "anki"}
                 onClick={() => setActiveTab("anki")}
-                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500 ${
                   activeTab === "anki"
                     ? "bg-indigo-600 text-white shadow"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"

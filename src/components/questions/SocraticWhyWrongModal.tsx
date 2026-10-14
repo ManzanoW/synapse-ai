@@ -76,10 +76,27 @@ export function SocraticWhyWrongModal({
     onClose();
   };
 
+  // Listener para fechar com Escape
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 font-sans">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Dissecação da Alternativa ${optionId}`}
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 font-sans"
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -127,7 +144,8 @@ export function SocraticWhyWrongModal({
                   <button
                     type="button"
                     onClick={toggleSpeak}
-                    className={`p-2 rounded-xl transition-all cursor-pointer ${
+                    aria-label={isPlayingAudio ? "Pausar leitura em voz alta" : "Ouvir explicação com IA"}
+                    className={`min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 rounded-xl transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                       isPlayingAudio
                         ? "bg-indigo-600 text-white animate-pulse"
                         : "text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/5"
@@ -140,7 +158,8 @@ export function SocraticWhyWrongModal({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  aria-label="Fechar dissecação da alternativa"
+                  className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   <X size={16} />
                 </button>

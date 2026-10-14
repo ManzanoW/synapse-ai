@@ -163,6 +163,8 @@ export function RemediationQuizModal({
   >([]);
 
   // Sincroniza taxonomia inicial quando o modal abre
+  const [emptyWarning, setEmptyWarning] = useState<string | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       setSelectedTaxonomy(initialTaxonomy || "ALL");
@@ -172,12 +174,30 @@ export function RemediationQuizModal({
       setSelectedOption(null);
       setHasAnswered(false);
       setLastResult(null);
+      setEmptyWarning(null);
     }
   }, [isOpen, initialTaxonomy]);
+
+  // Listener para fechar com Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (phase === "COMPLETED") {
+          handleFinishAndClose();
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, phase]);
 
   // Busca e inicia o simulado
   const handleStartQuiz = async () => {
     setIsLoading(true);
+    setEmptyWarning(null);
     try {
       const res = await getRemediationQuestionsAction({
         taxonomy: selectedTaxonomy,
@@ -194,13 +214,13 @@ export function RemediationQuizModal({
         setSessionResults([]);
         setPhase("IN_PROGRESS");
       } else {
-        alert(
-          "Nenhuma questão pendente de remediação encontrada para os filtros selecionados."
+        setEmptyWarning(
+          "Nenhuma questão pendente encontrada para os filtros selecionados. Parabéns, você já dominou estes tópicos! 🏆"
         );
       }
     } catch (err) {
       console.error("Erro ao carregar simulado:", err);
-      alert("Falha ao iniciar simulado de remediação.");
+      setEmptyWarning("Falha de conexão ao iniciar o simulado de remediação. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -334,7 +354,12 @@ export function RemediationQuizModal({
       : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Simulado de Remediação"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -366,8 +391,10 @@ export function RemediationQuizModal({
           </div>
 
           <button
+            type="button"
             onClick={phase === "COMPLETED" ? handleFinishAndClose : onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+            aria-label="Fechar simulado de remediação"
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-400"
           >
             <X size={20} />
           </button>
@@ -480,12 +507,19 @@ export function RemediationQuizModal({
                 </div>
               </div>
 
+              {emptyWarning && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5 animate-in fade-in">
+                  <Sparkles size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{emptyWarning}</span>
+                </div>
+              )}
+
               <div className="pt-2">
                 <button
                   type="button"
                   onClick={handleStartQuiz}
                   disabled={isLoading}
-                  className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-rose-600 hover:from-violet-500 hover:via-indigo-500 hover:to-rose-500 text-white font-extrabold text-sm sm:text-base tracking-wide shadow-xl shadow-violet-600/30 border border-violet-400/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                  className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-rose-600 hover:from-violet-500 hover:via-indigo-500 hover:to-rose-500 text-white font-extrabold text-sm sm:text-base tracking-wide shadow-xl shadow-violet-600/30 border border-violet-400/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-400"
                 >
                   {isLoading ? (
                     <>
@@ -592,9 +626,12 @@ export function RemediationQuizModal({
                     <button
                       key={opt.id}
                       type="button"
+                      role="button"
+                      aria-pressed={isSelected}
+                      aria-label={`Alternativa ${optLetter}: ${opt.texto}`}
                       disabled={hasAnswered || isSubmitting}
                       onClick={() => setSelectedOption(optLetter)}
-                      className={`w-full p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${cardStyle} disabled:cursor-default`}
+                      className={`w-full min-h-[48px] p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-400 ${cardStyle} disabled:cursor-default`}
                     >
                       <div
                         className={`w-7 h-7 rounded-xl border flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${badgeStyle}`}
