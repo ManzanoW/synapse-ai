@@ -312,7 +312,8 @@ export default function StudyRoomClient({
         if (document.fullscreenElement && document.exitFullscreen) {
           document.exitFullscreen().catch(() => {});
         }
-      } else if (e.code === "Space" && isZenMode) {
+      } else if (e.code === "Space") {
+        if (activeEl?.tagName === "BUTTON") return;
         e.preventDefault();
         setIsActive((prev) => !prev);
       }
@@ -876,7 +877,8 @@ export default function StudyRoomClient({
             {/* Reset */}
             <button
               onClick={resetTimer}
-              className="p-3.5 rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95 group"
+              aria-label="Reiniciar tempo do cronômetro"
+              className="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95 group cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
               title="Reiniciar tempo"
             >
               <RotateCcw
@@ -888,7 +890,9 @@ export default function StudyRoomClient({
             {/* Play/Pause Principal */}
             <button
               onClick={toggleTimer}
-              className={`flex-1 min-w-40 py-3.5 px-6 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 ${
+              aria-label={isActive ? "Pausar cronômetro de estudo (ou pressione Espaço)" : "Iniciar cronômetro de estudo (ou pressione Espaço)"}
+              title={isActive ? "Pausar (Espaço)" : "Iniciar (Espaço)"}
+              className={`flex-1 min-w-40 min-h-[48px] py-3.5 px-6 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-400 ${
                 isActive
                   ? isFocusMode
                     ? "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30"
@@ -903,11 +907,21 @@ export default function StudyRoomClient({
             {/* Próxima Fase */}
             <button
               onClick={skipToNext}
-              className="p-3.5 rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95"
+              aria-label="Pular para a próxima fase (foco ou descanso)"
+              className="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
               title="Pular para a próxima fase"
             >
               <SkipForward size={18} />
             </button>
+          </div>
+
+          {/* Dica de atalho ergonômico no teclado */}
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mt-3 select-none">
+            <span>Pressione</span>
+            <kbd className="px-1.5 py-0.5 rounded-md bg-slate-950/80 text-slate-300 border border-slate-800 text-[10px] font-mono shadow-xs">
+              Espaço
+            </kbd>
+            <span>para pausar ou retomar</span>
           </div>
 
           {/* Botão de Concluir Bloco Manualmente */}

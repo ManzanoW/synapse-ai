@@ -198,7 +198,8 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={() => setIsTimerRunning(!isTimerRunning)}
-            className="text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
+            aria-label={isTimerRunning ? "Pausar cronômetro de prova" : "Retomar cronômetro de prova"}
+            className="min-h-[36px] px-3 py-1 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-violet-500"
           >
             {isTimerRunning ? "Pausar" : "Retomar"}
           </button>
@@ -207,6 +208,13 @@ export function ExamSheetEditor({
             <span className="text-slate-500 dark:text-slate-400">Status:</span>
             <span className={lineStatus.color}>{lineStatus.label}</span>
           </div>
+
+          {hasSavedDraft && (
+            <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 text-[11px] font-medium" title="Suas alterações são salvas localmente a cada caractere">
+              <CheckCircle2 size={12} className="text-emerald-600 dark:text-emerald-400" />
+              <span>Rascunho salvo</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -214,10 +222,10 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={onOpenMotivatingTexts}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-white/10 transition-colors cursor-pointer shadow-2xs"
+            className="min-h-[36px] sm:min-h-[40px] flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-white/10 transition-colors cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
             title="Abrir proposta e textos motivadores"
           >
-            <BookOpen size={13} className="text-indigo-600 dark:text-indigo-400" />
+            <BookOpen size={14} className="text-indigo-600 dark:text-indigo-400" />
             <span>Proposta & Textos</span>
           </button>
 
@@ -225,10 +233,10 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={() => setIsOcrModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:hover:bg-violet-900/60 dark:text-violet-200 text-xs font-semibold dark:border-violet-500/30 dark:hover:border-violet-400 transition-all cursor-pointer shadow-2xs"
+            className="min-h-[36px] sm:min-h-[40px] flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:hover:bg-violet-900/60 dark:text-violet-200 text-xs font-semibold dark:border-violet-500/30 dark:hover:border-violet-400 transition-all cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-violet-500"
             title="Digitalizar foto da folha manuscrita com IA"
           >
-            <Camera size={13} className="text-violet-600 dark:text-violet-400" />
+            <Camera size={14} className="text-violet-600 dark:text-violet-400" />
             <span className="hidden sm:inline">Foto Manuscrito</span>
             <span className="sm:hidden">OCR</span>
           </button>
@@ -237,10 +245,10 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={() => setIsPrintModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:hover:text-white text-xs font-semibold border border-slate-200 dark:border-white/10 dark:hover:border-violet-500/40 transition-all cursor-pointer shadow-2xs"
+            className="min-h-[36px] sm:min-h-[40px] flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:hover:text-white text-xs font-semibold border border-slate-200 dark:border-white/10 dark:hover:border-violet-500/40 transition-all cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-violet-500"
             title="Imprimir folha oficial pautada A4 no formato de concurso (Cebraspe/FGV)"
           >
-            <Printer size={13} className="text-violet-600 dark:text-violet-400" />
+            <Printer size={14} className="text-violet-600 dark:text-violet-400" />
             <span className="hidden sm:inline">Imprimir Folha A4</span>
             <span className="sm:hidden">Imprimir</span>
           </button>
@@ -249,7 +257,7 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={handleIndentParagraph}
-            className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:hover:text-white text-xs font-medium border border-slate-200 dark:border-white/10 transition-colors cursor-pointer shadow-2xs"
+            className="min-h-[36px] sm:min-h-[40px] hidden md:flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:hover:text-white text-xs font-medium border border-slate-200 dark:border-white/10 transition-colors cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-violet-500"
             title="Inserir recuo de parágrafo oficial (6 espaços)"
           >
             <span>⇥ Parágrafo</span>
@@ -259,20 +267,22 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={() => setIsClearModalOpen(true)}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:text-rose-400 dark:hover:bg-rose-500/10 transition-colors cursor-pointer"
+            aria-label="Limpar folha de redação"
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:text-rose-400 dark:hover:bg-rose-500/10 border border-transparent hover:border-rose-200 dark:hover:border-rose-500/20 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-rose-500"
             title="Limpar Folha"
           >
-            <RotateCcw size={15} />
+            <RotateCcw size={16} />
           </button>
 
           {/* Botão Tela Cheia */}
           <button
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label={isFullscreen ? "Sair do modo tela cheia" : "Entrar no modo foco em tela cheia"}
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/10 border border-transparent hover:border-slate-200 dark:hover:border-white/10 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-violet-500"
             title={isFullscreen ? "Sair da Tela Cheia" : "Modo Foco em Tela Cheia"}
           >
-            {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
 
           {/* Botão Enviar para Banca */}
@@ -280,7 +290,7 @@ export function ExamSheetEditor({
             type="button"
             onClick={handleOpenSubmitModal}
             disabled={isEvaluating}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 sm:py-1.5 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-violet-950/60 transition-all cursor-pointer active:scale-95 sm:ml-2"
+            className="min-h-[44px] w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 sm:py-2.5 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-violet-950/60 transition-all cursor-pointer active:scale-95 sm:ml-2 focus:outline-hidden focus:ring-2 focus:ring-violet-500"
           >
             {isEvaluating ? (
               <>

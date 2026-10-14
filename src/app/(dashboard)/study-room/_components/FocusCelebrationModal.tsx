@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Trophy, Zap, Flame, Shield, CheckCircle2, Clock, X, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { FinishFocusSessionResult } from "@/actions/focus-session-actions";
@@ -20,15 +20,37 @@ export function FocusCelebrationModal({
   subjectName,
   tasksCompletedCount,
 }: FocusCelebrationModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !result) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="focus-celebration-title"
+      aria-describedby="focus-celebration-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="relative w-full max-w-md bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-indigo-500/10 text-center space-y-6">
-        {/* Botão Fechar */}
+        {/* Botão Fechar com touch target de 44px */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition-colors"
+          aria-label="Fechar celebração de foco"
+          className="absolute top-4 right-4 w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
         >
           <X size={18} />
         </button>
@@ -43,10 +65,10 @@ export function FocusCelebrationModal({
 
         {/* Mensagem Principal */}
         <div className="space-y-1.5">
-          <h2 className="text-xl font-bold text-white">
+          <h2 id="focus-celebration-title" className="text-xl font-bold text-white">
             Bloco de Foco Concluído!
           </h2>
-          <p className="text-xs text-slate-400">
+          <p id="focus-celebration-desc" className="text-xs text-slate-400">
             {subjectName ? `Disciplina: ${subjectName}` : "Concentração e disciplina inabaláveis."}
           </p>
         </div>
@@ -98,14 +120,15 @@ export function FocusCelebrationModal({
         {/* Ações */}
         <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
           <button
+            type="button"
             onClick={onClose}
-            className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+            className="min-h-[44px] flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-lg shadow-indigo-600/20 active:scale-95 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-400"
           >
             Iniciar Próximo Bloco
           </button>
           <Link
             href="/questions"
-            className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 active:scale-95"
+            className="min-h-[44px] py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-slate-400"
           >
             Treinar Questões
             <ArrowRight size={14} />
