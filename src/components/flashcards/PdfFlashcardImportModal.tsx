@@ -68,6 +68,17 @@ export function PdfFlashcardImportModal({
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Estados de Fluxo
   const [step, setStep] = useState<"UPLOAD" | "SELECT_TOPICS" | "GENERATING" | "SUCCESS">("UPLOAD");
   const [isParsing, setIsParsing] = useState(false);
@@ -335,7 +346,16 @@ export function PdfFlashcardImportModal({
   if (!mounted || !isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pdf-importer-title"
+      aria-describedby="pdf-importer-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -349,18 +369,20 @@ export function PdfFlashcardImportModal({
                 <FileUp size={20} />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+                <h2 id="pdf-importer-title" className="text-base sm:text-lg font-black text-white tracking-tight">
                   Importador Inteligente de PDF
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p id="pdf-importer-desc" className="text-xs text-slate-400">
                   Higienização no servidor com extração para Flashcards ou Simulado
                 </p>
               </div>
             </div>
 
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer"
+              aria-label="Fechar importador inteligente de PDF"
+              className="w-11 h-11 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
             >
               <X size={18} />
             </button>
