@@ -139,8 +139,12 @@ export function AudioFlashcardPlayerModal({
         e.preventDefault();
         handleTogglePlay();
       } else if (e.key === "Escape") {
-        pause();
-        onClose();
+        if (showLimitModal) {
+          setShowLimitModal(false);
+        } else {
+          pause();
+          onClose();
+        }
       } else if (e.key === "ArrowRight") {
         next();
       } else if (e.key === "ArrowLeft") {
@@ -150,7 +154,7 @@ export function AudioFlashcardPlayerModal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleTogglePlay, pause, onClose, next, prev]);
+  }, [isOpen, handleTogglePlay, pause, onClose, next, prev, showLimitModal]);
 
   const handleClose = () => {
     pause();
@@ -249,7 +253,14 @@ export function AudioFlashcardPlayerModal({
           </div>
 
         {/* Barra de Progresso Fina */}
-        <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden my-3 border border-slate-900">
+        <div
+          role="progressbar"
+          aria-valuenow={Math.round(progressPercent)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Progresso do deck: card ${currentIndex + 1} de ${totalCards}`}
+          className="w-full h-1 bg-slate-950 rounded-full overflow-hidden my-3 border border-slate-900"
+        >
           <div
             className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
@@ -476,6 +487,9 @@ export function AudioFlashcardPlayerModal({
               onClick={() => setShowLimitModal(false)}
             >
               <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Estudo Hands-Free Pro"
                 initial={{ scale: 0.95, opacity: 0, y: 15 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 15 }}
@@ -497,9 +511,10 @@ export function AudioFlashcardPlayerModal({
                   <button
                     type="button"
                     onClick={() => setShowLimitModal(false)}
-                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 cursor-pointer"
+                    aria-label="Fechar aviso de degustação"
+                    className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400"
                   >
-                    <X size={16} />
+                    <X size={18} />
                   </button>
                 </div>
 
