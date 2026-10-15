@@ -257,9 +257,25 @@ export function TutorialModal({ isOpen, onClose, isDemo = false }: TutorialModal
     return isDemo ? `${href}?demo=true` : href;
   };
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tutorial-modal-title"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
         {/* Backdrop escuro com blur */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -291,7 +307,7 @@ export function TutorialModal({ isOpen, onClose, isDemo = false }: TutorialModal
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400">
                   Modo Tutorial Synapse
                 </span>
-                <h2 className="text-sm sm:text-base font-black text-white">
+                <h2 id="tutorial-modal-title" className="text-sm sm:text-base font-black text-white">
                   Guia Interativo da Plataforma
                 </h2>
               </div>
@@ -303,10 +319,11 @@ export function TutorialModal({ isOpen, onClose, isDemo = false }: TutorialModal
               </span>
               <button
                 onClick={onClose}
-                className="rounded-xl border border-white/5 bg-white/[0.03] p-1.5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-                title="Fechar Tutorial"
+                aria-label="Fechar Tutorial"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-white/5 bg-white/[0.03] p-2 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                title="Fechar Tutorial (ESC)"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
           </div>

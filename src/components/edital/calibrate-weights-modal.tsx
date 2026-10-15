@@ -153,9 +153,33 @@ export function CalibrateWeightsModal({
     }
   };
 
+  // Listener para tecla Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isSaving) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isSaving, onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative flex flex-col w-full max-w-3xl max-h-[90vh] bg-linear-to-br from-[#090d16] via-[#070b14] to-[#04060c] border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="calibrate-weights-modal-title"
+      aria-describedby="calibrate-weights-modal-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isSaving) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative flex flex-col w-full max-w-3xl max-h-[90vh] bg-linear-to-br from-[#090d16] via-[#070b14] to-[#04060c] border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+      >
         {/* Glow de ambientação no topo */}
         <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-500/50 to-transparent" />
         <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
@@ -169,14 +193,14 @@ export function CalibrateWeightsModal({
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+                <h2 id="calibrate-weights-modal-title" className="text-base sm:text-lg font-black tracking-tight text-white">
                   Calibragem de Pesos do Edital
                 </h2>
                 <span className="rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase text-amber-300">
                   Radar Neural
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p id="calibrate-weights-modal-desc" className="text-xs text-slate-400 mt-0.5">
                 Defina a importância de cada disciplina para calibrar o Radar de Domínio e o agendamento inteligente.
               </p>
             </div>
@@ -184,9 +208,11 @@ export function CalibrateWeightsModal({
 
           <button
             onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            disabled={isSaving}
+            aria-label="Fechar calibragem de pesos"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 disabled:opacity-50"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 

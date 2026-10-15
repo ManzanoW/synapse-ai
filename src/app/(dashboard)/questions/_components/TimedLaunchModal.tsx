@@ -44,6 +44,17 @@ export function TimedLaunchModal({
 }: TimedLaunchModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const filteredQuizzes = savedQuizzes.filter((q) => {
@@ -57,12 +68,22 @@ export function TimedLaunchModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="timed-launch-modal-title"
+        aria-describedby="timed-launch-modal-desc"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 20 }}
           transition={{ duration: 0.2 }}
+          onClick={(e) => e.stopPropagation()}
           className="relative w-full max-w-2xl bg-linear-to-b from-[#0f1426] via-[#090d18] to-[#04060c] border border-violet-500/30 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-violet-950/50 text-slate-100 space-y-6 max-h-[85vh] flex flex-col overflow-hidden"
         >
           {/* Ambient Glow */}
@@ -80,7 +101,7 @@ export function TimedLaunchModal({
                   <Sparkles size={11} className="text-violet-400" />
                   Central de Execução Cronometrada
                 </div>
-                <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                <h2 id="timed-launch-modal-title" className="text-lg sm:text-xl font-black text-white tracking-tight">
                   Iniciar Simulado Sob Pressão
                 </h2>
               </div>
@@ -89,13 +110,14 @@ export function TimedLaunchModal({
             <button
               onClick={onClose}
               type="button"
-              className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              aria-label="Fechar central de simulado cronometrado"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
             >
               <X size={18} />
             </button>
           </div>
 
-          <p className="text-xs text-slate-300 relative z-10 -mt-2 leading-relaxed">
+          <p id="timed-launch-modal-desc" className="text-xs text-slate-300 relative z-10 -mt-2 leading-relaxed">
             Selecione uma base de questões para treinar com Pacing Bar e HUD de
             prova real em alta intensidade.
           </p>

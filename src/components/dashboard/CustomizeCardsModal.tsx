@@ -147,13 +147,36 @@ export function CustomizeCardsModal({
   onApplyPreset,
   currentMode,
 }: CustomizeCardsModalProps) {
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const activeCount = Object.values(visibleCards).filter(Boolean).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150 select-none">
-      <div className="bg-slate-950 border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="customize-cards-modal-title"
+      aria-describedby="customize-cards-modal-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150 select-none"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-slate-950 border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
+      >
         {/* Topbar */}
         <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-slate-900/90 backdrop-blur-md">
           <div className="flex items-center gap-3">
@@ -162,14 +185,14 @@ export function CustomizeCardsModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-black text-white">
+                <h3 id="customize-cards-modal-title" className="text-sm sm:text-base font-black text-white">
                   Personalizar Cards do Dashboard
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   {activeCount} ativos
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p id="customize-cards-modal-desc" className="text-[11px] text-slate-400">
                 Escolha o que você deseja ver na tela principal para um estudo mais focado.
               </p>
             </div>
@@ -178,7 +201,8 @@ export function CustomizeCardsModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Fechar personalização de cards"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             <X size={18} />
           </button>

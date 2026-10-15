@@ -58,6 +58,17 @@ export function TimedPacingModal({
   const [totalBlockMinutes, setTotalBlockMinutes] = useState(30);
   const [strictAntiDistraction, setStrictAntiDistraction] = useState(false);
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const calculatedTotalSeconds =
@@ -78,12 +89,22 @@ export function TimedPacingModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="timed-pacing-modal-title"
+        aria-describedby="timed-pacing-modal-desc"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.2 }}
+          onClick={(e) => e.stopPropagation()}
           className="relative w-full max-w-lg bg-linear-to-b from-[#0f1426] via-[#090d18] to-[#04060c] border border-violet-500/30 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-violet-950/40 text-slate-100 space-y-5 overflow-hidden"
         >
           {/* Ambient Glows */}
@@ -101,7 +122,7 @@ export function TimedPacingModal({
                   <Zap size={11} className="text-amber-400" />
                   Alta Performance
                 </div>
-                <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+                <h2 id="timed-pacing-modal-title" className="text-base sm:text-lg font-black text-white tracking-tight">
                   Ritmo do Simulado Cronometrado
                 </h2>
               </div>
@@ -110,14 +131,15 @@ export function TimedPacingModal({
             <button
               onClick={onClose}
               type="button"
-              className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              aria-label="Fechar configuração de ritmo de simulado"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
             >
               <X size={18} />
             </button>
           </div>
 
           {/* Info do Caderno */}
-          <div className="relative z-10 bg-[#090d18]/80 border border-white/10 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+          <div id="timed-pacing-modal-desc" className="relative z-10 bg-[#090d18]/80 border border-white/10 rounded-2xl p-3.5 flex items-center justify-between gap-3">
             <div className="min-w-0 space-y-0.5">
               <p className="text-xs font-bold text-slate-200 truncate">
                 {title}

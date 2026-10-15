@@ -153,6 +153,18 @@ export function SpeedQuizModal({
     };
   }, [isOpen, currentIndex, isAnswered, isCompleted]);
 
+  // Listener para tecla Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || quizItems.length === 0) return null;
 
   const multiplier = getMultiplier(streak);
@@ -161,6 +173,10 @@ export function SpeedQuizModal({
   return (
     <AnimatePresence>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="speed-quiz-modal-title"
+        aria-describedby="speed-quiz-modal-desc"
         className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md"
         onClick={onClose}
       >
@@ -179,13 +195,13 @@ export function SpeedQuizModal({
                 <Zap size={20} className="animate-pulse" />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-1.5">
+                <h3 id="speed-quiz-modal-title" className="text-sm sm:text-base font-black text-white flex items-center gap-1.5">
                   Desafio Relâmpago ⚡
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                     Speed Run 45s
                   </span>
                 </h3>
-                <p className="text-[11px] text-zinc-400 font-medium">
+                <p id="speed-quiz-modal-desc" className="text-[11px] text-zinc-400 font-medium">
                   Responda rápido para acumular combo e multiplicar XP
                 </p>
               </div>
@@ -194,9 +210,10 @@ export function SpeedQuizModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Fechar Desafio Relâmpago"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
           </div>
 
