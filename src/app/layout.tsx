@@ -22,8 +22,17 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const appUrl =
+  process.env.NEXTAUTH_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://synapseconcursos.com.br";
+
 export const metadata: Metadata = {
-  title: "Synapse AI • Estudos de Alta Performance",
+  metadataBase: new URL(appUrl),
+  title: {
+    default: "Synapse AI • Estudos de Alta Performance",
+    template: "%s | Synapse AI",
+  },
   description: "Plataforma inteligente de estudos, memorização espaçada, cronogramas e simulados com IA.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -38,6 +47,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Synapse AI • Concursos & Alta Performance",
     description: "Plataforma inteligente de estudos, memorização espaçada, cronogramas e simulados com IA.",
+    siteName: "Synapse AI",
+    locale: "pt_BR",
+    type: "website",
   },
 };
 
