@@ -126,6 +126,15 @@ export async function reviewFlashcardAction(
       return { success: false, error: "Flashcard não encontrado." };
     }
 
+    // Validação de posse do Flashcard (Defesa contra IDOR)
+    const cardOwnerId = card.deck?.userId || card.topic?.subject?.userId;
+    if (cardOwnerId && cardOwnerId !== userId) {
+      return {
+        success: false,
+        error: "Flashcard não encontrado ou não pertence a este usuário.",
+      };
+    }
+
     // 2. Calcula a taxa de acertos e retenção da matéria (Subject Domain)
     const subject = card.topic?.subject || card.deck?.subject;
     let subjectAccuracy: number | null = null;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { generateSimuladoInParallel } from "@/lib/simulado-generator";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 import {
   getClientIdentifier,
   checkRateLimitAndGenerateResponse,
@@ -42,6 +43,20 @@ export async function POST(request: Request) {
       );
     }
 
+    if (userId) {
+      const quota = await checkAiQuota(userId, "SIMULADO");
+      if (!quota.allowed) {
+        return NextResponse.json(
+          {
+            error: quota.message || "Cota diária de simulados com IA atingida.",
+            isQuotaExceeded: true,
+            canWatchRewardedAd: quota.canWatchRewardedAd,
+          },
+          { status: 403, headers: rateCheck.headers }
+        );
+      }
+    }
+
     const result = await generateSimuladoInParallel(
       {
         banca,
@@ -58,6 +73,10 @@ export async function POST(request: Request) {
       },
       userId,
     );
+
+    if (userId && !result.isFallbackPool) {
+      await consumeAiQuota(userId, "SIMULADO").catch(() => {});
+    }
 
     return NextResponse.json(
       {

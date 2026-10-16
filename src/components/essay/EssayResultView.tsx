@@ -18,9 +18,13 @@ import {
   BookOpen,
   ShieldCheck,
   Scale,
+  Crown,
+  Share2,
 } from "lucide-react";
+import Link from "next/link";
 import { EssayEvaluationResult } from "@/actions/essay-actions";
 import { GoldenVersionSplitView } from "./GoldenVersionSplitView";
+import { SocialShareModal } from "@/components/social/SocialShareModal";
 
 interface EssayResultViewProps {
   result: EssayEvaluationResult;
@@ -35,6 +39,7 @@ export function EssayResultView({
 }: EssayResultViewProps) {
   const [copiedGolden, setCopiedGolden] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"feedback" | "mirror" | "golden" | "original">("feedback");
+  const [isSocialShareOpen, setIsSocialShareOpen] = useState<boolean>(false);
 
   const scorePercentage = Math.round((result.score / result.maxScore) * 100);
   const isApproved = result.isApproved;
@@ -182,6 +187,12 @@ export function EssayResultView({
           >
             <Sparkles size={13} />
             <span>Versão Padrão Ouro (Nota 100)</span>
+            {!result.goldenVersion && (
+              <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-500 dark:text-amber-300 border border-amber-500/30 flex items-center gap-0.5">
+                <Crown size={10} />
+                PRO
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -197,6 +208,16 @@ export function EssayResultView({
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsSocialShareOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-500/30 transition-colors cursor-pointer shadow-2xs"
+            title="Gerar card oficial para Instagram Stories e WhatsApp"
+          >
+            <Share2 size={13} className="text-indigo-600 dark:text-indigo-400" />
+            <span>Compartilhar</span>
+          </button>
+
           <button
             type="button"
             onClick={handlePrintReport}
@@ -452,19 +473,62 @@ export function EssayResultView({
       )}
 
       {/* ABA 3: VERSÃO PADRÃO OURO COMPARATIVA */}
-      {activeTab === "golden" && (
-        <GoldenVersionSplitView
-          originalText={result.content}
-          goldenVersion={result.goldenVersion}
-          banca={result.banca}
-          score={result.score}
-          maxScore={result.maxScore}
-          lineCount={result.lineCount}
-          wordCount={result.wordCount}
-          lineErrors={result.lineErrors}
-          strengths={result.strengths}
-        />
-      )}
+      {activeTab === "golden" &&
+        (result.goldenVersion ? (
+          <GoldenVersionSplitView
+            originalText={result.content}
+            goldenVersion={result.goldenVersion}
+            banca={result.banca}
+            score={result.score}
+            maxScore={result.maxScore}
+            lineCount={result.lineCount}
+            wordCount={result.wordCount}
+            lineErrors={result.lineErrors}
+            strengths={result.strengths}
+          />
+        ) : (
+          <div className="bg-gradient-to-b from-amber-500/10 via-slate-900/60 to-slate-900 border border-amber-500/30 rounded-3xl p-8 sm:p-12 text-center flex flex-col items-center justify-center gap-6 shadow-2xl relative overflow-hidden">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/20">
+              <Crown size={32} />
+            </div>
+
+            <div className="max-w-xl space-y-2">
+              <span className="text-[11px] font-mono uppercase tracking-widest font-black text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                Recurso Exclusivo Synapse Pro
+              </span>
+              <h3 className="text-2xl font-black text-white tracking-tight mt-2">
+                Reescrita Modelo Ouro (Nota 100)
+              </h3>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                A reescrita modelo com fundamentação nota máxima pelo padrão oficial da banca examinadora ({result.banca}) é um recurso exclusivo para assinantes <strong>Synapse Pro</strong>. Sua correção analítica, espelho oficial e apontamentos gramaticais foram liberados na íntegra.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg text-left">
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-start gap-2.5">
+                <Sparkles size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                <span className="text-xs text-slate-200">Reescrita completa padrão gabarito oficial</span>
+              </div>
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-start gap-2.5">
+                <Sparkles size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                <span className="text-xs text-slate-200">Vocabulário jurídico e conectivos de alto nível</span>
+              </div>
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-start gap-2.5">
+                <Sparkles size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                <span className="text-xs text-slate-200">Comparador lado a lado com seu texto</span>
+              </div>
+            </div>
+
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Crown size={16} />
+              <span>Desbloquear Reescrita Modelo Ouro</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        ))}
 
       {/* ABA 3: TEXTO ORIGINAL DO ALUNO */}
       {activeTab === "original" && (
@@ -485,6 +549,24 @@ export function EssayResultView({
           </div>
         </div>
       )}
+
+      {/* MODAL DE COMPARTILHAMENTO DE NOTA / REDES SOCIAIS */}
+      <SocialShareModal
+        isOpen={isSocialShareOpen}
+        onClose={() => setIsSocialShareOpen(false)}
+        data={{
+          type: "redacao",
+          banca: result.banca,
+          disciplineOrTheme: result.themeTitle,
+          scoreOrAccuracy: result.score,
+          maxScore: result.maxScore,
+          secondaryMetrics: {
+            lineCount: result.lineCount,
+            isApproved: result.isApproved ?? false,
+            streakDays: 1,
+          },
+        }}
+      />
     </div>
   );
 }

@@ -2,7 +2,13 @@
 
 import React, { useRef, useState } from "react";
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useSpring,
+  useMotionValueEvent,
+} from "framer-motion";
 import {
   Brain,
   Layers,
@@ -21,57 +27,95 @@ import { triggerHaptic } from "@/lib/sensory/haptics";
 
 function PainDesktopScrollytelling() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [activePhaseIndex, setActivePhaseIndex] = useState(0);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
   });
 
-  // Parallax cinematográfico do Vórtice de Editais (calibrado para 60 FPS mobile)
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.06]);
-  const bgY = useTransform(scrollYProgress, [0, 1], [0, -20]);
+  // Física de Mola Orgânica (Spring Momentum): Transforma os saltos da roda do mouse em curvas líquidas a 60/120 FPS
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 90,
+    damping: 26,
+    mass: 0.2,
+    restDelta: 0.0005,
+  });
+
+  // Atualização Reativa do Header e Stepper
+  useMotionValueEvent(smoothProgress, "change", (latest) => {
+    if (latest < 0.24) {
+      if (activePhaseIndex !== 0) setActivePhaseIndex(0);
+    } else if (latest < 0.50) {
+      if (activePhaseIndex !== 1) setActivePhaseIndex(1);
+    } else if (latest < 0.74) {
+      if (activePhaseIndex !== 2) setActivePhaseIndex(2);
+    } else {
+      if (activePhaseIndex !== 3) setActivePhaseIndex(3);
+    }
+  });
+
+  // Navegação Tátil Instantânea por Clique
+  const scrollToPhase = (phaseIdx: number) => {
+    if (!containerRef.current) return;
+    triggerHaptic("light");
+    const container = containerRef.current;
+    const rect = container.getBoundingClientRect();
+    const scrollTop = window.scrollY + rect.top;
+    const scrollableDistance = container.offsetHeight - window.innerHeight;
+    const phaseOffsets = [0.06, 0.36, 0.60, 0.88];
+    const targetY = scrollTop + scrollableDistance * phaseOffsets[phaseIdx];
+    window.scrollTo({
+      top: targetY,
+      behavior: "smooth",
+    });
+  };
+
+  // Parallax cinematográfico do Vórtice de Editais
+  const bgScale = useTransform(smoothProgress, [0, 1], [1, 1.06]);
+  const bgY = useTransform(smoothProgress, [0, 1], [0, -25]);
 
   // =========================================================================
   // SCROLL-DRIVEN COGNITIVE DIAGNOSTIC (MASTER UI/UX INTERACTION)
-  // 4 Fases de Telemetria com Platôs Perfeitos:
-  // 1. Ruído Sináptico (Sobrecarga de Editais)
-  // 2. Fuga de Foco (Horas Mortas no Deslocamento)
-  // 3. Colapso de Retenção (Curva de Esquecimento)
-  // 4. Sincronização Harmônica (O Alívio do Algoritmo FSRS)
+  // 4 Fases com Crossfades Suaves e Platôs Perfeitos (ZERO TELA PRETA / ZERO DEAD ZONE):
+  // 1. Fase 1: Saturação de Editais (0.0 a 0.26) -> Começa em 100% no topo!
+  // 2. Fase 2: Horas Mortas no Trânsito (0.22 a 0.52) -> Crossfade com Fase 1
+  // 3. Fase 3: Amnésia de Véspera (0.46 a 0.76) -> Crossfade com Fase 2
+  // 4. Fase 4: Sincronização Harmônica FSRS (0.72 a 1.0) -> Estabiliza até a transição
   // =========================================================================
 
-  // Fase 1: Sobrecarga (0.04 a 0.28)
-  const opacity1 = useTransform(scrollYProgress, [0.04, 0.12, 0.22, 0.28], [0, 1, 1, 0]);
-  const y1 = useTransform(scrollYProgress, [0.04, 0.12, 0.22, 0.28], [40, 0, 0, -40]);
-  const scale1 = useTransform(scrollYProgress, [0.04, 0.12, 0.28], [0.96, 1, 0.96]);
+  // Fase 1: Sobrecarga (Já 100% visível ao entrar na seção)
+  const opacity1 = useTransform(smoothProgress, [0, 0.18, 0.26], [1, 1, 0]);
+  const y1 = useTransform(smoothProgress, [0, 0.18, 0.26], [0, 0, -35]);
+  const scale1 = useTransform(smoothProgress, [0, 0.18, 0.26], [1, 1, 0.95]);
 
-  // Fase 2: Horas Mortas no Trânsito (0.28 a 0.52)
-  const opacity2 = useTransform(scrollYProgress, [0.28, 0.36, 0.46, 0.52], [0, 1, 1, 0]);
-  const y2 = useTransform(scrollYProgress, [0.28, 0.36, 0.46, 0.52], [40, 0, 0, -40]);
-  const scale2 = useTransform(scrollYProgress, [0.28, 0.36, 0.52], [0.96, 1, 0.96]);
+  // Fase 2: Horas Mortas no Trânsito (Crossfade com Fase 1)
+  const opacity2 = useTransform(smoothProgress, [0.22, 0.30, 0.44, 0.52], [0, 1, 1, 0]);
+  const y2 = useTransform(smoothProgress, [0.22, 0.30, 0.44, 0.52], [35, 0, 0, -35]);
+  const scale2 = useTransform(smoothProgress, [0.22, 0.30, 0.44, 0.52], [0.95, 1, 1, 0.95]);
 
-  // Fase 3: Esquecimento na Véspera (0.52 a 0.74)
-  const opacity3 = useTransform(scrollYProgress, [0.52, 0.60, 0.68, 0.74], [0, 1, 1, 0]);
-  const y3 = useTransform(scrollYProgress, [0.52, 0.60, 0.68, 0.74], [40, 0, 0, -40]);
-  const scale3 = useTransform(scrollYProgress, [0.52, 0.60, 0.74], [0.96, 1, 0.96]);
+  // Fase 3: Esquecimento na Véspera (Crossfade com Fase 2)
+  const opacity3 = useTransform(smoothProgress, [0.46, 0.54, 0.68, 0.76], [0, 1, 1, 0]);
+  const y3 = useTransform(smoothProgress, [0.46, 0.54, 0.68, 0.76], [35, 0, 0, -35]);
+  const scale3 = useTransform(smoothProgress, [0.46, 0.54, 0.68, 0.76], [0.95, 1, 1, 0.95]);
 
-  // Fase 4: A Sincronização Sináptica (0.74 a 1.0)
-  const opacity4 = useTransform(scrollYProgress, [0.74, 0.82, 0.95, 1.0], [0, 1, 1, 1]);
-  const y4 = useTransform(scrollYProgress, [0.74, 0.82, 1.0], [50, 0, 0]);
-  const scale4 = useTransform(scrollYProgress, [0.74, 0.82, 1.0], [0.94, 1, 1.02]);
+  // Fase 4: A Sincronização Sináptica (Crossfade com Fase 3 e trava até a saída)
+  const opacity4 = useTransform(smoothProgress, [0.72, 0.80, 1.0], [0, 1, 1]);
+  const y4 = useTransform(smoothProgress, [0.72, 0.80, 1.0], [40, 0, 0]);
+  const scale4 = useTransform(smoothProgress, [0.72, 0.80, 1.0], [0.94, 1, 1]);
 
   // Iluminação Cósmica de Fundo
-  const chaosAuraOpacity = useTransform(scrollYProgress, [0, 0.65, 0.76], [0.55, 0.65, 0]);
-  const syncAuraOpacity = useTransform(scrollYProgress, [0.72, 0.84, 1.0], [0, 0.85, 0.95]);
+  const chaosAuraOpacity = useTransform(smoothProgress, [0, 0.65, 0.76], [0.55, 0.65, 0]);
+  const syncAuraOpacity = useTransform(smoothProgress, [0.70, 0.82, 1.0], [0, 0.85, 0.95]);
 
   // Barra de Telemetria Inferior
-  const diagnosticProgress = useTransform(scrollYProgress, [0.05, 0.95], ["0%", "100%"]);
+  const diagnosticProgress = useTransform(smoothProgress, [0, 1], ["0%", "100%"]);
 
   return (
     <div
       id="pain-transition"
       ref={containerRef}
-      className="hidden md:block relative h-[340vh] w-full bg-[#030712] select-none"
+      className="hidden md:block relative h-[260vh] w-full bg-[#030712] select-none"
     >
       {/* Sticky Fullscreen HUD Viewport (100dvh previne jumps de barra de endereço mobile) */}
       <div className="sticky top-0 h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden px-3 sm:px-6">
@@ -127,15 +171,30 @@ function PainDesktopScrollytelling() {
         </motion.div>
 
         {/* HUD Header Superior (Assinatura Sináptica Autêntica) */}
-        <div className="absolute top-8 sm:top-12 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-1.5 rounded-full bg-[#080d1a]/85 border border-white/[0.08] backdrop-blur-xl z-20 shadow-lg shadow-black/40">
+        <div className="absolute top-6 sm:top-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-1.5 rounded-full bg-[#080d1a]/85 border border-white/[0.08] backdrop-blur-xl z-20 shadow-lg shadow-black/40">
           <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+            <span
+              className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                activePhaseIndex === 3 ? "bg-cyan-400" : "bg-violet-400"
+              }`}
+            />
+            <span
+              className={`relative inline-flex rounded-full h-2 w-2 ${
+                activePhaseIndex === 3 ? "bg-cyan-400" : "bg-violet-400"
+              }`}
+            />
           </span>
           <span className="text-[10px] sm:text-xs font-mono font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
             <span>Scanner Cognitivo //</span>
-            <span className="text-cyan-400 font-mono">
-              {scrollYProgress.get() < 0.72 ? "Monitorando Sobrecarga Mental" : "Sinapse Sincronizada (60 FPS)"}
+            <span
+              className={`font-mono transition-colors ${
+                activePhaseIndex === 3 ? "text-cyan-400" : "text-violet-300"
+              }`}
+            >
+              {activePhaseIndex === 0 && "Fase 01: Saturação de Editais"}
+              {activePhaseIndex === 1 && "Fase 02: Dreno Temporal no Trânsito"}
+              {activePhaseIndex === 2 && "Fase 03: Colapso da Curva de Ebbinghaus"}
+              {activePhaseIndex === 3 && "Fase 04: Sincronização Harmônica FSRS"}
             </span>
           </span>
         </div>
@@ -151,7 +210,7 @@ function PainDesktopScrollytelling() {
             maskImage: "linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)",
           }}
         >
-          <NeuralWaveCanvas scrollProgress={scrollYProgress} className="w-full h-full" />
+          <NeuralWaveCanvas scrollProgress={smoothProgress} className="w-full h-full" />
         </div>
 
         {/* ===================================================================== */}
@@ -333,19 +392,45 @@ function PainDesktopScrollytelling() {
         </motion.div>
 
         {/* ===================================================================== */}
-        {/* BARRA DE TELEMETRIA NA BASE (ESTILO SCANNER SINÁPTICO)                 */}
+        {/* BARRA DE TELEMETRIA NA BASE (STEPPER TÁTIL INTERATIVO DE 4 FASES)       */}
         {/* ===================================================================== */}
-        <div className="absolute bottom-8 sm:bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 rounded-full bg-slate-950/85 border border-white/10 backdrop-blur-xl z-20 shadow-xl">
-          <Cpu className="w-3.5 h-3.5 text-cyan-400 animate-spin" style={{ animationDuration: "12s" }} />
-          <div className="h-1.5 w-36 sm:w-52 bg-white/10 rounded-full overflow-hidden">
+        <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-30 pointer-events-auto">
+          <div className="flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 rounded-full bg-[#060a14]/90 border border-white/10 backdrop-blur-2xl shadow-2xl shadow-black/80">
+            {[
+              { label: "1. Saturação", shortLabel: "01", phase: 0 },
+              { label: "2. Trânsito", shortLabel: "02", phase: 1 },
+              { label: "3. Amnésia", shortLabel: "03", phase: 2 },
+              { label: "4. Synapse FSRS ⚡", shortLabel: "04 ⚡", phase: 3 },
+            ].map((item) => {
+              const isActive = activePhaseIndex === item.phase;
+              return (
+                <button
+                  key={item.phase}
+                  type="button"
+                  onClick={() => scrollToPhase(item.phase)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    isActive
+                      ? item.phase === 3
+                        ? "bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/30 border border-cyan-400/40"
+                        : "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/30 border border-violet-400/30"
+                      : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
+                  }`}
+                  title={`Ir para ${item.label}`}
+                >
+                  <span className="hidden lg:inline">{item.label}</span>
+                  <span className="lg:hidden">{item.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Linha Contínua de Progresso do Diagnóstico */}
+          <div className="h-1 w-44 sm:w-60 bg-white/10 rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-violet-500 via-indigo-400 to-cyan-400 rounded-full"
               style={{ width: diagnosticProgress }}
             />
           </div>
-          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-            Diagnóstico ➔ FSRS
-          </span>
         </div>
       </div>
     </div>

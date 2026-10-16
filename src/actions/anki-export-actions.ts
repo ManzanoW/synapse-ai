@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isUserPro } from "@/lib/subscription";
 
 export interface AnkiExportResult {
   success: boolean;
@@ -30,6 +31,15 @@ export async function exportDeckToAnkiAction(
 
     if (!userId) {
       return { success: false, error: "Usuário não autenticado." };
+    }
+
+    // 🛡️ SEGURANÇA BACKEND (Feature Gate Pro): Exportação para Anki restrita a Pro
+    const hasProAccess = await isUserPro(userId);
+    if (!hasProAccess) {
+      return {
+        success: false,
+        error: "FEATURE_LOCKED_PRO",
+      };
     }
 
     const deck = await prisma.deck.findUnique({

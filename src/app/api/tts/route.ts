@@ -1,16 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
+import { auth } from "@/auth";
+import { isUserPro } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
+
+    const userIsPro = await isUserPro(userId);
+    if (!userIsPro) {
+      return NextResponse.json(
+        {
+          error: "FEATURE_LOCKED_PRO",
+          message: "A síntese de voz neural com qualidade de estúdio é exclusiva para membros Synapse Pro.",
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const text = body?.text;
     const voice = body?.voice || "pt-BR-FranciscaNeural";
 
     if (!text || typeof text !== "string") {
       return NextResponse.json({ error: "Texto inválido" }, { status: 400 });
+    }
+
+    // 🛡️ Prevenção contra DoS e exaustão de CPU/memória no sintetizador
+    const MAX_TEXT_LENGTH = 2500;
+    if (text.length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        {
+          error: "PAYLOAD_TOO_LARGE",
+          message: `O texto excede o limite máximo permitido de ${MAX_TEXT_LENGTH} caracteres para síntese de voz.`,
+        },
+        { status: 413 }
+      );
     }
 
     // Limpeza de texto: remove markdown e garante pontuação legível

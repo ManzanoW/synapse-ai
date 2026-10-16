@@ -17,11 +17,13 @@ import {
   Repeat,
   Download,
   Printer,
+  Share2,
 } from "lucide-react";
 import { Flashcard, Deck } from "@/types";
 import FlashcardModal from "@/components/flashcards/FlashcardModal";
 import { AnkiExportModal } from "@/components/flashcards/AnkiExportModal";
 import { PrintableDeckModal } from "@/components/flashcards/PrintableDeckModal";
+import { ShareDeckModal } from "@/components/flashcards/ShareDeckModal";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -38,6 +40,7 @@ export default function DeckDetailPage({ params }: PageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAnkiModalOpen, setIsAnkiModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -220,6 +223,15 @@ export default function DeckDetailPage({ params }: PageProps) {
             >
               <Download size={15} className="text-blue-400" />
               <span>Exportar Anki</span>
+            </button>
+
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-indigo-950/50 hover:bg-indigo-900/60 text-indigo-200 font-semibold text-xs px-3.5 py-3 rounded-xl border border-indigo-500/30 transition-all active:scale-95 cursor-pointer shadow-sm"
+              title="Compartilhar baralho publicamente"
+            >
+              <Share2 size={15} className="text-indigo-400" />
+              <span>Compartilhar</span>
             </button>
 
             <button
@@ -414,6 +426,16 @@ export default function DeckDetailPage({ params }: PageProps) {
           onClose={() => setIsPrintModalOpen(false)}
           deck={deck}
           flashcards={flashcards}
+        />
+      )}
+
+      {isShareModalOpen && deck && (
+        <ShareDeckModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          deckId={deck.id}
+          deckTitle={deck.title}
+          totalCards={flashcards.length}
         />
       )}
     </div>

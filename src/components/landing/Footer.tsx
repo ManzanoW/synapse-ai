@@ -108,19 +108,19 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <Link href="/terms" className="hover:text-white transition-colors">
                   Termos de Uso
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <Link href="/privacy" className="hover:text-white transition-colors">
                   Política de Privacidade (LGPD)
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Segurança & Criptografia
-                </a>
+                <Link href="/pricing" className="hover:text-white transition-colors">
+                  Segurança & Planos Pro
+                </Link>
               </li>
             </ul>
           </div>

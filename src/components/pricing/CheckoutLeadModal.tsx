@@ -122,7 +122,7 @@ export function CheckoutLeadModal({
                   Desbloqueie o Synapse Pro
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
-                  Acesso imediato e ilimitado a todas as ferramentas com IA para acelerar sua aprovação.
+                  Acesso imediato de alta capacidade a todas as ferramentas com IA para acelerar sua aprovação.
                 </p>
               </div>
 
@@ -169,13 +169,13 @@ export function CheckoutLeadModal({
               {/* Lista de Vantagens */}
               <div className="space-y-2 py-1">
                 {[
-                  "IA 100% Ilimitada & Zero Anúncios (sem travas diárias)",
+                  "Alta Franquia diária de IA (até 60 req/dia) & Zero Anúncios",
                   "OCR de Redação Manuscrita (foto da folha de prova real)",
-                  "Revisão de Erros + Macetes de Memorização ilimitados",
+                  "Revisão Avançada de Erros com até 30 remediações diárias",
                   "Mapas Mentais Neurais com Expansão de Nós e Exportação HD/PDF A4",
                   "Raio-X de Incidência Estatística da Banca no Edital (Cebraspe, FGV, FCC)",
                   "Importador Inteligente de Editais em PDF por IA",
-                  "Prioridade máxima nos servidores Gemini 2.5 Pro",
+                  "Prioridade máxima nos servidores de alta performance",
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200 font-medium">
                     <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -251,7 +251,7 @@ export function CheckoutLeadModal({
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto leading-relaxed">
                   {statusMessage ||
-                    "Você agora tem acesso ilimitado a todas as ferramentas com inteligência artificial da Synapse AI."}
+                    "Você agora tem acesso à alta franquia diária de IA e zero anúncios do Synapse Pro."}
                 </p>
               </div>
 
@@ -261,11 +261,11 @@ export function CheckoutLeadModal({
                   <span>O que você já pode fazer agora:</span>
                 </div>
                 <p className="text-slate-500 dark:text-slate-400 text-[11px] space-y-1">
-                  • 📸 <strong>OCR de Redação:</strong> Envie fotos da sua folha de redação sem limite semanal.<br />
-                  • 🧠 <strong>Caderno de Erros:</strong> Gere explicações e macetes em todas as questões.<br />
-                  • 🗺️ <strong>Mapas Mentais:</strong> Aprofunde ramos conceituais com IA e exporte em PDF A4 / PNG HD.<br />
+                  • 📸 <strong>OCR de Redação:</strong> Envie fotos da sua folha de redação até 2x por dia.<br />
+                  • 🧠 <strong>Caderno de Erros:</strong> Até 30 remediações cognitivas diárias.<br />
+                  • 🗺️ <strong>Mapas Mentais:</strong> Até 5 gerações diárias com exportação em PDF A4 / PNG HD.<br />
                   • 👑 <strong>Edital Verticalizado:</strong> Acesse o Raio-X de incidência da banca e importe editais em PDF.<br />
-                  • ⚡ <strong>Simulados:</strong> Crie provas inéditas ilimitadas sem nenhum anúncio ou interrupção.
+                  • ⚡ <strong>Simulados:</strong> Crie até 5 provas inéditas diárias sem nenhum anúncio ou interrupção.
                 </p>
               </div>
 

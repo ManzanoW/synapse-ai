@@ -78,13 +78,36 @@ export function GenerateAIModal({
   onNivelCargoChange,
   onSubmit,
 }: GenerateAIModalProps) {
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isGenerating) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isGenerating, onClose]);
+
   if (!isOpen) return null;
 
   const hasNoSubjects = subjects.length === 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-[#090d16] border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl p-5 sm:p-6 pb-[max(env(safe-area-inset-bottom),20px)] sm:pb-6 space-y-4 sm:space-y-5 shadow-2xl relative max-h-[88dvh] overflow-y-auto overscroll-contain animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 custom-scrollbar">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="generate-ai-modal-title"
+      aria-describedby="generate-ai-modal-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isGenerating) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-[#090d16] border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl p-5 sm:p-6 pb-[max(env(safe-area-inset-bottom),20px)] sm:pb-6 space-y-4 sm:space-y-5 shadow-2xl relative max-h-[88dvh] overflow-y-auto overscroll-contain animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 custom-scrollbar"
+      >
         {/* Handle visual no celular */}
         <div className="w-full flex justify-center pt-1 pb-2 sm:hidden">
           <div className="w-12 h-1.5 rounded-full bg-slate-700/80" />
@@ -92,7 +115,8 @@ export function GenerateAIModal({
 
         <button
           onClick={() => !isGenerating && onClose()}
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-900 transition-colors cursor-pointer"
+          aria-label="Fechar gerador por IA"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center absolute top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
           disabled={isGenerating}
         >
           <X size={18} />
@@ -103,10 +127,10 @@ export function GenerateAIModal({
             <Sparkles size={20} />
           </div>
           <div className="min-w-0 pr-6">
-            <h3 className="text-base font-bold text-slate-200 truncate">
+            <h3 id="generate-ai-modal-title" className="text-base font-bold text-slate-200 truncate">
               Gerador Cognitivo por IA
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+            <p id="generate-ai-modal-desc" className="text-[11px] text-slate-400 mt-0.5 truncate">
               Configure o escopo para simular sua prova.
             </p>
           </div>

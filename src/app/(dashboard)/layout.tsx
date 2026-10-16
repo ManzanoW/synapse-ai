@@ -7,6 +7,7 @@ import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
 import { DemoSessionSync } from "@/components/auth/demo-session-sync";
 import { SoundscapeFloatingWidget } from "@/components/audio/SoundscapeFloatingWidget";
+import { SynapticExhaustionModal } from "@/components/quota/SynapticExhaustionModal";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -88,6 +89,11 @@ export default async function DashboardLayout({
               {/* Navegação Inferior Mobile */}
               <div className="print:hidden">
                 <BottomNavigation />
+              </div>
+
+              {/* Modal Global de Pausa Cognitiva / Exaustão Sináptica */}
+              <div className="print:hidden">
+                <SynapticExhaustionModal />
               </div>
             </div>
           </AudioProvider>

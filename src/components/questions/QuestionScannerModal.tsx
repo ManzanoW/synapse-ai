@@ -327,11 +327,35 @@ export function QuestionScannerModal({
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  // Listener para tecla Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isScanning) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isScanning, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-3xl max-h-[92dvh] flex flex-col rounded-3xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-2xl text-slate-100 overflow-hidden my-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="question-scanner-modal-title"
+      aria-describedby="question-scanner-modal-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isScanning) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-3xl max-h-[92dvh] flex flex-col rounded-3xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-2xl text-slate-100 overflow-hidden my-auto"
+      >
         {/* Glow de fundo */}
         <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-violet-600/20 blur-[100px] pointer-events-none" />
         <div className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-cyan-600/15 blur-[100px] pointer-events-none" />
@@ -344,23 +368,25 @@ export function QuestionScannerModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white tracking-wide">
+                <h3 id="question-scanner-modal-title" className="text-base font-bold text-white tracking-wide">
                   Scanner OCR de Questões
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-violet-500/20 text-violet-300 border border-violet-500/30">
                   Visão IA
                 </span>
               </div>
-              <p className="text-xs text-zinc-400">
+              <p id="question-scanner-modal-desc" className="text-xs text-zinc-400">
                 Fotografe apostilas físicas, livros ou cole prints para resolver na hora
               </p>
             </div>
           </div>
 
           <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
-            title="Fechar modal"
+            onClick={() => !isScanning && onClose()}
+            disabled={isScanning}
+            aria-label="Fechar Scanner OCR de Questões"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:opacity-50"
+            title="Fechar modal (ESC)"
           >
             <X size={18} />
           </button>

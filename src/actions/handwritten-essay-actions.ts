@@ -6,6 +6,7 @@ import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { Type } from "@google/genai";
 import { revalidatePath } from "next/cache";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
+import { isUserPro } from "@/lib/subscription";
 
 export interface HandwrittenLineItem {
   lineNumber: number;
@@ -247,6 +248,9 @@ Retorne OBRIGATORIAMENTE um JSON estrito correspondente ao schema especificado.`
     // Consome cota de IA
     await consumeAiQuota(userId, "OCR_ESSAY");
 
+    const userIsPro = await isUserPro(userId);
+    const golden = userIsPro ? (parsed.goldenVersion || "") : "";
+
     // Salva no banco de dados
     const submission = await prisma.essaySubmission.create({
       data: {
@@ -292,7 +296,7 @@ Retorne OBRIGATORIAMENTE um JSON estrito correspondente ao schema especificado.`
       lineErrors: parsed.lineErrors || [],
       strengths: parsed.strengths || [],
       improvements: parsed.improvements || [],
-      goldenVersion: parsed.goldenVersion || "",
+      goldenVersion: golden,
     };
 
     return {

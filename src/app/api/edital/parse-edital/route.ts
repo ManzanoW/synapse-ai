@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { Type } from "@google/genai";
 import { PRESET_HEX_COLORS } from "@/constants/subjects";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { isUserPro } from "@/lib/subscription";
+import { extractText } from "unpdf";
 
 // Permite tempo suficiente para o Gemini processar editais longos sem timeout
 export const maxDuration = 60;
@@ -66,9 +68,69 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { text } = await request.json();
+    const contentType = request.headers.get("content-type") || "";
+    let rawInputText = "";
 
-    if (!text || text.trim() === "") {
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const file = formData.get("file") as File | null;
+      const textFromForm = (formData.get("text") as string) || "";
+      const isPdfField = formData.get("isPdf") === "true";
+
+      if (
+        file &&
+        (file.type === "application/pdf" ||
+          file.name.toLowerCase().endsWith(".pdf") ||
+          isPdfField)
+      ) {
+        // 🛡️ SEGURANÇA BACKEND (Feature Gate Pro): Upload e OCR de PDF restrito a Pro
+        const userIsPro = await isUserPro(session.user.id);
+        if (!userIsPro) {
+          return NextResponse.json(
+            {
+              error: "FEATURE_LOCKED_PRO",
+              message:
+                "O upload e processamento inteligente de editais em PDF com IA é exclusivo do plano Synapse Pro. Utilize a inserção manual de texto.",
+            },
+            { status: 403 },
+          );
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const { text: extracted } = await extractText(new Uint8Array(arrayBuffer), {
+          mergePages: true,
+        });
+        rawInputText = (extracted as unknown as string) || "";
+      } else {
+        rawInputText = textFromForm;
+      }
+    } else {
+      const body = await request.json().catch(() => ({}));
+      const { text, isPdf, fileType, fileName } = body;
+
+      if (
+        isPdf ||
+        fileType === "application/pdf" ||
+        (typeof fileName === "string" && fileName.toLowerCase().endsWith(".pdf"))
+      ) {
+        // 🛡️ SEGURANÇA BACKEND (Feature Gate Pro): Upload e OCR de PDF restrito a Pro
+        const userIsPro = await isUserPro(session.user.id);
+        if (!userIsPro) {
+          return NextResponse.json(
+            {
+              error: "FEATURE_LOCKED_PRO",
+              message:
+                "O upload e processamento inteligente de editais em PDF com IA é exclusivo do plano Synapse Pro. Utilize a inserção manual de texto.",
+            },
+            { status: 403 },
+          );
+        }
+      }
+
+      rawInputText = text || "";
+    }
+
+    if (!rawInputText || rawInputText.trim() === "") {
       return NextResponse.json(
         { error: "O texto do edital não foi fornecido." },
         { status: 400 },
@@ -76,7 +138,7 @@ export async function POST(request: Request) {
     }
 
     // Limpeza de ruídos comuns de PDF para economizar tokens e acelerar a resposta
-    const cleanText = text
+    const cleanText = rawInputText
       .replace(/\r\n/g, "\n")
       .replace(/P[áa]gina \d+ de \d+/gi, "")
       .replace(/Di[áa]rio Oficial da Uni[ãa]o|DOU|Edital n[ºo°]\s*\d+/gi, "")

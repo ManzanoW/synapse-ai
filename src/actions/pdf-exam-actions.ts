@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { Type } from "@google/genai";
 import { revalidatePath } from "next/cache";
+import { isUserPro } from "@/lib/subscription";
 
 export interface ParsedQuestionOption {
   id: string; // A, B, C, D, E ou C, E
@@ -47,6 +48,14 @@ export async function parseExamPdfAction(
     const userId = session?.user?.id;
     if (!userId) {
       return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const hasProAccess = await isUserPro(userId);
+    if (!hasProAccess) {
+      return {
+        success: false,
+        error: "FEATURE_LOCKED_PRO",
+      };
     }
 
     const file = formData.get("file") as File | null;

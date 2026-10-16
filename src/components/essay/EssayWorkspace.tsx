@@ -29,7 +29,11 @@ import {
   evaluateEssayAction,
 } from "@/actions/essay-actions";
 import { HandwrittenEssayResult } from "@/actions/handwritten-essay-actions";
-import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+import {
+  triggerAiQuotaRefresh,
+  triggerOptimisticEnergyConsumption,
+  triggerSynapticExhaustion,
+} from "@/lib/quota-events";
 import { ExamSheetEditor } from "./ExamSheetEditor";
 import { ThemeSelectorModal } from "./ThemeSelectorModal";
 import { MotivatingTextsModal } from "./MotivatingTextsModal";
@@ -135,6 +139,13 @@ export function EssayWorkspace() {
 
       const expectedPointsJoined = (theme.expectedTopics || []).join("\n");
 
+      // Disparo otimista visual (-1⚡ Sinapse para Correção de Redação)
+      triggerOptimisticEnergyConsumption({
+        cost: 1,
+        feature: "ESSAY",
+        label: "Correção de Redação",
+      });
+
       const res = await evaluateEssayAction({
         themeTitle: theme.title,
         banca: theme.banca,
@@ -172,6 +183,10 @@ export function EssayWorkspace() {
           errMsg.toLowerCase().includes("limite") ||
           errMsg.toLowerCase().includes("premium")
         ) {
+          triggerSynapticExhaustion({
+            feature: "ESSAY",
+            reason: errMsg,
+          });
           setIsQuotaModalOpen(true);
         }
       }
@@ -342,7 +357,7 @@ export function EssayWorkspace() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-                  {evaluationError} Assista a um vídeo de 15s para desbloquear +1 correção bônus ou assine o Synapse Pro para correções ilimitadas.
+                  {evaluationError} Assista a um vídeo de 15s para desbloquear +1 correção bônus ou assine o Synapse Pro para ter alta capacidade diária.
                 </p>
               </div>
             </div>

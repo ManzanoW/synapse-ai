@@ -386,6 +386,12 @@ export function FlashcardSpeedRunModal({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
       if (gameState === "LOBBY") {
         if (e.code === "Space" || e.code === "Enter") {
           e.preventDefault();
@@ -421,7 +427,16 @@ export function FlashcardSpeedRunModal({
   const isTimeCritical = timeLeft <= 15;
 
   const modalContent = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="speedrun-modal-title"
+      aria-describedby="speedrun-modal-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         className={`relative w-full max-w-2xl bg-gradient-to-b from-[#0e1322] via-[#090d18] to-[#04060c] border border-indigo-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto ${
           isShaking ? "animate-bounce" : ""
@@ -438,14 +453,14 @@ export function FlashcardSpeedRunModal({
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black tracking-wider uppercase bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+                <span id="speedrun-modal-title" className="text-xs font-black tracking-wider uppercase bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
                   Speed Run Arcade
                 </span>
                 <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
                   60s
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p id="speedrun-modal-desc" className="text-[11px] text-slate-400">
                 {gameState === "PLAYING"
                   ? `${currentCard?.deckTitle || "Baralho Geral"} • Card ${currentCardIndex + 1}/${cards.length}`
                   : "Sobrevivência & Reflexo Rápido"}
@@ -459,22 +474,24 @@ export function FlashcardSpeedRunModal({
               type="button"
               onClick={toggleMute}
               title={isMuted ? "Ativar Efeitos Sonoros" : "Silenciar Áudio"}
-              className={`p-2 rounded-xl border text-xs transition-all cursor-pointer ${
+              aria-label={isMuted ? "Ativar efeitos sonoros" : "Silenciar áudio"}
+              className={`w-11 h-11 flex items-center justify-center rounded-xl border text-xs transition-all cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-500 ${
                 isMuted
                   ? "bg-slate-800/60 border-slate-700 text-slate-400"
                   : "bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20"
               }`}
             >
-              {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
 
             {/* Fechar */}
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60 transition-all cursor-pointer"
+              aria-label="Fechar desafio speedrun de flashcards"
+              className="w-11 h-11 flex items-center justify-center rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60 transition-all cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-amber-500"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
           </div>
         </div>

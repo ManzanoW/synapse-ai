@@ -71,6 +71,45 @@ export async function POST(request: Request) {
           timestamp: Date.now(),
         });
 
+        // 1.5. Proteção Estrita de Cota: se esgotada, não aciona a IA
+        let quotaCheck: { allowed: boolean; message?: string; canWatchRewardedAd?: boolean } = { allowed: true };
+        try {
+          quotaCheck = await checkAiQuota(userId, "SIMULADO");
+        } catch {}
+
+        if (!quotaCheck.allowed) {
+          const fallback = await getDeterministicFallbackQuestions({
+            materia: String(materia),
+            topicoId: topicoId !== "ALL" ? String(topicoId) : null,
+            banca: String(banca),
+            qtdQuestoes: Math.max(1, Number(qtdQuestoes)),
+          });
+
+          sendEvent("chunk", {
+            startIndex: 0,
+            questions: fallback,
+            receivedSoFar: fallback.length,
+            total: fallback.length,
+          });
+
+          sendEvent("complete", {
+            success: true,
+            id: null,
+            simuladoId: null,
+            quizId: null,
+            total: fallback.length,
+            data: fallback,
+            usedModel: "deterministic-offline-pool",
+            durationMs: 0,
+            isFallbackPool: true,
+            isQuotaLimited: true,
+            quotaMessage: quotaCheck.message || "Cota diária de simulados com IA atingida. Exibindo questões do banco offline.",
+            canWatchRewardedAd: Boolean(quotaCheck.canWatchRewardedAd),
+          });
+          controller.close();
+          return;
+        }
+
         // 2. Executa a geração balanceada (cache semântico + lotes paralelos da IA + fallback determinístico)
         const result = await generateSimuladoInParallel(
           {

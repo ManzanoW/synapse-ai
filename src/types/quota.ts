@@ -29,6 +29,8 @@ export interface UserQuotaStatus {
   globalRemaining: number;
   rewardedBonusToday?: number;
   canWatchRewardedAd?: boolean;
+  meritBonusToday?: number;
+  canEarnMeritBonus?: boolean;
   features: Record<
     AiFeatureType,
     {

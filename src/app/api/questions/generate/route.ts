@@ -57,14 +57,42 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🛡️ Proteção Leve de Cota Diária do Usuário
-    let isUserQuotaLimited = false;
+    // 🛡️ Proteção Estrita de Cota Diária do Usuário
+    let quotaCheck: { allowed: boolean; message?: string; canWatchRewardedAd?: boolean } = { allowed: true };
     try {
-      const quota = await checkAiQuota(userId, "SIMULADO");
-      if (!quota.allowed) {
-        isUserQuotaLimited = true;
-      }
+      quotaCheck = await checkAiQuota(userId, "SIMULADO");
     } catch {}
+
+    if (!quotaCheck.allowed) {
+      // Quando a cota de IA estiver esgotada, não chama o Gemini!
+      // Entrega o banco de questões determinístico offline para não travar os estudos,
+      // e sinaliza isQuotaLimited para a interface alertar sobre recarga via anúncio ou upgrade Pro.
+      const fallbackQuestions = await getDeterministicFallbackQuestions({
+        materia,
+        topicoId,
+        banca,
+        qtdQuestoes: Math.min(Math.max(parseInt(String(qtdQuestoes || 5), 10), 1), 30),
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          id: null,
+          simuladoId: null,
+          total: fallbackQuestions.length,
+          data: fallbackQuestions,
+          quizId: null,
+          sessionId: null,
+          usedModel: "deterministic-offline-pool",
+          durationMs: 0,
+          isFallbackPool: true,
+          isQuotaLimited: true,
+          quotaMessage: quotaCheck.message || "Cota diária de simulados com IA atingida. Exibindo questões do banco offline.",
+          canWatchRewardedAd: Boolean(quotaCheck.canWatchRewardedAd),
+        },
+        { headers: rateCheck.headers }
+      );
+    }
 
     const result = await generateSimuladoInParallel(
       {
@@ -89,7 +117,7 @@ export async function POST(request: Request) {
     const questions = result.data || [];
 
     // Consome cota diária de Simulado com IA apenas quando a IA foi acionada com sucesso
-    if (!result.isFallbackPool && !isUserQuotaLimited) {
+    if (!result.isFallbackPool) {
       await consumeAiQuota(userId, "SIMULADO").catch(() => {});
     }
 

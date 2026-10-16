@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
@@ -39,6 +39,20 @@ export function SubmitConfirmModal({
   isTimeoutAutoSubmit = false,
   isSubmitting = false,
 }: SubmitConfirmModalProps) {
+  useEffect(() => {
+    if (!isOpen || isTimeoutAutoSubmit || isSubmitting) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isTimeoutAutoSubmit, isSubmitting, onClose]);
+
   if (!isOpen) return null;
 
   const unansweredCount = Math.max(0, totalQuestions - answeredCount);
@@ -51,7 +65,12 @@ export function SubmitConfirmModal({
   ).padStart(2, "0")}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="submit-confirm-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -91,7 +110,7 @@ export function SubmitConfirmModal({
             </div>
 
             <div className="space-y-1">
-              <h2 className="text-xl font-black tracking-tight text-white">
+              <h2 id="submit-confirm-modal-title" className="text-xl font-black tracking-tight text-white">
                 {isTimeoutAutoSubmit
                   ? "Tempo Esgotado!"
                   : "Finalizar Simulado?"}
@@ -178,7 +197,8 @@ export function SubmitConfirmModal({
                 onClick={hasPending ? onReviewPending : onClose}
                 type="button"
                 disabled={isSubmitting}
-                className="w-full sm:w-1/2 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                aria-label={hasPending ? "Revisar questões pendentes" : "Voltar à prova"}
+                className="w-full sm:w-1/2 min-h-[44px] py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
               >
                 {hasPending ? (
                   <>
@@ -195,9 +215,10 @@ export function SubmitConfirmModal({
               onClick={onConfirm}
               type="button"
               disabled={isSubmitting}
+              aria-label={isTimeoutAutoSubmit ? "Submeter respostas imediatamente" : "Confirmar submissão do simulado"}
               className={`w-full ${
                 isTimeoutAutoSubmit ? "sm:w-full" : "sm:w-1/2"
-              } py-3 px-4 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95 disabled:opacity-50 ${
+              } min-h-[44px] py-3 px-4 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none ${
                 isTimeoutAutoSubmit
                   ? "bg-linear-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-rose-600/30"
                   : "bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-violet-600/30"

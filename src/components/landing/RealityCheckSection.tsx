@@ -19,6 +19,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import Link from "next/link";
+import { RetentionCurveSimulator } from "./RetentionCurveSimulator";
 
 export function RealityCheckSection() {
   const DUELS = [
@@ -193,6 +194,11 @@ export function RealityCheckSection() {
             );
           })}
         </div>
+
+        {/* ========================================================================= */}
+        {/* 🧬 SIMULADOR INTERATIVO DA CURVA DE RETENÇÃO (LABORATÓRIO COGNITIVO)     */}
+        {/* ========================================================================= */}
+        <RetentionCurveSimulator />
 
         {/* Bottom Epiphany Callout & CTA */}
         <motion.div

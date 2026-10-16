@@ -99,11 +99,26 @@ export function OpticalAnswerSheetModal({
     }
   };
 
+  // Listener para fechar com Escape
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Folha Óptica de Respostas"
         className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md"
         onClick={onClose}
       >
@@ -139,7 +154,8 @@ export function OpticalAnswerSheetModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Fechar Folha Óptica"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
               title="Fechar Folha Óptica"
             >
               <X size={18} />

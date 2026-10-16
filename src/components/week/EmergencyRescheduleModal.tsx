@@ -43,6 +43,17 @@ export function EmergencyRescheduleModal({
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleResetAndClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
   if (!isOpen || !mounted) return null;
 
   const handleApply = async () => {
@@ -79,7 +90,16 @@ export function EmergencyRescheduleModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="emergency-reschedule-title"
+      aria-describedby="emergency-reschedule-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleResetAndClose();
+      }}
+    >
       <div className="relative w-full max-w-2xl bg-white dark:bg-[#04060c] dark:bg-gradient-to-b dark:from-[#101424] dark:via-[#090d18] dark:to-[#04060c] border border-slate-200 dark:border-rose-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
         {/* Glow Superior Vermelho/Âmbar */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-rose-500/10 dark:bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -92,14 +112,14 @@ export function EmergencyRescheduleModal({
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black tracking-wider uppercase text-rose-600 dark:text-rose-400">
+                <span id="emergency-reschedule-title" className="text-xs font-black tracking-wider uppercase text-rose-600 dark:text-rose-400">
                   SOS Rotina • IA Adaptativa
                 </span>
                 <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30">
                   EMERGÊNCIA
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p id="emergency-reschedule-desc" className="text-[11px] text-slate-500 dark:text-slate-400">
                 Reorganize sua semana em segundos sem quebrar a consistência
               </p>
             </div>
@@ -108,9 +128,10 @@ export function EmergencyRescheduleModal({
           <button
             type="button"
             onClick={handleResetAndClose}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200 dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:text-slate-400 dark:hover:text-white dark:border-slate-700/60 transition-all cursor-pointer"
+            aria-label="Fechar reorganização de emergência"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200 dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:text-slate-400 dark:hover:text-white dark:border-slate-700/60 transition-all cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-rose-500"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 

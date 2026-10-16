@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -93,10 +93,27 @@ export function StreakFreezeModal({
 
   const freezeSlots = Array.from({ length: MAX_FREEZES }, (_, i) => i);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && purchaseState !== "loading") {
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, purchaseState]);
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="streak-freeze-modal-title"
+          aria-describedby="streak-freeze-modal-desc"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -125,19 +142,20 @@ export function StreakFreezeModal({
                   <Snowflake size={18} className="animate-spin-slow" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-black tracking-tight text-white">
+                  <h2 id="streak-freeze-modal-title" className="text-sm font-black tracking-tight text-white">
                     Trava de Sequência
                   </h2>
-                  <p className="text-[10px] font-medium text-slate-400">
+                  <p id="streak-freeze-modal-desc" className="text-[10px] font-medium text-slate-400">
                     Proteja sua ofensiva de estudos
                   </p>
                 </div>
               </div>
               <button
                 onClick={handleClose}
-                className="cursor-pointer rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
+                aria-label="Fechar trava de sequência"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 

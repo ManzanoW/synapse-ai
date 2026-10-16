@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -35,6 +35,20 @@ export function ExamSheetHUD({
   onRequestFinish,
 }: ExamSheetHUDProps) {
   const [filter, setFilter] = useState<"all" | "pending" | "flagged" | "answered">("all");
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   const answeredCount = Object.keys(selectedAnswers).filter(
     (k) => selectedAnswers[Number(k)] !== undefined && selectedAnswers[Number(k)] !== ""
@@ -73,6 +87,9 @@ export function ExamSheetHUD({
 
           {/* Drawer Lateral Retrátil */}
           <motion.aside
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exam-sheet-hud-title"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -86,7 +103,7 @@ export function ExamSheetHUD({
                   <div className="p-1.5 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-400">
                     <Sparkles size={16} />
                   </div>
-                  <h2 className="text-base font-black tracking-tight text-white">
+                  <h2 id="exam-sheet-hud-title" className="text-base font-black tracking-tight text-white">
                     Grade de Respostas
                   </h2>
                 </div>
@@ -94,10 +111,11 @@ export function ExamSheetHUD({
                 <button
                   onClick={onClose}
                   type="button"
-                  className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  aria-label="Fechar grade de respostas"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
                   title="Fechar Grade (ESC ou G)"
                 >
-                  <X size={16} />
+                  <X size={18} />
                 </button>
               </div>
 
@@ -132,7 +150,7 @@ export function ExamSheetHUD({
               </div>
 
               {/* FILTROS RÁPIDOS */}
-              <div className="flex items-center gap-1.5 pt-1 overflow-x-auto pb-1 text-[11px]">
+              <div role="tablist" aria-label="Filtrar questões da grade" className="flex items-center gap-1.5 pt-1 overflow-x-auto pb-1 text-[11px]">
                 {(
                   [
                     { key: "all", label: `Todas (${totalQuestions})` },
@@ -143,9 +161,11 @@ export function ExamSheetHUD({
                 ).map((tab) => (
                   <button
                     key={tab.key}
+                    role="tab"
+                    aria-selected={filter === tab.key}
                     type="button"
                     onClick={() => setFilter(tab.key)}
-                    className={`px-2.5 py-1 rounded-lg font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    className={`min-h-[36px] px-2.5 py-1.5 rounded-lg font-bold whitespace-nowrap transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none ${
                       filter === tab.key
                         ? "bg-violet-600 text-white shadow-xs"
                         : "bg-white/5 text-slate-400 hover:text-white"
@@ -190,11 +210,12 @@ export function ExamSheetHUD({
                     <button
                       key={`sheet-q-${idx}`}
                       type="button"
+                      aria-label={`Questão ${idx + 1}: ${isAnswered ? `Marcada alternativa ${selectedAlt}` : "Em branco"}${isFlagged ? ", marcada para revisão" : ""}`}
                       onClick={() => {
                         onSelectQuestion(idx);
                         onClose();
                       }}
-                      className={`relative h-12 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${badgeStyle}`}
+                      className={`relative min-h-[48px] h-12 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none ${badgeStyle}`}
                     >
                       {/* Flag indicador superior */}
                       {isFlagged && (
@@ -258,7 +279,8 @@ export function ExamSheetHUD({
                   onRequestFinish();
                 }}
                 type="button"
-                className="w-full py-3.5 px-4 rounded-xl bg-linear-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm tracking-wide transition-all shadow-xl shadow-violet-600/25 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                aria-label="Finalizar simulado"
+                className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-linear-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm tracking-wide transition-all shadow-xl shadow-violet-600/25 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
               >
                 <span>Finalizar Simulado</span>
                 <ArrowRight size={16} />

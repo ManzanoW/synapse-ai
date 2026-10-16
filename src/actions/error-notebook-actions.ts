@@ -1693,6 +1693,109 @@ export interface GenerateRedemptionExamResult {
   error?: string;
   questions?: RedemptionExamQuestion[];
   totalAvailable?: number;
+  isQuotaExceeded?: boolean;
+  canWatchRewardedAd?: boolean;
+  isDirectRevenge?: boolean;
+}
+
+/**
+ * Gera uma Bateria de Revanche Direta com as questões originais que o aluno errou
+ * ZERO CONSUMO DE IA (0⚡) - Execução ultra-rápida sem consumo de cotas ou limites.
+ */
+export async function generateDirectRevengeExamAction(params?: {
+  subjectId?: string;
+  count?: number;
+}): Promise<GenerateRedemptionExamResult> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const count = Math.min(Math.max(params?.count || 5, 3), 15);
+    const whereClause: any = {
+      userId,
+      status: "PENDING",
+    };
+
+    if (params?.subjectId && params?.subjectId !== "ALL") {
+      whereClause.subjectId = params.subjectId;
+    }
+
+    const pendingErrors = await prisma.questionError.findMany({
+      where: whereClause,
+      include: {
+        subject: { select: { id: true, name: true } },
+        topic: { select: { id: true, title: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: count * 2,
+    });
+
+    if (pendingErrors.length === 0) {
+      return {
+        success: false,
+        error:
+          "Parabéns! Você não possui erros pendentes de cicatrização no momento.",
+        totalAvailable: 0,
+        isDirectRevenge: true,
+      };
+    }
+
+    const selected = pendingErrors
+      .sort(() => 0.5 - Math.random())
+      .slice(0, count);
+
+    const formattedQuestions: RedemptionExamQuestion[] = selected.map((orig) => {
+      let opts: Array<{ id: string; texto: string }> = [];
+      if (Array.isArray(orig.options)) {
+        opts = orig.options as any;
+      } else {
+        opts = [
+          { id: "A", texto: "Alternativa A" },
+          { id: "B", texto: "Alternativa B" },
+          { id: "C", texto: "Alternativa C" },
+          { id: "D", texto: "Alternativa D" },
+        ];
+      }
+
+      return {
+        errorId: orig.id,
+        subjectName: orig.subject?.name || "Geral",
+        topicName: orig.topic?.title || undefined,
+        originalQuestionSnippet: orig.questionText.slice(0, 140) + "...",
+        originalUserAnswer: orig.userAnswer,
+        originalCorrectAnswer: orig.correctAnswer,
+        conceptTested: "Fixação e Superação do Erro Original (Revanche Direta)",
+        questionText: orig.questionText,
+        options: opts,
+        correctAnswer: orig.correctAnswer.trim().toUpperCase(),
+        explanation:
+          orig.explanation ||
+          orig.aiExplanation ||
+          "Revise a regra do comando e ancore o conceito correto.",
+        mnemonic: orig.mnemonic || "Ancore este conceito para a prova.",
+      };
+    });
+
+    return {
+      success: true,
+      questions: formattedQuestions,
+      totalAvailable: pendingErrors.length,
+      isDirectRevenge: true,
+    };
+  } catch (err) {
+    console.error("[generateDirectRevengeExamAction] Erro:", err);
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha ao carregar a Revanche Direta de Erros.",
+      isDirectRevenge: true,
+    };
+  }
 }
 
 /**
@@ -1707,6 +1810,19 @@ export async function generateRedemptionExamAction(params?: {
     const userId = session?.user?.id;
     if (!userId) {
       return { success: false, error: "Usuário não autenticado." };
+    }
+
+    // Validação estrita de cota para IA
+    const quota = await checkAiQuota(userId, "SIMULADO");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error:
+          quota.message ||
+          "Limite de simulados com IA atingido por hoje. Você pode fazer a Revanche Direta (0⚡) das questões originais sem gastar cota!",
+        isQuotaExceeded: true,
+        canWatchRewardedAd: quota.canWatchRewardedAd,
+      };
     }
 
     const count = Math.min(Math.max(params?.count || 5, 3), 10);
@@ -1884,10 +2000,14 @@ Retorne OBRIGATORIAMENTE um JSON com o array de questões no formato especificad
       }
     }
 
+    // Consome cota de Simulado após geração bem-sucedida
+    await consumeAiQuota(userId, "SIMULADO");
+
     return {
       success: true,
       questions: formattedQuestions,
       totalAvailable: pendingErrors.length,
+      isDirectRevenge: false,
     };
   } catch (err) {
     console.error("[generateRedemptionExamAction] Erro:", err);

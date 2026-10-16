@@ -30,6 +30,7 @@ interface RedemptionExamModalProps {
   onClose: () => void;
   questions: RedemptionExamQuestion[];
   onExamComplete?: () => void;
+  mode?: "direct" | "ai";
 }
 
 export function RedemptionExamModal({
@@ -37,6 +38,7 @@ export function RedemptionExamModal({
   onClose,
   questions,
   onExamComplete,
+  mode = "ai",
 }: RedemptionExamModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -71,6 +73,15 @@ export function RedemptionExamModal({
       setMasteredCount(0);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen || questions.length === 0) return null;
 
@@ -147,32 +158,58 @@ export function RedemptionExamModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="redemption-exam-title"
+        className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100"
+      >
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-rose-500/20">
-              <ShieldCheck className="w-5 h-5" />
+            <div
+              className={`w-10 h-10 rounded-2xl text-white flex items-center justify-center shadow-md ${
+                mode === "direct"
+                  ? "bg-gradient-to-tr from-emerald-500 to-teal-500 shadow-emerald-500/20"
+                  : "bg-gradient-to-tr from-rose-500 to-amber-500 shadow-rose-500/20"
+              }`}
+            >
+              {mode === "direct" ? (
+                <RotateCcw className="w-5 h-5" />
+              ) : (
+                <ShieldCheck className="w-5 h-5" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">
-                  Simulado de Redenção
+                <h3 id="redemption-exam-title" className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+                  {mode === "direct"
+                    ? "Revanche Direta de Erros"
+                    : "Simulado de Redenção"}
                 </h3>
-                <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
-                  Cicatrização Ativa
+                <span
+                  className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
+                    mode === "direct"
+                      ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900"
+                      : "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900"
+                  }`}
+                >
+                  {mode === "direct" ? "0⚡ Zero Cota" : "Cicatrização Ativa IA"}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Questões Gêmeas da IA para dominar as pegadinhas que te derrubaram
+                {mode === "direct"
+                  ? "Resolva as questões que você errou para cicatrizar as falhas e dominar o conteúdo"
+                  : "Questões Gêmeas da IA para dominar as pegadinhas que te derrubaram"}
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-            aria-label="Fechar"
+            aria-label={mode === "direct" ? "Fechar revanche direta de erros" : "Fechar simulado de redenção"}
+            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none"
           >
             <X className="w-5 h-5" />
           </button>
@@ -287,7 +324,10 @@ export function RedemptionExamModal({
                         key={option.id}
                         disabled={isAnswered || isSubmitting}
                         onClick={() => handleSelectOption(option.id)}
-                        className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-start gap-3 text-sm ${optionStyle}`}
+                        type="button"
+                        aria-pressed={isSelected}
+                        aria-label={`Alternativa ${option.id}: ${option.texto}`}
+                        className={`w-full text-left p-3.5 min-h-[48px] rounded-2xl border transition-all flex items-start gap-3 text-sm cursor-pointer disabled:cursor-default focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none ${optionStyle}`}
                       >
                         <span
                           className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition ${
@@ -444,9 +484,11 @@ export function RedemptionExamModal({
             <div className="flex items-center gap-2">
               {!isAnswered ? (
                 <button
+                  type="button"
                   disabled={!selectedOption || isSubmitting}
                   onClick={handleConfirmAnswer}
-                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-sm shadow-md shadow-rose-600/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
+                  aria-label="Confirmar resposta selecionada"
+                  className="px-6 py-2.5 min-h-[44px] rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-sm shadow-md shadow-rose-600/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none"
                 >
                   {isSubmitting ? (
                     <>
@@ -462,8 +504,10 @@ export function RedemptionExamModal({
                 </button>
               ) : (
                 <button
+                  type="button"
                   onClick={handleNextQuestion}
-                  className="px-6 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold text-sm transition flex items-center gap-2 active:scale-95"
+                  aria-label="Avançar para a próxima questão"
+                  className="px-6 py-2.5 min-h-[44px] rounded-2xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold text-sm transition flex items-center gap-2 active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none"
                 >
                   <span>
                     {currentIndex < questions.length - 1

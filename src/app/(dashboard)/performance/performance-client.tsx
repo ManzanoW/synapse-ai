@@ -15,6 +15,8 @@ import { ApprovalPredictorSection } from "@/components/performance/ApprovalPredi
 import { AdaptiveRebalanceComparisonModal } from "@/components/performance/AdaptiveRebalanceComparisonModal";
 import { MonteCarloRiskModal } from "@/components/analytics/MonteCarloRiskModal";
 import { ExecutiveWeeklyDossier } from "@/components/analytics/ExecutiveWeeklyDossier";
+import { UpcomingReviewsTimeline } from "@/components/analytics/UpcomingReviewsTimeline";
+
 import {
   runMonteCarloSimulationAction,
   MonteCarloSimulationResult,
@@ -706,8 +708,12 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                   </div>
                 )}
 
+                {/* LINHA DO TEMPO VISUAL DE REVISÕES FUTURAS (FSRS TIMELINE) */}
+                <UpcomingReviewsTimeline />
+
                 {/* PREDITOR DE APROVAÇÃO & NOTA DE CORTE DINÂMICA */}
                 <ApprovalPredictorSection />
+
 
                 {/* SUGESTÕES DE AJUSTE DO ALVO (ADAPTIVE REBALANCER) */}
                 <div className="relative overflow-hidden rounded-3xl bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 p-6 backdrop-blur-xl space-y-4 shadow-sm dark:shadow-2xl">
@@ -1271,14 +1277,17 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                         return (
                           <div
                             key={idx}
-                            className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer"
+                            tabIndex={0}
+                            role="button"
+                            aria-label={`${item.day}: ${item.quantidade} questões resolvidas`}
+                            className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer focus-visible:outline-hidden"
                           >
-                            <span className="opacity-0 group-hover:opacity-100 transition-all duration-200 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-white dark:bg-indigo-950/90 border border-indigo-200 dark:border-indigo-500/40 px-2 py-0.5 rounded-md shadow-md pointer-events-none">
+                            <span className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100 transition-all duration-200 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-white dark:bg-indigo-950/90 border border-indigo-200 dark:border-indigo-500/40 px-2 py-0.5 rounded-md shadow-md pointer-events-none">
                               {item.quantidade}
                             </span>
 
                             <div
-                              className={`w-full max-w-10 bg-slate-100 dark:bg-slate-950/80 rounded-2xl h-full flex items-end overflow-hidden p-1 border transition-all ${
+                              className={`w-full max-w-10 bg-slate-100 dark:bg-slate-950/80 rounded-2xl h-full flex items-end overflow-hidden p-1 border transition-all group-focus-visible:ring-2 group-focus-visible:ring-indigo-500 ${
                                 isToday
                                   ? "border-indigo-500 shadow-sm bg-indigo-50/50 dark:bg-indigo-950/30"
                                   : "border-slate-200/80 dark:border-white/5 group-hover:border-slate-300 dark:group-hover:border-white/20"
@@ -1300,7 +1309,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                               className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${
                                 isToday
                                   ? "text-indigo-600 dark:text-indigo-400 font-black"
-                                  : "text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300"
+                                  : "text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 group-focus-visible:text-indigo-600 dark:group-focus-visible:text-indigo-400"
                               }`}
                             >
                               {item.day}

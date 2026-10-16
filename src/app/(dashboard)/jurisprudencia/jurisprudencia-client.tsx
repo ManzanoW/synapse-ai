@@ -507,8 +507,9 @@ export default function JurisprudenciaClient({
                 <button
                   key={trib}
                   type="button"
+                  aria-pressed={selectedTribunal === trib}
                   onClick={() => handleFilterChange(trib, selectedDisciplina)}
-                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     selectedTribunal === trib
                       ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
                       : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10"
@@ -528,8 +529,9 @@ export default function JurisprudenciaClient({
                 <button
                   key={disc}
                   type="button"
+                  aria-pressed={selectedDisciplina === disc}
                   onClick={() => handleFilterChange(selectedTribunal, disc)}
-                  className={`px-2.5 py-1 rounded-xl text-[11px] font-medium whitespace-nowrap transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-xl text-[11px] font-medium whitespace-nowrap transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     selectedDisciplina === disc
                       ? "bg-blue-600/20 border border-blue-500/40 text-blue-700 dark:text-blue-200 font-bold"
                       : "bg-slate-100 dark:bg-white/[0.03] text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/5"
@@ -551,25 +553,29 @@ export default function JurisprudenciaClient({
 
           return (
             <>
-              <div className="flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-2">
+              <div role="tablist" aria-label="Visualização de precedentes" className="flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-2">
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={activeTab === "ALL"}
                   onClick={() => setActiveTab("ALL")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     activeTab === "ALL"
                       ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                      : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:text-white"
+                      : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   Todos os Julgados ({items.length})
                 </button>
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={activeTab === "SAVED"}
                   onClick={() => setActiveTab("SAVED")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 ${
                     activeTab === "SAVED"
                       ? "bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/30"
-                      : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:text-white"
+                      : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   <BookmarkCheck size={14} className={activeTab === "SAVED" ? "fill-slate-950" : ""} />
@@ -677,12 +683,19 @@ export default function JurisprudenciaClient({
                         e.stopPropagation();
                         handleToggleAudio(item);
                       }}
-                      className={`p-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                      aria-label={
+                        playingCardId === item.id
+                          ? isAudioPaused
+                            ? "Continuar áudio deste julgado"
+                            : "Pausar áudio deste julgado"
+                          : `Ouvir tese e pegadinha do julgado ${item.numero}`
+                      }
+                      className={`min-h-[36px] px-2.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                         playingCardId === item.id
                           ? isAudioPaused
                             ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                             : "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 animate-pulse border border-indigo-400"
-                          : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 border border-transparent hover:border-indigo-500/20"
+                          : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 border border-transparent hover:border-indigo-500/20"
                       }`}
                       title={
                         playingCardId === item.id
@@ -712,7 +725,12 @@ export default function JurisprudenciaClient({
                         e.stopPropagation();
                         handleToggleBookmark(item);
                       }}
-                      className={`p-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                      aria-label={
+                        bookmarkedIds[item.id]
+                          ? `Remover julgado ${item.numero} dos favoritos`
+                          : `Salvar julgado ${item.numero} nos favoritos`
+                      }
+                      className={`min-h-[36px] min-w-[36px] inline-flex items-center justify-center p-2 rounded-xl transition-all cursor-pointer text-xs font-bold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 ${
                         bookmarkedIds[item.id]
                           ? "bg-amber-500/20 text-amber-500 dark:text-amber-300 border border-amber-500/40 shadow-xs"
                           : "bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 border border-transparent"
@@ -862,9 +880,12 @@ export default function JurisprudenciaClient({
                                   <button
                                     key={opt.id}
                                     type="button"
+                                    role="button"
+                                    aria-pressed={isSelected}
+                                    aria-label={`Alternativa ${opt.id}: ${opt.text}`}
                                     onClick={() => handleAnswerDrill(item.id, opt.id)}
                                     disabled={isDrillConfirmed}
-                                    className={`w-full text-left p-3 rounded-2xl border text-xs leading-relaxed transition-all flex items-start gap-3 cursor-pointer ${optClasses}`}
+                                    className={`w-full min-h-[44px] text-left p-3 rounded-2xl border text-xs leading-relaxed transition-all flex items-start gap-3 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${optClasses}`}
                                   >
                                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-black/5 dark:bg-white/10 font-bold text-[10px]">
                                       {opt.id}

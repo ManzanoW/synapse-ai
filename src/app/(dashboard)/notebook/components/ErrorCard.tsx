@@ -33,6 +33,11 @@ import Link from "next/link";
 import { tts } from "@/lib/tts-engine";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import {
+  triggerAiQuotaRefresh,
+  triggerOptimisticEnergyConsumption,
+  triggerSynapticExhaustion,
+} from "@/lib/quota-events";
+import {
   ErrorNotebookItem,
   ErrorRemediationData,
   DrillQuestion,
@@ -190,10 +195,16 @@ export function ErrorCard({
 
     setIsExpanded(true);
 
-    if (remediation) return;
-
     setIsGeneratingAi(true);
     setIsQuotaExceeded(false);
+
+    // Disparo otimista visual (-1⚡ Sinapse para Remediação Cognitiva)
+    triggerOptimisticEnergyConsumption({
+      cost: 1,
+      feature: "REMEDIATION",
+      label: "Remediação de Erro",
+    });
+
     try {
       const res = await analyzeSingleErrorAction({
         errorId: errorItem.id,
@@ -211,10 +222,15 @@ export function ErrorCard({
         setQuotaErrorMessage(
           res.error || "Limite diário de ajudas e macetes com IA atingido."
         );
+        triggerSynapticExhaustion({
+          feature: "REMEDIATION",
+          reason: res.error || "Limite diário de remediações atingido.",
+        });
         return;
       }
 
       if (res.success && res.data) {
+        triggerAiQuotaRefresh();
         setRemediation(res.data);
         onItemUpdated({
           ...errorItem,
@@ -770,7 +786,7 @@ export function ErrorCard({
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed">
                     {quotaErrorMessage ||
-                      "A desconstrução pedagógica com IA é um recurso avançado. Desbloqueie remediação imediata assistindo a um vídeo rápido ou assine o Synapse Pro para acesso ilimitado."}
+                      "A desconstrução pedagógica com IA é um recurso avançado. Desbloqueie remediação imediata assistindo a um vídeo rápido ou assine o Synapse Pro para ter alta capacidade diária."}
                   </p>
                 </div>
 
@@ -789,7 +805,7 @@ export function ErrorCard({
                     className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
                   >
                     <Crown size={14} />
-                    <span>Desbloquear Ilimitado com Synapse Pro</span>
+                    <span>Desbloquear Synapse Pro (Alta Capacidade)</span>
                   </Link>
                 </div>
               </div>

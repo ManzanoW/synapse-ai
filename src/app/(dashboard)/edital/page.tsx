@@ -32,7 +32,9 @@ import { EditalSkillTree } from "@/components/edital/edital-skill-tree";
 import { NewContentModal } from "@/components/create-subject-modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
+import { UpcomingReviewsTimeline } from "@/components/analytics/UpcomingReviewsTimeline";
 import { useSearchParams } from "next/navigation";
+
 
 interface ApiTopic {
   id: string;
@@ -93,6 +95,11 @@ function PlannerContent() {
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsActionsOpen(false);
+      }
+    }
     function handleClickOutside(event: MouseEvent) {
       if (
         actionsMenuRef.current &&
@@ -103,9 +110,11 @@ function PlannerContent() {
     }
     if (isActionsOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isActionsOpen]);
 
@@ -365,11 +374,13 @@ function PlannerContent() {
           {/* View Mode & Actions Group */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between lg:justify-end">
             {subjects.length > 0 && (
-              <div className="inline-flex items-center p-1 bg-slate-950/80 border border-slate-800 rounded-xl shrink-0">
+              <div role="tablist" aria-label="Modo de visualização do edital" className="inline-flex items-center p-1 bg-slate-950/80 border border-slate-800 rounded-xl shrink-0">
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={viewMode === "table"}
                   onClick={() => setViewMode("table")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     viewMode === "table"
                       ? "bg-indigo-600 text-white shadow-sm"
                       : "text-slate-400 hover:text-white"
@@ -381,8 +392,10 @@ function PlannerContent() {
                 </button>
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={viewMode === "skill-tree"}
                   onClick={() => setViewMode("skill-tree")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-500 ${
                     viewMode === "skill-tree"
                       ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-sm shadow-cyan-500/25"
                       : "text-slate-400 hover:text-cyan-300"
@@ -408,7 +421,7 @@ function PlannerContent() {
             <button
               type="button"
               onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center justify-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all cursor-pointer active:scale-95 shrink-0"
+              className="flex items-center justify-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all cursor-pointer active:scale-95 shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
               title="Escolha uma carreira pronta ou gere uma personalizada com IA"
             >
               <Sparkles size={13} className="text-amber-400" />
@@ -420,8 +433,11 @@ function PlannerContent() {
               <div className="relative z-30" ref={actionsMenuRef}>
                 <button
                   type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={isActionsOpen}
+                  aria-label="Mais opções do edital"
                   onClick={() => setIsActionsOpen(!isActionsOpen)}
-                  className={`flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 border text-slate-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all cursor-pointer active:scale-95 ${
+                  className={`flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 border text-slate-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all cursor-pointer active:scale-95 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     isActionsOpen
                       ? "border-indigo-500/50 bg-slate-800 text-white"
                       : "border-slate-800"
@@ -439,14 +455,19 @@ function PlannerContent() {
                 </button>
 
                 {isActionsOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-[#090d16] border border-slate-700/80 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                  <div
+                    role="menu"
+                    aria-label="Mais ações do edital"
+                    className="absolute right-0 mt-2 w-56 rounded-2xl bg-[#090d16] border border-slate-700/80 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1"
+                  >
                     <button
                       type="button"
+                      role="menuitem"
                       onClick={() => {
                         setIsActionsOpen(false);
                         setIsCalibrateModalOpen(true);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition-colors text-left cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500"
                     >
                       <Scale size={14} className="text-amber-400" />
                       <span>Calibrar Pesos Oficiais</span>
@@ -454,11 +475,12 @@ function PlannerContent() {
 
                     <button
                       type="button"
+                      role="menuitem"
                       onClick={() => {
                         setIsActionsOpen(false);
                         setIsPrintModalOpen(true);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors text-left cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-500"
                     >
                       <Printer size={14} className="text-cyan-400" />
                       <span>Imprimir Edital (Checklist A4)</span>
@@ -466,8 +488,9 @@ function PlannerContent() {
 
                     <Link
                       href="/week"
+                      role="menuitem"
                       onClick={() => setIsActionsOpen(false)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors text-left cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
                     >
                       <CalendarDays size={14} className="text-emerald-400" />
                       <span>Distribuir no Cronograma</span>
@@ -610,7 +633,13 @@ function PlannerContent() {
           </div>
         </div>
 
+        {/* Projeção Visual de Revisões Futuras (FSRS Timeline) */}
+        {!loading && subjects.length > 0 && (
+          <UpcomingReviewsTimeline />
+        )}
+
         {/* GUIA DIDÁTICO QUANDO NÃO HÁ MATÉRIAS */}
+
         {!loading && subjects.length === 0 && (
           <div className="relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-linear-to-br from-[#090d19] via-[#050812] to-[#020409] p-5 sm:p-8 shadow-2xl">
             <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />

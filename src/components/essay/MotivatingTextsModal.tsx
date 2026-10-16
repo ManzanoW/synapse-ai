@@ -15,10 +15,27 @@ export function MotivatingTextsModal({
   onClose,
   theme,
 }: MotivatingTextsModalProps) {
+  // Listener para fechar modal com Escape
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Caderno de Questões • Proposta Discursiva"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-150"
+    >
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-500/30 rounded-2xl w-full max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
         <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-10">
           <div className="flex items-center gap-2">
@@ -30,7 +47,8 @@ export function MotivatingTextsModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Fechar textos motivadores"
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500"
           >
             <X size={18} />
           </button>

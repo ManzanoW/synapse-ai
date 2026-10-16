@@ -78,6 +78,17 @@ export function ScheduleRescueModal({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleHourChange = (dayIndex: number, hours: number) => {
@@ -143,7 +154,16 @@ export function ScheduleRescueModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="schedule-rescue-title"
+      aria-describedby="schedule-rescue-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="relative w-full max-w-2xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
@@ -153,14 +173,14 @@ export function ScheduleRescueModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+                <h3 id="schedule-rescue-title" className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">
                   Modo Resgate de Semana
                 </h3>
                 <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
                   Sem Culpa
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p id="schedule-rescue-desc" className="text-xs text-slate-500 dark:text-slate-400">
                 Imprevistos acontecem. Vamos salvar os dias restantes com equilíbrio
               </p>
             </div>
@@ -168,8 +188,8 @@ export function ScheduleRescueModal({
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
-            aria-label="Fechar"
+            className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+            aria-label="Fechar modo de resgate da semana"
           >
             <X className="w-5 h-5" />
           </button>

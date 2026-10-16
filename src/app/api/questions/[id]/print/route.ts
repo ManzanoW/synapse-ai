@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 
+function escapeHtml(str: string | null | undefined): string {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -35,9 +45,9 @@ export async function GET(
 
     const rawQuestions = Array.isArray(quiz.questions) ? (quiz.questions as any[]) : [];
     const totalQuestions = rawQuestions.length;
-    const banca = (quiz.banca || "CEBRASPE").toUpperCase();
-    const subject = quiz.subject || "Conhecimentos Gerais";
-    const examDate = new Date(quiz.createdAt).toLocaleDateString("pt-BR");
+    const banca = escapeHtml((quiz.banca || "CEBRASPE").toUpperCase());
+    const subject = escapeHtml(quiz.subject || "Conhecimentos Gerais");
+    const examDate = escapeHtml(new Date(quiz.createdAt).toLocaleDateString("pt-BR"));
     const estimatedMinutes = Math.max(15, totalQuestions * 3);
 
     // Constrói a diagramação em HTML puro estilizável para impressão A4 de alta fidelidade
@@ -46,7 +56,8 @@ export async function GET(
         const num = idx + 1;
         const format = q.formato || "multipla";
         const isCertoErrado = format === "certo_errado";
-        const statement = (q.enunciado || "").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+        const escapedEnunciado = escapeHtml(q.enunciado || "");
+        const statement = escapedEnunciado.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
         let optionsHtml = "";
         if (isCertoErrado) {
@@ -62,7 +73,8 @@ export async function GET(
               ${q.alternativas
                 .map((alt: any, aIdx: number) => {
                   const letter = String.fromCharCode(65 + aIdx);
-                  const text = typeof alt === "string" ? alt : alt?.texto || "";
+                  const rawText = typeof alt === "string" ? alt : alt?.texto || "";
+                  const text = escapeHtml(rawText);
                   return `
                     <div class="option-item">
                       <span class="bubble">${letter}</span>
@@ -114,10 +126,11 @@ export async function GET(
     const answersGridHtml = rawQuestions
       .map((q, idx) => {
         const num = String(idx + 1).padStart(2, "0");
+        const keyVal = escapeHtml(q.gabaritoCorreto || "-");
         return `
           <div class="key-box">
             <div class="key-num">Q-${num}</div>
-            <div class="key-val">${q.gabaritoCorreto || "-"}</div>
+            <div class="key-val">${keyVal}</div>
           </div>
         `;
       })
@@ -126,10 +139,12 @@ export async function GET(
     const explanationsHtml = rawQuestions
       .map((q, idx) => {
         const num = idx + 1;
+        const keyVal = escapeHtml(q.gabaritoCorreto || "-");
+        const explanationText = escapeHtml(q.justificativa || "Fundamentação técnica oficial.");
         return `
           <div class="exp-item">
-            <div class="exp-title">QUESTÃO ${num} • Gabarito: ${q.gabaritoCorreto || "-"}</div>
-            <div class="exp-body">${q.justificativa || "Fundamentação técnica oficial."}</div>
+            <div class="exp-title">QUESTÃO ${num} • Gabarito: ${keyVal}</div>
+            <div class="exp-body">${explanationText}</div>
           </div>
         `;
       })

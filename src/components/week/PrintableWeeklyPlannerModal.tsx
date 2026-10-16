@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import {
   X,
   Printer,
@@ -99,6 +99,17 @@ export function PrintableWeeklyPlannerModal({
 
   const totalAllocatedHours = (totalAllocatedMinutes / 60).toFixed(1);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handlePrint = () => {
@@ -139,7 +150,16 @@ export function PrintableWeeklyPlannerModal({
       `}</style>
 
       {/* MODAL PREVIEW EM TELA */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto no-print">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto no-print"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="printable-planner-title"
+        aria-describedby="printable-planner-desc"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
         <div className="relative w-full max-w-6xl bg-white dark:bg-[#090d16] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
           {/* HEADER DO MODAL (Não impresso) */}
           <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-4 bg-slate-50/80 dark:bg-white/[0.02]">
@@ -148,13 +168,13 @@ export function PrintableWeeklyPlannerModal({
                 <Calendar size={22} />
               </div>
               <div>
-                <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 id="printable-planner-title" className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <span>Planner Semanal de Mesa</span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-600 text-white font-bold">
                     Folha A4
                   </span>
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-zinc-400">
+                <p id="printable-planner-desc" className="text-xs text-slate-500 dark:text-zinc-400">
                   Semana {currentWeekDays} • {totalAllocatedHours}h programadas
                 </p>
               </div>
@@ -164,15 +184,16 @@ export function PrintableWeeklyPlannerModal({
               <button
                 type="button"
                 onClick={handlePrint}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer active:scale-95"
+                className="min-h-[44px] px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer active:scale-95 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950"
               >
-                <Printer size={15} />
+                <Printer size={16} />
                 <span>Imprimir Planner (A4)</span>
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+                aria-label="Fechar planner semanal imprimível"
+                className="w-11 h-11 flex items-center justify-center rounded-xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950"
                 title="Fechar visualização"
               >
                 <X size={18} />

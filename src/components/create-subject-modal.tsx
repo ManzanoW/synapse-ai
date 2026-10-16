@@ -32,6 +32,17 @@ export function NewContentModal({
   const [weight, setWeight] = useState("5/10");
   const [loading, setLoading] = useState(false);
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !loading) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, loading, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,24 +73,38 @@ export function NewContentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-      <div className="bg-[#090d16] border border-slate-800 rounded-2xl w-full max-w-md p-6 relative shadow-2xl animate-in zoom-in-95 duration-150 space-y-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="new-content-modal-title"
+      aria-describedby="new-content-modal-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-[#090d16] border border-slate-800 rounded-2xl w-full max-w-md p-6 relative shadow-2xl animate-in zoom-in-95 duration-150 space-y-4"
+      >
         {/* Botão de Fechar */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 p-1 rounded-lg hover:bg-slate-900"
+          disabled={loading}
+          aria-label="Fechar adicionar conteúdo"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center absolute top-3 right-3 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
         >
           <X size={18} />
         </button>
 
         {/* Cabeçalho */}
         <div>
-          <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+          <h2 id="new-content-modal-title" className="text-base font-bold text-slate-100 flex items-center gap-2">
             <FilePlus2 size={18} className="text-indigo-400" />
             Adicionar Novo Conteúdo
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <p id="new-content-modal-desc" className="text-xs text-slate-400 mt-1">
             Insira as informações do edital para indexar no Planner.
           </p>
         </div>

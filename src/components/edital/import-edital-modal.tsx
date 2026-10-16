@@ -129,21 +129,42 @@ export function ImportEditalModal({
         contentToProcess = rawText;
       }
 
-      if (!contentToProcess.trim()) {
-        alert("Por favor, insira o texto do edital antes de prosseguir.");
-        setIsProcessing(false);
-        return;
-      }
+      let response: Response;
 
-      const response = await fetch("/api/edital/parse-edital", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: contentToProcess }),
-      });
+      if (activeTab === "pdf" && selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("isPdf", "true");
+
+        response = await fetch("/api/edital/parse-edital", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        if (!contentToProcess.trim()) {
+          alert("Por favor, insira o texto do edital antes de prosseguir.");
+          setIsProcessing(false);
+          return;
+        }
+
+        response = await fetch("/api/edital/parse-edital", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: contentToProcess }),
+        });
+      }
 
       const result = await response.json();
 
       if (!response.ok) {
+        if (result.error === "FEATURE_LOCKED_PRO" || response.status === 403) {
+          alert(
+            result.message ||
+              "O upload e processamento de arquivos PDF com IA é exclusivo do plano Synapse Pro. Você pode utilizar a inserção manual na aba 'Colar Texto do Edital'.",
+          );
+          setActiveTab("text");
+          return;
+        }
         throw new Error(result.error || "Erro ao processar o edital");
       }
 
@@ -318,16 +339,40 @@ export function ImportEditalModal({
     onClose();
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isProcessing && !isSaving) {
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isProcessing, isSaving]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-3xl lg:max-w-4xl bg-slate-950 border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden text-slate-200 flex flex-col max-h-[88vh]">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="import-edital-modal-title"
+      aria-describedby="import-edital-modal-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isProcessing && !isSaving) handleClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-3xl lg:max-w-4xl bg-slate-950 border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden text-slate-200 flex flex-col max-h-[88vh]"
+      >
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
           <div className="flex items-center gap-2">
             {step === "preview" && (
               <button
                 onClick={() => setStep("input")}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-colors mr-1 cursor-pointer"
+                aria-label="Voltar para inserção"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-colors mr-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               >
                 <ArrowLeft size={18} />
               </button>
@@ -336,14 +381,14 @@ export function ImportEditalModal({
               <Sparkles size={18} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 id="import-edital-modal-title" className="text-base font-bold text-slate-100">
                 {step === "success"
                   ? "Edital Mapeado com Sucesso"
                   : step === "input"
                     ? "Importar Edital com IA"
                     : "Revisar Matérias e Tópicos"}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p id="import-edital-modal-desc" className="text-xs text-slate-400">
                 {step === "success"
                   ? "Disciplinas mapeadas e prontas para o seu plano"
                   : step === "input"
@@ -354,7 +399,9 @@ export function ImportEditalModal({
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-colors cursor-pointer"
+            disabled={isProcessing || isSaving}
+            aria-label="Fechar importador de edital"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
           >
             <X size={18} />
           </button>

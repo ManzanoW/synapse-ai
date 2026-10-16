@@ -85,6 +85,17 @@ export function PrintableEditalModal({
     return { total, studied, progress };
   }, [topics]);
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handlePrint = () => {
@@ -123,8 +134,20 @@ export function PrintableEditalModal({
       `}</style>
 
       {/* MODAL DE PRÉ-VISUALIZAÇÃO EM TELA */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto no-print-edital">
-        <div className="relative w-full max-w-5xl bg-white dark:bg-[#090d16] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="printable-edital-modal-title"
+        aria-describedby="printable-edital-modal-desc"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto no-print-edital"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-5xl bg-white dark:bg-[#090d16] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        >
           {/* HEADER */}
           <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-4 bg-slate-50/80 dark:bg-white/[0.02]">
             <div className="flex items-center gap-3">
@@ -132,13 +155,13 @@ export function PrintableEditalModal({
                 <FileSpreadsheet size={22} />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 id="printable-edital-modal-title" className="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <span>Edital Verticalizado Imprimível</span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-600 text-white font-bold">
                     Checklist de Mesa
                   </span>
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p id="printable-edital-modal-desc" className="text-xs text-slate-500 dark:text-slate-400">
                   Folha oficial para impressão ou PDF com checkboxes de Teoria, Revisões (24h/7d/30d) e Questões.
                 </p>
               </div>
@@ -147,7 +170,8 @@ export function PrintableEditalModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+              aria-label="Fechar edital verticalizado imprimível"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
             >
               <X size={20} />
             </button>

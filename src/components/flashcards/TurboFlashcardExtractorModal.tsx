@@ -79,6 +79,17 @@ export function TurboFlashcardExtractorModal({
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!mounted || !isOpen) return null;
 
   const handleApplyTemplate = (text: string, title: string) => {
@@ -126,7 +137,16 @@ export function TurboFlashcardExtractorModal({
   };
 
   const modalContent = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="turbo-extractor-title"
+      aria-describedby="turbo-extractor-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -145,22 +165,24 @@ export function TurboFlashcardExtractorModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+                <h2 id="turbo-extractor-title" className="text-base sm:text-lg font-black text-white tracking-tight">
                   Extrator Turbo de Flashcards por IA
                 </h2>
                 <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   FSRS / Anki
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p id="turbo-extractor-desc" className="text-xs text-slate-400">
                 Cole a lei, PDF ou anotações e gere cards memoráveis em 3 segundos
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
+            aria-label="Fechar extrator turbo de flashcards"
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
           >
             <X size={18} />
           </button>

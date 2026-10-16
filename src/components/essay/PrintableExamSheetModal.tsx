@@ -227,6 +227,17 @@ export function PrintableExamSheetModal({
     }
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   // Altura calibrada das 30 linhas para encaixe estrito em 1 ÚNICA página A4 (297mm):
@@ -394,7 +405,16 @@ export function PrintableExamSheetModal({
         )}
 
       {/* MODAL WEB DE VISUALIZAÇÃO E CONFIGURAÇÃO NA TELA */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans print:hidden print-hidden">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 font-sans print:hidden print-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="printable-examsheet-title"
+        aria-describedby="printable-examsheet-desc"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
         <div className="relative w-full max-w-4xl flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh]">
           {/* CABEÇALHO DO MODAL */}
           <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-slate-950/60 shrink-0">
@@ -404,7 +424,7 @@ export function PrintableExamSheetModal({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                  <h3 id="printable-examsheet-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                     Imprimir Folha de Redação Oficial
                   </h3>
                   <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 dark:border-emerald-500/30">
@@ -414,7 +434,7 @@ export function PrintableExamSheetModal({
                     1 Página Exata
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p id="printable-examsheet-desc" className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Simule a prova real: imprima a folha pautada padrão Cebraspe/FGV/FCC, redija à caneta e envie a foto para correção.
                 </p>
               </div>
@@ -423,7 +443,8 @@ export function PrintableExamSheetModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Fechar visualização de folha para impressão"
+              className="w-11 h-11 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-violet-500"
             >
               <X size={18} />
             </button>

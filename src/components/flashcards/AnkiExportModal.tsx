@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Crown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { exportDeckToAnkiAction, AnkiExportResult } from "@/actions/anki-export-actions";
@@ -152,6 +153,31 @@ export function AnkiExportModal({
               <p className="text-xs text-slate-400">
                 Formatando flashcards e macetes para o Anki...
               </p>
+            </div>
+          ) : errorMessage === "FEATURE_LOCKED_PRO" ? (
+            <div className="py-6 px-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 flex flex-col items-center text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/10">
+                <Crown size={28} />
+              </div>
+              <div className="space-y-1.5 max-w-sm">
+                <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Recurso Exclusivo Synapse Pro
+                </span>
+                <h3 className="text-sm sm:text-base font-bold text-white">
+                  Exportação para o Anki (.apkg/.txt)
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Exporte seus baralhos completos formatados com tags inteligentes e bizús para estudar no Anki Desktop ou AnkiDroid.
+                </p>
+              </div>
+              <a
+                href="/pricing"
+                onClick={onClose}
+                className="w-full max-w-xs py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all"
+              >
+                <Crown size={14} />
+                <span>Desbloquear com Synapse Pro</span>
+              </a>
             </div>
           ) : errorMessage ? (
             <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-3">

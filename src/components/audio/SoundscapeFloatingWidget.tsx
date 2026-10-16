@@ -32,8 +32,13 @@ export function SoundscapeFloatingWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fecha popover ao clicar fora
+  // Fecha popover ao clicar fora ou pressionar Escape
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
     const handleClickOutside = (e: MouseEvent) => {
       if (
         containerRef.current &&
@@ -44,9 +49,11 @@ export function SoundscapeFloatingWidget() {
     };
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
 
@@ -75,29 +82,31 @@ export function SoundscapeFloatingWidget() {
     >
       {/* Pílula Flutuante Principal */}
       <div
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 backdrop-blur-xl shadow-xl ${
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 backdrop-blur-xl shadow-lg ${
           isPlaying
-            ? "bg-indigo-950/80 border-indigo-500/40 text-indigo-200 shadow-indigo-500/10"
-            : "bg-slate-900/70 border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/20"
+            ? "bg-indigo-50/90 border-indigo-300/80 text-indigo-700 shadow-indigo-500/10 dark:bg-indigo-950/80 dark:border-indigo-500/40 dark:text-indigo-200"
+            : "bg-white/90 border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 dark:bg-slate-900/70 dark:border-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:border-white/20"
         }`}
       >
         {/* Visualizador de Áudio (barrinhas animadas se tocando) */}
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="flex items-center gap-2 text-xs font-semibold cursor-pointer group"
+          className="flex items-center gap-2 text-xs font-semibold cursor-pointer group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg p-0.5"
           title="Configurações de Áudio & Foco"
+          aria-expanded={isOpen}
+          aria-haspopup="dialog"
         >
           {isPlaying ? (
             <div className="flex items-end gap-0.5 h-3.5 w-3.5">
-              <span className="w-1 bg-indigo-400 rounded-full animate-[pulse_0.8s_ease-in-out_infinite] h-3" />
-              <span className="w-1 bg-violet-400 rounded-full animate-[pulse_1.1s_ease-in-out_infinite] h-2" />
-              <span className="w-1 bg-indigo-300 rounded-full animate-[pulse_0.6s_ease-in-out_infinite] h-3.5" />
+              <span className="w-1 bg-indigo-500 dark:bg-indigo-400 rounded-full animate-[pulse_0.8s_ease-in-out_infinite] h-3" />
+              <span className="w-1 bg-violet-500 dark:bg-violet-400 rounded-full animate-[pulse_1.1s_ease-in-out_infinite] h-2" />
+              <span className="w-1 bg-indigo-400 dark:bg-indigo-300 rounded-full animate-[pulse_0.6s_ease-in-out_infinite] h-3.5" />
             </div>
           ) : (
             <Headphones
               size={14}
-              className="text-slate-400 group-hover:text-indigo-400 transition-colors"
+              className="text-slate-500 group-hover:text-indigo-600 dark:text-slate-400 dark:group-hover:text-indigo-400 transition-colors"
             />
           )}
 
@@ -113,39 +122,49 @@ export function SoundscapeFloatingWidget() {
         <button
           type="button"
           onClick={togglePlay}
-          className="p-1 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+          className="h-7 w-7 inline-flex items-center justify-center rounded-full hover:bg-slate-200/70 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
+          aria-label={isPlaying ? "Pausar som ambiente" : "Iniciar som ambiente"}
           title={isPlaying ? "Pausar som ambiente" : "Iniciar som ambiente"}
         >
-          {isPlaying ? <Pause size={12} /> : <Play size={12} />}
+          {isPlaying ? <Pause size={13} /> : <Play size={13} />}
         </button>
 
         {/* Mute Rápido de Efeitos */}
         <button
           type="button"
           onClick={toggleMute}
-          className={`p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer ${
-            isMuted ? "text-rose-400" : "text-slate-400 hover:text-slate-200"
+          className={`h-7 w-7 inline-flex items-center justify-center rounded-full hover:bg-slate-200/70 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+            isMuted
+              ? "text-rose-500 dark:text-rose-400"
+              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
           }`}
+          aria-label={isMuted ? "Ativar som geral" : "Silenciar tudo"}
           title={isMuted ? "Ativar som geral" : "Silenciar tudo"}
         >
-          {isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+          {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
         </button>
       </div>
 
       {/* Popover de Controles e Presets */}
       {isOpen && (
-        <div className="absolute top-11 right-0 w-72 rounded-2xl bg-[#090d1a]/95 border border-indigo-500/25 p-4 shadow-2xl backdrop-blur-2xl space-y-3.5 animate-in fade-in zoom-in-95 duration-150">
-          <div className="flex items-center justify-between pb-2 border-b border-white/5">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
-              <Headphones size={14} className="text-indigo-400" />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Paisagens Sonoras Neurais"
+          className="absolute top-11 right-0 w-72 rounded-2xl bg-white/95 dark:bg-[#090d1a]/95 border border-slate-200 dark:border-indigo-500/25 p-4 shadow-2xl backdrop-blur-2xl space-y-3.5 animate-in fade-in zoom-in-95 duration-150"
+        >
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+              <Headphones size={14} className="text-indigo-600 dark:text-indigo-400" />
               <span>Paisagens Sonoras Neurais</span>
             </div>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+              aria-label="Fechar painel de som"
+              className="min-h-[32px] min-w-[32px] inline-flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
-              <X size={13} />
+              <X size={14} />
             </button>
           </div>
 
@@ -160,21 +179,22 @@ export function SoundscapeFloatingWidget() {
                   key={item.id}
                   type="button"
                   onClick={() => selectSoundscape(item.id)}
-                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                  aria-pressed={isSelected}
+                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     isSelected
-                      ? "bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 font-semibold"
-                      : "text-slate-300 hover:bg-slate-800/50 hover:text-white border border-transparent"
+                      ? "bg-indigo-50 border border-indigo-300 text-indigo-700 font-semibold dark:bg-indigo-500/20 dark:border-indigo-500/40 dark:text-indigo-200"
+                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white border border-transparent"
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     <Icon
                       size={14}
-                      className={isSelected ? "text-indigo-400" : "text-slate-400"}
+                      className={isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}
                     />
                     <span>{item.label}</span>
                   </div>
                   {item.tag && (
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30">
                       {item.tag}
                     </span>
                   )}
@@ -186,33 +206,35 @@ export function SoundscapeFloatingWidget() {
             <button
               type="button"
               onClick={() => selectSoundscape("none")}
-              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+              aria-pressed={currentSoundscape === "none"}
+              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                 currentSoundscape === "none"
-                  ? "bg-slate-800 border border-slate-700 text-slate-200 font-medium"
-                  : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-200 border border-transparent"
+                  ? "bg-slate-100 border border-slate-300 text-slate-800 font-medium dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/40 dark:hover:text-slate-200 border border-transparent"
               }`}
             >
-              <VolumeX size={14} className="text-slate-500" />
+              <VolumeX size={14} className="text-slate-400 dark:text-slate-500" />
               <span>Desativar som ambiente</span>
             </button>
           </div>
 
           {/* Controle de Volume */}
-          <div className="pt-2 border-t border-white/5 space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
+          <div className="pt-2 border-t border-slate-100 dark:border-white/5 space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-1">
                 <Sliders size={11} />
                 <span>Volume Ambiente</span>
               </span>
-              <span className="font-mono text-slate-300 font-bold">{volume}%</span>
+              <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{volume}%</span>
             </div>
             <input
               type="range"
               min="0"
               max="100"
               value={volume}
+              aria-label="Volume ambiente"
               onChange={(e) => setVolume(Number(e.target.value))}
-              className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+              className="w-full accent-indigo-600 dark:accent-indigo-500 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
             />
           </div>
         </div>

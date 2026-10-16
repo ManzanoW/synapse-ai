@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Send,
   Sparkles,
@@ -37,6 +37,17 @@ export function SubmitConfirmationModal({
   formattedTime,
   isEvaluating,
 }: SubmitConfirmationModalProps) {
+  useEffect(() => {
+    if (!isOpen || isEvaluating) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isEvaluating, onClose]);
+
   if (!isOpen) return null;
 
   const isTooShortWords = wordCount < 30;
@@ -45,7 +56,16 @@ export function SubmitConfirmationModal({
   const isInConformity = !isTooShortWords && !isBelowMinLines && !isAboveMaxLines;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-150"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="submit-modal-title"
+      aria-describedby="submit-modal-desc"
+      onClick={(e) => {
+        if (!isEvaluating && e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-500/30 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
         {/* CABEÇALHO */}
         <div className="p-5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-white dark:bg-slate-900/90">
@@ -54,10 +74,10 @@ export function SubmitConfirmationModal({
               <Send size={18} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+              <h3 id="submit-modal-title" className="text-base font-bold text-slate-900 dark:text-white leading-tight">
                 Entrega da Prova Discursiva
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p id="submit-modal-desc" className="text-xs text-slate-500 dark:text-slate-400">
                 Confirmar envio para a banca examinadora
               </p>
             </div>
@@ -67,7 +87,8 @@ export function SubmitConfirmationModal({
             type="button"
             onClick={onClose}
             disabled={isEvaluating}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Fechar confirmação de envio"
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50 focus:outline-hidden focus:ring-2 focus:ring-violet-500"
           >
             <X size={18} />
           </button>
@@ -200,7 +221,7 @@ export function SubmitConfirmationModal({
             type="button"
             onClick={onClose}
             disabled={isEvaluating}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 transition-colors cursor-pointer"
+            className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-slate-400"
           >
             {isTooShortWords ? "Voltar e Escrever Mais" : "Voltar à Folha"}
           </button>
@@ -210,7 +231,7 @@ export function SubmitConfirmationModal({
               type="button"
               onClick={onConfirm}
               disabled={isEvaluating}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white shadow-lg transition-all cursor-pointer ${
+              className={`min-h-[44px] flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white shadow-lg transition-all cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-violet-500 disabled:opacity-50 ${
                 isBelowMinLines
                   ? "bg-amber-600 hover:bg-amber-500 shadow-amber-600/30 dark:shadow-amber-950/60"
                   : "bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-600/30 dark:shadow-violet-950/60"

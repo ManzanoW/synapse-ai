@@ -19,10 +19,16 @@ import {
   getErrorMetricsAction,
   batchClassifyTaxonomyOnlyAction,
   generateRedemptionExamAction,
+  generateDirectRevengeExamAction,
   RedemptionExamQuestion,
   convertErrorToFlashcardAction,
 } from "@/actions/error-notebook-actions";
 import { convertBatchErrorsToFlashcardsAction } from "@/actions/error-flashcard-actions";
+import {
+  triggerOptimisticEnergyConsumption,
+  triggerSynapticExhaustion,
+  triggerAiQuotaRefresh,
+} from "@/lib/quota-events";
 import {
   AlertCircle,
   BookOpenCheck,
@@ -36,6 +42,7 @@ import {
   Sparkles,
   ShieldCheck,
   Flame,
+  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -137,9 +144,11 @@ export function ErrorNotebookView({
     }
   }, [convertedIds, isConvertingId, showToast]);
 
-  // Estados do Simulado de Redenção com Questões Gêmeas
+  // Estados do Simulado de Redenção com Questões Gêmeas e Revanche Direta
   const [isRedemptionOpen, setIsRedemptionOpen] = useState(false);
   const [isGeneratingRedemption, setIsGeneratingRedemption] = useState(false);
+  const [isGeneratingDirectRevenge, setIsGeneratingDirectRevenge] = useState(false);
+  const [redemptionMode, setRedemptionMode] = useState<"direct" | "ai">("ai");
   const [redemptionQuestions, setRedemptionQuestions] = useState<RedemptionExamQuestion[]>([]);
 
   // Refs de controle de requisição e Sentinela de Rolagem
@@ -357,17 +366,64 @@ export function ErrorNotebookView({
     }
   };
 
-  // Disparo do Simulado de Redenção com Questões Gêmeas da IA
-  const handleStartRedemption = async (count: number = 5) => {
-    setIsGeneratingRedemption(true);
+  // Disparo de Revanche Direta (0⚡ Zero Cota de IA - Questões Originais)
+  const handleStartDirectRevenge = async (count: number = 5) => {
+    setIsGeneratingDirectRevenge(true);
     try {
-      const res = await generateRedemptionExamAction({
+      const res = await generateDirectRevengeExamAction({
         subjectId: filters.subjectId,
         count,
       });
 
       if (res.success && res.questions && res.questions.length > 0) {
         setRedemptionQuestions(res.questions);
+        setRedemptionMode("direct");
+        setIsRedemptionOpen(true);
+      } else {
+        showToast(
+          res.error || "Nenhum erro pendente para revanche no momento.",
+          "info"
+        );
+      }
+    } catch (err) {
+      console.error("Erro ao iniciar revanche direta:", err);
+      showToast("Falha ao carregar a Revanche Direta.", "error");
+    } finally {
+      setIsGeneratingDirectRevenge(false);
+    }
+  };
+
+  // Disparo do Simulado de Redenção com Questões Gêmeas da IA (Consome Cota)
+  const handleStartRedemption = async (count: number = 5) => {
+    setIsGeneratingRedemption(true);
+    triggerOptimisticEnergyConsumption({
+      cost: 1,
+      feature: "SIMULADO",
+      label: "Simulado Redenção IA",
+    });
+
+    try {
+      const res = await generateRedemptionExamAction({
+        subjectId: filters.subjectId,
+        count,
+      });
+
+      if (res.isQuotaExceeded) {
+        triggerSynapticExhaustion({
+          feature: "SIMULADO",
+          reason: res.error || "Limite diário de simulados com IA atingido.",
+        });
+        showToast(
+          res.error || "Cota de IA atingida. Use a Revanche Direta (0⚡)!",
+          "error"
+        );
+        return;
+      }
+
+      if (res.success && res.questions && res.questions.length > 0) {
+        triggerAiQuotaRefresh();
+        setRedemptionQuestions(res.questions);
+        setRedemptionMode("ai");
         setIsRedemptionOpen(true);
       } else {
         showToast(
@@ -457,11 +513,33 @@ export function ErrorNotebookView({
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              {/* Botão 1: Revanche Direta (Zero Cota 0⚡) */}
               <button
-                disabled={isGeneratingRedemption}
+                disabled={isGeneratingDirectRevenge || isGeneratingRedemption}
+                onClick={() => handleStartDirectRevenge(5)}
+                className="px-4 py-2.5 sm:py-3 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-950/40 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                title="Treine novamente as questões originais que você errou sem gastar cota de IA"
+              >
+                {isGeneratingDirectRevenge ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                    <span>Carregando Revanche...</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-4 h-4 text-emerald-400" />
+                    <span>Revanche Direta (0⚡)</span>
+                  </>
+                )}
+              </button>
+
+              {/* Botão 2: Simulado de Redenção IA (Questões Gêmeas) */}
+              <button
+                disabled={isGeneratingRedemption || isGeneratingDirectRevenge}
                 onClick={() => handleStartRedemption(5)}
-                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold text-xs sm:text-sm shadow-xl shadow-rose-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                className="px-4.5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold text-xs sm:text-sm shadow-xl shadow-rose-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                title="A IA cria questões inéditas baseadas nas mesmas pegadinhas dos seus erros"
               >
                 {isGeneratingRedemption ? (
                   <>
@@ -471,7 +549,7 @@ export function ErrorNotebookView({
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 text-amber-200" />
-                    <span>Iniciar Simulado de Redenção (5Q)</span>
+                    <span>Redenção IA (5Q)</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -690,12 +768,13 @@ export function ErrorNotebookView({
         onFinished={handleRemediationFinished}
       />
 
-      {/* 7. Modal de Simulado de Redenção com Questões Gêmeas da IA */}
+      {/* 7. Modal de Simulado de Redenção com Questões Gêmeas da IA ou Revanche Direta */}
       <RedemptionExamModal
         isOpen={isRedemptionOpen}
         onClose={() => setIsRedemptionOpen(false)}
         questions={redemptionQuestions}
         onExamComplete={handleRedemptionComplete}
+        mode={redemptionMode}
       />
 
       {/* 8. Modal de Apostila de Véspera (PDF/Imprimir) & Exportação Anki */}

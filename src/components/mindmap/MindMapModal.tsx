@@ -18,6 +18,11 @@ import {
 } from "@/actions/mindmap-actions";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
+import {
+  triggerOptimisticEnergyConsumption,
+  triggerSynapticExhaustion,
+  triggerAiQuotaRefresh,
+} from "@/lib/quota-events";
 import { Lock, Crown, Film } from "lucide-react";
 import Link from "next/link";
 import { MindMapCanvas } from "./MindMapCanvas";
@@ -67,6 +72,14 @@ export function MindMapModal({
     setError(null);
     setIsQuotaExceeded(false);
 
+    if (force) {
+      triggerOptimisticEnergyConsumption({
+        cost: 1,
+        feature: "MINDMAP",
+        label: "Mapa Mental IA",
+      });
+    }
+
     try {
       const res = await generateTopicMindMapAction({
         topicTitle,
@@ -78,10 +91,17 @@ export function MindMapModal({
       if (res.isQuotaExceeded) {
         setIsQuotaExceeded(true);
         setError(res.error || "Limite de mapas mentais atingido.");
+        triggerSynapticExhaustion({
+          feature: "MINDMAP",
+          reason: res.error || "Limite semanal de mapas mentais atingido.",
+        });
         return;
       }
 
       if (res.success && res.data) {
+        if (force) {
+          triggerAiQuotaRefresh();
+        }
         setData(res.data);
       } else {
         setError(res.error || "Não foi possível estruturar o mapa mental.");
@@ -250,7 +270,7 @@ export function MindMapModal({
                   className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
                 >
                   <Crown size={15} />
-                  <span>Desbloquear Mapas Ilimitados com Synapse Pro</span>
+                  <span>Desbloquear Synapse Pro (Alta Capacidade)</span>
                 </Link>
               </div>
             </div>

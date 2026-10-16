@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { playUiSound } from "@/lib/sensory/audio-feedback";
 
 export function ArsenalBentoGrid() {
   // Estado Card 1: Discursiva Banca Selector & Comparison Mode
@@ -221,6 +222,7 @@ export function ArsenalBentoGrid() {
                   type="button"
                   onClick={() => {
                     triggerHaptic("light");
+                    playUiSound("switch");
                     setRedacaoMode("draft");
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -236,6 +238,7 @@ export function ArsenalBentoGrid() {
                   type="button"
                   onClick={() => {
                     triggerHaptic("medium");
+                    playUiSound("switch");
                     setRedacaoMode("gold");
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -255,6 +258,7 @@ export function ArsenalBentoGrid() {
                   type="button"
                   onClick={() => {
                     triggerHaptic("light");
+                    playUiSound("click");
                     setSelectedBanca("cebraspe");
                   }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -269,6 +273,7 @@ export function ArsenalBentoGrid() {
                   type="button"
                   onClick={() => {
                     triggerHaptic("light");
+                    playUiSound("click");
                     setSelectedBanca("fgv");
                   }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -283,6 +288,7 @@ export function ArsenalBentoGrid() {
                   type="button"
                   onClick={() => {
                     triggerHaptic("light");
+                    playUiSound("click");
                     setSelectedBanca("fcc");
                   }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${

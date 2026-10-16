@@ -7,6 +7,7 @@ import { recordStudyActivityAction } from "./gamification-actions";
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
 import { evaluateDiscursivaEssay, BancaMethodology } from "@/lib/discursiva-evaluator";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
+import { isUserPro } from "@/lib/subscription";
 
 export interface MotivatingText {
   title: string;
@@ -222,6 +223,7 @@ export async function evaluateEssayAction(payload: {
     });
 
     // 2. Salva no banco de dados
+    const userIsPro = await isUserPro(userId);
     const submission = await prisma.essaySubmission.create({
       data: {
         userId,
@@ -278,7 +280,7 @@ export async function evaluateEssayAction(payload: {
         lineErrors: evaluation.lineErrors,
         strengths: evaluation.strengths,
         improvements: evaluation.improvements,
-        goldenVersion: submission.goldenVersion || "",
+        goldenVersion: userIsPro ? (submission.goldenVersion || "") : "",
         createdAt: submission.createdAt.toISOString(),
         xpEarned: xpReward,
         notaConteudo: evaluation.notaConteudo,
@@ -376,6 +378,8 @@ export async function getEssaySubmissionByIdAction(id: string): Promise<{
       return { success: false, error: "Redação não encontrada." };
     }
 
+    const userIsPro = await isUserPro(session.user.id);
+
     return {
       success: true,
       data: {
@@ -397,7 +401,7 @@ export async function getEssaySubmissionByIdAction(id: string): Promise<{
         lineErrors: (essay.lineErrors as unknown as LineError[]) || [],
         strengths: (essay.strengths as unknown as string[]) || [],
         improvements: (essay.improvements as unknown as string[]) || [],
-        goldenVersion: essay.goldenVersion || "",
+        goldenVersion: userIsPro ? (essay.goldenVersion || "") : "",
         createdAt: essay.createdAt.toISOString(),
       },
     };

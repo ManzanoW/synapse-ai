@@ -24,6 +24,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { MindMapNode, deepenMindMapNodeAction } from "@/actions/mindmap-actions";
+import {
+  triggerOptimisticEnergyConsumption,
+  triggerAiQuotaRefresh,
+} from "@/lib/quota-events";
 
 export interface MindMapCanvasProps {
   rootNode: MindMapNode;
@@ -312,6 +316,12 @@ export function MindMapCanvas({
     }
 
     setIsDeepening(true);
+    triggerOptimisticEnergyConsumption({
+      cost: 1,
+      feature: "MINDMAP",
+      label: "Aprofundamento IA",
+    });
+
     try {
       const res = await deepenMindMapNodeAction({
         nodeId: node.id,
@@ -321,7 +331,19 @@ export function MindMapCanvas({
         subjectName: subjectName || "Geral",
       });
 
+      if (!res.success) {
+        if (res.error === "FEATURE_LOCKED_PRO" || res.isProRequired) {
+          setProFeatureReason("deepen");
+          setIsProModalOpen(true);
+        } else {
+          setExportSuccessMsg(res.error || "Falha ao aprofundar nó.");
+          setTimeout(() => setExportSuccessMsg(null), 3000);
+        }
+        return;
+      }
+
       if (res.success && res.data) {
+        triggerAiQuotaRefresh();
         const updated = addSubNodesToTree(
           currentNode,
           node.id,
@@ -1181,7 +1203,7 @@ export function MindMapCanvas({
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all"
               >
                 <Crown size={15} />
-                <span>Desbloquear Acesso Ilimitado Pro</span>
+                <span>Desbloquear Synapse Pro (Alta Capacidade)</span>
               </Link>
               <button
                 type="button"

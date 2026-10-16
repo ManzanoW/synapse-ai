@@ -19,12 +19,14 @@ import {
   Trophy,
   Flame,
   Loader2,
+  Zap,
 } from "lucide-react";
 import {
   claimOnboardingRewardAction,
   getOnboardingRewardStatusAction,
 } from "@/actions/gamification-actions";
 import { useGamification } from "@/context/GamificationContext";
+import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 
 interface FirstStepsChecklistCardProps {
   hasEditalSubjects: boolean;
@@ -115,6 +117,7 @@ export function FirstStepsChecklistCard({
             saveState({ claimed: true });
             await refreshStats();
             window.dispatchEvent(new CustomEvent("xp-updated"));
+            triggerAiQuotaRefresh();
           } else if (res.alreadyClaimed) {
             if (isMounted) setIsClaimed(true);
           }
@@ -173,6 +176,7 @@ export function FirstStepsChecklistCard({
 
         await refreshStats();
         window.dispatchEvent(new CustomEvent("xp-updated"));
+        triggerAiQuotaRefresh();
       }
     } catch (err) {
       console.error("Erro ao resgatar XP de primeiras conquistas:", err);
@@ -210,7 +214,8 @@ export function FirstStepsChecklistCard({
             className="pointer-events-none absolute right-8 top-3 z-30 flex items-center gap-1.5 rounded-full bg-amber-500/25 border border-amber-500/50 px-3 py-1 font-mono text-xs font-black text-amber-300 shadow-xl backdrop-blur-md"
           >
             <Sparkles size={14} className="text-amber-400" />
-            <span>+100 XP Concedidos!</span>
+            <Zap size={13} className="text-amber-300 fill-amber-300" />
+            <span>+100 XP & +2⚡ Sinapses Concedidas!</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -231,13 +236,14 @@ export function FirstStepsChecklistCard({
                 {completedCount}/3 Concluídas
               </span>
               {isClaimed && (
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 font-mono text-[9px] font-black text-emerald-300">
-                  ✓ Recompensa Coletada
+                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 font-mono text-[9px] font-black text-emerald-300 flex items-center gap-1">
+                  <Zap size={9} className="text-emerald-300 fill-emerald-300" />
+                  ✓ +100 XP & +2⚡ Sinapses Coletadas
                 </span>
               )}
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
-              Complete os 3 passos iniciais para calibrar sua rotina e ganhar +100 XP
+              Complete os 3 passos iniciais para calibrar sua rotina e ganhar <strong className="text-amber-300 font-bold">+100 XP</strong> e <strong className="text-amber-300 font-bold">+2⚡ Sinapses de Bônus</strong>
             </p>
           </div>
         </div>
@@ -247,7 +253,8 @@ export function FirstStepsChecklistCard({
           <button
             type="button"
             onClick={handleToggleMinimize}
-            className="p-1.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label={isMinimized ? "Expandir checklist de primeiras conquistas" : "Recolher checklist de primeiras conquistas"}
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none transition-colors cursor-pointer"
             title={isMinimized ? "Expandir checklist" : "Recolher checklist"}
           >
             {isMinimized ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
@@ -255,7 +262,8 @@ export function FirstStepsChecklistCard({
           <button
             type="button"
             onClick={handleDismiss}
-            className="p-1.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Ocultar checklist de primeiras conquistas do painel"
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none transition-colors cursor-pointer"
             title="Ocultar do Dashboard"
           >
             <X size={15} />
@@ -322,7 +330,7 @@ export function FirstStepsChecklistCard({
                   ) : (
                     <Link
                       href={getHref("/edital")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-[11px] transition-all group/link"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-[11px] transition-all group/link focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none"
                     >
                       <span>Cadastrar Edital</span>
                       <ArrowRight size={11} className="group-hover/link:translate-x-0.5 transition-transform" />
@@ -371,7 +379,7 @@ export function FirstStepsChecklistCard({
                   ) : (
                     <Link
                       href={getHref("/study-room")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 font-bold text-[11px] transition-all group/link"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 font-bold text-[11px] transition-all group/link focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                     >
                       <span>Abrir Sala de Foco</span>
                       <ArrowRight size={11} className="group-hover/link:translate-x-0.5 transition-transform" />
@@ -420,7 +428,7 @@ export function FirstStepsChecklistCard({
                   ) : (
                     <Link
                       href={getHref("/questions")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-bold text-[11px] transition-all group/link"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-bold text-[11px] transition-all group/link focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:outline-none"
                     >
                       <span>Fazer Questões</span>
                       <ArrowRight size={11} className="group-hover/link:translate-x-0.5 transition-transform" />
@@ -442,28 +450,30 @@ export function FirstStepsChecklistCard({
                       Parabéns! Todas as 3 metas iniciais concluídas!
                     </span>
                     <span className="text-[10px] text-amber-200/70 block">
-                      Você deu os primeiros passos com maestria. Resgate seus +100 XP agora!
+                      Você deu os primeiros passos com maestria. Resgate seus <strong className="text-amber-300 font-bold">+100 XP</strong> e <strong className="text-amber-300 font-bold">+2⚡ Sinapses</strong> agora!
                     </span>
                   </div>
                 </div>
 
                 {isClaimed ? (
-                  <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black text-xs">
-                    ✓ +100 XP Coletados!
+                  <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black text-xs flex items-center gap-1">
+                    <Zap size={12} className="fill-emerald-300 text-emerald-300" />
+                    ✓ +100 XP & +2⚡ Sinapses Coletadas!
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={handleClaim}
                     disabled={isClaiming}
-                    className="px-4 py-2 rounded-xl bg-linear-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
+                    aria-label="Resgatar 100 XP e 2 Sinapses de Bônus de Boas-Vindas"
+                    className="px-4 py-2.5 min-h-[44px] rounded-xl bg-linear-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none"
                   >
                     {isClaiming ? (
                       <Loader2 size={14} className="animate-spin" />
                     ) : (
                       <Gift size={14} />
                     )}
-                    <span>{isClaiming ? "Resgatando..." : "Resgatar +100 XP"}</span>
+                    <span>{isClaiming ? "Resgatando..." : "Resgatar +100 XP & +2⚡ Sinapses"}</span>
                   </button>
                 )}
               </div>

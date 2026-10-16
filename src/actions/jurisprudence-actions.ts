@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { recordStudyActivityAction } from "@/actions/gamification-actions";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 import {
   type JurisprudenceItem,
@@ -55,6 +56,25 @@ export async function searchJurisprudenceAction(input: {
 
     // 3. Se não houver correspondência curada e o usuário buscou um termo específico, aciona a IA
     if (q.length >= 3) {
+      const session = await auth();
+      const userId = session?.user?.id;
+      if (!userId) {
+        return {
+          success: false,
+          data: [],
+          error: "Faça login para gerar análises inéditas de jurisprudência com IA.",
+        };
+      }
+
+      const quota = await checkAiQuota(userId, "REMEDIATION");
+      if (!quota.allowed) {
+        return {
+          success: false,
+          data: [],
+          error: quota.message || "Cota diária de auxílio cognitivo de IA atingida.",
+        };
+      }
+
       const prompt = `Você é o maior especialista em jurisprudência do STF, STJ e tribunais superiores do Brasil para concursos públicos.
 O usuário pesquisou pelo seguinte tema ou súmula jurídica: "${input.query}" (Tribunal: ${input.tribunal || "STF/STJ"}, Disciplina: ${input.disciplina || "Geral"}).
 
@@ -88,6 +108,8 @@ Estrutura JSON obrigatória:
           "gemini-3.6-flash",
         ],
       });
+
+      await consumeAiQuota(userId, "REMEDIATION").catch(() => {});
 
       if (aiResponse?.text) {
         let cleanText = aiResponse.text.trim();

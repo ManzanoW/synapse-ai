@@ -1,7 +1,9 @@
 // src/actions/socratic-actions.ts
 "use server";
 
+import { auth } from "@/auth";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
 interface SocraticHintInput {
   questionText: string;
@@ -15,6 +17,7 @@ export interface SocraticHintResponse {
   hint?: string;
   guidingQuestion?: string;
   error?: string;
+  isQuotaExceeded?: boolean;
 }
 
 /**
@@ -24,6 +27,21 @@ export async function getSocraticHintAction(
   input: SocraticHintInput
 ): Promise<SocraticHintResponse> {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Faça login para solicitar dicas socráticas com IA." };
+    }
+
+    const quota = await checkAiQuota(userId, "REMEDIATION");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Cota diária de auxílio cognitivo de IA atingida.",
+        isQuotaExceeded: true,
+      };
+    }
+
     const prompt = `
 Você é o "Tutor Socrático de Concursos de Elite" da plataforma Synapse AI.
 Um concurseiro está resolvendo a questão abaixo e solicitou uma PISTA SOCRÁTICA para clarear o raciocínio.
@@ -51,6 +69,8 @@ Responda em formato de texto limpo e direto, sem cabeçalhos desnecessários.
       prompt,
       timeoutMs: 30000,
     });
+
+    await consumeAiQuota(userId, "REMEDIATION").catch(() => {});
 
     return {
       success: true,
@@ -86,6 +106,7 @@ export interface ExplainAlternativeResponse {
   success: boolean;
   data?: AlternativeExplanation;
   error?: string;
+  isQuotaExceeded?: boolean;
 }
 
 /**
@@ -95,6 +116,21 @@ export async function explainAlternativeAction(
   input: ExplainAlternativeInput
 ): Promise<ExplainAlternativeResponse> {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Faça login para analisar alternativas com IA." };
+    }
+
+    const quota = await checkAiQuota(userId, "REMEDIATION");
+    if (!quota.allowed) {
+      return {
+        success: false,
+        error: quota.message || "Cota diária de auxílio cognitivo de IA atingida.",
+        isQuotaExceeded: true,
+      };
+    }
+
     const isCorrect = input.optionId.toUpperCase() === input.correctAnswer.toUpperCase();
 
     const prompt = `
@@ -132,6 +168,8 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido (sem formatações markdown em vol
       prompt,
       timeoutMs: 35000,
     });
+
+    await consumeAiQuota(userId, "REMEDIATION").catch(() => {});
 
     const cleaned = text.replace(/```json/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);

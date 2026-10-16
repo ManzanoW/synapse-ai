@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Sparkles,
+  Zap,
   CheckCircle2,
   X,
   Gift,
@@ -290,7 +290,7 @@ export function RewardedAdModal({
                   className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-950/60 transition-all cursor-pointer group"
                 >
                   <Crown size={15} className="fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform" />
-                  <span>Assinar Synapse Pro (IA Ilimitada sem Anúncios)</span>
+                  <span>👑 Acelerar com Synapse Pro (60 Sinapses/dia + Zero Espera)</span>
                   <ArrowRight size={13} />
                 </Link>
 
@@ -354,9 +354,9 @@ export function RewardedAdModal({
                       </>
                     ) : (
                       <>
-                        <Sparkles size={16} className="text-amber-300 group-hover:scale-110 transition-transform" />
+                        <Zap size={16} className="text-amber-300 group-hover:scale-110 transition-transform fill-amber-300/30" />
                         <span>
-                          Resgatar {FEATURE_REWARD_LABELS[feature]?.cta || "+1 Bônus"} Agora 🎉
+                          ⚡ Recarregar +1 Sinapse ({FEATURE_REWARD_LABELS[feature]?.single || "Recurso"}) Agora 🎉
                         </span>
                       </>
                     )}
@@ -364,22 +364,22 @@ export function RewardedAdModal({
                 ) : (
                   <div className="w-full py-3 px-4 rounded-xl bg-slate-800/80 border border-white/5 text-slate-400 font-medium text-xs flex items-center justify-center gap-2 select-none">
                     <span>
-                      Aguarde {secondsLeft}s para desbloquear{" "}
-                      {FEATURE_REWARD_LABELS[feature]?.single.toLowerCase() || "seu bônus"}
+                      Aguarde {secondsLeft}s para recarregar{" "}
+                      {FEATURE_REWARD_LABELS[feature]?.single.toLowerCase() || "sua energia"}
                     </span>
                   </div>
                 )}
 
                 {/* Alternativa: Não quer ver anúncios? Assine o Pro */}
                 <div className="pt-2 flex items-center justify-between text-xs border-t border-white/5 text-slate-400">
-                  <span className="text-[11px]">Cansado de esperar?</span>
+                  <span className="text-[11px]">Estudo sem pausas?</span>
                   <Link
                     href="/pricing"
                     onClick={onClose}
                     className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition-colors text-[11px]"
                   >
                     <Crown size={12} className="fill-amber-400/20" />
-                    <span>Assine o Synapse Pro para IA ilimitada sem anúncios</span>
+                    <span>👑 Synapse Pro (60 Sinapses/dia + Zero Espera)</span>
                     <ArrowRight size={11} />
                   </Link>
                 </div>
