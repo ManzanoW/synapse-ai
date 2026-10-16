@@ -139,6 +139,22 @@ export function LocalDataBackupCard() {
         type: "error",
         message: "Selecione um arquivo de backup válido com extensão .json",
       });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    // Proteção contra payload DoS e exaustão de memória no navegador (máximo 5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_FILE_SIZE) {
+      setFeedback({
+        type: "error",
+        message: "Arquivo muito grande. O limite máximo para backup é de 5MB.",
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       return;
     }
 
