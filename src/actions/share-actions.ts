@@ -22,7 +22,6 @@ export interface PublicDeckData {
   totalCards: number;
   flashcards: PublicDeckCard[];
   author: {
-    id: string;
     name: string;
     image?: string | null;
     isPro: boolean;
@@ -86,7 +85,6 @@ export async function getPublicDeckAction(deckId: string): Promise<{
       totalCards: deck.flashcards.length,
       flashcards: deck.flashcards,
       author: {
-        id: deck.user.id,
         name: deck.user.name || "Estudante Synapse",
         image: deck.user.image,
         isPro,

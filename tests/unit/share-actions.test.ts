@@ -64,7 +64,8 @@ describe("Public Share Actions (Viral Deck & Mindmap Sharing)", () => {
     expect(res.data?.totalCards).toBe(1);
     expect(res.data?.author.name).toBe("Professor Silva");
     expect(res.data?.author.isPro).toBe(true);
-    // Não expõe email ou senhas
+    // Não expõe id interno, email ou senhas
+    expect(res.data?.author).not.toHaveProperty("id");
     expect(res.data?.author).not.toHaveProperty("email");
   });
 

@@ -32,6 +32,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Texto inválido" }, { status: 400 });
     }
 
+    // 🛡️ Prevenção contra DoS e exaustão de CPU/memória no sintetizador
+    const MAX_TEXT_LENGTH = 2500;
+    if (text.length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        {
+          error: "PAYLOAD_TOO_LARGE",
+          message: `O texto excede o limite máximo permitido de ${MAX_TEXT_LENGTH} caracteres para síntese de voz.`,
+        },
+        { status: 413 }
+      );
+    }
+
     // Limpeza de texto: remove markdown e garante pontuação legível
     const cleanText = text
       .replace(/\[\.\.\.\]/g, "lacuna")

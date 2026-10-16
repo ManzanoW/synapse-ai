@@ -1,9 +1,42 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import nextConfig from "../../next.config";
 import { GET, POST } from "@/app/api/guest-login/route";
+import { GET as adminAiHealthGet } from "@/app/api/admin/ai-health/route";
+import { POST as ttsPost } from "@/app/api/tts/route";
 import { NextRequest } from "next/server";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { isUserPro } from "@/lib/subscription";
+
+vi.mock("@/auth", () => ({
+  auth: vi.fn(),
+}));
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    user: {
+      findUnique: vi.fn(),
+    },
+    topic: {
+      findFirst: vi.fn(),
+    },
+  },
+}));
+
+vi.mock("@/lib/subscription", () => ({
+  isUserPro: vi.fn(),
+}));
+
+vi.mock("@/lib/gemini-fallback", () => ({
+  getGeminiPoolStatus: vi.fn().mockReturnValue({ totalKeys: 3, activeKeys: 3 }),
+  testGeminiPoolKeys: vi.fn().mockResolvedValue([{ keyIndex: 0, status: "OK", latencyMs: 120 }]),
+}));
 
 describe("Security Audit & Hardening", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe("HTTP Security Headers (next.config.ts)", () => {
     it("deve conter todos os headers de segurança essenciais do OWASP", async () => {
       expect(nextConfig.headers).toBeDefined();
@@ -80,6 +113,71 @@ describe("Security Audit & Hardening", () => {
       const res = await GET(req);
       expect(res.status).toBe(302);
       expect(res.headers.get("Location")).toBe("/dashboard?demo=true");
+    });
+  });
+
+  describe("Admin AI Health Route Authorization (/api/admin/ai-health)", () => {
+    it("deve bloquear requisição anônima com status 401", async () => {
+      (auth as any).mockResolvedValueOnce(null);
+
+      const req = new Request("http://localhost:3000/api/admin/ai-health");
+      const res = await adminAiHealthGet(req);
+      expect(res.status).toBe(401);
+      const json = await res.json();
+      expect(json.error).toBe("Não autorizado.");
+    });
+
+    it("deve bloquear usuário não-administrador com status 403", async () => {
+      (auth as any).mockResolvedValueOnce({
+        user: { id: "user-regular-1", email: "aluno@gmail.com" },
+      });
+      (prisma.user.findUnique as any).mockResolvedValueOnce({
+        role: "USER",
+        email: "aluno@gmail.com",
+      });
+
+      const req = new Request("http://localhost:3000/api/admin/ai-health");
+      const res = await adminAiHealthGet(req);
+      expect(res.status).toBe(403);
+      const json = await res.json();
+      expect(json.error).toBe("Acesso restrito a administradores.");
+    });
+
+    it("deve autorizar usuário com role ADMIN", async () => {
+      (auth as any).mockResolvedValueOnce({
+        user: { id: "admin-user-1", email: "admin@synapse.ai" },
+      });
+      (prisma.user.findUnique as any).mockResolvedValueOnce({
+        role: "ADMIN",
+        email: "admin@synapse.ai",
+      });
+
+      const req = new Request("http://localhost:3000/api/admin/ai-health");
+      const res = await adminAiHealthGet(req);
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.pool).toBeDefined();
+    });
+  });
+
+  describe("TTS DoS Prevention (/api/tts)", () => {
+    it("deve rejeitar payloads de texto com mais de 2500 caracteres com 413 Payload Too Large", async () => {
+      (auth as any).mockResolvedValueOnce({
+        user: { id: "pro-user-1", email: "pro@synapse.ai" },
+      });
+      (isUserPro as any).mockResolvedValueOnce(true);
+
+      const hugeText = "A".repeat(2501);
+      const req = new NextRequest("http://localhost:3000/api/tts", {
+        method: "POST",
+        body: JSON.stringify({ text: hugeText }),
+      });
+
+      const res = await ttsPost(req);
+      expect(res.status).toBe(413);
+      const json = await res.json();
+      expect(json.error).toBe("PAYLOAD_TOO_LARGE");
     });
   });
 });

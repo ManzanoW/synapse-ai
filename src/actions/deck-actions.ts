@@ -40,11 +40,14 @@ export async function generateTargetedDeckAction(input: GenerateTargetedDeckInpu
       };
     }
 
-    // 1. Identifica tópico e matéria associados
+    // 1. Identifica tópico e matéria associados garantindo a posse do usuário (Prevenção de IDOR)
     let targetTopic = null;
     if (input.topicId) {
-      targetTopic = await prisma.topic.findUnique({
-        where: { id: input.topicId },
+      targetTopic = await prisma.topic.findFirst({
+        where: {
+          id: input.topicId,
+          subject: { userId },
+        },
         include: { subject: true },
       });
     }
