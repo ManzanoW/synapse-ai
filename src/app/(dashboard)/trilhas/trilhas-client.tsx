@@ -87,6 +87,9 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [isSummaryMode, setIsSummaryMode] = useState(false);
   const [openFaqIndices, setOpenFaqIndices] = useState<Record<number, boolean>>({});
+  const [showCognitiveRadar, setShowCognitiveRadar] = useState(false);
+  const [showSubjectsDrawer, setShowSubjectsDrawer] = useState(false);
+  const [showLivingTheoryTable, setShowLivingTheoryTable] = useState(false);
   const [lessonNotes, setLessonNotes] = useState<string>("");
   const [notesSaveStatus, setNotesSaveStatus] = useState<string>("✓ Salvo no banco");
   const [isSpeakingAudio, setIsSpeakingAudio] = useState(false);
@@ -1167,399 +1170,173 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
         </div>
       )}
 
-      {/* CABEÇALHO DO MÓDULO COM STATUS DE SINCRONIZAÇÃO */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-slate-800/80 shadow-xl space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-6">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-mono font-bold uppercase flex items-center gap-1.5">
-                <Compass className="w-3.5 h-3.5" /> Estudo Guiado & Sincronizado
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-mono font-bold">
-                🔗 Integrado ao Edital, Cronograma, FSRS e Gamificação
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Trilhas de Aprendizado & Cursos
+      {/* CABEÇALHO ENXUTO DO MÓDULO */}
+      <div className="p-5 sm:p-7 rounded-3xl bg-slate-900/90 border border-slate-800/80 shadow-xl space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+              <Compass className="w-6 h-6 text-indigo-400 shrink-0" />
+              <span>Trilhas de Aprendizado & Cursos</span>
             </h1>
-            <p className="text-sm text-slate-400 max-w-2xl">
-              Estude com teoria esquematizada sob medida para a sua banca ou acompanhe seus PDFs externos. Tudo que você conclui aqui atualiza seu Edital Verticalizado, seus Flashcards e seu XP automaticamente.
+            <p className="text-xs text-slate-400 mt-1">
+              Siga as metas da sua semana no seu ritmo. Tudo que você conclui atualiza seu Edital e XP automaticamente.
             </p>
           </div>
 
-          {/* Seletor de Abas Principais */}
-          <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 self-start">
-            <button
-              onClick={() => setActiveTab("trilhas")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === "trilhas"
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Compass className="w-4 h-4" />
-              <span>Minha Trilha & Teorias</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("cursos")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === "cursos"
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Meus Cursos Externos ({externalCourses.length})</span>
-            </button>
-          </div>
-        </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Seletor de Abas Principais */}
+            <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button
+                onClick={() => setActiveTab("trilhas")}
+                className={`px-3.5 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === "trilhas"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>Minha Trilha</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("cursos")}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === "cursos"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Cursos Externos ({externalCourses.length})</span>
+              </button>
+            </div>
 
-        {/* Barra Rápida de Pontes do Ecossistema */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <Link
-              href="/edital"
-              className="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 flex items-center gap-1.5 transition-colors"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Ver no Edital Verticalizado ({editalSubjects.length} matérias)</span>
-            </Link>
-            <Link
-              href="/week"
-              className="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 flex items-center gap-1.5 transition-colors"
-            >
-              <CalendarDays className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Cronograma Semanal</span>
-            </Link>
-            <Link
-              href="/flashcards"
-              className="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 flex items-center gap-1.5 transition-colors"
-            >
-              <Layers className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{dueFlashcardsCount} Flashcards FSRS hoje</span>
-            </Link>
-            <Link
-              href="/notebook"
-              className="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 flex items-center gap-1.5 transition-colors"
-            >
-              <NotebookPen className="w-3.5 h-3.5 text-rose-400" />
-              <span>Caderno de Erros</span>
-            </Link>
+            {activeTab === "trilhas" ? (
+              <button
+                onClick={() => {
+                  setWizardStep(1);
+                  setIsWizardOpen(true);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Configurar Trilha</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsNewCourseModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Cadastrar Curso / PDF</span>
+              </button>
+            )}
           </div>
-
-          {activeTab === "trilhas" ? (
-            <button
-              onClick={() => {
-                setWizardStep(1);
-                setIsWizardOpen(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>+ Criar / Customizar Minha Trilha</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsNewCourseModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Cadastrar Curso / PDF</span>
-            </button>
-          )}
         </div>
 
         {/* =========================================================
-            ABA 1: MINHA TRILHA ATIVA & TEORIAS
+            ABA 1: MINHA TRILHA ATIVA & TEORIAS (HIERARQUIA LIMPA)
            ========================================================= */}
         {activeTab === "trilhas" && trail && (
-          <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/30 border border-indigo-500/30 space-y-6">
-            {/* Cabeçalho da Trilha */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800/80">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-300 font-black text-base shrink-0">
+          <div className="p-5 sm:p-6 rounded-2xl bg-slate-950/80 border border-slate-800/90 space-y-5">
+            {/* 1. CABEÇALHO COMPACTO DA TRILHA */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-black text-sm shrink-0">
                   {trail.banca?.slice(0, 4)?.toUpperCase() || "TRL"}
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg sm:text-xl font-bold text-white">{trail.title}</h2>
-                    <span className="px-2.5 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[10px] font-mono font-extrabold uppercase">
+                    <h2 className="text-base sm:text-lg font-bold text-white">{trail.title}</h2>
+                    <span className="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[10px] font-mono font-bold uppercase">
                       Banca {trail.banca}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {editalSubjects.length} Disciplinas Sincronizadas com o Edital • Meta:{" "}
-                    {trail.dailyHours || 2}h/dia ({(trail.studyDays || []).join(", ")})
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {editalSubjects.length} matérias do Edital • Meta: {trail.dailyHours || 2}h/dia
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 self-end md:self-auto">
+              <div className="flex items-center gap-3 self-end sm:self-auto">
                 <div className="text-right">
-                  <span className="text-xs text-slate-400 block">Progresso da Trilha</span>
-                  <span className="text-base font-black text-emerald-400 font-mono">
+                  <span className="text-[11px] text-slate-400 block">Progresso Geral</span>
+                  <span className="text-sm font-black text-emerald-400 font-mono">
                     {overallProgressPct}% concluído
                   </span>
                 </div>
-                <div className="w-12 h-12 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 flex items-center justify-center font-mono text-xs font-black text-white">
+                <div className="w-10 h-10 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 flex items-center justify-center font-mono text-[11px] font-black text-white">
                   {overallProgressPct}%
                 </div>
               </div>
             </div>
 
-            {/* Disciplinas Sincronizadas com o Edital */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-mono uppercase font-bold text-slate-400 tracking-wider">
-                  Disciplinas da Sua Trilha (Sincronizadas com o Edital Verticalizado):
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {editalSubjects.map((sub: any) => {
-                  const lvl =
-                    sub.weight >= 8.5
-                      ? { label: "Iniciante (Base)", cls: "bg-amber-500/10 text-amber-300" }
-                      : sub.weight <= 6.5
-                        ? { label: "Avançado", cls: "bg-rose-500/10 text-rose-300" }
-                        : { label: "Intermediário", cls: "bg-indigo-500/10 text-indigo-300" };
-                  return (
-                    <Link
-                      key={sub.id}
-                      href={`/edital?subjectId=${sub.id}`}
-                      className="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 flex items-center gap-2 text-xs transition-all"
-                    >
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: sub.color || "#6366F1" }}
-                      />
-                      <span className="text-slate-200 font-semibold">{sub.name}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${lvl.cls}`}>
-                        {lvl.label}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+            {/* 2. SELETOR ENXUTO DE SEMANAS (TABS COMPACTAS) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {[1, 2, 3, 4].map((weekNum) => {
+                const st = getWeekStats(weekNum);
+                const isSelected = selectedWeek === weekNum;
+                const weekLessonsList = allLessons.filter((l) => l.weekNumber === weekNum);
+                const mainTitle =
+                  weekLessonsList[0]?.subject?.name ||
+                  (weekNum === 1
+                    ? "Português & Sintaxe"
+                    : weekNum === 2
+                      ? "Fundamentos de SQL"
+                      : weekNum === 3
+                        ? "Lei Orgânica + Formas Normais"
+                        : "Segurança, LGPD & Simulado");
 
-            {/* 👑 PAINEL DE INTELIGÊNCIA COGNITIVA SYNAPSE ELITE (DIFERENCIAIS EXCLUSIVOS) */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-950/25 via-slate-950/90 to-indigo-950/30 border border-amber-500/35 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-amber-500/20">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-extrabold uppercase tracking-wider">
-                    👑 Motor Cognitivo Synapse Elite
-                  </span>
-                  <span className="text-xs font-bold text-white">
-                    Tutoria Viva: Sua Trilha Reage aos Seus Erros e Retenção Real
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={printPersonalEveSheetA4}
-                  className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shadow-md shadow-amber-500/10"
-                >
-                  🖨️ Baixar Minha Folha de Véspera A4 Pessoal
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
-                {/* 1. DETECTOR DE DNA DE PEGADINHA + VACINA */}
-                <div className="p-4 rounded-xl bg-slate-950/85 border border-rose-500/30 flex flex-col justify-between gap-3">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-mono font-extrabold uppercase text-rose-400 flex items-center gap-1">
-                        🕵️‍♂️ Seu DNA de Pegadinha Detectado
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] font-mono font-bold">
-                        {trapDnaProfile.incidencePct}% dos seus deslizes
-                      </span>
-                    </div>
-                    <h4 className="text-xs sm:text-sm font-extrabold text-white">
-                      {trapDnaProfile.patternTitle}
-                    </h4>
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                      {trapDnaProfile.diagnosis}
-                    </p>
-                    <div className="p-2 rounded-lg bg-amber-950/30 border border-amber-500/25 text-[11px] font-semibold text-amber-200">
-                      💉 {trapDnaProfile.vaccineTrigger}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <span className="text-[10px] font-mono text-slate-400">
-                      Alvo: <strong className="text-slate-200">{trapDnaProfile.targetSubject}</strong>
-                    </span>
-                    <Link
-                      href={`/simulado?banca=${encodeURIComponent(trail.banca || "CEBRASPE")}&topic=${encodeURIComponent(trapDnaProfile.targetSubject)}&difficulty=HARD`}
-                      className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-extrabold transition-all flex items-center gap-1.5"
-                    >
-                      💉 Aplicar Vacina Anti-Pegadinha (5 Questões)
-                    </Link>
-                  </div>
-                </div>
-
-                {/* 2. ALARME DE MEMÓRIA ESFRIANDO + RESGATE RELÂMPAGO 1 MIN */}
-                {coolingMemoryLesson && (
-                  <div className="p-4 rounded-xl bg-slate-950/85 border border-cyan-500/30 flex flex-col justify-between gap-3">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono font-extrabold uppercase text-cyan-400 flex items-center gap-1">
-                          🧊 Alarme de Memória Esfriando (Curva de Esquecimento)
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px] font-mono font-bold">
-                          Retenção: {coolingMemoryLesson.previousMasteryPct}% → {coolingMemoryLesson.currentEstimatedRetentionPct}%
-                        </span>
-                      </div>
-                      <h4 className="text-xs sm:text-sm font-extrabold text-white line-clamp-1">
-                        {coolingMemoryLesson.lesson.title}
-                      </h4>
-                      <p className="text-[11px] text-slate-300 leading-relaxed">
-                        Você dominou este tópico de <strong>{coolingMemoryLesson.subjectName}</strong> há{" "}
-                        {coolingMemoryLesson.daysSinceReview} dias, mas a curva biológica indica risco de esquecimento na prova se não blindar agora.
-                      </p>
-                      <div className="p-2 rounded-lg bg-cyan-950/30 border border-cyan-500/25 text-[11px] font-semibold text-cyan-200">
-                        ⚡ Resgate de 60 segundos: Abre direto no Resumo de Véspera + 1 Questão de Blindagem.
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <span className="text-[10px] font-mono text-slate-400">
-                        Tempo estimado: <strong className="text-cyan-300">1 minuto</strong>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          openTheoryModalForLesson(coolingMemoryLesson.lesson.id);
-                          setIsSummaryMode(true);
-                          showToast(
-                            "⚡ Resgate Relâmpago ativado! Revise os pontos-chave e responda a questão final para blindar a memória.",
-                          );
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-extrabold text-[11px] transition-all cursor-pointer flex items-center gap-1.5"
-                      >
-                        ⚡ Fazer Resgate Relâmpago (1 min)
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* VISÃO POR SEMANAS (RITMO LIVRE • SEM BLOQUEIO DE CALENDÁRIO) */}
-            <div className="space-y-3 pt-1">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-mono uppercase font-bold text-slate-400 tracking-wider">
-                  Visão por Semanas (Ritmo Livre • Clique em qualquer semana para acessar ou adiantar)
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
-                  ⚡ Sem Bloqueio de Data: Adiante seus estudos quando quiser
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {[1, 2, 3, 4].map((weekNum) => {
-                  const st = getWeekStats(weekNum);
-                  const isSelected = selectedWeek === weekNum;
-                  const weekLessonsList = allLessons.filter((l) => l.weekNumber === weekNum);
-                  const mainTitle =
-                    weekLessonsList[0]?.subject?.name ||
-                    (weekNum === 1
-                      ? "Português & Sintaxe"
-                      : weekNum === 2
-                        ? "Fundamentos de SQL"
-                        : weekNum === 3
-                          ? "Lei Orgânica + Formas Normais"
-                          : "Segurança, LGPD & Simulado");
-
-                  return (
-                    <div
-                      key={weekNum}
-                      onClick={() => handleSelectWeek(weekNum)}
-                      className={`p-4 rounded-2xl space-y-2 cursor-pointer transition-all ${
-                        isSelected
-                          ? "bg-indigo-950/50 border-2 border-indigo-500 shadow-lg shadow-indigo-600/10"
-                          : st.isAllDone
-                            ? "bg-emerald-950/20 border border-emerald-500/30 opacity-85 hover:opacity-100"
-                            : "bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 opacity-80 hover:opacity-100"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <span
-                          className={`font-mono font-bold ${
-                            isSelected
-                              ? "text-indigo-300 font-black"
-                              : st.isAllDone
-                                ? "text-emerald-400"
-                                : "text-slate-400"
-                          }`}
-                        >
-                          Semana {weekNum}
-                        </span>
-                        {st.isAllDone ? (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold text-[9px] uppercase">
-                            ✓ Concluída
-                          </span>
-                        ) : isSelected ? (
-                          <span className="px-2 py-0.5 rounded-full bg-indigo-500 text-white font-extrabold text-[9px] uppercase">
-                            Em Foco
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-indigo-400 font-semibold">
-                            Adiantar →
-                          </span>
-                        )}
-                      </div>
-                      <h5 className="text-xs font-bold text-white line-clamp-1">{mainTitle}</h5>
-                      <p className="text-[11px] text-slate-400 leading-tight line-clamp-1">
-                        {weekLessonsList.length} metas planejadas na semana
-                      </p>
-                      <div className="pt-2 flex items-center justify-between border-t border-slate-800/80 text-[10px] font-mono text-slate-300">
-                        <span>
-                          {st.done} de {st.total} metas
-                        </span>
-                        <span className="font-bold text-indigo-300">{st.pct}%</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* PAINEL DE METAS DA SEMANA SELECIONADA */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-4">
-              {/* Barra de Contexto Dia vs Semana */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-mono uppercase text-slate-400 mr-1">
-                    Progresso da Semana {selectedWeek}:
-                  </span>
-                  {selectedWeek === 3 && (
-                    <>
-                      <span className="px-2 py-0.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
-                        Seg ✓ (3/3)
-                      </span>
-                      <span className="px-2 py-0.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
-                        Ter ✓ (3/3)
-                      </span>
-                      <span className="px-2 py-0.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
-                        Qua ✓ (3/3)
-                      </span>
-                    </>
-                  )}
-                  <span
-                    className={`px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold ${
-                      currentWeekStats.isAllDone
-                        ? "bg-emerald-600 text-white"
-                        : "bg-indigo-600 text-white"
+                return (
+                  <button
+                    type="button"
+                    key={weekNum}
+                    onClick={() => handleSelectWeek(weekNum)}
+                    className={`p-3 rounded-xl text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-indigo-950/60 border-2 border-indigo-500 shadow-md shadow-indigo-600/10"
+                        : st.isAllDone
+                          ? "bg-emerald-950/15 border border-emerald-500/30 hover:border-emerald-500/50"
+                          : "bg-slate-900/60 border border-slate-800 hover:border-slate-700"
                     }`}
                   >
-                    {currentWeekStats.isAllDone
-                      ? `✓ Semana ${selectedWeek} Fechada (100%)`
-                      : `Metas Ativas da Semana ${selectedWeek}`}
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span
+                        className={`font-mono font-bold ${
+                          isSelected
+                            ? "text-indigo-300"
+                            : st.isAllDone
+                              ? "text-emerald-400"
+                              : "text-slate-400"
+                        }`}
+                      >
+                        Semana {weekNum}
+                      </span>
+                      <span className="font-mono text-[10px] font-bold text-slate-300">
+                        {st.pct}%
+                      </span>
+                    </div>
+                    <div className="text-xs font-bold text-white line-clamp-1 mt-1">
+                      {mainTitle}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 3. METAS E AULAS DA SEMANA SELECIONADA (FOCO PRINCIPAL IMEDIATO) */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/50 border border-slate-800/90 space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-white">
+                    📋 Metas da Semana {selectedWeek}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-mono">
+                    {currentWeekStats.done}/{currentWeekStats.total} concluídas
                   </span>
                 </div>
 
                 <span className="text-[11px] text-slate-400 font-mono">
-                  Recompensa por Aula: <strong className="text-emerald-400">+40 XP</strong> • Bônus da Semana:{" "}
-                  <strong className="text-amber-400">+150 XP</strong>
+                  Recompensa: <strong className="text-emerald-400">+40 XP/aula</strong>
                 </span>
               </div>
 
@@ -1573,10 +1350,10 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                   return (
                     <div
                       key={lesson.id}
-                      className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-all ${
+                      className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-all ${
                         idx === 0 && !lesson.isCompleted
-                          ? "bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-slate-900 border-indigo-500/40 shadow-lg shadow-indigo-500/5"
-                          : "bg-slate-900/90 border-slate-800 hover:border-slate-700"
+                          ? "bg-indigo-950/30 border-indigo-500/40"
+                          : "bg-slate-950/80 border-slate-800/90 hover:border-slate-700"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -1599,7 +1376,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                             </span>
                             {lesson.topic && (
                               <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-mono">
-                                🔗 Edital: {lesson.topic.title.slice(0, 35)}
+                                🔗 {lesson.topic.title.slice(0, 32)}
                               </span>
                             )}
                           </div>
@@ -1613,7 +1390,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                       <div className="flex items-center gap-2 self-end sm:self-auto">
                         {lesson.isCompleted && (
                           <span className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold">
-                            ✓ Concluída (+40 XP)
+                            ✓ +40 XP
                           </span>
                         )}
 
@@ -1622,7 +1399,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                             onClick={() => openTheoryModalForLesson(lesson.id)}
                             className={`px-3.5 py-1.5 rounded-xl font-extrabold text-[11px] flex items-center gap-1.5 cursor-pointer transition-all ${
                               idx === 0 && !lesson.isCompleted
-                                ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30"
+                                ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20"
                                 : "bg-slate-800 hover:bg-slate-700 text-slate-200"
                             }`}
                           >
@@ -1658,27 +1435,221 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                 })}
               </div>
 
-              {/* BANNER DE DESBLOQUEIO IMEDIATO DA PRÓXIMA SEMANA (RITMO LIVRE / SELF-PACED) */}
+              {/* BANNER DE DESBLOQUEIO IMEDIATO DA PRÓXIMA SEMANA */}
               {currentWeekStats.isAllDone && selectedWeek < 4 && (
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-indigo-950/50 to-slate-900 border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-mono font-bold text-[10px] uppercase">
-                      🎉 Semana {selectedWeek} Concluída (100% + 150 XP Bônus)
-                    </span>
-                    <h4 className="text-sm font-extrabold text-white">
-                      Você fechou todas as metas da Semana {selectedWeek}! Quer adiantar a Semana{" "}
-                      {selectedWeek + 1} agora?
-                    </h4>
-                    <p className="text-xs text-slate-300">
-                      Você <strong>não precisa esperar a próxima semana no calendário</strong>. Adiante seus estudos no seu ritmo e ganhe folga antes da prova.
-                    </p>
+                <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="text-xs text-slate-200">
+                    <strong className="text-emerald-300">🎉 Semana {selectedWeek} concluída!</strong>{" "}
+                    Adiante a Semana {selectedWeek + 1} agora mesmo sem bloqueio de data.
                   </div>
                   <button
                     onClick={() => handleSelectWeek(selectedWeek + 1)}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs whitespace-nowrap cursor-pointer shadow-lg shadow-emerald-600/20 transition-all"
+                    className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs whitespace-nowrap cursor-pointer transition-all"
                   >
-                    🚀 Iniciar Semana {selectedWeek + 1} Agora →
+                    Ir para Semana {selectedWeek + 1} →
                   </button>
+                </div>
+              )}
+            </div>
+
+            {/* 4. BARRA INTELIGENTE "TUTOR COGNITIVO ELITE" (1 LINHA LIMPA + EXPANSÍVEL SOB DEMANDA) */}
+            <div className="rounded-xl bg-slate-900/90 border border-amber-500/30 overflow-hidden">
+              <div className="p-3 sm:px-4 flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2 flex-wrap text-xs">
+                  <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-extrabold uppercase">
+                    👑 Tutor Elite
+                  </span>
+                  <span className="text-slate-200 font-semibold">
+                    🕵️‍♂️ Alerta: <strong className="text-rose-300">{trapDnaProfile.patternTitle.split("(")[0]}</strong>
+                  </span>
+                  {coolingMemoryLesson && (
+                    <span className="hidden md:inline text-slate-400">
+                      • 🧊 1 aula precisando de revisão rápida ({coolingMemoryLesson.currentEstimatedRetentionPct}%)
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {coolingMemoryLesson && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        openTheoryModalForLesson(coolingMemoryLesson.lesson.id);
+                        setIsSummaryMode(true);
+                        showToast(
+                          "⚡ Resgate Relâmpago ativado! Revise os pontos-chave e responda a questão final.",
+                        );
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-bold text-[11px] transition-all cursor-pointer"
+                    >
+                      ⚡ Resgate 1min
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={printPersonalEveSheetA4}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-[11px] transition-all cursor-pointer"
+                  >
+                    🖨️ Folha de Véspera A4
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowCognitiveRadar((prev) => !prev)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] transition-all cursor-pointer"
+                  >
+                    {showCognitiveRadar ? "Ocultar Diagnóstico ▴" : "Ver Diagnóstico ▾"}
+                  </button>
+                </div>
+              </div>
+
+              {showCognitiveRadar && (
+                <div className="p-4 border-t border-slate-800 bg-slate-950/90 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {/* Card 1: DNA de Pegadinha */}
+                  <div className="p-3.5 rounded-xl bg-slate-900/70 border border-rose-500/25 flex flex-col justify-between gap-2.5">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono font-bold uppercase text-rose-400">
+                          🕵️‍♂️ Seu DNA de Pegadinha
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-rose-300">
+                          {trapDnaProfile.incidencePct}% dos deslizes
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-extrabold text-white">
+                        {trapDnaProfile.patternTitle}
+                      </h4>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        {trapDnaProfile.diagnosis}
+                      </p>
+                      <div className="p-2 rounded-lg bg-amber-950/25 border border-amber-500/20 text-[11px] text-amber-200">
+                        💉 {trapDnaProfile.vaccineTrigger}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Foco: <strong className="text-slate-200">{trapDnaProfile.targetSubject}</strong>
+                      </span>
+                      <Link
+                        href={`/simulado?banca=${encodeURIComponent(trail.banca || "CEBRASPE")}&topic=${encodeURIComponent(trapDnaProfile.targetSubject)}&difficulty=HARD`}
+                        className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-extrabold transition-all"
+                      >
+                        💉 Aplicar Vacina (5 Questões)
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Alarme de Memória Esfriando */}
+                  {coolingMemoryLesson && (
+                    <div className="p-3.5 rounded-xl bg-slate-900/70 border border-cyan-500/25 flex flex-col justify-between gap-2.5">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-mono font-bold uppercase text-cyan-400">
+                            🧊 Alarme de Memória Esfriando
+                          </span>
+                          <span className="text-[10px] font-mono font-bold text-cyan-300">
+                            Retenção: {coolingMemoryLesson.previousMasteryPct}% → {coolingMemoryLesson.currentEstimatedRetentionPct}%
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-extrabold text-white line-clamp-1">
+                          {coolingMemoryLesson.lesson.title}
+                        </h4>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          Estudado há {coolingMemoryLesson.daysSinceReview} dias em{" "}
+                          <strong>{coolingMemoryLesson.subjectName}</strong>. Faça o resgate de 60 segundos (Resumo + 1 Questão) para evitar esquecimento.
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-end pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openTheoryModalForLesson(coolingMemoryLesson.lesson.id);
+                            setIsSummaryMode(true);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-extrabold text-[11px] transition-all cursor-pointer"
+                        >
+                          ⚡ Fazer Resgate Relâmpago (1 min)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 5. GAVETA RECOLHÍVEL: DISCIPLINAS DO EDITAL & ATALHOS DO ECOSSISTEMA */}
+            <div className="pt-1 border-t border-slate-800/70">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSubjectsDrawer((prev) => !prev)}
+                  className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 cursor-pointer py-1"
+                >
+                  <span>
+                    📚 {showSubjectsDrawer ? "Ocultar" : "Ver"} {editalSubjects.length} Disciplinas Sincronizadas do Edital
+                  </span>
+                  <span className="text-[10px]">{showSubjectsDrawer ? "▴" : "▾"}</span>
+                </button>
+
+                <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                  <Link
+                    href="/edital"
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 flex items-center gap-1 transition-colors"
+                  >
+                    <FileSpreadsheet className="w-3 h-3 text-indigo-400" />
+                    <span>Edital Verticalizado</span>
+                  </Link>
+                  <Link
+                    href="/week"
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 flex items-center gap-1 transition-colors"
+                  >
+                    <CalendarDays className="w-3 h-3 text-cyan-400" />
+                    <span>Cronograma</span>
+                  </Link>
+                  <Link
+                    href="/flashcards"
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 flex items-center gap-1 transition-colors"
+                  >
+                    <Layers className="w-3 h-3 text-emerald-400" />
+                    <span>{dueFlashcardsCount} Flashcards</span>
+                  </Link>
+                  <Link
+                    href="/notebook"
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 flex items-center gap-1 transition-colors"
+                  >
+                    <NotebookPen className="w-3 h-3 text-rose-400" />
+                    <span>Caderno de Erros</span>
+                  </Link>
+                </div>
+              </div>
+
+              {showSubjectsDrawer && (
+                <div className="flex flex-wrap gap-2 pt-3">
+                  {editalSubjects.map((sub: any) => {
+                    const lvl =
+                      sub.weight >= 8.5
+                        ? { label: "Base", cls: "bg-amber-500/10 text-amber-300" }
+                        : sub.weight <= 6.5
+                          ? { label: "Avançado", cls: "bg-rose-500/10 text-rose-300" }
+                          : { label: "Intermediário", cls: "bg-indigo-500/10 text-indigo-300" };
+                    return (
+                      <Link
+                        key={sub.id}
+                        href={`/edital?subjectId=${sub.id}`}
+                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center gap-2 text-xs transition-all"
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: sub.color || "#6366F1" }}
+                        />
+                        <span className="text-slate-200 font-semibold">{sub.name}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${lvl.cls}`}>
+                          {lvl.label}
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1987,69 +1958,70 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                 </h2>
               </div>
 
-              {/* 🧬 BLOCO DE TEORIA VIVA + DETECTOR DE CONCEITOS GÊMEOS (EXCLUSIVO ELITE) */}
+              {/* 🧬 BARRA DE TEORIA VIVA + CONCEITOS GÊMEOS (1 LINHA LIMPA + EXPANSÍVEL) */}
               {(() => {
                 const livingData = getLivingTheoryForLesson(activeLesson);
                 if (!livingData) return null;
                 return (
-                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-rose-950/35 via-slate-950/90 to-amber-950/25 border border-rose-500/40 space-y-3.5">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-mono font-extrabold uppercase">
-                        {livingData.badge}
-                      </span>
-                      <span className="text-[10px] font-mono font-bold text-amber-300">
-                        🔄 Teoria Viva • Adaptada ao seu histórico real
-                      </span>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="text-xs sm:text-sm font-extrabold text-white">
-                        {livingData.alertTitle}
-                      </h4>
-                      <p className="text-xs text-slate-200 leading-relaxed">
-                        {livingData.errorSnippet}
-                      </p>
-                    </div>
-
-                    {/* Quadro Lado a Lado: Conceitos Gêmeos Anti-Confusão */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/90 overflow-hidden">
-                      <div className="px-3.5 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-                        <span className="text-[11px] font-extrabold text-amber-300">
-                          ⚖️ Quadro Lado a Lado: Conceitos Gêmeos Anti-Confusão
+                  <div className="rounded-xl bg-slate-950/90 border border-rose-500/35 overflow-hidden">
+                    <div className="p-3 sm:px-4 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap text-xs">
+                        <span className="px-2 py-0.5 rounded bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-mono font-extrabold uppercase">
+                          {livingData.isFromRealError ? "🚨 Seu Alerta de Erro" : "⚖️ Conceitos Gêmeos"}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400">
-                          Comparativo Direto
+                        <span className="font-bold text-white">
+                          {livingData.alertTitle}
                         </span>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-800 text-xs">
-                        <div className="p-3.5 space-y-1 bg-rose-950/15">
-                          <div className="font-extrabold text-rose-300 text-[11px]">
-                            {livingData.twinConceptLeftTitle}
-                          </div>
-                          <p className="text-slate-300 text-[11px] leading-relaxed">
-                            {livingData.twinConceptLeftBody}
-                          </p>
-                        </div>
-                        <div className="p-3.5 space-y-1 bg-emerald-950/15">
-                          <div className="font-extrabold text-emerald-300 text-[11px]">
-                            {livingData.twinConceptRightTitle}
-                          </div>
-                          <p className="text-slate-200 text-[11px] leading-relaxed font-medium">
-                            {livingData.twinConceptRightBody}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="px-3.5 py-2 bg-indigo-950/40 border-t border-indigo-500/30 text-[11px] font-bold text-indigo-200 flex items-center justify-between flex-wrap gap-2">
-                        <span>⚡ {livingData.differentiatorKeyword}</span>
-                        <button
-                          type="button"
-                          onClick={printPersonalEveSheetA4}
-                          className="text-[10px] font-mono font-extrabold text-amber-300 hover:text-amber-200 underline cursor-pointer"
-                        >
-                          + Incluir na Minha Folha de Véspera A4
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowLivingTheoryTable((prev) => !prev)}
+                        className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-300 font-bold text-[11px] transition-all cursor-pointer"
+                      >
+                        {showLivingTheoryTable
+                          ? "Ocultar Quadro Anti-Confusão ▴"
+                          : "⚖️ Ver Quadro Anti-Confusão ▾"}
+                      </button>
                     </div>
+
+                    {showLivingTheoryTable && (
+                      <div className="p-4 border-t border-slate-800 space-y-3 bg-slate-950">
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          {livingData.errorSnippet}
+                        </p>
+
+                        <div className="rounded-xl border border-slate-800 overflow-hidden">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-800 text-xs">
+                            <div className="p-3.5 space-y-1 bg-rose-950/15">
+                              <div className="font-extrabold text-rose-300 text-[11px]">
+                                {livingData.twinConceptLeftTitle}
+                              </div>
+                              <p className="text-slate-300 text-[11px] leading-relaxed">
+                                {livingData.twinConceptLeftBody}
+                              </p>
+                            </div>
+                            <div className="p-3.5 space-y-1 bg-emerald-950/15">
+                              <div className="font-extrabold text-emerald-300 text-[11px]">
+                                {livingData.twinConceptRightTitle}
+                              </div>
+                              <p className="text-slate-200 text-[11px] leading-relaxed font-medium">
+                                {livingData.twinConceptRightBody}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="px-3.5 py-2 bg-indigo-950/40 border-t border-indigo-500/30 text-[11px] font-bold text-indigo-200 flex items-center justify-between flex-wrap gap-2">
+                            <span>⚡ {livingData.differentiatorKeyword}</span>
+                            <button
+                              type="button"
+                              onClick={printPersonalEveSheetA4}
+                              className="text-[10px] font-mono font-extrabold text-amber-300 hover:text-amber-200 underline cursor-pointer"
+                            >
+                              + Imprimir na Folha de Véspera A4
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
