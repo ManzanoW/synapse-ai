@@ -29,7 +29,7 @@ import { CheckoutLeadModal } from "./CheckoutLeadModal";
 import { toggleDemoPlanTierAction } from "@/actions/subscription-actions";
 
 interface PricingViewProps {
-  currentPlanTier: "FREE" | "PREMIUM";
+  currentPlanTier: "FREE" | "PREMIUM" | "ELITE";
   role: string;
   isUnlimited: boolean;
   userEmail?: string | null;
@@ -43,7 +43,8 @@ export function PricingView({
 }: PricingViewProps) {
   const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "ANNUAL">("ANNUAL");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentTier, setCurrentTier] = useState<"FREE" | "PREMIUM">(initialPlanTier);
+  const [modalTargetTier, setModalTargetTier] = useState<"PREMIUM" | "ELITE">("PREMIUM");
+  const [currentTier, setCurrentTier] = useState<"FREE" | "PREMIUM" | "ELITE">(initialPlanTier);
   const [isUnlimited, setIsUnlimited] = useState(initialIsUnlimited);
   const [isTogglingPlan, setIsTogglingPlan] = useState(false);
   const [toggleFeedback, setToggleFeedback] = useState<string | null>(null);
@@ -51,14 +52,14 @@ export function PricingView({
   // FAQ State
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  const handleTogglePlan = async () => {
+  const handleTogglePlan = async (explicitTier?: "FREE" | "PREMIUM" | "ELITE") => {
     setIsTogglingPlan(true);
     setToggleFeedback(null);
     try {
-      const res = await toggleDemoPlanTierAction();
+      const res = await toggleDemoPlanTierAction(explicitTier);
       if (res.success) {
         setCurrentTier(res.newPlanTier);
-        setIsUnlimited(res.newPlanTier === "PREMIUM");
+        setIsUnlimited(res.newPlanTier === "PREMIUM" || res.newPlanTier === "ELITE");
         setToggleFeedback(res.message);
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("plan-updated"));
@@ -192,16 +193,16 @@ export function PricingView({
       {/* ========================================================== */}
       {/* 💳 PRICING CARDS                                           */}
       {/* ========================================================== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
         {/* CARD PLANO GRATUITO */}
         <div
           className={`relative rounded-3xl bg-white dark:bg-slate-900/60 border ${
             currentTier === "FREE" && !isUnlimited
               ? "border-slate-300 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-lg"
               : "border-slate-200 dark:border-slate-800 shadow-md shadow-slate-100/80 dark:shadow-none"
-          } p-7 flex flex-col justify-between backdrop-blur-xl transition-all hover:border-slate-300 dark:hover:border-slate-700`}
+          } p-6 flex flex-col justify-between backdrop-blur-xl transition-all hover:border-slate-300 dark:hover:border-slate-700`}
         >
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Para quem está conhecendo
@@ -212,7 +213,7 @@ export function PricingView({
               </p>
             </div>
 
-            <div className="py-2">
+            <div className="py-1">
               <div className="flex items-baseline gap-1">
                 <span className="text-4xl font-black text-slate-900 dark:text-white">R$ 0</span>
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">/mês para sempre</span>
@@ -229,12 +230,12 @@ export function PricingView({
               <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
                 {[
                   "10 Sinapses / dia (Renovação diária)",
-                  "1 simulado com IA por dia (+1 bônus via anúncio voluntário)",
-                  "1 correção de redação digitada por semana (Degustação oficial)",
-                  "1 OCR de redação manuscrita de boas-vindas para testar",
-                  "Até 2 remediações e mnemônicos no Caderno de Erros por dia (+1 via anúncio)",
-                  "Edital verticalizado com inserção manual de disciplinas",
-                  "Com recargas voluntárias via anúncios",
+                  "Degustação da Semana 1 na Trilha Guiada & Teoria",
+                  "Até 2 Cursos Externos monitorados no Tracker",
+                  "1 simulado com IA por dia (+1 bônus via anúncio)",
+                  "1 correção de redação digitada por semana",
+                  "Até 2 remediações no Caderno de Erros por dia",
+                  "Edital verticalizado com inserção manual",
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2.5">
                     <CheckCircle2 size={16} className="text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" />
@@ -253,7 +254,7 @@ export function PricingView({
             ) : (
               <button
                 type="button"
-                onClick={handleTogglePlan}
+                onClick={() => handleTogglePlan("FREE")}
                 disabled={isTogglingPlan}
                 className="w-full py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-center text-xs font-bold transition-all cursor-pointer shadow-xs"
               >
@@ -264,30 +265,30 @@ export function PricingView({
         </div>
 
         {/* CARD PLANO SYNAPSE PRO */}
-        <div className="relative rounded-3xl bg-linear-to-b from-indigo-50/90 via-white to-purple-50/70 border-2 border-indigo-600 dark:from-indigo-950/70 dark:via-slate-900/90 dark:to-purple-950/70 dark:border-indigo-500/50 p-7 flex flex-col justify-between backdrop-blur-2xl shadow-2xl shadow-indigo-200/50 dark:shadow-indigo-950/60 transition-all hover:border-indigo-500">
+        <div className="relative rounded-3xl bg-linear-to-b from-indigo-50/90 via-white to-purple-50/70 border-2 border-indigo-600 dark:from-indigo-950/70 dark:via-slate-900/90 dark:to-purple-950/70 dark:border-indigo-500/50 p-6 flex flex-col justify-between backdrop-blur-2xl shadow-2xl shadow-indigo-200/50 dark:shadow-indigo-950/60 transition-all hover:border-indigo-500">
           {/* Badge de Destaque */}
-          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-linear-to-r from-indigo-600 to-purple-600 text-white text-[11px] font-black tracking-wide uppercase shadow-lg shadow-indigo-600/30 flex items-center gap-1.5">
-            <Crown size={13} className="fill-white" />
-            <span>Mais Escolhido • Alta Capacidade & Zero Anúncios</span>
+          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-linear-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-black tracking-wide uppercase shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 whitespace-nowrap">
+            <Crown size={12} className="fill-white" />
+            <span>Mais Escolhido • Copiloto Ativo</span>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="space-y-2 pt-2">
               <div className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
-                Para quem busca a aprovação definitiva
+                Para quem já tem cursinho ou PDFs
               </div>
               <h3 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <span>Synapse Pro</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-400/30 font-black">
-                  ALTA CAPACIDADE
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-400/30 font-black">
+                  COPILOTO
                 </span>
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-300">
-                Todo o arsenal tecnológico da IA trabalhando a favor do seu nome no Diário Oficial.
+                Ideal para organizar seus cursos externos, treinar simulados, redações e revisão espaçada FSRS.
               </p>
             </div>
 
-            <div className="py-2">
+            <div className="py-1">
               <div className="flex items-baseline gap-1.5">
                 <span className="text-4xl font-black text-slate-900 dark:text-white">
                   {billingCycle === "ANNUAL" ? "R$ 29,90" : "R$ 39,90"}
@@ -296,25 +297,24 @@ export function PricingView({
               </div>
               <p className="text-[11px] text-indigo-700 dark:text-indigo-300/90 mt-1 font-semibold">
                 {billingCycle === "ANNUAL"
-                  ? "R$ 358,80 faturado anualmente (Economia de R$ 120/ano)"
-                  : "Assinatura mensal recorrente, sem carência ou multas"}
+                  ? "R$ 358,80/ano (Economia de R$ 120/ano)"
+                  : "Assinatura mensal sem fidelidade"}
               </p>
             </div>
 
             <div className="space-y-3 pt-2">
               <div className="text-xs font-extrabold text-indigo-950 dark:text-indigo-200 uppercase tracking-wider">
-                Superpoderes Exclusivos do Pro:
+                Superpoderes do Synapse Pro:
               </div>
               <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-200">
                 {[
                   "60 Sinapses / dia (Alta Capacidade / Fair Use)",
-                  "Até 3 correções de redação digitada por dia com Reescrita Modelo Ouro",
-                  "Até 2 OCRs de redação manuscrita (foto da folha real) por dia",
+                  "1 Trilha Guiada Ativa por vez + Cursos Externos Ilimitados",
+                  "Até 3 correções de redação digitada/dia + 2 OCRs manuscritos",
                   "Até 5 simulados inéditos por dia por Banca e Cargo",
                   "Caderno de Erros avançado com até 30 remediações diárias",
-                  "Mapas Mentais Neurais com aprofundamento e exportação em PDF A4 / PNG HD",
-                  "Flashcards em Áudio Neural Hands-Free e exportação ilimitada para Anki (.apkg)",
-                  "Importador de Edital em PDF com IA e Raio-X de Incidência da Banca",
+                  "Mapas Mentais Neurais (PDF A4 / PNG HD) + Flashcards FSRS",
+                  "Importador de Edital em PDF com IA e Raio-X da Banca",
                   "100% Zero Anúncios (Foco Total)",
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2.5 font-medium">
@@ -327,19 +327,22 @@ export function PricingView({
           </div>
 
           <div className="pt-8 space-y-3">
-            {isUnlimited || currentTier === "PREMIUM" ? (
+            {currentTier === "PREMIUM" ? (
               <div className="w-full py-3.5 px-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-800 dark:bg-emerald-500/20 dark:border-emerald-400/40 dark:text-emerald-300 text-center text-xs font-black flex items-center justify-center gap-2 shadow-sm">
                 <Crown size={16} className="fill-emerald-600 dark:fill-emerald-400 text-emerald-600 dark:text-emerald-400" />
-                <span>Você é Membro Pro (Alta Capacidade Ativa)</span>
+                <span>Plano Pro Ativo na sua Conta</span>
               </div>
             ) : (
               <button
                 type="button"
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => {
+                  setModalTargetTier("PREMIUM");
+                  setIsModalOpen(true);
+                }}
                 className="w-full py-3.5 px-4 bg-linear-to-r from-indigo-600 via-indigo-700 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white text-xs sm:text-sm font-extrabold rounded-2xl shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer hover:scale-[1.02]"
               >
                 <Sparkles size={16} className="fill-white" />
-                <span>Quero Ser Synapse Pro 🚀</span>
+                <span>Assinar Synapse Pro 🚀</span>
                 <ArrowRight size={16} />
               </button>
             )}
@@ -353,6 +356,102 @@ export function PricingView({
               <span className="flex items-center gap-1 font-medium">
                 <Zap size={13} className="text-amber-500 dark:text-amber-400" />
                 Ativação Imediata
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* CARD PLANO SYNAPSE ELITE 👑 (PILOTO AUTOMÁTICO & TRILHAS PROFUNDAS) */}
+        <div className="relative rounded-3xl bg-linear-to-b from-amber-50/95 via-white to-orange-50/70 border-2 border-amber-500 dark:from-amber-950/50 dark:via-slate-900/95 dark:to-orange-950/40 dark:border-amber-500/60 p-6 flex flex-col justify-between backdrop-blur-2xl shadow-2xl shadow-amber-200/50 dark:shadow-amber-950/50 transition-all hover:border-amber-400">
+          {/* Badge de Destaque Elite */}
+          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-linear-to-r from-amber-500 to-orange-500 text-slate-950 text-[10px] font-black tracking-wide uppercase shadow-lg shadow-amber-500/30 flex items-center gap-1.5 whitespace-nowrap">
+            <Crown size={12} className="fill-slate-950" />
+            <span>Substitui Cursinhos • Piloto Automático</span>
+          </div>
+
+          <div className="space-y-5">
+            <div className="space-y-2 pt-2">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                Mentoria & Teorias Profundas Sob Medida
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <span>Synapse Elite</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-400/30 font-black">
+                  MENTOR IA 👑
+                </span>
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                Para quem quer o cronograma mastigado e aulas teóricas completas geradas sob medida para qualquer banca.
+              </p>
+            </div>
+
+            <div className="py-1">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-4xl font-black text-slate-900 dark:text-white">
+                  {billingCycle === "ANNUAL" ? "R$ 49,90" : "R$ 64,90"}
+                </span>
+                <span className="text-xs text-slate-600 dark:text-slate-300 font-bold">/mês</span>
+              </div>
+              <p className="text-[11px] text-amber-700 dark:text-amber-300/90 mt-1 font-semibold">
+                {billingCycle === "ANNUAL"
+                  ? "R$ 598,80/ano (Economia de R$ 180/ano)"
+                  : "Assinatura mensal recorrente, cancele quando quiser"}
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="text-xs font-extrabold text-amber-950 dark:text-amber-200 uppercase tracking-wider">
+                Tudo do Pro + Exclusividades Elite:
+              </div>
+              <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-200">
+                {[
+                  "🔄 Teoria Viva: As aulas mudam e criam alertas vermelhos baseados nos erros reais dos seus simulados",
+                  "🕵️‍♂️ Detector de DNA de Pegadinha + Treino 'Vacina' contra o padrão de armadilha que mais te derruba",
+                  "⚖️ Detector de Conceitos Gêmeos: Quadros lado a lado desarmando os termos que você mais confunde",
+                  "🧊 Alarme de Memória Esfriando + Resgate Relâmpago de 60 segundos antes da curva biológica cair",
+                  "📄 Folha de Véspera A4 100% Pessoal: Caderno de Ouro imprimível com seus erros, mnemônicos e tabelas",
+                  "✍️ Reescrita Lado a Lado Nota 100 nas Discursivas + Múltiplas Trilhas Simultâneas (Qualquer Banca)",
+                  "🎧 Áudio-Aulas Hands-Free + 120 Sinapses/dia com Prioridade Máxima nos Servidores IA",
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2.5 font-medium">
+                    <CheckCircle2 size={16} className="text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="pt-8 space-y-3">
+            {currentTier === "ELITE" ? (
+              <div className="w-full py-3.5 px-4 rounded-2xl bg-amber-500/20 border border-amber-400/50 text-amber-900 dark:text-amber-200 text-center text-xs font-black flex items-center justify-center gap-2 shadow-sm">
+                <Crown size={16} className="fill-amber-500 text-amber-500" />
+                <span>Plano Synapse Elite 👑 Ativo na sua Conta</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setModalTargetTier("ELITE");
+                  setIsModalOpen(true);
+                }}
+                className="w-full py-3.5 px-4 bg-linear-to-r from-amber-500 via-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs sm:text-sm font-black rounded-2xl shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer hover:scale-[1.02]"
+              >
+                <Crown size={16} className="fill-slate-950" />
+                <span>Quero Ser Synapse Elite 👑</span>
+                <ArrowRight size={16} />
+              </button>
+            )}
+
+            <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="flex items-center gap-1 font-medium">
+                <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
+                Garantia de 7 dias
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1 font-medium">
+                <Zap size={13} className="text-amber-500 dark:text-amber-400" />
+                Acesso Total Imediato
               </span>
             </div>
           </div>
@@ -393,7 +492,7 @@ export function PricingView({
               role: "1º Lugar Técnico Judiciário (TRT-15)",
               avatar: "CR",
               color: "from-purple-600 to-pink-600",
-              quote: "O Caderno de Erros inteligente com macetes de memorização tirou todas as minhas dúvidas que PDFs gigantes não explicavam com clareza. Economizou meses de preparação.",
+              quote: "As Trilhas Guiadas do Synapse Elite substituíram PDFs de 120 páginas por teorias diretas ao ponto, com lei seca grifada e tabelas das pegadinhas da banca. Economizou meses!",
               highlight: "89% de acertos na prova objetiva",
             },
             {
@@ -439,15 +538,15 @@ export function PricingView({
       </div>
 
       {/* ========================================================== */}
-      {/* 📊 TABELA COMPARATIVA DETALHADA                            */}
+      {/* 📊 TABELA COMPARATIVA DETALHADA (3 PLANOS)                 */}
       {/* ========================================================== */}
-      <div className="max-w-4xl mx-auto space-y-6 pt-6">
+      <div className="max-w-5xl mx-auto space-y-6 pt-6">
         <div className="text-center space-y-2">
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
             Comparativo Completo de Recursos
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Veja em detalhes por que o Synapse Pro multiplica seu rendimento e economiza centenas de horas de preparação.
+            Compare o Plano Básico, o Synapse Pro (Copiloto) e o Synapse Elite (Mentor IA & Trilhas Profundas).
           </p>
         </div>
 
@@ -456,18 +555,88 @@ export function PricingView({
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60">
                 <th className="p-4 text-slate-700 dark:text-slate-400 font-bold">Recurso / Ferramenta</th>
-                <th className="p-4 text-slate-600 dark:text-slate-400 font-bold text-center w-36 sm:w-48">
+                <th className="p-4 text-slate-600 dark:text-slate-400 font-bold text-center w-32 sm:w-40">
                   Básico (Grátis)
                 </th>
-                <th className="p-4 text-indigo-700 dark:text-indigo-300 font-black text-center w-36 sm:w-48 bg-indigo-50 dark:bg-indigo-500/10 border-l border-r border-indigo-200 dark:border-indigo-500/20">
+                <th className="p-4 text-indigo-700 dark:text-indigo-300 font-black text-center w-36 sm:w-44 bg-indigo-50 dark:bg-indigo-500/10 border-l border-r border-indigo-200 dark:border-indigo-500/20">
                   Synapse Pro 💎
+                </th>
+                <th className="p-4 text-amber-700 dark:text-amber-300 font-black text-center w-36 sm:w-48 bg-amber-50 dark:bg-amber-500/10">
+                  Synapse Elite 👑
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              {/* BLOCO TRILHAS GUIADAS, TEORIAS & CURSOS EXTERNOS */}
+              <tr className="bg-slate-50 dark:bg-slate-950/40">
+                <td colSpan={4} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  🧭 Trilhas Guiadas, Teorias Esquematizadas & Cursos Externos
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
+                  Trilhas de Estudo Guiadas Semana a Semana
+                </td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">Degustação (Semana 1)</td>
+                <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
+                  1 Trilha Ativa por vez
+                </td>
+                <td className="p-4 text-center text-amber-700 dark:text-amber-300 font-black bg-amber-50/40 dark:bg-amber-500/5">
+                  Múltiplas Trilhas Simultâneas 👑
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
+                  Teoria Viva (Aulas que evoluem com seus erros reais de Simulados)
+                </td>
+                <td className="p-4 text-center text-slate-400 dark:text-slate-500">Teoria Estática</td>
+                <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
+                  Teoria Padrão 2.0
+                </td>
+                <td className="p-4 text-center text-amber-700 dark:text-amber-300 font-black bg-amber-50/40 dark:bg-amber-500/5">
+                  Teoria Viva + Conceitos Gêmeos 🔄⚖️
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
+                  Detector de DNA de Pegadinha + Alarme de Memória Esfriando
+                </td>
+                <td className="p-4 text-center text-slate-400 dark:text-slate-500">🔒 Bloqueado</td>
+                <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
+                  Estatísticas Gerais
+                </td>
+                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-black bg-amber-50/40 dark:bg-amber-500/5">
+                  Vacina Anti-Pegadinha + Resgate 1min 💉🧊
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
+                  Folha de Véspera A4 100% Pessoal & Áudio-Aulas Narradas
+                </td>
+                <td className="p-4 text-center text-slate-400 dark:text-slate-500">🔒 Bloqueado</td>
+                <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
+                  Leitura na Tela
+                </td>
+                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-black bg-amber-50/40 dark:bg-amber-500/5">
+                  Caderno de Ouro A4 + Áudio Hands-Free 🎧🖨️
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
+                  Tracker de Cursos Externos (Udemy, Estratégia, Gran, PDFs)
+                </td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">Até 2 cursos</td>
+                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
+                  Ilimitado
+                </td>
+                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-black bg-amber-50/40 dark:bg-amber-500/5">
+                  Ilimitado + Conversão em Flashcards
+                </td>
+              </tr>
+
               {/* BLOCO IA & PERFORMANCE */}
               <tr className="bg-slate-50 dark:bg-slate-950/40">
-                <td colSpan={3} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+                <td colSpan={4} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
                   ⚡ Inteligência Artificial & Acesso
                 </td>
               </tr>
@@ -475,9 +644,12 @@ export function PricingView({
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
                   Cota Diária de Requisições
                 </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">10 Sinapses / dia (Renovação diária)</td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">10 Sinapses / dia</td>
                 <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  60 Sinapses / dia (Alta Capacidade / Fair Use) ⚡
+                  60 Sinapses / dia ⚡
+                </td>
+                <td className="p-4 text-center text-amber-700 dark:text-amber-300 font-black bg-amber-50/40 dark:bg-amber-500/5">
+                  120 Sinapses / dia (Prioridade Máxima) 🔥
                 </td>
               </tr>
               <tr>
@@ -485,130 +657,63 @@ export function PricingView({
                   Experiência sem Anúncios
                 </td>
                 <td className="p-4 text-center text-slate-500 dark:text-slate-400">
-                  Com recargas voluntárias via anúncios
+                  Recargas via anúncios
                 </td>
                 <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  100% Zero Anúncios (Foco Total) ✨
+                  100% Zero Anúncios ✨
                 </td>
-              </tr>
-              <tr>
-                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Prioridade nos Servidores de IA
-                </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">Fila Padrão</td>
-                <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Alta Prioridade (Gemini 2.5 Pro)
+                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-black bg-amber-50/40 dark:bg-amber-500/5">
+                  100% Zero Anúncios ✨
                 </td>
               </tr>
 
               {/* BLOCO REDAÇÃO & OCR */}
               <tr className="bg-slate-50 dark:bg-slate-950/40">
-                <td colSpan={3} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+                <td colSpan={4} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
                   📝 Redação Discursiva & OCR
                 </td>
               </tr>
               <tr>
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Correção de Redação Digitada
+                  Correção de Redação Digitada & OCR Manuscrito
                 </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 por semana (Degustação oficial)</td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1/sem (Degustação)</td>
                 <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Até 3 por dia com Reescrita Modelo Ouro
+                  Até 3 digitadas + 2 OCR/dia 📸
                 </td>
-              </tr>
-              <tr>
-                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  OCR de Folha Manuscrita (Foto da Redação)
-                </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 de boas-vindas para testar</td>
-                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Até 2 por dia (folha real) 📸
+                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-black bg-amber-50/40 dark:bg-amber-500/5">
+                  Até 5 digitadas + 4 OCR/dia 📸
                 </td>
               </tr>
 
               {/* BLOCO SIMULADOS & CADERNO DE ERROS */}
               <tr className="bg-slate-50 dark:bg-slate-950/40">
-                <td colSpan={3} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
-                  🎯 Provas, Simulados & Erros
+                <td colSpan={4} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+                  🎯 Provas, Simulados, Mapas & Edital Verticalizado
                 </td>
               </tr>
               <tr>
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Simulados Inéditos
+                  Simulados Inéditos & Mnemônicos no Caderno de Erros
                 </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 por dia (+1 bônus via anúncio)</td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 simulado / 2 erros dia</td>
                 <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Até 5 por dia por Banca e Cargo
+                  5 simulados / 30 remediações dia
+                </td>
+                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-black bg-amber-50/40 dark:bg-amber-500/5">
+                  10 simulados / Remediações Ilimitadas
                 </td>
               </tr>
               <tr>
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Mnemônicos no Caderno de Erros
+                  Mapas Mentais Neurais, Exportação Anki (.apkg) & Raio-X da Banca
                 </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">Até 2 por dia (+1 via anúncio)</td>
+                <td className="p-4 text-center text-slate-400 dark:text-slate-500">Básico</td>
                 <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Até 30 remediações diárias 🧠
+                  Completo (PDF A4 + Anki + Raio-X)
                 </td>
-              </tr>
-
-              {/* BLOCO MAPAS MENTAIS & EDITAL */}
-              <tr className="bg-slate-50 dark:bg-slate-950/40">
-                <td colSpan={3} className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
-                  🗺️ Mapas Mentais & Edital Verticalizado
-                </td>
-              </tr>
-              <tr>
-                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Geração de Mapas Mentais Neurais
-                </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">1 por dia (+1 via anúncio)</td>
-                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Até 5 por dia (PDF A4 / PNG HD)
-                </td>
-              </tr>
-              <tr>
-                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Aprofundamento Neural de Nós com IA
-                </td>
-                <td className="p-4 text-center text-slate-400 dark:text-slate-500">🔒 Exclusivo Pro</td>
-                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Ilimitado (1 clique para expandir)
-                </td>
-              </tr>
-              <tr>
-                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Exportação de Mapas Mentais
-                </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">SVG Básico</td>
-                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  PDF A4 Alta Resolução & PNG Retina 2x
-                </td>
-              </tr>
-              <tr>
-                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Raio-X de Incidência da Banca no Edital
-                </td>
-                <td className="p-4 text-center text-slate-400 dark:text-slate-500">🔒 Bloqueado</td>
-                <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Destravado com Histórico da Banca 👑
-                </td>
-              </tr>
-              <tr>
-                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Importador de Edital em PDF
-                </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">Apenas Manual / Texto</td>
-                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Leitor de PDF Bruto com IA
-                </td>
-              </tr>
-              <tr>
-                <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Exportação para Anki (.apkg) & PDF
-                </td>
-                <td className="p-4 text-center text-slate-400 dark:text-slate-500">—</td>
-                <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Ilimitada
+                <td className="p-4 text-center text-amber-700 dark:text-amber-300 font-black bg-amber-50/40 dark:bg-amber-500/5">
+                  Completo + Recalibragem Automática 👑
                 </td>
               </tr>
             </tbody>
@@ -695,22 +800,37 @@ export function PricingView({
           <span>Painel do Beta Tester / Simulação de Assinatura</span>
         </div>
         <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-          Alterne entre o Plano Básico (para testar os avisos de cotas e limites diários) e o Synapse Pro (para testar a IA ilimitada).
+          Alterne entre o Plano Básico (10/dia), Synapse Pro (60/dia) e Synapse Elite 👑 (120/dia) para testar todas as experiências.
         </p>
 
-        <div className="flex items-center justify-center gap-3 pt-1">
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
           <button
             type="button"
-            onClick={handleTogglePlan}
-            disabled={isTogglingPlan}
-            className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 dark:bg-indigo-600/30 dark:hover:bg-indigo-600/50 dark:border-indigo-500/40 dark:text-indigo-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2"
+            onClick={() => handleTogglePlan("FREE")}
+            disabled={isTogglingPlan || currentTier === "FREE"}
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-40"
           >
-            <Crown size={14} className="text-amber-500" />
-            <span>
-              {currentTier === "PREMIUM"
-                ? "Simular Volta para Plano Gratuito"
-                : "Ativar Simulação Synapse Pro Ilimitado"}
-            </span>
+            Simular Básico (10/dia)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTogglePlan("PREMIUM")}
+            disabled={isTogglingPlan || currentTier === "PREMIUM"}
+            className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 dark:bg-indigo-600/30 dark:hover:bg-indigo-600/50 dark:border-indigo-500/40 dark:text-indigo-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+          >
+            <Sparkles size={13} />
+            <span>Simular Synapse Pro (60/dia)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTogglePlan("ELITE")}
+            disabled={isTogglingPlan || currentTier === "ELITE"}
+            className="px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-800 dark:text-amber-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+          >
+            <Crown size={13} className="text-amber-500" />
+            <span>Simular Synapse Elite 👑 (120/dia)</span>
           </button>
         </div>
 
@@ -726,8 +846,9 @@ export function PricingView({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         defaultCycle={billingCycle}
-        onSuccess={() => {
-          setCurrentTier("PREMIUM");
+        targetTier={modalTargetTier}
+        onSuccess={(activatedTier) => {
+          setCurrentTier(activatedTier);
           setIsUnlimited(true);
         }}
       />

@@ -781,8 +781,17 @@ export default function WeekPage() {
             </p>
           </div>
 
-          {/* Action Toolbar Consolidada: Agenda + IA (Primário) + Resgate (Contingência) + Mais Ações */}
+          {/* Action Toolbar Consolidada: Trilha & Teoria + Agenda + IA (Primário) + Resgate (Contingência) + Mais Ações */}
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <Link
+              href="/trilhas?openTheory=1"
+              title="Abrir sua Trilha Guiada e ler a Teoria Esquematizada da semana"
+              className="inline-flex items-center justify-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-300 border border-amber-500/30 text-xs font-bold px-3 sm:px-3.5 py-2 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <BookOpen size={14} className="text-amber-500 dark:text-amber-400" />
+              <span>Trilha & Teoria</span>
+            </Link>
+
             {/* Sincronização de Agenda: Google & .ics */}
             <button
               type="button"
@@ -1407,28 +1416,40 @@ export default function WeekPage() {
                                           • {topic.title}
                                         </span>
 
-                                        <button
-                                          type="button"
-                                          title={
-                                            isDone
-                                              ? "Marcar como pendente"
-                                              : "Marcar como concluído"
-                                          }
-                                          className={`transition-colors shrink-0 ${
-                                            isDone
-                                              ? "text-emerald-500 dark:text-emerald-400 hover:text-emerald-600"
-                                              : "text-slate-400 hover:text-emerald-500 dark:text-slate-600 dark:hover:text-emerald-400"
-                                          }`}
-                                        >
-                                          <CheckCircle2
-                                            size={16}
-                                            className={
-                                              isDone
-                                                ? "fill-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                                                : ""
-                                            }
-                                          />
-                                        </button>
+                                          <div className="flex items-center gap-2 shrink-0">
+                                            <Link
+                                              href={`/trilhas?topicId=${topic.id}`}
+                                              onClick={(e) => e.stopPropagation()}
+                                              title="Abrir Teoria Esquematizada deste tópico"
+                                              className="px-2 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-600 dark:text-amber-300 text-[10px] font-bold flex items-center gap-1 transition-colors"
+                                            >
+                                              <BookOpen size={11} />
+                                              <span>Teoria</span>
+                                            </Link>
+
+                                            <button
+                                              type="button"
+                                              title={
+                                                isDone
+                                                  ? "Marcar como pendente"
+                                                  : "Marcar como concluído"
+                                              }
+                                              className={`transition-colors shrink-0 ${
+                                                isDone
+                                                  ? "text-emerald-500 dark:text-emerald-400 hover:text-emerald-600"
+                                                  : "text-slate-400 hover:text-emerald-500 dark:text-slate-600 dark:hover:text-emerald-400"
+                                              }`}
+                                            >
+                                              <CheckCircle2
+                                                size={16}
+                                                className={
+                                                  isDone
+                                                    ? "fill-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                                    : ""
+                                                }
+                                              />
+                                            </button>
+                                          </div>
                                       </div>
                                     );
                                   })

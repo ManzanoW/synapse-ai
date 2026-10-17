@@ -20,6 +20,7 @@ import {
   Flame,
   Check,
   Loader2,
+  BookOpen,
 } from "lucide-react";
 import type { DailyFlowData, DailyFlowStep } from "@/actions/daily-flow-actions";
 import { claimDailyMissionBonusAction } from "@/actions/daily-flow-actions";
@@ -311,47 +312,57 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
                 <span>
                   {allCompleted
                     ? "Meta do dia concluída com maestria! O algoritmo FSRS e o Caderno foram calibrados."
-                    : "Complete as 3 etapas para blindar sua aprovação e resgatar +150 XP de bônus."}
+                    : "Complete as 3 etapas ou estude sua próxima aula guiada na Trilha (+150 XP)."}
                 </span>
               </div>
 
-              {allCompleted ? (
-                <button
-                  type="button"
-                  onClick={handleClaimBonus}
-                  disabled={isClaiming || bonusClaimed}
-                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer ml-auto shadow-lg ${
-                    bonusClaimed
-                      ? "bg-emerald-600/30 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 cursor-default"
-                      : "bg-linear-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/25 animate-pulse"
-                  }`}
-                >
-                  {isClaiming ? (
-                    <>
-                      <Loader2 size={15} className="animate-spin" />
-                      <span>Resgatando...</span>
-                    </>
-                  ) : bonusClaimed ? (
-                    <>
-                      <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400" />
-                      <span>+150 XP Resgatado Hoje! 🔥</span>
-                    </>
-                  ) : (
-                    <>
-                      <Award size={15} className="fill-slate-950" />
-                      <span>Resgatar Recompensa (+150 XP)</span>
-                    </>
-                  )}
-                </button>
-              ) : (
+              <div className="flex flex-wrap items-center gap-2 ml-auto">
                 <Link
-                  href={nextPendingStep.actionUrl}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer ml-auto"
+                  href="/trilhas?openTheory=1"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 px-3.5 py-2.5 text-xs font-bold text-amber-700 dark:text-amber-300 transition-all active:scale-95 cursor-pointer"
                 >
-                  <Play size={14} className="fill-white" />
-                  <span>Continuar Trilha: {nextPendingStep.title.split(":")[0]}</span>
+                  <BookOpen size={14} />
+                  <span>📖 Aula da Trilha & Teoria</span>
                 </Link>
-              )}
+
+                {allCompleted ? (
+                  <button
+                    type="button"
+                    onClick={handleClaimBonus}
+                    disabled={isClaiming || bonusClaimed}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-lg ${
+                      bonusClaimed
+                        ? "bg-emerald-600/30 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 cursor-default"
+                        : "bg-linear-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/25 animate-pulse"
+                    }`}
+                  >
+                    {isClaiming ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" />
+                        <span>Resgatando...</span>
+                      </>
+                    ) : bonusClaimed ? (
+                      <>
+                        <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400" />
+                        <span>+150 XP Resgatado Hoje! 🔥</span>
+                      </>
+                    ) : (
+                      <>
+                        <Award size={15} className="fill-slate-950" />
+                        <span>Resgatar Recompensa (+150 XP)</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <Link
+                    href={nextPendingStep.actionUrl}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer"
+                  >
+                    <Play size={14} className="fill-white" />
+                    <span>Continuar Trilha: {nextPendingStep.title.split(":")[0]}</span>
+                  </Link>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

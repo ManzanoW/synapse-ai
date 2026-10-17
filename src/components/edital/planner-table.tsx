@@ -605,11 +605,20 @@ export function PlannerView({
                         </div>
 
                         {/* Linha 3 no Mobile / Coluna Desktop: Botões de Ação Ampliados */}
-                        <div className="w-full lg:col-span-3 flex items-center justify-end gap-2 pt-2 lg:pt-0 border-t border-white/5 lg:border-none">
+                        <div className="w-full lg:col-span-3 flex items-center justify-end gap-1.5 pt-2 lg:pt-0 border-t border-white/5 lg:border-none">
+                          <Link
+                            href={`/trilhas?topicId=${t.id}`}
+                            className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1 px-2.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 text-xs font-bold rounded-xl border border-amber-500/30 active:scale-95 transition-all"
+                            title="Abrir Teoria Completa e Aula deste Tópico"
+                          >
+                            <BookOpen size={13} className="text-amber-400" />
+                            <span>Teoria</span>
+                          </Link>
+
                           {t.quizId ? (
                             <Link
                               href={`/questions?quizId=${t.quizId}`}
-                              className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/15 text-emerald-300 text-xs font-bold rounded-xl border border-emerald-500/30 active:scale-95 transition-all shadow-md shadow-emerald-500/10"
+                              className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-2.5 py-2 bg-emerald-500/15 text-emerald-300 text-xs font-bold rounded-xl border border-emerald-500/30 active:scale-95 transition-all shadow-md shadow-emerald-500/10"
                             >
                               <Play
                                 size={13}
@@ -622,17 +631,17 @@ export function PlannerView({
                               href={`/questions?subjectId=${encodeURIComponent(
                                 subjectName,
                               )}&topicId=${t.id}`}
-                              className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-500/15 text-indigo-300 text-xs font-bold rounded-xl border border-indigo-500/30 active:scale-95 transition-all shadow-md shadow-indigo-500/10"
+                              className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-2.5 py-2 bg-indigo-500/15 text-indigo-300 text-xs font-bold rounded-xl border border-indigo-500/30 active:scale-95 transition-all shadow-md shadow-indigo-500/10"
                             >
                               <Sparkles size={13} className="text-indigo-400" />
-                              <span>Praticar IA</span>
+                              <span>Praticar</span>
                             </Link>
                           )}
 
                           <button
                             type="button"
                             onClick={() => onReviewClick && onReviewClick(t.id)}
-                            className="flex-1 lg:flex-none px-3 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer text-center"
+                            className="flex-1 lg:flex-none px-2.5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer text-center"
                           >
                             {t.firstStudy === "Pendente" || !t.firstStudy
                               ? "1º Estudo"

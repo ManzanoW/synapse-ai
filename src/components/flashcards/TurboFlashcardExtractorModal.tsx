@@ -68,6 +68,7 @@ export function TurboFlashcardExtractorModal({
   const [mode, setMode] = useState<
     "CLOZE_AND_CONCEPTS" | "LAW_EXCEPTIONS" | "DEADLINES_AND_NUMBERS"
   >("CLOZE_AND_CONCEPTS");
+  const [difficulty, setDifficulty] = useState<"EASY" | "MEDIUM" | "HARD">("MEDIUM");
   const [selectedDeckId, setSelectedDeckId] = useState<string>("");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -97,10 +98,18 @@ export function TurboFlashcardExtractorModal({
     if (!deckTitle) setDeckTitle(title);
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (
+    overrideDifficulty?: "EASY" | "MEDIUM" | "HARD",
+    forceRegenerateAI?: boolean,
+  ) => {
     if (!rawText.trim() || rawText.trim().length < 25) {
       setErrorMessage("Por favor, cole um texto com pelo menos 25 caracteres.");
       return;
+    }
+
+    const activeDifficulty = overrideDifficulty || difficulty;
+    if (overrideDifficulty) {
+      setDifficulty(overrideDifficulty);
     }
 
     setIsLoading(true);
@@ -113,6 +122,8 @@ export function TurboFlashcardExtractorModal({
         deckId: selectedDeckId || undefined,
         targetCount,
         mode,
+        difficulty: activeDifficulty,
+        forceRegenerateAI: Boolean(forceRegenerateAI),
       });
 
       if (res.success && res.data) {
@@ -200,26 +211,63 @@ export function TurboFlashcardExtractorModal({
           {result ? (
             /* Tela de Sucesso com Preview */
             <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-center justify-between">
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
                     <CheckCircle2 size={20} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">
-                      {result.cardsCount} Flashcards Gerados com Sucesso!
-                    </h3>
-                    <p className="text-xs text-emerald-300/80">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-bold text-white">
+                        {result.cardsCount} Flashcards Prontos!
+                      </h3>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-900/80 border border-white/10 text-slate-200">
+                        {result.difficultyTier === "HARD"
+                          ? "🔥 Nível Hardcore"
+                          : result.difficultyTier === "EASY"
+                          ? "🌱 Nível Base"
+                          : "⚖️ Nível Padrão"}
+                      </span>
+                      {result.reusedFromSemanticCache && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-200">
+                          ⚡ Reaproveitado da Base Inteligente
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-emerald-300/80 mt-0.5">
                       Baralho: <strong>{result.deckTitle}</strong> • Prontos para repetição espaçada.
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={handleReset}
-                  className="text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer underline"
-                >
-                  Extrair Mais
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {result.reusedFromSemanticCache && (
+                    <button
+                      type="button"
+                      onClick={() => handleGenerate(result.difficultyTier, true)}
+                      disabled={isLoading}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold transition-all cursor-pointer"
+                      title="Ignorar cache semântico e gerar novos cards do zero com IA"
+                    >
+                      {isLoading ? "Recriando..." : "🔄 Nova Abordagem IA"}
+                    </button>
+                  )}
+                  {result.difficultyTier !== "HARD" && (
+                    <button
+                      type="button"
+                      onClick={() => handleGenerate("HARD")}
+                      disabled={isLoading}
+                      className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 text-xs font-bold transition-all cursor-pointer"
+                    >
+                      {isLoading ? "Elevando..." : "🔥 Achou fácil? Subir p/ Hardcore"}
+                    </button>
+                  )}
+                  <button
+                    onClick={handleReset}
+                    className="text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer underline"
+                  >
+                    Extrair Mais
+                  </button>
+                </div>
               </div>
 
               {/* Lista Preview dos Cards */}
@@ -384,6 +432,45 @@ export function TurboFlashcardExtractorModal({
                 </div>
               </div>
 
+              {/* Nível de Dificuldade (Cache Semântico + IA) */}
+              <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="text-xs font-bold text-slate-200 block">
+                    Nível de Exigência dos Cards:
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    Se achar fácil demais, selecione Hardcore para focar em exceções, súmulas e pegadinhas.
+                  </span>
+                </div>
+                <div className="inline-flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                  {(
+                    [
+                      { id: "EASY", label: "🌱 Base" },
+                      { id: "MEDIUM", label: "⚖️ Padrão" },
+                      { id: "HARD", label: "🔥 Hardcore" },
+                    ] as const
+                  ).map((lvl) => {
+                    const isSelected = difficulty === lvl.id;
+                    return (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        onClick={() => setDifficulty(lvl.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          isSelected
+                            ? lvl.id === "HARD"
+                              ? "bg-rose-600 text-white shadow-sm"
+                              : "bg-indigo-600 text-white shadow-sm"
+                            : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        {lvl.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Título do Baralho (Opcional) & Destino */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div className="space-y-1.5">
@@ -423,12 +510,12 @@ export function TurboFlashcardExtractorModal({
               {/* Botão de Geração */}
               <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
                 <span className="text-[11px] text-slate-500">
-                  ✨ Sintetizado via Gemini 2.5 Flash
+                  ✨ Cache Semântico Inteligente + Gemini 2.5 Flash
                 </span>
 
                 <button
                   type="button"
-                  onClick={handleGenerate}
+                  onClick={() => handleGenerate()}
                   disabled={isLoading}
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -440,7 +527,7 @@ export function TurboFlashcardExtractorModal({
                   ) : (
                     <>
                       <Sparkles size={15} />
-                      <span>Extrair {targetCount} Flashcards com IA</span>
+                      <span>Extrair {targetCount} Flashcards ({difficulty === "HARD" ? "🔥 Hardcore" : difficulty === "EASY" ? "🌱 Base" : "⚖️ Padrão"})</span>
                     </>
                   )}
                 </button>

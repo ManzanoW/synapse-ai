@@ -15,6 +15,11 @@ export interface MockStore {
   userAchievementProgress: any[];
   dailyQuests: any[];
   questionErrors: any[];
+  studyTrails: any[];
+  trailLessons: any[];
+  externalCourses: any[];
+  externalCourseItems: any[];
+  aiDailyUsages: any[];
   accounts: any[];
   sessions: any[];
 }
@@ -437,6 +442,11 @@ function createInitialStore(): MockStore {
         updatedAt: now,
       },
     ],
+    studyTrails: [],
+    trailLessons: [],
+    externalCourses: [],
+    externalCourseItems: [],
+    aiDailyUsages: [],
     accounts: [],
     sessions: [],
   };
@@ -554,6 +564,25 @@ function expandRelations(item: any, include: any, store: MockStore): any {
   if (include.topic) {
     copy.topic = store.topics.find((t) => t.id === item.topicId) || null;
   }
+  if (include.lessons) {
+    copy.lessons = store.trailLessons
+      .filter((l) => l.trailId === item.id)
+      .map((l) => ({
+        ...l,
+        subject: store.subjects.find((s) => s.id === l.subjectId) || null,
+        topic: store.topics.find((t) => t.id === l.topicId) || null,
+      }))
+      .sort((a, b) => a.weekNumber - b.weekNumber || a.orderIndex - b.orderIndex);
+  }
+  if (include.items) {
+    copy.items = store.externalCourseItems
+      .filter((i) => i.courseId === item.id)
+      .map((i) => ({
+        ...i,
+        topic: store.topics.find((t) => t.id === i.topicId) || null,
+      }))
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+  }
   if (include.decks) {
     copy.decks = store.decks.filter((d) => d.subjectId === item.id || d.topicId === item.id);
   }
@@ -643,6 +672,12 @@ function createModelHandler(getCollection: (store: MockStore) => any[]) {
       const nestedTopicsCreate = dataCopy.topics?.create;
       delete dataCopy.topics;
 
+      const nestedLessonsCreate = dataCopy.lessons?.create;
+      delete dataCopy.lessons;
+
+      const nestedItemsCreate = dataCopy.items?.create;
+      delete dataCopy.items;
+
       const newItem = {
         id: dataCopy.id || `mock-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
         createdAt: new Date(),
@@ -665,6 +700,38 @@ function createModelHandler(getCollection: (store: MockStore) => any[]) {
             createdAt: new Date(),
             updatedAt: new Date(),
             ...t,
+          });
+        }
+      }
+
+      if (nestedLessonsCreate) {
+        const lessonsList = Array.isArray(nestedLessonsCreate)
+          ? nestedLessonsCreate
+          : [nestedLessonsCreate];
+        for (const l of lessonsList) {
+          store.trailLessons.push({
+            id: l.id || `mock-lesson-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            trailId: newItem.id,
+            isCompleted: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            ...l,
+          });
+        }
+      }
+
+      if (nestedItemsCreate) {
+        const itemsList = Array.isArray(nestedItemsCreate)
+          ? nestedItemsCreate
+          : [nestedItemsCreate];
+        for (const it of itemsList) {
+          store.externalCourseItems.push({
+            id: it.id || `mock-citem-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            courseId: newItem.id,
+            isCompleted: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            ...it,
           });
         }
       }
@@ -755,6 +822,11 @@ export function createMockPrismaClient(): any {
     userAchievementProgress: createModelHandler((s) => s.userAchievementProgress),
     dailyQuest: createModelHandler((s) => s.dailyQuests),
     questionError: createModelHandler((s) => s.questionErrors),
+    studyTrail: createModelHandler((s) => s.studyTrails),
+    trailLesson: createModelHandler((s) => s.trailLessons),
+    externalCourse: createModelHandler((s) => s.externalCourses),
+    externalCourseItem: createModelHandler((s) => s.externalCourseItems),
+    aiDailyUsage: createModelHandler((s) => s.aiDailyUsages),
     account: createModelHandler((s) => s.accounts),
     session: createModelHandler((s) => s.sessions),
     $transaction: async (arg: any) => {

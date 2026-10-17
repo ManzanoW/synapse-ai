@@ -22,6 +22,11 @@ import {
   classifyCardMaturity,
 } from "@/lib/spaced-repetition";
 import { ReviewFlashcardSchema } from "@/lib/validations/flashcard.schema";
+import {
+  areTopicsSemanticallyEquivalent,
+  normalizeDifficultyTier,
+  type DifficultyTier,
+} from "@/lib/semantic-cache-engine";
 
 export interface ReviewFlashcardInput {
   cardId: string;
@@ -527,6 +532,8 @@ export interface ExtractTurboFlashcardsInput {
   rawText: string;
   targetCount?: number;
   mode?: "CLOZE_AND_CONCEPTS" | "LAW_EXCEPTIONS" | "DEADLINES_AND_NUMBERS";
+  difficulty?: DifficultyTier | string;
+  forceRegenerateAI?: boolean;
   deckTitle?: string;
   deckId?: string;
   subjectId?: string;
@@ -537,6 +544,8 @@ export interface ExtractTurboFlashcardsResult {
   deckId: string;
   deckTitle: string;
   cardsCount: number;
+  reusedFromSemanticCache?: boolean;
+  difficultyTier?: DifficultyTier;
   cards: Array<{
     id: string;
     question: string;
@@ -553,7 +562,8 @@ export interface ExtractTurboFlashcardsResponse {
 
 /**
  * Server Action que extrai flashcards de alto rendimento a partir de texto bruto,
- * artigos de lei ou anotações usando Gemini AI com formatação de Cloze Deletion e mnemônicos.
+ * artigos de lei ou anotações usando Gemini AI com formatação de Cloze Deletion e mnemônicos,
+ * contando com Reaproveitamento Semântico entre Usuários e Calibragem de Dificuldade (EASY | MEDIUM | HARD).
  */
 export async function extractTurboFlashcardsAction(
   input: ExtractTurboFlashcardsInput
@@ -567,15 +577,126 @@ export async function extractTurboFlashcardsAction(
     }
 
     const rawText = input.rawText?.trim();
-    if (!rawText || rawText.length < 25) {
+    if (!rawText || rawText.length < 10) {
       return {
         success: false,
-        error: "Insira ao menos 25 caracteres de conteúdo (lei, anotação ou resumo).",
+        error: "Insira ao menos um tópico, lei ou resumo válido.",
       };
     }
 
     const count = Math.min(20, Math.max(3, input.targetCount || 10));
     const mode = input.mode || "CLOZE_AND_CONCEPTS";
+    const difficultyTier = normalizeDifficultyTier(
+      input.difficulty || (mode === "LAW_EXCEPTIONS" ? "HARD" : "MEDIUM"),
+    );
+    const numericDifficulty =
+      difficultyTier === "EASY" ? 3.0 : difficultyTier === "HARD" ? 8.0 : 5.0;
+
+    // 1. Tenta Reaproveitamento Semântico entre Usuários (quando o input é um tema/lei/tópico e não forçou regeneração)
+    if (!input.forceRegenerateAI && rawText.length <= 450) {
+      try {
+        const candidateDecks = await prisma.deck.findMany({
+          where: {
+            NOT: { userId },
+          },
+          include: {
+            subject: { select: { name: true } },
+            topic: { select: { title: true } },
+            flashcards: {
+              take: 30,
+            },
+          },
+          take: 40,
+        });
+
+        for (const candDeck of candidateDecks) {
+          const candCards = candDeck.flashcards || [];
+          if (candCards.length < 3) continue;
+
+          // Filtra cards que correspondem estritamente ao nível de dificuldade pedido pelo aluno
+          const matchingDiffCards = candCards.filter((c: any) => {
+            const cardDiff = Number(c.difficulty ?? 5.0);
+            if (difficultyTier === "EASY") return cardDiff <= 4.0;
+            if (difficultyTier === "HARD") return cardDiff >= 6.8;
+            return cardDiff > 4.0 && cardDiff < 6.8;
+          });
+
+          if (matchingDiffCards.length < Math.min(3, count)) continue;
+
+          const semMatch = areTopicsSemanticallyEquivalent(
+            input.deckTitle || "",
+            rawText,
+            candDeck.subject?.name || candDeck.title || "",
+            candDeck.topic?.title || candDeck.title || "",
+            0.55,
+          );
+
+          if (semMatch.isMatch) {
+            let targetDeckId = input.deckId;
+            const finalTitle =
+              input.deckTitle?.trim() ||
+              candDeck.title ||
+              `Flashcards (${difficultyTier === "HARD" ? "Avançado" : "Essencial"})`;
+
+            if (!targetDeckId) {
+              const newDeck = await prisma.deck.create({
+                data: {
+                  title: finalTitle,
+                  color: "bg-indigo-600",
+                  userId,
+                  subjectId: input.subjectId || null,
+                  topicId: input.topicId || null,
+                },
+              });
+              targetDeckId = newDeck.id;
+            }
+
+            const cardsToClone = matchingDiffCards.slice(0, count);
+            const clonedCards = [];
+            for (const c of cardsToClone) {
+              const created = await prisma.flashcard.create({
+                data: {
+                  deckId: targetDeckId!,
+                  question: c.question,
+                  answer: c.answer,
+                  details: c.details || null,
+                  topicId: input.topicId || null,
+                  stability: 1.0,
+                  difficulty: numericDifficulty,
+                  easeFactor: 2.5,
+                  interval: 1,
+                  repetitions: 0,
+                  lapses: 0,
+                  nextReviewDate: new Date(),
+                },
+                select: {
+                  id: true,
+                  question: true,
+                  answer: true,
+                  details: true,
+                },
+              });
+              clonedCards.push(created);
+            }
+
+            revalidatePath("/flashcards");
+            return {
+              success: true,
+              data: {
+                deckId: targetDeckId!,
+                deckTitle: finalTitle,
+                cardsCount: clonedCards.length,
+                reusedFromSemanticCache: true,
+                difficultyTier,
+                cards: clonedCards,
+              },
+            };
+          }
+        }
+      } catch (cacheErr) {
+        console.warn("[extractTurboFlashcardsAction] Aviso no cache semântico:", cacheErr);
+      }
+    }
 
     let modeInstruction = "";
     if (mode === "LAW_EXCEPTIONS") {
@@ -589,10 +710,18 @@ export async function extractTurboFlashcardsAction(
         "FOCO PRINCIPAL: Conceitos-chave de alta recorrência em concursos, combinando perguntas diretas com itens em formato Cloze Deletion '[...]' (onde o candidato precisa preencher a palavra crítica).";
     }
 
+    const difficultyInstruction =
+      difficultyTier === "HARD"
+        ? "NÍVEL DE DIFICULDADE SOLICITADO: AVANÇADO / HARDCORE. O aluno achou o nível básico fácil demais! Gere flashcards densos cobrando exceções legais sutis, jurisprudência do STF/STJ, casos práticos complexos e pegadinhas de alto nível."
+        : difficultyTier === "EASY"
+          ? "NÍVEL DE DIFICULDADE SOLICITADO: INICIANTE / BASE ESSENCIAL. Foque nos conceitos fundamentais, definições diretas e estrutura básica para construir base sólida."
+          : "NÍVEL DE DIFICULDADE SOLICITADO: INTERMEDIÁRIO / NÍVEL PROVA PADRÃO.";
+
     const prompt = `Você é o maior especialista em Engenharia Pedagógica de Concursos Públicos do Brasil (Cebraspe, FGV, FCC, Vunesp).
-Sua missão é ler o texto bruto fornecido pelo estudante e extrair exatamente ${count} Flashcards de Altíssimo Rendimento para fixação rápida na memória de longo prazo (algoritmo FSRS/Anki).
+Sua missão é ler o texto bruto ou tema fornecido pelo estudante e extrair exatamente ${count} Flashcards de Altíssimo Rendimento para fixação rápida na memória de longo prazo (algoritmo FSRS/Anki).
 
 ${modeInstruction}
+${difficultyInstruction}
 
 DIRETRIZES TÉCNICAS OBRIGATÓRIAS:
 1. Pergunta (question): Enxuta, instigante, clara. Use negrito ou lacunas '[...]' quando apropriado.
@@ -673,7 +802,7 @@ ${rawText.slice(0, 12000)}
       targetDeckId = newDeck.id;
     }
 
-    // Insere os flashcards no banco
+    // Insere os flashcards no banco com o tier de dificuldade calibrado (3.0 = EASY, 5.0 = MEDIUM, 8.0 = HARD)
     const createdCards = await prisma.$transaction(
       parsed.cards.map((c) =>
         prisma.flashcard.create({
@@ -684,7 +813,7 @@ ${rawText.slice(0, 12000)}
             details: c.details || null,
             topicId: input.topicId || null,
             stability: 1.0,
-            difficulty: 5.0,
+            difficulty: numericDifficulty,
             easeFactor: 2.5,
             interval: 1,
             repetitions: 0,
@@ -713,6 +842,8 @@ ${rawText.slice(0, 12000)}
         deckId: targetDeckId,
         deckTitle: finalTitle,
         cardsCount: createdCards.length,
+        reusedFromSemanticCache: false,
+        difficultyTier,
         cards: createdCards,
       },
     };

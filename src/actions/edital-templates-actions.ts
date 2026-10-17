@@ -7,6 +7,11 @@ import { STARTER_EDITAL_TEMPLATES, EditalTemplateSubject } from "@/lib/edital-te
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { Type } from "@google/genai";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
+import {
+  areTopicsSemanticallyEquivalent,
+  normalizeDifficultyTier,
+  type DifficultyTier,
+} from "@/lib/semantic-cache-engine";
 
 /**
  * Importa um modelo de edital pré-definido por carreira para a conta do usuário
@@ -151,11 +156,16 @@ interface CustomSubjectGenerated {
 }
 
 /**
- * Gera e importa um plano de estudos personalizado para qualquer cargo/concurso digitado pelo usuário via IA (Gemini)
+ * Gera ou reaproveita semanticamente um plano de estudos personalizado para qualquer cargo/concurso
+ * digitado pelo usuário, permitindo escolher o nível de profundidade/dificuldade (EASY | MEDIUM | HARD).
  */
 export async function generateCustomEditalAction(
   targetRoleOrExam: string,
-  options?: { replaceExisting?: boolean },
+  options?: {
+    replaceExisting?: boolean;
+    difficultyLevel?: DifficultyTier | string;
+    forceRegenerateAI?: boolean;
+  },
 ) {
   try {
     const session = await auth();
@@ -167,7 +177,120 @@ export async function generateCustomEditalAction(
 
     const trimmedInput = targetRoleOrExam?.trim();
     if (!trimmedInput || trimmedInput.length < 3) {
-      return { success: false, error: "Por favor, informe o cargo ou concurso desejado com mais detalhes (mínimo 3 caracteres)." };
+      return {
+        success: false,
+        error: "Por favor, informe o cargo ou concurso desejado com mais detalhes (mínimo 3 caracteres).",
+      };
+    }
+
+    const difficultyTier = normalizeDifficultyTier(options?.difficultyLevel || "MEDIUM");
+
+    // 1. Tenta Reaproveitamento Semântico entre Usuários (Zero Custo de IA)
+    // Se outro concurseiro já gerou um edital para o mesmo cargo/concurso (similaridade >= 65%)
+    // e com a mesma densidade de tópicos compatível com o nível de dificuldade solicitado:
+    if (!options?.forceRegenerateAI) {
+      try {
+        const otherUsersWithRoles = await prisma.user.findMany({
+          where: {
+            NOT: { id: userId },
+            targetRole: { not: null },
+          },
+          select: {
+            id: true,
+            targetRole: true,
+            careerFocus: true,
+            subjects: {
+              include: { topics: true },
+            },
+          },
+          take: 40,
+        });
+
+        for (const otherUser of otherUsersWithRoles) {
+          const otherSubjects = otherUser.subjects || [];
+          if (otherSubjects.length < 3) continue;
+
+          const avgTopicsPerSub =
+            otherSubjects.reduce((acc: number, s: any) => acc + (s.topics?.length || 0), 0) /
+            otherSubjects.length;
+
+          // Se o aluno pediu HARD (Edital Verticalizado Profundo), exige matriz mais densa (>= 5 tópicos/matéria)
+          if (difficultyTier === "HARD" && avgTopicsPerSub < 5) continue;
+
+          const semMatch = areTopicsSemanticallyEquivalent(
+            trimmedInput,
+            trimmedInput,
+            otherUser.targetRole || "",
+            otherUser.careerFocus || "",
+            0.65,
+          );
+
+          if (semMatch.isMatch) {
+            if (options?.replaceExisting) {
+              await prisma.subject.deleteMany({ where: { userId } });
+            }
+
+            let createdCount = 0;
+            let topicsCount = 0;
+            for (const m of otherSubjects) {
+              const sub = await prisma.subject.create({
+                data: {
+                  userId,
+                  name: m.name,
+                  color: m.color || "#3B82F6",
+                  weight: m.weight || 7.0,
+                  importance: m.importance || "Alta",
+                  priority: m.priority || 6.5,
+                  topics: {
+                    create: (m.topics || []).map((t: any) => ({
+                      title: t.title,
+                      firstStudy: "Pendente",
+                      performance: 0,
+                      relevance: t.relevance || "5/10",
+                    })),
+                  },
+                },
+                include: { topics: true },
+              });
+              if (sub) {
+                createdCount++;
+                topicsCount += sub.topics?.length || 0;
+              }
+            }
+
+            await prisma.user
+              .update({
+                where: { id: userId },
+                data: {
+                  careerFocus: trimmedInput,
+                  targetRole: trimmedInput,
+                },
+              })
+              .catch(() => {});
+
+            try {
+              revalidatePath("/edital");
+              revalidatePath("/questions");
+              revalidatePath("/flashcards");
+              revalidatePath("/dashboard");
+              revalidatePath("/week");
+            } catch {}
+
+            return {
+              success: true,
+              data: {
+                targetRole: trimmedInput,
+                subjectsCount: createdCount,
+                topicsCount,
+                reusedFromSemanticCache: true,
+                difficultyTier,
+              },
+            };
+          }
+        }
+      } catch (cacheErr) {
+        console.warn("[generateCustomEditalAction] Aviso no cache semântico:", cacheErr);
+      }
     }
 
     // 🛡️ Proteção de Cota Diária de IA para Personalização de Edital
@@ -186,16 +309,24 @@ export async function generateCustomEditalAction(
       });
     }
 
+    const difficultyPrompt =
+      difficultyTier === "HARD"
+        ? "NÍVEL AVANÇADO / HARDCORE (PÓS-EDITAL PROFUNDO): Gere de 5 a 7 disciplinas e, para cada uma, liste de 6 a 8 tópicos técnicos aprofundados (incluindo leis específicas, jurisprudência e temas avançados)."
+        : difficultyTier === "EASY"
+          ? "NÍVEL ESSENCIAL / INICIANTE: Gere as 4 a 5 disciplinas nucleares e os 4 tópicos mais básicos e fundamentais de cada uma para construir base rápida."
+          : "NÍVEL PADRÃO (INTERMEDIÁRIO): Gere de 4 a 6 matérias essenciais com 4 a 6 tópicos mais recorrentes nas bancas.";
+
     const prompt = `Você é um coordenador pedagógico especialista em concursos públicos brasileiros.
 O concurseiro deseja se preparar para o seguinte concurso e/ou cargo:
 "${trimmedInput}"
 
-Gere uma matriz curricular recomendada, realista e otimizada com as matérias mais cobradas e estratégicas para esse cargo específico (gere de 4 a 6 matérias essenciais).
+${difficultyPrompt}
+
 Para cada matéria:
 - "nome": Nome oficial da disciplina (ex: "Língua Portuguesa", "Banco de Dados & SQL", "Direito Constitucional", "Contabilidade Geral", "Legislação do SUS")
 - "color": Uma cor hexadecimal vibrante coerente com o domínio (ex: #3B82F6, #10B981, #8B5CF6, #F59E0B, #EF4444, #EC4899, #06B6D4)
 - "weight": Peso relativo de 6.0 a 10.0 (onde as mais cruciais para o cargo têm maior peso)
-- "topicos": Lista com 4 a 6 tópicos mais recorrentes nas bancas para esse cargo.`;
+- "topicos": Lista com os tópicos mais recorrentes nas bancas para esse cargo.`;
 
     const aiRes = await generateContentWithFallback({
       prompt,
@@ -251,7 +382,7 @@ Para cada matéria:
               title: t,
               firstStudy: "Pendente",
               performance: 0,
-              relevance: "5/10",
+              relevance: difficultyTier === "HARD" ? "9/10" : "5/10",
             })),
           },
         },
@@ -298,6 +429,8 @@ Para cada matéria:
         targetRole: trimmedInput,
         subjectsCount: createdCount,
         topicsCount,
+        reusedFromSemanticCache: false,
+        difficultyTier,
       },
     };
   } catch (error) {

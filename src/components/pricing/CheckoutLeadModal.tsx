@@ -20,20 +20,29 @@ interface CheckoutLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultCycle?: "MONTHLY" | "ANNUAL";
-  onSuccess?: () => void;
+  targetTier?: "PREMIUM" | "ELITE";
+  onSuccess?: (activatedTier: "PREMIUM" | "ELITE") => void;
 }
 
 export function CheckoutLeadModal({
   isOpen,
   onClose,
   defaultCycle = "ANNUAL",
+  targetTier = "PREMIUM",
   onSuccess,
 }: CheckoutLeadModalProps) {
   const [cycle, setCycle] = useState<"MONTHLY" | "ANNUAL">(defaultCycle);
+  const [selectedTier, setSelectedTier] = useState<"PREMIUM" | "ELITE">(targetTier);
   const [phoneOrWhatsapp, setPhoneOrWhatsapp] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+
+  React.useEffect(() => {
+    setSelectedTier(targetTier);
+  }, [targetTier, isOpen]);
+
+  const isElite = selectedTier === "ELITE";
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,14 +50,18 @@ export function CheckoutLeadModal({
     setStatusMessage("");
 
     try {
-      const externalCheckoutUrl = process.env.NEXT_PUBLIC_CHECKOUT_URL;
+      const externalCheckoutUrl = isElite
+        ? process.env.NEXT_PUBLIC_CHECKOUT_ELITE_URL || process.env.NEXT_PUBLIC_CHECKOUT_URL
+        : process.env.NEXT_PUBLIC_CHECKOUT_URL;
+
       if (externalCheckoutUrl) {
         window.location.href = externalCheckoutUrl;
         return;
       }
 
       const result = await submitSubscriptionLeadAction({
-        plan: "Synapse Concurseiro Pro",
+        plan: isElite ? "Synapse Elite 👑" : "Synapse Concurseiro Pro",
+        targetTier: selectedTier,
         billingCycle: cycle,
         phoneOrWhatsapp: phoneOrWhatsapp.trim(),
       });
@@ -63,7 +76,9 @@ export function CheckoutLeadModal({
             particleCount: 80,
             spread: 70,
             origin: { y: 0.6 },
-            colors: ["#6366f1", "#a855f7", "#ec4899", "#10b981"],
+            colors: isElite
+              ? ["#f59e0b", "#ea580c", "#fbbf24", "#10b981"]
+              : ["#6366f1", "#a855f7", "#ec4899", "#10b981"],
           });
         } catch {
           // Fallback silencioso
@@ -74,7 +89,7 @@ export function CheckoutLeadModal({
         }
 
         if (onSuccess) {
-          onSuccess();
+          onSuccess(selectedTier);
         }
       } else {
         setStatusMessage(result.message);
@@ -111,7 +126,7 @@ export function CheckoutLeadModal({
           </button>
 
           {!isSuccess ? (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Header */}
               <div className="text-center space-y-2">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-linear-to-r dark:from-indigo-500/20 dark:to-purple-500/20 dark:border-indigo-400/30 dark:text-indigo-300 text-xs font-bold">
@@ -119,11 +134,39 @@ export function CheckoutLeadModal({
                   <span>CONDIÇÃO ESPECIAL DE LANÇAMENTO</span>
                 </div>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  Desbloqueie o Synapse Pro
+                  {isElite ? "Desbloqueie o Synapse Elite 👑" : "Desbloqueie o Synapse Pro 🚀"}
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
-                  Acesso imediato de alta capacidade a todas as ferramentas com IA para acelerar sua aprovação.
+                  {isElite
+                    ? "120 Sinapses/dia, Trilhas Guiadas Ilimitadas, Teorias Hardcore, Apostilas A4 e Áudio-Aulas Neurais."
+                    : "Acesso imediato de alta capacidade (60 Sinapses/dia) a todas as ferramentas com IA."}
                 </p>
+              </div>
+
+              {/* Seletor rápido Pro vs Elite */}
+              <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTier("PREMIUM")}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    !isElite
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                  }`}
+                >
+                  💎 Synapse Pro (60/dia)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTier("ELITE")}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    isElite
+                      ? "bg-amber-500 text-slate-950 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                  }`}
+                >
+                  👑 Synapse Elite (120/dia)
+                </button>
               </div>
 
               {/* Seletor de Ciclo de Cobrança */}
@@ -138,14 +181,16 @@ export function CheckoutLeadModal({
                   }`}
                 >
                   <span className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:border-emerald-400/40 dark:text-emerald-300 text-[10px] font-bold">
-                    -30% OFF
+                    -25% OFF
                   </span>
                   <div className="text-xs font-bold text-slate-900 dark:text-white">Plano Anual</div>
                   <div className="text-lg font-black text-indigo-600 dark:text-indigo-300">
-                    R$ 29,90
+                    {isElite ? "R$ 49,90" : "R$ 29,90"}
                     <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">/mês</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400">R$ 358,80 faturado anualmente</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {isElite ? "R$ 598,80 faturado anualmente" : "R$ 358,80 faturado anualmente"}
+                  </div>
                 </button>
 
                 <button
@@ -159,7 +204,7 @@ export function CheckoutLeadModal({
                 >
                   <div className="text-xs font-bold text-slate-900 dark:text-white">Plano Mensal</div>
                   <div className="text-lg font-black text-slate-900 dark:text-white">
-                    R$ 39,90
+                    {isElite ? "R$ 64,90" : "R$ 39,90"}
                     <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">/mês</span>
                   </div>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400">Sem fidelidade, cancele quando quiser</div>
@@ -168,15 +213,22 @@ export function CheckoutLeadModal({
 
               {/* Lista de Vantagens */}
               <div className="space-y-2 py-1">
-                {[
-                  "Alta Franquia diária de IA (até 60 req/dia) & Zero Anúncios",
-                  "OCR de Redação Manuscrita (foto da folha de prova real)",
-                  "Revisão Avançada de Erros com até 30 remediações diárias",
-                  "Mapas Mentais Neurais com Expansão de Nós e Exportação HD/PDF A4",
-                  "Raio-X de Incidência Estatística da Banca no Edital (Cebraspe, FGV, FCC)",
-                  "Importador Inteligente de Editais em PDF por IA",
-                  "Prioridade máxima nos servidores de alta performance",
-                ].map((item, idx) => (
+                {(isElite
+                  ? [
+                      "120 Sinapses / dia + Prioridade Máxima nos Servidores IA",
+                      "Gerador Universal de Trilhas & Teorias Hardcore (Qualquer Banca/Cargo)",
+                      "Áudio-Aulas Neurais Hands-Free + Apostilas A4 Imprimíveis",
+                      "Múltiplas Trilhas Simultâneas + Recalibragem Adaptativa Automática",
+                      "Tudo do Plano Pro incluso (OCR Manuscrito, Mapas HD, Simulados)",
+                    ]
+                  : [
+                      "Alta Franquia diária de IA (até 60 req/dia) & Zero Anúncios",
+                      "OCR de Redação Manuscrita (foto da folha de prova real)",
+                      "Revisão Avançada de Erros com até 30 remediações diárias",
+                      "Mapas Mentais Neurais com Expansão de Nós e Exportação HD/PDF A4",
+                      "Raio-X de Incidência Estatística da Banca no Edital (Cebraspe, FGV, FCC)",
+                    ]
+                ).map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200 font-medium">
                     <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>{item}</span>
@@ -208,17 +260,25 @@ export function CheckoutLeadModal({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3.5 px-4 bg-linear-to-r from-indigo-600 via-indigo-700 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white text-xs sm:text-sm font-extrabold rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  className={`w-full py-3.5 px-4 text-xs sm:text-sm font-extrabold rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 ${
+                    isElite
+                      ? "bg-linear-to-r from-amber-500 via-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/25"
+                      : "bg-linear-to-r from-indigo-600 via-indigo-700 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white shadow-indigo-500/25"
+                  }`}
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
-                      <span>Ativando Desconto & Acesso Pro...</span>
+                      <span>Ativando Acesso {isElite ? "Elite 👑" : "Pro 🚀"}...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles size={16} className="fill-white" />
-                      <span>Garantir Vaga com 50% OFF • 7 Dias Grátis</span>
+                      <Crown size={16} />
+                      <span>
+                        {isElite
+                          ? "Ativar Synapse Elite 👑 • 7 Dias Grátis"
+                          : "Garantir Vaga Synapse Pro • 7 Dias Grátis"}
+                      </span>
                       <ArrowRight size={16} />
                     </>
                   )}
@@ -247,11 +307,11 @@ export function CheckoutLeadModal({
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white">
-                  Acesso Pro Ativado! 💎
+                  {isElite ? "Synapse Elite Ativado! 👑" : "Acesso Pro Ativado! 💎"}
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto leading-relaxed">
                   {statusMessage ||
-                    "Você agora tem acesso à alta franquia diária de IA e zero anúncios do Synapse Pro."}
+                    "Você agora tem acesso à alta franquia diária de IA e zero anúncios."}
                 </p>
               </div>
 

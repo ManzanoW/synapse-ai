@@ -51,6 +51,7 @@ import {
   Brain,
   UploadCloud,
   ChevronDown,
+  Compass,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -89,6 +90,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Planejamento",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Trilhas & Cursos", href: "/trilhas", icon: Compass, badge: "IA" },
       { label: "Edital Verticalizado", href: "/edital", icon: FileSpreadsheet },
       { label: "Cronograma Semanal", href: "/week", icon: Sparkles },
     ],
@@ -239,19 +241,26 @@ export default function Sidebar({ user }: SidebarProps) {
   const isInitialPro = Boolean(
     user?.isPro ||
     user?.planTier === "PREMIUM" ||
+    user?.planTier === "ELITE" ||
     user?.role === "ADMIN" ||
     user?.isAdmin
   );
 
   const [userPlan, setUserPlan] = useState<string>(() =>
-    isInitialPro ? "PRO MEMBER" : "PLANO BÁSICO"
+    user?.planTier === "ELITE"
+      ? "ELITE MEMBER 👑"
+      : isInitialPro
+      ? "PRO MEMBER"
+      : "PLANO BÁSICO"
   );
   const [hasLawFocus, setHasLawFocus] = useState<boolean>(() =>
     isLawFocused(user?.careerFocus, user?.targetRole)
   );
 
   useEffect(() => {
-    if (user?.isPro || user?.planTier === "PREMIUM" || user?.role === "ADMIN") {
+    if (user?.planTier === "ELITE") {
+      setUserPlan("ELITE MEMBER 👑");
+    } else if (user?.isPro || user?.planTier === "PREMIUM" || user?.role === "ADMIN") {
       setUserPlan("PRO MEMBER");
     }
   }, [user?.isPro, user?.planTier, user?.role]);
@@ -287,7 +296,9 @@ export default function Sidebar({ user }: SidebarProps) {
       getAiQuotaStatusAction()
         .then((res) => {
           if (res.success && res.data) {
-            if (
+            if (res.data.planTier === "ELITE") {
+              setUserPlan("ELITE MEMBER 👑");
+            } else if (
               res.data.isUnlimited ||
               res.data.planTier === "PREMIUM" ||
               res.data.role === "ADMIN" ||

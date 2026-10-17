@@ -4,9 +4,11 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+export type PlanTierType = "FREE" | "PREMIUM" | "ELITE";
+
 export interface PlanStatusResult {
   success: boolean;
-  planTier: "FREE" | "PREMIUM";
+  planTier: PlanTierType;
   role: string;
   isUnlimited: boolean;
   userEmail?: string | null;
@@ -45,6 +47,7 @@ export async function getCurrentPlanStatusAction(): Promise<PlanStatusResult> {
     const isUnlimited =
       user?.role === "ADMIN" ||
       user?.planTier === "PREMIUM" ||
+      user?.planTier === "ELITE" ||
       Boolean(
         user?.email &&
           process.env.ADMIN_EMAIL &&
@@ -53,7 +56,7 @@ export async function getCurrentPlanStatusAction(): Promise<PlanStatusResult> {
 
     return {
       success: true,
-      planTier: (user?.planTier as "FREE" | "PREMIUM") || "FREE",
+      planTier: (user?.planTier as PlanTierType) || "FREE",
       role: user?.role || "USER",
       isUnlimited,
       userEmail: user?.email,
@@ -72,11 +75,14 @@ export async function getCurrentPlanStatusAction(): Promise<PlanStatusResult> {
 }
 
 /**
- * Permite alternar o plano do usuário entre FREE e PREMIUM para fins de teste no ambiente de desenvolvimento/beta.
+ * Permite alternar o plano do usuário entre FREE -> PREMIUM -> ELITE -> FREE
+ * (ou definir diretamente um plano específico) para fins de teste no ambiente de desenvolvimento/beta.
  */
-export async function toggleDemoPlanTierAction(): Promise<{
+export async function toggleDemoPlanTierAction(
+  explicitTier?: PlanTierType,
+): Promise<{
   success: boolean;
-  newPlanTier: "FREE" | "PREMIUM";
+  newPlanTier: PlanTierType;
   message: string;
 }> {
   try {
@@ -96,8 +102,16 @@ export async function toggleDemoPlanTierAction(): Promise<{
       select: { planTier: true },
     });
 
-    const targetTier: "FREE" | "PREMIUM" =
-      current?.planTier === "PREMIUM" ? "FREE" : "PREMIUM";
+    let targetTier: PlanTierType;
+    if (explicitTier) {
+      targetTier = explicitTier;
+    } else if (current?.planTier === "FREE") {
+      targetTier = "PREMIUM";
+    } else if (current?.planTier === "PREMIUM") {
+      targetTier = "ELITE";
+    } else {
+      targetTier = "FREE";
+    }
 
     await prisma.user.update({
       where: { id: userId },
@@ -107,13 +121,16 @@ export async function toggleDemoPlanTierAction(): Promise<{
     revalidatePath("/pricing");
     revalidatePath("/profile");
     revalidatePath("/dashboard");
+    revalidatePath("/trilhas");
 
     return {
       success: true,
       newPlanTier: targetTier,
       message:
-        targetTier === "PREMIUM"
-          ? "🎉 Plano PREMIUM ativado com sucesso! Você agora tem 60 Sinapses/dia e acesso Pro total."
+        targetTier === "ELITE"
+          ? "👑 Plano SYNAPSE ELITE ativado! Você agora tem 120 Sinapses/dia, Mentor IA, Trilhas e Áudio-Aulas Ilimitadas."
+          : targetTier === "PREMIUM"
+          ? "🎉 Plano SYNAPSE PRO ativado com sucesso! Você agora tem 60 Sinapses/dia e acesso Pro total."
           : "Plano FREE ativado. As cotas diárias de 10 Sinapses/dia voltam a valer.",
     };
   } catch (err) {
@@ -127,16 +144,18 @@ export async function toggleDemoPlanTierAction(): Promise<{
 }
 
 /**
- * Registra a intenção de compra ou ativação de teste do usuário para o plano Pro.
+ * Registra a intenção de compra ou ativação de teste do usuário para o plano Pro ou Synapse Elite.
  * Coleta o interesse de compra (Lead qualificado) e concede o upgrade imediato para teste.
  */
 export async function submitSubscriptionLeadAction(input: {
   plan: string;
+  targetTier?: "PREMIUM" | "ELITE";
   billingCycle: "MONTHLY" | "ANNUAL";
   phoneOrWhatsapp?: string;
   notes?: string;
 }): Promise<{
   success: boolean;
+  newPlanTier?: PlanTierType;
   message: string;
   activatedTrial: boolean;
 }> {
@@ -147,13 +166,25 @@ export async function submitSubscriptionLeadAction(input: {
     if (!userId) {
       return {
         success: false,
-        message: "Faça login para assinar ou testar o Synapse Pro.",
+        message: "Faça login para assinar ou testar o Synapse.",
         activatedTrial: false,
       };
     }
 
-    const cycleLabel = input.billingCycle === "ANNUAL" ? "Anual (R$ 29,90/mês)" : "Mensal (R$ 39,90/mês)";
-    const leadMessage = `[INTERESSE EM ASSINATURA] Plano: ${input.plan} | Ciclo: ${cycleLabel} | Contato: ${
+    const isEliteSelected =
+      input.targetTier === "ELITE" ||
+      input.plan.toLowerCase().includes("elite");
+
+    const assignedTier: PlanTierType = isEliteSelected ? "ELITE" : "PREMIUM";
+    const cycleLabel = isEliteSelected
+      ? input.billingCycle === "ANNUAL"
+        ? "Anual Elite (R$ 49,90/mês)"
+        : "Mensal Elite (R$ 64,90/mês)"
+      : input.billingCycle === "ANNUAL"
+      ? "Anual Pro (R$ 29,90/mês)"
+      : "Mensal Pro (R$ 39,90/mês)";
+
+    const leadMessage = `[INTERESSE EM ASSINATURA] Plano: ${input.plan} (${assignedTier}) | Ciclo: ${cycleLabel} | Contato: ${
       input.phoneOrWhatsapp || "Não informado"
     } | Observações: ${input.notes || "Sem notas"}`;
 
@@ -170,19 +201,23 @@ export async function submitSubscriptionLeadAction(input: {
       },
     });
 
-    // Concede ativação imediata do Premium como cortesia de lançamento / early-adopter trial
+    // Concede ativação imediata do plano escolhido (PREMIUM ou ELITE)
     await prisma.user.update({
       where: { id: userId },
-      data: { planTier: "PREMIUM" },
+      data: { planTier: assignedTier },
     });
 
     revalidatePath("/pricing");
     revalidatePath("/profile");
     revalidatePath("/dashboard");
+    revalidatePath("/trilhas");
 
     return {
       success: true,
-      message: "🎉 Parabéns! Seu Acesso VIP Synapse Pro foi ativado com sucesso. Aproveite a IA ilimitada!",
+      newPlanTier: assignedTier,
+      message: isEliteSelected
+        ? "👑 Parabéns! Seu Acesso VIP Synapse Elite (120 Sinapses/dia + Trilhas Profundas & Áudio-Aulas) foi ativado!"
+        : "🎉 Parabéns! Seu Acesso VIP Synapse Pro (60 Sinapses/dia) foi ativado com sucesso!",
       activatedTrial: true,
     };
   } catch (err) {
