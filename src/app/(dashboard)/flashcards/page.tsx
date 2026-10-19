@@ -406,7 +406,7 @@ export default async function FlashcardsPage() {
                               {subjectName}
                             </span>
                             <span className="text-[10px] font-semibold text-slate-400">
-                              {count} {count === 1 ? "card" : "cards"}
+                              {count} {count === 1 ? "cartão" : "cartões"}
                             </span>
                           </div>
 
@@ -422,7 +422,7 @@ export default async function FlashcardsPage() {
                             Pronto para revisar
                           </span>
                           <span className="text-[9px] text-slate-500">
-                            SM-2 Ativo
+                            Revisão Automática
                           </span>
                         </div>
 

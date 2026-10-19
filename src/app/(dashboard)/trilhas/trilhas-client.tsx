@@ -1032,7 +1032,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
         [activeLesson.id]: res.count || 3,
       }));
       showToast(
-        `🎴 ${res.count} Flashcards adicionados ao baralho "${res.deckTitle}" no módulo FSRS!`,
+        `🎴 ${res.count} Cartões adicionados ao baralho "${res.deckTitle}" nos seus Cartões de Memória!`,
       );
     }
   }
@@ -1306,15 +1306,31 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 self-end sm:self-auto">
-                <div className="text-right">
-                  <span className="text-[11px] text-slate-400 block">Seu Progresso</span>
-                  <span className="text-sm font-black text-emerald-400 font-mono">
-                    {overallProgressPct}% concluído
-                  </span>
-                </div>
-                <div className="w-10 h-10 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 flex items-center justify-center font-mono text-[11px] font-black text-white">
-                  {overallProgressPct}%
+              <div className="flex flex-wrap items-center gap-3 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextTheory =
+                      theoryLessonsOfSelectedWeek.find((l) => !l.isCompleted) ||
+                      theoryLessonsOfSelectedWeek[0];
+                    openTheoryModalForLesson(nextTheory?.id);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-indigo-600/25 cursor-pointer transition-all active:scale-95"
+                >
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>Continuar Minha Próxima Aula</span>
+                </button>
+
+                <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">
+                  <div className="text-right">
+                    <span className="text-[11px] text-slate-400 block">Seu Progresso</span>
+                    <span className="text-sm font-black text-emerald-400 font-mono">
+                      {overallProgressPct}% concluído
+                    </span>
+                  </div>
+                  <div className="w-10 h-10 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 flex items-center justify-center font-mono text-[11px] font-black text-white">
+                    {overallProgressPct}%
+                  </div>
                 </div>
               </div>
             </div>
@@ -2344,7 +2360,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
               </div>
             </div>
 
-            {/* Rodapé do Modal (Sincronização com Flashcards FSRS e Conclusão da Aula) */}
+            {/* Rodapé do Modal (Sincronização com Cartões de Memória e Conclusão da Aula) */}
             <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
               <button
                 onClick={handleCreateFlashcardsFromLesson}
@@ -2358,8 +2374,8 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                 <Layers className="w-3.5 h-3.5 text-indigo-400" />
                 <span>
                   {flashcardsCreatedMap[activeLesson.id]
-                    ? `✓ ${flashcardsCreatedMap[activeLesson.id]} Flashcards Adicionados ao seu Deck FSRS!`
-                    : "+ Transformar Aula em Flashcards"}
+                    ? `✓ ${flashcardsCreatedMap[activeLesson.id]} Cartões Salvos para Revisão!`
+                    : "🎴 Criar Cartões de Memória desta Aula"}
                 </span>
               </button>
 
