@@ -487,6 +487,16 @@ function PlannerContent() {
                     </button>
 
                     <Link
+                      href="/trilhas"
+                      role="menuitem"
+                      onClick={() => setIsActionsOpen(false)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors text-left cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >
+                      <BookOpen size={14} className="text-indigo-400" />
+                      <span>Abrir Trilha & Teorias</span>
+                    </Link>
+
+                    <Link
                       href="/week"
                       role="menuitem"
                       onClick={() => setIsActionsOpen(false)}
@@ -499,6 +509,14 @@ function PlannerContent() {
                 )}
               </div>
             )}
+
+            <Link
+              href="/trilhas"
+              className="flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0"
+            >
+              <BookOpen size={14} />
+              <span>Trilha & Teoria</span>
+            </Link>
 
             <button
               type="button"

@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { MentorGuidance } from "@/types/quiz";
+import {
+  areTopicsSemanticallyEquivalent,
+  normalizeDifficultyTier,
+} from "@/lib/semantic-cache-engine";
 
 export type { MentorGuidance };
 
@@ -140,6 +144,8 @@ export function calculateBatchSizes(total: number, maxBatchSize = 5): number[] {
 async function fetchCachedQuestionsForSimulado(params: {
   banca: string;
   materia: string;
+  topicoNome?: string | null;
+  specificTopic?: string | null;
   targetTopicUuid?: string | null;
   dificuldade?: string;
   isCebraspeStyle: boolean;
@@ -149,7 +155,8 @@ async function fetchCachedQuestionsForSimulado(params: {
   const {
     banca,
     materia,
-    targetTopicUuid,
+    topicoNome,
+    specificTopic,
     dificuldade,
     isCebraspeStyle,
     maxToReuse,
@@ -160,6 +167,8 @@ async function fetchCachedQuestionsForSimulado(params: {
 
   try {
     const seenQuestionTexts = new Set<string>();
+    const targetDifficultyTier = normalizeDifficultyTier(dificuldade);
+    const targetTopicLabel = specificTopic?.trim() || topicoNome?.trim() || "";
 
     if (userId) {
       const userQuizzes = await prisma.quiz.findMany({
@@ -180,15 +189,15 @@ async function fetchCachedQuestionsForSimulado(params: {
       }
     }
 
+    // Busca quizzes de QUALQUER usuário para filtrar por Similaridade Semântica + Nível de Dificuldade Estrito
     const candidateQuizzes = await prisma.quiz.findMany({
       where: {
         banca: { equals: banca, mode: "insensitive" },
-        ...(dificuldade ? { difficulty: { equals: dificuldade, mode: "insensitive" } } : {}),
-        subject: { contains: materia, mode: "insensitive" },
-        ...(targetTopicUuid ? { topicId: targetTopicUuid } : {}),
       },
-      select: { questions: true },
-      take: 25,
+      include: {
+        topic: { select: { title: true } },
+      },
+      take: 80,
       orderBy: { createdAt: "desc" },
     });
 
@@ -196,6 +205,25 @@ async function fetchCachedQuestionsForSimulado(params: {
 
     for (const cq of candidateQuizzes) {
       if (!Array.isArray(cq.questions)) continue;
+
+      // 1. Filtro Estrito por Nível de Dificuldade (se o aluno subiu para HARD/Difícil, nunca reaproveita Fácil/Médio!)
+      const candidateDiffTier = normalizeDifficultyTier((cq as any).difficulty);
+      if (dificuldade && candidateDiffTier !== targetDifficultyTier) {
+        continue;
+      }
+
+      // 2. Filtro Semântico Canônico entre Matérias e Tópicos de usuários diferentes
+      const candidateSubject = (cq as any).subject || "";
+      const candidateTopic = (cq as any).topic?.title || "";
+      const semanticCheck = areTopicsSemanticallyEquivalent(
+        materia,
+        targetTopicLabel,
+        candidateSubject,
+        candidateTopic,
+        targetTopicLabel ? 0.55 : 0.45,
+      );
+
+      if (!semanticCheck.isMatch) continue;
 
       for (const rawQ of cq.questions as unknown as QuestaoGerada[]) {
         if (
@@ -602,8 +630,7 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
   const isEligibleForCache =
     !params.adaptiveMode &&
     !params.textoBase &&
-    fonteConteudo !== "texto" &&
-    !specificTopic?.trim();
+    fonteConteudo !== "texto";
 
   let cachedQuestions: QuestaoGerada[] = [];
   if (isEligibleForCache) {
@@ -616,6 +643,8 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
       cachedQuestions = await fetchCachedQuestionsForSimulado({
         banca,
         materia,
+        topicoNome,
+        specificTopic,
         targetTopicUuid,
         dificuldade,
         isCebraspeStyle,

@@ -46,6 +46,7 @@ export function StarterEditalSelector({
 
   // Personalização com IA
   const [customRoleInput, setCustomRoleInput] = useState<string>("");
+  const [customDifficulty, setCustomDifficulty] = useState<"EASY" | "MEDIUM" | "HARD">("MEDIUM");
   const [isGeneratingCustom, setIsGeneratingCustom] = useState<boolean>(false);
 
   const handleSelectTemplate = async (templateId: string) => {
@@ -98,7 +99,10 @@ export function StarterEditalSelector({
     setErrorMessage(null);
 
     try {
-      const res = await generateCustomEditalAction(trimmed, { replaceExisting });
+      const res = await generateCustomEditalAction(trimmed, {
+        replaceExisting,
+        difficultyLevel: customDifficulty,
+      });
 
       if (res.success && res.data) {
         confetti({
@@ -108,7 +112,13 @@ export function StarterEditalSelector({
         });
 
         setSuccessMessage(
-          `Plano de estudos para "${res.data.targetRole}" gerado com IA! (${res.data.subjectsCount} disciplinas e ${res.data.topicsCount} tópicos criados)`
+          `Plano de estudos para "${res.data.targetRole}" (${
+            customDifficulty === "HARD"
+              ? "🔥 Verticalizado Hardcore"
+              : customDifficulty === "EASY"
+              ? "🌱 Essencial"
+              : "⚖️ Padrão"
+          }) carregado${res.data.reusedFromSemanticCache ? " ⚡ da Base Inteligente" : " com IA"}! (${res.data.subjectsCount} disciplinas e ${res.data.topicsCount} tópicos)`
         );
         setCustomRoleInput("");
 
@@ -186,32 +196,68 @@ export function StarterEditalSelector({
 
         <form
           onSubmit={handleGenerateCustom}
-          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full pt-0.5"
+          className="space-y-2.5 w-full pt-0.5"
         >
-          <input
-            type="text"
-            value={customRoleInput}
-            onChange={(e) => setCustomRoleInput(e.target.value)}
-            placeholder="Ex: Analista de TI - Caixa, Perito Criminal, SEFAZ..."
-            className="flex-1 min-w-0 bg-slate-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={isGeneratingCustom || !customRoleInput.trim()}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-          >
-            {isGeneratingCustom ? (
-              <>
-                <Loader2 size={13} className="animate-spin" />
-                <span>Gerando com IA...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles size={13} />
-                <span>Gerar com IA</span>
-              </>
-            )}
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+            <input
+              type="text"
+              value={customRoleInput}
+              onChange={(e) => setCustomRoleInput(e.target.value)}
+              placeholder="Ex: Analista de TI - Caixa, Perito Criminal, SEFAZ..."
+              className="flex-1 min-w-0 bg-slate-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={isGeneratingCustom || !customRoleInput.trim()}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              {isGeneratingCustom ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" />
+                  <span>Estruturando...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={13} />
+                  <span>Gerar / Reutilizar Edital</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Seletor de Profundidade / Dificuldade do Edital */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <span className="text-[11px] text-slate-300 font-medium">
+              Profundidade da Grade (se achar fácil, mude para Hardcore):
+            </span>
+            <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-950/90 border border-slate-800">
+              {(
+                [
+                  { id: "EASY", label: "🌱 Essencial" },
+                  { id: "MEDIUM", label: "⚖️ Padrão" },
+                  { id: "HARD", label: "🔥 Verticalizado Hardcore" },
+                ] as const
+              ).map((lvl) => {
+                const isSelected = customDifficulty === lvl.id;
+                return (
+                  <button
+                    key={lvl.id}
+                    type="button"
+                    onClick={() => setCustomDifficulty(lvl.id)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? lvl.id === "HARD"
+                          ? "bg-rose-600 text-white shadow-sm"
+                          : "bg-indigo-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {lvl.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </form>
       </div>
 

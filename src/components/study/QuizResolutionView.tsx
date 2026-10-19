@@ -157,6 +157,7 @@ export function QuizResolutionView({
   const [isZenMode, setIsZenMode] = useState(false);
   const [deepeningStep, setDeepeningStep] = useState(0);
   const [isShortcutsBarOpen, setIsShortcutsBarOpen] = useState(true);
+  const [questionFontSize, setQuestionFontSize] = useState<"normal" | "large" | "xlarge">("normal");
 
   // Atalho global ⌘J / Ctrl+J para alternar o Mentor IA
   useEffect(() => {
@@ -1045,16 +1046,37 @@ export function QuizResolutionView({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Botão Tamanho da Letra (Acessibilidade) */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQuestionFontSize((prev) =>
+                          prev === "normal" ? "large" : prev === "large" ? "xlarge" : "normal"
+                        )
+                      }
+                      className="px-2.5 py-1.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                      title="Aumentar ou diminuir o tamanho da letra da questão"
+                    >
+                      <span>🔤 Letra:</span>
+                      <span className="text-violet-300">
+                        {questionFontSize === "normal"
+                          ? "Normal (A+)"
+                          : questionFontSize === "large"
+                          ? "Grande (A++)"
+                          : "Extra Grande"}
+                      </span>
+                    </button>
+
                     {/* Botão Copilot Mentor IA */}
                     <button
                       onClick={() => setIsMentorOpen((prev) => !prev)}
                       type="button"
                       className="px-3 py-1.5 rounded-xl border border-violet-500/40 bg-violet-500/15 text-violet-300 hover:bg-violet-500/25 hover:border-violet-500/60 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-md shadow-violet-950/40"
-                      title="Abrir Mentor IA Copilot (Atalho: M ou ⌘J)"
+                      title="Pedir ajuda ao Professor IA sobre esta questão (Atalho: M)"
                     >
                       <Brain size={14} className="text-violet-400" />
-                      <span>Mentor IA</span>
+                      <span>Explicar com IA</span>
                       <span className="text-[9px] font-mono font-bold text-violet-300 bg-violet-500/30 px-1.5 py-0.5 rounded border border-violet-500/40 hidden sm:inline">
                         M
                       </span>
@@ -1092,11 +1114,11 @@ export function QuizResolutionView({
                             ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
                             : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
                         }`}
-                        title="Criar Flashcard desta questão (Atalho: F)"
+                        title="Salvar um Cartão de Memória desta questão (Atalho: F)"
                       >
                         <Layers size={14} className={createdFlashcards[activeQuestionIndex] ? "text-emerald-400" : "text-violet-400"} />
                         <span className="hidden sm:inline">
-                          {createdFlashcards[activeQuestionIndex] ? "Card Salvo" : "Flashcard"}
+                          {createdFlashcards[activeQuestionIndex] ? "Cartão Salvo" : "Criar Cartão"}
                         </span>
                         <span className="text-[9px] font-mono font-bold text-slate-300 bg-white/10 px-1.5 py-0.5 rounded border border-white/10 hidden sm:inline">
                           F
@@ -1106,8 +1128,16 @@ export function QuizResolutionView({
                   </div>
                 </div>
 
-                {/* ENUNCIADO NÍTIDO COM TIPOGRAFIA AMPLA */}
-                <div className="text-slate-100 text-base sm:text-lg leading-relaxed font-normal mb-8 relative z-10 whitespace-pre-line select-text">
+                {/* ENUNCIADO NÍTIDO COM TIPOGRAFIA AMPLA E CONTROLE DE FONTE */}
+                <div
+                  className={`text-slate-100 leading-relaxed font-normal mb-8 relative z-10 whitespace-pre-line select-text transition-all ${
+                    questionFontSize === "xlarge"
+                      ? "text-xl sm:text-2xl leading-loose"
+                      : questionFontSize === "large"
+                      ? "text-lg sm:text-xl leading-relaxed"
+                      : "text-base sm:text-lg leading-relaxed"
+                  }`}
+                >
                   {renderEnunciado(currentQuestion.enunciado)}
                 </div>
 
@@ -1153,7 +1183,13 @@ export function QuizResolutionView({
                                 !isEliminated && handleSelectAnswer(alt.id)
                               }
                               type="button"
-                              className={`w-full text-left p-4 sm:p-5 rounded-2xl border text-sm sm:text-base font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] ${altStyle}`}
+                              className={`w-full text-left p-4 sm:p-5 rounded-2xl border font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] ${
+                                questionFontSize === "xlarge"
+                                  ? "text-lg sm:text-xl"
+                                  : questionFontSize === "large"
+                                  ? "text-base sm:text-lg"
+                                  : "text-sm sm:text-base"
+                              } ${altStyle}`}
                             >
                               <div className="flex items-start gap-3.5 pr-3">
                                 {/* Badge circular A, B, C... */}
@@ -1255,7 +1291,13 @@ export function QuizResolutionView({
                             disabled={isCurrentAnswered}
                             onClick={() => handleSelectAnswer(opcao)}
                             type="button"
-                            className={`w-full text-left p-4 sm:p-5 rounded-2xl border text-sm sm:text-base font-semibold transition-all flex items-center justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] group ${ceStyle}`}
+                            className={`w-full text-left p-4 sm:p-5 rounded-2xl border font-semibold transition-all flex items-center justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] group ${
+                              questionFontSize === "xlarge"
+                                ? "text-lg sm:text-xl"
+                                : questionFontSize === "large"
+                                ? "text-base sm:text-lg"
+                                : "text-sm sm:text-base"
+                            } ${ceStyle}`}
                           >
                             <div className="flex items-center gap-3.5">
                               <span

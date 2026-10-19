@@ -47,6 +47,7 @@ export default async function DashboardLayout({
 
   const isPro =
     dbUser?.planTier === "PREMIUM" ||
+    dbUser?.planTier === "ELITE" ||
     isAdmin;
 
   return (

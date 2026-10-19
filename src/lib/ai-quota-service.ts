@@ -9,8 +9,8 @@ import type {
 
 export type { AiFeatureType, QuotaCheckResult, UserQuotaStatus };
 
-import { isUserPro } from "@/lib/subscription";
-export { isUserPro };
+import { isUserPro, isUserElite } from "@/lib/subscription";
+export { isUserPro, isUserElite };
 
 // Limites diários para usuários no plano gratuito (Freemium estratégico de alta conversão)
 export const AI_QUOTA_LIMITS: Record<
@@ -44,14 +44,33 @@ export const PRO_FAIR_USE_LIMITS: Record<
   OCR_QUESTION: { label: "Scanner OCR de Questões", dailyLimit: 10 },
 };
 
-// Limites adicionais Pro
+// Limites diários de Uso Justo para assinantes do plano Synapse Elite 👑 (120 Sinapses/dia + Prioridade Máxima)
+export const ELITE_FAIR_USE_LIMITS: Record<
+  AiFeatureType,
+  { label: string; dailyLimit: number; isWeekly?: boolean; isUnlimited?: boolean }
+> = {
+  SIMULADO: { label: "Simulados com IA", dailyLimit: 15 },
+  ESSAY: { label: "Correções de Redação", dailyLimit: 6 },
+  FLASHCARD: { label: "Baralhos de Flashcards", dailyLimit: 9999, isUnlimited: true },
+  MINDMAP: { label: "Mapas Mentais", dailyLimit: 15 },
+  REMEDIATION: { label: "Remediação e Mnemônicos", dailyLimit: 60 },
+  EDITAL: { label: "Personalização de Edital", dailyLimit: 9999, isUnlimited: true },
+  OCR_ESSAY: { label: "OCR de Foto Manuscrita", dailyLimit: 5 },
+  OCR_QUESTION: { label: "Scanner OCR de Questões", dailyLimit: 25 },
+};
+
+// Limites adicionais Pro / Elite
 export const PRO_AUDIO_MINUTES_DAILY = 120; // Flashcards em Áudio Neural Hands-Free (até 2h diárias)
+export const ELITE_AUDIO_MINUTES_DAILY = 360; // Áudio-Aulas & Flashcards Hands-Free no Elite (até 6h diárias)
 
 // Teto global diário para somatório de todas as requisições de IA no plano gratuito (10 Sinapses)
 export const GLOBAL_DAILY_AI_LIMIT = 10;
 
 // Teto global diário para somatório de requisições de IA no plano Pro (Fair Use)
 export const GLOBAL_DAILY_PRO_AI_LIMIT = 60;
+
+// Teto global diário para somatório de requisições de IA no plano Synapse Elite 👑 (120 Sinapses/dia)
+export const GLOBAL_DAILY_ELITE_AI_LIMIT = 120;
 
 // Trava anti-loop e anti-bot por minuto por usuário
 export const MAX_REQUESTS_PER_MINUTE_PER_USER = 10;
@@ -159,13 +178,14 @@ export async function checkAiQuota(
     }
 
     // 1. Checagem de Rate Limit por minuto (proteção anti-loop e anti-bot)
+    const isPaidTier = user?.planTier === "PREMIUM" || user?.planTier === "ELITE";
     if (!checkRateLimitPerMinute(userId)) {
       return {
         allowed: false,
         remaining: 0,
         limit: MAX_REQUESTS_PER_MINUTE_PER_USER,
         used: MAX_REQUESTS_PER_MINUTE_PER_USER,
-        isUnlimited: user?.planTier === "PREMIUM",
+        isUnlimited: isPaidTier,
         resetsAt: "em 1 minuto",
         message:
           "Muitas requisições em sequência. Aguarde alguns segundos antes de solicitar uma nova geração de IA.",
@@ -173,13 +193,17 @@ export async function checkAiQuota(
       };
     }
 
-    // 2. Assinantes Pro: Política de Uso Justo (Fair Use)
-    const isPro = user?.planTier === "PREMIUM";
-    if (isPro) {
+    // 2. Assinantes Pro (PREMIUM) ou Synapse Elite (ELITE): Política de Uso Justo
+    if (isPaidTier) {
+      const isElite = user?.planTier === "ELITE";
       const today = getTodayKey();
-      const proFeatureConfig = PRO_FAIR_USE_LIMITS[feature] || {
+      const activeLimitsTable = isElite ? ELITE_FAIR_USE_LIMITS : PRO_FAIR_USE_LIMITS;
+      const globalDailyCap = isElite ? GLOBAL_DAILY_ELITE_AI_LIMIT : GLOBAL_DAILY_PRO_AI_LIMIT;
+      const planLabel = isElite ? "Synapse Elite 👑" : "Synapse Pro";
+
+      const proFeatureConfig = activeLimitsTable[feature] || {
         label: feature,
-        dailyLimit: 30,
+        dailyLimit: isElite ? 60 : 30,
       };
 
       const [featureUsage, globalUsage] = await Promise.all([
@@ -208,22 +232,21 @@ export async function checkAiQuota(
       const usedFeature = featureUsage?.count ?? 0;
       const usedGlobal = globalUsage?.count ?? 0;
 
-      // Checa teto global do Pro (60 chamadas/dia)
-      if (usedGlobal >= GLOBAL_DAILY_PRO_AI_LIMIT) {
+      // Checa teto global do Pro (60/dia) ou Elite (120/dia)
+      if (usedGlobal >= globalDailyCap) {
         return {
           allowed: false,
           remaining: 0,
-          limit: GLOBAL_DAILY_PRO_AI_LIMIT,
+          limit: globalDailyCap,
           used: usedGlobal,
           isUnlimited: true,
           resetsAt: "à meia-noite",
-          message:
-            "Você atingiu a franquia diária de alto rendimento do Synapse Pro (60 requisições/dia). Seu limite de Uso Justo será renovado à meia-noite.",
+          message: `Você atingiu a franquia diária de alto rendimento do ${planLabel} (${globalDailyCap} requisições/dia). Seu limite será renovado à meia-noite.`,
           canWatchRewardedAd: false,
         };
       }
 
-      // Checa teto da funcionalidade específica no Pro
+      // Checa teto da funcionalidade específica no Pro / Elite
       if (!proFeatureConfig.isUnlimited && usedFeature >= proFeatureConfig.dailyLimit) {
         return {
           allowed: false,
@@ -232,7 +255,7 @@ export async function checkAiQuota(
           used: usedFeature,
           isUnlimited: true,
           resetsAt: "à meia-noite",
-          message: `Você atingiu o limite diário de uso justo para ${proFeatureConfig.label} (${proFeatureConfig.dailyLimit}/dia). Seu limite será renovado à meia-noite.`,
+          message: `Você atingiu o limite diário de uso justo para ${proFeatureConfig.label} (${proFeatureConfig.dailyLimit}/dia no ${planLabel}). Seu limite será renovado à meia-noite.`,
           canWatchRewardedAd: false,
         };
       }
@@ -246,7 +269,7 @@ export async function checkAiQuota(
         limit: proFeatureConfig.dailyLimit,
         used: usedFeature,
         isUnlimited: true,
-        resetsAt: "Alta Capacidade (Uso Justo)",
+        resetsAt: isElite ? "Capacidade Máxima Elite (120/dia)" : "Alta Capacidade (Uso Justo)",
         canWatchRewardedAd: false,
       };
     }
@@ -543,7 +566,8 @@ export async function getUserQuotaStatus(
 
     defaultStatus.role = user.role;
     defaultStatus.planTier = user.planTier;
-    defaultStatus.isUnlimited = Boolean(isAdmin || user.planTier === "PREMIUM");
+    const isPaidTier = user.planTier === "PREMIUM" || user.planTier === "ELITE";
+    defaultStatus.isUnlimited = Boolean(isAdmin || isPaidTier);
 
     if (isAdmin) {
       defaultStatus.globalRemaining = 9999;
@@ -552,10 +576,13 @@ export async function getUserQuotaStatus(
       return defaultStatus;
     }
 
-    // Assinantes Pro: exibe status ilimitado com teto de uso justo nos bastidores
-    const isPro = user.planTier === "PREMIUM";
-    if (isPro) {
-      defaultStatus.globalLimit = GLOBAL_DAILY_PRO_AI_LIMIT;
+    // Assinantes Pro (60/dia) ou Elite (120/dia): exibe status ilimitado com teto de uso justo nos bastidores
+    if (isPaidTier) {
+      const isElite = user.planTier === "ELITE";
+      const globalDailyCap = isElite ? GLOBAL_DAILY_ELITE_AI_LIMIT : GLOBAL_DAILY_PRO_AI_LIMIT;
+      const activeLimitsTable = isElite ? ELITE_FAIR_USE_LIMITS : PRO_FAIR_USE_LIMITS;
+
+      defaultStatus.globalLimit = globalDailyCap;
       defaultStatus.canWatchRewardedAd = false;
 
       const today = getTodayKey();
@@ -573,14 +600,14 @@ export async function getUserQuotaStatus(
 
       const globalUsed = usageMap.get("ALL") ?? 0;
       defaultStatus.globalUsed = globalUsed;
-      defaultStatus.globalRemaining = Math.max(0, GLOBAL_DAILY_PRO_AI_LIMIT - globalUsed);
+      defaultStatus.globalRemaining = Math.max(0, globalDailyCap - globalUsed);
 
-      (Object.keys(PRO_FAIR_USE_LIMITS) as AiFeatureType[]).forEach((feature) => {
+      (Object.keys(activeLimitsTable) as AiFeatureType[]).forEach((feature) => {
         const used = usageMap.get(feature) ?? 0;
-        const limit = PRO_FAIR_USE_LIMITS[feature].dailyLimit;
+        const limit = activeLimitsTable[feature].dailyLimit;
 
         defaultStatus.features[feature] = {
-          label: PRO_FAIR_USE_LIMITS[feature].label,
+          label: activeLimitsTable[feature].label,
           used,
           limit,
           remaining: Math.max(0, limit - used),

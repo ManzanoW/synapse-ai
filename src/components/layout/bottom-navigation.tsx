@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { LayoutDashboard, BookOpen, FileStack, Layers, Menu } from "lucide-react";
+import { LayoutDashboard, Compass, FileStack, Layers, Menu } from "lucide-react";
 import { useSidebar } from "@/lib/sidebar-context";
 
 export function BottomNavigation() {
@@ -25,9 +25,9 @@ export function BottomNavigation() {
 
   const navItems = [
     { href: "/dashboard", label: "Início", icon: LayoutDashboard },
-    { href: "/questions", label: "Simulados", icon: FileStack },
-    { href: "/flashcards", label: "Cards", icon: Layers },
-    { href: "/edital", label: "Edital", icon: BookOpen },
+    { href: "/trilhas", label: "Aulas", icon: Compass },
+    { href: "/questions", label: "Questões", icon: FileStack },
+    { href: "/flashcards", label: "Cartões", icon: Layers },
   ];
 
   return (
@@ -79,7 +79,7 @@ export function BottomNavigation() {
               ? "text-indigo-600 dark:text-indigo-300 font-semibold"
               : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
           }`}
-          aria-label="Abrir menu de navegação"
+          aria-label="Abrir mais opções do menu"
         >
           {isOpen && (
             <div className="absolute top-0 w-8 h-0.75 bg-linear-to-r from-indigo-500 via-violet-400 to-indigo-500 rounded-full shadow-[0_0_10px_rgba(129,140,248,0.9)]" />
@@ -98,7 +98,7 @@ export function BottomNavigation() {
               isOpen ? "font-bold text-indigo-700 dark:text-white" : ""
             }`}
           >
-            Menu
+            Mais
           </span>
         </button>
       </nav>

@@ -101,4 +101,22 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: "MASTERY",
     targetValue: 10,
   },
+  {
+    id: "trail_pioneer",
+    title: "Desbravador de Trilhas",
+    description: "Conclua 100% das metas de uma Semana na sua Trilha Guiada.",
+    icon: "🧭",
+    xpReward: 200,
+    category: "MASTERY",
+    targetValue: 1,
+  },
+  {
+    id: "theory_master",
+    title: "Mestre da Teoria",
+    description: "Estude e conclua 10 aulas teóricas profundas na Trilha.",
+    icon: "📚",
+    xpReward: 400,
+    category: "MASTERY",
+    targetValue: 10,
+  },
 ];

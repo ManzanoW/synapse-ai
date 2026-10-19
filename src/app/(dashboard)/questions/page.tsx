@@ -1697,10 +1697,10 @@ export default function QuestoesPage() {
                 type="button"
                 onClick={() => setIsScannerModalOpen(true)}
                 className="w-full sm:w-auto justify-center bg-cyan-500/15 border border-cyan-500/40 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-cyan-500/10 active:scale-95"
-                title="Fotografe ou envie uma imagem de questão para resolver com IA"
+                title="Envie uma foto de qualquer questão de prova para a IA resolver passo a passo"
               >
                 <Camera size={15} className="text-cyan-400" />
-                <span>Scanner OCR 📸</span>
+                <span>Ler Questão por Foto 📸</span>
               </button>
 
               <button
@@ -1714,10 +1714,10 @@ export default function QuestoesPage() {
                   }
                 }}
                 className="w-full sm:w-auto justify-center bg-amber-500/15 border border-amber-500/40 hover:bg-amber-500/25 text-amber-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-amber-500/10 active:scale-95"
-                title="Desafio de 5 questões com 45s por questão e combo de XP"
+                title="Treino rápido de 5 questões"
               >
                 <Zap size={15} className="text-amber-400 fill-amber-400" />
-                <span>Desafio Relâmpago ⚡</span>
+                <span>Treino Rápido (5 Questões) ⚡</span>
               </button>
 
               <button
@@ -1730,7 +1730,7 @@ export default function QuestoesPage() {
                 className="w-full sm:w-auto justify-center bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-violet-600/10 active:scale-95 hover:shadow-violet-600/20"
               >
                 <Timer size={15} className="text-violet-400" />
-                <span>Modo Cronometrado</span>
+                <span>Simulado com Tempo</span>
               </button>
             </div>
           </div>
@@ -1750,7 +1750,7 @@ export default function QuestoesPage() {
                 }`}
               >
                 <Home size={14} />
-                <span>Início / Gerador</span>
+                <span>Praticar Questões</span>
               </button>
               <button
                 onClick={() => handleTabChange("history")}
@@ -1762,7 +1762,7 @@ export default function QuestoesPage() {
                 }`}
               >
                 <History size={14} />
-                <span>Simulados Salvos</span>
+                <span>Provas Anteriores Salvas</span>
                 {quizHistory.length > 0 && (
                   <span className="px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-mono font-bold border border-violet-500/30">
                     {quizHistory.length}
@@ -1777,10 +1777,10 @@ export default function QuestoesPage() {
                     ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-white/5"
                 }`}
-                title="Ativar/desativar estudo sem consumo de IA"
+                title="Resolver questões já salvas sem gastar créditos de IA"
               >
                 <Layers size={14} className={isOfflineMode ? "text-emerald-400" : "text-zinc-500"} />
-                <span>Modo Acervo (Zero Cota)</span>
+                <span>Questões Salvas (Grátis)</span>
                 {isOfflineMode && (
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                 )}
@@ -1793,8 +1793,8 @@ export default function QuestoesPage() {
               className="py-2 px-3.5 sm:px-4 font-semibold text-xs tracking-wide rounded-xl flex items-center gap-2 cursor-pointer shrink-0 transition-all duration-200 text-rose-300/90 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/30 group ml-auto"
             >
               <BookOpenCheck size={14} className="text-rose-400 group-hover:scale-110 transition-transform" />
-              <span className="hidden sm:inline">Caderno de Erros Inteligente</span>
-              <span className="sm:hidden">Caderno de Erros</span>
+              <span className="hidden sm:inline">Rever Questões que Errei</span>
+              <span className="sm:hidden">Meus Erros</span>
               {errorNotebookMetrics.pendingErrors > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold border border-rose-500/30">
                   {errorNotebookMetrics.pendingErrors}
@@ -1819,14 +1819,14 @@ export default function QuestoesPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-emerald-300 text-xs">
-                    Modo Acervo Offline Ativo • Zero Consumo de IA (0⚡)
+                    Modo Questões Salvas Ativo • Sem Gastar IA
                   </span>
                   <span className="px-1.5 py-0.2 rounded-md bg-emerald-500/20 text-emerald-300 font-mono text-[9px] font-bold border border-emerald-500/30">
                     100% LIVRE
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                  Estudo contínuo sem gastar Energia Sináptica. Pratique simulados do seu histórico ou resolva questões cacheadas com gabarito imediato.
+                  Pratique questões que você já gerou antes, com gabarito comentado na hora e sem custo.
                 </p>
               </div>
             </div>
@@ -1838,7 +1838,7 @@ export default function QuestoesPage() {
                 className="py-2 px-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/25 transition-all cursor-pointer"
               >
                 <Zap size={13} className="fill-slate-950 text-slate-950" />
-                <span>Praticar Acervo Salvo</span>
+                <span>Começar 10 Questões Salvas</span>
               </button>
               <button
                 type="button"
@@ -1934,25 +1934,47 @@ export default function QuestoesPage() {
                         <div className="pointer-events-none absolute -top-16 -right-16 w-72 h-72 bg-violet-600/15 rounded-full blur-3xl" />
 
                         <div className="relative z-10 space-y-5">
-                          {/* Badge futurista */}
+                          {/* Badge amigável */}
                           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-800 dark:bg-violet-500/10 dark:border-violet-500/30 dark:text-violet-300 backdrop-blur-md shadow-xs">
                             <Sparkles
                               size={12}
                               className="text-violet-600 dark:text-violet-400 animate-pulse"
                             />
                             <span className="text-[10px] font-mono font-bold tracking-widest text-violet-700 dark:text-violet-300 uppercase">
-                              CENTRAL DE TREINO INTELIGENTE • QUESTÕES ADAPTATIVAS
+                              PRÁTICA RÁPIDA • GABARITO COMENTADO NA HORA
                             </span>
                           </div>
 
-                          {/* Título & Descrição */}
-                          <div className="space-y-2 max-w-2xl">
-                            <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900 dark:text-transparent dark:bg-gradient-to-r dark:from-white dark:via-zinc-200 dark:to-zinc-400 dark:bg-clip-text leading-tight">
-                              Pratique com foco na sua aprovação
-                            </h2>
-                            <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 leading-relaxed max-w-xl">
-                              Simulados cronometrados, filtros por banca e regeneração cirúrgica dos seus pontos fracos potencializados por Inteligência Artificial.
-                            </p>
+                          {/* Título, Descrição & Botão Principal de 1 Clique */}
+                          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div className="space-y-1.5 max-w-xl">
+                              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900 dark:text-transparent dark:bg-gradient-to-r dark:from-white dark:via-zinc-200 dark:to-zinc-400 dark:bg-clip-text leading-tight">
+                                Vamos treinar questões agora?
+                              </h2>
+                              <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 leading-relaxed">
+                                Clique no botão ao lado para começar 10 questões recomendadas para o seu concurso, ou escolha uma matéria específica.
+                              </p>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleQuickQuiz({ qtd: 10 })}
+                                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-violet-600/30 transition-all active:scale-95 cursor-pointer"
+                              >
+                                <Play size={16} className="fill-white" />
+                                <span>▶️ Começar Treino de Hoje (10 Questões)</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setIsAIModalOpen(true)}
+                                className="inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200 dark:border-white/15 text-slate-800 dark:text-white font-bold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer"
+                              >
+                                <Sparkles size={15} className="text-violet-500 dark:text-violet-400" />
+                                <span>Escolher Matéria ou Banca</span>
+                              </button>
+                            </div>
                           </div>
 
                           {/* 4 Métricas Integradas no Cockpit */}

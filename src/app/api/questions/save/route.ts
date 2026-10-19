@@ -365,6 +365,52 @@ export async function POST(request: Request) {
       }
     }
 
+    // 9. 🧠🔥 Auto-Level Up (Dificuldade Adaptativa Automática entre Simulados e Trilhas)
+    const sessionAccuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+    let autoLevelUp: {
+      triggered: boolean;
+      direction: "UP" | "DOWN";
+      newDifficulty: "HARD" | "EASY";
+      subjectName: string;
+      accuracy: number;
+      message: string;
+    } | null = null;
+
+    if (totalCount >= 3 && sessionAccuracy >= 85) {
+      const targetSubName = subjectRecord ? subjectRecord.name : subject;
+      if (subjectRecord) {
+        await prisma.trailLesson
+          .updateMany({
+            where: {
+              subjectId: subjectRecord.id,
+              isCompleted: false,
+              level: { not: "ADVANCED" },
+            },
+            data: { level: "ADVANCED" },
+          })
+          .catch(() => null);
+      }
+
+      autoLevelUp = {
+        triggered: true,
+        direction: "UP",
+        newDifficulty: "HARD",
+        subjectName: targetSubName,
+        accuracy: sessionAccuracy,
+        message: `🎯 Auto-Level Up! Você acertou ${sessionAccuracy}% em ${targetSubName}! Subimos automaticamente suas próximas aulas e recomendações deste tema para o nível 🔥 Hardcore!`,
+      };
+    } else if (totalCount >= 3 && sessionAccuracy <= 40) {
+      const targetSubName = subjectRecord ? subjectRecord.name : subject;
+      autoLevelUp = {
+        triggered: true,
+        direction: "DOWN",
+        newDifficulty: "EASY",
+        subjectName: targetSubName,
+        accuracy: sessionAccuracy,
+        message: `🌱 Dica Adaptativa (${sessionAccuracy}% de acerto): Recomendamos revisar a aula de ${targetSubName} no 🌱 Nível Base para consolidar os fundamentos!`,
+      };
+    }
+
     return NextResponse.json(
       {
         success: true,
@@ -378,6 +424,7 @@ export async function POST(request: Request) {
         isPerfectScore,
         rebalanced: isRebalanced,
         rebalancedSubject: subjectRecord ? subjectRecord.name : subject,
+        autoLevelUp,
       },
       { status: 200 },
     );

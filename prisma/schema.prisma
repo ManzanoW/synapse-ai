@@ -42,6 +42,8 @@ model User {
   essays            EssaySubmission[]
   aiDailyUsages     AiDailyUsage[]
   feedbacks         UserFeedback[]
+  studyTrails       StudyTrail[]
+  externalCourses   ExternalCourse[]
 
   // 🏆 Gamificação
   userStats     UserStats?
@@ -124,7 +126,9 @@ model Subject {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   topics    Topic[]
   decks     Deck[]
-  questionErrors QuestionError[]
+  questionErrors  QuestionError[]
+  trailLessons    TrailLesson[]
+  externalCourses ExternalCourse[]
 }
 
 model Topic {
@@ -134,12 +138,14 @@ model Topic {
   subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   // 🔗 Relações diretas com baralhos e revisões
-  decks           Deck[]
-  flashcards      Flashcard[]
-  questions       Quiz[]
-  reviewHistories ReviewHistory[]
-  quizAttempts    QuizAttempt[]
-  questionErrors  QuestionError[]
+  decks               Deck[]
+  flashcards          Flashcard[]
+  questions           Quiz[]
+  reviewHistories     ReviewHistory[]
+  quizAttempts        QuizAttempt[]
+  questionErrors      QuestionError[]
+  trailLessons        TrailLesson[]
+  externalCourseItems ExternalCourseItem[]
 
   // Estado do Estudo
   firstStudy  String    @default("Pendente") // "Pendente", "Em Estudo", "Concluido"
@@ -397,3 +403,95 @@ model UserFeedback {
   @@index([userId, createdAt])
   @@index([type, status])
 }
+
+// 🧭 Modelo de Trilha Guiada & Personalizada por Edital/Banca
+model StudyTrail {
+  id                 String   @id @default(cuid())
+  userId             String
+  title              String   // Ex: "Prefeitura Municipal de Santos • Analista de TI"
+  banca              String   @default("GERAL") // Ex: "IBAM", "CEBRASPE", "FGV", "VUNESP", etc.
+  customInstructions String?  @db.Text
+  studyDays          Json?    // Ex: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+  dailyHours         Float    @default(2.0)
+  weekendHours       Float    @default(4.0)
+  currentWeek        Int      @default(1)
+  status             String   @default("ACTIVE") // "ACTIVE" | "PAUSED" | "COMPLETED"
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessons TrailLesson[]
+
+  @@index([userId, status])
+}
+
+// 📖 Unidade de Aula / Meta Sequencial dentro da Trilha (Sincronizada com Subject & Topic)
+model TrailLesson {
+  id               String    @id @default(cuid())
+  trailId          String
+  subjectId        String?
+  topicId          String?
+  weekNumber       Int       @default(1)
+  dayNumber        Int       @default(1) // 1 a 7 dentro da semana
+  orderIndex       Int       @default(1)
+  lessonType       String    @default("THEORY") // "THEORY" | "FLASHCARDS" | "SIMULADO"
+  title            String
+  subtitle         String?
+  estimatedMinutes Int       @default(25)
+  level            String    @default("INTERMEDIATE") // "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+  isCompleted      Boolean   @default(false)
+  completedAt      DateTime?
+
+  // Conteúdo Rico Pré-Gerado e Persistido (0 requisições extras na leitura/revisão)
+  theoryData       Json?     // { intro, sections, tableData, examTip, summaryPoints, fixationQuiz, faqItems, flashcardsSeed }
+  studentNotes     String?   @db.Text
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  trail   StudyTrail @relation(fields: [trailId], references: [id], onDelete: Cascade)
+  subject Subject?   @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  topic   Topic?     @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([trailId, weekNumber, orderIndex])
+  @@index([topicId])
+}
+
+// 📚 Rastreador de Cursos Externos / PDFs (Estratégia, Gran, Direção, etc.)
+model ExternalCourse {
+  id        String   @id @default(cuid())
+  userId    String
+  subjectId String?
+  title     String   // Ex: "Banco de Dados & SQL (Pacote TI)"
+  provider  String   @default("Curso Externo") // Ex: "Estratégia Concursos", "Gran Cursos"
+  category  String   @default("PDF + Vídeo")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject?             @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  items   ExternalCourseItem[]
+
+  @@index([userId])
+}
+
+model ExternalCourseItem {
+  id               String    @id @default(cuid())
+  courseId         String
+  topicId          String?
+  title            String    // Ex: "PDF 02 • Modelo Relacional, Álgebra e Cálculo Relacional"
+  itemType         String    @default("PDF") // "PDF" | "VIDEO" | "EXERCISES"
+  estimatedMinutes Int       @default(45)
+  orderIndex       Int       @default(1)
+  isCompleted      Boolean   @default(false)
+  completedAt      DateTime?
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  course ExternalCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topic  Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([courseId, orderIndex])
+}
+

@@ -51,6 +51,7 @@ import {
   Brain,
   UploadCloud,
   ChevronDown,
+  Compass,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -86,31 +87,37 @@ interface NavGroup {
 const NAV_GROUPS: NavGroup[] = [
   {
     id: "planejamento",
-    label: "Planejamento",
+    label: "Meu Estudo Diário",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Edital Verticalizado", href: "/edital", icon: FileSpreadsheet },
+      { label: "Início (Meu Dia)", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Trilhas & Aulas", href: "/trilhas", icon: Compass, badge: "GUIADO" },
+      { label: "Meu Edital", href: "/edital", icon: FileSpreadsheet },
       { label: "Cronograma Semanal", href: "/week", icon: Sparkles },
     ],
   },
   {
     id: "pratica",
-    label: "Prática com IA",
+    label: "Prática Essencial",
     items: [
       { label: "Simulados & Questões", href: "/questions", icon: FileStack },
+      { label: "Flashcards (Memória)", href: "/flashcards", icon: Layers },
+      {
+        label: "Caderno de Erros",
+        href: "/notebook",
+        icon: BookOpenCheck,
+      },
       {
         label: "Redação Oficial",
         href: "/redacao",
         icon: PenTool,
         badge: "IA",
       },
-      { label: "Flashcards FSRS", href: "/flashcards", icon: Layers },
-      {
-        label: "Caderno de Erros",
-        href: "/notebook",
-        icon: BookOpenCheck,
-        badge: "IA",
-      },
+    ],
+  },
+  {
+    id: "ferramentas",
+    label: "➕ Mais Ferramentas",
+    items: [
       {
         label: "Mapas Mentais",
         href: "/mapas-mentais",
@@ -124,64 +131,57 @@ const NAV_GROUPS: NavGroup[] = [
         badge: "IA",
       },
       {
-        label: "Prova Oral",
+        label: "Treino de Prova Oral",
         href: "/prova-oral",
         icon: Mic,
         badge: "VOZ",
+      },
+      {
+        label: "Sala de Foco (Timer)",
+        href: "/study-room",
+        icon: Headphones,
+      },
+      { label: "Calendário de Provas", href: "/calendar", icon: CalendarDays },
+      {
+        label: "Ler Prova em PDF",
+        href: "#import-pdf",
+        icon: UploadCloud,
+        badge: "PDF",
       },
     ],
   },
   {
     id: "evolucao",
-    label: "Evolução & Ligas",
+    label: "📊 Evolução & Ranking",
     items: [
-      { label: "Performance", href: "/performance", icon: TrendingUp },
+      { label: "Meu Desempenho", href: "/performance", icon: TrendingUp },
       {
         label: "Ligas Semanais",
         href: "/leaderboard",
         icon: Trophy,
-        badge: "D30",
+        badge: "RANK",
         isSpecial: true,
       },
       {
-        label: "Conquistas",
+        label: "Minhas Conquistas",
         href: "/achievements",
         icon: Award,
       },
     ],
   },
   {
-    id: "ferramentas",
-    label: "Foco & Ferramentas",
-    items: [
-      {
-        label: "Sala de Foco",
-        href: "/study-room",
-        icon: Headphones,
-        badge: "ZEN",
-      },
-      { label: "Calendário de Provas", href: "/calendar", icon: CalendarDays },
-      {
-        label: "Importar Prova",
-        href: "#import-pdf",
-        icon: UploadCloud,
-        badge: "OCR",
-      },
-    ],
-  },
-  {
     id: "conta",
-    label: "Conta & Planos",
+    label: "Conta & Ajuda",
     items: [
       {
-        label: "Planos & Synapse Pro",
+        label: "Planos & Assinatura",
         href: "/pricing",
         icon: Crown,
         isSpecial: true,
         badge: "PRO",
       },
-      { label: "Perfil", href: "/profile", icon: UserCircle2 },
-      { label: "Ajuda", href: "/help", icon: Info },
+      { label: "Meu Perfil", href: "/profile", icon: UserCircle2 },
+      { label: "Ajuda & Suporte", href: "/help", icon: Info },
     ],
   },
 ];
@@ -239,19 +239,26 @@ export default function Sidebar({ user }: SidebarProps) {
   const isInitialPro = Boolean(
     user?.isPro ||
     user?.planTier === "PREMIUM" ||
+    user?.planTier === "ELITE" ||
     user?.role === "ADMIN" ||
     user?.isAdmin
   );
 
   const [userPlan, setUserPlan] = useState<string>(() =>
-    isInitialPro ? "PRO MEMBER" : "PLANO BÁSICO"
+    user?.planTier === "ELITE"
+      ? "ELITE MEMBER 👑"
+      : isInitialPro
+      ? "PRO MEMBER"
+      : "PLANO BÁSICO"
   );
   const [hasLawFocus, setHasLawFocus] = useState<boolean>(() =>
     isLawFocused(user?.careerFocus, user?.targetRole)
   );
 
   useEffect(() => {
-    if (user?.isPro || user?.planTier === "PREMIUM" || user?.role === "ADMIN") {
+    if (user?.planTier === "ELITE") {
+      setUserPlan("ELITE MEMBER 👑");
+    } else if (user?.isPro || user?.planTier === "PREMIUM" || user?.role === "ADMIN") {
       setUserPlan("PRO MEMBER");
     }
   }, [user?.isPro, user?.planTier, user?.role]);
@@ -287,7 +294,9 @@ export default function Sidebar({ user }: SidebarProps) {
       getAiQuotaStatusAction()
         .then((res) => {
           if (res.success && res.data) {
-            if (
+            if (res.data.planTier === "ELITE") {
+              setUserPlan("ELITE MEMBER 👑");
+            } else if (
               res.data.isUnlimited ||
               res.data.planTier === "PREMIUM" ||
               res.data.role === "ADMIN" ||
@@ -385,8 +394,11 @@ export default function Sidebar({ user }: SidebarProps) {
     user?.isAdmin || user?.role === "ADMIN"
   );
 
-  // Estado para seções colapsadas com persistência no localStorage
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  // Estado para seções colapsadas com persistência no localStorage (secundárias colapsadas por padrão)
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
+    ferramentas: true,
+    evolucao: true,
+  });
 
   useEffect(() => {
     try {

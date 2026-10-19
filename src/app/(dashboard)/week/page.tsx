@@ -764,73 +764,43 @@ export default function WeekPage() {
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                 {studyMode === "CYCLE"
                   ? "Seu Ciclo de Estudos"
-                  : "Seu Planejamento Semanal"}
+                  : "Seu Cronograma da Semana"}
               </h1>
-              <span className="text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 shadow-2xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-                Rebalanceador Ativo
-              </span>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
               {studyMode === "CYCLE"
-                ? `${data?.cycle?.totalBlocks || 0} blocos mapeados • Total: ${formatMinutes(
-                    data?.cycle?.totalMinutes || 0,
-                  )} de foco distribuído`
-                : "Distribuição inteligente de matérias e equilíbrio adaptativo por relevância."}
+                ? `${data?.cycle?.totalBlocks || 0} blocos de estudo organizados para você.`
+                : "Veja o que estudar em cada dia da semana, leia a aula ou treine questões com 1 clique."}
             </p>
           </div>
 
-          {/* Action Toolbar Consolidada: Agenda + IA (Primário) + Resgate (Contingência) + Mais Ações */}
+          {/* Barra Superior Limpa: Ler Aulas + Atrasou? Reorganizar + Ajustes */}
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-            {/* Sincronização de Agenda: Google & .ics */}
-            <button
-              type="button"
-              onClick={() => setIsCalendarExportOpen(true)}
-              disabled={!hasSubjects}
-              title="Sincronizar grade semanal com Google Calendar, Apple Calendar ou Outlook (.ics)"
-              className="inline-flex items-center justify-center gap-1.5 bg-slate-900/90 hover:bg-slate-800 text-indigo-400 dark:text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-500/60 text-xs font-bold px-3 sm:px-3.5 py-2 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
+            <Link
+              href="/trilhas?openTheory=1"
+              title="Abrir suas Aulas e Resumos da semana"
+              className="inline-flex items-center justify-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-300 border border-amber-500/30 text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
             >
-              <Calendar size={14} className="text-indigo-400" />
-              <span className="hidden sm:inline">Sincronizar com Agenda (Google / .ics)</span>
-              <span className="sm:hidden">Agenda (.ics)</span>
-            </button>
+              <BookOpen size={14} className="text-amber-500 dark:text-amber-400" />
+              <span>📖 Ler Aulas</span>
+            </Link>
 
-            {/* Primary Action: Rebalancear com IA */}
-            <button
-
-              onClick={handleManualAIRebalance}
-              disabled={isManualRebalancing || isPending || !hasSubjects}
-              title="Rebalanceamento Preditivo com IA: cruza seus erros e acertos para redistribuir horas com foco nos pontos fracos"
-              className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold px-3.5 sm:px-4 py-2 rounded-xl transition-all shadow-md shadow-violet-600/25 active:scale-95 cursor-pointer disabled:opacity-50"
-            >
-              <Sparkles
-                size={14}
-                className={
-                  isManualRebalancing ? "animate-spin" : "animate-pulse"
-                }
-              />
-              <span>
-                {isManualRebalancing ? "Otimizando..." : "Otimizar com IA"}
-              </span>
-            </button>
-
-            {/* Contingência: Menu Modo Resgate & SOS */}
+            {/* Menu amigável para quem atrasou ou quer redistribuir */}
             <div className="relative" ref={rescueMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsRescueMenuOpen(!isRescueMenuOpen)}
                 disabled={!hasSubjects}
-                title="Opções de emergência e resgate quando a rotina aperta"
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer disabled:opacity-50 ${
+                title="Atrasou alguma matéria? Clique aqui para reorganizar sua semana"
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer disabled:opacity-50 ${
                   isRescueMenuOpen
                     ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
-                    : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/30"
+                    : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30"
                 }`}
               >
-                <LifeBuoy size={14} className="text-amber-400" />
-                <span className="hidden sm:inline">Modo Resgate</span>
-                <span className="sm:hidden">Resgate</span>
+                <LifeBuoy size={14} className="text-amber-500 dark:text-amber-400" />
+                <span>Atrasou? Reorganizar</span>
                 <ChevronDown
                   size={12}
                   className={`transition-transform duration-200 ${
@@ -840,7 +810,7 @@ export default function WeekPage() {
               </button>
 
               {isRescueMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#090d16] border border-slate-800 shadow-2xl p-2 z-40 animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                <div className="absolute right-0 mt-2 w-68 rounded-2xl bg-[#090d16] border border-slate-800 shadow-2xl p-2 z-40 animate-in fade-in zoom-in-95 duration-150 space-y-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -855,10 +825,10 @@ export default function WeekPage() {
                     />
                     <div>
                       <p className="text-xs font-bold text-white group-hover:text-amber-300">
-                        Modo Resgate (IA)
+                        Redistribuir Atrasos da Semana
                       </p>
                       <p className="text-[11px] text-slate-400 leading-tight mt-0.5">
-                        Redistribua atrasos pelos dias restantes sem culpa
+                        Reorganiza os assuntos pendentes nos próximos dias sem culpa
                       </p>
                     </div>
                   </button>
@@ -877,10 +847,33 @@ export default function WeekPage() {
                     />
                     <div>
                       <p className="text-xs font-bold text-white group-hover:text-rose-300">
-                        SOS Emergência
+                        Semana Corrida (Reduzir Carga)
                       </p>
                       <p className="text-[11px] text-slate-400 leading-tight mt-0.5">
-                        Alivie a carga da semana com cortes cirúrgicos
+                        Foca só nos assuntos mais importantes quando você tiver pouco tempo
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRescueMenuOpen(false);
+                      handleManualAIRebalance();
+                    }}
+                    disabled={isManualRebalancing || isPending}
+                    className="w-full flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-violet-500/10 text-left transition-colors cursor-pointer group"
+                  >
+                    <Sparkles
+                      size={16}
+                      className="text-violet-400 shrink-0 mt-0.5"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-white group-hover:text-violet-300">
+                        Ajustar Foco nos Meus Pontos Fracos (IA)
+                      </p>
+                      <p className="text-[11px] text-slate-400 leading-tight mt-0.5">
+                        Aumenta o tempo nas matérias em que você mais errou questões
                       </p>
                     </div>
                   </button>
@@ -888,7 +881,7 @@ export default function WeekPage() {
               )}
             </div>
 
-            {/* Menu Utilitários: Mais Ações */}
+            {/* Menu Utilitários: Ajustar Cronograma */}
             <div className="relative z-30" ref={actionsMenuRef}>
               <button
                 type="button"
@@ -898,10 +891,10 @@ export default function WeekPage() {
                     ? "bg-slate-800 text-white border-indigo-500/50"
                     : "bg-slate-100 dark:bg-slate-900/80 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800"
                 }`}
-                title="Configurações, exportação e relatórios"
+                title="Configurar horas, imprimir ou salvar na agenda"
               >
-                <MoreHorizontal size={14} />
-                <span className="hidden md:inline">Mais Ações</span>
+                <Settings2 size={14} />
+                <span>Ajustes</span>
                 <ChevronDown
                   size={12}
                   className={`transition-transform duration-200 ${
@@ -911,7 +904,7 @@ export default function WeekPage() {
               </button>
 
               {isActionsMenuOpen && (
-                <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-[#090d16] border border-slate-700/80 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#090d16] border border-slate-700/80 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -921,7 +914,20 @@ export default function WeekPage() {
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors text-left cursor-pointer"
                   >
                     <Settings2 size={14} className="text-indigo-400" />
-                    <span>Configurar Metas de Horas</span>
+                    <span>Mudar Horas ou Dias de Estudo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsActionsMenuOpen(false);
+                      setIsPrintPlannerOpen(true);
+                    }}
+                    disabled={!hasSubjects}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors text-left cursor-pointer disabled:opacity-50"
+                  >
+                    <Printer size={14} className="text-cyan-400" />
+                    <span>Imprimir Cronograma no Papel (A4)</span>
                   </button>
 
                   <button
@@ -934,21 +940,7 @@ export default function WeekPage() {
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors text-left cursor-pointer disabled:opacity-50"
                   >
                     <Calendar size={14} className="text-emerald-400" />
-                    <span>Sincronizar com Agenda (Google / .ics)</span>
-                  </button>
-
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsActionsMenuOpen(false);
-                      setIsPrintPlannerOpen(true);
-                    }}
-                    disabled={!hasSubjects}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors text-left cursor-pointer disabled:opacity-50"
-                  >
-                    <Printer size={14} className="text-cyan-400" />
-                    <span>Imprimir Planner de Mesa (A4)</span>
+                    <span>Salvar na Agenda do Celular</span>
                   </button>
 
                   <button
@@ -961,7 +953,7 @@ export default function WeekPage() {
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-sky-300 hover:bg-sky-500/10 transition-colors text-left cursor-pointer disabled:opacity-50"
                   >
                     <Sliders size={14} className="text-sky-400" />
-                    <span>Recalcular Distribuição Rápida</span>
+                    <span>Recalcular Horários Automaticamente</span>
                   </button>
 
                   <div className="border-t border-slate-800 my-1" />
@@ -976,7 +968,7 @@ export default function WeekPage() {
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 transition-colors text-left cursor-pointer disabled:opacity-50"
                   >
                     <RotateCcw size={14} className="text-rose-400" />
-                    <span>Resetar Checks da Semana</span>
+                    <span>Desmarcar Concluídos da Semana</span>
                   </button>
                 </div>
               )}
@@ -1407,28 +1399,50 @@ export default function WeekPage() {
                                           • {topic.title}
                                         </span>
 
-                                        <button
-                                          type="button"
-                                          title={
-                                            isDone
-                                              ? "Marcar como pendente"
-                                              : "Marcar como concluído"
-                                          }
-                                          className={`transition-colors shrink-0 ${
-                                            isDone
-                                              ? "text-emerald-500 dark:text-emerald-400 hover:text-emerald-600"
-                                              : "text-slate-400 hover:text-emerald-500 dark:text-slate-600 dark:hover:text-emerald-400"
-                                          }`}
-                                        >
-                                          <CheckCircle2
-                                            size={16}
-                                            className={
-                                              isDone
-                                                ? "fill-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                                                : ""
-                                            }
-                                          />
-                                        </button>
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                            <Link
+                                              href={`/trilhas?topicId=${topic.id}`}
+                                              onClick={(e) => e.stopPropagation()}
+                                              title="Ler a aula e o resumo deste assunto"
+                                              className="px-2 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-600 dark:text-amber-300 text-[10px] font-bold flex items-center gap-1 transition-colors"
+                                            >
+                                              <BookOpen size={11} />
+                                              <span>Ler Aula</span>
+                                            </Link>
+
+                                            <Link
+                                              href={`/questions?subject=${encodeURIComponent(subject.name)}&topic=${encodeURIComponent(topic.title)}`}
+                                              onClick={(e) => e.stopPropagation()}
+                                              title="Treinar questões deste assunto"
+                                              className="px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold flex items-center gap-1 transition-colors"
+                                            >
+                                              <Target size={11} />
+                                              <span>Questões</span>
+                                            </Link>
+
+                                            <button
+                                              type="button"
+                                              title={
+                                                isDone
+                                                  ? "Marcar como pendente"
+                                                  : "Marcar como concluído"
+                                              }
+                                              className={`transition-colors shrink-0 ${
+                                                isDone
+                                                  ? "text-emerald-500 dark:text-emerald-400 hover:text-emerald-600"
+                                                  : "text-slate-400 hover:text-emerald-500 dark:text-slate-600 dark:hover:text-emerald-400"
+                                              }`}
+                                            >
+                                              <CheckCircle2
+                                                size={16}
+                                                className={
+                                                  isDone
+                                                    ? "fill-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                                    : ""
+                                                }
+                                              />
+                                            </button>
+                                          </div>
                                       </div>
                                     );
                                   })
