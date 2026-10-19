@@ -133,39 +133,14 @@ export function ErrorMetricsHeader({
               onClick={onBatchCreateFlashcards}
               disabled={isCreatingBatchFlashcards}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 text-xs md:text-sm font-bold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[44px]"
-              title="Gera um Deck FSRS com todos os erros pendentes para revisão ativa diária"
+              title="Cria Cartões de Memória com todos os seus erros pendentes para revisar depois"
             >
               {isCreatingBatchFlashcards ? (
                 <Loader2 size={16} className="animate-spin text-indigo-400" />
               ) : (
                 <Layers size={16} className="text-indigo-400" />
               )}
-              <span>Transformar em Deck FSRS</span>
-            </button>
-          )}
-
-          {onStartRedemption && pendingErrors > 0 && (
-            <button
-              type="button"
-              onClick={() => onStartRedemption(5)}
-              disabled={isGeneratingRedemption}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-purple-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white text-xs md:text-sm font-extrabold shadow-lg shadow-rose-600/30 border border-rose-400/40 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer group min-h-[44px]"
-              title="Gera 5 Questões Gêmeas com IA baseadas nos seus erros para cicatrização definitiva"
-            >
-              {isGeneratingRedemption ? (
-                <>
-                  <Loader2 size={16} className="animate-spin text-amber-200" />
-                  <span>Gerando Questões Gêmeas...</span>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck size={16} className="text-amber-200 animate-pulse group-hover:scale-110 transition-transform" />
-                  <span>Simulado de Redenção</span>
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-black/30 text-amber-200 border border-white/20">
-                    IA Gêmeas
-                  </span>
-                </>
-              )}
+              <span>Virar Cartões de Memória</span>
             </button>
           )}
 
@@ -178,7 +153,7 @@ export function ErrorMetricsHeader({
               <Zap size={16} className="text-amber-300 fill-amber-300 animate-pulse group-hover:scale-110 transition-transform" />
               <span>Treinar Questões que Errei</span>
               <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-black/30 text-amber-200 border border-white/20">
-                {pendingErrors} a superar
+                {pendingErrors} pendentes
               </span>
             </button>
           )}
@@ -188,7 +163,7 @@ export function ErrorMetricsHeader({
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-white text-xs md:text-sm font-semibold shadow-md border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] min-h-[44px]"
           >
             <FileStack size={16} />
-            <span>Treinar em Simulado</span>
+            <span>Ir para Questões</span>
             <ArrowRight size={14} className="opacity-70" />
           </Link>
         </div>
@@ -206,7 +181,7 @@ export function ErrorMetricsHeader({
           <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-rose-300 uppercase tracking-wider">
-              Pendentes de Revisão
+              Questões para Rever
             </span>
             <div className="p-2 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-400">
               <AlertCircle size={18} />
@@ -216,12 +191,12 @@ export function ErrorMetricsHeader({
             <span className="text-3xl md:text-4xl font-black text-white tracking-tight">
               {pendingErrors}
             </span>
-            <span className="text-xs text-rose-300/80">questões a superar</span>
+            <span className="text-xs text-rose-300/80">para acertar</span>
           </div>
           <p className="text-xs text-slate-400 mt-2">
             {pendingErrors === 0
               ? "Parabéns! Nenhum erro pendente no momento."
-              : "Requerem análise de causa-raiz e fixação ativa."}
+              : "Questões que você errou e pode refazer para aprender."}
           </p>
           {pendingErrors > 0 && onOpenRemediationModal && (
             <button
@@ -230,7 +205,7 @@ export function ErrorMetricsHeader({
               className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer group"
             >
               <Zap size={13} className="fill-rose-400 group-hover:scale-110 transition-transform" />
-              <span className="underline underline-offset-2">Superar com simulado de remediação ➔</span>
+              <span className="underline underline-offset-2">Praticar essas questões agora ➔</span>
             </button>
           )}
         </motion.div>
@@ -245,7 +220,7 @@ export function ErrorMetricsHeader({
           <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-violet-300 uppercase tracking-wider">
-              Taxa de Superação
+              Erros Já Superados
             </span>
             <div className="p-2 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-400">
               <CheckCircle2 size={18} />
@@ -256,7 +231,7 @@ export function ErrorMetricsHeader({
               {masteryRate}%
             </span>
             <span className="text-xs text-violet-300/80">
-              ({masteredErrors} de {totalErrors})
+              ({masteredErrors} de {totalErrors} aprendidos)
             </span>
           </div>
           {/* Barra de Progresso */}
@@ -280,7 +255,7 @@ export function ErrorMetricsHeader({
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-              Total Catalogado
+              Total no Caderno
             </span>
             <div className="p-2 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400">
               <Layers size={18} />
@@ -290,15 +265,15 @@ export function ErrorMetricsHeader({
             <span className="text-3xl md:text-4xl font-black text-white tracking-tight">
               {totalErrors}
             </span>
-            <span className="text-xs text-slate-400">erros mapeados</span>
+            <span className="text-xs text-slate-400">questões salvas</span>
           </div>
           <p className="text-xs text-slate-400 mt-2">
-            {masteredErrors} dominados após treino com fixação sob demanda.
+            {masteredErrors} questões que você já acertou na revisão.
           </p>
         </motion.div>
       </div>
 
-      {/* 3. Gráfico / Barra de Distribuição Taxonômica */}
+      {/* 3. Gráfico / Barra de Motivo dos Erros */}
       {totalErrors > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -309,13 +284,13 @@ export function ErrorMetricsHeader({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Distribuição da Causa-Raiz dos Erros</span>
+                <span>Por que eu errei essas questões?</span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                  Taxonomia Ativa
+                  Filtrar por Motivo
                 </span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Clique nas categorias para filtrar a lista de questões instantaneamente.
+                Clique em um motivo abaixo para ver apenas as questões daquele tipo.
               </p>
             </div>
 
@@ -325,19 +300,19 @@ export function ErrorMetricsHeader({
                 onClick={classifyHandler}
                 disabled={isClassifying}
                 className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-violet-600/30 to-rose-500/20 hover:from-amber-500/30 hover:via-violet-600/40 hover:to-rose-500/30 border border-violet-500/50 hover:border-violet-400 text-violet-100 hover:text-white text-xs font-bold transition-all shadow-lg shadow-violet-950/40 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0 group"
-                title={`Classificar lote de até 20 questões pendentes (${unclassifiedCount} não classificados)`}
+                title={`Pedir para a IA descobrir o motivo de até 20 erros (${unclassifiedCount} sem motivo definido)`}
               >
                 {isClassifying ? (
                   <>
                     <Loader2 size={14} className="animate-spin text-amber-300 shrink-0" />
-                    <span>Classificando lote com IA...</span>
+                    <span>Descobrindo motivos com IA...</span>
                   </>
                 ) : (
                   <>
                     <Zap size={14} className="text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform shrink-0" />
-                    <span>⚡ Classificar {Math.min(20, unclassifiedCount)} Erros em Lote com IA</span>
+                    <span>⚡ Descobrir Motivo dos Erros com IA</span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      {unclassifiedCount} não classificados
+                      {unclassifiedCount} pendentes
                     </span>
                   </>
                 )}

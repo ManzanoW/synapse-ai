@@ -490,7 +490,7 @@ export function ErrorNotebookView({
         ]}
       />
 
-      {/* 🚀 BANNER ULTRA-PREMIUM: SIMULADO DE REDENÇÃO (CICATRIZAÇÃO ATIVA DE FALHAS) */}
+      {/* 🚀 BANNER PRINCIPAL: PRATICAR QUESTÕES QUE ERREI */}
       {metrics.pendingErrors > 0 && (
         <div className="relative overflow-hidden p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-rose-950/40 via-purple-950/30 to-slate-900/60 border border-rose-500/30 dark:border-rose-500/20 shadow-xl backdrop-blur-xl">
           <div className="absolute -right-8 -top-8 w-36 h-36 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -498,58 +498,57 @@ export function ErrorNotebookView({
             <div className="space-y-1.5 max-w-xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider">
                 <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />
-                <span>Cicatrização Ativa com IA • Questões Gêmeas</span>
+                <span>Hora de Superar seus Pontos Fracos</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+              <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 flex-wrap">
                 <span>Você tem</span>
                 <span className="text-rose-400 font-black underline decoration-rose-500 underline-offset-4">
-                  {metrics.pendingErrors} erros pendentes
+                  {metrics.pendingErrors} {metrics.pendingErrors === 1 ? "questão errada" : "questões erradas"}
                 </span>
-                <span>de domínio</span>
+                <span>para revisar</span>
               </h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Supere suas falhas antes da prova real. A IA gera questões gêmeas inéditas
-                focadas exatamente nas pegadinhas e conceitos que te derrubaram.
+                Escolha abaixo: você pode refazer exatamente as mesmas questões que errou (grátis) ou pedir para a IA criar novas questões parecidas para testar se você realmente aprendeu.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              {/* Botão 1: Revanche Direta (Zero Cota 0⚡) */}
+              {/* Botão 1: Refazer as Mesmas Questões (Grátis) */}
               <button
                 disabled={isGeneratingDirectRevenge || isGeneratingRedemption}
                 onClick={() => handleStartDirectRevenge(5)}
                 className="px-4 py-2.5 sm:py-3 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-950/40 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
-                title="Treine novamente as questões originais que você errou sem gastar cota de IA"
+                title="Tente acertar novamente as mesmas questões que você errou antes (sem gastar créditos de IA)"
               >
                 {isGeneratingDirectRevenge ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                    <span>Carregando Revanche...</span>
+                    <span>Abrindo questões...</span>
                   </>
                 ) : (
                   <>
                     <RotateCcw className="w-4 h-4 text-emerald-400" />
-                    <span>Revanche Direta (0⚡)</span>
+                    <span>Refazer as Mesmas Questões (Grátis)</span>
                   </>
                 )}
               </button>
 
-              {/* Botão 2: Simulado de Redenção IA (Questões Gêmeas) */}
+              {/* Botão 2: Treinar Questões Parecidas (IA) */}
               <button
                 disabled={isGeneratingRedemption || isGeneratingDirectRevenge}
                 onClick={() => handleStartRedemption(5)}
                 className="px-4.5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold text-xs sm:text-sm shadow-xl shadow-rose-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
-                title="A IA cria questões inéditas baseadas nas mesmas pegadinhas dos seus erros"
+                title="A IA cria 5 questões novas cobrando o mesmo assunto que você errou"
               >
                 {isGeneratingRedemption ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Gerando Questões Gêmeas...</span>
+                    <span>Criando questões parecidas...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 text-amber-200" />
-                    <span>Redenção IA (5Q)</span>
+                    <span>Treinar 5 Questões Parecidas (IA)</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

@@ -187,8 +187,8 @@ export const DEFAULT_FULL_CARDS: DashboardCardVisibility = {
 };
 
 export const DEFAULT_MINIMAL_CARDS: DashboardCardVisibility = {
-  heroJourney: true,
-  quickActions: true,
+  heroJourney: false,
+  quickActions: false,
   dailyQuests: false,
   keyMetrics: false,
   radarDomain: false,
@@ -1557,6 +1557,7 @@ export default function DashboardClient({
                   {displayedSubjects.map((sub) => (
                     <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
                       <SubjectCard
+                        subjectId={sub.id}
                         title={sub.name}
                         colorClass={sub.color || "#3B82F6"}
                         progress={sub.progress ?? 0}
@@ -1587,7 +1588,7 @@ export default function DashboardClient({
                         Sala de Foco
                       </h4>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Deep Work & Ondas Alpha 10Hz
+                        Sons para concentração & Timer
                       </p>
                     </div>
                   </div>
@@ -1600,7 +1601,7 @@ export default function DashboardClient({
                   </button>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-300/90 leading-relaxed mb-4">
-                  Elimine distrações externas com bioacústica procedural enquanto resolve suas baterias de questões.
+                  Estude sem distrações com sons relaxantes de chuva, ruído marrom e cronômetro Pomodoro.
                 </p>
                 <Link
                   href={getHref("/study-room")}
@@ -1618,37 +1619,44 @@ export default function DashboardClient({
           <div className="space-y-8">
             {/* ================= CAPÍTULO 01: ROTINA DE HOJE & EXECUÇÃO ================= */}
             <section className="space-y-4">
-              <div className="hidden md:flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-2.5">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/10 text-xs font-mono font-black text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                    01
+              {dashboardMode !== "minimal" && (
+                <div className="hidden md:flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/10 text-xs font-mono font-black text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                      01
+                    </span>
+                    <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      Rotina & Execução de Hoje
+                    </h2>
+                  </div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Disciplinas ativas do seu edital
                   </span>
-                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                    Rotina & Execução de Hoje
-                  </h2>
                 </div>
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Disciplinas ativas do seu edital
-                </span>
-              </div>
+              )}
 
               {/* GRADE DE MATÉRIAS (4 COLUNAS EM UMA ÚNICA LINHA NO DESKTOP) */}
               {visibleCards.subjects && (
                 <div className="space-y-4 rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl relative">
                   <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 flex-wrap">
                       <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
+                      <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
                         Minhas Matérias
                       </h3>
+                      {!isLoading && hasEditalSubjects && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/25 px-2.5 py-0.5 text-[11px] font-bold text-cyan-800 dark:text-cyan-300">
+                          <span>Progresso do Edital: {stats?.journey?.percentage ?? 0}%</span>
+                        </span>
+                      )}
                     </div>
                     <Link
                       href={getHref("/edital")}
                       className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors"
                     >
-                      Ver todas ({subjects.length})
+                      Ver todas no Edital ({subjects.length}) ➔
                     </Link>
                   </div>
 
@@ -1663,6 +1671,7 @@ export default function DashboardClient({
                       {displayedSubjects.map((sub) => (
                         <Link key={sub.id} href={getHref(`/edital?subjectId=${sub.id}`)}>
                           <SubjectCard
+                            subjectId={sub.id}
                             title={sub.name}
                             colorClass={sub.color || "#3B82F6"}
                             progress={sub.progress ?? 0}

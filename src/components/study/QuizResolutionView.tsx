@@ -156,7 +156,7 @@ export function QuizResolutionView({
   const [filterOnlyFlagged, setFilterOnlyFlagged] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
   const [deepeningStep, setDeepeningStep] = useState(0);
-  const [isShortcutsBarOpen, setIsShortcutsBarOpen] = useState(true);
+  const [isShortcutsBarOpen, setIsShortcutsBarOpen] = useState(false);
   const [questionFontSize, setQuestionFontSize] = useState<"normal" | "large" | "xlarge">("normal");
 
   // Atalho global ⌘J / Ctrl+J para alternar o Mentor IA
