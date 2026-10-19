@@ -50,6 +50,7 @@ import {
   type CreateTrailSubjectInput,
 } from "@/actions/trail-actions";
 import { useGamification } from "@/context/GamificationContext";
+import { PageSpotlightBanner, useSpotlight } from "@/components/onboarding/PageSpotlightBanner";
 
 interface TrilhasClientProps {
   initialData: {
@@ -90,6 +91,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   const [showCognitiveRadar, setShowCognitiveRadar] = useState(false);
   const [showSubjectsDrawer, setShowSubjectsDrawer] = useState(false);
   const [showLivingTheoryTable, setShowLivingTheoryTable] = useState(false);
+  const trilhasSpotlight = useSpotlight("synapse_spotlight_trilhas_v1");
   const [lessonNotes, setLessonNotes] = useState<string>("");
   const [notesSaveStatus, setNotesSaveStatus] = useState<string>("✓ Salvo no banco");
   const [isSpeakingAudio, setIsSpeakingAudio] = useState(false);
@@ -1179,11 +1181,22 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
               <span>Trilhas de Aprendizado & Cursos</span>
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Siga as metas da sua semana no seu ritmo. Tudo que você conclui atualiza seu Edital e XP automaticamente.
+              Passo a passo mastigado para a sua prova. Clique na aula do dia para ler a explicação ou ouvir em áudio.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Botão Ajuda Rápida para iniciantes */}
+            <button
+              type="button"
+              onClick={trilhasSpotlight.toggle}
+              className="px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Ver explicação rápida de como estudar nesta tela"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+              <span>Como funciona?</span>
+            </button>
+
             {/* Seletor de Abas Principais */}
             <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
               <button
@@ -1219,7 +1232,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                 className="px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Configurar Trilha</span>
+                <span>Trocar / Criar Trilha</span>
               </button>
             ) : (
               <button
@@ -1232,6 +1245,41 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
             )}
           </div>
         </div>
+
+        {/* GUIA PASSO A PASSO PARA INICIANTES (APARECE NO 1º ACESSO OU AO CLICAR EM "COMO FUNCIONA?") */}
+        <PageSpotlightBanner
+          storageKey="synapse_spotlight_trilhas_v1"
+          externalIsOpen={trilhasSpotlight.isOpen}
+          onClose={trilhasSpotlight.dismiss}
+          badgeText="👋 Guia Rápido (Sem Complicação)"
+          title="Como estudar pela sua Trilha em 3 passos simples:"
+          description="Você não precisa configurar nada complicado. Basta seguir a ordem das aulas da sua semana:"
+          accentColor="indigo"
+          primaryActionLabel="Entendi! Vamos começar"
+          steps={[
+            {
+              icon: <Play className="w-4 h-4" />,
+              title: "1. Clique em 'Começar Aula'",
+              description:
+                "Abra a primeira aula marcada com 'COMECE POR AQUI HOJE'. Você pode ler o resumo mastigado ou clicar em 'Ouvir Aula' para escutar como um podcast.",
+              tag: "Leitura ou Áudio",
+            },
+            {
+              icon: <Target className="w-4 h-4" />,
+              title: "2. Responda a Pergunta no Final",
+              description:
+                "Ao final de cada aula há 1 questão rápida no estilo da sua banca para você testar se entendeu a matéria.",
+              tag: "Teste Rápido",
+            },
+            {
+              icon: <CheckCircle2 className="w-4 h-4" />,
+              title: "3. Conclua e Avance no Seu Ritmo",
+              description:
+                "Terminou a aula? Clique em 'Concluir e Ir para a Próxima'. O sistema marca seu Edital e soma seus pontos automaticamente!",
+              tag: "100% Automático",
+            },
+          ]}
+        />
 
         {/* =========================================================
             ABA 1: MINHA TRILHA ATIVA & TEORIAS (HIERARQUIA LIMPA)
@@ -1252,14 +1300,14 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    {editalSubjects.length} matérias do Edital • Meta: {trail.dailyHours || 2}h/dia
+                    {editalSubjects.length} matérias do Edital • Meta sugerida: {trail.dailyHours || 2}h por dia
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3 self-end sm:self-auto">
                 <div className="text-right">
-                  <span className="text-[11px] text-slate-400 block">Progresso Geral</span>
+                  <span className="text-[11px] text-slate-400 block">Seu Progresso</span>
                   <span className="text-sm font-black text-emerald-400 font-mono">
                     {overallProgressPct}% concluído
                   </span>
@@ -1271,56 +1319,61 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
             </div>
 
             {/* 2. SELETOR ENXUTO DE SEMANAS (TABS COMPACTAS) */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-              {[1, 2, 3, 4].map((weekNum) => {
-                const st = getWeekStats(weekNum);
-                const isSelected = selectedWeek === weekNum;
-                const weekLessonsList = allLessons.filter((l) => l.weekNumber === weekNum);
-                const mainTitle =
-                  weekLessonsList[0]?.subject?.name ||
-                  (weekNum === 1
-                    ? "Português & Sintaxe"
-                    : weekNum === 2
-                      ? "Fundamentos de SQL"
-                      : weekNum === 3
-                        ? "Lei Orgânica + Formas Normais"
-                        : "Segurança, LGPD & Simulado");
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span>Escolha a semana que deseja estudar (você pode adiantar qualquer semana):</span>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {[1, 2, 3, 4].map((weekNum) => {
+                  const st = getWeekStats(weekNum);
+                  const isSelected = selectedWeek === weekNum;
+                  const weekLessonsList = allLessons.filter((l) => l.weekNumber === weekNum);
+                  const mainTitle =
+                    weekLessonsList[0]?.subject?.name ||
+                    (weekNum === 1
+                      ? "Português & Sintaxe"
+                      : weekNum === 2
+                        ? "Fundamentos de SQL"
+                        : weekNum === 3
+                          ? "Lei Orgânica + Formas Normais"
+                          : "Segurança, LGPD & Simulado");
 
-                return (
-                  <button
-                    type="button"
-                    key={weekNum}
-                    onClick={() => handleSelectWeek(weekNum)}
-                    className={`p-3 rounded-xl text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? "bg-indigo-950/60 border-2 border-indigo-500 shadow-md shadow-indigo-600/10"
-                        : st.isAllDone
-                          ? "bg-emerald-950/15 border border-emerald-500/30 hover:border-emerald-500/50"
-                          : "bg-slate-900/60 border border-slate-800 hover:border-slate-700"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span
-                        className={`font-mono font-bold ${
-                          isSelected
-                            ? "text-indigo-300"
-                            : st.isAllDone
-                              ? "text-emerald-400"
-                              : "text-slate-400"
-                        }`}
-                      >
-                        Semana {weekNum}
-                      </span>
-                      <span className="font-mono text-[10px] font-bold text-slate-300">
-                        {st.pct}%
-                      </span>
-                    </div>
-                    <div className="text-xs font-bold text-white line-clamp-1 mt-1">
-                      {mainTitle}
-                    </div>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      type="button"
+                      key={weekNum}
+                      onClick={() => handleSelectWeek(weekNum)}
+                      className={`p-3 rounded-xl text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-indigo-950/60 border-2 border-indigo-500 shadow-md shadow-indigo-600/10"
+                          : st.isAllDone
+                            ? "bg-emerald-950/15 border border-emerald-500/30 hover:border-emerald-500/50"
+                            : "bg-slate-900/60 border border-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span
+                          className={`font-mono font-bold ${
+                            isSelected
+                              ? "text-indigo-300"
+                              : st.isAllDone
+                                ? "text-emerald-400"
+                                : "text-slate-400"
+                          }`}
+                        >
+                          Semana {weekNum} {isSelected ? "• Aberta" : ""}
+                        </span>
+                        <span className="font-mono text-[10px] font-bold text-slate-300">
+                          {st.pct}%
+                        </span>
+                      </div>
+                      <div className="text-xs font-bold text-white line-clamp-1 mt-1">
+                        {mainTitle}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* 3. METAS E AULAS DA SEMANA SELECIONADA (FOCO PRINCIPAL IMEDIATO) */}
@@ -1328,111 +1381,128 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-bold text-white">
-                    📋 Metas da Semana {selectedWeek}
+                    📋 Seu Roteiro de Estudo da Semana {selectedWeek}
                   </span>
                   <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-mono">
-                    {currentWeekStats.done}/{currentWeekStats.total} concluídas
+                    {currentWeekStats.done} de {currentWeekStats.total} tarefas prontas
                   </span>
                 </div>
 
-                <span className="text-[11px] text-slate-400 font-mono">
-                  Recompensa: <strong className="text-emerald-400">+40 XP/aula</strong>
+                <span className="text-[11px] text-slate-400">
+                  Dica: Clique no botão azul da próxima aula para estudar
                 </span>
               </div>
 
               {/* Lista de Metas / Aulas */}
               <div className="space-y-2.5">
-                {weekLessons.map((lesson: any, idx: number) => {
-                  const isTheory = lesson.lessonType === "THEORY";
-                  const isFlashcard = lesson.lessonType === "FLASHCARDS";
-                  const isSimulado = lesson.lessonType === "SIMULADO";
+                {(() => {
+                  const firstPendingIdx = weekLessons.findIndex((l: any) => !l.isCompleted);
+                  return weekLessons.map((lesson: any, idx: number) => {
+                    const isTheory = lesson.lessonType === "THEORY";
+                    const isFlashcard = lesson.lessonType === "FLASHCARDS";
+                    const isSimulado = lesson.lessonType === "SIMULADO";
+                    const isNextUp = idx === firstPendingIdx;
 
-                  return (
-                    <div
-                      key={lesson.id}
-                      className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-all ${
-                        idx === 0 && !lesson.isCompleted
-                          ? "bg-indigo-950/30 border-indigo-500/40"
-                          : "bg-slate-950/80 border-slate-800/90 hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(lesson.isCompleted)}
-                          onChange={(e) => handleToggleLesson(lesson, e.target.checked)}
-                          className="w-4 h-4 rounded text-indigo-600 bg-slate-950 border-slate-700 cursor-pointer"
-                        />
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`font-bold ${
-                                lesson.isCompleted
-                                  ? "text-slate-400 line-through"
-                                  : "text-white"
+                    // Traduz títulos técnicos de FSRS para linguagem humana
+                    const friendlyTitle = (lesson.title || "")
+                      .replace(/Revisão Diária FSRS:\s*Flashcards de/i, "Cartões de Memorização:")
+                      .replace(/\bFSRS\b/g, "Memorização");
+
+                    return (
+                      <div
+                        key={lesson.id}
+                        className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-all ${
+                          isNextUp
+                            ? "bg-indigo-950/35 border-indigo-500/50 shadow-md shadow-indigo-500/5"
+                            : "bg-slate-950/80 border-slate-800/90 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            title="Marcar tarefa como concluída"
+                            checked={Boolean(lesson.isCompleted)}
+                            onChange={(e) => handleToggleLesson(lesson, e.target.checked)}
+                            className="w-4 h-4 rounded text-indigo-600 bg-slate-950 border-slate-700 cursor-pointer"
+                          />
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {isNextUp && (
+                                <span className="px-2 py-0.5 rounded bg-indigo-500 text-white text-[9px] font-extrabold uppercase tracking-wide">
+                                  👉 Comece por aqui hoje
+                                </span>
+                              )}
+                              <span
+                                className={`font-bold ${
+                                  lesson.isCompleted
+                                    ? "text-slate-400 line-through"
+                                    : "text-white"
+                                }`}
+                              >
+                                {friendlyTitle}
+                              </span>
+                            </div>
+                            <span className="block text-[11px] text-slate-400 mt-0.5">
+                              {isFlashcard
+                                ? "Perguntas e respostas rápidas para não esquecer a matéria"
+                                : lesson.subtitle || "Resumo explicado + 1 pergunta de teste no final"}{" "}
+                              • ~{lesson.estimatedMinutes || 25} minutos
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          {lesson.isCompleted && (
+                            <span className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold">
+                              ✓ Concluída
+                            </span>
+                          )}
+
+                          {isTheory && (
+                            <button
+                              onClick={() => openTheoryModalForLesson(lesson.id)}
+                              className={`px-3.5 py-2 rounded-xl font-extrabold text-[11px] flex items-center gap-1.5 cursor-pointer transition-all ${
+                                isNextUp
+                                  ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/25"
+                                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
                               }`}
                             >
-                              {lesson.title}
-                            </span>
-                            {lesson.topic && (
-                              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-mono">
-                                🔗 {lesson.topic.title.slice(0, 32)}
+                              <span>
+                                📖{" "}
+                                {lesson.isCompleted
+                                  ? "Ler Aula Novamente"
+                                  : isNextUp
+                                    ? `Começar Aula ${idx + 1} Agora`
+                                    : `Abrir Aula ${idx + 1}`}
                               </span>
-                            )}
-                          </div>
-                          <span className="block text-[11px] text-slate-400 mt-0.5">
-                            {lesson.subtitle || "Teoria Esquematizada + Questão Comentada"} • ~
-                            {lesson.estimatedMinutes || 25} minutos
-                          </span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          {isFlashcard && (
+                            <Link
+                              href="/flashcards"
+                              className="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] flex items-center gap-1.5 transition-all"
+                            >
+                              <Layers className="w-3.5 h-3.5" />
+                              <span>Praticar Cartões de Memória</span>
+                            </Link>
+                          )}
+
+                          {isSimulado && (
+                            <Link
+                              href="/questions"
+                              className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 font-bold text-[11px] flex items-center gap-1.5 transition-all"
+                            >
+                              <Target className="w-3.5 h-3.5" />
+                              <span>Fazer Questões da Banca</span>
+                            </Link>
+                          )}
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-2 self-end sm:self-auto">
-                        {lesson.isCompleted && (
-                          <span className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold">
-                            ✓ +40 XP
-                          </span>
-                        )}
-
-                        {isTheory && (
-                          <button
-                            onClick={() => openTheoryModalForLesson(lesson.id)}
-                            className={`px-3.5 py-1.5 rounded-xl font-extrabold text-[11px] flex items-center gap-1.5 cursor-pointer transition-all ${
-                              idx === 0 && !lesson.isCompleted
-                                ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20"
-                                : "bg-slate-800 hover:bg-slate-700 text-slate-200"
-                            }`}
-                          >
-                            <span>
-                              📖 {lesson.isCompleted ? "Revisar Teoria" : `Estudar Aula ${idx + 1}`}
-                            </span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-
-                        {isFlashcard && (
-                          <Link
-                            href="/flashcards"
-                            className="px-3.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] flex items-center gap-1.5 transition-all"
-                          >
-                            <Layers className="w-3.5 h-3.5" />
-                            <span>Abrir Deck FSRS</span>
-                          </Link>
-                        )}
-
-                        {isSimulado && (
-                          <Link
-                            href="/questions"
-                            className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 font-bold text-[11px] flex items-center gap-1.5 transition-all"
-                          >
-                            <Target className="w-3.5 h-3.5" />
-                            <span>Iniciar Simulado {trail.banca}</span>
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
 
               {/* BANNER DE DESBLOQUEIO IMEDIATO DA PRÓXIMA SEMANA */}
@@ -1440,7 +1510,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                 <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="text-xs text-slate-200">
                     <strong className="text-emerald-300">🎉 Semana {selectedWeek} concluída!</strong>{" "}
-                    Adiante a Semana {selectedWeek + 1} agora mesmo sem bloqueio de data.
+                    Você já pode passar para a Semana {selectedWeek + 1} sem precisar esperar.
                   </div>
                   <button
                     onClick={() => handleSelectWeek(selectedWeek + 1)}
@@ -1452,21 +1522,17 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
               )}
             </div>
 
-            {/* 4. BARRA INTELIGENTE "TUTOR COGNITIVO ELITE" (1 LINHA LIMPA + EXPANSÍVEL SOB DEMANDA) */}
+            {/* 4. BARRA DE FERRAMENTAS EXTRAS DO ALUNO (LINGUAGEM SIMPLES E RECOLHÍVEL) */}
             <div className="rounded-xl bg-slate-900/90 border border-amber-500/30 overflow-hidden">
               <div className="p-3 sm:px-4 flex flex-wrap items-center justify-between gap-2.5">
                 <div className="flex items-center gap-2 flex-wrap text-xs">
                   <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-extrabold uppercase">
-                    👑 Tutor Elite
+                    👑 Ajuda Inteligente
                   </span>
                   <span className="text-slate-200 font-semibold">
-                    🕵️‍♂️ Alerta: <strong className="text-rose-300">{trapDnaProfile.patternTitle.split("(")[0]}</strong>
+                    Ponto de atenção nas suas questões:{" "}
+                    <strong className="text-rose-300">{trapDnaProfile.patternTitle.split("(")[0]}</strong>
                   </span>
-                  {coolingMemoryLesson && (
-                    <span className="hidden md:inline text-slate-400">
-                      • 🧊 1 aula precisando de revisão rápida ({coolingMemoryLesson.currentEstimatedRetentionPct}%)
-                    </span>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1477,44 +1543,46 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                         openTheoryModalForLesson(coolingMemoryLesson.lesson.id);
                         setIsSummaryMode(true);
                         showToast(
-                          "⚡ Resgate Relâmpago ativado! Revise os pontos-chave e responda a questão final.",
+                          "⚡ Revisão de 1 Minuto aberta! Leia os pontos principais e responda a pergunta no final.",
                         );
                       }}
-                      className="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-bold text-[11px] transition-all cursor-pointer"
+                      title="Abre o resumo rápido de uma aula antiga para você relembrar em 1 minuto"
+                      className="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-bold text-[11px] transition-all cursor-pointer"
                     >
-                      ⚡ Resgate 1min
+                      ⚡ Revisar Aula Antiga em 1 Min
                     </button>
                   )}
 
                   <button
                     type="button"
                     onClick={printPersonalEveSheetA4}
-                    className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-[11px] transition-all cursor-pointer"
+                    title="Gera uma folha A4 pronta para imprimir com o resumo das aulas desta semana"
+                    className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-[11px] transition-all cursor-pointer"
                   >
-                    🖨️ Folha de Véspera A4
+                    🖨️ Baixar Resumo p/ Imprimir (A4)
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setShowCognitiveRadar((prev) => !prev)}
-                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] transition-all cursor-pointer"
                   >
-                    {showCognitiveRadar ? "Ocultar Diagnóstico ▴" : "Ver Diagnóstico ▾"}
+                    {showCognitiveRadar ? "Fechar Dicas ▴" : "Ver Dicas Personalizadas ▾"}
                   </button>
                 </div>
               </div>
 
               {showCognitiveRadar && (
                 <div className="p-4 border-t border-slate-800 bg-slate-950/90 grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {/* Card 1: DNA de Pegadinha */}
+                  {/* Card 1: O que você mais erra */}
                   <div className="p-3.5 rounded-xl bg-slate-900/70 border border-rose-500/25 flex flex-col justify-between gap-2.5">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-mono font-bold uppercase text-rose-400">
-                          🕵️‍♂️ Seu DNA de Pegadinha
+                          🕵️‍♂️ Onde a Banca Mais Te Derruba
                         </span>
                         <span className="text-[10px] font-mono font-bold text-rose-300">
-                          {trapDnaProfile.incidencePct}% dos deslizes
+                          {trapDnaProfile.incidencePct}% dos seus erros
                         </span>
                       </div>
                       <h4 className="text-xs font-extrabold text-white">
@@ -1524,40 +1592,39 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                         {trapDnaProfile.diagnosis}
                       </p>
                       <div className="p-2 rounded-lg bg-amber-950/25 border border-amber-500/20 text-[11px] text-amber-200">
-                        💉 {trapDnaProfile.vaccineTrigger}
+                        💡 {trapDnaProfile.vaccineTrigger}
                       </div>
                     </div>
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-[10px] font-mono text-slate-400">
-                        Foco: <strong className="text-slate-200">{trapDnaProfile.targetSubject}</strong>
+                        Matéria: <strong className="text-slate-200">{trapDnaProfile.targetSubject}</strong>
                       </span>
                       <Link
                         href={`/simulado?banca=${encodeURIComponent(trail.banca || "CEBRASPE")}&topic=${encodeURIComponent(trapDnaProfile.targetSubject)}&difficulty=HARD`}
                         className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-extrabold transition-all"
                       >
-                        💉 Aplicar Vacina (5 Questões)
+                        Treinar 5 Questões Deste Tema →
                       </Link>
                     </div>
                   </div>
 
-                  {/* Card 2: Alarme de Memória Esfriando */}
+                  {/* Card 2: Aula antiga para não esquecer */}
                   {coolingMemoryLesson && (
                     <div className="p-3.5 rounded-xl bg-slate-900/70 border border-cyan-500/25 flex flex-col justify-between gap-2.5">
                       <div className="space-y-1">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[10px] font-mono font-bold uppercase text-cyan-400">
-                            🧊 Alarme de Memória Esfriando
+                            🧊 Aula Que Você Pode Esquecer
                           </span>
                           <span className="text-[10px] font-mono font-bold text-cyan-300">
-                            Retenção: {coolingMemoryLesson.previousMasteryPct}% → {coolingMemoryLesson.currentEstimatedRetentionPct}%
+                            Estudada há {coolingMemoryLesson.daysSinceReview} dias
                           </span>
                         </div>
                         <h4 className="text-xs font-extrabold text-white line-clamp-1">
                           {coolingMemoryLesson.lesson.title}
                         </h4>
                         <p className="text-[11px] text-slate-300 leading-relaxed">
-                          Estudado há {coolingMemoryLesson.daysSinceReview} dias em{" "}
-                          <strong>{coolingMemoryLesson.subjectName}</strong>. Faça o resgate de 60 segundos (Resumo + 1 Questão) para evitar esquecimento.
+                          Você já estudou este assunto de <strong>{coolingMemoryLesson.subjectName}</strong>. Clique abaixo para ler um resumo de 1 minuto e não esquecer até o dia da prova.
                         </p>
                       </div>
                       <div className="flex items-center justify-end pt-1">
@@ -1569,7 +1636,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                           }}
                           className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-extrabold text-[11px] transition-all cursor-pointer"
                         >
-                          ⚡ Fazer Resgate Relâmpago (1 min)
+                          ⚡ Ler Resumo de 1 Minuto
                         </button>
                       </div>
                     </div>
@@ -1833,31 +1900,12 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                       )
                     }
                     className="bg-slate-950/90 px-2.5 py-1.5 text-[11px] font-bold text-indigo-200 focus:outline-none cursor-pointer"
-                    title="Achou fácil demais? Suba o nível da aula e das questões para Padrão ou Hardcore!"
+                    title="Escolha se prefere uma explicação mais fácil ou mais aprofundada"
                   >
-                    <option value="BEGINNER">🌱 Nível Base</option>
-                    <option value="INTERMEDIATE">⚖️ Nível Prova</option>
-                    <option value="ADVANCED">🔥 Hardcore</option>
+                    <option value="BEGINNER">🌱 Explicação Fácil</option>
+                    <option value="INTERMEDIATE">⚖️ Nível da Prova</option>
+                    <option value="ADVANCED">🔥 Aprofundado</option>
                   </select>
-                  <button
-                    onClick={() =>
-                      handleSyncOrGenerateLessonTheory(
-                        false,
-                        (activeLesson?.level as "BEGINNER" | "INTERMEDIATE" | "ADVANCED") ||
-                          "ADVANCED",
-                      )
-                    }
-                    disabled={isSyncingAITheory}
-                    className="px-3 py-1.5 hover:bg-indigo-500/25 border-l border-indigo-500/30 text-indigo-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
-                    title="Busca no Cache Semântico Global (0 tokens) ou aprofunda a aula neste nível de dificuldade"
-                  >
-                    {isSyncingAITheory ? (
-                      <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                    )}
-                    <span>{isSyncingAITheory ? "Ajustando..." : "Sincronizar"}</span>
-                  </button>
                 </div>
 
                 <button
@@ -1866,13 +1914,13 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                   title="Imprimir ou Salvar PDF A4 desta aula com suas anotações"
                 >
                   <Printer className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Apostila A4</span>
+                  <span>Imprimir Aula</span>
                 </button>
 
                 <button
                   onClick={() => setPomodoroRunning((r) => !r)}
                   className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/40 flex items-center gap-1.5 text-xs font-mono text-slate-300 cursor-pointer"
-                  title="Clique para iniciar/pausar seu Pomodoro de estudo"
+                  title="Clique para iniciar/pausar seu cronômetro de estudo"
                 >
                   {pomodoroRunning ? (
                     <Pause className="w-3.5 h-3.5 text-amber-400" />
@@ -1905,36 +1953,25 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                   <span className="px-2.5 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[10px] font-mono font-bold uppercase">
                     {activeTheoryData.bancaTag}
                   </span>
-                  {activeTheoryData.canonicalKey && (
-                    <span
-                      className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[10px] font-mono font-bold"
-                      title="Identificador Canônico que permite reutilizar esta teoria entre diferentes editais e usuários com tópicos equivalentes"
-                    >
-                      🔗 Índice Canônico: {activeTheoryData.canonicalKey}
-                    </span>
-                  )}
                   {activeLesson.topic && (
                     <Link
                       href={`/mapas-mentais`}
                       className="px-2.5 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/30 text-purple-300 text-[10px] font-mono font-bold hover:bg-purple-500/20 transition-colors"
                     >
-                      🧠 Abrir Mapa Mental do Tópico
+                      🧠 Ver Mapa Mental
                     </Link>
                   )}
 
-                  {/* 🛡️ CURADORIA DO CACHE SEMÂNTICO (👍 / 👎 Recriar com IA) */}
+                  {/* Feedback Simples para o Aluno */}
                   <div className="ml-auto inline-flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() =>
-                        showToast(
-                          "👍 Curadoria registrada! Esta aula continuará priorizada no Acervo Semântico.",
-                        )
+                        showToast("👍 Que ótimo! Vamos manter esse estilo de explicação para você.")
                       }
                       className="px-2 py-0.5 rounded-md bg-slate-900 hover:bg-emerald-950/50 border border-slate-700 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-300 text-[10px] font-bold transition-colors cursor-pointer"
-                      title="Aprovar didática desta aula no Acervo Semântico"
                     >
-                      👍 Boa Didática
+                      👍 Gostei da Explicação
                     </button>
                     <button
                       type="button"
@@ -1943,13 +1980,13 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                         handleSyncOrGenerateLessonTheory(
                           true,
                           (activeLesson?.level as "BEGINNER" | "INTERMEDIATE" | "ADVANCED") ||
-                            "ADVANCED",
+                            "INTERMEDIATE",
                         )
                       }
                       className="px-2.5 py-0.5 rounded-md bg-slate-900 hover:bg-amber-950/50 border border-slate-700 hover:border-amber-500/40 text-amber-300 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
-                      title="Não gostou da abordagem ou quer exemplos novos? Ignora o cache e recria esta aula do zero com IA (atualizando o banco)"
+                      title="Não entendeu bem? Clique para gerar uma nova explicação com outros exemplos"
                     >
-                      {isSyncingAITheory ? "🔄 Recriando..." : "🔄 Nova Abordagem IA"}
+                      {isSyncingAITheory ? "🔄 Criando nova explicação..." : "🔄 Explicar de Outro Jeito"}
                     </button>
                   </div>
                 </div>

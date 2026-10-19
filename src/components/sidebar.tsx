@@ -89,9 +89,9 @@ const NAV_GROUPS: NavGroup[] = [
     id: "planejamento",
     label: "Planejamento",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Trilhas & Cursos", href: "/trilhas", icon: Compass, badge: "IA" },
-      { label: "Edital Verticalizado", href: "/edital", icon: FileSpreadsheet },
+      { label: "Início (Meu Dia)", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Trilhas & Aulas", href: "/trilhas", icon: Compass, badge: "IA" },
+      { label: "Meu Edital", href: "/edital", icon: FileSpreadsheet },
       { label: "Cronograma Semanal", href: "/week", icon: Sparkles },
     ],
   },
@@ -106,7 +106,7 @@ const NAV_GROUPS: NavGroup[] = [
         icon: PenTool,
         badge: "IA",
       },
-      { label: "Flashcards FSRS", href: "/flashcards", icon: Layers },
+      { label: "Flashcards (Memória)", href: "/flashcards", icon: Layers },
       {
         label: "Caderno de Erros",
         href: "/notebook",
@@ -137,12 +137,12 @@ const NAV_GROUPS: NavGroup[] = [
     id: "evolucao",
     label: "Evolução & Ligas",
     items: [
-      { label: "Performance", href: "/performance", icon: TrendingUp },
+      { label: "Meu Desempenho", href: "/performance", icon: TrendingUp },
       {
         label: "Ligas Semanais",
         href: "/leaderboard",
         icon: Trophy,
-        badge: "D30",
+        badge: "RANK",
         isSpecial: true,
       },
       {
