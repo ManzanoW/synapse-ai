@@ -123,7 +123,7 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <span>Trilha do Aprovado: Missão de Hoje</span>
+                <span>Sua Missão de Hoje (Passo a Passo)</span>
               </h2>
               <span
                 className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase font-mono ${
@@ -144,14 +144,14 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
           <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/60 px-3 py-1.5 text-xs font-mono text-slate-700 dark:text-slate-300">
             <Clock size={13} className="text-indigo-500 dark:text-indigo-400" />
-            <span>~{totalMinutes} min de foco</span>
+            <span>~{totalMinutes} min no total</span>
           </div>
 
           <button
             type="button"
             onClick={() => setIsMinimized(!isMinimized)}
             className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/50 p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
-            title={isMinimized ? "Expandir Trilha" : "Minimizar Trilha"}
+            title={isMinimized ? "Expandir Missão" : "Minimizar Missão"}
           >
             {isMinimized ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
           </button>
@@ -166,7 +166,7 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
               size={13}
               className={allCompleted ? "text-orange-500 fill-orange-500" : "text-amber-500"}
             />
-            <span>Progresso da Meta Diária</span>
+            <span>Progresso de Hoje</span>
           </span>
           <span className="font-bold text-slate-800 dark:text-slate-200">{progressPercent}%</span>
         </div>
@@ -197,6 +197,7 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
             {/* ETAPAS DA SESSÃO */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {steps.map((step, idx) => {
+                const isNextStep = !allCompleted && nextPendingStep?.id === step.id;
                 const stepIcons = [
                   <Layers
                     key="f"
@@ -215,39 +216,51 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
                   />,
                 ];
                 const stepLabels = [
-                  "1. Blindagem de Memória",
-                  "2. Treino Focado",
-                  "3. Cura de Pontos Cegos",
+                  "1. Revisar Cartões de Memória",
+                  "2. Fazer Questões do Dia",
+                  "3. Rever Assuntos que Errei",
                 ];
 
                 return (
                   <Link
                     key={step.id}
                     href={step.actionUrl}
-                    className={`group flex flex-col justify-between rounded-xl border p-3.5 transition-all active:scale-[0.99] ${
+                    className={`group relative flex flex-col justify-between rounded-xl border p-3.5 transition-all active:scale-[0.99] ${
                       step.isCompleted
                         ? "border-emerald-200 bg-emerald-50/70 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-950/20 dark:hover:border-emerald-500/50 dark:hover:bg-emerald-950/30"
+                        : isNextStep
+                        ? "border-indigo-400 dark:border-indigo-500/70 bg-indigo-50/40 dark:bg-indigo-950/30 ring-2 ring-indigo-500/30 shadow-md hover:border-indigo-500"
                         : "border-slate-200 bg-slate-50/80 hover:border-indigo-300 hover:bg-white shadow-2xs hover:shadow-sm dark:border-slate-800/80 dark:bg-slate-950/50 dark:hover:border-indigo-500/50 dark:hover:bg-slate-900/60"
                     } hover:shadow-lg`}
                   >
                     <div>
-                      <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 mb-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 mb-1.5 gap-1">
                         <span
                           className={`font-semibold flex items-center gap-1 ${
-                            step.isCompleted ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"
+                            step.isCompleted
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : isNextStep
+                              ? "text-indigo-700 dark:text-indigo-300 font-bold"
+                              : "text-slate-600 dark:text-slate-400"
                           }`}
                         >
                           {step.isCompleted && <Check size={12} strokeWidth={3} />}
                           <span>{stepLabels[idx]}</span>
                         </span>
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded border ${
+                          className={`text-[10px] px-2 py-0.5 rounded border shrink-0 ${
                             step.isCompleted
                               ? "bg-emerald-100 border-emerald-200 text-emerald-800 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300 font-bold"
+                              : isNextStep
+                              ? "bg-indigo-600 border-indigo-500 text-white font-bold shadow-2xs"
                               : "bg-slate-200/60 border-slate-300/40 text-slate-600 dark:bg-white/5 dark:border-white/5 dark:text-slate-400"
                           }`}
                         >
-                          {step.isCompleted ? "Feito" : `${step.durationMinutes} min`}
+                          {step.isCompleted
+                            ? "Feito ✓"
+                            : isNextStep
+                            ? "👉 Comece aqui"
+                            : `${step.durationMinutes} min`}
                         </span>
                       </div>
 
@@ -287,13 +300,15 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
                         {step.badge}
                       </span>
                       <span
-                        className={`flex items-center gap-1 font-semibold transition-colors ${
+                        className={`flex items-center gap-1 font-bold transition-colors ${
                           step.isCompleted
                             ? "text-emerald-600 dark:text-emerald-300"
+                            : isNextStep
+                            ? "text-indigo-600 dark:text-indigo-300"
                             : "text-slate-500 group-hover:text-indigo-600 dark:text-slate-400 dark:group-hover:text-indigo-300"
                         }`}
                       >
-                        {step.isCompleted ? "Revisar" : "Iniciar"}{" "}
+                        {step.isCompleted ? "Revisar" : "Abrir agora"}{" "}
                         <ArrowRight
                           size={12}
                           className="group-hover:translate-x-0.5 transition-transform"
@@ -311,8 +326,8 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
                 <Sparkles size={14} className="text-amber-500 dark:text-amber-400" />
                 <span>
                   {allCompleted
-                    ? "Meta do dia concluída com maestria! O algoritmo FSRS e o Caderno foram calibrados."
-                    : "Complete as 3 etapas ou estude sua próxima aula guiada na Trilha (+150 XP)."}
+                    ? "Parabéns! Você concluiu todas as tarefas recomendadas para hoje."
+                    : "Siga os 3 passos acima na ordem ou leia a aula teórica do dia (+150 XP)."}
                 </span>
               </div>
 
@@ -322,7 +337,7 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 px-3.5 py-2.5 text-xs font-bold text-amber-700 dark:text-amber-300 transition-all active:scale-95 cursor-pointer"
                 >
                   <BookOpen size={14} />
-                  <span>📖 Aula da Trilha & Teoria</span>
+                  <span>📖 Ler Aula do Dia</span>
                 </Link>
 
                 {allCompleted ? (
@@ -359,7 +374,7 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer"
                   >
                     <Play size={14} className="fill-white" />
-                    <span>Continuar Trilha: {nextPendingStep.title.split(":")[0]}</span>
+                    <span>Começar Agora: {nextPendingStep.title.split(":")[0]}</span>
                   </Link>
                 )}
               </div>
