@@ -1063,10 +1063,10 @@ export default function StudyFlashcard({
                       Resposta
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className={`text-[11px] font-mono tracking-wider ${
+                      <span className={`text-[11px] font-medium ${
                         isLight ? "text-emerald-700 font-semibold" : "text-emerald-400/80"
                       }`}>
-                        FSRS • S: {currentCard?.stability ? `${currentCard.stability.toFixed(1)}d` : "1d"}
+                        ✓ Resposta revelada
                       </span>
                     </div>
                   </div>
@@ -1127,16 +1127,16 @@ export default function StudyFlashcard({
                     )}
                   </div>
 
-                  <span className={`text-[9px] sm:text-[10px] uppercase tracking-widest font-bold ${
-                    isLight ? "text-slate-500" : "text-slate-400"
+                  <span className={`text-[10px] sm:text-xs font-bold ${
+                    isLight ? "text-slate-600" : "text-slate-300"
                   }`}>
-                    Classifique sua facilidade
+                    👇 Você lembrou da resposta? Escolha abaixo para agendarmos a próxima revisão:
                   </span>
                 </div>
               </div>
             </motion.div>
 
-            {/* BOTÕES DE FSRS COM ERGONOMIA ESTILO ANKI E ALTO CONTRASTE */}
+            {/* BOTÕES DE RESPOSTA AUTOEXPLICATIVOS PARA QUALQUER ALUNO */}
             <div
               className={`grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 transition-all duration-300 ${
                 isFlipped
@@ -1146,8 +1146,8 @@ export default function StudyFlashcard({
             >
               {[
                 {
-                  label: "ERREI",
-                  sublabel: "Again",
+                  label: "Não lembrei",
+                  sublabel: "Rever logo",
                   grade: 1 as ReviewGrade,
                   key: "1",
                   icon: RotateCcw,
@@ -1163,8 +1163,8 @@ export default function StudyFlashcard({
                     : "bg-slate-950/80 text-rose-200 border-rose-500/30",
                 },
                 {
-                  label: "DIFÍCIL",
-                  sublabel: "Hard",
+                  label: "Com esforço",
+                  sublabel: "Quase esqueci",
                   grade: 2 as ReviewGrade,
                   key: "2",
                   icon: AlertCircle,
@@ -1180,8 +1180,8 @@ export default function StudyFlashcard({
                     : "bg-slate-950/80 text-amber-200 border-amber-500/30",
                 },
                 {
-                  label: "BOM",
-                  sublabel: "Good",
+                  label: "Lembrei bem",
+                  sublabel: "Acertou",
                   grade: 3 as ReviewGrade,
                   key: "3 • Espaço",
                   icon: Check,
@@ -1197,8 +1197,8 @@ export default function StudyFlashcard({
                     : "bg-slate-950/80 text-emerald-200 border-emerald-500/30 font-semibold",
                 },
                 {
-                  label: "FÁCIL",
-                  sublabel: "Easy",
+                  label: "Muito fácil",
+                  sublabel: "Já domino",
                   grade: 4 as ReviewGrade,
                   key: "4",
                   icon: Zap,
@@ -1219,12 +1219,12 @@ export default function StudyFlashcard({
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.96 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  aria-label={`Classificar como ${btn.label} (${btn.sublabel}): intervalo previsto ${btn.interval} (Atalho ${btn.key})`}
+                  aria-label={`Classificar como ${btn.label} (${btn.sublabel}): rever em ${btn.interval}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAnswer(btn.grade);
                   }}
-                  className={`group relative min-h-[58px] flex flex-col items-center justify-center gap-1 py-3 px-2 sm:py-3.5 sm:px-3 rounded-2xl border transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
+                  className={`group relative min-h-[64px] flex flex-col items-center justify-center gap-1 py-3 px-2 sm:py-3.5 sm:px-3 rounded-2xl border transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                     isLight ? "bg-white" : "bg-gradient-to-b backdrop-blur-xl"
                   } ${btn.style}`}
                 >
@@ -1237,15 +1237,15 @@ export default function StudyFlashcard({
                     className="group-hover:scale-110 transition-transform my-0.5"
                   />
 
-                  <span className="font-black text-[11px] sm:text-xs tracking-wider">
+                  <span className="font-black text-xs sm:text-sm tracking-tight">
                     {btn.label}
                   </span>
 
-                  {/* Projeção Visual do Próximo Intervalo */}
+                  {/* Projeção Visual Clara do Próximo Intervalo */}
                   <div
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold tracking-tight mt-0.5 ${btn.badgeStyle}`}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold tracking-tight mt-0.5 ${btn.badgeStyle}`}
                   >
-                    <span>{btn.interval}</span>
+                    <span>Rever em {btn.interval}</span>
                   </div>
                 </motion.button>
               ))}

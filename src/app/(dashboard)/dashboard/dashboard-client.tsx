@@ -189,7 +189,7 @@ export const DEFAULT_FULL_CARDS: DashboardCardVisibility = {
 export const DEFAULT_MINIMAL_CARDS: DashboardCardVisibility = {
   heroJourney: true,
   quickActions: true,
-  dailyQuests: true,
+  dailyQuests: false,
   keyMetrics: false,
   radarDomain: false,
   aiSuggestions: false,
@@ -253,11 +253,12 @@ export default function DashboardClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modo de Exibição do Dashboard (Minimalista vs Prática vs Completo vs Personalizado)
-  const [dashboardMode, setDashboardMode] = useState<"full" | "minimal" | "practice" | "custom">("full");
-  const [visibleCards, setVisibleCards] = useState<DashboardCardVisibility>(DEFAULT_FULL_CARDS);
+  // Modo de Exibição do Dashboard (Minimalista como padrão para evitar sobrecarga visual)
+  const [dashboardMode, setDashboardMode] = useState<"full" | "minimal" | "practice" | "custom">("minimal");
+  const [visibleCards, setVisibleCards] = useState<DashboardCardVisibility>(DEFAULT_MINIMAL_CARDS);
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
+  const [showHeaderExtras, setShowHeaderExtras] = useState(false);
 
   // Carrega preferências salvas e exibe Welcome Quiz no 1º acesso ou sob demanda via query params
   useEffect(() => {
@@ -280,9 +281,9 @@ export default function DashboardClient({
 
       const savedMode = localStorage.getItem("synapse_dashboard_mode") as "full" | "minimal" | "practice" | "custom" | null;
       const savedCards = localStorage.getItem("synapse_dashboard_cards");
-      if (savedMode === "minimal") {
-        setDashboardMode("minimal");
-        setVisibleCards(DEFAULT_MINIMAL_CARDS);
+      if (savedMode === "full") {
+        setDashboardMode("full");
+        setVisibleCards(DEFAULT_FULL_CARDS);
       } else if (savedMode === "practice") {
         setDashboardMode("practice");
         setVisibleCards(DEFAULT_PRACTICE_CARDS);
@@ -290,8 +291,8 @@ export default function DashboardClient({
         setDashboardMode("custom");
         setVisibleCards({ ...DEFAULT_FULL_CARDS, ...JSON.parse(savedCards) });
       } else {
-        setDashboardMode("full");
-        setVisibleCards(DEFAULT_FULL_CARDS);
+        setDashboardMode("minimal");
+        setVisibleCards(DEFAULT_MINIMAL_CARDS);
       }
     } catch {}
   }, []);
@@ -685,20 +686,21 @@ export default function DashboardClient({
 
             <div>
               <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Dashboard
+                Meu Estudo de Hoje
               </h1>
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                 Bem-vindo de volta,{" "}
                 <strong className="font-bold text-slate-800 dark:text-slate-200">
                   {user.name || "Estudante"}
                 </strong>
+                {" "}— veja por onde começar hoje sem complicação.
               </p>
             </div>
           </div>
 
-          {/* Ações e Controles Superiores do Dashboard */}
+          {/* Ações e Controles Superiores do Dashboard (Enxutos por padrão) */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Seletor de Modo: Segmented Control estilo Apple / Linear */}
+            {/* Seletor de Modo: Visão Simples vs Prática vs Completo */}
             <div className="flex items-center p-1 rounded-xl bg-slate-200/60 dark:bg-slate-900/90 border border-slate-300/60 dark:border-white/10 shadow-inner">
               <button
                 type="button"
@@ -708,10 +710,10 @@ export default function DashboardClient({
                     ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
                 }`}
-                title="Modo Foco Essencial: visão limpa com metas do dia e matérias, sem sobrecarga visual"
+                title="Visão Simples: mostra apenas sua meta de hoje e suas matérias, sem excesso de gráficos"
               >
                 <Sparkles size={12} className={dashboardMode === "minimal" ? "text-amber-500" : "text-slate-400"} />
-                <span>Essencial</span>
+                <span>Visão Simples</span>
               </button>
 
               <button
@@ -722,7 +724,7 @@ export default function DashboardClient({
                     ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
                 }`}
-                title="Modo Prática: foco em simulados, flashcards e metas diárias"
+                title="Modo Prática: foco em questões, flashcards e revisão"
               >
                 <Target size={12} className={dashboardMode === "practice" ? "text-indigo-500" : "text-slate-400"} />
                 <span>Prática</span>
@@ -736,125 +738,162 @@ export default function DashboardClient({
                     ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
                 }`}
-                title="Modo Completo: cockpit analítico com todos os indicadores, predição de aprovação e métricas neurais"
+                title="Painel Completo: mostra todos os gráficos, radar de matérias, ofensiva e ligas"
               >
                 <Layers size={12} className={dashboardMode === "full" ? "text-cyan-500" : "text-slate-400"} />
                 <span>Completo</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => setIsCustomizeModalOpen(true)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
-                  dashboardMode === "custom"
-                    ? "bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs font-bold"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium"
-                }`}
-                title="Personalizar cards exibidos na tela"
-              >
-                <SlidersHorizontal size={12} />
-                <span className="hidden sm:inline">Personalizar</span>
-              </button>
             </div>
 
-            {/* Botão de Perfil */}
-            <button
-              type="button"
-              onClick={() => setIsWelcomeQuizOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200/80 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl transition-all hover:border-slate-300 dark:hover:border-white/20 active:scale-95 shadow-2xs"
-              title="Ajustar perfil de estudos e tempo diário"
-            >
-              <Sparkles size={13} className="text-amber-500 dark:text-amber-400" />
-              <span className="hidden sm:inline">Meu Perfil</span>
-            </button>
-
-            {/* Botão de Tour */}
+            {/* Botão Como Funciona (Tour) */}
             <button
               type="button"
               onClick={() => setIsTutorialOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition-all active:scale-95 relative"
-              title="Iniciar tour guiado pela plataforma"
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition-all active:scale-95 relative"
+              title="Entenda passo a passo como usar a plataforma"
             >
-              <Compass size={14} className="text-indigo-600 dark:text-indigo-400 animate-spin-slow" />
-              <span className="hidden sm:inline">Tour</span>
+              <HelpCircle size={14} className="text-indigo-600 dark:text-indigo-400" />
+              <span>Como funciona?</span>
               {!hasCompletedTutorial && (
                 <span className="w-2 h-2 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-ping absolute -top-0.5 -right-0.5" />
               )}
             </button>
 
-            {/* Modo Zen */}
-            <button
-              onClick={() => setIsZenModeOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200/80 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl transition-all hover:border-slate-300 dark:hover:border-white/20 active:scale-95 shadow-2xs"
-              title="Tela cheia minimalista para estudo focado"
-            >
-              <Maximize2 size={13} className="text-violet-600 dark:text-violet-400" />
-              <span className="hidden sm:inline">Modo Zen</span>
-            </button>
-
-            {/* Boletim Semanal */}
+            {/* Botão Mais Opções (Evita 9 botões abertos de uma vez) */}
             <button
               type="button"
-              onClick={() => setIsWeeklyReportOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/80 hover:bg-indigo-100/90 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 px-3 py-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 backdrop-blur-xl transition-all hover:border-indigo-300 dark:hover:border-indigo-500/40 active:scale-95 shadow-2xs"
-              title="Visualizar e compartilhar meu Boletim Semanal de Estudos"
+              onClick={() => setShowHeaderExtras((prev) => !prev)}
+              className={`cursor-pointer inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all active:scale-95 ${
+                showHeaderExtras
+                  ? "border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
+                  : "border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200/80 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300"
+              }`}
+              title="Mais ferramentas (Meu Perfil, Modo Zen, Boletim Semanal, Personalizar)"
             >
-              <Trophy size={13} className="text-indigo-600 dark:text-indigo-400" />
-              <span className="hidden sm:inline">Boletim Semanal</span>
+              <Settings2 size={13} />
+              <span className="hidden sm:inline">Mais opções</span>
+              {showHeaderExtras ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             </button>
-
-            {/* Iniciar Estudos (Pacificado: visual clean para não concorrer com a Trilha do Dia) */}
-            <Link
-              href={getHref(!isLoading && hasEditalSubjects ? "/flashcards" : "/edital")}
-              className="w-full sm:w-auto justify-center flex cursor-pointer items-center gap-2 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:hover:bg-indigo-500/25 dark:text-indigo-300 px-3.5 py-2 text-xs font-bold transition-all active:scale-95 shadow-2xs"
-            >
-              <Zap size={14} className="fill-indigo-600 dark:fill-indigo-400 text-indigo-600 dark:text-indigo-400" />
-              <span>
-                {isLoading
-                  ? "Carregando..."
-                  : hasEditalSubjects
-                    ? "Iniciar Estudos"
-                    : "Configurar Edital"}
-              </span>
-            </Link>
           </div>
         </div>
 
-        {/* ================= ATALHOS RÁPIDOS (2x2 no mobile, 5 colunas no desktop) ================= */}
+        {/* Barra Secundária Colapsável (Só aparece quando o usuário clica em "Mais opções") */}
+        {showHeaderExtras && (
+          <div className="flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/90 dark:bg-slate-900/60 p-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+            <button
+              type="button"
+              onClick={() => setIsWelcomeQuizOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
+            >
+              <Sparkles size={13} className="text-amber-500" />
+              <span>Ajustar Meu Perfil & Horas</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsZenModeOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
+            >
+              <Maximize2 size={13} className="text-violet-600 dark:text-violet-400" />
+              <span>Timer Modo Zen</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsWeeklyReportOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
+            >
+              <Trophy size={13} className="text-indigo-600 dark:text-indigo-400" />
+              <span>Boletim da Semana</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsCustomizeModalOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
+            >
+              <SlidersHorizontal size={13} className="text-cyan-600 dark:text-cyan-400" />
+              <span>Escolher Cards da Tela</span>
+            </button>
+          </div>
+        )}
+
+        {/* ================= #1 PRIORIDADE MÁXIMA: SESSÃO RECOMENDADA DE HOJE (DAILY FLOW 1-CLIQUE) ================= */}
+        {!isLoading && (
+          <DailyFlowCard flowData={initialDailyFlow || null} />
+        )}
+
+        {/* ================= WIDGET DE REVISÃO PENDENTE HOJE (Apenas se não houver Daily Flow ativo) ================= */}
+        {!isLoading &&
+          !initialDailyFlow?.hasActivity &&
+          (stats?.metrics?.dueFlashcards ?? 0) > 0 && (
+            <FsrsReviewWidget
+              dueCount={stats?.metrics?.dueFlashcards ?? 0}
+              totalCount={stats?.metrics?.totalFlashcards ?? 0}
+              isLoading={isLoading}
+            />
+          )}
+
+        {/* ================= PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS PARA NOVOS ALUNOS) ================= */}
+        {!isLoading && (
+          <FirstStepsChecklistCard
+            hasEditalSubjects={hasEditalSubjects}
+            sessionsCount={stats?.metrics?.sessionsCount ?? 0}
+            questionsCount={stats?.metrics?.questionsCount ?? 0}
+            getHref={getHref}
+          />
+        )}
+
+        {/* BANNER DE REMANEJAMENTO */}
+        {!isLoading &&
+          missedDayName &&
+          (stats?.journey?.completedTopics ?? 0) > 0 && (
+            <RescheduleBanner
+              missedDayName={missedDayName}
+              userId={user.id}
+              onActionCompleted={() => {
+                setMissedDayName(null);
+                loadDashboardData();
+              }}
+            />
+          )}
+
+        {/* ================= ATALHOS RÁPIDOS (Linguagem simples e direta) ================= */}
         {visibleCards.quickActions && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
             {[
               {
-                title: "Resolver Questões",
+                title: "Aulas da Semana",
+                icon: Compass,
+                color: "text-emerald-500 dark:text-emerald-400",
+                href: "/trilhas",
+                badge: "Passo a Passo",
+              },
+              {
+                title: "Fazer Questões",
                 icon: HelpCircle,
                 color: "text-amber-500 dark:text-amber-400",
                 href: "/questions",
               },
               {
-                title: "Scanner OCR",
-                icon: Camera,
-                color: "text-rose-500 dark:text-rose-400",
-                href: "/questions?scan=true",
-                badge: "IA",
-              },
-              {
-                title: "Praticar Cards",
+                title: "Revisar Cartões",
                 icon: Layers,
                 color: "text-indigo-500 dark:text-indigo-400",
                 href: "/flashcards",
               },
               {
-                title: "Edital Verticalizado",
+                title: "Meu Edital",
                 icon: BookOpen,
                 color: "text-cyan-500 dark:text-cyan-400",
                 href: "/edital",
-                badge: !isLoading && !hasEditalSubjects ? "Passo 1" : undefined,
+                badge: !isLoading && !hasEditalSubjects ? "Comece Aqui" : undefined,
               },
               {
-                title: "Hall de Conquistas",
-                icon: Trophy,
-                color: "text-emerald-500 dark:text-emerald-400",
-                href: "/achievements",
+                title: "Foto de Questão",
+                icon: Camera,
+                color: "text-rose-500 dark:text-rose-400",
+                href: "/questions?scan=true",
+                badge: "IA",
               },
             ].map((item, idx) => {
               const Icon = item.icon;
@@ -883,21 +922,7 @@ export default function DashboardClient({
           </div>
         )}
 
-        {/* BANNER DE REMANEJAMENTO */}
-        {!isLoading &&
-          missedDayName &&
-          (stats?.journey?.completedTopics ?? 0) > 0 && (
-            <RescheduleBanner
-              missedDayName={missedDayName}
-              userId={user.id}
-              onActionCompleted={() => {
-                setMissedDayName(null);
-                loadDashboardData();
-              }}
-            />
-          )}
-
-        {/* ================= 2. BANNER HERO DE JORNADA ================= */}
+        {/* ================= 2. BANNER RESUMO DA JORNADA ================= */}
         {visibleCards.heroJourney && (
           <section className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
             <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
@@ -941,7 +966,7 @@ export default function DashboardClient({
                 </span>
               )}
               <span className="text-[9px] text-slate-400 dark:text-slate-500 block">
-                tópicos/sem
+                assuntos/sem
               </span>
             </div>
 
@@ -965,7 +990,7 @@ export default function DashboardClient({
             <div className="flex flex-col justify-between space-y-4 pr-8">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Tempo Restante
+                  Tempo até a Prova
                 </span>
                 <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-2 text-indigo-600 dark:text-indigo-400">
                   <Target size={18} />
@@ -988,13 +1013,13 @@ export default function DashboardClient({
                   ) : (
                     <div className="space-y-1">
                       <span className="font-sans text-sm font-bold text-slate-800 dark:text-slate-200 block">
-                        Data não definida
+                        Sem data marcada
                       </span>
                       <Link
                         href={getHref("/profile")}
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors"
                       >
-                        <span>Definir data do concurso</span>
+                        <span>Informar data da prova (opcional)</span>
                         <ArrowUpRight size={12} />
                       </Link>
                     </div>
@@ -1010,7 +1035,7 @@ export default function DashboardClient({
                   <strong className="font-mono text-slate-800 dark:text-slate-200">
                     {stats?.journey?.hasObjective && (stats.journey.weeksRemaining ?? 0) > 0
                       ? `${stats.journey.weeksRemaining} sem`
-                      : "—"}
+                      : "Livre"}
                   </strong>
                 )}
               </div>
@@ -1021,7 +1046,7 @@ export default function DashboardClient({
             <div className="flex flex-col justify-between space-y-4 px-8">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400/90">
-                  Ritmo Sugerido
+                  Ritmo Recomendado
                 </span>
                 <div className="rounded-xl border border-amber-300 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-2 text-amber-600 dark:text-amber-400">
                   <Zap size={18} className="fill-amber-500/20" />
@@ -1038,16 +1063,16 @@ export default function DashboardClient({
                         {stats.journey.topicsPerWeek}
                       </span>
                       <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                        tópicos / sem
+                        assuntos / semana
                       </span>
                     </>
                   ) : (
                     <div className="space-y-1">
                       <span className="font-sans text-sm font-bold text-amber-700 dark:text-amber-300/90 block">
-                        Calibrando Ritmo
+                        No seu próprio ritmo
                       </span>
                       <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                        {hasEditalSubjects ? "Defina data para meta semanal" : "Aguardando matérias"}
+                        {hasEditalSubjects ? "Avance pelas aulas da semana" : "Escolha um edital para começar"}
                       </span>
                     </div>
                   )}
@@ -1055,7 +1080,7 @@ export default function DashboardClient({
               </div>
 
               <div className="flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-3 text-xs text-slate-500 dark:text-slate-400">
-                <span>Ritmo atual:</span>
+                <span>Seu ritmo atual:</span>
                 {isLoading ? (
                   <div className="h-4 w-16 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
                 ) : (
@@ -1096,7 +1121,7 @@ export default function DashboardClient({
                       <strong className="font-bold text-slate-900 dark:text-slate-100">
                         {stats?.journey?.completedTopics ?? 0}
                       </strong>
-                      /{stats?.journey?.totalTopics ?? 0} tópicos
+                      /{stats?.journey?.totalTopics ?? 0} assuntos
                     </span>
                   )}
                 </div>
@@ -1123,7 +1148,7 @@ export default function DashboardClient({
                 >
                   <div className="flex items-center gap-1.5">
                     <Sparkles size={13} className="text-amber-500 dark:text-amber-400" />
-                    <span>Importar com IA</span>
+                    <span>Escolher Meu Concurso</span>
                   </div>
                   <ArrowRight size={13} className="transition-transform group-hover/cta:translate-x-1" />
                 </Link>
@@ -1133,7 +1158,7 @@ export default function DashboardClient({
                   className="flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-3 text-xs text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors group/link"
                 >
                   <span className="flex items-center gap-1 font-medium">
-                    Ver Edital
+                    Abrir Meu Edital
                     <ArrowRight size={12} className="transition-transform group-hover/link:translate-x-1 text-cyan-500" />
                   </span>
                   <span className="inline-flex items-center gap-1.5 font-bold text-indigo-600 dark:text-indigo-300">
@@ -1149,33 +1174,8 @@ export default function DashboardClient({
         </section>
         )}
 
-        {/* ================= SESSÃO RECOMENDADA DE HOJE (DAILY FLOW 1-CLIQUE) ================= */}
-        {!isLoading && (
-          <DailyFlowCard flowData={initialDailyFlow || null} />
-        )}
-
-        {/* ================= WIDGET DE REVISÃO FSRS PENDENTE HOJE (Apenas se não houver Daily Flow ativo) ================= */}
-        {!isLoading &&
-          !initialDailyFlow?.hasActivity &&
-          (stats?.metrics?.dueFlashcards ?? 0) > 0 && (
-            <FsrsReviewWidget
-              dueCount={stats?.metrics?.dueFlashcards ?? 0}
-              totalCount={stats?.metrics?.totalFlashcards ?? 0}
-              isLoading={isLoading}
-            />
-          )}
-
-        {/* ================= PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS) ================= */}
-        {!isLoading && (
-          <FirstStepsChecklistCard
-            hasEditalSubjects={hasEditalSubjects}
-            sessionsCount={stats?.metrics?.sessionsCount ?? 0}
-            questionsCount={stats?.metrics?.questionsCount ?? 0}
-            getHref={getHref}
-          />
-        )}
-
-        {/* ================= 4. SELETOR DE ABAS E CONTEÚDO EXCLUSIVO MOBILE ================= */}
+        {/* ================= 4. SELETOR DE ABAS E CONTEÚDO EXCLUSIVO MOBILE (Apenas fora da Visão Simples) ================= */}
+        {dashboardMode !== "minimal" && (
         <div className="block md:hidden space-y-4">
           <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-white/[0.08] rounded-2xl shadow-xs">
             <button
@@ -1343,6 +1343,7 @@ export default function DashboardClient({
             />
           )}
         </div>
+        )}
 
         {/* ================= 5. CONTEÚDO PRINCIPAL (DESKTOP) ================= */}
         {dashboardMode === "practice" ? (
@@ -1939,51 +1940,88 @@ export default function DashboardClient({
           </div>
         )}
 
-        {/* LIGAS SEMANAIS NO MOBILE */}
-        <div className="block md:hidden">
-          <LeagueWidgetCard />
-        </div>
-
-        {/* SALA DE FOCO NO MOBILE */}
-        <div className="block md:hidden rounded-3xl border border-indigo-200 dark:border-indigo-500/20 bg-linear-to-br from-indigo-50/70 via-white to-purple-50/60 dark:from-indigo-950/40 dark:via-slate-950/70 dark:to-purple-950/30 p-4 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-300 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
-                <Headphones size={16} />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">Sala de Foco</h4>
-                  <span className="rounded-full border border-violet-300 bg-violet-100 text-violet-800 dark:border-violet-500/30 dark:bg-violet-500/15 px-1 py-0.2 font-mono text-[8px] font-bold dark:text-violet-300">ZEN</span>
-                </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Sons binaurais & Pomodoro</p>
-              </div>
+        {/* BANNER DE REVELAÇÃO PROGRESSIVA: Alternar entre Visão Simples e Painel Completo */}
+        {dashboardMode === "minimal" ? (
+          <div className="rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-slate-50/80 dark:bg-slate-900/40 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers size={16} className="text-indigo-600 dark:text-indigo-400" />
+                <span>Quer ver gráficos detalhados, radar de matérias e ranking?</span>
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Você está na <strong>Visão Simples</strong> (focada no que estudar hoje, sem distrações). Se quiser, pode abrir o painel completo a qualquer momento.
+              </p>
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setIsZenModeOpen(true)}
-                className="cursor-pointer inline-flex items-center gap-1 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300 active:scale-95"
-              >
-                <Maximize2 size={11} className="text-violet-600 dark:text-violet-400" />
-                <span>Zen</span>
-              </button>
-
-              <Link
-                href={getHref("/study-room")}
-                className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-500/40 bg-indigo-600/80 hover:bg-indigo-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-md active:scale-95"
-              >
-                <Headphones size={12} />
-                <span>Entrar</span>
-              </Link>
-            </div>
+            <button
+              type="button"
+              onClick={() => handleSwitchMode("full")}
+              className="w-full sm:w-auto shrink-0 cursor-pointer inline-flex items-center justify-center gap-2 rounded-2xl border border-indigo-300 dark:border-indigo-500/30 bg-white dark:bg-indigo-500/15 hover:bg-indigo-50 dark:hover:bg-indigo-500/25 px-4 py-2.5 text-xs font-extrabold text-indigo-700 dark:text-indigo-300 transition-all shadow-2xs"
+            >
+              <span>Ver Estatísticas e Painel Completo</span>
+              <ChevronDown size={14} />
+            </button>
           </div>
-        </div>
+        ) : (
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={() => handleSwitchMode("minimal")}
+              className="cursor-pointer inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/70 hover:bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all shadow-2xs"
+            >
+              <Sparkles size={14} className="text-amber-500" />
+              <span>Voltar para a Visão Simples (Sem excesso de informações)</span>
+              <ChevronUp size={14} />
+            </button>
+          </div>
+        )}
 
-        {/* HEATMAP NO MOBILE */}
-        <div className="block md:hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
-          <Heatmap />
-        </div>
+        {/* LIGAS SEMANAIS, SALA DE FOCO E HEATMAP NO MOBILE (Apenas no modo Completo/Prática) */}
+        {dashboardMode !== "minimal" && (
+          <>
+            <div className="block md:hidden">
+              <LeagueWidgetCard />
+            </div>
+
+            <div className="block md:hidden rounded-3xl border border-indigo-200 dark:border-indigo-500/20 bg-linear-to-br from-indigo-50/70 via-white to-purple-50/60 dark:from-indigo-950/40 dark:via-slate-950/70 dark:to-purple-950/30 p-4 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-300 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                    <Headphones size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">Sala de Foco</h4>
+                      <span className="rounded-full border border-violet-300 bg-violet-100 text-violet-800 dark:border-violet-500/30 dark:bg-violet-500/15 px-1 py-0.2 font-mono text-[8px] font-bold dark:text-violet-300">ZEN</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Sons para concentração & Pomodoro</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setIsZenModeOpen(true)}
+                    className="cursor-pointer inline-flex items-center gap-1 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300 active:scale-95"
+                  >
+                    <Maximize2 size={11} className="text-violet-600 dark:text-violet-400" />
+                    <span>Zen</span>
+                  </button>
+
+                  <Link
+                    href={getHref("/study-room")}
+                    className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-500/40 bg-indigo-600/80 hover:bg-indigo-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-md active:scale-95"
+                  >
+                    <Headphones size={12} />
+                    <span>Entrar</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            <div className="block md:hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+              <Heatmap />
+            </div>
+          </>
+        )}
       </div>
 
       {/* MODAL MODO ZEN */}

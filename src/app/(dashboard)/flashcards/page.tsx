@@ -137,9 +137,9 @@ export default async function FlashcardsPage() {
                   Você possui{" "}
                   <strong className="text-indigo-300 font-bold">
                     {dueCardsCount}{" "}
-                    {dueCardsCount === 1 ? "flashcard" : "flashcards"}
+                    {dueCardsCount === 1 ? "cartão" : "cartões"}
                   </strong>{" "}
-                  prontos para revisão hoje pelo algoritmo SM-2.
+                  prontos para revisar hoje e não esquecer na prova.
                 </p>
 
                 <div className="pt-1 flex items-center gap-4">
@@ -147,7 +147,7 @@ export default async function FlashcardsPage() {
                     <div className="flex justify-between text-[11px] sm:text-xs text-slate-400 mb-1.5 font-medium">
                       <span>Meta diária</span>
                       <span className="text-indigo-400 font-bold">
-                        {Math.min(dueCardsCount, 20)} / 20 cards
+                        {Math.min(dueCardsCount, 20)} / 20 cartões
                       </span>
                     </div>
                     <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
@@ -181,7 +181,7 @@ export default async function FlashcardsPage() {
                     size={16}
                     className="text-amber-400 fill-amber-400/20"
                   />
-                  Ofensiva
+                  Dias Seguidos
                 </span>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
                   {streakDays} {streakDays === 1 ? "dia" : "dias"}
@@ -221,10 +221,10 @@ export default async function FlashcardsPage() {
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
                   <Brain size={16} className="text-emerald-400" />
-                  Retenção FSRS
+                  Nível de Memorização
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">
-                  Ebbinghaus
+                  Automático
                 </span>
               </div>
 
@@ -233,14 +233,14 @@ export default async function FlashcardsPage() {
                   {estimatedRetention}
                 </p>
                 <span className="text-[11px] text-slate-400">
-                  domínio médio
+                  de domínio médio
                 </span>
               </div>
 
               <p className="text-xs text-slate-500 leading-normal">
-                Baseado em{" "}
-                <strong className="text-slate-300">{totalCards} flashcards</strong>{" "}
-                e na curva de decaimento de memória.
+                Calculado a partir dos seus{" "}
+                <strong className="text-slate-300">{totalCards} cartões</strong>{" "}
+                já estudados.
               </p>
             </div>
 
@@ -251,11 +251,10 @@ export default async function FlashcardsPage() {
                   <span>Gerador com IA</span>
                 </div>
                 <h3 className="text-base font-bold text-white mb-1">
-                  Criar Cards do Edital
+                  Criar Cartões do Edital
                 </h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Transforme tópicos da sua disciplina em conjuntos de repetição
-                  em segundos.
+                  Transforme qualquer assunto da sua matéria em cartões de pergunta e resposta em segundos.
                 </p>
               </div>
 
@@ -264,14 +263,14 @@ export default async function FlashcardsPage() {
                   href="/flashcards/decks?openModal=true"
                   className="inline-flex items-center gap-2 text-xs font-bold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-4 py-2.5 rounded-xl transition-all cursor-pointer w-full sm:w-auto justify-center"
                 >
-                  <span>Gerar via IA</span>
+                  <span>Criar Cartões Automaticamente</span>
                   <ArrowRight size={14} />
                 </Link>
               </div>
             </div>
           </div>
 
-          {/* PAINEL FSRS: DISTRIBUIÇÃO DE MATURIDADE DA MEMÓRIA */}
+          {/* PAINEL: DISTRIBUIÇÃO DOS SEUS CARTÕES */}
           {totalCards > 0 && (
             <div className="p-5 sm:p-6 bg-slate-900/50 border border-slate-800/80 rounded-2xl backdrop-blur-xl shadow-lg space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/60 pb-3">
@@ -281,19 +280,16 @@ export default async function FlashcardsPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                      Pipeline de Retenção FSRS
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono font-bold uppercase">
-                        NeuroMemory
-                      </span>
+                      Como estão seus Cartões de Memória
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Classificação dos seus flashcards pelo nível de consolidação cerebral
+                      Veja o que você já memorizou e o que ainda precisa revisar
                     </p>
                   </div>
                 </div>
 
                 <span className="text-xs font-mono text-slate-400">
-                  {totalCards} cards auditados
+                  {totalCards} cartões no total
                 </span>
               </div>
 
@@ -307,33 +303,33 @@ export default async function FlashcardsPage() {
                     {analytics.maturity.newCount}
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    Aguardando primeira fixação
+                    Ainda não estudados
                   </p>
                 </div>
 
                 {/* Em Fixação */}
                 <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
                   <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
-                    🟡 Em Fixação
+                    🟡 Aprendendo
                   </span>
                   <p className="text-xl font-black font-mono text-white">
                     {analytics.maturity.learningCount}
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    Estabilidade &lt; 21 dias
+                    Revisando nos próximos dias
                   </p>
                 </div>
 
                 {/* Maduros / Longo Prazo */}
                 <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
                   <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
-                    🟢 Longo Prazo
+                    🟢 Memorizados
                   </span>
                   <p className="text-xl font-black font-mono text-white">
                     {analytics.maturity.matureCount}
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    Estabilidade &ge; 21 dias
+                    Já fixados na memória
                   </p>
                 </div>
 
@@ -341,13 +337,13 @@ export default async function FlashcardsPage() {
                 <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
                   <span className="text-[11px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1">
                     <AlertCircle size={12} />
-                    Pontos Cegos
+                    Mais Difíceis
                   </span>
                   <p className="text-xl font-black font-mono text-white">
                     {analytics.maturity.leechCount}
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    Falhas repetidas (&ge; 3 erros)
+                    Errou 3 vezes ou mais
                   </p>
                 </div>
               </div>

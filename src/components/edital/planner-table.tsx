@@ -81,6 +81,7 @@ export function PlannerView({
     {},
   );
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSimpleEditalView, setIsSimpleEditalView] = useState(true);
 
   const handleConfirmDeleteTopic = async () => {
     if (!topicToDelete || !onDeleteTopic) return;
@@ -333,20 +334,35 @@ export function PlannerView({
           </div>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0 justify-between lg:justify-end pt-1 lg:pt-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 justify-between lg:justify-end pt-1 lg:pt-0 flex-wrap">
+          {/* Alternador Visão Simples vs Visão Detalhada */}
+          <button
+            type="button"
+            onClick={() => setIsSimpleEditalView((prev) => !prev)}
+            className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border transition-all cursor-pointer active:scale-95 font-bold ${
+              isSimpleEditalView
+                ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/25"
+                : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
+            }`}
+            title="Alternar entre a visão limpa (só matérias e botões de estudo) e a visão completa (com pesos, datas de revisão e exclusão)"
+          >
+            <Sparkles size={13} className={isSimpleEditalView ? "text-amber-400" : "text-slate-400"} />
+            <span>{isSimpleEditalView ? "Modo: Visão Simples (Mudar p/ Detalhada)" : "Modo: Detalhado (Voltar p/ Simples)"}</span>
+          </button>
+
           <button
             onClick={toggleAllSubjects}
             className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer active:scale-95"
           >
             <ChevronsUpDown size={14} />
-            <span>Expandir / Ocultar Tudo</span>
+            <span>Abrir / Fechar Matérias</span>
           </button>
 
           <span className="text-xs text-slate-400">
             <strong className="text-white font-bold">
               {sortedSubjectNames.length}
             </strong>{" "}
-            disciplinas
+            matérias
           </span>
         </div>
       </div>
@@ -355,7 +371,7 @@ export function PlannerView({
       <div className="space-y-3">
         {sortedSubjectNames.length === 0 ? (
           <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl text-xs text-slate-400 bg-[#090d16]/40 backdrop-blur-xs">
-            Nenhum tópico ou matéria encontrado com os filtros selecionados.
+            Nenhum assunto ou matéria encontrado com os filtros selecionados.
           </div>
         ) : (
           sortedSubjectNames.map((subjectName) => {
@@ -434,26 +450,28 @@ export function PlannerView({
                       </h3>
                       <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium flex items-center gap-1.5 flex-wrap">
                         <span>
-                          {subjectTopics.length}{" "}
-                          {subjectTopics.length === 1 ? "tópico" : "tópicos"}
+                          {completedTopics} de {subjectTopics.length}{" "}
+                          {subjectTopics.length === 1 ? "assunto estudado" : "assuntos estudados"}
                         </span>
-                        {matchedSubject ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSubjectToEdit(matchedSubject);
-                            }}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-500/50 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer group/w active:scale-95 shadow-xs"
-                            title="Clique para calibrar o peso desta matéria"
-                          >
-                            <Scale size={10} className="text-amber-400 group-hover/w:rotate-12 transition-transform" />
-                            <span>Peso {matchedSubject.weight !== undefined ? Number(matchedSubject.weight).toFixed(1) : "5.0"}</span>
-                          </button>
-                        ) : (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold">
-                            Peso 5.0
-                          </span>
+                        {!isSimpleEditalView && (
+                          matchedSubject ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSubjectToEdit(matchedSubject);
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-500/50 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer group/w active:scale-95 shadow-xs"
+                              title="Clique para calibrar a importância desta matéria na sua prova"
+                            >
+                              <Scale size={10} className="text-amber-400 group-hover/w:rotate-12 transition-transform" />
+                              <span>Importância {matchedSubject.weight !== undefined ? Number(matchedSubject.weight).toFixed(1) : "5.0"}</span>
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 font-mono text-[9px] sm:text-[10px] font-bold">
+                              Importância 5.0
+                            </span>
+                          )
                         )}
                         {progressPercent === 100 && (
                           <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded-full">
@@ -494,36 +512,38 @@ export function PlannerView({
                       </span>
                     </div>
 
-                    {matchedSubject && (
+                    {!isSimpleEditalView && matchedSubject && (
                       <div
                         onClick={(e) => {
                           e.stopPropagation();
                           setSubjectToEdit(matchedSubject);
                         }}
                         className="p-1.5 sm:p-2 text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/15 rounded-xl transition-colors cursor-pointer"
-                        title="Editar Matéria e Peso"
+                        title="Editar Matéria e Importância"
                       >
                         <Pencil size={15} />
                       </div>
                     )}
 
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSubjectToDelete({
-                          id: matchedSubject?.id,
-                          name: subjectName,
-                          count: subjectTopics.length,
-                        });
-                      }}
-                      className="p-1.5 sm:p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
-                      title="Excluir Matéria"
-                    >
-                      <Trash2 size={15} />
-                    </div>
+                    {!isSimpleEditalView && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSubjectToDelete({
+                            id: matchedSubject?.id,
+                            name: subjectName,
+                            count: subjectTopics.length,
+                          });
+                        }}
+                        className="p-1.5 sm:p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                        title="Excluir Matéria"
+                      >
+                        <Trash2 size={15} />
+                      </div>
+                    )}
 
                     <div className="hidden sm:flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 text-[11px] font-semibold text-slate-300 group-hover:text-white transition-colors">
-                      <span>{isOpen ? "Ocultar" : "Expandir"}</span>
+                      <span>{isOpen ? "Fechar" : "Ver Assuntos"}</span>
                       {isOpen ? (
                         <ChevronDown size={14} className="text-slate-400" />
                       ) : (
@@ -551,7 +571,7 @@ export function PlannerView({
                         className="bg-white/2 border border-white/5 hover:border-white/15 rounded-xl p-3 flex flex-col lg:grid lg:grid-cols-12 gap-3 items-start lg:items-center hover:bg-white/4 transition-all"
                       >
                         {/* Linha 1 no Mobile: Título + Badge Status */}
-                        <div className="w-full lg:col-span-4 flex items-center justify-between gap-2 min-w-0">
+                        <div className={`w-full ${isSimpleEditalView ? "lg:col-span-6" : "lg:col-span-4"} flex items-center justify-between gap-2 min-w-0`}>
                           <div className="flex items-center gap-2 min-w-0">
                             <div
                               className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -570,7 +590,7 @@ export function PlannerView({
                               t.firstStudy,
                             )}`}
                           >
-                            {t.firstStudy || "Pendente"}
+                            {t.firstStudy || "Não estudado"}
                           </span>
                         </div>
 
@@ -581,38 +601,40 @@ export function PlannerView({
                               t.firstStudy,
                             )}`}
                           >
-                            {t.firstStudy || "Pendente"}
+                            {t.firstStudy === "Pendente" || !t.firstStudy ? "Não estudado" : t.firstStudy}
                           </span>
                         </div>
 
-                        {/* Linha 2 no Mobile / Colunas Desktop: Metadados */}
-                        <div className="flex items-center justify-between w-full lg:w-auto lg:col-span-3 text-[11px] text-slate-400 font-medium">
-                          <span className="lg:hidden text-slate-500 text-[10px]">
-                            Desempenho / Próx. Revisão:
-                          </span>
-                          <div className="flex items-center gap-3">
-                            <span className="font-mono font-bold text-slate-300">
-                              {t.performance ?? 0}%
+                        {/* Linha 2 no Mobile / Colunas Desktop: Metadados (Apenas na Visão Detalhada) */}
+                        {!isSimpleEditalView && (
+                          <div className="flex items-center justify-between w-full lg:w-auto lg:col-span-3 text-[11px] text-slate-400 font-medium">
+                            <span className="lg:hidden text-slate-500 text-[10px]">
+                              Acertos / Próx. Revisão:
                             </span>
-                            <span>
-                              {t.nextRev
-                                ? `Rev: ${new Date(
-                                    t.nextRev,
-                                  ).toLocaleDateString("pt-BR")}`
-                                : "--"}
-                            </span>
+                            <div className="flex items-center gap-3">
+                              <span className="font-mono font-bold text-slate-300">
+                                {t.performance ?? 0}% acertos
+                              </span>
+                              <span>
+                                {t.nextRev
+                                  ? `Revisar: ${new Date(
+                                      t.nextRev,
+                                    ).toLocaleDateString("pt-BR")}`
+                                  : "Sem revisão"}
+                              </span>
+                            </div>
                           </div>
-                        </div>
+                        )}
 
-                        {/* Linha 3 no Mobile / Coluna Desktop: Botões de Ação Ampliados */}
-                        <div className="w-full lg:col-span-3 flex items-center justify-end gap-1.5 pt-2 lg:pt-0 border-t border-white/5 lg:border-none">
+                        {/* Linha 3 no Mobile / Coluna Desktop: Botões de Ação Claros */}
+                        <div className={`w-full ${isSimpleEditalView ? "lg:col-span-4" : "lg:col-span-3"} flex items-center justify-end gap-1.5 pt-2 lg:pt-0 border-t border-white/5 lg:border-none`}>
                           <Link
                             href={`/trilhas?topicId=${t.id}`}
                             className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1 px-2.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 text-xs font-bold rounded-xl border border-amber-500/30 active:scale-95 transition-all"
-                            title="Abrir Teoria Completa e Aula deste Tópico"
+                            title="Abrir Aula Explicada deste Assunto"
                           >
                             <BookOpen size={13} className="text-amber-400" />
-                            <span>Teoria</span>
+                            <span>Ler Aula</span>
                           </Link>
 
                           {t.quizId ? (
@@ -624,7 +646,7 @@ export function PlannerView({
                                 size={13}
                                 className="text-emerald-400 fill-emerald-400"
                               />
-                              <span>Simulado</span>
+                              <span>Questões</span>
                             </Link>
                           ) : (
                             <Link
@@ -634,7 +656,7 @@ export function PlannerView({
                               className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-2.5 py-2 bg-indigo-500/15 text-indigo-300 text-xs font-bold rounded-xl border border-indigo-500/30 active:scale-95 transition-all shadow-md shadow-indigo-500/10"
                             >
                               <Sparkles size={13} className="text-indigo-400" />
-                              <span>Praticar</span>
+                              <span>Questões</span>
                             </Link>
                           )}
 
@@ -644,18 +666,20 @@ export function PlannerView({
                             className="flex-1 lg:flex-none px-2.5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer text-center"
                           >
                             {t.firstStudy === "Pendente" || !t.firstStudy
-                              ? "1º Estudo"
+                              ? "✓ Concluir"
                               : "Revisar"}
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => setTopicToDelete(t)}
-                            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer shrink-0"
-                            title="Excluir tópico"
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                          {!isSimpleEditalView && (
+                            <button
+                              type="button"
+                              onClick={() => setTopicToDelete(t)}
+                              className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer shrink-0"
+                              title="Excluir assunto"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}

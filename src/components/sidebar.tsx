@@ -87,32 +87,37 @@ interface NavGroup {
 const NAV_GROUPS: NavGroup[] = [
   {
     id: "planejamento",
-    label: "Planejamento",
+    label: "Meu Estudo Diário",
     items: [
       { label: "Início (Meu Dia)", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Trilhas & Aulas", href: "/trilhas", icon: Compass, badge: "IA" },
+      { label: "Trilhas & Aulas", href: "/trilhas", icon: Compass, badge: "GUIADO" },
       { label: "Meu Edital", href: "/edital", icon: FileSpreadsheet },
       { label: "Cronograma Semanal", href: "/week", icon: Sparkles },
     ],
   },
   {
     id: "pratica",
-    label: "Prática com IA",
+    label: "Prática Essencial",
     items: [
       { label: "Simulados & Questões", href: "/questions", icon: FileStack },
+      { label: "Flashcards (Memória)", href: "/flashcards", icon: Layers },
+      {
+        label: "Caderno de Erros",
+        href: "/notebook",
+        icon: BookOpenCheck,
+      },
       {
         label: "Redação Oficial",
         href: "/redacao",
         icon: PenTool,
         badge: "IA",
       },
-      { label: "Flashcards (Memória)", href: "/flashcards", icon: Layers },
-      {
-        label: "Caderno de Erros",
-        href: "/notebook",
-        icon: BookOpenCheck,
-        badge: "IA",
-      },
+    ],
+  },
+  {
+    id: "ferramentas",
+    label: "➕ Mais Ferramentas",
+    items: [
       {
         label: "Mapas Mentais",
         href: "/mapas-mentais",
@@ -126,16 +131,28 @@ const NAV_GROUPS: NavGroup[] = [
         badge: "IA",
       },
       {
-        label: "Prova Oral",
+        label: "Treino de Prova Oral",
         href: "/prova-oral",
         icon: Mic,
         badge: "VOZ",
+      },
+      {
+        label: "Sala de Foco (Timer)",
+        href: "/study-room",
+        icon: Headphones,
+      },
+      { label: "Calendário de Provas", href: "/calendar", icon: CalendarDays },
+      {
+        label: "Ler Prova em PDF",
+        href: "#import-pdf",
+        icon: UploadCloud,
+        badge: "PDF",
       },
     ],
   },
   {
     id: "evolucao",
-    label: "Evolução & Ligas",
+    label: "📊 Evolução & Ranking",
     items: [
       { label: "Meu Desempenho", href: "/performance", icon: TrendingUp },
       {
@@ -146,44 +163,25 @@ const NAV_GROUPS: NavGroup[] = [
         isSpecial: true,
       },
       {
-        label: "Conquistas",
+        label: "Minhas Conquistas",
         href: "/achievements",
         icon: Award,
       },
     ],
   },
   {
-    id: "ferramentas",
-    label: "Foco & Ferramentas",
-    items: [
-      {
-        label: "Sala de Foco",
-        href: "/study-room",
-        icon: Headphones,
-        badge: "ZEN",
-      },
-      { label: "Calendário de Provas", href: "/calendar", icon: CalendarDays },
-      {
-        label: "Importar Prova",
-        href: "#import-pdf",
-        icon: UploadCloud,
-        badge: "OCR",
-      },
-    ],
-  },
-  {
     id: "conta",
-    label: "Conta & Planos",
+    label: "Conta & Ajuda",
     items: [
       {
-        label: "Planos & Synapse Pro",
+        label: "Planos & Assinatura",
         href: "/pricing",
         icon: Crown,
         isSpecial: true,
         badge: "PRO",
       },
-      { label: "Perfil", href: "/profile", icon: UserCircle2 },
-      { label: "Ajuda", href: "/help", icon: Info },
+      { label: "Meu Perfil", href: "/profile", icon: UserCircle2 },
+      { label: "Ajuda & Suporte", href: "/help", icon: Info },
     ],
   },
 ];
@@ -396,8 +394,11 @@ export default function Sidebar({ user }: SidebarProps) {
     user?.isAdmin || user?.role === "ADMIN"
   );
 
-  // Estado para seções colapsadas com persistência no localStorage
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  // Estado para seções colapsadas com persistência no localStorage (secundárias colapsadas por padrão)
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
+    ferramentas: true,
+    evolucao: true,
+  });
 
   useEffect(() => {
     try {

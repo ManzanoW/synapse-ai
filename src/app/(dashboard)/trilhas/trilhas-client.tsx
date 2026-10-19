@@ -123,9 +123,10 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   const isUserFree =
     !initialData.user?.planTier || initialData.user?.planTier === "FREE";
 
-  // Timer Pomodoro embutido no Leitor de Teoria
+  // Timer Pomodoro e Tamanho da Letra embutidos no Leitor de Teoria
   const [pomodoroSeconds, setPomodoroSeconds] = useState(25 * 60);
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
+  const [lessonFontSize, setLessonFontSize] = useState<"normal" | "large" | "xlarge">("normal");
 
   // Estado do Wizard de Criação/Customização de Trilha (3 Passos)
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -1908,6 +1909,24 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                   </select>
                 </div>
 
+                {/* Controle de Tamanho da Letra (Acessibilidade para leitura confortável) */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setLessonFontSize((prev) =>
+                      prev === "normal" ? "large" : prev === "large" ? "xlarge" : "normal",
+                    )
+                  }
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-colors ${
+                    lessonFontSize !== "normal"
+                      ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                      : "bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300"
+                  }`}
+                  title="Aumentar ou diminuir o tamanho da letra da aula para facilitar a leitura"
+                >
+                  <span>🔤 Letra: {lessonFontSize === "normal" ? "Normal (A+)" : lessonFontSize === "large" ? "Grande (A++)" : "Extra Grande"}</span>
+                </button>
+
                 <button
                   onClick={printLessonApostila}
                   className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
@@ -1942,8 +1961,16 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
               </div>
             </div>
 
-            {/* Corpo da Aula (Scrollável) */}
-            <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-slate-300 text-sm leading-relaxed">
+            {/* Corpo da Aula (Scrollável com Tamanho de Letra Ajustável) */}
+            <div
+              className={`p-6 sm:p-8 overflow-y-auto space-y-6 text-slate-300 leading-relaxed ${
+                lessonFontSize === "xlarge"
+                  ? "text-lg"
+                  : lessonFontSize === "large"
+                    ? "text-base"
+                    : "text-sm"
+              }`}
+            >
               {/* Cabeçalho da Aula */}
               <div className="space-y-2 border-b border-slate-800 pb-5">
                 <div className="flex flex-wrap items-center gap-2">
