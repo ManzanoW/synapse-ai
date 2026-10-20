@@ -378,13 +378,13 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
               <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                 <span>Dashboard</span>
                 <span>/</span>
-                <span className="text-indigo-600 dark:text-indigo-400">Desempenho Cognitivo</span>
+                <span className="text-indigo-600 dark:text-indigo-400">Meu Desempenho</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-                Desempenho Cognitivo
+                Meu Desempenho & Estatísticas
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl">
-                Acompanhamento com métricas 100% autênticas: algoritmos FSRS, simulados reais e cobertura do edital.
+                Acompanhe seu progresso real: resolução de questões, revisão de cartões de memória e matérias vencidas do edital.
               </p>
             </div>
           </div>
@@ -395,9 +395,10 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
               type="button"
               onClick={handleOpenMonteCarlo}
               className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs hover:shadow transition-all active:scale-98 cursor-pointer"
+              title="Calcule suas chances estatísticas de aprovação"
             >
               <Target size={14} />
-              <span>Raio-X Monte Carlo</span>
+              <span>Previsão de Aprovação 🎯</span>
             </button>
 
             <button
@@ -425,7 +426,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
               <div className="group bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-2xl p-4.5 transition-all duration-300 hover:border-slate-300 dark:hover:border-white/20 hover:shadow-lg dark:hover:shadow-indigo-500/5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    Retenção de Memória FSRS
+                    Retenção da Memória
                   </span>
                   <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                     <TrendingUp size={15} />
@@ -451,21 +452,21 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     </span>
                   </div>
                   <p className="text-slate-500 dark:text-slate-400 text-[11px] line-clamp-1">
-                    {retentionStatus?.description || "Curva de esquecimento FSRS calculada."}
+                    {retentionStatus?.description || "Cálculo inteligente de memorização."}
                   </p>
                 </div>
               </div>
 
-              {/* Card 2: Grau de Domínio Cognitivo Real */}
+              {/* Card 2: Nível Geral de Preparação */}
               <div className="group bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-2xl p-4.5 transition-all duration-300 hover:border-slate-300 dark:hover:border-white/20 hover:shadow-lg dark:hover:shadow-indigo-500/5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    Grau de Domínio Cognitivo
+                    Nível de Preparação
                   </span>
                   <button
                     onClick={() => setShowMasteryBreakdown((prev) => !prev)}
                     className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
-                    title="Ver fórmula transparente do score"
+                    title="Ver fórmula transparente da nota"
                   >
                     {showMasteryBreakdown ? <ChevronUp size={14} /> : <Info size={14} />}
                   </button>
@@ -493,7 +494,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     </span>
                   </div>
                   <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-                    Score real: 50% Questões + 30% FSRS + 20% Edital.
+                    Média ponderada: 50% Questões + 30% Cartões + 20% Edital.
                   </p>
                 </div>
               </div>

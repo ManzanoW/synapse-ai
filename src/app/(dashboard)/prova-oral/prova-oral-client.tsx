@@ -463,7 +463,7 @@ export default function ProvaOralClient({
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-                Treine com a banca examinadora em tempo real: áudio da pergunta, gravação da resposta e rubrica oficial de notas.
+                Treine com a banca examinadora em tempo real: áudio da pergunta, gravação da sua voz e nota com feedback detalhado.
               </p>
             </div>
           </div>

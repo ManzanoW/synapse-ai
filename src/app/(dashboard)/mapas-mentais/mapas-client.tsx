@@ -322,13 +322,13 @@ export function MapasMentaisClient() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-wider mb-1">
                 <Brain size={13} />
-                <span>Síntese Cognitiva Visual</span>
+                <span>Resumos Visuais</span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Hub de Mapas Mentais & Mnemônicos
+                Mapas Mentais & Macetes
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Esquematização vetorial com curvas de Bézier e macetes das principais bancas examinadoras
+                Esquemas simples e diretos ao ponto para você entender a matéria e memorizar os tópicos mais cobrados nas provas.
               </p>
             </div>
           </div>
@@ -376,12 +376,12 @@ export function MapasMentaisClient() {
               {isGenerating ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  <span>Sintetizando...</span>
+                  <span>Criando Mapa...</span>
                 </>
               ) : (
                 <>
                   <Sparkles size={16} />
-                  <span>Gerar Mapa Mental com IA</span>
+                  <span>Gerar Mapa Mental</span>
                 </>
               )}
             </button>
