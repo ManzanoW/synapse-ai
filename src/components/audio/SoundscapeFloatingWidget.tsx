@@ -63,16 +63,16 @@ export function SoundscapeFloatingWidget() {
     icon: React.ComponentType<{ size?: number; className?: string }>;
     tag?: string;
   }[] = [
+    { id: "soft_rain", label: "🌧️ Chuva Suave", icon: CloudRain, tag: "RELAX" },
+    { id: "cafe_ambience", label: "☕ Cafeteria Calma", icon: Coffee, tag: "ESTUDO" },
+    { id: "brown_noise", label: "🌊 Som do Mar (Isolar Barulhos)", icon: Waves, tag: "FOCO" },
+    { id: "zen_drone", label: "🧘 Música Suave & Meditação", icon: Sparkles },
     {
       id: "alpha_binaural",
-      label: "Ondas Alfa (10 Hz)",
+      label: "🧠 Foco Profundo",
       icon: BrainCircuit,
-      tag: "FLOW",
+      tag: "CONCENTRAÇÃO",
     },
-    { id: "soft_rain", label: "Chuva Suave", icon: CloudRain },
-    { id: "cafe_ambience", label: "Cafeteria Acústica", icon: Coffee },
-    { id: "brown_noise", label: "Ruído Marrom", icon: Waves, tag: "TDAH" },
-    { id: "zen_drone", label: "Tigela Tibetana", icon: Sparkles },
   ];
 
   return (
@@ -93,7 +93,7 @@ export function SoundscapeFloatingWidget() {
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
           className="flex items-center gap-2 text-xs font-semibold cursor-pointer group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg p-0.5"
-          title="Configurações de Áudio & Foco"
+          title="Sons e Músicas de Foco para Estudar"
           aria-expanded={isOpen}
           aria-haspopup="dialog"
         >
@@ -114,7 +114,7 @@ export function SoundscapeFloatingWidget() {
             {isPlaying
               ? soundscapesList.find((s) => s.id === currentSoundscape)?.label ||
                 "Som Ativo"
-              : "Som de Foco"}
+              : "Sons para Foco"}
           </span>
         </button>
 
@@ -150,13 +150,13 @@ export function SoundscapeFloatingWidget() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Paisagens Sonoras Neurais"
+          aria-label="Sons para Concentração"
           className="absolute top-11 right-0 w-72 rounded-2xl bg-white/95 dark:bg-[#090d1a]/95 border border-slate-200 dark:border-indigo-500/25 p-4 shadow-2xl backdrop-blur-2xl space-y-3.5 animate-in fade-in zoom-in-95 duration-150"
         >
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
               <Headphones size={14} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Paisagens Sonoras Neurais</span>
+              <span>Sons para Concentração</span>
             </div>
             <button
               type="button"

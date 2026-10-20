@@ -381,7 +381,7 @@ export default function StudyRoomClient({
             </span>
             <div className="flex items-center gap-2">
               <span className="text-xs uppercase font-mono tracking-widest text-slate-400">
-                Cockpit Zen
+                Foco Total
               </span>
               <span className="text-slate-600">•</span>
               <span className="text-xs font-semibold text-indigo-300 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-500/30">
@@ -398,10 +398,10 @@ export default function StudyRoomClient({
                   ? "bg-violet-600 text-white border-violet-500 shadow-violet-500/30"
                   : "bg-slate-900/80 hover:bg-slate-800 border-slate-700/60 text-slate-300 hover:text-white"
               }`}
-              title="Mini-Timer Flutuante (Picture-in-Picture)"
+              title="Janelinha Flutuante: mantém o cronômetro visível sobre outras abas"
             >
               <ExternalLink size={15} />
-              <span>{isPiPOpen ? "Fechar PiP" : "Mini-Timer PiP"}</span>
+              <span>{isPiPOpen ? "Fechar Janela" : "🔲 Janela Flutuante"}</span>
             </button>
 
             <button
@@ -412,10 +412,10 @@ export default function StudyRoomClient({
                 }
               }}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 hover:text-white transition-all shadow-lg active:scale-95 cursor-pointer"
-              title="Sair do Modo Zen (Esc)"
+              title="Sair da Tela Cheia (Esc)"
             >
               <Minimize2 size={15} />
-              <span>Sair do Zen (Esc)</span>
+              <span>Sair da Tela Cheia (Esc)</span>
             </button>
           </div>
         </div>
@@ -672,9 +672,9 @@ export default function StudyRoomClient({
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              Sala de Foco
+              Sala de Estudos & Foco
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono font-bold uppercase border border-indigo-500/30">
-                Cockpit Zen
+                POMODORO
               </span>
             </h1>
 
@@ -719,7 +719,7 @@ export default function StudyRoomClient({
             </div>
           </div>
 
-          {/* Botão Picture-in-Picture (Mini-Timer Flutuante) */}
+          {/* Botão Picture-in-Picture (Janela Flutuante) */}
           <button
             onClick={() => setIsPiPOpen((prev) => !prev)}
             className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
@@ -727,11 +727,11 @@ export default function StudyRoomClient({
                 ? "bg-violet-600 text-white border-violet-500 shadow-lg shadow-violet-500/30"
                 : "bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border-slate-700/60"
             }`}
-            title="Mini-Timer Flutuante (Picture-in-Picture): mantenha o cronômetro sempre visível sobre outros apps"
+            title="Janelinha Flutuante: mantenha o cronômetro sempre visível mesmo usando outros programas"
           >
             <ExternalLink size={16} />
             <span className="hidden sm:inline">
-              {isPiPOpen ? "Fechar PiP" : "Mini-Timer (PiP)"}
+              {isPiPOpen ? "Fechar Janela" : "🔲 Janela Flutuante"}
             </span>
           </button>
 
@@ -743,11 +743,11 @@ export default function StudyRoomClient({
                 ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/30"
                 : "bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border-slate-700/60"
             }`}
-            title={isZenMode ? "Sair da Tela Cheia" : "Entrar em Modo Zen (Tela Cheia)"}
+            title={isZenMode ? "Sair da Tela Cheia" : "Entrar em Tela Cheia para Foco Total"}
           >
             {isZenMode ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             <span className="hidden sm:inline">
-              {isZenMode ? "Sair do Zen" : "Modo Zen"}
+              {isZenMode ? "Sair da Tela Cheia" : "📺 Tela Cheia"}
             </span>
           </button>
         </div>

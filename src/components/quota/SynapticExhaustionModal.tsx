@@ -129,7 +129,7 @@ export function SynapticExhaustionModal({
             <div className="flex flex-col items-center gap-2 pt-1 relative z-10">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[10.5px] font-bold tracking-wider uppercase mb-1">
                 <BatteryLow size={13} className="text-cyan-400" />
-                <span>Pausa Cognitiva Estratégica</span>
+                <span>Limite Gratuito do Dia</span>
               </div>
 
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 via-indigo-500/20 to-violet-500/10 border border-cyan-500/40 flex items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.3)]">
@@ -138,27 +138,27 @@ export function SynapticExhaustionModal({
 
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug">
-                  Energia Sináptica Esgotada por Hoje
+                  Você usou suas 10 ajudas com IA de hoje
                 </h2>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-1.5 rounded-xl bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-bold shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                   <Clock size={12} className="text-cyan-400 animate-pulse" />
-                  <span>Renovação das 10 Sinapses em: {countdown.formatted}</span>
+                  <span>Renovação das 10 ajudas gratuitas em: {countdown.formatted}</span>
                 </div>
               </div>
             </div>
 
-            {/* Contexto Neurocientífico & Mensagem Humanizada */}
+            {/* Contexto e Mensagem Humanizada */}
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-indigo-950/30 to-slate-900/40 border border-cyan-500/25 text-left relative z-10 space-y-1.5">
               <div className="flex items-center gap-1.5 text-cyan-300 text-xs font-bold">
                 <ShieldCheck size={14} className="text-cyan-400 shrink-0" />
-                <span>Consolidação de Memória de Longo Prazo</span>
+                <span>Você ainda pode continuar estudando sem limites!</span>
               </div>
               <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                Você concluiu seus blocos de alta intensidade com IA de hoje! Na neurociência da aprendizagem, o cérebro necessita de pausas para transferir o conhecimento da memória de trabalho para a memória de longo prazo.
+                As explicações inteligentes possuem um limite diário na versão gratuita. Enquanto elas recarregam, você pode continuar resolvendo questões, revisando seus cartões e marcando o edital à vontade:
               </p>
               {currentReason && (
                 <p className="text-[11px] text-cyan-400/80 font-mono pt-1">
-                  Motivo: {currentReason}
+                  Aviso: {currentReason}
                 </p>
               )}
             </div>
@@ -167,7 +167,7 @@ export function SynapticExhaustionModal({
             <div className="space-y-2 text-left relative z-10">
               <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 px-1">
                 <span>Continue Estudando Sem Gastar IA:</span>
-                <span className="text-emerald-400 font-mono text-[10px]">100% Livre</span>
+                <span className="text-emerald-400 font-mono text-[10px]">100% Ilimitado</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -179,10 +179,10 @@ export function SynapticExhaustionModal({
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200 group-hover:text-cyan-300 transition-colors">
                       <BookOpen size={13} className="text-cyan-400" />
-                      <span>Flashcards FSRS</span>
+                      <span>Cartões de Memória</span>
                     </div>
                     <p className="text-[9.5px] text-slate-400 leading-tight">
-                      Revisão espaçada sem consumo de IA.
+                      Revise o quanto quiser sem gastar créditos.
                     </p>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[9.5px] font-bold text-cyan-400 font-mono">
@@ -199,10 +199,10 @@ export function SynapticExhaustionModal({
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200 group-hover:text-emerald-300 transition-colors">
                       <ShieldCheck size={13} className="text-emerald-400" />
-                      <span>Acervo Offline</span>
+                      <span>Fazer Questões</span>
                     </div>
                     <p className="text-[9.5px] text-slate-400 leading-tight">
-                      Questões salvas com Zero Cota de IA.
+                      Resolva questões com gabarito sem limites.
                     </p>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[9.5px] font-bold text-emerald-400 font-mono">
@@ -219,10 +219,10 @@ export function SynapticExhaustionModal({
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200 group-hover:text-indigo-300 transition-colors">
                       <Compass size={13} className="text-indigo-400" />
-                      <span>Edital Vertical</span>
+                      <span>Edital da Prova</span>
                     </div>
                     <p className="text-[9.5px] text-slate-400 leading-tight">
-                      Acompanhe tópicos vencidos.
+                      Acompanhe seu percentual de estudo.
                     </p>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[9.5px] font-bold text-indigo-400 font-mono">
@@ -235,17 +235,17 @@ export function SynapticExhaustionModal({
 
             {/* Ações de Recarga e Conversão Pro */}
             <div className="space-y-2 pt-1 relative z-10">
-              {/* Botão Secundário Glow: ⚡ Recarregar +1 Sinapse (Vídeo Curto) */}
+              {/* Botão Secundário: Assistir Vídeo Rápido */}
               <button
                 type="button"
                 onClick={() => setIsRewardedAdOpen(true)}
                 className="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-400/20 to-amber-500/15 hover:from-amber-500/25 hover:to-amber-400/25 border border-amber-400/40 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-[0_0_20px_rgba(251,191,36,0.15)] hover:shadow-[0_0_25px_rgba(251,191,36,0.3)] active:scale-98"
               >
                 <Zap size={14} className="text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform" />
-                <span>⚡ Recarregar +1 Sinapse (Vídeo Curto)</span>
+                <span>🎬 Assistir Vídeo Rápido (+1 Ajuda com IA Agora)</span>
               </button>
 
-              {/* Botão Primário Pro: 👑 Acelerar com Synapse Pro */}
+              {/* Botão Primário Pro: Conhecer o Plano Pro */}
               <Link
                 href="/pricing"
                 onClick={handleClose}
@@ -255,7 +255,7 @@ export function SynapticExhaustionModal({
                   size={15}
                   className="text-amber-300 fill-amber-300/30 group-hover:scale-110 transition-transform"
                 />
-                <span>👑 Acelerar com Synapse Pro (60 Sinapses/dia + Zero Espera)</span>
+                <span>👑 Desbloquear Synapse Pro (60 Ajudas com IA por dia + Sem Espera)</span>
               </Link>
 
               {/* Botão de descanso voluntário */}
@@ -264,7 +264,7 @@ export function SynapticExhaustionModal({
                 onClick={handleClose}
                 className="w-full py-2 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors cursor-pointer"
               >
-                Entendi, vou descansar o cérebro por hoje ✨
+                Entendi, vou continuar estudando ou descansar por hoje ✨
               </button>
             </div>
           </motion.div>
