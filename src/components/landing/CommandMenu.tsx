@@ -71,8 +71,8 @@ export function CommandMenu({ isOpen, onClose, onOpenPwaModal }: CommandMenuProp
     },
     {
       id: "curva",
-      title: "Laboratório da Curva de Retenção FSRS",
-      category: "Neurociência",
+      title: "Simulador da Curva de Retenção",
+      category: "Método",
       icon: Brain,
       action: () => navigateTo("#metodo"),
     },

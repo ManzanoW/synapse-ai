@@ -42,7 +42,7 @@ const TESTIMONIALS: Testimonial[] = [
     metricIcon: Headphones,
     banca: "Banca FGV",
     quote:
-      "Eu gastava 1h40 de ônibus todo dia sem conseguir ler. O áudio neural com tela bloqueada no bolso me rendeu mais de 50 horas líquidas no mês. O FSRS não me deixou esquecer a legislação tributária no dia da prova.",
+      "Eu gastava 1h40 de ônibus todo dia sem conseguir ler. O áudio com tela bloqueada no bolso me rendeu mais de 50 horas líquidas no mês. A repetição inteligente não me deixou esquecer a legislação tributária no dia da prova.",
   },
   {
     id: "2",
@@ -151,7 +151,7 @@ export function TestimonialsSection() {
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-            Veja como o método FSRS e o áudio hands-free destravaram aprovações nas carreiras mais concorridas do país.
+            Veja como as revisões inteligentes e os resumos em áudio no bolso destravaram aprovações nas carreiras mais concorridas do país.
           </p>
 
           {/* Filtros por Área */}

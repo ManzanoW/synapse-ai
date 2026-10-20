@@ -140,7 +140,7 @@ export function PricingSection() {
                 </span>
                 <h3 className="text-2xl font-black text-white">Plano Básico</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Recursos essenciais para conhecer o algoritmo FSRS e manter seu ciclo diário de revisão.
+                  Recursos essenciais para experimentar a repetição inteligente e manter seu ciclo diário de revisão.
                 </p>
               </div>
 

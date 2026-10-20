@@ -157,7 +157,7 @@ export async function getDailyFlowRecommendationAction(): Promise<{
         subtitle: isFlashcardsCompleted
           ? "✓ Etapa concluída hoje! Memória de longo prazo blindada."
           : dueCardsCount > 0
-            ? "Retenção com repetição espaçada FSRS"
+            ? "Revisão com repetição inteligente"
             : "Consolidação de memória de longo prazo",
         durationMinutes: flashcardsMinutes,
         badge: isFlashcardsCompleted

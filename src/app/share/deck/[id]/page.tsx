@@ -24,7 +24,7 @@ export async function generateMetadata({
 
   const deck = res.data;
   const title = `Baralho: ${deck.title} (${deck.totalCards} Flashcards) | Synapse AI`;
-  const description = `Estude este baralho de flashcards sobre ${deck.subjectName || "concursos"} com repetição espaçada FSRS 4.5 e Inteligência Artificial no Synapse AI.`;
+  const description = `Estude este baralho de flashcards sobre ${deck.subjectName || "concursos"} com repetição inteligente e Inteligência Artificial no Synapse AI.`;
 
   return {
     title,
@@ -33,7 +33,7 @@ export async function generateMetadata({
     keywords: [
       "concursos",
       "flashcards",
-      "fsrs",
+      "repetição inteligente",
       "memorização",
       deck.subjectName || "estudos",
       deck.title,

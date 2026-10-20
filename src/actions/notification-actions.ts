@@ -190,7 +190,7 @@ export async function getSmartNotificationsAction(): Promise<SmartNotificationsR
               type: "flashcards_due",
               title: "14 flashcards na curva de esquecimento",
               message:
-                "Conceitos de Direito Constitucional e Informática necessitam de reforço hoje segundo a curva Ebbinghaus.",
+                "Conceitos de Direito Constitucional e Informática necessitam de reforço hoje para você fixar e não esquecer.",
               actionLabel: "Revisar Cards",
               actionHref: "/flashcards",
               severity: "warning",

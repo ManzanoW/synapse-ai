@@ -220,7 +220,7 @@ export async function runMonteCarloSimulationAction(
       const marginalGain = Math.round((roomToGrow * 0.22 * relativeWeight) * 10) / 10;
 
       let riskLevel: MonteCarloSubjectRisk["riskLevel"] = "ESTAVEL";
-      let recommendation = "Manter revisões de manutenção FSRS.";
+      let recommendation = "Manter revisões periódicas programadas.";
 
       if (sub.accuracy < 60) {
         riskLevel = "CRITICO";

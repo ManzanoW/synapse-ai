@@ -546,29 +546,29 @@ export function ArsenalBentoGrid() {
                 </div>
                 <div>
                   <span className="text-[11px] font-mono uppercase tracking-wider text-indigo-400 font-bold block">
-                    O Cérebro Matemático
+                    Fixação Definitiva
                   </span>
                   <h3 className="text-xl sm:text-2xl font-black text-white">
-                    Motor FSRS: Curva do Esquecimento Domada
+                    Repetição Inteligente: Nunca Mais Esqueça a Matéria
                   </h3>
                 </div>
               </div>
 
               <div className="text-xs font-mono text-slate-400 bg-white/[0.04] px-3.5 py-1.5 rounded-xl border border-white/10">
-                Retenção Desejada Calibrada: <strong className="text-emerald-400 font-bold">90% no Dia D</strong>
+                Retenção Desejada: <strong className="text-emerald-400 font-bold">90%+ no Dia da Prova</strong>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
               <div className="lg:col-span-2 space-y-4">
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  Enquanto métodos arcaicos fazem você revisar matérias que já domina ou deixam conteúdos difíceis caírem no esquecimento, o motor preditivo <strong className="text-white">FSRS</strong> calcula o momento exato antes da perda de memória para agendar revisões cirúrgicas.
+                  Enquanto cronogramas arcaicos fazem você revisar matérias que já domina ou deixam conteúdos difíceis caírem no esquecimento, a nossa <strong className="text-white">Repetição Inteligente</strong> calcula o momento exato antes da perda de memória para agendar revisões cirúrgicas.
                 </p>
 
                 {/* Interactive Rating Simulator */}
                 <div className="space-y-2">
                   <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
-                    Teste a calibração do algoritmo na hora:
+                    Veja o agendamento em ação ao responder um cartão:
                   </span>
                   <div className="grid grid-cols-4 gap-2">
                     <button
@@ -645,7 +645,7 @@ export function ArsenalBentoGrid() {
                   <span className="text-emerald-400 font-bold text-sm">{currentFsrs.interval}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs text-slate-400 pb-2 border-b border-white/10">
-                  <span>Estabilidade (S):</span>
+                  <span>Estabilidade de Memória:</span>
                   <span className="text-cyan-300 font-bold">{currentFsrs.stability}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs text-slate-400">
@@ -653,7 +653,7 @@ export function ArsenalBentoGrid() {
                   <span className="text-indigo-300 font-bold">{currentFsrs.retention}</span>
                 </div>
                 <div className="pt-2 text-[11px] text-slate-400 font-sans">
-                  💡 <strong>Fato Científico:</strong> O FSRS reduz o volume diário de cards em 65% sem perder um único ponto na prova.
+                  💡 <strong>Fato Comprovado:</strong> A repetição inteligente reduz o volume diário de revisões em até 65% sem perder um único ponto na prova.
                 </div>
               </div>
             </div>

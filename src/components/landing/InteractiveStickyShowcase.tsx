@@ -381,7 +381,7 @@ export function InteractiveStickyShowcase() {
                   }`}
                 >
                   <Brain className="w-3.5 h-3.5 text-indigo-300" />
-                  <span>1. Revisão Preditiva (FSRS)</span>
+                  <span>1. Revisão Inteligente</span>
                 </button>
 
                 <button
@@ -435,7 +435,7 @@ export function InteractiveStickyShowcase() {
                               {ratingConfig.statusBadge}
                             </span>
                             <span className="text-[11px] font-mono text-cyan-300 font-semibold hidden sm:inline">
-                              Motor FSRS 4ª Geração
+                              Repetição Espaçada Inteligente
                             </span>
                           </div>
                           <h4 className="text-base sm:text-lg font-bold text-white">
@@ -469,7 +469,7 @@ export function InteractiveStickyShowcase() {
                             <Brain className="w-3.5 h-3.5" /> FLASHCARD COGNITIVO
                           </span>
                           <span className="text-slate-400 font-mono text-[11px]">
-                            Curva de Ebbinghaus calibrada
+                            Fixação de Memória Ativa
                           </span>
                         </div>
 
@@ -508,7 +508,7 @@ export function InteractiveStickyShowcase() {
                         <div className="flex items-center justify-between text-xs font-mono">
                           <span className="text-cyan-300 font-bold flex items-center gap-1.5">
                             <Zap className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>Simule o recálculo do algoritmo FSRS:</span>
+                            <span>Simule o agendamento inteligente:</span>
                           </span>
                           <span className="text-slate-400 text-[11px] hidden sm:inline">Clique para testar</span>
                         </div>

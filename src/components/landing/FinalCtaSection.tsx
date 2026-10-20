@@ -34,7 +34,7 @@ export function FinalCtaSection() {
 
           {/* Sub-headline */}
           <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Abandone o desespero de revisões desorganizadas e cronogramas arcaicos. Estude com rigor de banca examinadora, motor FSRS e áudio neural no bolso.
+            Abandone o desespero de revisões desorganizadas e cronogramas arcaicos. Estude com questões de bancas reais, repetição inteligente e resumos em áudio no bolso.
           </p>
 
           {/* CTA Button */}

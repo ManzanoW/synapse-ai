@@ -69,14 +69,14 @@ export function RealityCheckSection() {
       id: "04",
       topic: "Retenção de Longo Prazo",
       iconArcaico: TrendingDown,
-      arcaicoTitle: "A bola de neve incontrolável do Anki antigo",
+      arcaicoTitle: "A bola de neve dos métodos tradicionais",
       arcaicoDesc:
-        "Com o algoritmo SM-2 básico dos anos 80, 4 dias sem abrir o app resultam em 600 revisões acumuladas em um único dia desesperador.",
-      arcaicoBadge: "Burnout Garantido",
+        "Com cronogramas rígidos ou apps arcaicos, 4 dias sem estudar acumulam centenas de revisões em um único dia desesperador.",
+      arcaicoBadge: "Sobrecarga Total",
       iconSynapse: Flame,
-      synapseTitle: "Motor FSRS com Estabilidade Biológica",
+      synapseTitle: "Repetição Inteligente e Equilibrada",
       synapseDesc:
-        "Calcula o limiar exato do esquecimento biológico, eliminando 65% das repetições inúteis do que você já domina, garantindo 92%+ na prova.",
+        "Calcula o momento exato de revisar antes de esquecer, eliminando 65% das repetições inúteis do que você já domina e blindando sua memória para a prova.",
       synapseBadge: "-65% Revisões Inúteis",
     },
   ];

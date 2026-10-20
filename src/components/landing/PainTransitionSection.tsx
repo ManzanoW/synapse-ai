@@ -193,8 +193,8 @@ function PainDesktopScrollytelling() {
             >
               {activePhaseIndex === 0 && "Fase 01: Saturação de Editais"}
               {activePhaseIndex === 1 && "Fase 02: Dreno Temporal no Trânsito"}
-              {activePhaseIndex === 2 && "Fase 03: Colapso da Curva de Ebbinghaus"}
-              {activePhaseIndex === 3 && "Fase 04: Sincronização Harmônica FSRS"}
+              {activePhaseIndex === 2 && "Fase 03: Amnésia e Esquecimento da Matéria"}
+              {activePhaseIndex === 3 && "Fase 04: Retenção Máxima com Synapse"}
             </span>
           </span>
         </div>
@@ -334,9 +334,9 @@ function PainDesktopScrollytelling() {
 
           <div className="mt-5 sm:mt-8 mx-auto max-w-xl rounded-2xl bg-[#060a14]/85 border border-white/[0.1] backdrop-blur-2xl p-3.5 sm:p-5 shadow-2xl shadow-black/70 grid grid-cols-2 gap-3 sm:gap-4 text-left font-mono">
             <div className="space-y-1.5 border-r border-white/5 pr-2.5 sm:pr-4">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Curva de Ebbinghaus</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Estudo sem Revisão</span>
               <div className="text-lg sm:text-2xl font-black text-rose-400 tracking-tight">-80% Memória</div>
-              <span className="text-[10px] text-slate-500 block truncate">Perda sem algoritmo preditivo</span>
+              <span className="text-[10px] text-slate-500 block truncate">Perda sem revisão ativa</span>
             </div>
             <div className="space-y-1.5 pl-2 sm:pl-3">
               <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Timing das Revisões</span>
@@ -373,7 +373,7 @@ function PainDesktopScrollytelling() {
           <div className="grid grid-cols-3 gap-2 sm:gap-4 max-w-xl mx-auto pt-1 sm:pt-2 font-mono text-xs">
             <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#070b14]/90 border border-cyan-500/35 backdrop-blur-2xl shadow-xl shadow-cyan-950/40">
               <span className="text-cyan-400 text-base sm:text-2xl font-black block">94.8%</span>
-              <span className="text-slate-400 text-[9px] sm:text-[11px]">Retenção FSRS</span>
+              <span className="text-slate-400 text-[9px] sm:text-[11px]">Retenção Real</span>
             </div>
             <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#070b14]/90 border border-indigo-500/35 backdrop-blur-2xl shadow-xl shadow-indigo-950/40">
               <span className="text-indigo-400 text-base sm:text-2xl font-black block">+2h / dia</span>
@@ -400,7 +400,7 @@ function PainDesktopScrollytelling() {
               { label: "1. Saturação", shortLabel: "01", phase: 0 },
               { label: "2. Trânsito", shortLabel: "02", phase: 1 },
               { label: "3. Amnésia", shortLabel: "03", phase: 2 },
-              { label: "4. Synapse FSRS ⚡", shortLabel: "04 ⚡", phase: 3 },
+              { label: "4. Synapse ⚡", shortLabel: "04 ⚡", phase: 3 },
             ].map((item) => {
               const isActive = activePhaseIndex === item.phase;
               return (
@@ -568,13 +568,13 @@ function PainMobileFlow() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <span className="text-xs text-rose-300 font-bold uppercase">Amnésia de Véspera</span>
-                  <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 font-bold">Curva Ebbinghaus</span>
+                  <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 font-bold">Sem Revisão</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <span className="text-[10px] text-slate-400 block">Perda Espontânea:</span>
                     <span className="text-xl font-black text-rose-400">-80% Conteúdo</span>
-                    <span className="text-[10px] text-slate-500 block">Sem algoritmo preditivo</span>
+                    <span className="text-[10px] text-slate-500 block">Sem repetição ativa</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block">Revisão por Planilhas:</span>
@@ -609,7 +609,7 @@ function PainMobileFlow() {
           <div className="grid grid-cols-3 gap-2 font-mono text-xs pt-1">
             <div className="p-2.5 rounded-xl bg-[#070b14]/90 border border-cyan-500/35 shadow-lg shadow-cyan-950/30">
               <span className="text-cyan-400 text-base font-black block">94.8%</span>
-              <span className="text-slate-400 text-[9px] block">Retenção FSRS</span>
+              <span className="text-slate-400 text-[9px] block">Retenção Real</span>
             </div>
             <div className="p-2.5 rounded-xl bg-[#070b14]/90 border border-indigo-500/35 shadow-lg shadow-indigo-950/30">
               <span className="text-indigo-400 text-base font-black block">+2h / dia</span>

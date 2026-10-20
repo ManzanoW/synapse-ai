@@ -3,13 +3,13 @@ import { redirect } from "next/navigation";
 import { LandingPageView } from "@/components/landing/LandingPageView";
 
 export const metadata = {
-  title: "Synapse AI • O Primeiro Copiloto Cognitivo para Concursos Públicos",
+  title: "Synapse AI • O Primeiro Copiloto de Estudos para Concursos Públicos",
   description:
-    "A sua aprovação não depende de sorte. Depende de neurociência. Motor FSRS, correção de redação discursiva no rigor da banca e flashcards em áudio neural humanizado.",
+    "A sua aprovação não depende de sorte. Depende de método. Repetição inteligente, correção de redação discursiva no rigor da banca e resumos em áudio.",
   openGraph: {
-    title: "Synapse AI • O Primeiro Copiloto Cognitivo para Concursos Públicos",
+    title: "Synapse AI • O Primeiro Copiloto de Estudos para Concursos Públicos",
     description:
-      "A sua aprovação não depende de sorte. Depende de neurociência. Motor FSRS, correção de redação discursiva no rigor da banca e flashcards em áudio neural humanizado.",
+      "A sua aprovação não depende de sorte. Depende de método. Repetição inteligente, correção de redação discursiva no rigor da banca e resumos em áudio.",
     type: "website",
   },
 };
@@ -31,7 +31,7 @@ export default async function RootPage() {
         "applicationCategory": "EducationalApplication",
         "operatingSystem": "Web, Android, iOS (PWA)",
         "description":
-          "O primeiro copiloto cognitivo para concursos públicos. Motor FSRS preditivo, correção de redação discursiva no rigor da banca e flashcards em áudio neural humanizado.",
+          "O primeiro copiloto de estudos para concursos públicos. Repetição inteligente, correção de redação discursiva no rigor da banca e resumos em áudio.",
         "offers": {
           "@type": "Offer",
           "price": "29.90",
@@ -49,11 +49,11 @@ export default async function RootPage() {
         "mainEntity": [
           {
             "@type": "Question",
-            "name": "Como o motor FSRS difere do algoritmo tradicional do Anki?",
+            "name": "Como a repetição inteligente do Synapse difere de métodos antigos de flashcards?",
             "acceptedAnswer": {
               "@type": "Answer",
               "text":
-                "O Anki tradicional utiliza o algoritmo SM-2 criado nos anos 80, que aplica intervalos de revisão fixos e gera acúmulo descontrolado de centenas de cards caso você falte alguns dias. O motor FSRS do Synapse AI é baseado em modelagem matemática preditiva de memória, calculando a probabilidade de esquecimento exata e reduzindo a carga diária de revisões em até 65% com a mesma retenção de 90%+ no dia da prova.",
+                "Métodos tradicionais de flashcards usam fórmulas antigas dos anos 80, que aplicam intervalos fixos e geram um acúmulo descontrolado de centenas de cartões se você passar alguns dias sem abrir o app. A repetição inteligente do Synapse é calibrada pelo momento exato em que seu cérebro começaria a esquecer o conteúdo, reduzindo em até 65% as revisões acumuladas e mantendo mais de 90% de retenção no dia da prova.",
             },
           },
           {

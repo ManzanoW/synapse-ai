@@ -83,7 +83,7 @@ export function UpcomingReviewsTimeline({
       >
         <Loader2 size={16} className="animate-spin text-indigo-400" />
         <span className="text-xs font-medium text-slate-400">
-          Calculando projeção da curva FSRS para os próximos 14 dias...
+          Calculando projeção de revisões para os próximos 14 dias...
         </span>
       </div>
     );
@@ -125,14 +125,14 @@ export function UpcomingReviewsTimeline({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-sm font-black text-white tracking-tight">
-                Linha do Tempo de Revisões FSRS
+                Linha do Tempo de Revisões Inteligentes
               </h3>
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                 14 Dias
               </span>
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Projeção preditiva de retenção e carga de repetição espaçada
+              Projeção de retenção e carga diária de revisões
             </p>
           </div>
         </div>
@@ -296,7 +296,7 @@ export function UpcomingReviewsTimeline({
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                <strong>{selectedDayData.flashcardsDueCount}</strong> flashcards FSRS
+                <strong>{selectedDayData.flashcardsDueCount}</strong> flashcards programados
               </span>
 
               {selectedDayData.isOverloaded && (

@@ -210,7 +210,7 @@ export function HeroSection() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
           </span>
           <span className="text-slate-400 tracking-wider">STATUS:</span>
-          <span className="font-bold text-cyan-300">MOTOR FSRS 4.5 ATIVO</span>
+          <span className="font-bold text-cyan-300">REPETIÇÃO INTELIGENTE ATIVA</span>
         </div>
 
         {/* Centro: Indicador Minimalista de Scroll (Mouse com Feixe Fluido) */}

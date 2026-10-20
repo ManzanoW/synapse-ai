@@ -43,7 +43,7 @@ export function StickyShowcaseWorkflow() {
       tag: "Passo 03",
       title: "Siga seu Ciclo Adaptativo",
       subtitle: "Um cronograma vivo que se reorganiza sem culpa caso você perca um dia",
-      desc: "Esqueça o desespero de acumular matéria. Se um imprevisto acontecer, o algoritmo recalibra sua carga horária nos dias seguintes sem sobrecarregar sua rotina e mantendo as revisões FSRS em dia.",
+      desc: "Esqueça o desespero de acumular matéria. Se um imprevisto acontecer, o algoritmo recalibra sua carga horária nos dias seguintes sem sobrecarregar sua rotina e mantendo suas revisões inteligentes em dia.",
       icon: CalendarCheck2,
       badgeColor: "from-cyan-500 to-emerald-500",
     },
