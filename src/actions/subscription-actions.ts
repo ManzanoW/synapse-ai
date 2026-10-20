@@ -128,10 +128,10 @@ export async function toggleDemoPlanTierAction(
       newPlanTier: targetTier,
       message:
         targetTier === "ELITE"
-          ? "👑 Plano SYNAPSE ELITE ativado! Você agora tem 120 Sinapses/dia, Mentor IA, Trilhas e Áudio-Aulas Ilimitadas."
+          ? "👑 Plano SYNAPSE ELITE ativado! Você agora tem 120 Ajudas com IA/dia, Mentor IA, Trilhas e Áudio-Aulas Ilimitadas."
           : targetTier === "PREMIUM"
-          ? "🎉 Plano SYNAPSE PRO ativado com sucesso! Você agora tem 60 Sinapses/dia e acesso Pro total."
-          : "Plano FREE ativado. As cotas diárias de 10 Sinapses/dia voltam a valer.",
+          ? "🎉 Plano SYNAPSE PRO ativado com sucesso! Você agora tem 60 Ajudas com IA/dia e acesso Pro total."
+          : "Plano FREE ativado. As cotas diárias de 10 Ajudas com IA/dia voltam a valer.",
     };
   } catch (err) {
     console.error("[toggleDemoPlanTierAction] Erro ao alternar plano:", err);
@@ -216,8 +216,8 @@ export async function submitSubscriptionLeadAction(input: {
       success: true,
       newPlanTier: assignedTier,
       message: isEliteSelected
-        ? "👑 Parabéns! Seu Acesso VIP Synapse Elite (120 Sinapses/dia + Trilhas Profundas & Áudio-Aulas) foi ativado!"
-        : "🎉 Parabéns! Seu Acesso VIP Synapse Pro (60 Sinapses/dia) foi ativado com sucesso!",
+        ? "👑 Parabéns! Seu Acesso VIP Synapse Elite (120 Ajudas com IA/dia + Trilhas Profundas & Áudio-Aulas) foi ativado!"
+        : "🎉 Parabéns! Seu Acesso VIP Synapse Pro (60 Ajudas com IA/dia) foi ativado com sucesso!",
       activatedTrial: true,
     };
   } catch (err) {
