@@ -40,6 +40,7 @@ import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { CycleView } from "@/components/week/cycle-view";
 import { RescheduleBanner } from "@/components/week/reschedule-banner";
 import { AdaptiveRebalanceBanner } from "@/components/week/AdaptiveRebalanceBanner";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import {
   rebalanceScheduleAction,
   autoRebalanceFromPerformanceAction,
@@ -463,6 +464,7 @@ export default function WeekPage() {
   };
 
   const handleToggleMode = (mode: "WEEKLY" | "CYCLE") => {
+    triggerHaptic("light");
     setStudyMode(mode);
     startTransition(async () => {
       try {
@@ -627,6 +629,12 @@ export default function WeekPage() {
       currentStatus === "Em Revisão" || currentStatus === "Concluido";
     const newFirstStudy = isCompleted ? "Pendente" : "Em Revisão";
     const newPerformance = isCompleted ? 0 : 100;
+
+    if (!isCompleted) {
+      triggerHaptic("success");
+    } else {
+      triggerHaptic("light");
+    }
 
     startTransition(async () => {
       setOptimisticData({
@@ -1154,7 +1162,10 @@ export default function WeekPage() {
                 return (
                   <button
                     key={`day-${day.dayIndex}`}
-                    onClick={() => setSelectedDayIndex(day.dayIndex)}
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setSelectedDayIndex(day.dayIndex);
+                    }}
                     className={`flex flex-col items-start min-w-[130px] sm:min-w-[145px] p-3 rounded-2xl border transition-all duration-200 relative text-left shrink-0 cursor-pointer ${
                       isSelected
                         ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20 dark:bg-indigo-950/50 dark:border-indigo-500/80 dark:text-white dark:ring-1 dark:ring-indigo-500/50 dark:shadow-indigo-950/30"

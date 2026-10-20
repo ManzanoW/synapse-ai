@@ -29,6 +29,7 @@ import {
   triggerSynapticExhaustion,
   triggerAiQuotaRefresh,
 } from "@/lib/quota-events";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import {
   AlertCircle,
   BookOpenCheck,
@@ -131,9 +132,11 @@ export function ErrorNotebookView({
     try {
       const res = await convertErrorToFlashcardAction(itemId);
       if (res.success) {
+        triggerHaptic("success");
         setConvertedIds((prev) => new Set(prev).add(itemId));
         showToast("Flashcard criado com sucesso!", "success");
       } else {
+        triggerHaptic("warning");
         showToast(res.error || "Falha ao salvar flashcard.", "error");
       }
     } catch (err) {
@@ -368,6 +371,7 @@ export function ErrorNotebookView({
 
   // Disparo de Revanche Direta (0⚡ Zero Cota de IA - Questões Originais)
   const handleStartDirectRevenge = async (count: number = 5) => {
+    triggerHaptic("medium");
     setIsGeneratingDirectRevenge(true);
     try {
       const res = await generateDirectRevengeExamAction({
@@ -376,6 +380,7 @@ export function ErrorNotebookView({
       });
 
       if (res.success && res.questions && res.questions.length > 0) {
+        triggerHaptic("success");
         setRedemptionQuestions(res.questions);
         setRedemptionMode("direct");
         setIsRedemptionOpen(true);
@@ -395,6 +400,7 @@ export function ErrorNotebookView({
 
   // Disparo do Simulado de Redenção com Questões Gêmeas da IA (Consome Cota)
   const handleStartRedemption = async (count: number = 5) => {
+    triggerHaptic("medium");
     setIsGeneratingRedemption(true);
     triggerOptimisticEnergyConsumption({
       cost: 1,
@@ -409,6 +415,7 @@ export function ErrorNotebookView({
       });
 
       if (res.isQuotaExceeded) {
+        triggerHaptic("warning");
         triggerSynapticExhaustion({
           feature: "SIMULADO",
           reason: res.error || "Limite diário de simulados com IA atingido.",
@@ -421,6 +428,7 @@ export function ErrorNotebookView({
       }
 
       if (res.success && res.questions && res.questions.length > 0) {
+        triggerHaptic("success");
         triggerAiQuotaRefresh();
         setRedemptionQuestions(res.questions);
         setRedemptionMode("ai");
@@ -440,6 +448,7 @@ export function ErrorNotebookView({
   };
 
   const handleRedemptionComplete = async () => {
+    triggerHaptic("success");
     fetchQuestions(1, filters, true);
     try {
       const metricsRes = await getErrorMetricsAction();

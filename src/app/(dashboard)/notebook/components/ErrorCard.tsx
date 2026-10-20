@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import Link from "next/link";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { tts } from "@/lib/tts-engine";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import {
@@ -289,6 +290,7 @@ export function ErrorCard({
     setIsUpdatingStatus(true);
     try {
       if (isMastered) {
+        triggerHaptic("light");
         const res = await markErrorAsPendingAction(errorItem.id);
         if (res.success) {
           onItemUpdated({
@@ -298,6 +300,7 @@ export function ErrorCard({
           });
         }
       } else {
+        triggerHaptic("success");
         const res = await markErrorAsMasteredAction(errorItem.id, false);
         if (res.success) {
           onItemUpdated({
@@ -333,6 +336,7 @@ export function ErrorCard({
     setIsDrillCorrect(correct);
 
     if (correct) {
+      triggerHaptic("success");
       confetti({
         particleCount: 90,
         spread: 70,
@@ -357,6 +361,8 @@ export function ErrorCard({
           setIsUpdatingStatus(false);
         }
       }
+    } else {
+      triggerHaptic("warning");
     }
   };
 
@@ -697,6 +703,7 @@ export function ErrorCard({
                             disabled={isDrillChecked && isDrillCorrect === true}
                             onClick={() => {
                               if (!isDrillChecked || isDrillCorrect === false) {
+                                triggerHaptic("light");
                                 setSelectedDrillOption(alt.id);
                                 setIsDrillChecked(false);
                               }

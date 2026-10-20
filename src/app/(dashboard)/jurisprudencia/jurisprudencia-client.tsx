@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import {
   type JurisprudenceItem,
   CURATED_JURISPRUDENCE,
@@ -104,6 +105,7 @@ export default function JurisprudenciaClient({
   }, []);
 
   const handleToggleBookmark = (item: JurisprudenceItem) => {
+    triggerHaptic("light");
     setBookmarkedIds((prev) => {
       const updated = { ...prev, [item.id]: !prev[item.id] };
       try {
@@ -154,6 +156,7 @@ export default function JurisprudenciaClient({
   // Alternar Play / Pause / Troca de Card
   const handleToggleAudio = useCallback(
     (item: JurisprudenceItem) => {
+      triggerHaptic("medium");
       if (typeof window === "undefined" || !("speechSynthesis" in window)) {
         alert("Seu navegador não possui suporte para síntese de voz nativa.");
         return;
@@ -303,6 +306,7 @@ export default function JurisprudenciaClient({
       });
 
       if (res.success) {
+        triggerHaptic("success");
         setSavedFlashcardIds((prev) => ({ ...prev, [item.id]: true }));
         try {
           confetti({
@@ -312,9 +316,11 @@ export default function JurisprudenciaClient({
           });
         } catch {}
       } else {
+        triggerHaptic("warning");
         alert(res.error || "Erro ao salvar flashcard.");
       }
     } catch {
+      triggerHaptic("error");
       alert("Erro ao salvar flashcard.");
     } finally {
       setSavingFlashcardId(null);
@@ -322,6 +328,7 @@ export default function JurisprudenciaClient({
   };
 
   const handleCopyText = (item: JurisprudenceItem) => {
+    triggerHaptic("success");
     const text = `${item.numero} (${item.tribunal}) - ${item.titulo}\nDISCIPLINA: ${item.disciplina} | ASSUNTO: ${item.assunto}\n\nTESE:\n${item.teseResumida}\n\nPEGADINHA DA BANCA:\n${item.pegadinhaBanca}\n\nCASO PRÁTICO:\n${item.casoPratico}`;
     navigator.clipboard.writeText(text);
     setCopiedId(item.id);
@@ -330,6 +337,7 @@ export default function JurisprudenciaClient({
 
   const handleAnswerDrill = (itemId: string, optionId: string) => {
     if (confirmedAnswers[itemId]) return;
+    triggerHaptic("light");
     setSelectedAnswers((prev) => ({ ...prev, [itemId]: optionId }));
   };
 
@@ -339,6 +347,7 @@ export default function JurisprudenciaClient({
 
     const isCorrect = selectedAnswers[item.id] === item.drillQuestion.correctAnswer;
     if (isCorrect) {
+      triggerHaptic("success");
       try {
         confetti({
           particleCount: 35,
@@ -347,6 +356,8 @@ export default function JurisprudenciaClient({
           colors: ["#10B981", "#34D399", "#F59E0B"],
         });
       } catch {}
+    } else {
+      triggerHaptic("warning");
     }
   };
 
