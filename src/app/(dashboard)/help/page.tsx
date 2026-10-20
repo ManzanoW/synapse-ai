@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   Target,
 } from 'lucide-react';
+import { triggerHaptic } from '@/lib/sensory/haptics';
 
 interface FaqItem {
   q: string;
@@ -259,7 +260,10 @@ export default function HelpPage() {
           return (
             <button
               key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
+              onClick={() => {
+                triggerHaptic('light');
+                setSelectedCategory(cat.id);
+              }}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 isActive
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
@@ -304,7 +308,10 @@ export default function HelpPage() {
                   }`}
                 >
                   <button
-                    onClick={() => setOpenFaq(isOpen ? null : index)}
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setOpenFaq(isOpen ? null : index);
+                    }}
                     className="w-full flex items-center justify-between p-4 sm:p-5 text-left cursor-pointer gap-4"
                   >
                     <div className="flex items-center gap-3.5 pr-2">
