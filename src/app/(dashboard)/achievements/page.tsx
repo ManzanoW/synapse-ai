@@ -213,7 +213,7 @@ export default function AchievementsPage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400">
-                  Gamificação Competitiva D30
+                  Ranking Semanal de Alunos
                 </span>
                 <span className="rounded-full bg-cyan-500/20 px-2 py-0.2 text-[9px] font-bold text-cyan-300">
                   AO VIVO

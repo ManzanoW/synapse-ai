@@ -93,22 +93,21 @@ export function AdaptiveRebalanceBanner({
             <div className="space-y-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black uppercase tracking-wider text-violet-300">
-                  Otimização Preditiva Disponível
+                  Ajuste Inteligente Sugerido 💡
                 </span>
                 <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[9px] font-bold text-rose-300 flex items-center gap-1">
                   <AlertTriangle size={10} />
-                  Déficit Detectado
+                  Atenção na Matéria
                 </span>
               </div>
 
               <p className="text-xs text-slate-300 leading-relaxed">
-                Sua retenção em <strong className="text-white">{firstCrit.name}</strong> está em{" "}
+                Sua precisão em <strong className="text-white">{firstCrit.name}</strong> está em{" "}
                 <strong className="text-rose-400">{firstCrit.accuracy}%</strong>
                 {firstCrit.pendingErrors && firstCrit.pendingErrors > 0 ? (
                   <> com <strong className="text-amber-300">{firstCrit.pendingErrors} {firstCrit.pendingErrors === 1 ? "questão com erro" : "questões com erros pendentes"}</strong></>
                 ) : null}
-                {otherCount > 0 && ` (+${otherCount} outra disciplina)`}. A IA sugere calibrar a
-                distribuição de horas semanais para reforçar estes tópicos prioritários.
+                {otherCount > 0 && ` (+${otherCount} outra disciplina)`}. Sugerimos aumentar um pouco o tempo dessa matéria para você recuperar seu desempenho rapidamente.
               </p>
             </div>
           </div>
