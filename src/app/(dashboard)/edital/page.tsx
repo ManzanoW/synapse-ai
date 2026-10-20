@@ -34,6 +34,7 @@ import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
 import { UpcomingReviewsTimeline } from "@/components/analytics/UpcomingReviewsTimeline";
 import { useSearchParams } from "next/navigation";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 
 interface ApiTopic {
@@ -228,6 +229,7 @@ function PlannerContent() {
 
   async function handleReviewSubmission(grade: "Bom" | "Difícil" | "Errei") {
     if (!activeReviewTopic) return;
+    triggerHaptic(grade === "Errei" ? "warning" : "success");
     try {
       setSubmitting(true);
       const response = await fetch("/api/edital", {
@@ -836,25 +838,28 @@ function PlannerContent() {
 
             <div className="grid grid-cols-3 gap-2.5 pt-1">
               <button
+                type="button"
                 disabled={submitting}
                 onClick={() => handleReviewSubmission("Bom")}
-                className="flex flex-col items-center justify-center gap-2 p-3.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                className="flex flex-col items-center justify-center gap-2 p-3.5 min-h-[56px] bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-400"
               >
                 <CheckCircle2 size={22} />
                 <span>Bom</span>
               </button>
               <button
+                type="button"
                 disabled={submitting}
                 onClick={() => handleReviewSubmission("Difícil")}
-                className="flex flex-col items-center justify-center gap-2 p-3.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                className="flex flex-col items-center justify-center gap-2 p-3.5 min-h-[56px] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400"
               >
                 <AlertCircle size={22} />
                 <span>Difícil</span>
               </button>
               <button
+                type="button"
                 disabled={submitting}
                 onClick={() => handleReviewSubmission("Errei")}
-                className="flex flex-col items-center justify-center gap-2 p-3.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                className="flex flex-col items-center justify-center gap-2 p-3.5 min-h-[56px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-400"
               >
                 <XCircle size={22} />
                 <span>Errei</span>
