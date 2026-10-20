@@ -389,7 +389,7 @@ export function PrintableWeeklyPlannerModal({
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="w-3 h-3 rounded-xs border border-slate-400 inline-block shrink-0" />
-                      <span>Zerar revisões atrasadas no SM-2</span>
+                      <span>Zerar revisões pendentes da semana</span>
                     </div>
                   </div>
                 </div>

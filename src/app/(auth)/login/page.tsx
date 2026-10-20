@@ -139,7 +139,7 @@ export default function LoginPage() {
             <div className="mt-3.5 bg-violet-50/90 dark:bg-violet-950/40 border border-violet-200/80 dark:border-violet-500/25 p-3 rounded-2xl flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-violet-500 dark:bg-violet-400 animate-pulse shadow-[0_0_8px_#a855f7] shrink-0" />
               <p className="text-xs text-violet-900 dark:text-violet-200/90 font-mono truncate">
-                Algoritmos SM-2 & Quests diárias calibrando seu ciclo.
+                Repetição inteligente & Metas diárias calibrando seu ciclo.
               </p>
             </div>
           </div>

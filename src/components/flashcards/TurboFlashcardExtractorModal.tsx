@@ -180,7 +180,7 @@ export function TurboFlashcardExtractorModal({
                   Extrator Turbo de Flashcards por IA
                 </h2>
                 <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  FSRS / Anki
+                  Repetição Inteligente
                 </span>
               </div>
               <p id="turbo-extractor-desc" className="text-xs text-slate-400">

@@ -239,10 +239,10 @@ export default function DecksPage() {
           </div>
           <div>
             <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-              Algoritmo SM-2
+              Repetição Inteligente
             </span>
             <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
-              Sincronizado
+              Sincronizada
             </span>
           </div>
         </div>

@@ -643,7 +643,7 @@ function PlannerContent() {
                     </span>
                   </div>
                   <p className="mt-3 text-[11px] text-slate-400">
-                    Baseado no histórico SM-2 e simulados resolvidos
+                    Baseado no histórico de revisões e simulados resolvidos
                   </p>
                 </>
               );
@@ -805,7 +805,7 @@ function PlannerContent() {
         <BottomSheet
           isOpen={!!activeReviewTopic}
           onClose={() => setActiveReviewTopic(null)}
-          title="Registrar Avaliação SM-2"
+          title="Registrar Avaliação de Revisão"
         >
           <div className="space-y-5">
             <div className="space-y-1">

@@ -63,7 +63,7 @@ export default function PendingSubjects({
 
         <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
           <Clock size={11} className="text-indigo-400" />
-          <span>SM-2 Agendado</span>
+          <span>Revisão Agendada</span>
         </div>
       </div>
 

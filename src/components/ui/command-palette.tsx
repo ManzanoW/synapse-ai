@@ -71,7 +71,7 @@ const STATIC_PAGES: Omit<PaletteItem, "id">[] = [
   },
   {
     title: "Edital Verticalizado",
-    subtitle: "Acompanhamento detalhado de matérias, tópicos e SM-2",
+    subtitle: "Acompanhamento detalhado de matérias, tópicos e revisões",
     icon: FileSpreadsheet,
     iconColor: "text-cyan-400",
     iconBg: "bg-cyan-500/10 border-cyan-500/20",
@@ -252,7 +252,7 @@ const STATIC_ACTIONS: Omit<PaletteItem, "id">[] = [
     icon: Clock,
     iconColor: "text-rose-400",
     iconBg: "bg-rose-500/10 border-rose-500/30",
-    badge: "SM-2",
+    badge: "REVISÃO",
     badgeColor: "text-rose-300 bg-rose-500/20 border-rose-500/40",
     category: "Ações Rápidas",
     href: "/edital",

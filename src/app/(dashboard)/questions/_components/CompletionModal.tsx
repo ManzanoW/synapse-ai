@@ -220,7 +220,7 @@ export function CompletionModal({
           </div>
         )}
 
-        {/* DIAGNÓSTICO COGNITIVO */}
+        {/* DIAGNÓSTICO DE DESEMPENHO */}
         <p
           className={`text-xs p-3.5 rounded-2xl leading-relaxed text-left border ${
             isPerfect
@@ -228,20 +228,20 @@ export function CompletionModal({
               : "bg-indigo-500/10 border-indigo-500/20 text-slate-300"
           }`}
         >
-          🧠{" "}
+          🎯{" "}
           <strong className={isPerfect ? "text-amber-300" : "text-indigo-300"}>
-            Diagnóstico Cognitivo:
+            Diagnóstico do Simulado:
           </strong>{" "}
           {isPerfect
             ? "Domínio absoluto do conteúdo! Você gabaritou todas as questões com precisão cirúrgica."
             : percentageAcc >= 80
-              ? "Excelente domínio do assunto! Seu percentual de retenção atinge patamares de aprovação no topo das bancas."
+              ? "Excelente domínio do assunto! Seu percentual de acertos atinge patamares de aprovação no topo das bancas."
               : percentageAcc >= 50
-                ? "Bom rendimento, porém há pontos de atenção. Recomendamos criar Flashcards das questões incorretas para fixação."
-                : "Taxa de retenção abaixo do ideal. Recomendamos revisar a teoria base e praticar novo simulado focado."}
+                ? "Bom rendimento, porém há pontos de atenção. Recomendamos salvar as questões incorretas nos seus cartões de memória para fixação."
+                : "Taxa de acertos abaixo do ideal. Recomendamos revisar os tópicos pendentes e praticar um novo simulado focado."}
         </p>
 
-        {/* SINCRONIZAÇÃO SM-2 */}
+        {/* SINCRONIZAÇÃO INTELIGENTE */}
         <div className="flex items-center justify-between text-[11px] font-mono bg-slate-950 border border-slate-800/80 px-4 py-2.5 rounded-xl text-slate-400 shadow-inner">
           <span className="flex items-center gap-2">
             {isSyncingSM2 ? (
@@ -252,15 +252,15 @@ export function CompletionModal({
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
             )}
-            Sincronização SM-2:
+            Revisão Inteligente:
           </span>
           <span className="text-emerald-400 font-bold">
             {isSyncingSM2
-              ? "Calculando novo espaçamento..."
+              ? "Agendando novas repetições..."
               : isPerfect
                 ? "Revisão estendida ao máximo! 🚀"
                 : percentageAcc >= 70
-                  ? "Próxima revisão estendida pelo algoritmo 🚀"
+                  ? "Próxima revisão espaçada com sucesso 🚀"
                   : "Revisão priorizada na grade de amanhã ⚠️"}
           </span>
         </div>

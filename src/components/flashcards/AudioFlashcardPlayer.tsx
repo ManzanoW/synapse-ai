@@ -50,7 +50,7 @@ export function AudioFlashcardPlayer({
   isOpen,
   onClose,
   cards,
-  deckTitle = "Flashcards FSRS",
+  deckTitle = "Cartões de Memória",
   initialIndex = 0,
   isPro,
 }: AudioFlashcardPlayerProps) {

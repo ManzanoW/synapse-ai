@@ -292,7 +292,7 @@ export default async function ProfilePage() {
               </label>
               <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-slate-200 font-medium flex items-center justify-between">
                 <span>{studyModeLabel}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">SM-2 Ponderado</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Ciclo Adaptativo</span>
               </div>
             </div>
           </div>

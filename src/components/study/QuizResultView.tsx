@@ -798,13 +798,13 @@ export function QuizResultView({
 
             <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 text-center sm:text-left">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block flex items-center justify-center sm:justify-start gap-1">
-                <ShieldCheck size={11} className="text-indigo-400" /> Algoritmo
+                <ShieldCheck size={11} className="text-indigo-400" /> Revisão
               </span>
               <span className="text-xs sm:text-sm font-mono font-bold text-indigo-300 mt-0.5 block truncate">
                 {percentageAcc >= 80 ? "Revisão Estendida" : "Revisão Prioritária"}
               </span>
               <span className="text-[10px] text-slate-500 font-medium">
-                Sincronizado SM-2
+                Revisão Agendada
               </span>
             </div>
           </div>

@@ -172,7 +172,7 @@ export default function CalendarPage() {
                 Calendário de Revisões
               </h1>
               <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Visão temporal das suas sessões agendadas pelo algoritmo SM-2.
+                Visão temporal das suas sessões agendadas para revisão inteligente.
               </p>
             </div>
           </div>
