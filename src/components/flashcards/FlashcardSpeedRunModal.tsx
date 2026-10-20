@@ -25,6 +25,7 @@ import {
   recordSpeedRunSessionAction,
   SpeedRunCardItem,
 } from "@/actions/flashcard-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface DeckOption {
   id: string;
@@ -264,6 +265,7 @@ export function FlashcardSpeedRunModal({
   // Fim de jogo
   const handleGameOver = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
+    triggerHaptic("heavy");
     setGameState("GAME_OVER");
     sfx.playGameOver();
 
@@ -337,8 +339,10 @@ export function FlashcardSpeedRunModal({
     triggerTimeBonus("+2s");
 
     if (newCombo >= 4) {
+      triggerHaptic("heavy");
       sfx.playCombo();
     } else {
+      triggerHaptic("success");
       sfx.playCorrect();
     }
 
@@ -349,6 +353,7 @@ export function FlashcardSpeedRunModal({
   const handleWrong = () => {
     if (gameState !== "PLAYING") return;
 
+    triggerHaptic("warning");
     setCombo(1);
     setWrongCount((prev) => prev + 1);
 
@@ -400,6 +405,7 @@ export function FlashcardSpeedRunModal({
       } else if (gameState === "PLAYING") {
         if (e.code === "Space") {
           e.preventDefault();
+          triggerHaptic("light");
           setIsFlipped((prev) => !prev);
         } else if (e.code === "ArrowRight" || e.key === "1") {
           e.preventDefault();
@@ -676,7 +682,10 @@ export function FlashcardSpeedRunModal({
 
             {/* CARD DO FLASHCARD */}
             <div
-              onClick={() => setIsFlipped((prev) => !prev)}
+              onClick={() => {
+                triggerHaptic("light");
+                setIsFlipped((prev) => !prev);
+              }}
               className="group cursor-pointer min-h-[220px] sm:min-h-[260px] p-6 rounded-3xl bg-slate-900/70 border border-slate-800 hover:border-indigo-500/40 transition-all flex flex-col justify-between relative shadow-xl backdrop-blur-md"
             >
               <div className="flex items-center justify-between text-xs text-slate-400">

@@ -58,6 +58,7 @@ import {
   cacheOfflineDeck,
   getCachedOfflineDeck,
 } from "@/lib/offline-sync";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface Flashcard {
   id: string;
@@ -227,6 +228,7 @@ export default function StudyFlashcard({
       try {
         const res = await generateFlashcardMnemonicAction(currentCard.id);
         if (res.success && res.data) {
+          triggerHaptic("success");
           setMnemonicOverrides((prev) => ({
             ...prev,
             [currentCard.id]: res.data!.details,
@@ -274,6 +276,7 @@ export default function StudyFlashcard({
 
   const toggleFlip = useCallback(() => {
     playFlip();
+    triggerHaptic("light");
     setIsFlipped((prev) => !prev);
   }, [playFlip]);
 
@@ -281,13 +284,16 @@ export default function StudyFlashcard({
     (grade: ReviewGrade) => {
       if (!currentCard) return;
 
-      // 1. Efeito sonoro imediato
+      // 1. Efeito sonoro e tátil imediato
       if (grade >= 3) {
         playCorrect();
+        triggerHaptic(grade === 4 ? "heavy" : "success");
       } else if (grade === 1) {
         playError();
+        triggerHaptic("warning");
       } else {
         playFlip();
+        triggerHaptic("medium");
       }
 
       const targetCard = currentCard;
@@ -310,6 +316,7 @@ export default function StudyFlashcard({
 
       if (isLastCard) {
         setIsFinished(true);
+        triggerHaptic("heavy");
         confetti({
           particleCount: 200,
           spread: 90,

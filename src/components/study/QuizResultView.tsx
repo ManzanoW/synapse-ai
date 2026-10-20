@@ -46,6 +46,7 @@ import {
   WrongQuestionItem,
 } from "@/actions/error-notebook-actions";
 import { createFlashcardsFromQuizResultsAction } from "@/actions/error-flashcard-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export interface QuizResultViewProps {
   quizId?: string | null;
@@ -420,6 +421,7 @@ export function QuizResultView({
       });
 
       if (res.success) {
+        triggerHaptic("success");
         setIsErrorsSaved(true);
         setSavedCount(res.countAdded ?? wrongItems.length);
       } else {
@@ -468,6 +470,7 @@ export function QuizResultView({
       });
 
       if (res.success && res.deckId) {
+        triggerHaptic("success");
         setFlashcardDeckInfo({
           deckId: res.deckId,
           deckTitle: res.deckTitle || `Erros: ${subject}`,
