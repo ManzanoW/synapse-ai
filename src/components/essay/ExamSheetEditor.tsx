@@ -21,6 +21,7 @@ import {
   Gift,
 } from "lucide-react";
 import { EssayTheme } from "@/actions/essay-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { sanitizeOcrTranscription } from "@/lib/essay-ocr-utils";
 import { SubmitConfirmationModal } from "./SubmitConfirmationModal";
 import { ClearSheetModal } from "./ClearSheetModal";
@@ -152,7 +153,18 @@ export function ExamSheetEditor({
     };
   }, [lineCount]);
 
+  const prevLineCountRef = useRef<number>(lineCount);
+  useEffect(() => {
+    if (prevLineCountRef.current < 20 && lineCount >= 20) {
+      triggerHaptic("success");
+    } else if (prevLineCountRef.current <= 30 && lineCount > 30) {
+      triggerHaptic("warning");
+    }
+    prevLineCountRef.current = lineCount;
+  }, [lineCount]);
+
   const handleIndentParagraph = () => {
+    triggerHaptic("light");
     if (!textareaRef.current) return;
     const start = textareaRef.current.selectionStart;
     const end = textareaRef.current.selectionEnd;
@@ -168,15 +180,18 @@ export function ExamSheetEditor({
   };
 
   const handleConfirmClear = () => {
+    triggerHaptic("warning");
     setContent("");
     localStorage.removeItem(`essay_draft_${theme.title}`);
   };
 
   const handleOpenSubmitModal = () => {
+    triggerHaptic("light");
     setIsSubmitModalOpen(true);
   };
 
   const handleConfirmSubmit = () => {
+    triggerHaptic("medium");
     setIsSubmitModalOpen(false);
     onSubmitEssay(content, seconds, lineCount, wordCount);
   };
@@ -184,7 +199,9 @@ export function ExamSheetEditor({
   return (
     <div
       className={`flex flex-col gap-4 w-full transition-all ${
-        isFullscreen ? "fixed inset-0 z-50 bg-[#030611] p-4 sm:p-6 overflow-y-auto" : ""
+        isFullscreen
+          ? "fixed inset-0 z-50 bg-[#030611] p-4 sm:p-6 overflow-y-auto pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)]"
+          : ""
       }`}
     >
       {/* BARRA SUPERIOR DE FERRAMENTAS E SIMULADO */}
@@ -257,10 +274,12 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={handleIndentParagraph}
-            className="min-h-[36px] sm:min-h-[40px] hidden md:flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:hover:text-white text-xs font-medium border border-slate-200 dark:border-white/10 transition-colors cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-violet-500"
+            className="min-h-[36px] sm:min-h-[40px] flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:hover:text-white text-xs font-medium border border-slate-200 dark:border-white/10 transition-colors cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-violet-500"
             title="Inserir recuo de parágrafo oficial (6 espaços)"
           >
-            <span>⇥ Parágrafo</span>
+            <span>⇥</span>
+            <span className="hidden sm:inline">Parágrafo</span>
+            <span className="sm:hidden text-[11px]">Recuo</span>
           </button>
 
           {/* Botão Limpar */}
@@ -277,7 +296,10 @@ export function ExamSheetEditor({
           {/* Botão Tela Cheia */}
           <button
             type="button"
-            onClick={() => setIsFullscreen(!isFullscreen)}
+            onClick={() => {
+              triggerHaptic("light");
+              setIsFullscreen(!isFullscreen);
+            }}
             aria-label={isFullscreen ? "Sair do modo tela cheia" : "Entrar no modo foco em tela cheia"}
             className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/10 border border-transparent hover:border-slate-200 dark:hover:border-white/10 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-violet-500"
             title={isFullscreen ? "Sair da Tela Cheia" : "Modo Foco em Tela Cheia"}

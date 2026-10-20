@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { MentorGuidance } from "@/types/quiz";
 import { getQuestionMentorGuidanceAction } from "@/actions/quiz-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export interface MentorCopilotDrawerProps {
   isOpen: boolean;
@@ -106,6 +107,7 @@ export function MentorCopilotDrawer({
   };
 
   const copyToClipboard = (text: string, key: string) => {
+    triggerHaptic("success");
     navigator.clipboard.writeText(text);
     setHasCopied(key);
     setTimeout(() => setHasCopied(null), 2000);
@@ -194,7 +196,10 @@ export function MentorCopilotDrawer({
           <div className="grid grid-cols-3 gap-1.5 mt-3.5 p-1 bg-black/40 border border-white/5 rounded-xl">
             <button
               type="button"
-              onClick={() => setActiveTab("socratic")}
+              onClick={() => {
+                triggerHaptic("light");
+                setActiveTab("socratic");
+              }}
               className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "socratic"
                   ? "bg-violet-600 text-white shadow-md shadow-violet-950/50"
@@ -207,7 +212,10 @@ export function MentorCopilotDrawer({
 
             <button
               type="button"
-              onClick={() => setActiveTab("simplified")}
+              onClick={() => {
+                triggerHaptic("light");
+                setActiveTab("simplified");
+              }}
               className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "simplified"
                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/50"
@@ -220,7 +228,10 @@ export function MentorCopilotDrawer({
 
             <button
               type="button"
-              onClick={() => setActiveTab("mnemonic")}
+              onClick={() => {
+                triggerHaptic("light");
+                setActiveTab("mnemonic");
+              }}
               className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "mnemonic"
                   ? "bg-amber-600 text-white shadow-md shadow-amber-950/50"
@@ -447,14 +458,17 @@ export function MentorCopilotDrawer({
         </div>
 
         {/* FOOTER DO DRAWER */}
-        <div className="p-4 border-t border-white/10 bg-[#0c1020]/90 backdrop-blur-md flex items-center justify-between text-xs text-slate-400 relative z-10">
+        <div className="p-4 border-t border-white/10 bg-[#0c1020]/90 backdrop-blur-md flex items-center justify-between text-xs text-slate-400 relative z-10 pb-[max(env(safe-area-inset-bottom),1rem)]">
           <span className="text-[11px] text-slate-500 font-medium">
             Synapse Copilot • Mentor Cognitivo
           </span>
           <button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold cursor-pointer transition-all active:scale-95"
+            onClick={() => {
+              triggerHaptic("light");
+              onClose();
+            }}
+            className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold cursor-pointer transition-all active:scale-95"
           >
             Continuar Questão
           </button>

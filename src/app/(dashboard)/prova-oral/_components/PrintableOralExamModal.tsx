@@ -34,35 +34,36 @@ export function PrintableOralExamModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto font-sans pt-[max(env(safe-area-inset-top),0.5rem)] pb-[max(env(safe-area-inset-bottom),0.5rem)]">
       <div className="relative w-full max-w-4xl bg-white text-slate-900 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col print:max-h-none print:shadow-none print:rounded-none print:m-0 print:p-0">
         {/* BARRA SUPERIOR (OCULTA NA IMPRESSÃO) */}
-        <div className="flex items-center justify-between p-4 bg-slate-900 text-white shrink-0 print:hidden">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-violet-600/30 border border-violet-500/40 text-violet-300">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between p-3.5 sm:p-4 bg-slate-900 text-white shrink-0 print:hidden gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 rounded-xl bg-violet-600/30 border border-violet-500/40 text-violet-300 shrink-0">
               <Gavel size={18} />
             </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-bold">
-                Espelho Oficial de Avaliação da Prova Oral
+            <div className="min-w-0">
+              <h2 className="text-xs sm:text-base font-bold truncate">
+                Espelho da Prova Oral
               </h2>
-              <p className="text-xs text-slate-400">
-                Ficha diagramada em padrão oficial de banca para impressão ou PDF
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate">
+                Ficha diagramada em padrão oficial de banca
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer min-h-[38px]"
             >
-              <Printer size={15} />
-              <span>Imprimir / Salvar em PDF</span>
+              <Printer size={14} />
+              <span className="hidden sm:inline">Imprimir / Salvar em PDF</span>
+              <span className="sm:hidden">Imprimir</span>
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
             >
               <X size={18} />
             </button>
