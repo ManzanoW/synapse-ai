@@ -102,14 +102,14 @@ export function MonteCarloRiskModal({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
-                    Raio-X Preditivo de Aprovação
+                    Previsão de Aprovação 🎯
                   </h2>
                   <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-mono">
-                    Monte Carlo 1.000x
+                    1.000 Cenários de Prova
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Simulação estocástica multivariada calculando o risco real e ganho marginal por matéria
+                  Cálculo inteligente de chances de passar, comparando seu desempenho com a nota de corte
                 </p>
               </div>
             </div>
@@ -255,7 +255,7 @@ export function MonteCarloRiskModal({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                     <BarChart3 size={15} className="text-indigo-500" />
-                    <span>Curva Estocástica de Desempenho (1.000 Provas)</span>
+                    <span>Distribuição de Notas em 1.000 Cenários de Prova</span>
                   </span>
                   <span className="text-[11px] text-slate-400">
                     Barras verdes = Acima da Nota de Corte ({data.cutoffScore} pts)
