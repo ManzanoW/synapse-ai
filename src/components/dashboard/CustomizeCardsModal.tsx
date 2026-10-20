@@ -17,6 +17,7 @@ import {
   Gauge,
 } from "lucide-react";
 import type { DashboardCardVisibility } from "@/app/(dashboard)/dashboard/dashboard-client";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface CustomizeCardsModalProps {
   isOpen: boolean;
@@ -200,7 +201,10 @@ export function CustomizeCardsModal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => {
+              triggerHaptic("light");
+              onClose();
+            }}
             aria-label="Fechar personalização de cards"
             className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
@@ -217,7 +221,10 @@ export function CustomizeCardsModal({
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => onApplyPreset("minimal")}
+              onClick={() => {
+                triggerHaptic("medium");
+                onApplyPreset("minimal");
+              }}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 currentMode === "minimal"
                   ? "bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20"
@@ -229,7 +236,10 @@ export function CustomizeCardsModal({
 
             <button
               type="button"
-              onClick={() => onApplyPreset("practice")}
+              onClick={() => {
+                triggerHaptic("medium");
+                onApplyPreset("practice");
+              }}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 currentMode === "practice"
                   ? "bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/20"
@@ -241,7 +251,10 @@ export function CustomizeCardsModal({
 
             <button
               type="button"
-              onClick={() => onApplyPreset("full")}
+              onClick={() => {
+                triggerHaptic("medium");
+                onApplyPreset("full");
+              }}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 currentMode === "full"
                   ? "bg-cyan-600 text-white font-black shadow-md shadow-cyan-600/20"
@@ -263,7 +276,10 @@ export function CustomizeCardsModal({
               <button
                 key={card.key}
                 type="button"
-                onClick={() => onToggleCard(card.key)}
+                onClick={() => {
+                  triggerHaptic("light");
+                  onToggleCard(card.key);
+                }}
                 className={`w-full p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                   isChecked
                     ? "bg-slate-900/90 border-indigo-500/40 shadow-sm"

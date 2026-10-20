@@ -27,6 +27,7 @@ import {
 } from "@/actions/gamification-actions";
 import { useGamification } from "@/context/GamificationContext";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface FirstStepsChecklistCardProps {
   hasEditalSubjects: boolean;
@@ -152,6 +153,7 @@ export function FirstStepsChecklistCard({
   };
 
   const handleToggleMinimize = () => {
+    triggerHaptic("light");
     const next = !isMinimized;
     setIsMinimized(next);
     saveState({ minimized: next });
@@ -163,6 +165,7 @@ export function FirstStepsChecklistCard({
     try {
       const res = await claimOnboardingRewardAction();
       if (res.success) {
+        triggerHaptic("heavy");
         playCelebrationSound();
         confetti({
           particleCount: 80,

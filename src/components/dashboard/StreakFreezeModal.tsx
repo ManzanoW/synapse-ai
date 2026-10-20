@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 const FREEZE_COST_XP = 300;
 const MAX_FREEZES = 5;
@@ -57,6 +58,7 @@ export function StreakFreezeModal({
       const data = await response.json();
 
       if (!response.ok) {
+        triggerHaptic("warning");
         setErrorMessage(
           data.error || "Erro ao comprar a Trava de Gelo. Tente novamente.",
         );
@@ -68,6 +70,7 @@ export function StreakFreezeModal({
       }
 
       // Update local state optimistically
+      triggerHaptic("heavy");
       setLocalFreezes(data.streakFreezes);
       setLocalXp(data.remainingXp);
       setPurchaseState("success");
@@ -76,6 +79,7 @@ export function StreakFreezeModal({
       // Auto-reset success state to allow further purchases (up to cap)
       setTimeout(() => setPurchaseState("idle"), 3000);
     } catch {
+      triggerHaptic("warning");
       setErrorMessage("Erro de conexão. Verifique sua internet.");
       setPurchaseState("error");
       setTimeout(() => setPurchaseState("idle"), 4000);
@@ -83,6 +87,7 @@ export function StreakFreezeModal({
   };
 
   const handleClose = () => {
+    triggerHaptic("light");
     // Reset local overrides when closing so next open shows fresh props
     setLocalFreezes(null);
     setLocalXp(null);
