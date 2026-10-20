@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   LifeBuoy,
   Camera,
+  X,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAudio } from "@/contexts/AudioContext";
@@ -400,7 +401,7 @@ export function CommandPalette({ user }: CommandPaletteProps) {
     <>
       <AnimatePresence>
         {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 p-3 font-sans">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-6 sm:pt-24 p-3 pb-[max(env(safe-area-inset-bottom),1rem)] font-sans">
           {/* Backdrop com blur sofisticado */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -420,7 +421,7 @@ export function CommandPalette({ user }: CommandPaletteProps) {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header com Input de Busca */}
-            <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+            <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-3 sm:py-3.5 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
               <Search className="text-slate-400 dark:text-slate-500 shrink-0" size={18} />
               <input
                 ref={inputRef}
@@ -431,15 +432,26 @@ export function CommandPalette({ user }: CommandPaletteProps) {
                 }}
                 onKeyDown={handleInputKeyDown}
                 placeholder="O que você deseja fazer ou acessar? (ex: Redação, Flashcards, Tema...)"
-                className="w-full bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
+                className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
               />
               <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md">
                 ESC
               </kbd>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setIsOpen(false);
+                }}
+                aria-label="Fechar paleta de comandos"
+                className="sm:hidden p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer active:scale-95"
+              >
+                <X size={16} />
+              </button>
             </div>
 
             {/* Lista de Resultados */}
-            <div className="max-h-[380px] overflow-y-auto p-2 divide-y divide-slate-100 dark:divide-white/[0.04]">
+            <div className="max-h-[50vh] sm:max-h-[380px] overflow-y-auto p-2 divide-y divide-slate-100 dark:divide-white/[0.04]">
               {filteredItems.length > 0 ? (
                 filteredItems.map((item, idx) => {
                   const isSelected = idx === selectedIndex;
@@ -449,7 +461,7 @@ export function CommandPalette({ user }: CommandPaletteProps) {
                       key={item.id}
                       onClick={item.action}
                       onMouseEnter={() => setSelectedIndex(idx)}
-                      className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
+                      className={`flex items-center justify-between gap-3 px-3 py-3 sm:py-2.5 min-h-[46px] rounded-xl cursor-pointer transition-all active:scale-[0.98] ${
                         isSelected
                           ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
                           : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04]"
@@ -530,7 +542,10 @@ export function CommandPalette({ user }: CommandPaletteProps) {
 
             {/* Footer com Dicas de Atalho */}
             <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-200 dark:border-white/10 text-[10px] text-slate-500 dark:text-slate-400">
-              <div className="flex items-center gap-3">
+              <span className="sm:hidden font-medium text-slate-400">
+                Toque para selecionar
+              </span>
+              <div className="hidden sm:flex items-center gap-3">
                 <span className="flex items-center gap-1">
                   <kbd className="px-1.5 py-0.5 font-mono bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded">
                     ↑

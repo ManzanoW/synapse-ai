@@ -27,6 +27,7 @@ import {
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSoundscape } from "@/hooks/useSoundscape";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import {
   finishFocusSessionAction,
   FinishFocusSessionResult,
@@ -149,11 +150,13 @@ export default function StudyRoomClient({
 
   // Alterna o Timer
   const toggleTimer = () => {
+    triggerHaptic(isActive ? "light" : "medium");
     setIsActive((prev) => !prev);
   };
 
   // Reinicia o Timer do modo atual
   const resetTimer = () => {
+    triggerHaptic("light");
     setIsActive(false);
     setMinutes(MODE_CONFIG[mode].minutes);
     setSeconds(0);
@@ -161,6 +164,7 @@ export default function StudyRoomClient({
 
   // Muda de modo
   const changeMode = (newMode: TimerMode) => {
+    triggerHaptic("light");
     setMode(newMode);
     setIsActive(false);
     setMinutes(MODE_CONFIG[newMode].minutes);
@@ -169,6 +173,7 @@ export default function StudyRoomClient({
 
   // Pula para a próxima fase do ciclo Pomodoro
   const skipToNext = () => {
+    triggerHaptic("medium");
     setIsActive(false);
     if (isFocusMode) {
       // Se acabou de focar, vai para pausa curta (ou longa a cada 4 ciclos)
@@ -254,6 +259,7 @@ export default function StudyRoomClient({
             // Bloco finalizado!
             setIsActive(false);
             soundscapeHook.playCompletionChime();
+            triggerHaptic("heavy");
 
             if (isFocusMode) {
               const nextCycles = completedCycles + 1;
@@ -284,13 +290,16 @@ export default function StudyRoomClient({
     };
   }, [isActive, minutes, seconds, isFocusMode, completedCycles, soundscapeHook, handleFinishSession]);
 
-  // Alterna tela cheia nativa do navegador se suportado
+  // Alterna tela cheia nativa do navegador (ou overlay Zen se iOS/não suportado)
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+    triggerHaptic("medium");
+    if (!document.fullscreenElement && !isZenMode) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
       setIsZenMode(true);
     } else {
-      if (document.exitFullscreen) {
+      if (document.fullscreenElement && document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
       }
       setIsZenMode(false);
@@ -364,7 +373,7 @@ export default function StudyRoomClient({
     const zenCircumference = 2 * Math.PI * zenRadius;
 
     return (
-      <div className="fixed inset-0 z-50 bg-[#030712] text-white flex flex-col justify-between p-6 sm:p-10 select-none overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-[#030712] text-white flex flex-col justify-between p-4 sm:p-10 pb-[max(env(safe-area-inset-bottom),1.5rem)] select-none overflow-hidden">
         {/* Glows Ambientais Dinâmicos */}
         <div
           className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none transition-all duration-1000 ${
@@ -392,8 +401,11 @@ export default function StudyRoomClient({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsPiPOpen((prev) => !prev)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg active:scale-95 cursor-pointer ${
+              onClick={() => {
+                triggerHaptic("light");
+                setIsPiPOpen((prev) => !prev);
+              }}
+              className={`flex items-center gap-2 px-3 py-2 min-h-[40px] rounded-xl border text-xs font-semibold transition-all shadow-lg active:scale-95 cursor-pointer ${
                 isPiPOpen
                   ? "bg-violet-600 text-white border-violet-500 shadow-violet-500/30"
                   : "bg-slate-900/80 hover:bg-slate-800 border-slate-700/60 text-slate-300 hover:text-white"
@@ -401,21 +413,22 @@ export default function StudyRoomClient({
               title="Janelinha Flutuante: mantém o cronômetro visível sobre outras abas"
             >
               <ExternalLink size={15} />
-              <span>{isPiPOpen ? "Fechar Janela" : "🔲 Janela Flutuante"}</span>
+              <span className="hidden sm:inline">{isPiPOpen ? "Fechar Janela" : "🔲 Janela Flutuante"}</span>
             </button>
 
             <button
               onClick={() => {
+                triggerHaptic("light");
                 setIsZenMode(false);
                 if (document.fullscreenElement && document.exitFullscreen) {
                   document.exitFullscreen().catch(() => {});
                 }
               }}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 hover:text-white transition-all shadow-lg active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 min-h-[40px] rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 hover:text-white transition-all shadow-lg active:scale-95 cursor-pointer"
               title="Sair da Tela Cheia (Esc)"
             >
               <Minimize2 size={15} />
-              <span>Sair da Tela Cheia (Esc)</span>
+              <span>Sair (Esc)</span>
             </button>
           </div>
         </div>
@@ -423,7 +436,7 @@ export default function StudyRoomClient({
         {/* Centro Zen: Pomodoro Gigante e Controles */}
         <div className="relative z-10 flex flex-col items-center justify-center my-auto">
           {/* Seletor Rápido de Modos */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-900/70 border border-slate-800/80 rounded-2xl mb-8 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 p-1 bg-slate-900/70 border border-slate-800/80 rounded-2xl mb-8 backdrop-blur-md">
             {(["foco_25", "foco_50", "curta", "longa"] as TimerMode[]).map((m) => {
               const conf = MODE_CONFIG[m];
               const isCurrent = mode === m;
@@ -431,7 +444,7 @@ export default function StudyRoomClient({
                 <button
                   key={m}
                   onClick={() => changeMode(m)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 ${
                     isCurrent
                       ? conf.type === "focus"
                         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/40"
@@ -778,7 +791,7 @@ export default function StudyRoomClient({
                 <button
                   key={m}
                   onClick={() => changeMode(m)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
                     isCurrent
                       ? conf.type === "focus"
                         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"

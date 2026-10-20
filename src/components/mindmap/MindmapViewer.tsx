@@ -334,8 +334,47 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
     setIsDragging(false);
   };
 
+  // Suporte a Toque Mobile e Gesto de Pinça (Pinch-to-zoom)
+  const touchStartRef = useRef<{ x: number; y: number; dist?: number }>({ x: 0, y: 0 });
+
+  const getDistance = (t1: React.Touch, t2: React.Touch) => {
+    return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest("[data-mindmap-interactive]")) return;
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      const t = e.touches[0];
+      setDragStart({ x: t.clientX - pan.x, y: t.clientY - pan.y });
+      touchStartRef.current = { x: t.clientX, y: t.clientY };
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      const dist = getDistance(e.touches[0], e.touches[1]);
+      touchStartRef.current.dist = dist;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isDragging) {
+      const t = e.touches[0];
+      setPan({ x: t.clientX - dragStart.x, y: t.clientY - dragStart.y });
+    } else if (e.touches.length === 2 && touchStartRef.current.dist) {
+      const newDist = getDistance(e.touches[0], e.touches[1]);
+      const delta = (newDist - touchStartRef.current.dist) * 0.005;
+      setScale((s) => Math.min(Math.max(s + delta, 0.4), 2.5));
+      touchStartRef.current.dist = newDist;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    touchStartRef.current.dist = undefined;
+  };
+
   const handleResetZoom = () => {
     playClick();
+    triggerHaptic("light");
     setScale(1);
     setPan({ x: 0, y: 0 });
   };
@@ -348,25 +387,30 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
       <div className="pointer-events-none absolute top-1/4 left-1/4 w-80 h-80 rounded-full bg-indigo-500/10 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-cyan-500/10 blur-[120px]" />
 
-      {/* ÁREA PRINCIPAL DO SVG VETORIAL */}
+      {/* ÁREA PRINCIPAL DO SVG VETORIAL COM SUPORTE A TOQUE */}
       <div
         ref={containerRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        className={`flex-1 h-full overflow-hidden relative cursor-grab active:cursor-grabbing select-none`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        className={`flex-1 h-full overflow-hidden relative cursor-grab active:cursor-grabbing select-none touch-none`}
       >
         {/* Barra de Ferramentas Flutuante de Zoom & Pan */}
-        <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 shadow-lg backdrop-blur-md">
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-1 sm:gap-1.5 p-1.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 shadow-lg backdrop-blur-md">
           <button
             type="button"
             data-mindmap-interactive
             onClick={() => {
               playClick();
+              triggerHaptic("light");
               setScale((s) => Math.min(s + 0.15, 2.2));
             }}
-            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+            className="p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer active:scale-95"
             title="Aproximar zoom"
           >
             <ZoomIn size={16} />
@@ -379,9 +423,10 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
             data-mindmap-interactive
             onClick={() => {
               playClick();
+              triggerHaptic("light");
               setScale((s) => Math.max(s - 0.15, 0.4));
             }}
-            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+            className="p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer active:scale-95"
             title="Afastar zoom"
           >
             <ZoomOut size={16} />
@@ -390,7 +435,7 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
             type="button"
             data-mindmap-interactive
             onClick={handleResetZoom}
-            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+            className="p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer active:scale-95"
             title="Centralizar e resetar zoom"
           >
             <RotateCcw size={14} />
@@ -631,7 +676,7 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
       </div>
 
       {/* PAINEL LATERAL DE DETALHES DO NÓ SELECIONADO */}
-      <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-slate-200/80 dark:border-white/10 bg-white/95 dark:bg-[#07090e]/95 backdrop-blur-xl p-5 flex flex-col justify-between overflow-y-auto shrink-0 z-20">
+      <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-slate-200/80 dark:border-white/10 bg-white/95 dark:bg-[#07090e]/95 backdrop-blur-xl p-5 flex flex-col justify-between overflow-y-auto shrink-0 z-20 max-h-72 md:max-h-none">
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-white/10">
             <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
