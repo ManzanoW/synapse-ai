@@ -21,6 +21,7 @@ import {
   enableLawModuleInTargetRole,
   disableLawModule,
 } from "@/lib/career-utils";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface ProfileTargetFormProps {
   initialTargetDate?: Date | null;
@@ -104,10 +105,12 @@ export default function ProfileTargetForm({
         window.dispatchEvent(new Event("career-updated"));
       }
 
+      triggerHaptic("success");
       setSuccess(true);
       router.refresh();
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
+      triggerHaptic("warning");
       console.error("Erro ao salvar metas do perfil:", err);
     } finally {
       setIsSaving(false);
@@ -115,6 +118,7 @@ export default function ProfileTargetForm({
   };
 
   const handleToggleLawModule = async () => {
+    triggerHaptic("medium");
     setIsSaving(true);
     setSuccess(false);
 

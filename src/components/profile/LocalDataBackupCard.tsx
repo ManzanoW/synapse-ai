@@ -15,6 +15,7 @@ import {
   Mic,
   BookmarkCheck,
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface LocalDataCounts {
   mindmapsCount: number;
@@ -114,12 +115,14 @@ export function LocalDataBackupCard() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
+      triggerHaptic("success");
       setFeedback({
         type: "success",
         message: "Backup exportado com sucesso! Arquivo JSON pronto.",
       });
       setTimeout(() => setFeedback(null), 4000);
     } catch (err) {
+      triggerHaptic("warning");
       console.error("Erro ao exportar backup:", err);
       setFeedback({
         type: "error",
@@ -135,6 +138,7 @@ export function LocalDataBackupCard() {
     if (!file) return;
 
     if (!file.name.endsWith(".json")) {
+      triggerHaptic("warning");
       setFeedback({
         type: "error",
         message: "Selecione um arquivo de backup válido com extensão .json",
@@ -224,6 +228,7 @@ export function LocalDataBackupCard() {
         }
 
         calculateCounts();
+        triggerHaptic("heavy");
         setFeedback({
           type: "success",
           message: `Backup restaurado com sucesso! ${restoredItems} registros locais sincronizados.`,
@@ -236,6 +241,7 @@ export function LocalDataBackupCard() {
 
         setTimeout(() => setFeedback(null), 5000);
       } catch (err) {
+        triggerHaptic("warning");
         console.error("Falha ao restaurar backup:", err);
         setFeedback({
           type: "error",
