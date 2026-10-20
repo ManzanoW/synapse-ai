@@ -788,13 +788,13 @@ export function QuestionScannerModal({
                     </div>
                   )}
 
-                  {/* Mini-Card do Flashcard FSRS */}
+                  {/* Mini-Card do Cartão de Memorização */}
                   {scannedResult.flashcardFrente && (
                     <div className="p-4 rounded-2xl border border-indigo-500/30 bg-indigo-950/20 space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
                           <Layers size={15} />
-                          <span>Flashcard para Memorização (FSRS)</span>
+                          <span>Cartão para Memorização</span>
                         </div>
                       </div>
                       <div className="text-xs text-zinc-200">
@@ -847,7 +847,7 @@ export function QuestionScannerModal({
                 <span>{isSavedToNotebook ? "No Caderno" : "Caderno de Erros"}</span>
               </button>
 
-              {/* Botão Criar Flashcard FSRS */}
+              {/* Botão Criar Cartão de Memória */}
               <button
                 type="button"
                 onClick={handleSaveToFlashcards}
@@ -865,7 +865,7 @@ export function QuestionScannerModal({
                 ) : (
                   <Layers size={13} />
                 )}
-                <span>{isSavedToFlashcards ? "Flashcard Salvo" : "+ Flashcard"}</span>
+                <span>{isSavedToFlashcards ? "Cartão Salvo" : "+ Cartão de Memória"}</span>
               </button>
 
               {/* Botão Injetar no Simulado Atual (se houver callback) */}

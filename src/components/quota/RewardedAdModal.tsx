@@ -290,7 +290,7 @@ export function RewardedAdModal({
                   className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-950/60 transition-all cursor-pointer group"
                 >
                   <Crown size={15} className="fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform" />
-                  <span>👑 Acelerar com Synapse Pro (60 Sinapses/dia + Zero Espera)</span>
+                  <span>👑 Assinar Synapse Pro (60 Ajudas/dia + Sem Espera)</span>
                   <ArrowRight size={13} />
                 </Link>
 
@@ -356,7 +356,7 @@ export function RewardedAdModal({
                       <>
                         <Zap size={16} className="text-amber-300 group-hover:scale-110 transition-transform fill-amber-300/30" />
                         <span>
-                          ⚡ Recarregar +1 Sinapse ({FEATURE_REWARD_LABELS[feature]?.single || "Recurso"}) Agora 🎉
+                          ⚡ Ganhar +1 Ajuda de IA ({FEATURE_REWARD_LABELS[feature]?.single || "Recurso"}) Agora 🎉
                         </span>
                       </>
                     )}
@@ -379,7 +379,7 @@ export function RewardedAdModal({
                     className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition-colors text-[11px]"
                   >
                     <Crown size={12} className="fill-amber-400/20" />
-                    <span>👑 Synapse Pro (60 Sinapses/dia + Zero Espera)</span>
+                    <span>👑 Synapse Pro (60 Ajudas/dia + Sem Espera)</span>
                     <ArrowRight size={11} />
                   </Link>
                 </div>

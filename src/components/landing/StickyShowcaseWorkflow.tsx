@@ -283,7 +283,7 @@ export function StickyShowcaseWorkflow() {
                         <div className="p-3 rounded-xl bg-slate-900/90 border border-emerald-500/30 space-y-1">
                           <span className="text-emerald-400 font-bold text-[10px] block">HOJE • COMPLETO</span>
                           <span className="text-white font-bold block">Controle Ext.</span>
-                          <span className="text-[10px] text-slate-400">Teoria + 15 Cards FSRS</span>
+                          <span className="text-[10px] text-slate-400">Teoria + 15 Cartões de Memória</span>
                         </div>
 
                         <div className="p-3 rounded-xl bg-slate-900/90 border border-indigo-500/30 space-y-1">

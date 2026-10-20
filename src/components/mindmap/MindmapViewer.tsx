@@ -706,17 +706,17 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
               onClick={handleConvertToDeck}
               disabled={isCreatingDeck}
               className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-600/25 active:scale-95 disabled:opacity-50 cursor-pointer"
-              title="Gera um baralho de repetição espaçada (FSRS) com todos os ramos e regras deste mapa"
+              title="Gera um baralho de cartões de memorização com todos os ramos e regras deste mapa"
             >
               {isCreatingDeck ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  <span>Criando Baralho FSRS...</span>
+                  <span>Criando Cartões de Memória...</span>
                 </>
               ) : (
                 <>
                   <Layers size={14} />
-                  <span>Gerar Baralho FSRS ({data.rootNode.children?.length || 3}+ cards)</span>
+                  <span>Gerar Cartões de Memória ({data.rootNode.children?.length || 3}+ cartões)</span>
                 </>
               )}
             </button>
@@ -724,7 +724,7 @@ export function MindmapViewer({ data, className = "" }: MindmapViewerProps) {
 
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span>Matéria: {data.subject}</span>
-            <span className="font-mono text-indigo-400 font-semibold">FSRS Ready</span>
+            <span className="font-mono text-indigo-400 font-semibold">Repetição Inteligente</span>
           </div>
         </div>
       </div>

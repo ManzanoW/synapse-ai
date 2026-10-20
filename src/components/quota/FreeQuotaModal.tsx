@@ -110,7 +110,7 @@ export function FreeQuotaModal({
 
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-white tracking-tight leading-tight">
-                  Plano Básico • Energia Sináptica
+                  Plano Gratuito • Ajudas Diárias com IA
                 </h2>
                 <p className="text-[11px] font-mono text-slate-400 mt-0.5">
                   Renovação diária automática à meia-noite (Horário de Brasília).
@@ -121,7 +121,7 @@ export function FreeQuotaModal({
             {/* Mensagem Educativa */}
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-indigo-950/30 to-slate-900/40 border border-cyan-500/25 text-left relative z-10">
               <p className="text-xs text-cyan-200/90 leading-relaxed font-normal">
-                O estudo de alto rendimento exige pausas estratégicas. Conclua seus blocos diários de foco ou recarregue energia assistindo a um vídeo curto de apoio.
+                O estudo de alto rendimento exige foco e consistência. Use suas ajudas diárias com estratégia ou recarregue assistindo a um vídeo curto de apoio.
               </p>
             </div>
 
@@ -132,10 +132,10 @@ export function FreeQuotaModal({
                   <div className="w-6 h-6 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
                     <BatteryCharging size={14} className="text-cyan-400" />
                   </div>
-                  <span>Energia Restante:</span>
+                  <span>Ajudas Restantes:</span>
                 </span>
                 <span className="font-mono font-bold text-sm text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-indigo-200">
-                  {remainingEnergy} / 10 Sinapses
+                  {remainingEnergy} / 10 Ajudas com IA
                 </span>
               </div>
 
@@ -150,7 +150,7 @@ export function FreeQuotaModal({
 
               <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
                 <span>Consumo Inteligente</span>
-                <span className="text-cyan-400">{percentEnergy}% Carga Disponível</span>
+                <span className="text-cyan-400">{percentEnergy}% Disponível Hoje</span>
               </div>
             </div>
 
@@ -159,13 +159,13 @@ export function FreeQuotaModal({
               {[
                 {
                   title: "Simulados Inéditos com IA",
-                  desc: "1 por dia (2 sinapses)",
+                  desc: "1 por dia (2 ajudas)",
                   status: `${quota?.features?.SIMULADO?.used ?? 0}/1`,
                   isFree: false,
                 },
                 {
                   title: "Remediações no Caderno de Erros",
-                  desc: "Até 3 por dia (1 sinapse cada)",
+                  desc: "Até 3 por dia (1 ajuda cada)",
                   status: `${quota?.features?.REMEDIATION?.used ?? 0}/3`,
                   isFree: false,
                 },
@@ -182,8 +182,8 @@ export function FreeQuotaModal({
                   isFree: false,
                 },
                 {
-                  title: "Revisão FSRS & Edital Verticalizado",
-                  desc: "Livre (Sem consumo de energia)",
+                  title: "Revisão de Cartões & Edital Esquematizado",
+                  desc: "Ilimitado (Sem gastar suas ajudas diárias)",
                   status: "Livre",
                   isFree: true,
                 },
@@ -232,10 +232,10 @@ export function FreeQuotaModal({
                 className="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-400/20 to-amber-500/15 hover:from-amber-500/25 hover:to-amber-400/25 border border-amber-400/40 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-[0_0_20px_rgba(251,191,36,0.15)] hover:shadow-[0_0_25px_rgba(251,191,36,0.3)] active:scale-98"
               >
                 <Zap size={14} className="text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform" />
-                <span>⚡ Recarregar +1 Sinapse (Vídeo Curto)</span>
+                <span>⚡ Ganhar +1 Ajuda com IA (Vídeo Curto)</span>
               </button>
 
-              {/* Botão Primário Pro: 👑 Acelerar com Synapse Pro (60 Sinapses/dia + Zero Espera) */}
+              {/* Botão Primário Pro: 👑 Acelerar com Synapse Pro */}
               <Link
                 href="/pricing"
                 onClick={onClose}
@@ -245,7 +245,7 @@ export function FreeQuotaModal({
                   size={15}
                   className="text-amber-300 fill-amber-300/30 group-hover:scale-110 transition-transform"
                 />
-                <span>👑 Acelerar com Synapse Pro (60 Sinapses/dia + Zero Espera)</span>
+                <span>👑 Assinar Synapse Pro (60 Ajudas/dia + Sem Limites)</span>
               </Link>
             </div>
           </motion.div>

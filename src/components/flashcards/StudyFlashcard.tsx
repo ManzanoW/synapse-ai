@@ -596,12 +596,12 @@ export default function StudyFlashcard({
                   ? "text-slate-900"
                   : "text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text"
               }`}>
-                Sinapses Reforçadas!
+                Memória Reforçada!
               </h2>
               <p className={`text-xs max-w-xs mx-auto leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                 Você concluiu a revisão de{" "}
                 <strong className={isLight ? "text-indigo-600 font-semibold" : "text-indigo-300 font-semibold"}>
-                  {cards.length} cards
+                  {cards.length} cartões
                 </strong>{" "}
                 com sucesso.
               </p>

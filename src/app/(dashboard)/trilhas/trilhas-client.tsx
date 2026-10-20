@@ -2830,7 +2830,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>Múltiplas Trilhas Simultâneas + 120 Sinapses/dia</span>
+                    <span>Múltiplas Trilhas Simultâneas + 120 Ajudas com IA/dia</span>
                   </li>
                 </ul>
               </div>

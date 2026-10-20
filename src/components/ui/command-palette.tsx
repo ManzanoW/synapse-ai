@@ -136,8 +136,8 @@ const STATIC_PAGES: Omit<PaletteItem, "id">[] = [
     keywords: ["foco", "pomodoro", "timer", "musica", "binaural", "lofi", "ondas alfa", "sala de estudo"],
   },
   {
-    title: "Cards & Flashcards",
-    subtitle: "Prática com repetição espaçada ativa (algoritmo FSRS/SM-2)",
+    title: "Cartões de Memória",
+    subtitle: "Prática com repetição espaçada inteligente e áudio",
     icon: Layers,
     iconColor: "text-purple-400",
     iconBg: "bg-purple-500/10 border-purple-500/20",
@@ -169,7 +169,7 @@ const STATIC_PAGES: Omit<PaletteItem, "id">[] = [
   },
   {
     title: "Calendário de Revisões",
-    subtitle: "Linha do tempo e datas previstas pelo algoritmo SM-2",
+    subtitle: "Linha do tempo e datas previstas para suas revisões",
     icon: CalendarDays,
     iconColor: "text-sky-400",
     iconBg: "bg-sky-500/10 border-sky-500/20",

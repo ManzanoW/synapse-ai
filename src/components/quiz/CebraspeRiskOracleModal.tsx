@@ -164,14 +164,14 @@ export function CebraspeRiskOracleModal({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 id="cebraspe-oracle-title" className="text-lg sm:text-xl font-black text-white">
-                    Oráculo de Risco Cebraspe
+                    Estratégia de Prova Cebraspe
                   </h2>
                   <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-extrabold text-indigo-400 uppercase tracking-wider">
-                    Monte Carlo 2.000x
+                    Simulador 2.000x
                   </span>
                 </div>
                 <p className="text-xs text-slate-400">
-                  Calculadora Matemática de Ponto de Equilíbrio: Chutar vs. Deixar em Branco
+                  Calculadora Estratégica: Vale a pena chutar ou deixar em branco? (Uma errada anula uma certa)
                 </p>
               </div>
             </div>
@@ -179,7 +179,7 @@ export function CebraspeRiskOracleModal({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Fechar oráculo Cebraspe"
+              aria-label="Fechar calculadora Cebraspe"
               className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-white rounded-xl hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none transition-colors cursor-pointer"
             >
               <X size={18} />
@@ -311,18 +311,18 @@ export function CebraspeRiskOracleModal({
             type="button"
             onClick={handleRunSimulation}
             disabled={isPending}
-            aria-label="Simular probabilidade e ponto de equilíbrio com 2.000 provas"
+            aria-label="Simular cenários de prova com 2.000 repetições"
             className="w-full py-3.5 min-h-[48px] rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs transition-all shadow-xl shadow-indigo-600/25 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
           >
             {isPending ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                <span>Processando 2.000 Provas no Simulador...</span>
+                <span>Simulando 2.000 Provas com Variação da Banca...</span>
               </>
             ) : (
               <>
                 <Sparkles size={16} />
-                <span>Simular Probabilidade & Ponto de Equilíbrio</span>
+                <span>Calcular Melhor Estratégia de Prova</span>
               </>
             )}
           </button>
