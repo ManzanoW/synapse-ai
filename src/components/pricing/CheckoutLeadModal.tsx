@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { submitSubscriptionLeadAction } from "@/actions/subscription-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface CheckoutLeadModalProps {
   isOpen: boolean;
@@ -67,6 +68,7 @@ export function CheckoutLeadModal({
       });
 
       if (result.success) {
+        triggerHaptic("heavy");
         setIsSuccess(true);
         setStatusMessage(result.message);
 
@@ -92,9 +94,11 @@ export function CheckoutLeadModal({
           onSuccess(selectedTier);
         }
       } else {
+        triggerHaptic("warning");
         setStatusMessage(result.message);
       }
     } catch {
+      triggerHaptic("warning");
       setStatusMessage("Erro ao ativar. Tente novamente.");
     } finally {
       setIsSubmitting(false);

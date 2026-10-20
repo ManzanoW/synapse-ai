@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { CheckoutLeadModal } from "./CheckoutLeadModal";
 import { toggleDemoPlanTierAction } from "@/actions/subscription-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface PricingViewProps {
   currentPlanTier: "FREE" | "PREMIUM" | "ELITE";
@@ -58,6 +59,7 @@ export function PricingView({
     try {
       const res = await toggleDemoPlanTierAction(explicitTier);
       if (res.success) {
+        triggerHaptic("heavy");
         setCurrentTier(res.newPlanTier);
         setIsUnlimited(res.newPlanTier === "PREMIUM" || res.newPlanTier === "ELITE");
         setToggleFeedback(res.message);
@@ -152,16 +154,20 @@ export function PricingView({
                 ? "text-slate-900 dark:text-white font-black"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             }`}
-            onClick={() => setBillingCycle("MONTHLY")}
+            onClick={() => {
+              triggerHaptic("light");
+              setBillingCycle("MONTHLY");
+            }}
           >
             Faturamento Mensal
           </span>
 
           <button
             type="button"
-            onClick={() =>
-              setBillingCycle(billingCycle === "MONTHLY" ? "ANNUAL" : "MONTHLY")
-            }
+            onClick={() => {
+              triggerHaptic("light");
+              setBillingCycle(billingCycle === "MONTHLY" ? "ANNUAL" : "MONTHLY");
+            }}
             className="relative w-14 h-7 rounded-full bg-slate-200 dark:bg-slate-800 p-1 border border-slate-300 dark:border-slate-700 transition-colors focus:outline-none cursor-pointer"
           >
             <motion.div
@@ -180,7 +186,10 @@ export function PricingView({
                 ? "text-slate-900 dark:text-white font-black"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             }`}
-            onClick={() => setBillingCycle("ANNUAL")}
+            onClick={() => {
+              triggerHaptic("light");
+              setBillingCycle("ANNUAL");
+            }}
           >
             <span>Faturamento Anual</span>
             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:border-emerald-400/40 dark:text-emerald-300 text-[10px] font-extrabold uppercase shadow-2xs">
@@ -336,6 +345,7 @@ export function PricingView({
               <button
                 type="button"
                 onClick={() => {
+                  triggerHaptic("heavy");
                   setModalTargetTier("PREMIUM");
                   setIsModalOpen(true);
                 }}
@@ -432,6 +442,7 @@ export function PricingView({
               <button
                 type="button"
                 onClick={() => {
+                  triggerHaptic("heavy");
                   setModalTargetTier("ELITE");
                   setIsModalOpen(true);
                 }}
@@ -766,7 +777,10 @@ export function PricingView({
               >
                 <button
                   type="button"
-                  onClick={() => setOpenFaq(isOpen ? null : index)}
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setOpenFaq(isOpen ? null : index);
+                  }}
                   className="w-full p-4.5 text-left flex items-center justify-between gap-4 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   <span className="flex items-center gap-2.5">
