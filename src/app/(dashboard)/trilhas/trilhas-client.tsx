@@ -51,6 +51,7 @@ import {
 } from "@/actions/trail-actions";
 import { useGamification } from "@/context/GamificationContext";
 import { PageSpotlightBanner, useSpotlight } from "@/components/onboarding/PageSpotlightBanner";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface TrilhasClientProps {
   initialData: {
@@ -874,6 +875,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   }
 
   async function handleToggleLesson(lesson: any, nextCompleted: boolean) {
+    triggerHaptic(nextCompleted ? "success" : "light");
     // Atualização otimista imediata na UI
     setTrail((prev: any) => {
       if (!prev) return prev;
@@ -926,6 +928,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   }
 
   async function handleSelectWeek(weekNum: number) {
+    triggerHaptic("light");
     setSelectedWeek(weekNum);
     if (trail?.id) {
       setTrail((prev: any) => (prev ? { ...prev, currentWeek: weekNum } : prev));
@@ -955,6 +958,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   async function handleAnswerFixationQuiz(optionId: string) {
     if (!activeLesson || !activeTheoryData) return;
     const isCorrect = optionId === activeTheoryData.fixationQuiz.correctOptionId;
+    triggerHaptic(isCorrect ? "success" : "warning");
 
     setQuizAnswers((prev) => ({
       ...prev,

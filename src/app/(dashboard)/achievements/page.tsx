@@ -15,6 +15,8 @@ import {
   Calendar,
 } from "lucide-react";
 import Link from "next/link";
+import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { motion, AnimatePresence } from "framer-motion";
 import { ACHIEVEMENTS, UserAchievementProgress } from "@/lib/achievements";
 import { useGamification } from "@/context/GamificationContext";
@@ -107,6 +109,16 @@ export default function AchievementsPage() {
       });
 
       if (res.ok) {
+        triggerHaptic("success");
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#F59E0B", "#FBBF24", "#06B6D4", "#8B5CF6", "#10B981"],
+          });
+        } catch {}
+
         // Marca como resgatado no estado local
         setProgressData((prev) =>
           prev.map((item) =>
@@ -344,7 +356,10 @@ export default function AchievementsPage() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setSelectedCategory(tab.id)}
+                onClick={() => {
+                  triggerHaptic("light");
+                  setSelectedCategory(tab.id);
+                }}
                 className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold transition-all active:scale-95 ${
                   isActive
                     ? "border-amber-500/50 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]"

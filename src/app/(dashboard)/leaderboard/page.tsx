@@ -43,6 +43,7 @@ import {
   UserLeagueData,
 } from "@/actions/league-actions";
 import { useGamification } from "@/context/GamificationContext";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 // Síntese de áudio suave para celebração de conquistas
 function playCelebrationSound(isGrand = false) {
@@ -156,6 +157,7 @@ export default function LeaderboardPage() {
     try {
       const res = await claimWeeklyChallengeAction(challengeId);
       if (res.success) {
+        triggerHaptic("success");
         playCelebrationSound(false);
         triggerConfetti(false);
         // Atualiza estado local
@@ -182,6 +184,7 @@ export default function LeaderboardPage() {
     try {
       const res = await claimWeeklyChestAction();
       if (res.success) {
+        triggerHaptic("heavy");
         playCelebrationSound(true);
         triggerConfetti(true);
         setChestStatus((prev) => (prev ? { ...prev, isClaimed: true } : null));
@@ -318,7 +321,10 @@ export default function LeaderboardPage() {
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
         <div className="flex items-center gap-2 sm:gap-3">
           <button
-            onClick={() => setActiveTab("ranking")}
+            onClick={() => {
+              triggerHaptic("light");
+              setActiveTab("ranking");
+            }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
               activeTab === "ranking"
                 ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20"
@@ -330,7 +336,10 @@ export default function LeaderboardPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab("challenges")}
+            onClick={() => {
+              triggerHaptic("light");
+              setActiveTab("challenges");
+            }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
               activeTab === "challenges"
                 ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20"
@@ -347,7 +356,10 @@ export default function LeaderboardPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab("rules")}
+            onClick={() => {
+              triggerHaptic("light");
+              setActiveTab("rules");
+            }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
               activeTab === "rules"
                 ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20"
