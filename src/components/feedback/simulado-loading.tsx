@@ -17,7 +17,7 @@ export const SimuladoLoading = () => (
       animate={{ opacity: 1 }}
       className="text-cyan-100 font-mono text-sm tracking-widest"
     >
-      SINCRONIZANDO SINAPSES...
+      PREPARANDO SIMULADO COM IA...
     </motion.p>
   </div>
 );

@@ -31,7 +31,7 @@ export function FlashcardsSpotlight() {
         onClose={spotlight.dismiss}
         badgeText="🧠 Como Funciona a Repetição Espaçada"
         title="Memorize Matérias Extensas Sem Esquecer no Dia da Prova"
-        description="O algoritmo de repetição espaçada (SM-2) calcula o momento ideal para revisar cada conceito antes que ele saia da sua memória de longo prazo."
+        description="A repetição espaçada inteligente calcula o momento ideal para revisar cada conceito antes que você esqueça a matéria."
         accentColor="indigo"
         primaryActionLabel="Entendi, pronto para memorizar!"
         steps={[
@@ -40,14 +40,14 @@ export function FlashcardsSpotlight() {
             title: "1. Poucos Cards Todo Dia",
             description:
               "Revisar apenas 10 a 20 cards por dia garante mais de 90% de retenção na prova sem acumular matéria.",
-            tag: "Algoritmo SM-2",
+            tag: "Repetição Espaçada",
           },
           {
             icon: <Headphones size={18} />,
             title: "2. Estudo em Áudio Natural",
             description:
-              "Revise no trânsito ou em caminhadas: ative o 'Estudo em Áudio' com vozes neurais e escute perguntas e respostas em sequência.",
-            tag: "Vozes Neurais",
+              "Revise no trânsito ou em caminhadas: ative o 'Estudo em Áudio' com vozes naturais e escute perguntas e respostas em sequência.",
+            tag: "Áudio Natural",
           },
           {
             icon: <Sparkles size={18} />,

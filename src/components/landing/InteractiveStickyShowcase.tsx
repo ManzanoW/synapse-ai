@@ -106,7 +106,7 @@ export function InteractiveStickyShowcase() {
       safeLabel: "58.4% Abaixo do corte",
       intervalText: "Intervalo: Imediato (Hoje)",
       tagColor: "text-rose-300 bg-rose-500/15 border-rose-500/25",
-      feedback: "⚠️ Falha na retenção. O algoritmo reagendou para hoje para restaurar as vias neurais.",
+      feedback: "⚠️ Cartão esquecido. O sistema reagendou para hoje para você fixar a matéria de novo sem acumular.",
     },
     hard: {
       percentage: "79.2%",
@@ -121,7 +121,7 @@ export function InteractiveStickyShowcase() {
       safeLabel: "79.2% Atenção",
       intervalText: "Intervalo: +2 dias",
       tagColor: "text-amber-300 bg-amber-500/15 border-amber-500/25",
-      feedback: "⚡ Lembrança custosa. O FSRS encurtou o intervalo para 48h para fixar a sinapse enquanto fresca.",
+      feedback: "⚡ Cartão difícil. O sistema agendou uma revisão para 48h para fixar o assunto na memória enquanto fresco.",
     },
     good: {
       percentage: "94.8%",
@@ -136,7 +136,7 @@ export function InteractiveStickyShowcase() {
       safeLabel: "94.8% Seguro",
       intervalText: "Intervalo Otimizado: +7 dias",
       tagColor: "text-indigo-300 bg-indigo-500/15 border-indigo-500/25",
-      feedback: "✓ Recuperação ideal. O algoritmo calculou 7 dias de estabilidade biológica — zero repetições inúteis.",
+      feedback: "✓ Boa lembrança! O sistema calculou 7 dias de retenção segura — zero repetições desnecessárias.",
     },
     easy: {
       percentage: "98.6%",

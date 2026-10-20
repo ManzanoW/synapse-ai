@@ -316,7 +316,7 @@ export function PrintableDeckModal({
 
             {/* Rodapé da Folha */}
             <div className="pt-4 border-t border-slate-800 print:border-gray-300 flex items-center justify-between text-[11px] text-slate-500 print:text-gray-500">
-              <span>Synapse AI • Fichas de Estudo SM-2 / FSRS</span>
+              <span>Synapse AI • Fichas de Memorização para Concursos</span>
               <span>Página gerada em {new Date().toLocaleDateString("pt-BR")}</span>
             </div>
           </div>

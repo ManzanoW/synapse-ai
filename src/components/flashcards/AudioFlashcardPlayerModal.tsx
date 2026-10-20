@@ -530,7 +530,7 @@ export function AudioFlashcardPlayerModal({
                 <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
                   <div className="flex items-center gap-2 text-[11px] text-slate-300">
                     <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
-                    <span>Vozes neurais com pausa cognitiva configurável</span>
+                    <span>Vozes naturais com pausa para pensar configurável</span>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-slate-300">
                     <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
@@ -538,7 +538,7 @@ export function AudioFlashcardPlayerModal({
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-slate-300">
                     <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
-                    <span>60 Sinapses/dia para criação ilimitada com IA</span>
+                    <span>60 Ajudas com IA por dia para criar cartões</span>
                   </div>
                 </div>
 

@@ -105,7 +105,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
           setTimeout(() => {
             triggerSynapticExhaustion({
               feature: customEvent.detail?.feature,
-              reason: "Teto de 10 sinapses diárias atingido.",
+              reason: "Limite de 10 ajudas diárias com IA atingido.",
             });
           }, 450);
         }
@@ -308,7 +308,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
 
             <div className="flex items-center justify-between text-[9.5px] text-slate-600 dark:text-slate-400 pt-0.5 font-medium">
               <span className="truncate group-hover/bar:text-slate-900 dark:group-hover/bar:text-slate-300 transition-colors">
-                {remainingEnergy} Sinapses restantes hoje
+                {remainingEnergy} {remainingEnergy === 1 ? "ajuda restante hoje" : "ajudas restantes hoje"}
               </span>
               <Link
                 href="/pricing"
@@ -437,7 +437,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                             Energia Restante:
                           </span>
                           <span className="font-mono font-bold text-cyan-300 dark:text-cyan-400">
-                            {remainingEnergy} / 10 Sinapses
+                            {remainingEnergy} / 10 ajudas hoje
                           </span>
                         </div>
                         <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden p-0.5">
@@ -515,13 +515,13 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                         {[
                           {
                             title: "Simulados Inéditos com IA",
-                            desc: "1 por dia (2 sinapses)",
+                            desc: "1 por dia (consome 2 ajudas com IA)",
                             status: `${quota.features.SIMULADO?.used ?? 0}/1`,
                             isFree: false,
                           },
                           {
                             title: "Remediações no Caderno de Erros",
-                            desc: "Até 3 por dia (1 sinapse cada)",
+                            desc: "Até 3 por dia (1 ajuda cada)",
                             status: `${quota.features.REMEDIATION?.used ?? 0}/3`,
                             isFree: false,
                           },
@@ -538,7 +538,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                             isFree: false,
                           },
                           {
-                            title: "Revisão FSRS & Edital Verticalizado",
+                            title: "Cartões de Memória & Edital Verticalizado",
                             desc: "Livre (Sem consumo de energia)",
                             status: "Livre",
                             isFree: true,
@@ -577,12 +577,12 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                           Status de requisições:
                         </span>
                         <span className="font-mono font-bold text-amber-300 dark:text-amber-400">
-                          Franquia de Alto Rendimento (Até 60 req/dia)
+                          Até 60 ajudas com IA por dia
                         </span>
                       </div>
                     )}
 
-                    {/* Botão Secundário Glow: ⚡ Recarregar +1 Sinapse (Vídeo Curto) */}
+                    {/* Botão Secundário Glow: ⚡ Recarregar +1 Ajuda (Vídeo Curto) */}
                     {!quota.isUnlimited && (
                       <button
                         type="button"
@@ -590,15 +590,15 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                           setIsOpen(false);
                           setIsRewardedModalOpen(true);
                         }}
-                        aria-label="Recarregar 1 Sinapse assistindo a vídeo curto de apoio"
+                        aria-label="Recarregar 1 Ajuda assistindo a vídeo curto de apoio"
                         className="w-full py-2.5 px-3 min-h-[44px] rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-400/20 to-amber-500/15 hover:from-amber-500/25 hover:to-amber-400/25 border border-amber-400/40 text-amber-900 dark:text-amber-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-[0_0_15px_rgba(251,191,36,0.15)] hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none"
                       >
                         <Zap size={14} className="text-amber-500 dark:text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform" />
-                        <span>⚡ Recarregar +1 Sinapse (Vídeo Curto)</span>
+                        <span>⚡ Recarregar +1 Ajuda (Vídeo Curto)</span>
                       </button>
                     )}
 
-                    {/* Botão Primário Pro: 👑 Acelerar com Synapse Pro (60 Sinapses/dia + Zero Espera) */}
+                    {/* Botão Primário Pro: 👑 Assinar Synapse Pro */}
                     <Link
                       href="/pricing"
                       onClick={() => {
@@ -614,7 +614,7 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                       <span>
                         {quota.isUnlimited
                           ? "Gerenciar Assinatura Pro"
-                          : "👑 Acelerar com Synapse Pro (60 Sinapses/dia + Zero Espera)"}
+                          : "👑 Assinar Synapse Pro (60 Ajudas/dia + Zero Espera)"}
                       </span>
                     </Link>
                   </div>

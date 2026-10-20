@@ -141,10 +141,10 @@ export function MonteCarloRiskModal({
             <div className="py-20 flex flex-col items-center justify-center gap-3 text-center">
               <div className="w-10 h-10 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
               <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Processando 1.000 iterações estocásticas de prova...
+                Simulando 1.000 provas com seu histórico de estudos...
               </p>
               <span className="text-[11px] text-slate-400">
-                Calculando desvios padrões e matriz de custo de oportunidade
+                Calculando chances de aprovação e onde focar para ganhar mais pontos
               </span>
             </div>
           ) : (
@@ -369,7 +369,7 @@ export function MonteCarloRiskModal({
           {/* Footer */}
           <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex justify-between items-center">
             <span className="text-[11px] text-slate-400">
-              Metodologia de Risco Estocástico • Synapse AI Lab
+              Previsão Estatística de Aprovação • Synapse AI
             </span>
             <button
               type="button"
