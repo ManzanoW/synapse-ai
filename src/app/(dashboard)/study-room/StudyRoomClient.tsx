@@ -995,7 +995,7 @@ export default function StudyRoomClient({
               >
                 <div className="flex items-center gap-2">
                   <Layers size={16} className="text-emerald-400" />
-                  <span className="font-semibold">Flashcards (FSRS)</span>
+                  <span className="font-semibold">Cartões de Memória</span>
                 </div>
                 <span className="text-[10px] text-slate-500 group-hover:text-emerald-400">
                   Revisar

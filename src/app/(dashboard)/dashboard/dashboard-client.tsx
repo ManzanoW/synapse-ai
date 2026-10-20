@@ -1360,7 +1360,7 @@ export default function DashboardClient({
                     Central de Prática Ativa
                   </h2>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Baterias de questões, consolidação FSRS e foco profundo
+                    Baterias de questões, repetição inteligente e foco profundo
                   </p>
                 </div>
               </div>
@@ -1456,7 +1456,7 @@ export default function DashboardClient({
                 </div>
               </div>
 
-              {/* CARD: CONSOLIDAÇÃO FSRS (FLASHCARDS) */}
+              {/* CARD: CONSOLIDAÇÃO DE CARTÕES */}
               <div className="relative overflow-hidden rounded-3xl border border-amber-200/90 dark:border-amber-500/30 bg-white dark:bg-slate-950/60 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
                 <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-500/40 to-transparent" />
                 <div className="flex items-center justify-between mb-4">
@@ -1466,15 +1466,15 @@ export default function DashboardClient({
                     </div>
                     <div>
                       <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                        Consolidação FSRS
+                        Cartões de Memória
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Repetição espaçada com curva de esquecimento
+                        Repetição espaçada inteligente
                       </p>
                     </div>
                   </div>
                   <span className="rounded-full border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold text-amber-700 dark:text-amber-300">
-                    FSRS 4.5
+                    Inteligente
                   </span>
                 </div>
 

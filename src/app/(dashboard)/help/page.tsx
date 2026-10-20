@@ -104,7 +104,7 @@ export default function HelpPage() {
     },
     {
       q: 'Posso usar o Synapse sem internet (Modo Offline / PWA)?',
-      a: 'Sim! O Synapse AI foi construído como um Progressive Web App (PWA). Você pode instalá-lo no celular ou computador (pelo menu do navegador "Adicionar à tela de início" ou "Instalar aplicativo"). Na revisão de Flashcards (algoritmo FSRS), todas as revisões feitas sem sinal (no metrô, ônibus ou avião) são salvas em fila local segura. Assim que sua conexão retornar, o sistema sincroniza automaticamente todas as suas métricas e intervalos na nuvem.',
+      a: 'Sim! O Synapse AI foi construído como um Progressive Web App (PWA). Você pode instalá-lo no celular ou computador (pelo menu do navegador "Adicionar à tela de início" ou "Instalar aplicativo"). Na revisão de Cartões de Memória, todas as revisões feitas sem sinal (no metrô, ônibus ou avião) são salvas em fila local segura. Assim que sua conexão retornar, o sistema sincroniza automaticamente todas as suas métricas e intervalos na nuvem.',
       category: 'revisao',
       tag: 'PWA & Offline',
       icon: Zap,

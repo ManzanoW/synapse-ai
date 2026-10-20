@@ -352,7 +352,7 @@ export function ErrorNotebookView({
       const res = await convertBatchErrorsToFlashcardsAction(ids);
       if (res.success) {
         showToast(
-          `⚡ ${res.createdCount ?? 0} flashcards FSRS adicionados ao deck "${res.deckTitle}"!`,
+          `⚡ ${res.createdCount ?? 0} cartões de memória adicionados ao baralho "${res.deckTitle}"!`,
           "success"
         );
       } else {

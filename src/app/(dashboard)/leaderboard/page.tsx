@@ -883,9 +883,9 @@ export default function LeaderboardPage() {
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/50 p-4 space-y-1">
-                <span className="font-extrabold text-cyan-500 block">Flashcards FSRS</span>
+                <span className="font-extrabold text-cyan-500 block">Cartões de Memória</span>
                 <p className="text-slate-600 dark:text-slate-400">
-                  +15 XP por flashcard revisado no prazo da repetição espaçada.
+                  +15 XP por cartão revisado no prazo inteligente.
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/50 p-4 space-y-1">
