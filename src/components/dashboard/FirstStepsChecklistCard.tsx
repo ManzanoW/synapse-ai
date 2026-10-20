@@ -416,7 +416,7 @@ export function FirstStepsChecklistCard({
                     Resolver Questões ou Cards
                   </h4>
                   <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                    Resolva suas primeiras questões ou pratique flashcards com repetição espaçada.
+                    Resolva suas primeiras questões ou revise seus cartões de memória.
                   </p>
                 </div>
 
