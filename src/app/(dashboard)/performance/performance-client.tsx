@@ -16,6 +16,7 @@ import { AdaptiveRebalanceComparisonModal } from "@/components/performance/Adapt
 import { MonteCarloRiskModal } from "@/components/analytics/MonteCarloRiskModal";
 import { ExecutiveWeeklyDossier } from "@/components/analytics/ExecutiveWeeklyDossier";
 import { UpcomingReviewsTimeline } from "@/components/analytics/UpcomingReviewsTimeline";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 import {
   runMonteCarloSimulationAction,
@@ -174,6 +175,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
   });
 
   const handleTabChange = (newTab: "approval" | "edital" | "memory") => {
+    triggerHaptic("light");
     setActiveTab(newTab);
     const newUrl = newTab === "approval" ? window.location.pathname : `?tab=${newTab}`;
     window.history.replaceState(null, "", newUrl);
@@ -182,6 +184,11 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
   // Filtros da aba Edital (Aproveitamento por Disciplina)
   const [subjectFilter, setSubjectFilter] = useState<"all" | "active" | "critical" | "pending">("all");
   const [subjectSearch, setSubjectSearch] = useState("");
+
+  const handleSetSubjectFilter = (filter: "all" | "active" | "critical" | "pending") => {
+    triggerHaptic("light");
+    setSubjectFilter(filter);
+  };
 
   // Expansão da lista de reforço do Adaptive Rebalancer
   const [isRebalanceListExpanded, setIsRebalanceListExpanded] = useState(false);
@@ -1031,11 +1038,11 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     </div>
 
                     {/* Pills de Filtro Rápido */}
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <button
                         type="button"
-                        onClick={() => setSubjectFilter("all")}
-                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        onClick={() => handleSetSubjectFilter("all")}
+                        className={`px-3.5 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
                           subjectFilter === "all"
                             ? "bg-indigo-600 text-white shadow-xs"
                             : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -1045,8 +1052,8 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSubjectFilter("active")}
-                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        onClick={() => handleSetSubjectFilter("active")}
+                        className={`px-3.5 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
                           subjectFilter === "active"
                             ? "bg-indigo-600 text-white shadow-xs"
                             : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -1056,8 +1063,8 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSubjectFilter("critical")}
-                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        onClick={() => handleSetSubjectFilter("critical")}
+                        className={`px-3.5 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
                           subjectFilter === "critical"
                             ? "bg-rose-600 text-white shadow-xs"
                             : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -1067,8 +1074,8 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSubjectFilter("pending")}
-                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        onClick={() => handleSetSubjectFilter("pending")}
+                        className={`px-3.5 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
                           subjectFilter === "pending"
                             ? "bg-indigo-600 text-white shadow-xs"
                             : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -1280,10 +1287,17 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                             key={idx}
                             tabIndex={0}
                             role="button"
+                            onClick={() => triggerHaptic("light")}
                             aria-label={`${item.day}: ${item.quantidade} questões resolvidas`}
-                            className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer focus-visible:outline-hidden"
+                            className="flex-1 flex flex-col items-center gap-1.5 sm:gap-2 h-full justify-end group cursor-pointer focus-visible:outline-hidden"
                           >
-                            <span className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100 transition-all duration-200 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-white dark:bg-indigo-950/90 border border-indigo-200 dark:border-indigo-500/40 px-2 py-0.5 rounded-md shadow-md pointer-events-none">
+                            <span
+                              className={`transition-all duration-200 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-white dark:bg-indigo-950/90 border border-indigo-200 dark:border-indigo-500/40 px-1.5 sm:px-2 py-0.5 rounded-md shadow-md pointer-events-none ${
+                                item.quantidade > 0
+                                  ? "opacity-90 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100 group-active:opacity-100"
+                                  : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100"
+                              }`}
+                            >
                               {item.quantidade}
                             </span>
 

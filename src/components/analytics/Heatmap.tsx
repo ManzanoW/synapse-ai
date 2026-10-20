@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Activity } from "lucide-react";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export default function Heatmap() {
   const [data, setData] = useState<Record<string, number>>({});
@@ -97,13 +98,17 @@ export default function Heatmap() {
                   >
                     {/* Bloco do Dia */}
                     <div
-                      className={`h-3.5 w-3.5 shrink-0 rounded-xs transition-all duration-200 cursor-pointer ${getIntensityStyle(
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${formattedDate}: ${count} atividades`}
+                      onClick={() => triggerHaptic("light")}
+                      className={`h-3.5 w-3.5 shrink-0 rounded-xs transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 ${getIntensityStyle(
                         count,
                       )}`}
                     />
 
-                    {/* Tooltip Inteligente (Aparece sem cortar no topo) */}
-                    <div className="pointer-events-none absolute bottom-full mb-1.5 hidden flex-col items-center group-hover:flex z-50">
+                    {/* Tooltip Inteligente (Aparece no hover, toque ou foco) */}
+                    <div className="pointer-events-none absolute bottom-full mb-1.5 hidden flex-col items-center group-hover:flex group-active:flex group-focus-within:flex z-50">
                       <div className="whitespace-nowrap rounded-lg border border-white/10 bg-slate-900/95 px-2.5 py-1 font-mono text-[10px] text-slate-100 shadow-2xl backdrop-blur-md">
                         <strong className="text-indigo-400">
                           {formattedDate}

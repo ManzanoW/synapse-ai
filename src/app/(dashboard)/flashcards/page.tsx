@@ -369,20 +369,34 @@ export default async function FlashcardsPage() {
             </div>
 
             {recentDecks.length === 0 ? (
-              <div className="p-8 sm:p-12 text-center bg-slate-900/20 border border-dashed border-slate-800 rounded-2xl">
-                <Layers size={36} className="mx-auto text-slate-600 mb-2" />
-                <h3 className="text-slate-300 font-semibold text-sm mb-1">
-                  Nenhum baralho cadastrado
-                </h3>
-                <p className="text-slate-500 text-xs mb-4 max-w-sm mx-auto">
-                  Crie seu primeiro conjunto para ativar a repetição espaçada.
-                </p>
-                <Link
-                  href="/flashcards/decks?openModal=true"
-                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/20 cursor-pointer"
-                >
-                  <Plus size={16} /> Criar Baralho
-                </Link>
+              <div className="p-8 sm:p-12 text-center bg-slate-900/40 border border-indigo-500/20 rounded-3xl backdrop-blur-xl space-y-4 max-w-xl mx-auto shadow-xl">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mx-auto shadow-lg shadow-indigo-500/10">
+                  <Layers size={28} />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="text-slate-100 font-bold text-base sm:text-lg tracking-tight">
+                    Nenhum baralho criado ainda
+                  </h3>
+                  <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-md mx-auto">
+                    Os baralhos com repetição inteligente sincronizam seus estudos com a memória de longo prazo, garantindo que os detalhes mais cobrados da sua banca fiquem frescos no dia da prova.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  <Link
+                    href="/flashcards/decks?openModal=true"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/30 active:scale-95 cursor-pointer min-h-[44px]"
+                  >
+                    <Plus size={16} />
+                    <span>Criar Baralho de Estudo</span>
+                  </Link>
+                  <Link
+                    href="/questions"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all border border-white/10 active:scale-95 cursor-pointer min-h-[44px]"
+                  >
+                    <Target size={15} className="text-indigo-400" />
+                    <span>Gerar a partir de Questões</span>
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">

@@ -8,6 +8,7 @@ import { CommandPalette } from "@/components/command-palette/CommandPalette";
 import { DemoSessionSync } from "@/components/auth/demo-session-sync";
 import { SoundscapeFloatingWidget } from "@/components/audio/SoundscapeFloatingWidget";
 import { SynapticExhaustionModal } from "@/components/quota/SynapticExhaustionModal";
+import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -60,6 +61,11 @@ export default async function DashboardLayout({
               {/* Mini-HUD de Áudio Zen & Foco Global */}
               <div className="print:hidden">
                 <SoundscapeFloatingWidget />
+              </div>
+
+              {/* Indicador de Conexão Offline e Sincronização Transparente */}
+              <div className="print:hidden">
+                <OfflineSyncIndicator />
               </div>
 
               {/* Paleta de Comandos Global (Cmd+K / Ctrl+K) */}
