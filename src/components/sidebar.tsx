@@ -54,6 +54,7 @@ import {
   Compass,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface SidebarProps {
   user?: {
@@ -436,6 +437,7 @@ export default function Sidebar({ user }: SidebarProps) {
   }, [pathname]);
 
   const toggleGroupCollapse = (groupId: string) => {
+    triggerHaptic("light");
     setCollapsedGroups((prev) => {
       const next = { ...prev, [groupId]: !prev[groupId] };
       try {
@@ -619,7 +621,10 @@ export default function Sidebar({ user }: SidebarProps) {
               {/* Botão de Som */}
               <button
                 type="button"
-                onClick={toggleMute}
+                onClick={() => {
+                  triggerHaptic("medium");
+                  toggleMute();
+                }}
                 title={isMuted ? "Ativar som" : "Silenciar som"}
                 aria-label={isMuted ? "Ativar som" : "Silenciar som"}
                 className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
@@ -644,7 +649,10 @@ export default function Sidebar({ user }: SidebarProps) {
               {/* Alternador de Tema (Modo Claro Slate Ice / Modo Escuro) */}
               <button
                 type="button"
-                onClick={toggleTheme}
+                onClick={() => {
+                  triggerHaptic("medium");
+                  toggleTheme();
+                }}
                 title={isLight ? "Ativar Modo Escuro" : "Ativar Modo Claro (Slate Ice)"}
                 aria-label={isLight ? "Ativar Modo Escuro" : "Ativar Modo Claro"}
                 className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
@@ -734,6 +742,7 @@ export default function Sidebar({ user }: SidebarProps) {
                           key={item.href}
                           href={getHref(item.href)}
                           onClick={(e) => {
+                            triggerHaptic("light");
                             if (item.href === "#import-pdf") {
                               e.preventDefault();
                               closeSidebar();

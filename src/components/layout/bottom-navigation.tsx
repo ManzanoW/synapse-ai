@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { LayoutDashboard, Compass, FileStack, Layers, Menu } from "lucide-react";
 import { useSidebar } from "@/lib/sidebar-context";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export function BottomNavigation() {
   const pathname = usePathname();
@@ -41,6 +42,7 @@ export function BottomNavigation() {
             <Link
               key={item.href}
               href={getHref(item.href)}
+              onClick={() => triggerHaptic("light")}
               className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 gap-1 transition-all duration-200 active:scale-90 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-xl ${
                 isActive
                   ? "text-indigo-600 dark:text-indigo-300 font-semibold"
@@ -73,7 +75,10 @@ export function BottomNavigation() {
         {/* Botão para abrir gaveta/sidebar móvel com todas as rotas */}
         <button
           type="button"
-          onClick={toggleSidebar}
+          onClick={() => {
+            triggerHaptic("light");
+            toggleSidebar();
+          }}
           className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 gap-1 transition-all duration-200 active:scale-90 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-xl ${
             isOpen
               ? "text-indigo-600 dark:text-indigo-300 font-semibold"
