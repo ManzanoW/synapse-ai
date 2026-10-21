@@ -11,6 +11,7 @@ import {
   X,
   ShieldCheck,
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
@@ -36,6 +37,11 @@ export function FreeQuotaModal({
   const [mounted, setMounted] = useState(false);
   const [quota, setQuota] = useState<UserQuotaStatus | null>(initialQuota || null);
   const [isRewardedAdOpen, setIsRewardedAdOpen] = useState(false);
+
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -95,7 +101,7 @@ export function FreeQuotaModal({
             {/* Botão Fechar */}
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer z-20"
               title="Fechar"
             >
@@ -228,7 +234,10 @@ export function FreeQuotaModal({
               {/* Botão Secundário Glow: ⚡ Recarregar +1 Sinapse (Vídeo Curto) */}
               <button
                 type="button"
-                onClick={() => setIsRewardedAdOpen(true)}
+                onClick={() => {
+                triggerHaptic("medium");
+                setIsRewardedAdOpen(true);
+              }}
                 className="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-400/20 to-amber-500/15 hover:from-amber-500/25 hover:to-amber-400/25 border border-amber-400/40 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-[0_0_20px_rgba(251,191,36,0.15)] hover:shadow-[0_0_25px_rgba(251,191,36,0.3)] active:scale-98"
               >
                 <Zap size={14} className="text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform" />
@@ -238,7 +247,10 @@ export function FreeQuotaModal({
               {/* Botão Primário Pro: 👑 Acelerar com Synapse Pro */}
               <Link
                 href="/pricing"
-                onClick={onClose}
+                onClick={() => {
+                  triggerHaptic("heavy");
+                  onClose();
+                }}
                 className="w-full py-3 px-4 rounded-xl text-white font-black text-xs flex items-center justify-center gap-2 shadow-xl shadow-indigo-950/60 transition-all cursor-pointer group bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 hover:from-violet-500 hover:to-indigo-600 border border-violet-400/30 hover:border-violet-300/50 active:scale-98"
               >
                 <Crown

@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
+import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Sparkles, Zap, ArrowRight } from "lucide-react";
 
@@ -17,6 +19,27 @@ export function LevelUpModal({
   newTitle,
   onClose,
 }: LevelUpModalProps) {
+  useEffect(() => {
+    if (isOpen) {
+      triggerHaptic("heavy");
+      try {
+        confetti({
+          particleCount: 90,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#6366f1", "#06b6d4", "#a855f7", "#eab308"],
+        });
+      } catch {
+        // Fallback gracioso caso confetti não carregue no ambiente
+      }
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -26,7 +49,7 @@ export function LevelUpModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
           />
 
@@ -73,7 +96,7 @@ export function LevelUpModal({
             </div>
 
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-600 to-cyan-600 py-3 text-xs font-bold text-white shadow-lg shadow-indigo-500/20 transition-all hover:opacity-90 active:scale-95"
             >
               <span>Continuar Evoluindo</span>

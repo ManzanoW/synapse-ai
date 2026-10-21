@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Clock,
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import {
   AI_EXHAUSTION_TRIGGERED_EVENT,
@@ -54,6 +55,7 @@ export function SynapticExhaustionModal({
   useEffect(() => {
     const handleExhaustion = (e: Event) => {
       const customEvent = e as CustomEvent<ExhaustionDetail>;
+      triggerHaptic("warning");
       setExhaustionData(customEvent.detail || {});
       setInternalOpen(true);
     };
@@ -67,6 +69,7 @@ export function SynapticExhaustionModal({
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalOpen;
 
   const handleClose = useCallback(() => {
+    triggerHaptic("light");
     if (controlledOnClose) {
       controlledOnClose();
     } else {
@@ -238,7 +241,10 @@ export function SynapticExhaustionModal({
               {/* Botão Secundário: Assistir Vídeo Rápido */}
               <button
                 type="button"
-                onClick={() => setIsRewardedAdOpen(true)}
+                onClick={() => {
+                triggerHaptic("medium");
+                setIsRewardedAdOpen(true);
+              }}
                 className="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-400/20 to-amber-500/15 hover:from-amber-500/25 hover:to-amber-400/25 border border-amber-400/40 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-[0_0_20px_rgba(251,191,36,0.15)] hover:shadow-[0_0_25px_rgba(251,191,36,0.3)] active:scale-98"
               >
                 <Zap size={14} className="text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform" />

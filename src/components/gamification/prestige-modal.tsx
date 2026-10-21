@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Crown, Zap, Check } from "lucide-react";
+import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { claimPrestigeAction } from "@/actions/gamification-actions";
 import { useGamification } from "@/context/GamificationContext";
 
@@ -23,19 +25,39 @@ export function PrestigeModal({
   const [success, setSuccess] = useState(false);
   const { refreshStats } = useGamification();
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   const handleAscend = async () => {
     try {
+      triggerHaptic("medium");
       setIsAscending(true);
       const res = await claimPrestigeAction(userId);
       if (res.success) {
+        triggerHaptic("heavy");
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.5 },
+            colors: ["#06b6d4", "#6366f1", "#e0e7ff", "#ffd700"],
+          });
+        } catch {
+          // Fallback gracioso caso confetti não esteja disponível no ambiente
+        }
         setSuccess(true);
         await refreshStats(userId);
         setTimeout(() => {
           setSuccess(false);
           onClose();
         }, 2200);
+      } else {
+        triggerHaptic("warning");
       }
     } catch (e) {
+      triggerHaptic("warning");
       console.error(e);
     } finally {
       setIsAscending(false);
@@ -91,7 +113,7 @@ export function PrestigeModal({
 
           <div className="mt-6 flex items-center gap-3">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isAscending}
               className="flex-1 rounded-xl border border-white/10 py-3 text-xs font-bold text-slate-400 hover:text-white transition-all cursor-pointer"
             >
