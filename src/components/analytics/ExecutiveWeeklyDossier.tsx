@@ -200,17 +200,17 @@ export function ExecutiveWeeklyDossier({
                   <strong className="text-slate-900">{data.highestLeverageSubject}</strong>.
                 </li>
                 <li>
-                  Realizar ao menos <strong>1 Simulado Cronometrado</strong> para refinar o desvio padrão de prova.
+                  Realizar ao menos <strong>1 Simulado Cronometrado</strong> para treinar a velocidade e o ritmo de prova.
                 </li>
                 <li>
-                  Zerar os erros catalogados no <strong>Caderno de Erros Inteligente</strong> para elevar o piso P10.
+                  Revisar os erros pendentes no <strong>Caderno de Erros Inteligente</strong> para garantir pontos cruciais na prova.
                 </li>
               </ul>
             </div>
 
             {/* Rodapé de Validação Técnica */}
             <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400">
-              <span>Synapse AI Cognitive Intelligence • Modelagem Estocástica Monte Carlo (1.000x)</span>
+              <span>Synapse AI • Previsão Estatística de Aprovação (1.000 Provas Simuladas)</span>
               <span>Documento Oficial de Uso Pessoal</span>
             </div>
           </div>

@@ -13,6 +13,7 @@ import {
   Equal,
 } from "lucide-react";
 import { bulkUpdateSubjectWeightsAction } from "@/actions/subject-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export interface CalibrateSubjectItem {
   id: string;
@@ -62,6 +63,11 @@ export function CalibrateWeightsModal({
 }: CalibrateWeightsModalProps) {
   const [localWeights, setLocalWeights] = useState<Record<string, number>>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -96,6 +102,7 @@ export function CalibrateWeightsModal({
   };
 
   const handleStepChange = (id: string, delta: number) => {
+    triggerHaptic("light");
     setLocalWeights((prev) => {
       const current = prev[id] ?? 5.0;
       const next = Math.max(1, Math.min(10, Math.round((current + delta) * 10) / 10));
@@ -107,6 +114,7 @@ export function CalibrateWeightsModal({
   };
 
   const handleDistributeEqually = () => {
+    triggerHaptic("medium");
     const updated: Record<string, number> = {};
     subjects.forEach((s) => {
       updated[s.id] = 5.0;
@@ -115,6 +123,7 @@ export function CalibrateWeightsModal({
   };
 
   const handleReset = () => {
+    triggerHaptic("medium");
     const initial: Record<string, number> = {};
     subjects.forEach((s) => {
       initial[s.id] =
@@ -124,6 +133,7 @@ export function CalibrateWeightsModal({
   };
 
   const handleSave = async () => {
+    triggerHaptic("medium");
     setIsSaving(true);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -137,10 +147,12 @@ export function CalibrateWeightsModal({
       const res = await bulkUpdateSubjectWeightsAction(payload);
 
       if (!res.success) {
+        triggerHaptic("warning");
         setErrorMessage(res.error || "Falha ao salvar calibragem de pesos.");
         return;
       }
 
+      triggerHaptic("success");
       setSuccessMessage("Pesos calibrados com sucesso!");
       setTimeout(() => {
         onSuccess?.();
@@ -207,7 +219,7 @@ export function CalibrateWeightsModal({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isSaving}
             aria-label="Fechar calibragem de pesos"
             className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 disabled:opacity-50"
@@ -362,7 +374,7 @@ export function CalibrateWeightsModal({
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isSaving}
               className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
             >

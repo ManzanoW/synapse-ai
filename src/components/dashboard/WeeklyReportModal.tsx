@@ -25,6 +25,7 @@ import {
   WeeklyPerformanceReportData,
   getWeeklyPerformanceReportAction,
 } from "@/actions/analytics-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface WeeklyReportModalProps {
   isOpen: boolean;
@@ -391,6 +392,7 @@ export function WeeklyReportModal({
     if (!canvas) return;
 
     try {
+      triggerHaptic("success");
       const link = document.createElement("a");
       link.download = `boletim-semanal-synapse-${data?.userName ?? "estudos"}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -416,6 +418,7 @@ export function WeeklyReportModal({
         await navigator.clipboard.write([
           new ClipboardItem({ "image/png": blob }),
         ]);
+        triggerHaptic("success");
         setCopiedImage(true);
         setTimeout(() => setCopiedImage(false), 2500);
       });
@@ -426,6 +429,7 @@ export function WeeklyReportModal({
 
   const handleShareWhatsApp = () => {
     if (!data) return;
+    triggerHaptic("light");
 
     const text = `📊 *Meu Boletim Semanal de Estudos no Synapse AI*
 🗓 *Período:* ${data.periodLabel}
@@ -515,7 +519,10 @@ Estude com inteligência artificial e acelere sua posse no Synapse AI: https://s
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setAspectRatio("stories")}
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setAspectRatio("stories");
+                    }}
                     aria-pressed={aspectRatio === "stories"}
                     className={`flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 min-h-[44px] text-xs font-bold transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                       aspectRatio === "stories"
@@ -528,7 +535,10 @@ Estude com inteligência artificial e acelere sua posse no Synapse AI: https://s
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAspectRatio("feed")}
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setAspectRatio("feed");
+                    }}
                     aria-pressed={aspectRatio === "feed"}
                     className={`flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 min-h-[44px] text-xs font-bold transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                       aspectRatio === "feed"

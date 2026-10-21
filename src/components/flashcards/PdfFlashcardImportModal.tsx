@@ -533,7 +533,7 @@ export function PdfFlashcardImportModal({
                     }`}
                   >
                     <Zap size={14} />
-                    <span>Gerar Flashcards (FSRS/Anki)</span>
+                    <span>Gerar Cartões de Memória</span>
                   </button>
 
                   <button

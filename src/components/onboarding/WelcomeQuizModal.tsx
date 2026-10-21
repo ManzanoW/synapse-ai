@@ -307,7 +307,7 @@ export function WelcomeQuizModal({
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Já possuo uma rotina. Quero treinar com questões, flashcards com repetição espaçada e ver minhas metas diárias.
+                        Já possuo uma rotina. Quero treinar com questões, cartões de memória inteligentes e ver minhas metas diárias.
                       </p>
                     </div>
                   </button>
@@ -341,7 +341,7 @@ export function WelcomeQuizModal({
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Quero todas as métricas: radar de cobertura do edital, estimativa preditiva de aprovação e telemetria profunda.
+                        Quero todas as métricas: radar de cobertura do edital, previsão de aprovação e análise completa de desempenho.
                       </p>
                     </div>
                   </button>
@@ -471,7 +471,7 @@ export function WelcomeQuizModal({
                     Por onde você gostaria de começar hoje?
                   </h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    Definir seu foco carrega disciplinas, simulados, flashcards e seu cronograma adaptativo.
+                    Definir seu foco carrega disciplinas, simulados, cartões de memória e seu cronograma inteligente.
                   </p>
                 </div>
 
@@ -694,10 +694,10 @@ export function WelcomeQuizModal({
                       </div>
                       <div>
                         <span className="text-xs font-bold text-white block">
-                          Praticar com Flashcards
+                          Cartões de Memória
                         </span>
                         <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                          Repetição espaçada com algoritmo neural ativo.
+                          Repetição inteligente para fixar o conteúdo na memória.
                         </span>
                       </div>
                     </button>
@@ -815,7 +815,7 @@ export function WelcomeQuizModal({
                                 STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.title.split("(")[0].trim() || "Edital"
                               }`
                         : selectedAction === "flashcards"
-                          ? "Flashcards"
+                          ? "Cartões de Memória"
                           : selectedAction === "questions"
                             ? "Simulado"
                             : selectedAction === "redacao"

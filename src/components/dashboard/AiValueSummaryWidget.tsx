@@ -169,8 +169,8 @@ export function AiValueSummaryWidget() {
       <div className="relative z-10 mt-3.5 pt-3 border-t border-slate-100 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
           {metrics.isPro
-            ? "Você está operando com franquia Pro de Alta Capacidade (60 sinapses diárias e zero anúncios)."
-            : "Usuários Pro economizam até 14 horas semanais com 60 sinapses/dia e reescrita ouro de redação."}
+            ? "Você está no plano Pro com Alta Capacidade (60 ajudas com IA por dia e 100% livre de anúncios)."
+            : "Alunos do plano Pro economizam até 14 horas semanais com 60 ajudas com IA por dia e reescrita nota 10 de redação."}
         </p>
 
         {!metrics.isPro && (

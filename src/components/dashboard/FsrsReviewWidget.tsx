@@ -75,16 +75,16 @@ export function FsrsReviewWidget({
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 inline-flex items-center gap-1">
                   <Zap size={10} className="fill-amber-600 dark:fill-amber-300" />
-                  Revisão FSRS Pendente Hoje
+                  Cartões Prontos para Revisar
                 </span>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-zinc-400">
-                  Algoritmo FSRS-4.5
+                <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-400">
+                  Memorização Inteligente
                 </span>
               </div>
 
               <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                 <span>
-                  {dueCount} {dueCount === 1 ? "flashcard pronto" : "flashcards prontos"} para consolidação
+                  {dueCount} {dueCount === 1 ? "cartão de memória pronto" : "cartões de memória prontos"} para revisar hoje
                 </span>
               </h3>
 
@@ -95,7 +95,7 @@ export function FsrsReviewWidget({
                 </span>
                 <span className="text-slate-300 dark:text-zinc-600">•</span>
                 <span className="text-slate-500 dark:text-zinc-400 text-[11px]">
-                  Evite a curva de esquecimento de Ebbinghaus
+                  Revise no momento certo para fixar o assunto
                 </span>
               </div>
             </div>
@@ -140,7 +140,7 @@ export function FsrsReviewWidget({
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-                Nenhum flashcard pendente para hoje. O algoritmo FSRS agendará suas próximas repetições.
+                Nenhum cartão pendente para hoje. A plataforma agendará suas próximas revisões automaticamente.
               </p>
             </div>
           </div>
@@ -169,10 +169,10 @@ export function FsrsReviewWidget({
           </div>
           <div>
             <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-              Turbine sua Memorização com FSRS
+              Turbine sua Memorização com Cartões de Estudo
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-              Crie flashcards a partir do seu edital ou converta seus mapas mentais em baralhos inteligentes.
+              Crie cartões a partir do seu edital ou converta seus mapas mentais em baralhos práticos.
             </p>
           </div>
         </div>

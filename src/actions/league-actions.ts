@@ -283,7 +283,7 @@ export async function getWeeklyChallengesAction(): Promise<{
       },
       {
         id: "weekly_flashcards_40",
-        title: "Retenção de Aço FSRS",
+        title: "Retenção de Aço",
         description: "Revise 40 flashcards ativos para fixar a memória de longo prazo.",
         iconName: "Layers",
         currentCount: Math.min(40, reviewCount),

@@ -176,7 +176,7 @@ export async function convertBatchErrorsToFlashcardsAction(
 
     const deckTitle =
       customDeckTitle ||
-      `Remediação FSRS (${new Date().toLocaleDateString("pt-BR", {
+      `Reforço de Erros (${new Date().toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
       })})`;

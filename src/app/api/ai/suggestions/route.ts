@@ -95,7 +95,7 @@ export async function GET() {
         type: "CRITICAL",
         icon: "clock",
         title: `Revisão no Prazo: ${overdueTopic.title}`,
-        description: `Matéria: ${overdueTopic.subject?.name || "Geral"}. O algoritmo SM-2 identificou que sua retenção pode decair se não revisar este conteúdo hoje.`,
+        description: `Matéria: ${overdueTopic.subject?.name || "Geral"}. É hora de revisar este tópico para fixar o conteúdo na memória e não esquecer.`,
         actionUrl: `/questions?topicId=${overdueTopic.id}&subjectId=${overdueTopic.subjectId}`,
       });
     }

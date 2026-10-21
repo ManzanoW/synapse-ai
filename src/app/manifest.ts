@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Synapse AI • Concursos & Alta Performance",
     short_name: "Synapse AI",
-    description: "Plataforma inteligente de preparação para concursos públicos com IA, FSRS e simulação real.",
+    description: "Plataforma inteligente de preparação para concursos públicos com IA, repetição inteligente e simulação real.",
     start_url: "/dashboard",
     display: "standalone",
     background_color: "#030712",

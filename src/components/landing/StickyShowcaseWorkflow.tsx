@@ -43,7 +43,7 @@ export function StickyShowcaseWorkflow() {
       tag: "Passo 03",
       title: "Siga seu Ciclo Adaptativo",
       subtitle: "Um cronograma vivo que se reorganiza sem culpa caso você perca um dia",
-      desc: "Esqueça o desespero de acumular matéria. Se um imprevisto acontecer, o algoritmo recalibra sua carga horária nos dias seguintes sem sobrecarregar sua rotina e mantendo as revisões FSRS em dia.",
+      desc: "Esqueça o desespero de acumular matéria. Se um imprevisto acontecer, o algoritmo recalibra sua carga horária nos dias seguintes sem sobrecarregar sua rotina e mantendo suas revisões inteligentes em dia.",
       icon: CalendarCheck2,
       badgeColor: "from-cyan-500 to-emerald-500",
     },
@@ -283,7 +283,7 @@ export function StickyShowcaseWorkflow() {
                         <div className="p-3 rounded-xl bg-slate-900/90 border border-emerald-500/30 space-y-1">
                           <span className="text-emerald-400 font-bold text-[10px] block">HOJE • COMPLETO</span>
                           <span className="text-white font-bold block">Controle Ext.</span>
-                          <span className="text-[10px] text-slate-400">Teoria + 15 Cards FSRS</span>
+                          <span className="text-[10px] text-slate-400">Teoria + 15 Cartões de Memória</span>
                         </div>
 
                         <div className="p-3 rounded-xl bg-slate-900/90 border border-indigo-500/30 space-y-1">

@@ -928,7 +928,7 @@ export async function addOnboardingActivationBonus(
     return {
       success: true,
       earnedEnergy: 2,
-      message: "🎉 Ativação concluída! Você ganhou +2⚡ Sinapses de Energia bônus para turbinar seus estudos!",
+      message: "🎉 Ativação concluída! Você ganhou +2⚡ Ajudas com IA bônus para turbinar seus estudos!",
     };
   } catch (err) {
     console.error("[addOnboardingActivationBonus] Erro ao conceder bônus de ativação:", err);

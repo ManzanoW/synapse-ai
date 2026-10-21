@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   Target,
 } from 'lucide-react';
+import { triggerHaptic } from '@/lib/sensory/haptics';
 
 interface FaqItem {
   q: string;
@@ -104,7 +105,7 @@ export default function HelpPage() {
     },
     {
       q: 'Posso usar o Synapse sem internet (Modo Offline / PWA)?',
-      a: 'Sim! O Synapse AI foi construído como um Progressive Web App (PWA). Você pode instalá-lo no celular ou computador (pelo menu do navegador "Adicionar à tela de início" ou "Instalar aplicativo"). Na revisão de Flashcards (algoritmo FSRS), todas as revisões feitas sem sinal (no metrô, ônibus ou avião) são salvas em fila local segura. Assim que sua conexão retornar, o sistema sincroniza automaticamente todas as suas métricas e intervalos na nuvem.',
+      a: 'Sim! O Synapse AI foi construído como um Progressive Web App (PWA). Você pode instalá-lo no celular ou computador (pelo menu do navegador "Adicionar à tela de início" ou "Instalar aplicativo"). Na revisão de Cartões de Memória, todas as revisões feitas sem sinal (no metrô, ônibus ou avião) são salvas em fila local segura. Assim que sua conexão retornar, o sistema sincroniza automaticamente todas as suas métricas e intervalos na nuvem.',
       category: 'revisao',
       tag: 'PWA & Offline',
       icon: Zap,
@@ -259,7 +260,10 @@ export default function HelpPage() {
           return (
             <button
               key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
+              onClick={() => {
+                triggerHaptic('light');
+                setSelectedCategory(cat.id);
+              }}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 isActive
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
@@ -304,7 +308,10 @@ export default function HelpPage() {
                   }`}
                 >
                   <button
-                    onClick={() => setOpenFaq(isOpen ? null : index)}
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setOpenFaq(isOpen ? null : index);
+                    }}
                     className="w-full flex items-center justify-between p-4 sm:p-5 text-left cursor-pointer gap-4"
                   >
                     <div className="flex items-center gap-3.5 pr-2">

@@ -26,6 +26,7 @@ import {
   AudioFlashcardItem,
 } from "@/hooks/useAudioFlashcards";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface AudioFlashcardPlayerModalProps {
   isOpen: boolean;
@@ -123,6 +124,7 @@ export function AudioFlashcardPlayerModal({
   }, [isOpen, isPlaying, isProUser, pause]);
 
   const handleTogglePlay = () => {
+    triggerHaptic("medium");
     if (!isPlaying && !isProUser && audioSecondsToday >= FREE_AUDIO_LIMIT_SECONDS) {
       setShowLimitModal(true);
       return;
@@ -157,6 +159,7 @@ export function AudioFlashcardPlayerModal({
   }, [isOpen, handleTogglePlay, pause, onClose, next, prev, showLimitModal]);
 
   const handleClose = () => {
+    triggerHaptic("light");
     pause();
     onClose();
   };
@@ -362,7 +365,7 @@ export function AudioFlashcardPlayerModal({
           <div className="flex items-center justify-center gap-4 sm:gap-6">
             <button
               type="button"
-              onClick={prev}
+              onClick={() => { triggerHaptic("light"); prev(); }}
               disabled={currentIndex === 0}
               aria-label="Card anterior"
               className="p-3.5 min-h-[48px] min-w-[48px] flex items-center justify-center rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
@@ -383,7 +386,7 @@ export function AudioFlashcardPlayerModal({
 
             <button
               type="button"
-              onClick={next}
+              onClick={() => { triggerHaptic("light"); next(); }}
               disabled={currentIndex >= totalCards - 1}
               aria-label="Próximo card"
               className="p-3.5 min-h-[48px] min-w-[48px] flex items-center justify-center rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
@@ -427,7 +430,7 @@ export function AudioFlashcardPlayerModal({
                 <button
                   key={s}
                   type="button"
-                  onClick={() => setPlaybackSpeed(s)}
+                  onClick={() => { triggerHaptic("light"); setPlaybackSpeed(s); }}
                   aria-label={`Definir velocidade para ${s} vezes`}
                   className={`px-2 py-1 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                     playbackSpeed === s
@@ -450,7 +453,7 @@ export function AudioFlashcardPlayerModal({
                 <button
                   key={sec}
                   type="button"
-                  onClick={() => setPauseDuration(sec)}
+                  onClick={() => { triggerHaptic("light"); setPauseDuration(sec); }}
                   aria-label={`Definir pausa reflexiva para ${sec} segundos`}
                   className={`px-2 py-1 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg font-mono font-bold text-[11px] transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none ${
                     pauseDuration === sec
@@ -530,7 +533,7 @@ export function AudioFlashcardPlayerModal({
                 <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
                   <div className="flex items-center gap-2 text-[11px] text-slate-300">
                     <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
-                    <span>Vozes neurais com pausa cognitiva configurável</span>
+                    <span>Vozes naturais com pausa para pensar configurável</span>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-slate-300">
                     <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
@@ -538,7 +541,7 @@ export function AudioFlashcardPlayerModal({
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-slate-300">
                     <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
-                    <span>60 Sinapses/dia para criação ilimitada com IA</span>
+                    <span>60 Ajudas com IA por dia para criar cartões</span>
                   </div>
                 </div>
 

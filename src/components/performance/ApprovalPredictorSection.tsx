@@ -428,12 +428,12 @@ export function ApprovalPredictorSection({
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs font-bold uppercase tracking-wider">
             <BrainCircuit size={14} className="text-violet-400" />
-            <span>Preditor de Aprovação &amp; Pesos Reais do Edital</span>
+            <span>Previsão de Aprovação com Pesos do Edital</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
-            <span>Diagnóstico Preditivo da Prova</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono font-bold">
-              SM-2 Neural
+            <span>Diagnóstico da Sua Prova</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
+              Inteligente
             </span>
           </h2>
           <p className="text-xs text-slate-400 max-w-xl">
@@ -495,12 +495,12 @@ export function ApprovalPredictorSection({
             </div>
             <div>
               <span className="font-bold text-white block">
-                Calibração Amostral em Andamento ({testedSubjects.length}/{totalSubjectsCount} disciplinas testadas)
+                Primeiros Treinos em Andamento ({testedSubjects.length}/{totalSubjectsCount} disciplinas respondidas)
               </span>
               <span className="text-[11px] text-slate-400 leading-tight">
                 {untestedSubjects.length > 0
-                  ? `Sua nota atual (${activeScore}%) reflete apenas as matérias com questões respondidas. ${untestedWeightPercent}% do peso do edital ainda aguarda o 1º simulado diagnóstico.`
-                  : `Você está na fase inicial de coleta de dados (${data.totalQuestionsAnswered ?? 0}/30 questões). A precisão estatística sobe a cada novo simulado.`}
+                  ? `Sua nota atual (${activeScore}%) reflete as matérias que você já treinou. ${untestedWeightPercent}% do edital ainda não tem questões resolvidas.`
+                  : `Você está no início dos treinos (${data.totalQuestionsAnswered ?? 0}/30 questões). A estimativa fica mais precisa a cada questão resolvida.`}
               </span>
             </div>
           </div>
@@ -518,7 +518,7 @@ export function ApprovalPredictorSection({
         </div>
       )}
 
-      {/* SELETOR DE MODO: CLÁSSICO VS ORÁCULO DE MONTE CARLO */}
+      {/* SELETOR DE MODO: NOTA PONDERADA VS SIMULAÇÃO DE PROVA */}
       <div className="flex items-center justify-between gap-3 bg-black/40 border border-white/10 p-1.5 rounded-2xl flex-wrap">
         <div className="flex items-center gap-2">
           <button
@@ -531,7 +531,7 @@ export function ApprovalPredictorSection({
             }`}
           >
             <Scale size={14} />
-            <span>Diagnóstico Ponderado Linear</span>
+            <span>Nota Média Ponderada</span>
           </button>
 
           <button
@@ -544,29 +544,29 @@ export function ApprovalPredictorSection({
             }`}
           >
             <Dice5 size={14} className="text-cyan-300" />
-            <span>🔮 Oráculo Monte Carlo (1.000 Corridas)</span>
+            <span>🎯 Simulação de Prova (1.000 Cenários)</span>
             <span className="text-[9px] bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 px-1.5 py-0.2 rounded font-mono">
-              IA Gaussiana
+              Inteligente
             </span>
           </button>
         </div>
 
         {activeTab === "monte_carlo" && (
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[11px] text-slate-400 font-medium">Volatilidade:</span>
+            <span className="text-[11px] text-slate-400 font-medium">Dificuldade da Banca:</span>
             <div className="flex items-center bg-slate-900 border border-white/10 rounded-lg p-0.5">
               {(["low", "medium", "high"] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setVolatility(mode)}
-                  className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
                     volatility === mode
                       ? "bg-cyan-500 text-black shadow-xs"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  {mode === "low" ? "Baixa" : mode === "medium" ? "Média" : "Alta"}
+                  {mode === "low" ? "Fácil" : mode === "medium" ? "Média" : "Difícil"}
                 </button>
               ))}
             </div>
@@ -575,7 +575,7 @@ export function ApprovalPredictorSection({
               type="button"
               onClick={() => setMonteCarloSeed((s) => s + 1)}
               className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-cyan-300 border border-cyan-500/30 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold"
-              title="Executar novas 1.000 simulações com variação estocástica"
+              title="Executar novas 1.000 simulações considerando diferentes variações de prova"
             >
               <RefreshCw size={12} />
               <span>Simular Novamente</span>
@@ -1123,75 +1123,75 @@ export function ApprovalPredictorSection({
           transition={{ duration: 0.2 }}
           className="space-y-6"
         >
-          {/* CARDS DOS 3 PERCENTIS (P10, P50, P90) E CHANCE REAL */}
+          {/* CARDS DOS 3 CENÁRIOS (PESSIMISTA, REALISTA, OTIMISTA) E CHANCE REAL */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* P10 */}
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-rose-500/20 shadow-xl space-y-1">
               <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="font-bold text-rose-400">P10 • Dia Difícil</span>
-                <span className="text-[9px] font-mono text-slate-500">Pessimista</span>
+                <span className="font-bold text-rose-400">Cenário Pessimista</span>
+                <span className="text-[9px] text-slate-500">Dia Difícil</span>
               </div>
               <div className="text-3xl font-black font-mono text-white">
                 {monteCarloResult.p10}%
               </div>
               <p className="text-[10px] text-slate-400 leading-snug">
-                90% de certeza estatística de tirar no mínimo esta pontuação sob pressão.
+                90% de chance de tirar pelo menos esta nota mesmo sob forte pressão.
               </p>
             </div>
 
             {/* P50 */}
             <div className="p-4 rounded-2xl bg-linear-to-b from-violet-950/40 to-slate-900/80 border border-violet-500/30 shadow-xl space-y-1">
               <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="font-bold text-violet-300">P50 • Mediana</span>
-                <span className="text-[9px] font-mono text-violet-400 font-bold">Mais Provável</span>
+                <span className="font-bold text-violet-300">Cenário Realista</span>
+                <span className="text-[9px] text-violet-400 font-bold">Mais Provável</span>
               </div>
               <div className="text-3xl font-black font-mono text-violet-200">
                 {monteCarloResult.p50}%
               </div>
               <p className="text-[10px] text-slate-400 leading-snug">
-                Centro da distribuição de Gauss onde se concentram 50% dos cenários.
+                Sua nota mais provável de acordo com seu ritmo médio de acertos.
               </p>
             </div>
 
             {/* P90 */}
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-cyan-500/20 shadow-xl space-y-1">
               <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="font-bold text-cyan-400">P90 • Dia Perfeito</span>
-                <span className="text-[9px] font-mono text-slate-500">Otimista</span>
+                <span className="font-bold text-cyan-400">Cenário Otimista</span>
+                <span className="text-[9px] text-slate-500">Dia Perfeito</span>
               </div>
               <div className="text-3xl font-black font-mono text-white">
                 {monteCarloResult.p90}%
               </div>
               <p className="text-[10px] text-slate-400 leading-snug">
-                Pontuação atingida quando você acerta distratores e pegadinhas da banca.
+                Pontuação que você pode alcançar se a prova favorecer seus pontos fortes.
               </p>
             </div>
 
             {/* CHANCE DE APROVAÇÃO REAL */}
             <div className="p-4 rounded-2xl bg-linear-to-b from-emerald-950/40 to-slate-900/80 border border-emerald-500/30 shadow-xl space-y-1">
               <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="font-bold text-emerald-400">Vitória no Corte</span>
-                <span className="text-[9px] font-mono text-emerald-300 font-bold">Monte Carlo</span>
+                <span className="font-bold text-emerald-400">Chance de Aprovação</span>
+                <span className="text-[9px] text-emerald-300 font-bold">Simulação</span>
               </div>
               <div className="text-3xl font-black font-mono text-emerald-300">
                 {monteCarloResult.winRate}%
               </div>
               <p className="text-[10px] text-slate-400 leading-snug">
-                Das 1.000 provas simuladas, superou a nota de corte de {cutoffScore}%.
+                Em {monteCarloResult.winRate}% das 1.000 simulações, sua nota superou o corte de {cutoffScore}%.
               </p>
             </div>
           </div>
 
-          {/* VISUALIZAÇÃO GRÁFICA: CURVA DE GAUSS / DISTRIBUIÇÃO EM SINO */}
+          {/* VISUALIZAÇÃO GRÁFICA: CURVA DE PROBABILIDADE */}
           <div className="p-6 rounded-3xl bg-slate-950/80 border border-white/10 shadow-2xl space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="space-y-0.5">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2">
                   <Activity size={16} className="text-cyan-400" />
-                  <span>Distribuição de Densidade de Probabilidade (Curva de Gauss)</span>
+                  <span>Curva de Probabilidade da Sua Nota</span>
                 </h4>
                 <p className="text-xs text-slate-400">
-                  Gráfico empírico das 1.000 simulações com área verde indicando aprovação dentro das vagas.
+                  Resultado das 1.000 simulações de prova. A área verde indica notas com aprovação dentro das vagas.
                 </p>
               </div>
 
@@ -1207,7 +1207,7 @@ export function ApprovalPredictorSection({
               </div>
             </div>
 
-            {/* CURVA DE GAUSS SVG DINÂMICA */}
+            {/* CURVA SVG DINÂMICA */}
             <div className="h-56 w-full relative pt-4 pb-6">
               <div className="h-full w-full flex items-end justify-between gap-1 border-b border-white/10 px-2 relative">
                 {monteCarloResult.bins.map((bin, idx) => (
@@ -1268,16 +1268,16 @@ export function ApprovalPredictorSection({
                   }}
                 >
                   <div className="bg-violet-600 text-white text-[9px] font-mono font-black px-1.5 py-0.5 rounded-xs shadow-md -translate-x-1/2 whitespace-nowrap">
-                    P50: {monteCarloResult.p50}%
+                    Provável: {monteCarloResult.p50}%
                   </div>
                 </div>
               </div>
 
               {/* Legenda do eixo X */}
               <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-2 px-2">
-                <span>Pior caso: {monteCarloResult.minScore}%</span>
-                <span>Mediana P50: {monteCarloResult.p50}%</span>
-                <span>Melhor caso: {monteCarloResult.maxScore}%</span>
+                <span>Cenário mais baixo: {monteCarloResult.minScore}%</span>
+                <span>Nota mais provável: {monteCarloResult.p50}%</span>
+                <span>Cenário mais alto: {monteCarloResult.maxScore}%</span>
               </div>
             </div>
           </div>
@@ -1288,21 +1288,21 @@ export function ApprovalPredictorSection({
               <div className="flex items-center gap-2">
                 <Award size={18} className="text-amber-400" />
                 <h4 className="text-sm font-black text-amber-200">
-                  🏆 Alavanca de Ouro (Maior Retorno Estatístico de Aprovação)
+                  🏆 Matéria com Maior Ganho de Aprovação
                 </h4>
               </div>
               <span className="text-[10px] font-mono font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
-                +{monteCarloResult.goldenGain}% de Vitória
+                +{monteCarloResult.goldenGain}% de Ganho
               </span>
             </div>
 
             <p className="text-xs text-slate-200 leading-relaxed">
-              O algoritmo de Monte Carlo detectou que a disciplina{" "}
+              O simulador inteligente identificou que a disciplina{" "}
               <strong className="text-amber-300">
                 &ldquo;{monteCarloResult.bestSubject.name}&rdquo;
               </strong>{" "}
-              (Peso {monteCarloResult.bestSubject.weight.toFixed(1)}) oferece a maior alavancagem para sua aprovação.
-              Se você elevar seu índice de acertos nela em apenas <strong>+5%</strong>, sua probabilidade de vaga salta de{" "}
+              (Peso {monteCarloResult.bestSubject.weight.toFixed(1)}) oferece o maior retorno prático para sua aprovação.
+              Se você elevar seus acertos nela em apenas <strong>+5%</strong>, sua probabilidade de aprovação salta de{" "}
               <strong className="text-slate-300">{monteCarloResult.winRate}%</strong> para{" "}
               <strong className="text-emerald-400">
                 {(monteCarloResult.winRate + monteCarloResult.goldenGain).toFixed(1)}%

@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Filter,
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface ExamSheetHUDProps {
   isOpen: boolean;
@@ -164,7 +165,10 @@ export function ExamSheetHUD({
                     role="tab"
                     aria-selected={filter === tab.key}
                     type="button"
-                    onClick={() => setFilter(tab.key)}
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setFilter(tab.key);
+                    }}
                     className={`min-h-[36px] px-2.5 py-1.5 rounded-lg font-bold whitespace-nowrap transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none ${
                       filter === tab.key
                         ? "bg-violet-600 text-white shadow-xs"
@@ -212,6 +216,7 @@ export function ExamSheetHUD({
                       type="button"
                       aria-label={`Questão ${idx + 1}: ${isAnswered ? `Marcada alternativa ${selectedAlt}` : "Em branco"}${isFlagged ? ", marcada para revisão" : ""}`}
                       onClick={() => {
+                        triggerHaptic("light");
                         onSelectQuestion(idx);
                         onClose();
                       }}
@@ -272,9 +277,10 @@ export function ExamSheetHUD({
             </div>
 
             {/* RODAPÉ DO DRAWER: BOTÃO DE SUBMISSÃO */}
-            <div className="p-4 sm:p-5 border-t border-white/10 bg-[#05070e]/80 shrink-0">
+            <div className="p-4 sm:p-5 border-t border-white/10 bg-[#05070e]/80 shrink-0 pb-[max(env(safe-area-inset-bottom),1.25rem)]">
               <button
                 onClick={() => {
+                  triggerHaptic("medium");
                   onClose();
                   onRequestFinish();
                 }}

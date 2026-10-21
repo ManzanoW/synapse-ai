@@ -58,6 +58,7 @@ import {
   cacheOfflineDeck,
   getCachedOfflineDeck,
 } from "@/lib/offline-sync";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface Flashcard {
   id: string;
@@ -227,6 +228,7 @@ export default function StudyFlashcard({
       try {
         const res = await generateFlashcardMnemonicAction(currentCard.id);
         if (res.success && res.data) {
+          triggerHaptic("success");
           setMnemonicOverrides((prev) => ({
             ...prev,
             [currentCard.id]: res.data!.details,
@@ -274,6 +276,7 @@ export default function StudyFlashcard({
 
   const toggleFlip = useCallback(() => {
     playFlip();
+    triggerHaptic("light");
     setIsFlipped((prev) => !prev);
   }, [playFlip]);
 
@@ -281,13 +284,16 @@ export default function StudyFlashcard({
     (grade: ReviewGrade) => {
       if (!currentCard) return;
 
-      // 1. Efeito sonoro imediato
+      // 1. Efeito sonoro e tátil imediato
       if (grade >= 3) {
         playCorrect();
+        triggerHaptic(grade === 4 ? "heavy" : "success");
       } else if (grade === 1) {
         playError();
+        triggerHaptic("warning");
       } else {
         playFlip();
+        triggerHaptic("medium");
       }
 
       const targetCard = currentCard;
@@ -310,6 +316,7 @@ export default function StudyFlashcard({
 
       if (isLastCard) {
         setIsFinished(true);
+        triggerHaptic("heavy");
         confetti({
           particleCount: 200,
           spread: 90,
@@ -596,12 +603,12 @@ export default function StudyFlashcard({
                   ? "text-slate-900"
                   : "text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text"
               }`}>
-                Sinapses Reforçadas!
+                Memória Reforçada!
               </h2>
               <p className={`text-xs max-w-xs mx-auto leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                 Você concluiu a revisão de{" "}
                 <strong className={isLight ? "text-indigo-600 font-semibold" : "text-indigo-300 font-semibold"}>
-                  {cards.length} cards
+                  {cards.length} cartões
                 </strong>{" "}
                 com sucesso.
               </p>
@@ -664,8 +671,8 @@ export default function StudyFlashcard({
                 <Brain size={18} />
               </div>
               <span className="text-[11px] leading-relaxed">
-                <strong>Algoritmo FSRS Calibrado:</strong> O intervalo ideal para a
-                próxima repetição foi calculado com base na estabilidade de memória e acurácia da disciplina.
+                <strong>Revisão Agendada com Sucesso:</strong> A data ideal da sua próxima
+                revisão foi calculada para fixar este conteúdo antes que você o esqueça.
               </span>
             </div>
 
@@ -877,13 +884,13 @@ export default function StudyFlashcard({
                           type="button"
                           aria-expanded={showEbbinghausCurve}
                           aria-haspopup="dialog"
-                          aria-label={`Ver curva de esquecimento de Ebbinghaus, retenção atual ${memoryRetention}%`}
+                          aria-label={`Ver nível de retenção da memória, retenção atual ${memoryRetention}%`}
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowEbbinghausCurve((prev) => !prev);
                           }}
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-mono font-bold shadow-sm transition-all hover:scale-105 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${memoryStatus.bgBadge} ${memoryStatus.textBadge} ${memoryStatus.borderBadge}`}
-                          title="Clique para ver a Curva de Esquecimento de Ebbinghaus"
+                          title="Clique para ver o gráfico de memorização deste cartão"
                         >
                           <Brain size={12} />
                           <span>Retenção {memoryRetention}%</span>
@@ -904,13 +911,13 @@ export default function StudyFlashcard({
                       </div>
                     </div>
 
-                  {/* Popover / Drawer da Curva de Esquecimento de Ebbinghaus */}
+                  {/* Popover / Drawer da Curva de Memorização */}
                   <AnimatePresence>
                     {showEbbinghausCurve && (
                       <motion.div
                         role="dialog"
                         aria-modal="false"
-                        aria-label="Curva de esquecimento de Ebbinghaus"
+                        aria-label="Gráfico de memorização"
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -920,15 +927,15 @@ export default function StudyFlashcard({
                         <div className="flex items-center justify-between border-b border-white/10 pb-2">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                              <span>📈 Curva de Ebbinghaus</span>
+                              <span>📈 Nível de Memorização</span>
                               <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
-                                FSRS Pro
+                                Inteligente
                               </span>
                             </span>
                           </div>
                           <button
                             type="button"
-                            aria-label="Fechar gráfico da curva de Ebbinghaus"
+                            aria-label="Fechar gráfico de memorização"
                             onClick={() => setShowEbbinghausCurve(false)}
                             className="min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-white text-xs cursor-pointer rounded-lg hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none"
                           >
@@ -972,10 +979,10 @@ export default function StudyFlashcard({
 
                         <div className="flex items-center justify-between text-[10px] text-slate-300 font-mono">
                           <span>
-                            Estabilidade: <strong>{currentCard?.stability ? `${currentCard.stability.toFixed(1)}d` : "1d"}</strong>
+                            Tempo na memória: <strong>{currentCard?.stability ? `~${Math.round(currentCard.stability)} dias` : "1 dia"}</strong>
                           </span>
                           <span>
-                            Declínio crítico: <strong>&lt; 70%</strong>
+                            Alerta de revisão: <strong>&lt; 70%</strong>
                           </span>
                         </div>
                       </motion.div>

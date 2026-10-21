@@ -34,6 +34,7 @@ import { ExamSheetHUD } from "./_components/ExamSheetHUD";
 import { SubmitConfirmModal } from "./_components/SubmitConfirmModal";
 import { TimedExamResultView } from "./_components/TimedExamResultView";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
 
 import {
@@ -371,6 +372,7 @@ export default function TimedQuizPage() {
       if (targetIndex < 0 || targetIndex >= questions.length || targetIndex === currentIndex) {
         return;
       }
+      triggerHaptic("light");
       recordCurrentQuestionTime();
       setCurrentIndex(targetIndex);
     },
@@ -638,6 +640,7 @@ export default function TimedQuizPage() {
       // F ou R: Alternar Flag de Revisão
       if (keyUpper === "F" || keyUpper === "R") {
         e.preventDefault();
+        triggerHaptic("medium");
         setFlaggedQuestions((prev) => ({
           ...prev,
           [currentIndex]: !prev[currentIndex],
@@ -661,6 +664,7 @@ export default function TimedQuizPage() {
 
       if (mapKeyToAlt[keyUpper]) {
         e.preventDefault();
+        triggerHaptic("light");
         const altId = mapKeyToAlt[keyUpper];
         setSelectedAnswers((prev) => ({
           ...prev,
@@ -1109,12 +1113,13 @@ export default function TimedQuizPage() {
 
                 {/* BOTÃO MARCAR PARA REVISÃO (FLAG) */}
                 <button
-                  onClick={() =>
+                  onClick={() => {
+                    triggerHaptic("medium");
                     setFlaggedQuestions((prev) => ({
                       ...prev,
                       [currentIndex]: !prev[currentIndex],
-                    }))
-                  }
+                    }));
+                  }}
                   type="button"
                   aria-pressed={Boolean(flaggedQuestions[currentIndex])}
                   aria-label={flaggedQuestions[currentIndex] ? "Remover marcação de revisão (Atalho F ou R)" : "Marcar para revisão (Atalho F ou R)"}
@@ -1153,15 +1158,17 @@ export default function TimedQuizPage() {
                       tabIndex={0}
                       aria-pressed={isSelected}
                       aria-label={`Alternativa ${alt.id}: ${alt.texto}`}
-                      onClick={() =>
+                      onClick={() => {
+                        triggerHaptic("light");
                         setSelectedAnswers((prev) => ({
                           ...prev,
                           [currentIndex]: alt.id,
-                        }))
-                      }
+                        }));
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
+                          triggerHaptic("light");
                           setSelectedAnswers((prev) => ({
                             ...prev,
                             [currentIndex]: alt.id,

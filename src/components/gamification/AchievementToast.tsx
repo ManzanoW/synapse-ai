@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
 import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export interface ToastAchievement {
   id: string;
@@ -27,6 +28,8 @@ export function AchievementToast({
   useEffect(() => {
     if (!achievement) return;
 
+    triggerHaptic("heavy");
+
     // Disparo leve de confetti nas tonalidades violeta, roxo e dourado
     try {
       confetti({
@@ -49,6 +52,11 @@ export function AchievementToast({
 
     return () => clearTimeout(timer);
   }, [achievement, onClose, duration]);
+
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
 
   return (
     <AnimatePresence mode="wait">
@@ -99,7 +107,7 @@ export function AchievementToast({
 
           {/* Botão Fechar */}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Fechar notificação"
             className="cursor-pointer rounded-xl p-1.5 text-slate-400 hover:bg-violet-500/20 hover:text-white transition-all shrink-0 active:scale-95"
           >

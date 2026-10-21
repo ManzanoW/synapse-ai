@@ -239,10 +239,10 @@ export default function DecksPage() {
           </div>
           <div>
             <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-              Algoritmo SM-2
+              Repetição Inteligente
             </span>
             <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
-              Sincronizado
+              Sincronizada
             </span>
           </div>
         </div>
@@ -287,18 +287,44 @@ export default function DecksPage() {
           ))}
         </div>
       ) : filteredDecks.length === 0 ? (
-        <div className="p-10 text-center bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl space-y-3">
-          <Layers size={36} className="mx-auto text-slate-600" />
-          <h3 className="text-slate-300 font-bold text-sm">
-            Nenhum baralho encontrado
-          </h3>
-          {!searchQuery && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-xl"
-            >
-              <Plus size={15} /> Criar Primeiro Baralho
-            </button>
+        <div className="p-10 sm:p-14 text-center bg-slate-900/40 border border-slate-700/60 rounded-3xl backdrop-blur-xl space-y-4 max-w-lg mx-auto shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mx-auto shadow-lg shadow-indigo-500/10">
+            <Layers size={28} />
+          </div>
+          {searchQuery ? (
+            <div className="space-y-3">
+              <h3 className="text-slate-100 font-bold text-base">
+                Nenhum baralho encontrado
+              </h3>
+              <p className="text-slate-400 text-xs">
+                Não encontramos resultados para &quot;<strong className="text-slate-200">{searchQuery}</strong>&quot;.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-white/10 transition-all cursor-pointer min-h-[40px]"
+              >
+                Limpar busca
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <h3 className="text-slate-100 font-bold text-base sm:text-lg">
+                Sua biblioteca de baralhos está pronta
+              </h3>
+              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-sm mx-auto">
+                Crie coleções de cartões divididas por matérias para fixar leis, artigos, fórmulas e conceitos-chave.
+              </p>
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/30 active:scale-95 cursor-pointer min-h-[44px]"
+                >
+                  <Plus size={16} /> Criar Primeiro Baralho
+                </button>
+              </div>
+            </div>
           )}
         </div>
       ) : (

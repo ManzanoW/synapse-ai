@@ -55,7 +55,7 @@ export default function NotFound() {
               href="/flashcards"
               className="px-3 py-1.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-slate-400 hover:text-indigo-300 border border-slate-800 transition-colors"
             >
-              Flashcards FSRS
+              Cartões de Memória
             </Link>
             <Link
               href="/questions"

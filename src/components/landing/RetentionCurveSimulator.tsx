@@ -73,7 +73,7 @@ export function RetentionCurveSimulator() {
       <div className="text-center max-w-2xl mx-auto space-y-3 mb-8 sm:mb-10">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono font-bold uppercase tracking-wider shadow-sm">
           <Brain className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Laboratório de Neurociência Computacional</span>
+          <span>Laboratório de Fixação de Memória</span>
         </div>
 
         <h3 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-snug">
@@ -81,7 +81,7 @@ export function RetentionCurveSimulator() {
         </h3>
 
         <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
-          Arraste o simulador e veja o colapso da Curva de Ebbinghaus no estudo tradicional versus a blindagem preditiva do Motor FSRS 4.5.
+          Arraste o simulador e veja como o esquecimento age no estudo tradicional versus a proteção da Repetição Inteligente do Synapse.
         </p>
       </div>
 
@@ -133,11 +133,11 @@ export function RetentionCurveSimulator() {
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-2 text-rose-400 font-bold">
               <span className="w-3 h-1 rounded-full bg-rose-500" />
-              <span>Método Arcaico (Ebbinghaus)</span>
+              <span>Estudo Tradicional (Sem Revisão)</span>
             </span>
             <span className="flex items-center gap-2 text-cyan-300 font-bold">
               <span className="w-3 h-1 rounded-full bg-cyan-400" />
-              <span>Synapse FSRS 4.5</span>
+              <span>Synapse (Repetição Inteligente)</span>
             </span>
           </div>
           <span className="text-slate-500 text-[11px] hidden sm:inline">
@@ -266,7 +266,7 @@ export function RetentionCurveSimulator() {
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-300 uppercase">
               <TrendingUp className="w-4 h-4 text-cyan-400" />
-              <span>Synapse FSRS 4.5</span>
+              <span>Synapse (Repetição Inteligente)</span>
             </span>
             <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-black shadow-[0_0_12px_rgba(6,182,212,0.3)]">
               {retFsrs}% de Retenção
@@ -278,8 +278,8 @@ export function RetentionCurveSimulator() {
               Memória de Longo Prazo Blindada
             </h4>
             <p className="text-xs text-slate-300 leading-relaxed">
-              O algoritmo FSRS calculou a curva de estabilidade matemática. Em vez de 600 revisões desnecessárias, você faz apenas{" "}
-              <strong className="text-cyan-300 font-bold">~{revisoesFsrs} micro-revisões ativas</strong> nos pontos exatos de fraqueza, economizando <strong>65% de tempo</strong> com nota máxima garantida na prova.
+              O sistema calcula o momento exato de revisar antes de você esquecer. Em vez de centenas de revisões desnecessárias acumuladas, você faz apenas{" "}
+              <strong className="text-cyan-300 font-bold">~{revisoesFsrs} micro-revisões ativas</strong> nos pontos exatos de fraqueza, economizando <strong>65% de tempo</strong> com máxima retenção na prova.
             </p>
           </div>
         </div>

@@ -15,6 +15,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { Topic } from "@/types";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export default function CalendarPage() {
   const [data, setData] = useState<Record<string, number>>({});
@@ -58,6 +59,7 @@ export default function CalendarPage() {
   }, [monthParam]);
 
   async function handleDayClick(dateStr: string, day: number) {
+    triggerHaptic("light");
     setLoading(true);
     try {
       const res = await fetch(`/api/calendar/details?date=${dateStr}`);
@@ -73,10 +75,12 @@ export default function CalendarPage() {
   }
 
   const handlePrevMonth = () => {
+    triggerHaptic("light");
     setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
   };
 
   const handleNextMonth = () => {
+    triggerHaptic("light");
     setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
   };
 
@@ -172,7 +176,7 @@ export default function CalendarPage() {
                 Calendário de Revisões
               </h1>
               <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Visão temporal das suas sessões agendadas pelo algoritmo SM-2.
+                Visão temporal das suas sessões agendadas para revisão inteligente.
               </p>
             </div>
           </div>

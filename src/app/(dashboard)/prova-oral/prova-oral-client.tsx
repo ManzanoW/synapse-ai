@@ -41,6 +41,7 @@ import {
 } from "@/actions/oral-exam-actions";
 import { updateUserCareerFocusAction } from "@/actions/edital-templates-actions";
 import { enableLawModuleInTargetRole } from "@/lib/career-utils";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { PrintableOralExamModal } from "./_components/PrintableOralExamModal";
 
 export interface OralHistoryItem {
@@ -263,6 +264,7 @@ export default function ProvaOralClient({
 
     // Para o áudio da banca se estiver falando
     stopExaminerAudio();
+    triggerHaptic("medium");
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -308,6 +310,7 @@ export default function ProvaOralClient({
   };
 
   const stopRecording = () => {
+    triggerHaptic("light");
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
@@ -315,6 +318,7 @@ export default function ProvaOralClient({
   };
 
   const handleFinishAnswer = async () => {
+    triggerHaptic("medium");
     stopRecording();
     stopExaminerAudio();
     setIsTimerActive(false);
@@ -367,6 +371,7 @@ export default function ProvaOralClient({
 
       // Dispara celebração se aprovado
       if (res.data.isApproved) {
+        triggerHaptic("success");
         try {
           confetti({
             particleCount: 70,
@@ -374,6 +379,8 @@ export default function ProvaOralClient({
             origin: { y: 0.6 },
           });
         } catch {}
+      } else {
+        triggerHaptic("warning");
       }
     } catch (err: any) {
       setEvalError(err?.message || "Erro de conexão ao avaliar.");
@@ -463,7 +470,7 @@ export default function ProvaOralClient({
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-                Treine com a banca examinadora em tempo real: áudio da pergunta, gravação da resposta e rubrica oficial de notas.
+                Treine com a banca examinadora em tempo real: áudio da pergunta, gravação da sua voz e nota com feedback detalhado.
               </p>
             </div>
           </div>
@@ -821,15 +828,16 @@ export default function ProvaOralClient({
               </div>
 
               {/* Botão de Encerramento da Resposta */}
-              <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-3 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
                 <button
                   type="button"
                   onClick={() => {
+                    triggerHaptic("light");
                     stopRecording();
                     stopExaminerAudio();
                     setStage("SETUP");
                   }}
-                  className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-zinc-200 text-xs font-medium transition-all"
+                  className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-zinc-200 text-xs font-medium transition-all text-center justify-center flex items-center cursor-pointer"
                 >
                   Cancelar Sabatina
                 </button>
@@ -837,7 +845,7 @@ export default function ProvaOralClient({
                 <button
                   type="button"
                   onClick={handleFinishAnswer}
-                  className="px-6 py-3 rounded-2xl bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs tracking-wide transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-2xl bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs tracking-wide transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Gavel size={16} />
                   <span>Examinador, Concluí Minha Resposta ⚖️</span>

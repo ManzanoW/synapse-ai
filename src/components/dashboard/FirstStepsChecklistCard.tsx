@@ -27,6 +27,7 @@ import {
 } from "@/actions/gamification-actions";
 import { useGamification } from "@/context/GamificationContext";
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface FirstStepsChecklistCardProps {
   hasEditalSubjects: boolean;
@@ -152,6 +153,7 @@ export function FirstStepsChecklistCard({
   };
 
   const handleToggleMinimize = () => {
+    triggerHaptic("light");
     const next = !isMinimized;
     setIsMinimized(next);
     saveState({ minimized: next });
@@ -163,6 +165,7 @@ export function FirstStepsChecklistCard({
     try {
       const res = await claimOnboardingRewardAction();
       if (res.success) {
+        triggerHaptic("heavy");
         playCelebrationSound();
         confetti({
           particleCount: 80,
@@ -215,7 +218,7 @@ export function FirstStepsChecklistCard({
           >
             <Sparkles size={14} className="text-amber-400" />
             <Zap size={13} className="text-amber-300 fill-amber-300" />
-            <span>+100 XP & +2⚡ Sinapses Concedidas!</span>
+            <span>+100 XP & +2⚡ Ajudas com IA Concedidas!</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -238,12 +241,12 @@ export function FirstStepsChecklistCard({
               {isClaimed && (
                 <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 font-mono text-[9px] font-black text-emerald-300 flex items-center gap-1">
                   <Zap size={9} className="text-emerald-300 fill-emerald-300" />
-                  ✓ +100 XP & +2⚡ Sinapses Coletadas
+                  ✓ +100 XP & +2⚡ Ajudas com IA Coletadas
                 </span>
               )}
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
-              Complete os 3 passos iniciais para calibrar sua rotina e ganhar <strong className="text-amber-300 font-bold">+100 XP</strong> e <strong className="text-amber-300 font-bold">+2⚡ Sinapses de Bônus</strong>
+              Complete os 3 passos iniciais para calibrar sua rotina e ganhar <strong className="text-amber-300 font-bold">+100 XP</strong> e <strong className="text-amber-300 font-bold">+2⚡ Ajudas com IA de Bônus</strong>
             </p>
           </div>
         </div>
@@ -416,7 +419,7 @@ export function FirstStepsChecklistCard({
                     Resolver Questões ou Cards
                   </h4>
                   <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                    Resolva suas primeiras questões ou pratique flashcards com repetição espaçada.
+                    Resolva suas primeiras questões ou revise seus cartões de memória.
                   </p>
                 </div>
 
@@ -450,7 +453,7 @@ export function FirstStepsChecklistCard({
                       Parabéns! Todas as 3 metas iniciais concluídas!
                     </span>
                     <span className="text-[10px] text-amber-200/70 block">
-                      Você deu os primeiros passos com maestria. Resgate seus <strong className="text-amber-300 font-bold">+100 XP</strong> e <strong className="text-amber-300 font-bold">+2⚡ Sinapses</strong> agora!
+                      Você deu os primeiros passos com maestria. Resgate seus <strong className="text-amber-300 font-bold">+100 XP</strong> e <strong className="text-amber-300 font-bold">+2⚡ Ajudas com IA</strong> agora!
                     </span>
                   </div>
                 </div>
@@ -458,14 +461,14 @@ export function FirstStepsChecklistCard({
                 {isClaimed ? (
                   <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black text-xs flex items-center gap-1">
                     <Zap size={12} className="fill-emerald-300 text-emerald-300" />
-                    ✓ +100 XP & +2⚡ Sinapses Coletadas!
+                    ✓ +100 XP & +2⚡ Ajudas com IA Coletadas!
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={handleClaim}
                     disabled={isClaiming}
-                    aria-label="Resgatar 100 XP e 2 Sinapses de Bônus de Boas-Vindas"
+                    aria-label="Resgatar 100 XP e 2 Ajudas com IA de Bônus de Boas-Vindas"
                     className="px-4 py-2.5 min-h-[44px] rounded-xl bg-linear-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:outline-none"
                   >
                     {isClaiming ? (
@@ -473,7 +476,7 @@ export function FirstStepsChecklistCard({
                     ) : (
                       <Gift size={14} />
                     )}
-                    <span>{isClaiming ? "Resgatando..." : "Resgatar +100 XP & +2⚡ Sinapses"}</span>
+                    <span>{isClaiming ? "Resgatando..." : "Resgatar +100 XP & +2⚡ Ajudas com IA"}</span>
                   </button>
                 )}
               </div>

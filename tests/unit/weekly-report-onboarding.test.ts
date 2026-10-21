@@ -73,7 +73,7 @@ describe("Onboarding Gamificado com Duplo Bônus (+100 XP e +2⚡ Sinapses)", ()
     const res = await addOnboardingActivationBonus("user-test-weekly");
     expect(res.success).toBe(true);
     expect(res.earnedEnergy).toBe(2);
-    expect(res.message).toContain("+2⚡ Sinapses");
+    expect(res.message).toContain("+2⚡");
     expect(mockUpsertUsage).toHaveBeenCalledTimes(2);
   });
 

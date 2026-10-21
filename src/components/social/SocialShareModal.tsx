@@ -247,7 +247,7 @@ export function SocialShareModal({
     ctx.textAlign = "center";
     ctx.fillStyle = "#818cf8";
     ctx.font = "bold 26px sans-serif";
-    ctx.fillText("Estude com Inteligência Artificial & FSRS 4.5", centerX, footerY - 24);
+    ctx.fillText("Estude com Inteligência Artificial & Memorização Inteligente", centerX, footerY - 24);
 
     ctx.fillStyle = "#64748b";
     ctx.font = "bold 20px monospace";

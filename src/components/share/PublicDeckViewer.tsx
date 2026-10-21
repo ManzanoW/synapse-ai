@@ -68,7 +68,7 @@ export function PublicDeckViewer({ deck, isLoggedIn }: PublicDeckViewerProps) {
         `🔥 *Material de Estudo Gratuito • Synapse AI*\n\n` +
           `📚 *Baralho*: ${deck.title}\n` +
           `🎯 *Disciplina*: ${deck.subjectName || "Concursos Públicos"}\n` +
-          `⚡ *Total*: ${deck.totalCards} Flashcards com repetição espaçada FSRS 4.5 e Estudo em Áudio!\n\n` +
+          `⚡ *Total*: ${deck.totalCards} Cartões com repetição espaçada inteligente e Estudo em Áudio!\n\n` +
           `Acesse e estude direto pelo link:\n${window.location.href}`
       );
       window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
@@ -111,7 +111,7 @@ export function PublicDeckViewer({ deck, isLoggedIn }: PublicDeckViewerProps) {
                 Synapse <span className="text-indigo-400">AI</span>
               </span>
               <span className="text-[10px] text-slate-400 font-mono tracking-wider -mt-1">
-                FSRS 4.5 ENGINE
+                REPETIÇÃO INTELIGENTE
               </span>
             </div>
           </Link>
@@ -312,7 +312,7 @@ export function PublicDeckViewer({ deck, isLoggedIn }: PublicDeckViewerProps) {
 
               {/* RODAPÉ DO CARD */}
               <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-white/5">
-                <span>Synapse AI • FSRS 4.5</span>
+                <span>Synapse AI • Repetição Inteligente</span>
                 <span>Use as setas para navegar</span>
               </div>
             </div>
@@ -366,9 +366,9 @@ export function PublicDeckViewer({ deck, isLoggedIn }: PublicDeckViewerProps) {
                 Gostou deste baralho? Clone para sua conta!
               </h3>
               <p className="text-xs sm:text-sm text-slate-300 max-w-lg leading-relaxed">
-                Estude estes {deck.totalCards} cartões com o algoritmo matemático{" "}
-                <strong className="text-white">FSRS 4.5</strong>, que agenda as
-                revisões no momento exato em que você está prestes a esquecer.
+                Estude estes {deck.totalCards} cartões com o algoritmo de{" "}
+                <strong className="text-white">repetição espaçada inteligente</strong>, que agenda as
+                revisões no momento exato em que você precisa relembrar.
               </p>
             </div>
 

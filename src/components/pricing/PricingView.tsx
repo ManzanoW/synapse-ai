@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { CheckoutLeadModal } from "./CheckoutLeadModal";
 import { toggleDemoPlanTierAction } from "@/actions/subscription-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface PricingViewProps {
   currentPlanTier: "FREE" | "PREMIUM" | "ELITE";
@@ -58,6 +59,7 @@ export function PricingView({
     try {
       const res = await toggleDemoPlanTierAction(explicitTier);
       if (res.success) {
+        triggerHaptic("heavy");
         setCurrentTier(res.newPlanTier);
         setIsUnlimited(res.newPlanTier === "PREMIUM" || res.newPlanTier === "ELITE");
         setToggleFeedback(res.message);
@@ -75,7 +77,7 @@ export function PricingView({
   const FAQS = [
     {
       q: "Como funciona o limite do Plano Gratuito?",
-      a: "No Plano Gratuito, você tem 5 requisições diárias de Inteligência Artificial para testar nossos recursos (como 1 simulado diário, remediações de erro e 1 correção de redação semanal). O limite reinicia automaticamente todos os dias às 00:00 (horário de Brasília).",
+      a: "No Plano Gratuito, você tem 10 ajudas com Inteligência Artificial por dia para testar nossos recursos (como 1 simulado diário, remediações de erro e 1 correção de redação semanal). O limite reinicia automaticamente todos os dias às 00:00 (horário de Brasília).",
     },
     {
       q: "O que são os Anúncios Recompensados no plano Gratuito?",
@@ -83,7 +85,7 @@ export function PricingView({
     },
     {
       q: "Como funciona o OCR de Redação Manuscrita?",
-      a: "Você pode escrever sua redação à mão em qualquer folha de prova ou padrão de banca, tirar uma foto com seu celular ou webcam e enviar. O modelo multimodal Gemini Vision digitaliza seus parágrafos mantendo a fidelidade do seu texto e avalia os critérios de grafia, coesão, concordância e norma padrão da banca examinadora.",
+      a: "Você pode escrever sua redação à mão em qualquer folha de prova ou padrão de banca, tirar uma foto com seu celular ou webcam e enviar. O modelo multimodal digitaliza seus parágrafos mantendo a fidelidade do seu texto e avalia os critérios de grafia, coesão, concordância e norma padrão da banca examinadora.",
     },
     {
       q: "O que é o Raio-X de Incidência da Banca no Edital Verticalizado?",
@@ -91,7 +93,7 @@ export function PricingView({
     },
     {
       q: "O que ganho ao assinar o Synapse Concurseiro Pro?",
-      a: "Você tem alta capacidade diária de até 60 requisições de IA (1.800+/mês sob Política de Uso Justo), até 3 correções discursivas diárias, até 2 OCRs de redação manuscrita diários, flashcards em áudio hands-free, revisão de erros com macetes práticos, mapas mentais neurais com exportação HD/PDF A4 e leitor de editais em PDF.",
+      a: "Você tem alta capacidade diária de até 60 ajudas com IA por dia, até 3 correções discursivas diárias, até 2 correções de redação manuscrita por foto, cartões de memória com áudio, revisão de erros com macetes práticos, mapas mentais para imprimir em alta resolução e organizador de editais.",
     },
     {
       q: "A IA é calibrada para as principais bancas do Brasil?",
@@ -152,16 +154,20 @@ export function PricingView({
                 ? "text-slate-900 dark:text-white font-black"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             }`}
-            onClick={() => setBillingCycle("MONTHLY")}
+            onClick={() => {
+              triggerHaptic("light");
+              setBillingCycle("MONTHLY");
+            }}
           >
             Faturamento Mensal
           </span>
 
           <button
             type="button"
-            onClick={() =>
-              setBillingCycle(billingCycle === "MONTHLY" ? "ANNUAL" : "MONTHLY")
-            }
+            onClick={() => {
+              triggerHaptic("light");
+              setBillingCycle(billingCycle === "MONTHLY" ? "ANNUAL" : "MONTHLY");
+            }}
             className="relative w-14 h-7 rounded-full bg-slate-200 dark:bg-slate-800 p-1 border border-slate-300 dark:border-slate-700 transition-colors focus:outline-none cursor-pointer"
           >
             <motion.div
@@ -180,7 +186,10 @@ export function PricingView({
                 ? "text-slate-900 dark:text-white font-black"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             }`}
-            onClick={() => setBillingCycle("ANNUAL")}
+            onClick={() => {
+              triggerHaptic("light");
+              setBillingCycle("ANNUAL");
+            }}
           >
             <span>Faturamento Anual</span>
             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:border-emerald-400/40 dark:text-emerald-300 text-[10px] font-extrabold uppercase shadow-2xs">
@@ -229,7 +238,7 @@ export function PricingView({
               </div>
               <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
                 {[
-                  "10 Sinapses / dia (Renovação diária)",
+                  "10 Ajudas com IA por dia (Renovação diária)",
                   "Degustação da Semana 1 na Trilha Guiada & Teoria",
                   "Até 2 Cursos Externos monitorados no Tracker",
                   "1 simulado com IA por dia (+1 bônus via anúncio)",
@@ -284,7 +293,7 @@ export function PricingView({
                 </span>
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-300">
-                Ideal para organizar seus cursos externos, treinar simulados, redações e revisão espaçada FSRS.
+                Ideal para organizar seus estudos, resolver questões, treinar redações e memorizar tudo com cartões de memória inteligentes.
               </p>
             </div>
 
@@ -308,12 +317,12 @@ export function PricingView({
               </div>
               <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-200">
                 {[
-                  "60 Sinapses / dia (Alta Capacidade / Fair Use)",
+                  "60 Ajudas com IA por dia (Alta Capacidade)",
                   "1 Trilha Guiada Ativa por vez + Cursos Externos Ilimitados",
-                  "Até 3 correções de redação digitada/dia + 2 OCRs manuscritos",
+                  "Até 3 correções de redação digitada/dia + 2 por foto do papel",
                   "Até 5 simulados inéditos por dia por Banca e Cargo",
                   "Caderno de Erros avançado com até 30 remediações diárias",
-                  "Mapas Mentais Neurais (PDF A4 / PNG HD) + Flashcards FSRS",
+                  "Mapas Mentais em Alta Resolução (PDF / Imagem) + Cartões de Memória",
                   "Importador de Edital em PDF com IA e Raio-X da Banca",
                   "100% Zero Anúncios (Foco Total)",
                 ].map((item, idx) => (
@@ -336,6 +345,7 @@ export function PricingView({
               <button
                 type="button"
                 onClick={() => {
+                  triggerHaptic("heavy");
                   setModalTargetTier("PREMIUM");
                   setIsModalOpen(true);
                 }}
@@ -405,13 +415,13 @@ export function PricingView({
               </div>
               <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-200">
                 {[
-                  "🔄 Teoria Viva: As aulas mudam e criam alertas vermelhos baseados nos erros reais dos seus simulados",
-                  "🕵️‍♂️ Detector de DNA de Pegadinha + Treino 'Vacina' contra o padrão de armadilha que mais te derruba",
-                  "⚖️ Detector de Conceitos Gêmeos: Quadros lado a lado desarmando os termos que você mais confunde",
-                  "🧊 Alarme de Memória Esfriando + Resgate Relâmpago de 60 segundos antes da curva biológica cair",
-                  "📄 Folha de Véspera A4 100% Pessoal: Caderno de Ouro imprimível com seus erros, mnemônicos e tabelas",
-                  "✍️ Reescrita Lado a Lado Nota 100 nas Discursivas + Múltiplas Trilhas Simultâneas (Qualquer Banca)",
-                  "🎧 Áudio-Aulas Hands-Free + 120 Sinapses/dia com Prioridade Máxima nos Servidores IA",
+                  "🔄 Teoria Viva: As aulas mudam e criam alertas baseados nos erros reais dos seus simulados",
+                  "🕵️‍♂️ Detector de Pegadinhas + Treino de reforço contra as armadilhas mais comuns da banca",
+                  "⚖️ Diferenciação de Conceitos: Quadros lado a lado desarmando termos fáceis de confundir",
+                  "🧊 Lembrete de Conteúdo a Esquecer: revisão relâmpago de 60s antes de esquecer o assunto",
+                  "📄 Resumo de Véspera Imprimível: Folha A4 com seus erros mais frequentes, macetes e tabelas",
+                  "✍️ Reescrita Nota 10 nas Discursivas + Múltiplas Trilhas de Estudo Simultâneas",
+                  "🎧 Áudio-Aulas + 120 Ajudas com IA por dia com Prioridade Máxima nos Servidores",
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2.5 font-medium">
                     <CheckCircle2 size={16} className="text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
@@ -432,6 +442,7 @@ export function PricingView({
               <button
                 type="button"
                 onClick={() => {
+                  triggerHaptic("heavy");
                   setModalTargetTier("ELITE");
                   setIsModalOpen(true);
                 }}
@@ -642,14 +653,14 @@ export function PricingView({
               </tr>
               <tr>
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Cota Diária de Requisições
+                  Ajudas com IA por Dia
                 </td>
-                <td className="p-4 text-center text-slate-500 dark:text-slate-400">10 Sinapses / dia</td>
+                <td className="p-4 text-center text-slate-500 dark:text-slate-400">10 ajudas / dia</td>
                 <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  60 Sinapses / dia ⚡
+                  60 ajudas / dia ⚡
                 </td>
                 <td className="p-4 text-center text-amber-700 dark:text-amber-300 font-black bg-amber-50/40 dark:bg-amber-500/5">
-                  120 Sinapses / dia (Prioridade Máxima) 🔥
+                  120 ajudas / dia (Prioridade Máxima) 🔥
                 </td>
               </tr>
               <tr>
@@ -706,11 +717,11 @@ export function PricingView({
               </tr>
               <tr>
                 <td className="p-4 text-slate-800 dark:text-slate-200 font-medium">
-                  Mapas Mentais Neurais, Exportação Anki (.apkg) & Raio-X da Banca
+                  Mapas Mentais em Alta Resolução, Exportação de Cartões & Raio-X da Banca
                 </td>
                 <td className="p-4 text-center text-slate-400 dark:text-slate-500">Básico</td>
                 <td className="p-4 text-center text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-50/50 dark:bg-indigo-500/5 border-l border-r border-indigo-200 dark:border-indigo-500/20">
-                  Completo (PDF A4 + Anki + Raio-X)
+                  Completo (PDF A4 + Cartões + Raio-X)
                 </td>
                 <td className="p-4 text-center text-amber-700 dark:text-amber-300 font-black bg-amber-50/40 dark:bg-amber-500/5">
                   Completo + Recalibragem Automática 👑
@@ -766,7 +777,10 @@ export function PricingView({
               >
                 <button
                   type="button"
-                  onClick={() => setOpenFaq(isOpen ? null : index)}
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setOpenFaq(isOpen ? null : index);
+                  }}
                   className="w-full p-4.5 text-left flex items-center justify-between gap-4 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   <span className="flex items-center gap-2.5">

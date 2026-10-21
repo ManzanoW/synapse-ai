@@ -15,6 +15,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useGamification } from "@/context/GamificationContext";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface ZenModeOverlayProps {
   isOpen: boolean;
@@ -75,6 +76,7 @@ export function ZenModeOverlay({
         });
 
         if (res.ok) {
+          triggerHaptic("heavy");
           const data = await res.json();
           setGainedXp(data.xpGained);
           setSessionCompleted(true);
@@ -91,6 +93,7 @@ export function ZenModeOverlay({
   );
 
   const toggleTimer = useCallback(() => {
+    triggerHaptic("medium");
     setIsActive((prev) => !prev);
   }, []);
 
@@ -166,6 +169,7 @@ export function ZenModeOverlay({
 
   const selectPreset = (minutes: number) => {
     if (isActive) return;
+    triggerHaptic("light");
     setSelectedMinutes(minutes);
     setTotalSeconds(minutes * 60);
     setTimeLeft(minutes * 60);
@@ -173,6 +177,7 @@ export function ZenModeOverlay({
   };
 
   const resetTimer = () => {
+    triggerHaptic("light");
     setIsActive(false);
     setTimeLeft(totalSeconds);
     setSessionCompleted(false);
@@ -239,7 +244,10 @@ export function ZenModeOverlay({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsMuted((prev) => !prev)}
+              onClick={() => {
+                triggerHaptic("light");
+                setIsMuted((prev) => !prev);
+              }}
               className="cursor-pointer rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-400 dark:hover:text-white p-2.5 transition-all backdrop-blur-xl shadow-xs"
               title={isMuted ? "Ativar som ambiente" : "Mutar som ambiente"}
             >

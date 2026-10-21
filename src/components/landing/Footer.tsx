@@ -21,7 +21,7 @@ export function Footer() {
             </Link>
 
             <p className="text-xs text-slate-400 leading-relaxed">
-              O primeiro copiloto cognitivo para concurseiros de alta performance. Motor FSRS, redação discursiva calibrada por banca e áudio neural hands-free.
+              O primeiro copiloto de estudos para concurseiros de alto rendimento. Repetição inteligente, redação discursiva calibrada por banca e resumos em áudio no bolso.
             </p>
 
             <div className="flex items-center gap-2 text-[11px] font-mono text-emerald-400">
@@ -76,7 +76,7 @@ export function Footer() {
             </span>
             <ul className="space-y-2 text-xs">
               <li className="text-slate-400 hover:text-white transition-colors">
-                Motor FSRS (Estabilidade de Memória)
+                Repetição Inteligente (Fixação Ativa)
               </li>
               <li className="text-slate-400 hover:text-white transition-colors">
                 Corretor Discursivo Cebraspe, FGV e FCC

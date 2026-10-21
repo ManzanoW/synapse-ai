@@ -21,6 +21,7 @@ import {
 import { triggerAiQuotaRefresh } from "@/lib/quota-events";
 import type { AiFeatureType } from "@/types/quota";
 import { RewardedAdPlayer } from "@/components/ads/RewardedAdPlayer";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import Link from "next/link";
 
 interface RewardedAdModalProps {
@@ -88,7 +89,7 @@ export function RewardedAdModal({
           if (featureBonus >= 2 || !res.data.canWatchRewardedAd) {
             setIsLimitReached(true);
           } else {
-            setIsLimitReached(false);
+        setIsLimitReached(false);
           }
         }
       })
@@ -122,15 +123,22 @@ export function RewardedAdModal({
     return () => clearInterval(timer);
   }, [isOpen, isCheckingQuota, isLimitReached, isCompleted]);
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   // Ação de reivindicar recompensa
   const handleClaim = async () => {
     if (isClaiming || claimSuccess) return;
+    triggerHaptic("medium");
     setIsClaiming(true);
     setErrorMessage(null);
 
     try {
       const res = await claimRewardedAdBonusAction(feature);
       if (res.success) {
+        triggerHaptic("heavy");
         setClaimSuccess(true);
         triggerAiQuotaRefresh();
         setTimeout(() => {
@@ -138,11 +146,13 @@ export function RewardedAdModal({
           onClose();
         }, 1200);
       } else {
+        triggerHaptic("warning");
         setErrorMessage(
           res.message || "Não foi possível liberar o bônus no momento.",
         );
       }
     } catch {
+      triggerHaptic("warning");
       setErrorMessage("Erro de conexão ao creditar bônus.");
     } finally {
       setIsClaiming(false);
@@ -214,7 +224,7 @@ export function RewardedAdModal({
               {/* Botão de Fechar */}
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 title="Fechar"
               >
@@ -290,13 +300,13 @@ export function RewardedAdModal({
                   className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-950/60 transition-all cursor-pointer group"
                 >
                   <Crown size={15} className="fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform" />
-                  <span>👑 Acelerar com Synapse Pro (60 Sinapses/dia + Zero Espera)</span>
+                  <span>👑 Assinar Synapse Pro (60 Ajudas/dia + Sem Espera)</span>
                   <ArrowRight size={13} />
                 </Link>
 
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold border border-slate-800 transition-all cursor-pointer"
                 >
                   Entendido, fechar
@@ -309,6 +319,7 @@ export function RewardedAdModal({
               {/* Player Modular (Google IMA / Vídeo Customizado / Dicas Patrocinadas) */}
               <RewardedAdPlayer
                 onCompleted={() => {
+                  triggerHaptic("success");
                   setIsCompleted(true);
                   setSecondsLeft(0);
                 }}
@@ -356,7 +367,7 @@ export function RewardedAdModal({
                       <>
                         <Zap size={16} className="text-amber-300 group-hover:scale-110 transition-transform fill-amber-300/30" />
                         <span>
-                          ⚡ Recarregar +1 Sinapse ({FEATURE_REWARD_LABELS[feature]?.single || "Recurso"}) Agora 🎉
+                          ⚡ Ganhar +1 Ajuda de IA ({FEATURE_REWARD_LABELS[feature]?.single || "Recurso"}) Agora 🎉
                         </span>
                       </>
                     )}
@@ -379,7 +390,7 @@ export function RewardedAdModal({
                     className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition-colors text-[11px]"
                   >
                     <Crown size={12} className="fill-amber-400/20" />
-                    <span>👑 Synapse Pro (60 Sinapses/dia + Zero Espera)</span>
+                    <span>👑 Synapse Pro (60 Ajudas/dia + Sem Espera)</span>
                     <ArrowRight size={11} />
                   </Link>
                 </div>

@@ -46,6 +46,7 @@ import {
   WrongQuestionItem,
 } from "@/actions/error-notebook-actions";
 import { createFlashcardsFromQuizResultsAction } from "@/actions/error-flashcard-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export interface QuizResultViewProps {
   quizId?: string | null;
@@ -231,7 +232,7 @@ export function QuizResultView({
       badgeBg: "bg-rose-500/15 border-rose-500/30 text-rose-300",
       barColor: "bg-rose-500",
       diffText: `${diff}% abaixo do corte projetado`,
-      advice: "Abaixo da nota de segurança. Utilize os Flashcards FSRS para sanar essas lacunas.",
+      advice: "Abaixo da nota de segurança. Revise as questões erradas nos seus cartões de memória para fixar o conteúdo.",
     };
   }, [percentageAcc, bancaBenchmark]);
 
@@ -420,6 +421,7 @@ export function QuizResultView({
       });
 
       if (res.success) {
+        triggerHaptic("success");
         setIsErrorsSaved(true);
         setSavedCount(res.countAdded ?? wrongItems.length);
       } else {
@@ -468,6 +470,7 @@ export function QuizResultView({
       });
 
       if (res.success && res.deckId) {
+        triggerHaptic("success");
         setFlashcardDeckInfo({
           deckId: res.deckId,
           deckTitle: res.deckTitle || `Erros: ${subject}`,
@@ -798,13 +801,13 @@ export function QuizResultView({
 
             <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 text-center sm:text-left">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block flex items-center justify-center sm:justify-start gap-1">
-                <ShieldCheck size={11} className="text-indigo-400" /> Algoritmo
+                <ShieldCheck size={11} className="text-indigo-400" /> Revisão
               </span>
               <span className="text-xs sm:text-sm font-mono font-bold text-indigo-300 mt-0.5 block truncate">
                 {percentageAcc >= 80 ? "Revisão Estendida" : "Revisão Prioritária"}
               </span>
               <span className="text-[10px] text-slate-500 font-medium">
-                Sincronizado SM-2
+                Revisão Agendada
               </span>
             </div>
           </div>
@@ -1138,7 +1141,7 @@ export function QuizResultView({
                   </span>
                   <div className="min-w-0">
                     <h3 className="text-sm sm:text-base font-black text-white tracking-tight truncate">
-                      Caderno de Erros & Flashcards FSRS
+                      Caderno de Erros & Cartões de Memória
                     </h3>
                   </div>
                 </div>
@@ -1157,7 +1160,7 @@ export function QuizResultView({
 
               <p className="text-xs text-slate-400 leading-snug">
                 {incorrectCount > 0
-                  ? "Questões salvas automaticamente no Caderno de Erros para revisão e remediação ativa via repetição espaçada."
+                  ? "Questões salvas no Caderno de Erros para você treinar e memorizar de forma inteligente com repetição espaçada."
                   : "Excelente desempenho! Sem erros pendentes neste simulado para revisão."}
               </p>
 
@@ -1174,7 +1177,7 @@ export function QuizResultView({
               {incorrectCount === 0 ? (
                 <div className="w-full py-2 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2">
                   <Check size={14} className="text-emerald-400" />
-                  <span>Sem erros registrados para remediação</span>
+                  <span>Sem erros pendentes de revisão</span>
                 </div>
               ) : (
                 <>
@@ -1185,7 +1188,7 @@ export function QuizResultView({
                       className="flex-1 min-w-[180px] py-2 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md shadow-emerald-950/40 border border-emerald-400/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 group truncate"
                     >
                       <Sparkles size={13} className="text-emerald-200 shrink-0" />
-                      <span className="truncate">Deck FSRS ({flashcardDeckInfo.count})</span>
+                      <span className="truncate">Cartões Salvos ({flashcardDeckInfo.count})</span>
                       <ArrowRight size={13} className="shrink-0" />
                     </Link>
                   ) : (
@@ -1198,12 +1201,12 @@ export function QuizResultView({
                       {isCreatingFlashcards ? (
                         <>
                           <Loader2 size={13} className="animate-spin text-white shrink-0" />
-                          <span className="truncate">Gerando Cards...</span>
+                          <span className="truncate">Salvando Cartões...</span>
                         </>
                       ) : (
                         <>
                           <Zap size={13} className="fill-amber-300 text-amber-300 shrink-0" />
-                          <span className="truncate">⚡ Gerar Flashcards FSRS ({incorrectCount})</span>
+                          <span className="truncate">🎴 Salvar nos Cartões de Memória ({incorrectCount})</span>
                         </>
                       )}
                     </button>

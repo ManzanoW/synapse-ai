@@ -19,6 +19,7 @@ import {
   getSmartNotificationsAction,
   SmartNotification,
 } from "@/actions/notification-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface NotificationsPopoverProps {
   onNavigate?: () => void;
@@ -98,10 +99,12 @@ export function NotificationsPopover({ onNavigate }: NotificationsPopoverProps) 
   const handleDismiss = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    triggerHaptic("light");
     setDismissedIds((prev) => [...prev, id]);
   };
 
   const handleClearAll = () => {
+    triggerHaptic("medium");
     setDismissedIds(notifications.map((n) => n.id));
   };
 
@@ -149,7 +152,10 @@ export function NotificationsPopover({ onNavigate }: NotificationsPopoverProps) 
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => {
+          triggerHaptic("light");
+          setIsOpen((prev) => !prev);
+        }}
         title="Central de Notificações Inteligentes"
         aria-label="Central de Notificações Inteligentes"
         className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 relative ${
@@ -292,6 +298,7 @@ export function NotificationsPopover({ onNavigate }: NotificationsPopoverProps) 
                               href={n.actionHref}
                               onClick={() => {
                                 setIsOpen(false);
+                                triggerHaptic("light");
                                 if (onNavigate) onNavigate();
                               }}
                               className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 group-hover:underline cursor-pointer transition-colors"

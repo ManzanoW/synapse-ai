@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { submitUserFeedbackAction } from "@/actions/feedback-actions";
 import { useGamification } from "@/context/GamificationContext";
 
@@ -71,6 +72,11 @@ const FEEDBACK_TYPES: {
 export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const { refreshStats } = useGamification();
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   const [type, setType] = useState<FeedbackType>("SUGGESTION");
   const [category, setCategory] = useState("GERAL");
   const [rating, setRating] = useState<number>(5);
@@ -82,10 +88,12 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || message.trim().length < 5) {
+      triggerHaptic("warning");
       setErrorMessage("Por favor, escreva uma mensagem com pelo menos 5 caracteres.");
       return;
     }
 
+    triggerHaptic("medium");
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -99,6 +107,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
       });
 
       if (res.success) {
+        triggerHaptic("success");
         setIsSubmitted(true);
         try {
           confetti({
@@ -118,9 +127,11 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
           onClose();
         }, 2200);
       } else {
+        triggerHaptic("warning");
         setErrorMessage(res.error || "Falha ao enviar feedback.");
       }
     } catch {
+      triggerHaptic("warning");
       setErrorMessage("Erro ao conectar com o servidor.");
     } finally {
       setIsSubmitting(false);
@@ -137,7 +148,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
+          onClick={handleClose}
           className="fixed inset-0 bg-black/80 backdrop-blur-md"
         />
 
@@ -151,7 +162,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         >
           {/* Botão de Fechar */}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
           >
             <X size={18} />
@@ -197,7 +208,10 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setType(item.id)}
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setType(item.id);
+                      }}
                       className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
                         isSelected
                           ? `${item.activeColor} ${item.activeBorder} shadow-sm`
@@ -219,7 +233,10 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                     <button
                       key={star}
                       type="button"
-                      onClick={() => setRating(star)}
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setRating(star);
+                      }}
                       className="p-1 text-slate-500 hover:text-amber-400 transition-colors cursor-pointer"
                     >
                       <Star

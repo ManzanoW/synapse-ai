@@ -151,13 +151,13 @@ export default function QuizHubPage() {
       <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-[#12102e] via-[#0d1226] to-[#080c18] border border-indigo-500/30 p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="space-y-2 max-w-xl text-center sm:text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
-            <Scale size={13} /> Oráculo de Risco Cebraspe • Novo
+            <Scale size={13} /> Estratégia de Prova Cebraspe • Novo
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white">
-            Calculadora de Chute & Ponto de Equilíbrio
+            Calculadora: Chutar ou Deixar em Branco?
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            Descubra matematicamente quantas questões você deve deixar em branco para não afundar sua nota líquida. Simulação Monte Carlo com 2.000 iterações.
+            Descubra com precisão quantas questões deixar em branco para maximizar sua nota líquida em provas estilo Cebraspe (uma errada anula uma certa).
           </p>
         </div>
 
@@ -167,7 +167,7 @@ export default function QuizHubPage() {
           className="shrink-0 px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition-all shadow-xl shadow-indigo-600/30 active:scale-95 flex items-center gap-2 cursor-pointer"
         >
           <Sparkles size={16} />
-          <span>Calcular Ponto de Equilíbrio</span>
+          <span>Calcular Melhor Estratégia</span>
         </button>
       </div>
 

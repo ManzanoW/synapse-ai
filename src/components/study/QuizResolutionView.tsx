@@ -43,6 +43,7 @@ import {
 } from "@/actions/quiz-actions";
 import { MentorCopilotDrawer } from "@/components/mentor/MentorCopilotDrawer";
 import { PrintableQuestions } from "@/components/questions/printable-questions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export interface QuizResolutionViewProps {
   quizId?: string | null;
@@ -156,7 +157,7 @@ export function QuizResolutionView({
   const [filterOnlyFlagged, setFilterOnlyFlagged] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
   const [deepeningStep, setDeepeningStep] = useState(0);
-  const [isShortcutsBarOpen, setIsShortcutsBarOpen] = useState(true);
+  const [isShortcutsBarOpen, setIsShortcutsBarOpen] = useState(false);
   const [questionFontSize, setQuestionFontSize] = useState<"normal" | "large" | "xlarge">("normal");
 
   // Atalho global ⌘J / Ctrl+J para alternar o Mentor IA
@@ -292,6 +293,7 @@ export function QuizResolutionView({
   const navigateTo = useCallback(
     (nextIdx: number) => {
       if (nextIdx < 0 || nextIdx >= totalQuestions) return;
+      triggerHaptic("light");
       setDirection(nextIdx > activeQuestionIndex ? 1 : -1);
       setActiveQuestionIndex(nextIdx);
     },
@@ -345,6 +347,7 @@ export function QuizResolutionView({
   const handleSelectAnswer = useCallback(
     (altId: string) => {
       if (isCurrentAnswered) return;
+      triggerHaptic("light");
       setSelectedAnswers((prev) => ({
         ...prev,
         [activeQuestionIndex]: altId,
@@ -357,6 +360,7 @@ export function QuizResolutionView({
   const toggleEliminateAlt = (e: React.MouseEvent, altId: string) => {
     e.stopPropagation();
     if (isCurrentAnswered) return;
+    triggerHaptic("light");
     setEliminatedAlts((prev) => {
       const currentMap = prev[activeQuestionIndex] || {};
       return {
@@ -380,6 +384,8 @@ export function QuizResolutionView({
 
     const isCorrect =
       currentSelectedAlt === currentQuestion.gabaritoCorreto;
+
+    triggerHaptic(isCorrect ? "success" : "warning");
 
     // Se errou, classifica automaticamente em background sem interromper o aluno
     if (!isCorrect) {
@@ -408,6 +414,7 @@ export function QuizResolutionView({
 
   // Marcar / desmarcar para revisar
   const handleToggleFlag = useCallback(() => {
+    triggerHaptic("medium");
     setFlaggedQuestions((prev) => ({
       ...prev,
       [activeQuestionIndex]: !prev[activeQuestionIndex],
@@ -463,6 +470,7 @@ export function QuizResolutionView({
     }
 
     const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+    triggerHaptic(accuracy >= 65 ? "heavy" : "medium");
     if (accuracy >= 65) {
       try {
         confetti({

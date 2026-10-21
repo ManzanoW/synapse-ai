@@ -13,6 +13,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { EssayTheme, generateEssayThemeAction } from "@/actions/essay-actions";
+import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface ThemeSelectorModalProps {
   isOpen: boolean;
@@ -50,6 +52,11 @@ export function ThemeSelectorModal({
   const [generatedTheme, setGeneratedTheme] = useState<EssayTheme | null>(null);
   const [activeTab, setActiveTab] = useState<"ai" | "manual">("ai");
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   // Formulário manual
   const [manualTitle, setManualTitle] = useState<string>("");
   const [manualText, setManualText] = useState<string>("");
@@ -70,6 +77,7 @@ export function ThemeSelectorModal({
   if (!isOpen) return null;
 
   const handleGenerate = async () => {
+    triggerHaptic("medium");
     setIsGenerating(true);
     setGeneratedTheme(null);
     try {
@@ -80,11 +88,14 @@ export function ThemeSelectorModal({
       });
 
       if (res.success && res.data) {
+        triggerHaptic("success");
         setGeneratedTheme(res.data);
       } else {
+        triggerHaptic("warning");
         alert(res.error || "Erro ao gerar proposta com IA. Tente novamente.");
       }
     } catch (e) {
+      triggerHaptic("warning");
       console.error(e);
       alert("Falha de conexão ao gerar o tema.");
     } finally {
@@ -94,6 +105,14 @@ export function ThemeSelectorModal({
 
   const handleConfirmGenerated = () => {
     if (generatedTheme) {
+      triggerHaptic("heavy");
+      try {
+        confetti({
+          particleCount: 60,
+          spread: 60,
+          origin: { y: 0.6 },
+        });
+      } catch {}
       onSelectTheme(generatedTheme);
       onClose();
     }
@@ -162,7 +181,7 @@ export function ThemeSelectorModal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Fechar escolha de tema"
             className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500"
           >
@@ -177,7 +196,7 @@ export function ThemeSelectorModal({
               type="button"
               role="tab"
               aria-selected={activeTab === "ai"}
-              onClick={() => setActiveTab("ai")}
+              onClick={() => { triggerHaptic("light"); setActiveTab("ai"); }}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500 ${
                 activeTab === "ai"
                   ? "bg-violet-600 text-white shadow-md"
@@ -191,7 +210,7 @@ export function ThemeSelectorModal({
               type="button"
               role="tab"
               aria-selected={activeTab === "manual"}
-              onClick={() => setActiveTab("manual")}
+              onClick={() => { triggerHaptic("light"); setActiveTab("manual"); }}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500 ${
                 activeTab === "manual"
                   ? "bg-violet-600 text-white shadow-md"

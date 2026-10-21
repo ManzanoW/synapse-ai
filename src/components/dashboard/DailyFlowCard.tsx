@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import type { DailyFlowData, DailyFlowStep } from "@/actions/daily-flow-actions";
 import { claimDailyMissionBonusAction } from "@/actions/daily-flow-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface DailyFlowCardProps {
   flowData: DailyFlowData | null;
@@ -60,6 +61,7 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
     try {
       const res = await claimDailyMissionBonusAction();
       if (res.success && res.awardedXp) {
+        triggerHaptic("heavy");
         setBonusClaimed(true);
         confetti({
           particleCount: 150,
@@ -149,7 +151,10 @@ export function DailyFlowCard({ flowData }: DailyFlowCardProps) {
 
           <button
             type="button"
-            onClick={() => setIsMinimized(!isMinimized)}
+            onClick={() => {
+              triggerHaptic("light");
+              setIsMinimized(!isMinimized);
+            }}
             className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/50 p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
             title={isMinimized ? "Expandir Missão" : "Minimizar Missão"}
           >

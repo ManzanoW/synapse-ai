@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { submitSubscriptionLeadAction } from "@/actions/subscription-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface CheckoutLeadModalProps {
   isOpen: boolean;
@@ -67,6 +68,7 @@ export function CheckoutLeadModal({
       });
 
       if (result.success) {
+        triggerHaptic("heavy");
         setIsSuccess(true);
         setStatusMessage(result.message);
 
@@ -92,9 +94,11 @@ export function CheckoutLeadModal({
           onSuccess(selectedTier);
         }
       } else {
+        triggerHaptic("warning");
         setStatusMessage(result.message);
       }
     } catch {
+      triggerHaptic("warning");
       setStatusMessage("Erro ao ativar. Tente novamente.");
     } finally {
       setIsSubmitting(false);
@@ -138,8 +142,8 @@ export function CheckoutLeadModal({
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
                   {isElite
-                    ? "120 Sinapses/dia, Trilhas Guiadas Ilimitadas, Teorias Hardcore, Apostilas A4 e Áudio-Aulas Neurais."
-                    : "Acesso imediato de alta capacidade (60 Sinapses/dia) a todas as ferramentas com IA."}
+                    ? "120 Ajudas com IA por dia, Trilhas Ilimitadas, Aulas Completas, Apostilas A4 e Áudio-Aulas."
+                    : "Acesso imediato de alta capacidade (60 ajudas com IA por dia) a todas as ferramentas."}
                 </p>
               </div>
 
@@ -215,17 +219,17 @@ export function CheckoutLeadModal({
               <div className="space-y-2 py-1">
                 {(isElite
                   ? [
-                      "120 Sinapses / dia + Prioridade Máxima nos Servidores IA",
-                      "Gerador Universal de Trilhas & Teorias Hardcore (Qualquer Banca/Cargo)",
-                      "Áudio-Aulas Neurais Hands-Free + Apostilas A4 Imprimíveis",
-                      "Múltiplas Trilhas Simultâneas + Recalibragem Adaptativa Automática",
-                      "Tudo do Plano Pro incluso (OCR Manuscrito, Mapas HD, Simulados)",
+                      "120 Ajudas com IA por dia + Prioridade Máxima nos Servidores",
+                      "Gerador Universal de Trilhas & Aulas Completas (Qualquer Banca/Cargo)",
+                      "Áudio-Aulas + Apostilas A4 para Imprimir",
+                      "Múltiplas Trilhas Simultâneas + Ajuste Adaptativo Automático",
+                      "Tudo do Plano Pro incluso (Foto do Papel, Mapas em Alta Resolução, Simulados)",
                     ]
                   : [
-                      "Alta Franquia diária de IA (até 60 req/dia) & Zero Anúncios",
-                      "OCR de Redação Manuscrita (foto da folha de prova real)",
-                      "Revisão Avançada de Erros com até 30 remediações diárias",
-                      "Mapas Mentais Neurais com Expansão de Nós e Exportação HD/PDF A4",
+                      "Até 60 ajudas com IA por dia & 100% Zero Anúncios",
+                      "Correção de Redação por foto da folha de prova real",
+                      "Caderno de Erros avançado com até 30 treinos de reforço diários",
+                      "Mapas Mentais em Alta Resolução (PDF / Imagem)",
                       "Raio-X de Incidência Estatística da Banca no Edital (Cebraspe, FGV, FCC)",
                     ]
                 ).map((item, idx) => (

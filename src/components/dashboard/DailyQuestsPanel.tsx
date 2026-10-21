@@ -27,6 +27,7 @@ import {
   DailyChestStatus,
 } from "@/actions/quest-actions";
 import { useGamification } from "@/context/GamificationContext";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 // Síntese de áudio harmônico suave via Web Audio API (zero dependências de arquivos externos)
 function playRewardSound(isBigReward = false) {
@@ -192,6 +193,7 @@ export function DailyQuestsPanel() {
     startTransition(async () => {
       const res = await claimQuestRewardAction(questId);
       if (res.success) {
+        triggerHaptic("success");
         playRewardSound(false);
         triggerRewardConfetti(false);
         setFloatingXp({ id: questId, xp: xpReward });
@@ -211,6 +213,7 @@ export function DailyQuestsPanel() {
     startTransition(async () => {
       const res = await claimDailyChestAction();
       if (res.success) {
+        triggerHaptic("heavy");
         playRewardSound(true);
         triggerRewardConfetti(true);
         setFloatingXp({ id: "chest", xp: 100 });

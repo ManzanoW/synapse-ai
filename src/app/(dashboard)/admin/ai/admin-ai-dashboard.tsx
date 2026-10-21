@@ -33,7 +33,7 @@ const FEATURE_LABELS: Record<string, { label: string; icon: string; color: strin
   OCR_ESSAY: { label: "OCR de Manuscrito", icon: "📸", color: "from-amber-500/20 to-orange-500/20 text-amber-400" },
   OCR_QUESTION: { label: "Scanner de Questões", icon: "🔍", color: "from-cyan-500/20 to-teal-500/20 text-cyan-400" },
   MINDMAP: { label: "Mapas Mentais", icon: "🧠", color: "from-emerald-500/20 to-green-500/20 text-emerald-400" },
-  FLASHCARD: { label: "Flashcards FSRS", icon: "⚡", color: "from-rose-500/20 to-red-500/20 text-rose-400" },
+  FLASHCARD: { label: "Cartões de Memória", icon: "⚡", color: "from-rose-500/20 to-red-500/20 text-rose-400" },
   REMEDIATION: { label: "Caderno de Erros", icon: "🎯", color: "from-violet-500/20 to-purple-500/20 text-violet-400" },
   EDITAL: { label: "Edital Verticalizado", icon: "📋", color: "from-sky-500/20 to-blue-500/20 text-sky-400" },
 };

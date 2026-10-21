@@ -222,13 +222,13 @@ export function EssayWorkspace() {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <span>Analista de Redação</span>
+              <span>Treino de Redação</span>
               <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-500/30 text-[11px] font-mono font-bold">
-                PADRÃO BANCA
+                CORREÇÃO PASSO A PASSO
               </span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Prática em folha oficial de prova, temas quentes e correção honesta e rigorosa com IA
+              Escreva sua redação na tela ou tire uma foto do seu papel para receber sua nota e dicas do que melhorar.
             </p>
           </div>
         </div>
@@ -244,33 +244,22 @@ export function EssayWorkspace() {
             <>
               <button
                 type="button"
-                onClick={() => setIsHandwrittenModalOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all cursor-pointer"
-                title="Tire uma foto da sua folha escrita à mão para correção oficial com OCR e espelho da banca"
-              >
-                <Camera size={14} className="text-rose-200" />
-                <span className="hidden sm:inline">Enviar Foto Manuscrita (OCR)</span>
-                <span className="sm:hidden">Foto OCR</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => setIsThemeModalOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-600/25 dark:shadow-violet-950/50 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-600/25 dark:shadow-violet-950/50 transition-all cursor-pointer"
               >
                 <Sparkles size={14} />
-                <span>Mudar Tema / Banca</span>
+                <span>Trocar Tema / Banca</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsPrintModalOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-white/10 text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                title="Imprimir folha pautada oficial A4 com este tema para treinar manuscrito"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-white/10 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                title="Baixar ou imprimir folha de 30 linhas em branco para escrever à mão"
               >
                 <Printer size={14} className="text-violet-600 dark:text-violet-400" />
-                <span className="hidden sm:inline">Folha Pautada (PDF)</span>
-                <span className="sm:hidden">PDF</span>
+                <span className="hidden sm:inline">Baixar Folha para Imprimir</span>
+                <span className="sm:hidden">Imprimir Folha</span>
               </button>
             </>
           )}
@@ -286,7 +275,7 @@ export function EssayWorkspace() {
               }`}
             >
               <PenTool size={13} />
-              <span>Folha de Prova</span>
+              <span>Escrever</span>
             </button>
             <button
               type="button"
@@ -298,7 +287,7 @@ export function EssayWorkspace() {
               }`}
             >
               <History size={13} />
-              <span>Histórico</span>
+              <span>Minhas Redações</span>
             </button>
           </div>
         </div>
@@ -309,32 +298,32 @@ export function EssayWorkspace() {
         storageKey="synapse_spotlight_redacao"
         externalIsOpen={spotlight.isOpen}
         onClose={spotlight.dismiss}
-        badgeText="✍️ Como Funciona o Treino Discursivo"
-        title="Domine a Redação Nota Máxima com Feedback Real da Banca"
-        description="Treine exatamente como no dia da sua prova: escolha a banca do concurso, redija na folha oficial ou envie foto do seu texto manuscrito para avaliação rigorosa da IA."
+        badgeText="✍️ Guia Rápido da Redação"
+        title="Como treinar sua Redação em 3 passos simples"
+        description="Você pode digitar seu texto direto no aplicativo ou escrever no papel e enviar uma foto pelo celular:"
         accentColor="violet"
-        primaryActionLabel="Entendi, vou praticar minha redação!"
+        primaryActionLabel="Entendi, vou começar!"
         steps={[
           {
             icon: <FileText size={18} />,
-            title: "1. Folha Oficial ou Foto Manuscrita",
+            title: "1. Digite na Tela ou Envie Foto do Papel",
             description:
-              "Digite direto na régua de 30 linhas com alinhamento real de concurso ou envie foto da sua redação de próprio punho com leitura por OCR.",
-            tag: "Folha Oficial",
+              "Escreva seu texto na folha de 30 linhas abaixo ou clique em 'Enviar Foto da Folha Escrita à Mão' se preferir treinar no caderno.",
+            tag: "Você escolhe",
           },
           {
             icon: <Award size={18} />,
-            title: "2. Espelho de Correção da Banca",
+            title: "2. Receba sua Nota na Hora",
             description:
-              "A IA pontua Aspectos Macroestruturais (tema e argumentação) e Microestruturais (gramática e coesão) seguindo os critérios do seu edital.",
-            tag: "Critérios Reais",
+              "O sistema avalia se você respondeu ao tema e corrige erros de português seguindo as regras da sua banca.",
+            tag: "Nota Real",
           },
           {
             icon: <Sparkles size={18} />,
-            title: "3. Versão Ouro & Parecer Linha a Linha",
+            title: "3. Veja Como Melhorar Linha por Linha",
             description:
-              "Veja em quais linhas você cometeu deslizes e receba uma reescrita nota máxima da sua redação para comparar e evoluir rápido.",
-            tag: "Feedback Detalhado",
+              "Mostramos exatamente onde você errou e geramos um exemplo de redação nota máxima sobre o mesmo tema para você aprender.",
+            tag: "Passo a Passo",
           },
         ]}
       />
@@ -350,14 +339,14 @@ export function EssayWorkspace() {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs sm:text-sm font-bold text-amber-200">
-                    Cota Diária de Redação Atingida (1/1)
+                    Limite Grátis de Hoje Atingido (1/1)
                   </h4>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/25">
                     Rascunho Salvo
                   </span>
                 </div>
                 <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-                  {evaluationError} Assista a um vídeo de 15s para desbloquear +1 correção bônus ou assine o Synapse Pro para ter alta capacidade diária.
+                  {evaluationError} Assista a um vídeo rápido de 15s para liberar +1 correção grátis agora mesmo ou conheça o plano Pro.
                 </p>
               </div>
             </div>
@@ -369,7 +358,7 @@ export function EssayWorkspace() {
                 className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-950/50 transition-all cursor-pointer group"
               >
                 <Gift size={14} className="group-hover:scale-110 transition-transform" />
-                <span>Assistir Vídeo (+1 Bônus)</span>
+                <span>Assistir Vídeo (+1 Correção)</span>
               </button>
               <Link
                 href="/pricing"
@@ -388,16 +377,65 @@ export function EssayWorkspace() {
         )
       )}
 
-      {/* TELA 1: FOLHA DE REDAÇÃO */}
+      {/* TELA 1: FOLHA DE REDAÇÃO (COM ESCOLHA CLARA DE 2 FORMAS DE PRATICAR) */}
       {viewMode === "write" && (
-        <ExamSheetEditor
-          theme={theme}
-          onOpenMotivatingTexts={() => setIsMotivatingModalOpen(true)}
-          onSubmitEssay={handleSubmitEssay}
-          isEvaluating={isEvaluating}
-          quotaError={isQuotaError ? evaluationError : null}
-          onOpenQuotaModal={() => setIsQuotaModalOpen(true)}
-        />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800">
+            <div className="p-3.5 rounded-xl bg-violet-600/15 border-2 border-violet-500/50 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-300 flex items-center justify-center shrink-0">
+                  <PenTool size={18} />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-violet-300 block">
+                    Opção 1 (Selecionada Abaixo)
+                  </span>
+                  <h3 className="text-xs sm:text-sm font-extrabold text-white">
+                    ⌨️ Digitar Minha Redação na Tela
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Basta rolar um pouco para baixo e digitar nas linhas da folha.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsHandwrittenModalOpen(true)}
+              className="p-3.5 rounded-xl bg-slate-950/80 hover:bg-rose-950/30 border border-rose-500/35 hover:border-rose-400 flex items-center justify-between gap-3 text-left transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-300 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Camera size={18} />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-300 block">
+                    Opção 2 (Se escreveu no caderno)
+                  </span>
+                  <h3 className="text-xs sm:text-sm font-extrabold text-white">
+                    📷 Enviar Foto da Folha Escrita à Mão
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Tire uma foto nítida do seu papel e a IA lê e corrige para você.
+                  </p>
+                </div>
+              </div>
+              <span className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-[11px] font-extrabold shrink-0">
+                Enviar Foto →
+              </span>
+            </button>
+          </div>
+
+          <ExamSheetEditor
+            theme={theme}
+            onOpenMotivatingTexts={() => setIsMotivatingModalOpen(true)}
+            onSubmitEssay={handleSubmitEssay}
+            isEvaluating={isEvaluating}
+            quotaError={isQuotaError ? evaluationError : null}
+            onOpenQuotaModal={() => setIsQuotaModalOpen(true)}
+          />
+        </div>
       )}
 
       {/* TELA 2: RESULTADO & PARECER */}

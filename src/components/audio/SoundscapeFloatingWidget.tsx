@@ -18,6 +18,7 @@ import {
 import { useSoundscape } from "@/hooks/useSoundscape";
 import { useAudio } from "@/contexts/AudioContext";
 import { SoundscapeType } from "@/lib/soundscapes";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export function SoundscapeFloatingWidget() {
   const {
@@ -31,6 +32,21 @@ export function SoundscapeFloatingWidget() {
   const { isMuted, toggleMute } = useAudio();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleTogglePlay = () => {
+    triggerHaptic("medium");
+    togglePlay();
+  };
+
+  const handleToggleMute = () => {
+    triggerHaptic("light");
+    toggleMute();
+  };
+
+  const handleSelectSoundscape = (id: SoundscapeType) => {
+    triggerHaptic("light");
+    selectSoundscape(id);
+  };
 
   // Fecha popover ao clicar fora ou pressionar Escape
   useEffect(() => {
@@ -63,37 +79,40 @@ export function SoundscapeFloatingWidget() {
     icon: React.ComponentType<{ size?: number; className?: string }>;
     tag?: string;
   }[] = [
+    { id: "soft_rain", label: "🌧️ Chuva Suave", icon: CloudRain, tag: "RELAX" },
+    { id: "cafe_ambience", label: "☕ Cafeteria Calma", icon: Coffee, tag: "ESTUDO" },
+    { id: "brown_noise", label: "🌊 Som do Mar (Isolar Barulhos)", icon: Waves, tag: "FOCO" },
+    { id: "zen_drone", label: "🧘 Música Suave & Meditação", icon: Sparkles },
     {
       id: "alpha_binaural",
-      label: "Ondas Alfa (10 Hz)",
+      label: "🧠 Foco Profundo",
       icon: BrainCircuit,
-      tag: "FLOW",
+      tag: "CONCENTRAÇÃO",
     },
-    { id: "soft_rain", label: "Chuva Suave", icon: CloudRain },
-    { id: "cafe_ambience", label: "Cafeteria Acústica", icon: Coffee },
-    { id: "brown_noise", label: "Ruído Marrom", icon: Waves, tag: "TDAH" },
-    { id: "zen_drone", label: "Tigela Tibetana", icon: Sparkles },
   ];
 
   return (
     <div
       ref={containerRef}
-      className="fixed top-3 right-4 z-40 hidden sm:flex items-center gap-2"
+      className="fixed top-3 right-3 sm:right-4 z-40 flex items-center gap-1 sm:gap-2"
     >
       {/* Pílula Flutuante Principal */}
       <div
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 backdrop-blur-xl shadow-lg ${
+        className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border transition-all duration-300 backdrop-blur-xl shadow-lg ${
           isPlaying
-            ? "bg-indigo-50/90 border-indigo-300/80 text-indigo-700 shadow-indigo-500/10 dark:bg-indigo-950/80 dark:border-indigo-500/40 dark:text-indigo-200"
-            : "bg-white/90 border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 dark:bg-slate-900/70 dark:border-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:border-white/20"
+            ? "bg-indigo-50/95 border-indigo-300/80 text-indigo-700 shadow-indigo-500/10 dark:bg-indigo-950/90 dark:border-indigo-500/40 dark:text-indigo-200"
+            : "bg-white/90 border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 dark:bg-slate-900/80 dark:border-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:border-white/20"
         }`}
       >
         {/* Visualizador de Áudio (barrinhas animadas se tocando) */}
         <button
           type="button"
-          onClick={() => setIsOpen((prev) => !prev)}
-          className="flex items-center gap-2 text-xs font-semibold cursor-pointer group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg p-0.5"
-          title="Configurações de Áudio & Foco"
+          onClick={() => {
+            triggerHaptic("light");
+            setIsOpen((prev) => !prev);
+          }}
+          className="flex items-center gap-1.5 sm:gap-2 text-xs font-semibold cursor-pointer group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg p-1 min-h-[36px]"
+          title="Sons e Músicas de Foco para Estudar"
           aria-expanded={isOpen}
           aria-haspopup="dialog"
         >
@@ -105,24 +124,24 @@ export function SoundscapeFloatingWidget() {
             </div>
           ) : (
             <Headphones
-              size={14}
+              size={15}
               className="text-slate-500 group-hover:text-indigo-600 dark:text-slate-400 dark:group-hover:text-indigo-400 transition-colors"
             />
           )}
 
-          <span className="text-[11px] font-medium tracking-tight">
+          <span className="hidden md:inline text-[11px] font-medium tracking-tight">
             {isPlaying
               ? soundscapesList.find((s) => s.id === currentSoundscape)?.label ||
                 "Som Ativo"
-              : "Som de Foco"}
+              : "Sons para Foco"}
           </span>
         </button>
 
         {/* Play / Pause Rápido */}
         <button
           type="button"
-          onClick={togglePlay}
-          className="h-7 w-7 inline-flex items-center justify-center rounded-full hover:bg-slate-200/70 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
+          onClick={handleTogglePlay}
+          className="h-8 w-8 sm:h-7 sm:w-7 inline-flex items-center justify-center rounded-full hover:bg-slate-200/70 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 active:scale-95"
           aria-label={isPlaying ? "Pausar som ambiente" : "Iniciar som ambiente"}
           title={isPlaying ? "Pausar som ambiente" : "Iniciar som ambiente"}
         >
@@ -132,8 +151,8 @@ export function SoundscapeFloatingWidget() {
         {/* Mute Rápido de Efeitos */}
         <button
           type="button"
-          onClick={toggleMute}
-          className={`h-7 w-7 inline-flex items-center justify-center rounded-full hover:bg-slate-200/70 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+          onClick={handleToggleMute}
+          className={`h-8 w-8 sm:h-7 sm:w-7 inline-flex items-center justify-center rounded-full hover:bg-slate-200/70 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 active:scale-95 ${
             isMuted
               ? "text-rose-500 dark:text-rose-400"
               : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
@@ -150,21 +169,24 @@ export function SoundscapeFloatingWidget() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Paisagens Sonoras Neurais"
-          className="absolute top-11 right-0 w-72 rounded-2xl bg-white/95 dark:bg-[#090d1a]/95 border border-slate-200 dark:border-indigo-500/25 p-4 shadow-2xl backdrop-blur-2xl space-y-3.5 animate-in fade-in zoom-in-95 duration-150"
+          aria-label="Sons para Concentração"
+          className="fixed sm:absolute top-14 sm:top-11 right-3 sm:right-0 w-[calc(100vw-1.5rem)] max-w-xs sm:w-72 rounded-2xl bg-white/95 dark:bg-[#090d1a]/95 border border-slate-200 dark:border-indigo-500/25 p-4 shadow-2xl backdrop-blur-2xl space-y-3.5 animate-in fade-in zoom-in-95 duration-150 z-50"
         >
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
               <Headphones size={14} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Paisagens Sonoras Neurais</span>
+              <span>Sons para Concentração</span>
             </div>
             <button
               type="button"
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                triggerHaptic("light");
+                setIsOpen(false);
+              }}
               aria-label="Fechar painel de som"
-              className="min-h-[32px] min-w-[32px] inline-flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="min-h-[36px] min-w-[36px] inline-flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 active:scale-95"
             >
-              <X size={14} />
+              <X size={15} />
             </button>
           </div>
 
@@ -178,9 +200,9 @@ export function SoundscapeFloatingWidget() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => selectSoundscape(item.id)}
+                  onClick={() => handleSelectSoundscape(item.id)}
                   aria-pressed={isSelected}
-                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 min-h-[42px] active:scale-[0.98] ${
                     isSelected
                       ? "bg-indigo-50 border border-indigo-300 text-indigo-700 font-semibold dark:bg-indigo-500/20 dark:border-indigo-500/40 dark:text-indigo-200"
                       : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white border border-transparent"
@@ -188,7 +210,7 @@ export function SoundscapeFloatingWidget() {
                 >
                   <div className="flex items-center gap-2">
                     <Icon
-                      size={14}
+                      size={15}
                       className={isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}
                     />
                     <span>{item.label}</span>
@@ -205,15 +227,15 @@ export function SoundscapeFloatingWidget() {
             {/* Opção Silenciar Som Ambiente */}
             <button
               type="button"
-              onClick={() => selectSoundscape("none")}
+              onClick={() => handleSelectSoundscape("none")}
               aria-pressed={currentSoundscape === "none"}
-              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 min-h-[42px] active:scale-[0.98] ${
                 currentSoundscape === "none"
                   ? "bg-slate-100 border border-slate-300 text-slate-800 font-medium dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
                   : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/40 dark:hover:text-slate-200 border border-transparent"
               }`}
             >
-              <VolumeX size={14} className="text-slate-400 dark:text-slate-500" />
+              <VolumeX size={15} className="text-slate-400 dark:text-slate-500" />
               <span>Desativar som ambiente</span>
             </button>
           </div>

@@ -64,7 +64,13 @@ export function HandwrittenEssayModal({
 
   const { playCorrect, playError, playLevelUp, playClick } = useSound();
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   const handleReset = () => {
+    triggerHaptic("light");
     setSelectedFile(null);
     setPreviewUrl(null);
     setErrorMessage(null);
@@ -203,7 +209,7 @@ export function HandwrittenEssayModal({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
             aria-label="Fechar"
           >
@@ -305,6 +311,7 @@ export function HandwrittenEssayModal({
 
                   <button
                     onClick={() => {
+                      triggerHaptic("light");
                       setSelectedFile(null);
                       setPreviewUrl(null);
                     }}
@@ -376,7 +383,7 @@ export function HandwrittenEssayModal({
               {/* Seletor de Abas */}
               <div className="flex border-b border-slate-200 dark:border-slate-800 gap-4 text-xs font-bold">
                 <button
-                  onClick={() => setActiveTab("mirror")}
+                  onClick={() => { triggerHaptic("light"); setActiveTab("mirror"); }}
                   className={`pb-2.5 transition border-b-2 cursor-pointer ${
                     activeTab === "mirror"
                       ? "border-rose-500 text-rose-600 dark:text-rose-400"
@@ -386,7 +393,7 @@ export function HandwrittenEssayModal({
                   Espelho da Banca ({result.criteriaScores.length} Critérios)
                 </button>
                 <button
-                  onClick={() => setActiveTab("transcription")}
+                  onClick={() => { triggerHaptic("light"); setActiveTab("transcription"); }}
                   className={`pb-2.5 transition border-b-2 cursor-pointer ${
                     activeTab === "transcription"
                       ? "border-rose-500 text-rose-600 dark:text-rose-400"
@@ -396,7 +403,7 @@ export function HandwrittenEssayModal({
                   Transcrição Linha a Linha ({result.lineCount} Linhas)
                 </button>
                 <button
-                  onClick={() => setActiveTab("golden")}
+                  onClick={() => { triggerHaptic("light"); setActiveTab("golden"); }}
                   className={`pb-2.5 transition border-b-2 cursor-pointer ${
                     activeTab === "golden"
                       ? "border-rose-500 text-rose-600 dark:text-rose-400"
@@ -524,7 +531,7 @@ export function HandwrittenEssayModal({
               </button>
 
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-6 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold text-sm transition cursor-pointer active:scale-95"
               >
                 Concluir e Voltar

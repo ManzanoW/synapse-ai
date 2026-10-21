@@ -54,6 +54,7 @@ import {
   Compass,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface SidebarProps {
   user?: {
@@ -436,6 +437,7 @@ export default function Sidebar({ user }: SidebarProps) {
   }, [pathname]);
 
   const toggleGroupCollapse = (groupId: string) => {
+    triggerHaptic("light");
     setCollapsedGroups((prev) => {
       const next = { ...prev, [groupId]: !prev[groupId] };
       try {
@@ -619,7 +621,10 @@ export default function Sidebar({ user }: SidebarProps) {
               {/* Botão de Som */}
               <button
                 type="button"
-                onClick={toggleMute}
+                onClick={() => {
+                  triggerHaptic("medium");
+                  toggleMute();
+                }}
                 title={isMuted ? "Ativar som" : "Silenciar som"}
                 aria-label={isMuted ? "Ativar som" : "Silenciar som"}
                 className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
@@ -644,7 +649,10 @@ export default function Sidebar({ user }: SidebarProps) {
               {/* Alternador de Tema (Modo Claro Slate Ice / Modo Escuro) */}
               <button
                 type="button"
-                onClick={toggleTheme}
+                onClick={() => {
+                  triggerHaptic("medium");
+                  toggleTheme();
+                }}
                 title={isLight ? "Ativar Modo Escuro" : "Ativar Modo Claro (Slate Ice)"}
                 aria-label={isLight ? "Ativar Modo Escuro" : "Ativar Modo Claro"}
                 className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
@@ -734,6 +742,7 @@ export default function Sidebar({ user }: SidebarProps) {
                           key={item.href}
                           href={getHref(item.href)}
                           onClick={(e) => {
+                            triggerHaptic("light");
                             if (item.href === "#import-pdf") {
                               e.preventDefault();
                               closeSidebar();
@@ -858,7 +867,7 @@ export default function Sidebar({ user }: SidebarProps) {
                         <div className="flex flex-col justify-center min-w-0 pr-1 flex-1">
                           <div className="flex items-center gap-1 min-w-0">
                             <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"} leading-none truncate block`}>
-                              {gamification?.title || "NEÓFITO DOS ESTUDOS"}
+                              {(gamification?.title || "Iniciante Focado").replace(/NEÓFITO DOS ESTUDOS/i, "Iniciante Focado")}
                             </span>
                             {currentPrestige > 0 && (
                               <span className="text-[7.5px] font-mono font-black px-1 py-0.2 rounded bg-cyan-100 text-cyan-800 border border-cyan-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30 shrink-0">
@@ -877,11 +886,11 @@ export default function Sidebar({ user }: SidebarProps) {
                           <button
                             type="button"
                             onClick={() => setIsPrestigeModalOpen(true)}
-                            title="Ascender Prestígio!"
+                            title="Subir de Categoria de Estudos!"
                             className="cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-100 border border-cyan-300 text-cyan-800 dark:bg-cyan-500/20 dark:border-cyan-500/40 dark:text-cyan-300 text-[10px] font-black font-mono animate-bounce"
                           >
                             <Crown size={11} />
-                            <span>ASCENDER</span>
+                            <span>EVOLUIR ⭐</span>
                           </button>
                         )}
 

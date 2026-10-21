@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import Link from "next/link";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { tts } from "@/lib/tts-engine";
 import { RewardedAdModal } from "@/components/quota/RewardedAdModal";
 import {
@@ -289,6 +290,7 @@ export function ErrorCard({
     setIsUpdatingStatus(true);
     try {
       if (isMastered) {
+        triggerHaptic("light");
         const res = await markErrorAsPendingAction(errorItem.id);
         if (res.success) {
           onItemUpdated({
@@ -298,6 +300,7 @@ export function ErrorCard({
           });
         }
       } else {
+        triggerHaptic("success");
         const res = await markErrorAsMasteredAction(errorItem.id, false);
         if (res.success) {
           onItemUpdated({
@@ -333,6 +336,7 @@ export function ErrorCard({
     setIsDrillCorrect(correct);
 
     if (correct) {
+      triggerHaptic("success");
       confetti({
         particleCount: 90,
         spread: 70,
@@ -357,6 +361,8 @@ export function ErrorCard({
           setIsUpdatingStatus(false);
         }
       }
+    } else {
+      triggerHaptic("warning");
     }
   };
 
@@ -432,12 +438,12 @@ export function ErrorCard({
           {isMastered ? (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
               <CheckCircle2 size={12} />
-              <span>Superado</span>
+              <span>Dominada</span>
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/15 border border-rose-500/30 text-rose-300">
               <AlertCircle size={12} />
-              <span>Pendente</span>
+              <span>Para Revisar</span>
             </span>
           )}
         </div>
@@ -486,7 +492,7 @@ export function ErrorCard({
             </div>
             <div className="text-xs">
               <span className="font-semibold text-emerald-300 block mb-0.5">
-                Gabarito Oficial:
+                Resposta Correta (Gabarito):
               </span>
               <span className="text-slate-200 font-medium">
                 {errorItem.correctAnswer}
@@ -499,7 +505,7 @@ export function ErrorCard({
         {errorItem.explanation && (
           <div className="p-3 rounded-xl bg-slate-800/40 border border-white/5 text-xs text-slate-400">
             <span className="font-semibold text-slate-300 block mb-1">
-              Justificativa da Banca:
+              Explicação da Questão:
             </span>
             <p className="leading-relaxed">{errorItem.explanation}</p>
           </div>
@@ -518,11 +524,13 @@ export function ErrorCard({
           }`}
         >
           <Sparkles size={14} className="text-violet-400" />
-          <span>{isExpanded ? "Ocultar Análise IA" : "✨ Analisar Causa com IA"}</span>
+          <span>
+            {isExpanded ? "Ocultar Explicação" : "💡 Ver Explicação Fácil e Macete"}
+          </span>
           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
 
-        {/* Botão de Ação Rápida: Salvar Flashcard em 1-Clique (Zero Tokens de IA) */}
+        {/* Botão de Ação Rápida: Salvar Cartão de Memória em 1-Clique */}
         <button
           onClick={handleSaveFlashcard}
           disabled={isConverting || isConverted}
@@ -533,8 +541,8 @@ export function ErrorCard({
           }`}
           title={
             isConverted
-              ? "Flashcard já cadastrado nos seus Decks"
-              : "Salvar Flashcard a partir deste erro (Zero custo de IA)"
+              ? "Cartão de memória já salvo nos seus baralhos"
+              : "Transformar esta questão em um Cartão de Memória para revisar depois"
           }
         >
           {isConverting ? (
@@ -544,14 +552,14 @@ export function ErrorCard({
           ) : (
             <Layers size={13} className="text-indigo-400" />
           )}
-          <span>{isConverted ? "Flashcard Criado ✓" : "Salvar Flashcard"}</span>
+          <span>{isConverted ? "Cartão Criado ✓" : "🎴 Criar Cartão de Memória"}</span>
         </button>
 
-        {/* Botão de Marcar como Superado */}
+        {/* Botão de Marcar como Dominada */}
         <button
           onClick={handleToggleMastered}
           disabled={isUpdatingStatus}
-          className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer border min-h-[44px] ${
+          className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[44px] ${
             isMastered
               ? "bg-slate-800 text-slate-300 border-white/10 hover:bg-slate-700"
               : "bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-300"
@@ -565,12 +573,12 @@ export function ErrorCard({
             <CheckCircle2 size={13} />
           )}
           <span>
-            {isMastered ? "Reabrir para Treino" : "Marcar como Superado"}
+            {isMastered ? "Voltar para Revisão" : "✅ Já Aprendi (Marcar como Dominada)"}
           </span>
         </button>
       </div>
 
-      {/* 4. Gaveta Expansível de Remediação com IA */}
+      {/* 4. Gaveta Expansível de Explicação com IA */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -586,7 +594,7 @@ export function ErrorCard({
                 <div className="flex items-center gap-3 text-violet-300 text-sm font-semibold">
                   <Loader2 size={18} className="animate-spin text-violet-400" />
                   <span>
-                    A IA pedagógica está desarmando a pegadinha e gerando item de fixação...
+                    Preparando uma explicação simples, um macete e um teste rápido para você...
                   </span>
                 </div>
                 <div className="h-4 bg-violet-500/15 rounded-md w-3/4" />
@@ -598,11 +606,11 @@ export function ErrorCard({
             {/* Conteúdo de Remediação Carregado */}
             {!isGeneratingAi && remediation && (
               <div className="space-y-6">
-                {/* 4.1 Micro-Explicação: Desarmamento Cognitivo */}
+                {/* 4.1 Micro-Explicação */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-violet-300 text-xs font-bold uppercase tracking-wider">
                     <Brain size={15} />
-                    <span>Desarmamento Conceitual da Causa-Raiz</span>
+                    <span>Por que você errou e como acertar na próxima</span>
                   </div>
                   <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 text-sm text-slate-200 leading-relaxed space-y-2">
                     {remediation.microExplanation
@@ -618,7 +626,7 @@ export function ErrorCard({
                   <div className="flex items-center justify-between text-amber-300 text-xs font-bold uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                       <Lightbulb size={15} />
-                      <span>Macete / Regra de Ouro</span>
+                      <span>Macete Fácil para Lembrar na Prova</span>
                     </div>
 
                     <button
@@ -651,7 +659,7 @@ export function ErrorCard({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold uppercase tracking-wider">
                         <Target size={15} />
-                        <span>Item de Fixação Imediata (Treino Ativo)</span>
+                        <span>🎯 Teste Rápido: Veja se você aprendeu</span>
                       </div>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
                         +50 XP ao acertar
@@ -695,6 +703,7 @@ export function ErrorCard({
                             disabled={isDrillChecked && isDrillCorrect === true}
                             onClick={() => {
                               if (!isDrillChecked || isDrillCorrect === false) {
+                                triggerHaptic("light");
                                 setSelectedDrillOption(alt.id);
                                 setIsDrillChecked(false);
                               }
@@ -756,7 +765,7 @@ export function ErrorCard({
                           disabled={!selectedDrillOption}
                           className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer min-h-[44px] flex items-center justify-center"
                         >
-                          Confirmar Resposta de Fixação
+                          Verificar Minha Resposta
                         </button>
                       </div>
                     )}
@@ -782,11 +791,11 @@ export function ErrorCard({
                     Limite Diário Atingido (1/1)
                   </span>
                   <h4 className="text-sm sm:text-base font-bold text-white">
-                    Você atingiu a cota diária de remediações com IA
+                    Você usou sua explicação gratuita de hoje
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed">
                     {quotaErrorMessage ||
-                      "A desconstrução pedagógica com IA é um recurso avançado. Desbloqueie remediação imediata assistindo a um vídeo rápido ou assine o Synapse Pro para ter alta capacidade diária."}
+                      "Assista a um vídeo rápido para liberar mais 1 explicação passo a passo agora mesmo ou conheça o plano Pro."}
                   </p>
                 </div>
 
@@ -797,7 +806,7 @@ export function ErrorCard({
                     className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all cursor-pointer group"
                   >
                     <Film size={15} className="text-amber-300 group-hover:scale-110 transition-transform" />
-                    <span>Assistir Vídeo (+1 Remediação com IA)</span>
+                    <span>Assistir Vídeo (+1 Explicação com IA)</span>
                   </button>
 
                   <Link

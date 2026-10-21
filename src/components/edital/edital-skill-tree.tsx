@@ -595,7 +595,7 @@ export function EditalSkillTree({
 
           <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span>Nós com pulso âmbar requerem reforço de retenção (Ebbinghaus)</span>
+            <span>Tópicos com pulso laranja precisam de revisão para não esquecer</span>
           </div>
         </div>
       </div>
@@ -831,7 +831,7 @@ export function EditalSkillTree({
                     <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
                       <Clock size={16} className="shrink-0 text-amber-400" />
                       <span>
-                        <strong>Alerta Ebbinghaus:</strong> Este conceito atingiu a data crítica de declínio na memória. Reforce agora para não esquecer!
+                        <strong>Hora de Revisar:</strong> Faz algum tempo que você não estuda este tópico. Pratique agora para manter a matéria fresca na memória!
                       </span>
                     </div>
                   )}

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { useAudio } from "@/contexts/AudioContext";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export function useSound() {
   const { isMuted } = useAudio();
@@ -25,6 +26,7 @@ export function useSound() {
   }, []);
 
   const playCorrect = useCallback(() => {
+    triggerHaptic("success");
     if (isMuted) return;
 
     try {
@@ -62,6 +64,7 @@ export function useSound() {
   }, [getAudioContext, isMuted]);
 
   const playError = useCallback(() => {
+    triggerHaptic("warning");
     if (isMuted) return;
 
     try {
@@ -72,25 +75,26 @@ export function useSound() {
       const osc = ctx.createOscillator();
       const gainNode = ctx.createGain();
 
-      // Som suave indicando erro / revisão necessária (A3 descendo suavemente)
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(220, now); // A3
-      osc.frequency.linearRampToValueAtTime(135, now + 0.22);
+      // Som suave e acolhedor indicando que o erro é uma oportunidade de aprendizado
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(260, now); // C4 descendente
+      osc.frequency.linearRampToValueAtTime(175, now + 0.2);
 
-      gainNode.gain.setValueAtTime(0.1, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      gainNode.gain.setValueAtTime(0.09, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
       osc.connect(gainNode);
       gainNode.connect(ctx.destination);
 
       osc.start(now);
-      osc.stop(now + 0.22);
+      osc.stop(now + 0.2);
     } catch {
       // Ignorar exceções de áudio
     }
   }, [getAudioContext, isMuted]);
 
   const playFlip = useCallback(() => {
+    triggerHaptic("light");
     if (isMuted) return;
 
     try {
@@ -120,6 +124,7 @@ export function useSound() {
   }, [getAudioContext, isMuted]);
 
   const playClick = useCallback(() => {
+    triggerHaptic("light");
     if (isMuted) return;
 
     try {
@@ -149,6 +154,7 @@ export function useSound() {
   }, [getAudioContext, isMuted]);
 
   const playLevelUp = useCallback(() => {
+    triggerHaptic("success");
     if (isMuted) return;
 
     try {
@@ -181,6 +187,7 @@ export function useSound() {
   }, [getAudioContext, isMuted]);
 
   const playChime = useCallback(() => {
+    triggerHaptic("medium");
     if (isMuted) return;
 
     try {
@@ -208,6 +215,38 @@ export function useSound() {
     }
   }, [getAudioContext, isMuted]);
 
+  const playStreak = useCallback(() => {
+    triggerHaptic("success");
+    if (isMuted) return;
+
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const freqs = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5
+      freqs.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        const start = now + idx * 0.06;
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, start);
+
+        gainNode.gain.setValueAtTime(0.11, start);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, start + 0.28);
+
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        osc.start(start);
+        osc.stop(start + 0.28);
+      });
+    } catch {
+      // Ignorar exceções de áudio
+    }
+  }, [getAudioContext, isMuted]);
+
   return {
     playCorrect,
     playError,
@@ -215,6 +254,7 @@ export function useSound() {
     playClick,
     playLevelUp,
     playChime,
+    playStreak,
     isMuted,
   };
 }

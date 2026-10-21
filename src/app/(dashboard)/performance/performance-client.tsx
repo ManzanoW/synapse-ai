@@ -16,6 +16,7 @@ import { AdaptiveRebalanceComparisonModal } from "@/components/performance/Adapt
 import { MonteCarloRiskModal } from "@/components/analytics/MonteCarloRiskModal";
 import { ExecutiveWeeklyDossier } from "@/components/analytics/ExecutiveWeeklyDossier";
 import { UpcomingReviewsTimeline } from "@/components/analytics/UpcomingReviewsTimeline";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 import {
   runMonteCarloSimulationAction,
@@ -174,6 +175,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
   });
 
   const handleTabChange = (newTab: "approval" | "edital" | "memory") => {
+    triggerHaptic("light");
     setActiveTab(newTab);
     const newUrl = newTab === "approval" ? window.location.pathname : `?tab=${newTab}`;
     window.history.replaceState(null, "", newUrl);
@@ -182,6 +184,11 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
   // Filtros da aba Edital (Aproveitamento por Disciplina)
   const [subjectFilter, setSubjectFilter] = useState<"all" | "active" | "critical" | "pending">("all");
   const [subjectSearch, setSubjectSearch] = useState("");
+
+  const handleSetSubjectFilter = (filter: "all" | "active" | "critical" | "pending") => {
+    triggerHaptic("light");
+    setSubjectFilter(filter);
+  };
 
   // Expansão da lista de reforço do Adaptive Rebalancer
   const [isRebalanceListExpanded, setIsRebalanceListExpanded] = useState(false);
@@ -378,13 +385,13 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
               <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                 <span>Dashboard</span>
                 <span>/</span>
-                <span className="text-indigo-600 dark:text-indigo-400">Desempenho Cognitivo</span>
+                <span className="text-indigo-600 dark:text-indigo-400">Meu Desempenho</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-                Desempenho Cognitivo
+                Meu Desempenho & Estatísticas
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl">
-                Acompanhamento com métricas 100% autênticas: algoritmos FSRS, simulados reais e cobertura do edital.
+                Acompanhe seu progresso real: resolução de questões, revisão de cartões de memória e matérias vencidas do edital.
               </p>
             </div>
           </div>
@@ -395,9 +402,10 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
               type="button"
               onClick={handleOpenMonteCarlo}
               className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs hover:shadow transition-all active:scale-98 cursor-pointer"
+              title="Calcule suas chances estatísticas de aprovação"
             >
               <Target size={14} />
-              <span>Raio-X Monte Carlo</span>
+              <span>Previsão de Aprovação 🎯</span>
             </button>
 
             <button
@@ -425,7 +433,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
               <div className="group bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-2xl p-4.5 transition-all duration-300 hover:border-slate-300 dark:hover:border-white/20 hover:shadow-lg dark:hover:shadow-indigo-500/5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    Retenção de Memória FSRS
+                    Retenção da Memória
                   </span>
                   <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                     <TrendingUp size={15} />
@@ -451,21 +459,21 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     </span>
                   </div>
                   <p className="text-slate-500 dark:text-slate-400 text-[11px] line-clamp-1">
-                    {retentionStatus?.description || "Curva de esquecimento FSRS calculada."}
+                    {retentionStatus?.description || "Cálculo inteligente de memorização."}
                   </p>
                 </div>
               </div>
 
-              {/* Card 2: Grau de Domínio Cognitivo Real */}
+              {/* Card 2: Nível Geral de Preparação */}
               <div className="group bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-2xl p-4.5 transition-all duration-300 hover:border-slate-300 dark:hover:border-white/20 hover:shadow-lg dark:hover:shadow-indigo-500/5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    Grau de Domínio Cognitivo
+                    Nível de Preparação
                   </span>
                   <button
                     onClick={() => setShowMasteryBreakdown((prev) => !prev)}
                     className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
-                    title="Ver fórmula transparente do score"
+                    title="Ver fórmula transparente da nota"
                   >
                     {showMasteryBreakdown ? <ChevronUp size={14} /> : <Info size={14} />}
                   </button>
@@ -493,7 +501,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     </span>
                   </div>
                   <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-                    Score real: 50% Questões + 30% FSRS + 20% Edital.
+                    Média ponderada: 50% Questões + 30% Cartões + 20% Edital.
                   </p>
                 </div>
               </div>
@@ -588,7 +596,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
 
                   <div className="bg-slate-50/80 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/5 p-4 rounded-xl space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">2. Retenção FSRS</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">2. Retenção de Memória</span>
                       <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
                         Peso 30%
                       </span>
@@ -597,7 +605,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                       {mastery.components.memoryRetention}%
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Probabilidade de fixação na curva de Ebbinghaus. Parcela de score:{" "}
+                      Probabilidade estimada de retenção na memória. Parcela do índice:{" "}
                       <strong className="text-indigo-600 dark:text-indigo-300 font-mono">
                         {mastery.components.retentionScore.toFixed(1)} / 10
                       </strong>
@@ -670,7 +678,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                 }`}
               >
                 <Brain size={14} className={activeTab === "memory" ? "text-indigo-600 dark:text-indigo-400" : ""} />
-                <span>Retenção &amp; Memória (FSRS)</span>
+                <span>Retenção &amp; Cartões de Memória</span>
                 {fsrsMaturity && fsrsMaturity.totalCards > 0 && (
                   <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
                     {fsrsMaturity.totalCards}
@@ -694,7 +702,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     <div className="flex items-center gap-2.5">
                       <Flame size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
                       <span className="text-slate-700 dark:text-slate-300">
-                        Você possui <strong className="text-slate-900 dark:text-white font-mono font-bold">{data.metrics.materiasPendentes} tópicos/cards</strong> prontos para consolidação na curva de Ebbinghaus hoje.
+                        Você possui <strong className="text-slate-900 dark:text-white font-mono font-bold">{data.metrics.materiasPendentes} tópicos/cartões</strong> que precisam de revisão hoje para você não esquecer.
                       </span>
                     </div>
 
@@ -1030,11 +1038,11 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     </div>
 
                     {/* Pills de Filtro Rápido */}
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <button
                         type="button"
-                        onClick={() => setSubjectFilter("all")}
-                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        onClick={() => handleSetSubjectFilter("all")}
+                        className={`px-3.5 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
                           subjectFilter === "all"
                             ? "bg-indigo-600 text-white shadow-xs"
                             : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -1044,8 +1052,8 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSubjectFilter("active")}
-                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        onClick={() => handleSetSubjectFilter("active")}
+                        className={`px-3.5 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
                           subjectFilter === "active"
                             ? "bg-indigo-600 text-white shadow-xs"
                             : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -1055,8 +1063,8 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSubjectFilter("critical")}
-                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        onClick={() => handleSetSubjectFilter("critical")}
+                        className={`px-3.5 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
                           subjectFilter === "critical"
                             ? "bg-rose-600 text-white shadow-xs"
                             : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -1066,8 +1074,8 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSubjectFilter("pending")}
-                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        onClick={() => handleSetSubjectFilter("pending")}
+                        className={`px-3.5 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
                           subjectFilter === "pending"
                             ? "bg-indigo-600 text-white shadow-xs"
                             : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -1184,31 +1192,31 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                 transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
-                {/* PIPELINE DE MATURIDADE FSRS (SE HOUVER FLASHCARDS) */}
+                {/* PIPELINE DE MATURIDADE DA MEMÓRIA */}
                 {fsrsMaturity && fsrsMaturity.totalCards > 0 && (
                   <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 backdrop-blur-xl shadow-sm dark:shadow-2xl space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 dark:border-white/10 pb-3">
                       <div className="flex items-center gap-2">
                         <Layers size={18} className="text-cyan-600 dark:text-cyan-400" />
                         <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Pipeline de Maturidade de Memória (FSRS)
+                          Nível de Fixação dos Seus Cartões de Memória
                         </h3>
                       </div>
                       <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                        {fsrsMaturity.totalCards} cards ativos no algoritmo
+                        {fsrsMaturity.totalCards} cartões em processo de memorização
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-500/5 border border-emerald-200/80 dark:border-emerald-500/20 space-y-1">
                         <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
-                          🟢 Maduros (S &ge; 21d)
+                          🟢 Memorizados (Longo Prazo)
                         </span>
                         <span className="text-xl font-black text-emerald-800 dark:text-emerald-300 font-mono">
                           {fsrsMaturity.matureCards}
                         </span>
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                          Memória de longo prazo
+                          Fixados na memória
                         </span>
                       </div>
 
@@ -1232,13 +1240,13 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                           {fsrsMaturity.newCards}
                         </span>
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                          Aguardando 1ª repetição
+                          Aguardando 1ª revisão
                         </span>
                       </div>
 
                       <div className="p-3.5 rounded-2xl bg-rose-50/60 dark:bg-rose-500/5 border border-rose-200/80 dark:border-rose-500/20 space-y-1">
                         <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider block">
-                          🔴 Pontos Cegos (Leeches)
+                          🔴 Cartões com Dificuldade
                         </span>
                         <span className="text-xl font-black text-rose-800 dark:text-rose-300 font-mono">
                           {fsrsMaturity.leechCards}
@@ -1279,10 +1287,17 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                             key={idx}
                             tabIndex={0}
                             role="button"
+                            onClick={() => triggerHaptic("light")}
                             aria-label={`${item.day}: ${item.quantidade} questões resolvidas`}
-                            className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer focus-visible:outline-hidden"
+                            className="flex-1 flex flex-col items-center gap-1.5 sm:gap-2 h-full justify-end group cursor-pointer focus-visible:outline-hidden"
                           >
-                            <span className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100 transition-all duration-200 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-white dark:bg-indigo-950/90 border border-indigo-200 dark:border-indigo-500/40 px-2 py-0.5 rounded-md shadow-md pointer-events-none">
+                            <span
+                              className={`transition-all duration-200 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-white dark:bg-indigo-950/90 border border-indigo-200 dark:border-indigo-500/40 px-1.5 sm:px-2 py-0.5 rounded-md shadow-md pointer-events-none ${
+                                item.quantidade > 0
+                                  ? "opacity-90 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100 group-active:opacity-100"
+                                  : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100"
+                              }`}
+                            >
                               {item.quantidade}
                             </span>
 
@@ -1328,9 +1343,9 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                         </h3>
                         <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-200 dark:border-white/10">
                           {data.performanceSummary.source === "mixed"
-                            ? "Flashcards + Simulados"
+                            ? "Cartões + Simulados"
                             : data.performanceSummary.source === "flashcard"
-                              ? "Flashcards FSRS"
+                              ? "Cartões de Memória"
                               : "Simulados Reais"}
                         </span>
                       </div>

@@ -231,7 +231,7 @@ export function OpportunityCostCalculator() {
                 +{formatBRL(totalSalariesGained)}
               </div>
               <p className="text-xs sm:text-sm text-slate-300 max-w-lg leading-relaxed pt-1">
-                Ao antecipar sua posse em apenas <strong>{monthsAccelerated} {monthsAccelerated === 1 ? "mês" : "meses"}</strong> com o método FSRS e discursivas nota 10, você recebe{" "}
+                Ao antecipar sua posse em apenas <strong>{monthsAccelerated} {monthsAccelerated === 1 ? "mês" : "meses"}</strong> com revisões inteligentes e redações nota 10, você recebe{" "}
                 <strong className="text-emerald-300">{formatBRL(totalSalariesGained)}</strong> que seriam perdidos na inércia dos cursinhos tradicionais.
               </p>
             </div>

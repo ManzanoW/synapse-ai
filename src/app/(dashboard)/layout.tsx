@@ -5,9 +5,13 @@ import { AchievementProvider } from "@/context/AchievementContext";
 import { AudioProvider } from "@/contexts/AudioContext";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
+import { ScrollToTopButton } from "@/components/ui/ScrollToTopButton";
+import { KeyboardShortcutsModal } from "@/components/ui/KeyboardShortcutsModal";
+import { QuickScratchpadWidget } from "@/components/ui/QuickScratchpadWidget";
 import { DemoSessionSync } from "@/components/auth/demo-session-sync";
 import { SoundscapeFloatingWidget } from "@/components/audio/SoundscapeFloatingWidget";
 import { SynapticExhaustionModal } from "@/components/quota/SynapticExhaustionModal";
+import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -62,6 +66,11 @@ export default async function DashboardLayout({
                 <SoundscapeFloatingWidget />
               </div>
 
+              {/* Indicador de Conexão Offline e Sincronização Transparente */}
+              <div className="print:hidden">
+                <OfflineSyncIndicator />
+              </div>
+
               {/* Paleta de Comandos Global (Cmd+K / Ctrl+K) */}
               <div className="print:hidden">
                 <CommandPalette user={dbUser} />
@@ -83,7 +92,7 @@ export default async function DashboardLayout({
               </div>
 
               {/* Área principal com margem inferior para o menu mobile */}
-              <main className="flex-1 min-w-0 h-full overflow-y-auto p-3 sm:p-4 md:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] md:pb-6 print:h-auto print:min-h-0 print:overflow-visible print:p-0 print:m-0 print:block print:w-full print:static">
+              <main id="main-scroll-container" className="flex-1 min-w-0 h-full overflow-y-auto p-3 sm:p-4 md:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] md:pb-6 print:h-auto print:min-h-0 print:overflow-visible print:p-0 print:m-0 print:block print:w-full print:static">
                 {children}
               </main>
 
@@ -91,6 +100,15 @@ export default async function DashboardLayout({
               <div className="print:hidden">
                 <BottomNavigation />
               </div>
+
+              {/* Botão Flutuante Voltar ao Topo com Progresso */}
+              <ScrollToTopButton />
+
+              {/* Bloco de Rascunho Rápido Flutuante (Alt+N) */}
+              <QuickScratchpadWidget />
+
+              {/* Guia Global de Atalhos de Teclado (?) */}
+              <KeyboardShortcutsModal />
 
               {/* Modal Global de Pausa Cognitiva / Exaustão Sináptica */}
               <div className="print:hidden">

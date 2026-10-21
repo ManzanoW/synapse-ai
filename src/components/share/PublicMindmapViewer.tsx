@@ -158,15 +158,14 @@ export function PublicMindmapViewer({
         <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-900/50 via-violet-900/40 to-slate-900 border border-indigo-500/30 p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center sm:text-left">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-extrabold uppercase tracking-wider">
-              <Sparkles size={12} /> Inteligência Artificial & Neurociência
+              <Sparkles size={12} /> Inteligência Artificial para Concursos
             </span>
             <h3 className="text-xl sm:text-2xl font-black text-white">
               Gere Mapas Mentais Ilimitados para seu Edital
             </h3>
             <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-              O Synapse AI esquematiza leis, artigos e jurisprudências em nós
-              mnemônicos com modo Active Recall e conversão automática em
-              flashcards FSRS 4.5.
+              O Synapse AI esquematiza leis, artigos e jurisprudências de forma visual,
+              com perguntas de fixação e conversão em 1 clique para seus cartões de memória.
             </p>
           </div>
 

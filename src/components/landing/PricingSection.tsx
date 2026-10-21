@@ -140,7 +140,7 @@ export function PricingSection() {
                 </span>
                 <h3 className="text-2xl font-black text-white">Plano Básico</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Recursos essenciais para conhecer o algoritmo FSRS e manter seu ciclo diário de revisão.
+                  Recursos essenciais para experimentar a repetição inteligente e manter seu ciclo diário de revisão.
                 </p>
               </div>
 
@@ -160,11 +160,11 @@ export function PricingSection() {
                 </span>
                 <ul className="space-y-2.5 text-xs text-slate-300">
                   {[
-                    "10 Sinapses / dia (Renovação diária)",
+                    "10 Ajudas com IA por dia (Renovação diária)",
                     "1 simulado com IA por dia (+1 bônus via anúncio voluntário)",
                     "1 correção de redação digitada por semana (Degustação oficial)",
-                    "1 OCR de redação manuscrita de boas-vindas para testar",
-                    "Até 2 remediações e mnemônicos no Caderno de Erros por dia (+1 via anúncio)",
+                    "1 correção de redação por foto de papel para testar",
+                    "Até 2 treinos de reforço no Caderno de Erros por dia (+1 via anúncio)",
                     "Edital verticalizado com inserção manual de disciplinas",
                     "Com recargas voluntárias via anúncios",
                   ].map((feat, i) => (
@@ -250,13 +250,13 @@ export function PricingSection() {
                   </span>
                   <ul className="space-y-2.5 text-xs text-slate-200">
                     {[
-                      "60 Sinapses / dia (Alta Capacidade / Fair Use)",
-                      "Até 3 correções de redação digitada por dia com Reescrita Modelo Ouro",
-                      "Até 2 OCRs de redação manuscrita (foto da folha real) por dia",
+                      "60 Ajudas com IA por dia (Alta Capacidade)",
+                      "Até 3 correções de redação digitada por dia com Reescrita Modelo Nota 10",
+                      "Até 2 correções de redação por foto do papel por dia",
                       "Até 5 simulados inéditos por dia por Banca e Cargo",
-                      "Caderno de Erros avançado com até 30 remediações diárias",
-                      "Mapas Mentais Neurais com aprofundamento e exportação em PDF A4 / PNG HD",
-                      "Flashcards em Áudio Neural Hands-Free e exportação ilimitada para Anki (.apkg)",
+                      "Caderno de Erros avançado com até 30 treinos de reforço diários",
+                      "Mapas Mentais em Alta Resolução (PDF / Imagem)",
+                      "Cartões de Memória com Áudio e exportação de baralhos",
                       "Importador de Edital em PDF com IA e Raio-X de Incidência da Banca",
                       "100% Zero Anúncios (Foco Total)",
                     ].map((feat, i) => (

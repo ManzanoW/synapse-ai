@@ -201,7 +201,7 @@ export default function DeckDetailPage({ params }: PageProps) {
                 )}
               </div>
               <p className="text-slate-400 text-xs">
-                Gerencie flashcards ou inicie o estudo SM-2.
+                Gerencie seus cartões ou inicie o estudo com repetição espaçada.
               </p>
             </div>
           </div>
@@ -293,7 +293,7 @@ export default function DeckDetailPage({ params }: PageProps) {
           <p className="text-slate-400 text-xs mb-4 max-w-xs mx-auto">
             {searchQuery
               ? `Sem resultados para "${searchQuery}".`
-              : "Crie cards para alimentar o algoritmo de repetição."}
+              : "Crie cartões para começar suas revisões inteligentes."}
           </p>
           {!searchQuery && (
             <button

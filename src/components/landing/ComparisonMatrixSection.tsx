@@ -46,11 +46,11 @@ export function ComparisonMatrixSection() {
       synapse: { text: "R$ 29,90/mês (~R$ 0,99/dia)", status: "good", highlight: true },
     },
     {
-      feature: "Algoritmo de Retenção",
+      feature: "Sistema de Revisão",
       category: "Memorização Ativa",
       cursinho: { text: "Nenhum (PDFs estáticos)", status: "bad" },
-      anki: { text: "SM-2 de 1987 (acúmulo punitivo)", status: "warning" },
-      synapse: { text: "Motor FSRS 4.5 Preditivo (-65% revisões)", status: "good", highlight: true },
+      anki: { text: "Métodos dos anos 80 (acúmulo punitivo)", status: "warning" },
+      synapse: { text: "Repetição Inteligente (-65% acúmulo desnecessário)", status: "good", highlight: true },
     },
     {
       feature: "Áudio Neural Hands-Free",

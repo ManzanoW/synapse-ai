@@ -50,7 +50,7 @@ export default async function StudyPage({
               Memória 100% em Dia! 🎉
             </h3>
             <p className="text-slate-300 text-xs leading-relaxed max-w-xs mx-auto">
-              Nenhum flashcard está vencido para hoje. O algoritmo FSRS agendou os próximos ciclos para o momento exato da curva de esquecimento.
+              Nenhum cartão precisa de revisão hoje! Seus próximos estudos foram agendados para o momento ideal antes de esquecer.
             </p>
             <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-2.5">
               <Link
@@ -74,7 +74,7 @@ export default async function StudyPage({
 
     return (
       <StudyFlashcard
-        deckTitle={isDueOnly ? "Revisão FSRS de Hoje" : "Revisão Geral FSRS"}
+        deckTitle={isDueOnly ? "Revisão de Hoje" : "Revisão Geral"}
         cards={flashcards}
         deckId="all"
       />

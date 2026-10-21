@@ -385,7 +385,7 @@ export function SimuladoGenerationModal({
                 {error}
               </p>
               <p className="text-[11px] text-slate-400">
-                No plano básico você conta com 10 Sinapses diárias renovadas à meia-noite (Brasília).
+                No plano gratuito você conta com 10 ajudas com IA diárias renovadas à meia-noite (Brasília).
               </p>
             </div>
           )}
@@ -444,7 +444,7 @@ export function SimuladoGenerationModal({
                         size={14}
                         className="text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform"
                       />
-                      <span>⚡ Recarregar +1 Sinapse (Vídeo Curto)</span>
+                      <span>⚡ Ganhar +1 Ajuda com IA (Vídeo Curto)</span>
                     </button>
                   ) : (
                     <div className="w-full sm:w-auto px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 select-none">
@@ -462,7 +462,7 @@ export function SimuladoGenerationModal({
                       size={14}
                       className="fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform"
                     />
-                    <span>👑 Acelerar com Synapse Pro (60 Sinapses/dia + Zero Espera)</span>
+                    <span>👑 Assinar Synapse Pro (60 Ajudas/dia + Sem Espera)</span>
                   </Link>
                 </>
               ) : null}

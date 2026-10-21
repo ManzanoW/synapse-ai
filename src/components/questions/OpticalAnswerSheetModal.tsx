@@ -15,6 +15,7 @@ import {
   Scale,
 } from "lucide-react";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface OpticalAnswerSheetModalProps {
   isOpen: boolean;
@@ -39,6 +40,11 @@ export function OpticalAnswerSheetModal({
   onSelectAnswer,
   onJumpToQuestion,
 }: OpticalAnswerSheetModalProps) {
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   const isCebraspe = useMemo(() => {
     const b = banca.toLowerCase();
     return b.includes("cebraspe") || b.includes("cespe");
@@ -90,6 +96,7 @@ export function OpticalAnswerSheetModal({
 
   // Encontra a primeira questão em branco para salto rápido
   const handleJumpToFirstBlank = () => {
+    triggerHaptic("light");
     const firstBlankIdx = questions.findIndex(
       (_, idx) => selectedAnswers[idx] === undefined
     );
@@ -120,7 +127,7 @@ export function OpticalAnswerSheetModal({
         aria-modal="true"
         aria-label="Folha Óptica de Respostas"
         className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md"
-        onClick={onClose}
+        onClick={handleClose}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -153,7 +160,7 @@ export function OpticalAnswerSheetModal({
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Fechar Folha Óptica"
               className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
               title="Fechar Folha Óptica"
@@ -246,6 +253,7 @@ export function OpticalAnswerSheetModal({
                     <button
                       type="button"
                       onClick={() => {
+                        triggerHaptic("light");
                         onJumpToQuestion(idx);
                         onClose();
                       }}
@@ -288,7 +296,10 @@ export function OpticalAnswerSheetModal({
                             key={opt}
                             disabled={isAnswered}
                             type="button"
-                            onClick={() => onSelectAnswer(idx, opt)}
+                            onClick={() => {
+                              triggerHaptic("medium");
+                              onSelectAnswer(idx, opt);
+                            }}
                             className={`w-7 h-7 rounded-full border text-[11px] font-mono flex items-center justify-center transition-all cursor-pointer disabled:cursor-default active:scale-90 ${bubbleStyle}`}
                             title={
                               isCertoErrado
@@ -330,7 +341,7 @@ export function OpticalAnswerSheetModal({
 
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-md shadow-indigo-950/40"
               >
                 Voltar à Prova

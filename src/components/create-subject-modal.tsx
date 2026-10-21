@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { X, FilePlus2, Loader2 } from "lucide-react";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export interface SubjectOption {
   id: string;
@@ -32,6 +33,11 @@ export function NewContentModal({
   const [weight, setWeight] = useState("5/10");
   const [loading, setLoading] = useState(false);
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   React.useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -51,7 +57,11 @@ export function NewContentModal({
       ? customSubject.trim()
       : selectedSubject;
 
-    if (!title.trim() || !finalSubject) return;
+    if (!title.trim() || !finalSubject) {
+      triggerHaptic("warning");
+      return;
+    }
+    triggerHaptic("medium");
 
     try {
       setLoading(true);
@@ -66,7 +76,11 @@ export function NewContentModal({
       setSelectedSubject("");
       setCustomSubject("");
       setIsCreatingNewSubject(false);
+      triggerHaptic("success");
       onClose();
+    } catch (err) {
+      triggerHaptic("warning");
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -90,7 +104,7 @@ export function NewContentModal({
         {/* Botão de Fechar */}
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           disabled={loading}
           aria-label="Fechar adicionar conteúdo"
           className="min-h-[44px] min-w-[44px] flex items-center justify-center absolute top-3 right-3 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
@@ -212,7 +226,7 @@ export function NewContentModal({
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="text-xs font-semibold text-slate-500 hover:text-slate-300"
             >
               Cancelar

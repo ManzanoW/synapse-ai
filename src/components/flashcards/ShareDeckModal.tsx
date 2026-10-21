@@ -54,7 +54,7 @@ export function ShareDeckModal({
     const text = encodeURIComponent(
       `🔥 *Material de Estudo Gratuito • Synapse AI*\n\n` +
         `📚 *Baralho*: ${deckTitle}\n` +
-        `⚡ *Total*: ${totalCards} Flashcards com algoritmo FSRS 4.5 e Estudo em Áudio!\n\n` +
+        `⚡ *Total*: ${totalCards} Cartões com repetição espaçada inteligente e Estudo em Áudio!\n\n` +
         `Acesse gratuitamente para memorizar mais rápido no PC ou celular:\n${shareUrl}`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
@@ -121,7 +121,7 @@ export function ShareDeckModal({
                 {deckTitle}
               </h4>
               <p className="text-xs text-slate-400">
-                {totalCards} cartões com suporte a FSRS 4.5
+                {totalCards} cartões de memorização com áudio
               </p>
             </div>
           </div>
