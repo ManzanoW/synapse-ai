@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import {
   AlertTriangle,
   X,
@@ -57,6 +59,7 @@ export function EmergencyRescheduleModal({
   if (!isOpen || !mounted) return null;
 
   const handleApply = async () => {
+    triggerHaptic("medium");
     setLoading(true);
     setResultMessage(null);
     try {
@@ -67,15 +70,25 @@ export function EmergencyRescheduleModal({
       });
 
       if (res.success && res.message) {
+        triggerHaptic("heavy");
+        try {
+          confetti({
+            particleCount: 60,
+            spread: 70,
+            origin: { y: 0.6 },
+          });
+        } catch {}
         setResultMessage(res.message);
         setAffectedList(res.affectedSubjects || []);
         if (onApplied) {
           onApplied();
         }
       } else {
+        triggerHaptic("warning");
         setResultMessage(res.error || "Erro ao aplicar replanejamento.");
       }
     } catch (err) {
+      triggerHaptic("warning");
       console.error("Erro ao aplicar emergência:", err);
       setResultMessage("Ocorreu um erro ao processar o replanejamento.");
     } finally {
@@ -84,6 +97,7 @@ export function EmergencyRescheduleModal({
   };
 
   const handleResetAndClose = () => {
+    triggerHaptic("light");
     setResultMessage(null);
     setAffectedList([]);
     onClose();
@@ -197,7 +211,7 @@ export function EmergencyRescheduleModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* 1. Perdi o dia hoje */}
                 <div
-                  onClick={() => setSelectedScenario("MISSED_TODAY")}
+                  onClick={() => { triggerHaptic("light"); setSelectedScenario("MISSED_TODAY"); }}
                   className={
                     selectedScenario === "MISSED_TODAY"
                       ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-rose-50/70 border-rose-300 ring-2 ring-rose-500/30 shadow-md dark:bg-rose-950/40 dark:border-rose-500/80 dark:ring-1 dark:ring-rose-500/50 dark:shadow-lg dark:shadow-rose-950/20"
@@ -224,7 +238,7 @@ export function EmergencyRescheduleModal({
 
                 {/* 2. Micro-Revisão de Sobrevivência */}
                 <div
-                  onClick={() => setSelectedScenario("SURVIVAL_MICRO")}
+                  onClick={() => { triggerHaptic("light"); setSelectedScenario("SURVIVAL_MICRO"); }}
                   className={
                     selectedScenario === "SURVIVAL_MICRO"
                       ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-amber-50/70 border-amber-300 ring-2 ring-amber-500/30 shadow-md dark:bg-amber-950/40 dark:border-amber-500/80 dark:ring-1 dark:ring-amber-500/50 dark:shadow-lg dark:shadow-amber-950/20"
@@ -251,7 +265,7 @@ export function EmergencyRescheduleModal({
 
                 {/* 3. Semana Caótica */}
                 <div
-                  onClick={() => setSelectedScenario("REDUCE_LOAD")}
+                  onClick={() => { triggerHaptic("light"); setSelectedScenario("REDUCE_LOAD"); }}
                   className={
                     selectedScenario === "REDUCE_LOAD"
                       ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-cyan-50/70 border-cyan-300 ring-2 ring-cyan-500/30 shadow-md dark:bg-cyan-950/40 dark:border-cyan-500/80 dark:ring-1 dark:ring-cyan-500/50 dark:shadow-lg dark:shadow-cyan-950/20"
@@ -278,7 +292,7 @@ export function EmergencyRescheduleModal({
 
                 {/* 4. Blindagem de Edital */}
                 <div
-                  onClick={() => setSelectedScenario("CORE_FOCUS")}
+                  onClick={() => { triggerHaptic("light"); setSelectedScenario("CORE_FOCUS"); }}
                   className={
                     selectedScenario === "CORE_FOCUS"
                       ? "p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 relative bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/30 shadow-md dark:bg-indigo-950/40 dark:border-indigo-500/80 dark:ring-1 dark:ring-indigo-500/50 dark:shadow-lg dark:shadow-indigo-950/20"
@@ -322,7 +336,7 @@ export function EmergencyRescheduleModal({
                       <button
                         key={mins}
                         type="button"
-                        onClick={() => setMicroMinutes(mins)}
+                        onClick={() => { triggerHaptic("light"); setMicroMinutes(mins); }}
                         className={
                           microMinutes === mins
                             ? "py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20"

@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { X, Loader2, Award, HelpCircle } from "lucide-react";
+import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface TopicOption {
   id: string;
@@ -28,11 +30,20 @@ export function RegisterQuestionsModal({
   const [duration, setDuration] = useState("15");
   const [loading, setLoading] = useState(false);
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTopic || !totalQuestions || !correctAnswers) return;
+    if (!selectedTopic || !totalQuestions || !correctAnswers) {
+      triggerHaptic("warning");
+      return;
+    }
+    triggerHaptic("medium");
 
     try {
       setLoading(true);
@@ -48,10 +59,21 @@ export function RegisterQuestionsModal({
       });
 
       if (res.ok) {
+        triggerHaptic("success");
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.6 },
+          });
+        } catch {}
         if (onSuccess) onSuccess();
         onClose();
+      } else {
+        triggerHaptic("warning");
       }
     } catch (err) {
+      triggerHaptic("warning");
       console.error("Erro ao registrar bateria de questões:", err);
     } finally {
       setLoading(false);
@@ -71,7 +93,7 @@ export function RegisterQuestionsModal({
             </h3>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 cursor-pointer"
           >
             <X size={18} />

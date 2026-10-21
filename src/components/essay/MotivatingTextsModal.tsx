@@ -3,6 +3,7 @@
 import React from "react";
 import { X, BookOpen, FileText, CheckCircle, AlertCircle } from "lucide-react";
 import { EssayTheme } from "@/actions/essay-actions";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface MotivatingTextsModalProps {
   isOpen: boolean;
@@ -16,6 +17,11 @@ export function MotivatingTextsModal({
   theme,
 }: MotivatingTextsModalProps) {
   // Listener para fechar modal com Escape
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   React.useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -46,7 +52,7 @@ export function MotivatingTextsModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Fechar textos motivadores"
             className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500"
           >

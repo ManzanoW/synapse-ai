@@ -1,5 +1,8 @@
 "use client";
 
+import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
+
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -76,6 +79,11 @@ export function TurboFlashcardExtractorModal({
   const [result, setResult] = useState<ExtractTurboFlashcardsResult | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -94,6 +102,7 @@ export function TurboFlashcardExtractorModal({
   if (!mounted || !isOpen) return null;
 
   const handleApplyTemplate = (text: string, title: string) => {
+    triggerHaptic("light");
     setRawText(text);
     if (!deckTitle) setDeckTitle(title);
   };
@@ -127,6 +136,14 @@ export function TurboFlashcardExtractorModal({
       });
 
       if (res.success && res.data) {
+        triggerHaptic("heavy");
+        try {
+          confetti({
+            particleCount: 70,
+            spread: 60,
+            origin: { y: 0.6 },
+          });
+        } catch {}
         setResult(res.data);
       } else {
         setErrorMessage(res.error || "Não foi possível gerar os flashcards.");
@@ -191,7 +208,7 @@ export function TurboFlashcardExtractorModal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Fechar extrator turbo de flashcards"
             className="w-11 h-11 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
           >
@@ -305,7 +322,7 @@ export function TurboFlashcardExtractorModal({
               {/* Ação de Ir para Estudo */}
               <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-3 border-t border-slate-800">
                 <button
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Fechar

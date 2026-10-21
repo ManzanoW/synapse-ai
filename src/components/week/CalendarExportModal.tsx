@@ -1,5 +1,7 @@
 "use client";
 
+import { triggerHaptic } from "@/lib/sensory/haptics";
+
 import React, { useState, useEffect } from "react";
 import {
   X,
@@ -37,6 +39,11 @@ export function CalendarExportModal({ isOpen, onClose }: CalendarExportModalProp
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"export" | "tutorial">("export");
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   // Carrega os dados de exportação e o link do Google Calendar
   useEffect(() => {
     if (!isOpen) return;
@@ -73,6 +80,7 @@ export function CalendarExportModal({ isOpen, onClose }: CalendarExportModalProp
 
   // Realiza o download direto do arquivo .ics gerado pela Server Action
   const handleDownloadIcs = async () => {
+    triggerHaptic("medium");
     setIsDownloading(true);
     try {
       let content = exportData?.icsContent;
@@ -102,7 +110,9 @@ export function CalendarExportModal({ isOpen, onClose }: CalendarExportModalProp
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      triggerHaptic("success");
     } catch (err: unknown) {
+      triggerHaptic("warning");
       alert(
         err instanceof Error
           ? err.message
@@ -115,6 +125,7 @@ export function CalendarExportModal({ isOpen, onClose }: CalendarExportModalProp
 
   const handleCopyGoogleLink = () => {
     if (!exportData?.nextBlockGoogleUrl) return;
+    triggerHaptic("light");
     navigator.clipboard.writeText(exportData.nextBlockGoogleUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
@@ -128,7 +139,7 @@ export function CalendarExportModal({ isOpen, onClose }: CalendarExportModalProp
         {/* Header com Gradiente */}
         <div className="relative p-5 sm:p-6 border-b border-slate-800/80 bg-gradient-to-b from-indigo-950/40 via-transparent to-transparent">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/60 transition-colors cursor-pointer"
           >
             <X size={18} />
@@ -154,7 +165,7 @@ export function CalendarExportModal({ isOpen, onClose }: CalendarExportModalProp
           {/* Tabs */}
           <div className="flex items-center gap-2 mt-4 pt-2 border-t border-slate-800/50">
             <button
-              onClick={() => setActiveTab("export")}
+              onClick={() => { triggerHaptic("light"); setActiveTab("export"); }}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "export"
                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
@@ -164,7 +175,7 @@ export function CalendarExportModal({ isOpen, onClose }: CalendarExportModalProp
               Exportação Rápida
             </button>
             <button
-              onClick={() => setActiveTab("tutorial")}
+              onClick={() => { triggerHaptic("light"); setActiveTab("tutorial"); }}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "tutorial"
                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
@@ -404,7 +415,7 @@ export function CalendarExportModal({ isOpen, onClose }: CalendarExportModalProp
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
           >
             Fechar

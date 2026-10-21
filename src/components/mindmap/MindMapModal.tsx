@@ -26,6 +26,7 @@ import {
 import { Lock, Crown, Film } from "lucide-react";
 import Link from "next/link";
 import { MindMapCanvas } from "./MindMapCanvas";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 export interface MindMapModalProps {
   isOpen: boolean;
@@ -44,6 +45,11 @@ export function MindMapModal({
   topicId,
   subjectColor = "#8b5cf6",
 }: MindMapModalProps) {
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   const [data, setData] = useState<MindMapNode | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +74,7 @@ export function MindMapModal({
   // Carrega ou gera o mapa mental (com cache automático no banco de dados)
   const loadMindMap = async (force: boolean = false) => {
     if (!topicTitle) return;
+    if (force) triggerHaptic("medium");
     setIsLoading(true);
     setError(null);
     setIsQuotaExceeded(false);
@@ -89,6 +96,7 @@ export function MindMapModal({
       });
 
       if (res.isQuotaExceeded) {
+        triggerHaptic("warning");
         setIsQuotaExceeded(true);
         setError(res.error || "Limite de mapas mentais atingido.");
         triggerSynapticExhaustion({
@@ -99,6 +107,7 @@ export function MindMapModal({
       }
 
       if (res.success && res.data) {
+        triggerHaptic("success");
         if (force) {
           triggerAiQuotaRefresh();
         }
@@ -144,7 +153,7 @@ export function MindMapModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        onClick={handleClose}
         className="fixed inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
       />
 
@@ -195,7 +204,7 @@ export function MindMapModal({
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
               title="Fechar (Esc)"
             >
@@ -266,7 +275,7 @@ export function MindMapModal({
 
                 <Link
                   href="/pricing"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
                 >
                   <Crown size={15} />
