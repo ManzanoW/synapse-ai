@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 import { StarterEditalSelector } from "./StarterEditalSelector";
 
@@ -106,6 +107,7 @@ export function ImportEditalModal({
   };
 
   const handleProcessEdital = async () => {
+    triggerHaptic("medium");
     setIsProcessing(true);
 
     try {
@@ -210,6 +212,7 @@ export function ImportEditalModal({
       formattedSubjects.forEach((sub) => (initialExpanded[sub.id] = true));
       setExpandedSubjects(initialExpanded);
 
+      triggerHaptic("success");
       setStep("preview");
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";
@@ -227,6 +230,7 @@ export function ImportEditalModal({
   };
 
   const toggleSubjectSelect = (subjectId: string) => {
+    triggerHaptic("light");
     setParsedSubjects((prev) =>
       prev.map((sub) => {
         if (sub.id === subjectId) {
@@ -243,6 +247,7 @@ export function ImportEditalModal({
   };
 
   const toggleTopicSelect = (subjectId: string, topicId: string) => {
+    triggerHaptic("light");
     setParsedSubjects((prev) =>
       prev.map((sub) => {
         if (sub.id === subjectId) {
@@ -262,10 +267,12 @@ export function ImportEditalModal({
   };
 
   const toggleAccordion = (subjectId: string) => {
+    triggerHaptic("light");
     setExpandedSubjects((prev) => ({ ...prev, [subjectId]: !prev[subjectId] }));
   };
 
   const handleConfirmImport = async () => {
+    triggerHaptic("medium");
     const finalData = parsedSubjects
       .filter((sub) => sub.selected)
       .map((sub) => ({
@@ -318,6 +325,7 @@ export function ImportEditalModal({
 
       onImportSuccess?.(result);
       setStep("success");
+      triggerHaptic("heavy");
       confetti({
         particleCount: 80,
         spread: 70,
@@ -331,6 +339,7 @@ export function ImportEditalModal({
   };
 
   const handleClose = () => {
+    triggerHaptic("light");
     setStep("input");
     setRawText("");
     setSelectedFile(null);

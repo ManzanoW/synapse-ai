@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import {
   scanQuestionFromImageAction,
   saveScannedQuestionToNotebookAction,
@@ -68,6 +69,11 @@ export function QuestionScannerModal({
   const [isSavingFlashcards, setIsSavingFlashcards] = useState(false);
   const [isAddedToQuiz, setIsAddedToQuiz] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+
+  const handleClose = useCallback(() => {
+    triggerHaptic("light");
+    onClose();
+  }, [onClose]);
 
   // Rewarded Ad Modal
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
@@ -119,10 +125,12 @@ export function QuestionScannerModal({
 
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+      triggerHaptic("warning");
       setErrorMsg("Selecione um arquivo de imagem válido (JPG, PNG, WEBP).");
       return;
     }
     setErrorMsg(null);
+    triggerHaptic("light");
     setSelectedImage(file);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
@@ -140,6 +148,7 @@ export function QuestionScannerModal({
       .then((res) => {
         setValidationResult(res);
         if (!res.isValid) {
+          triggerHaptic("warning");
           setErrorMsg(res.message || "A imagem selecionada não parece conter uma questão de prova.");
         }
       })
@@ -157,6 +166,7 @@ export function QuestionScannerModal({
   };
 
   const handleReset = () => {
+    triggerHaptic("light");
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -175,6 +185,7 @@ export function QuestionScannerModal({
 
   const handleStartScan = async () => {
     if (!selectedImage) return;
+    triggerHaptic("medium");
 
     // Barreira client-side estrita: impede envio para a API se a imagem não for questão
     if (validationResult && !validationResult.isValid) {
@@ -202,17 +213,20 @@ export function QuestionScannerModal({
       const res = await scanQuestionFromImageAction(formData);
 
       if (res.quotaExceeded) {
+        triggerHaptic("warning");
         setIsAdModalOpen(true);
         setIsScanning(false);
         return;
       }
 
       if (!res.success || !res.data) {
+        triggerHaptic("warning");
         setErrorMsg(res.error || "Não foi possível analisar a questão.");
         setIsScanning(false);
         return;
       }
 
+      triggerHaptic("heavy");
       setScannedResult(res.data);
       // Dispara confetti de leitura com sucesso
       try {
@@ -235,6 +249,18 @@ export function QuestionScannerModal({
     setHasRevealedAnswer(true);
 
     if (scannedResult && optionId === scannedResult.gabaritoCorreto) {
+      triggerHaptic("success");
+    } else {
+      triggerHaptic("warning");
+    }
+
+    if (scannedResult && optionId === scannedResult.gabaritoCorreto) {
+      triggerHaptic("success");
+    } else {
+      triggerHaptic("warning");
+    }
+
+    if (scannedResult && optionId === scannedResult.gabaritoCorreto) {
       try {
         confetti({
           particleCount: 60,
@@ -247,7 +273,7 @@ export function QuestionScannerModal({
 
   const handleSaveToNotebook = async () => {
     if (!scannedResult || isSavedToNotebook || isSavingNotebook) return;
-
+    triggerHaptic("medium");
     setIsSavingNotebook(true);
     try {
       const res = await saveScannedQuestionToNotebookAction({
@@ -263,8 +289,10 @@ export function QuestionScannerModal({
       });
 
       if (res.success) {
+        triggerHaptic("success");
         setIsSavedToNotebook(true);
       } else {
+        triggerHaptic("warning");
         alert(res.error || "Erro ao salvar no caderno.");
       }
     } catch {
@@ -276,7 +304,7 @@ export function QuestionScannerModal({
 
   const handleSaveToFlashcards = async () => {
     if (!scannedResult || isSavedToFlashcards || isSavingFlashcards) return;
-
+    triggerHaptic("medium");
     setIsSavingFlashcards(true);
     try {
       const res = await saveScannedQuestionToFlashcardAction({
@@ -287,8 +315,10 @@ export function QuestionScannerModal({
       });
 
       if (res.success) {
+        triggerHaptic("success");
         setIsSavedToFlashcards(true);
       } else {
+        triggerHaptic("warning");
         alert(res.error || "Erro ao criar flashcard.");
       }
     } catch {
@@ -312,12 +342,14 @@ export function QuestionScannerModal({
       flashcardVerso: scannedResult.flashcardVerso,
     };
 
+    triggerHaptic("success");
     onAddQuestionToQuiz(formattedQuestion);
     setIsAddedToQuiz(true);
   };
 
   const handleCopyText = () => {
     if (!scannedResult) return;
+    triggerHaptic("light");
     const text = `DISCIPLINA: ${scannedResult.disciplina} | ASSUNTO: ${scannedResult.assunto}\n\n${scannedResult.enunciado}\n\n` +
       scannedResult.alternativas.map((a) => `${a.id}) ${a.texto}`).join("\n") +
       `\n\nGABARITO: ${scannedResult.gabaritoCorreto}\nJUSTIFICATIVA: ${scannedResult.justificativa}\nPEGADINHA DA BANCA: ${scannedResult.pegadinhaBanca}`;

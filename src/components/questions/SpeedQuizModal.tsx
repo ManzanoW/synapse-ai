@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import {
   Zap,
   Timer,
@@ -50,6 +51,11 @@ export function SpeedQuizModal({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const handleClose = () => {
+    triggerHaptic("light");
+    onClose();
+  };
+
   // Reseta o estado quando o modal abre
   useEffect(() => {
     if (isOpen) {
@@ -83,6 +89,7 @@ export function SpeedQuizModal({
 
     let questionXp = 0;
     if (isCorrect) {
+      triggerHaptic(streak >= 2 ? "heavy" : "success");
       const newStreak = streak + 1;
       setStreak(newStreak);
       if (newStreak > maxStreak) setMaxStreak(newStreak);
@@ -92,6 +99,7 @@ export function SpeedQuizModal({
       questionXp = Math.round(30 * multiplier);
       setEarnedXp((prev) => prev + questionXp);
     } else {
+      triggerHaptic("warning");
       setStreak(0);
     }
 
@@ -118,6 +126,7 @@ export function SpeedQuizModal({
         }
 
         if (isCorrect || finalCorrect >= 3) {
+          triggerHaptic("heavy");
           confetti({
             particleCount: 80,
             spread: 70,
@@ -178,7 +187,7 @@ export function SpeedQuizModal({
         aria-labelledby="speed-quiz-modal-title"
         aria-describedby="speed-quiz-modal-desc"
         className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md"
-        onClick={onClose}
+        onClick={handleClose}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -209,7 +218,7 @@ export function SpeedQuizModal({
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Fechar Desafio Relâmpago"
               className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
             >
@@ -417,7 +426,7 @@ export function SpeedQuizModal({
 
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all cursor-pointer shadow-lg shadow-indigo-950/40"
                 >
                   Concluir

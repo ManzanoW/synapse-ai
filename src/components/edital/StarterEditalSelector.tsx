@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import {
   Sparkles,
   Loader2,
@@ -50,6 +51,7 @@ export function StarterEditalSelector({
   const [isGeneratingCustom, setIsGeneratingCustom] = useState<boolean>(false);
 
   const handleSelectTemplate = async (templateId: string) => {
+    triggerHaptic("medium");
     setLoadingTemplateId(templateId);
     setErrorMessage(null);
 
@@ -57,6 +59,7 @@ export function StarterEditalSelector({
       const res = await importStarterEditalAction(templateId, { replaceExisting });
 
       if (res.success && res.data) {
+        triggerHaptic("heavy");
         confetti({
           particleCount: 70,
           spread: 60,
@@ -80,6 +83,7 @@ export function StarterEditalSelector({
           }, 800);
         }
       } else {
+        triggerHaptic("warning");
         setErrorMessage(res.error || "Ocorreu um erro ao carregar o edital.");
       }
     } catch (err) {
@@ -95,6 +99,7 @@ export function StarterEditalSelector({
     const trimmed = customRoleInput.trim();
     if (!trimmed) return;
 
+    triggerHaptic("medium");
     setIsGeneratingCustom(true);
     setErrorMessage(null);
 
@@ -105,6 +110,7 @@ export function StarterEditalSelector({
       });
 
       if (res.success && res.data) {
+        triggerHaptic("heavy");
         confetti({
           particleCount: 80,
           spread: 70,
@@ -135,6 +141,7 @@ export function StarterEditalSelector({
           }, 800);
         }
       } else {
+        triggerHaptic("warning");
         setErrorMessage(res.error || "Falha ao gerar disciplinas com IA.");
       }
     } catch (err) {
@@ -295,7 +302,7 @@ export function StarterEditalSelector({
           <button
             key={cat.id}
             type="button"
-            onClick={() => setActiveCategory(cat.id)}
+            onClick={() => { triggerHaptic("light"); setActiveCategory(cat.id); }}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               activeCategory === cat.id
                 ? "bg-indigo-600 text-white shadow-sm"
