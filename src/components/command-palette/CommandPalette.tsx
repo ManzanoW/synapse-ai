@@ -31,6 +31,9 @@ import {
   UploadCloud,
   ShieldCheck,
   LifeBuoy,
+  Keyboard,
+  FileEdit,
+  History,
   Camera,
   X,
 } from "lucide-react";
@@ -45,7 +48,7 @@ interface CommandItem {
   id: string;
   title: string;
   subtitle?: string;
-  category: "Navegação" | "Ações Rápidas" | "Carreiras Jurídicas";
+  category: "Recentes" | "Navegação" | "Ações Rápidas" | "Carreiras Jurídicas";
   icon: React.ElementType;
   badge?: string;
   action: () => void;
@@ -62,6 +65,7 @@ interface CommandPaletteProps {
 export function CommandPalette({ user }: CommandPaletteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPdfImporterOpen, setIsPdfImporterOpen] = useState(false);
+  const [recentCommandIds, setRecentCommandIds] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -118,10 +122,28 @@ export function CommandPalette({ user }: CommandPaletteProps) {
       setSelectedIndex(0);
       playChime();
       setTimeout(() => inputRef.current?.focus(), 50);
+      if (typeof window !== "undefined") {
+        try {
+          const saved = JSON.parse(localStorage.getItem("synapse_recent_commands") || "[]");
+          setRecentCommandIds(Array.isArray(saved) ? saved : []);
+        } catch {}
+      }
     }
   }, [isOpen, playChime]);
 
-  const navigateTo = (path: string) => {
+  const recordRecent = (id: string) => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = JSON.parse(localStorage.getItem("synapse_recent_commands") || "[]");
+        const updated = [id, ...saved.filter((x: string) => x !== id)].slice(0, 5);
+        localStorage.setItem("synapse_recent_commands", JSON.stringify(updated));
+        setRecentCommandIds(updated);
+      } catch {}
+    }
+  };
+
+  const navigateTo = (path: string, id?: string) => {
+    if (id) recordRecent(id);
     playClick();
     triggerHaptic("medium");
     setIsOpen(false);
@@ -224,6 +246,36 @@ export function CommandPalette({ user }: CommandPaletteProps) {
         badge: "IA",
         action: () => navigateTo("/mapas-mentais"),
         keywords: ["mapa mental", "mnemonicos", "esquema", "resumo", "arvore", "visual", "macetes"],
+      },
+
+      // UTILITÁRIOS GLOBAIS
+      {
+        id: "action-keyboard-shortcuts",
+        title: "Atalhos de Teclado & Modo Superhuman",
+        subtitle: "Veja todos os comandos e atalhos rápidos (Pressione ?)",
+        category: "Ações Rápidas",
+        icon: Keyboard,
+        badge: "?",
+        action: () => {
+          recordRecent("action-keyboard-shortcuts");
+          setIsOpen(false);
+          window.dispatchEvent(new CustomEvent("open-keyboard-shortcuts"));
+        },
+        keywords: ["atalhos", "teclado", "shortcuts", "comandos", "ajuda", "?"],
+      },
+      {
+        id: "action-quick-scratchpad",
+        title: "Abrir Bloco de Rascunho Rápido",
+        subtitle: "Anote regras, fórmulas e cálculos em qualquer tela (Alt+N)",
+        category: "Ações Rápidas",
+        icon: FileEdit,
+        badge: "Alt+N",
+        action: () => {
+          recordRecent("action-quick-scratchpad");
+          setIsOpen(false);
+          window.dispatchEvent(new CustomEvent("open-quick-scratchpad"));
+        },
+        keywords: ["rascunho", "notas", "bloco", "anotacoes", "scratchpad", "calculo", "mnemonico"],
       },
 
       // AÇÕES RÁPIDAS
@@ -367,7 +419,22 @@ export function CommandPalette({ user }: CommandPaletteProps) {
 
   // Filtragem
   const filteredItems = useMemo(() => {
-    if (!query.trim()) return items;
+    if (!query.trim()) {
+      if (recentCommandIds.length > 0) {
+        const recentItems = recentCommandIds
+          .map((rId) => items.find((it) => it.id === rId))
+          .filter(Boolean) as CommandItem[];
+        
+        const recentsWithCategory = recentItems.map((it) => ({
+          ...it,
+          category: "Recentes" as const,
+        }));
+        
+        const restItems = items.filter((it) => !recentCommandIds.includes(it.id));
+        return [...recentsWithCategory, ...restItems];
+      }
+      return items;
+    }
     const q = query.toLowerCase().trim();
     return items.filter(
       (item) =>
@@ -393,7 +460,10 @@ export function CommandPalette({ user }: CommandPaletteProps) {
     } else if (e.key === "Enter") {
       e.preventDefault();
       const current = filteredItems[selectedIndex];
-      if (current) current.action();
+      if (current) {
+        recordRecent(current.id);
+        current.action();
+      }
     }
   };
 
@@ -459,7 +529,10 @@ export function CommandPalette({ user }: CommandPaletteProps) {
                   return (
                     <div
                       key={item.id}
-                      onClick={item.action}
+                      onClick={() => {
+                        recordRecent(item.id);
+                        item.action();
+                      }}
                       onMouseEnter={() => setSelectedIndex(idx)}
                       className={`flex items-center justify-between gap-3 px-3 py-3 sm:py-2.5 min-h-[46px] rounded-xl cursor-pointer transition-all active:scale-[0.98] ${
                         isSelected
