@@ -690,8 +690,8 @@ export default function QuestoesPage() {
       const loadedSubjects = Array.from(uniqueSubjectsMap.values());
       setSubjects(loadedSubjects);
 
-      const paramSubjectId = searchParams.get("subjectId");
-      const paramTopicId = searchParams.get("topicId");
+      const paramSubjectId = searchParams.get("subjectId") || searchParams.get("subject");
+      const paramTopicId = searchParams.get("topicId") || searchParams.get("topic");
 
       if (paramSubjectId) {
         const decodedSubject = decodeURIComponent(paramSubjectId);
