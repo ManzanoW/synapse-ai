@@ -44,6 +44,10 @@ import {
   ShieldCheck,
   Flame,
   RotateCcw,
+  Target,
+  ChevronLeft,
+  ChevronRight,
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -92,6 +96,44 @@ export function ErrorNotebookView({
   const [isCreatingBatchFlashcards, setIsCreatingBatchFlashcards] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportModalInitialTab, setExportModalInitialTab] = useState<"print" | "anki">("print");
+
+  // Modo de visualização: Lista espaçada vs Modo Foco (1 por 1)
+  const [viewMode, setViewMode] = useState<"list" | "focus">("list");
+  const [focusIndex, setFocusIndex] = useState<number>(0);
+
+  // Garante que focusIndex esteja dentro do range de questões
+  useEffect(() => {
+    if (focusIndex >= questions.length && questions.length > 0) {
+      setFocusIndex(questions.length - 1);
+    }
+  }, [questions.length, focusIndex]);
+
+  // Navegação por teclado no Modo Foco (Setas <- e ->)
+  useEffect(() => {
+    if (viewMode !== "focus") return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setFocusIndex((prev) => Math.max(0, prev - 1));
+        triggerHaptic("light");
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setFocusIndex((prev) => Math.min(questions.length - 1, prev + 1));
+        triggerHaptic("light");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [viewMode, questions.length]);
 
   const handleOpenExportModal = useCallback((tab: "print" | "anki" = "print") => {
     setExportModalInitialTab(tab);
@@ -603,14 +645,145 @@ export function ErrorNotebookView({
         </div>
       )}
 
-      {/* 4. Lista de Cards de Erro com Infinite Scroll */}
+      {/* 4. Barra de Modos de Exibição (Lista Espaçada vs Modo Foco 1 por 1) */}
       {!isFiltering && questions.length > 0 && (
-        <div className="space-y-4">
-          <motion.div layout className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-md mb-6">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs text-slate-400 font-medium">Visualização:</span>
+            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setViewMode("list");
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-violet-600 text-white shadow-sm shadow-violet-600/30"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Layers size={13} />
+                <span>Lista Completa</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setViewMode("focus");
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  viewMode === "focus"
+                    ? "bg-gradient-to-r from-amber-500 via-rose-500 to-violet-600 text-white shadow-sm shadow-violet-600/30 font-bold"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Target size={13} />
+                <span>🎯 Modo Foco (1 por 1)</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="text-xs text-slate-400 font-mono">
+            {viewMode === "list" ? (
+              <span>Exibindo <strong>{questions.length}</strong> de <strong>{metrics.totalErrors}</strong> erros</span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-amber-300">
+                <Sparkles size={12} />
+                <span>Dica: navegue com as setas <strong>←</strong> e <strong>→</strong></span>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODO FOCO (1 POR 1) */}
+      {!isFiltering && questions.length > 0 && viewMode === "focus" && (
+        <div className="space-y-6">
+          {/* Navegador Superior do Modo Foco */}
+          <div className="p-4 rounded-3xl bg-slate-900/80 border border-white/10 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+            <button
+              type="button"
+              disabled={focusIndex === 0}
+              onClick={() => {
+                triggerHaptic("light");
+                setFocusIndex((prev) => Math.max(0, prev - 1));
+              }}
+              className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+              <span>Erro Anterior</span>
+            </button>
+
+            <div className="flex flex-col items-center gap-1.5 w-full sm:w-auto">
+              <span className="text-sm font-bold text-white font-mono flex items-center gap-2">
+                <span>Questão</span>
+                <span className="px-2.5 py-0.5 rounded-lg bg-violet-600/30 text-violet-300 border border-violet-500/30 font-black">
+                  {focusIndex + 1}
+                </span>
+                <span className="text-slate-400 font-normal">de</span>
+                <span>{questions.length}</span>
+              </span>
+              <div className="w-48 sm:w-64 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-amber-500 via-violet-500 to-rose-500 transition-all duration-300"
+                  style={{ width: `${Math.round(((focusIndex + 1) / questions.length) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={focusIndex >= questions.length - 1}
+              onClick={() => {
+                triggerHaptic("light");
+                setFocusIndex((prev) => Math.min(questions.length - 1, prev + 1));
+              }}
+              className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white shadow-md shadow-violet-600/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <span>Próximo Erro</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          {/* O Card Único Isolado */}
+          {questions[focusIndex] && (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={questions[focusIndex].id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ErrorCard
+                  errorItem={questions[focusIndex]}
+                  index={focusIndex + 1}
+                  onItemUpdated={handleItemUpdated}
+                  onItemDeleted={(id) => {
+                    handleItemDeleted(id);
+                    setFocusIndex((prev) => Math.max(0, prev - 1));
+                  }}
+                  isConvertingId={isConvertingId}
+                  convertedIds={convertedIds}
+                  onSaveFlashcard={handleSaveFlashcard}
+                />
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </div>
+      )}
+
+      {/* MODO LISTA ESPAÇADA (SPACE-Y-8 E NUMERAÇÃO DE CARDS) */}
+      {!isFiltering && questions.length > 0 && viewMode === "list" && (
+        <div className="space-y-8">
+          <motion.div layout className="space-y-8">
             <AnimatePresence mode="popLayout">
-              {questions.map((item) => (
+              {questions.map((item, idx) => (
                 <ErrorCard
                   key={item.id}
+                  index={idx + 1}
                   errorItem={item}
                   onItemUpdated={handleItemUpdated}
                   onItemDeleted={handleItemDeleted}
