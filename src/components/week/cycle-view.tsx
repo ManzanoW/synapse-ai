@@ -27,6 +27,7 @@ import {
 import { formatMinutes, CycleBlock } from "@/lib/study-cycle";
 import { motion, AnimatePresence } from "framer-motion";
 import { EditalEmptyState } from "@/components/edital-empty-state";
+import Link from "next/link";
 
 interface CycleViewProps {
   blocks: CycleBlock[];
@@ -594,20 +595,53 @@ export function CycleView({
                 </div>
 
                 {currentBlock.assignedTopics.length > 0 && (
-                  <div className="space-y-2.5 pt-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                      <BookOpen size={14} className="text-indigo-400" />
-                      Conteúdos Mapeados:
-                    </span>
-                    <div className="flex flex-wrap gap-2.5">
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                        <BookOpen size={14} className="text-amber-400" />
+                        Trilhas & Aulas Mapeadas para este Bloco:
+                      </span>
+                      <Link
+                        href="/trilhas"
+                        className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 hover:underline"
+                      >
+                        <span>Ver Todas as Trilhas</span>
+                        <ArrowRight size={12} />
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
                       {currentBlock.assignedTopics.map((top, topIdx) => (
-                        <span
+                        <div
                           key={top.id || `current-topic-${top.title}-${topIdx}`}
-                          className="text-xs bg-slate-950/90 border border-slate-800/90 text-slate-100 px-3.5 py-2 rounded-xl font-medium flex items-center gap-2 shadow-sm"
+                          className="text-xs bg-slate-950/90 hover:bg-slate-900 border border-slate-800/90 hover:border-slate-700 text-slate-100 p-3 rounded-2xl font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-sm transition-all group"
                         >
-                          <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_6px_rgba(129,140,248,0.8)]" />
-                          {top.title}
-                        </span>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] shrink-0" />
+                            <span className="truncate font-semibold text-slate-200 group-hover:text-white">
+                              {top.title}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                            <Link
+                              href={`/trilhas?topicId=${top.id}`}
+                              title="Abrir aula teórica e resumo desta trilha"
+                              className="px-2.5 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
+                            >
+                              <BookOpen size={12} className="text-amber-400" />
+                              <span>Ler Aula</span>
+                            </Link>
+
+                            <Link
+                              href={`/questions?subject=${encodeURIComponent(currentBlock.subjectName)}&topic=${encodeURIComponent(top.title)}`}
+                              title="Treinar questões deste assunto"
+                              className="px-2.5 py-1 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
+                            >
+                              <Target size={12} className="text-indigo-400" />
+                              <span>Questões</span>
+                            </Link>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -766,9 +800,27 @@ export function CycleView({
                             key={`upcoming-top-${
                               top.id || top.title
                             }-${topIdx}`}
-                            className="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/90 p-2.5 rounded-xl border border-slate-200 dark:border-slate-900 truncate shadow-xs"
+                            className="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/90 p-2.5 rounded-xl border border-slate-200 dark:border-slate-900 flex items-center justify-between gap-2 shadow-xs"
                           >
-                            • {top.title}
+                            <span className="truncate">• {top.title}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Link
+                                href={`/trilhas?topicId=${top.id}`}
+                                title="Ler aula teórica"
+                                className="px-2 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-600 dark:text-amber-300 text-[10px] font-bold flex items-center gap-1"
+                              >
+                                <BookOpen size={10} />
+                                <span>Ler Aula</span>
+                              </Link>
+                              <Link
+                                href={`/questions?subject=${encodeURIComponent(block.subjectName)}&topic=${encodeURIComponent(top.title)}`}
+                                title="Treinar questões"
+                                className="px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold flex items-center gap-1"
+                              >
+                                <Target size={10} />
+                                <span>Questões</span>
+                              </Link>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -903,21 +955,52 @@ export function CycleView({
 
             {activeSessionBlock.assignedTopics.length > 0 && (
               <div className="space-y-2.5">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                  <BookOpen size={14} className="text-indigo-400" /> Tópicos a
-                  Cobrir:
-                </label>
-                <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                    <BookOpen size={14} className="text-amber-400" /> Aulas da Trilha a
+                    Cobrir:
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    {activeSessionBlock.assignedTopics.length} {activeSessionBlock.assignedTopics.length === 1 ? "aula" : "aulas"}
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                   {activeSessionBlock.assignedTopics.map((top, topIdx) => (
                     <div
                       key={top.id || `session-topic-${top.title}-${topIdx}`}
-                      className="text-xs bg-slate-900/90 border border-slate-800/90 p-3 rounded-2xl text-slate-200 flex items-center gap-2.5 shadow-sm"
+                      className="text-xs bg-slate-900/90 border border-slate-800/90 p-3 rounded-2xl text-slate-200 flex items-center justify-between gap-3 shadow-sm hover:border-slate-700 transition-colors"
                     >
-                      <CheckCircle2
-                        size={16}
-                        className="text-emerald-400 shrink-0"
-                      />
-                      <span className="font-medium">{top.title}</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <CheckCircle2
+                          size={16}
+                          className="text-emerald-400 shrink-0"
+                        />
+                        <span className="font-medium truncate">{top.title}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                          href={`/trilhas?topicId=${top.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Abrir aula teórica da trilha em nova aba"
+                          className="px-2.5 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                        >
+                          <BookOpen size={12} className="text-amber-400" />
+                          <span>Ler Aula</span>
+                        </Link>
+
+                        <Link
+                          href={`/questions?subject=${encodeURIComponent(activeSessionBlock.subjectName)}&topic=${encodeURIComponent(top.title)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Treinar questões deste assunto em nova aba"
+                          className="px-2.5 py-1 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                        >
+                          <Target size={12} className="text-indigo-400" />
+                          <span>Questões</span>
+                        </Link>
+                      </div>
                     </div>
                   ))}
                 </div>
