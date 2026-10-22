@@ -54,6 +54,7 @@ import {
   RebalanceComparisonItem,
 } from "@/components/week/RebalanceImpactModal";
 import { CalendarExportModal } from "@/components/week/CalendarExportModal";
+import { DDayPacingWidget } from "@/components/week/DDayPacingWidget";
 
 
 const HIGH_CONTRAST_PALETTE = [
@@ -1080,6 +1081,18 @@ export default function WeekPage() {
         {/* ================= BANNER PREDITIVO DE REBALANCEAMENTO ================= */}
         {!loading && hasSubjects && (
           <AdaptiveRebalanceBanner onRebalanceApplied={() => loadWeekData()} />
+        )}
+
+        {/* ================= VELOCÍMETRO DO EDITAL & RETA FINAL (D-DAY) ================= */}
+        {!loading && hasSubjects && (
+          <DDayPacingWidget
+            totalBlocks={data?.cycle?.totalBlocks || 0}
+            completedBlocks={data?.cycle?.completedBlocks || 0}
+            totalMinutes={data?.cycle?.totalMinutes || 0}
+            weeklyGoalHours={data?.weeklyGoalHours || 15}
+            activeDaysPerWeek={data?.activeDaysPerWeek || 5}
+            onOpenEmergencyModal={() => setIsEmergencyModalOpen(true)}
+          />
         )}
 
         {loading ? (

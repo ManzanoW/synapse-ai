@@ -33,8 +33,11 @@ import {
   LifeBuoy,
   Keyboard,
   FileEdit,
+  FileText,
   History,
   Camera,
+  ScrollText,
+  Swords,
   X,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -43,6 +46,8 @@ import { useSound } from "@/hooks/useSound";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 import { isLawFocused } from "@/lib/career-utils";
 import { PDFExamImporterModal } from "@/components/exam-importer/PDFExamImporterModal";
+import { PocketSummaryModal } from "@/components/summary/PocketSummaryModal";
+import { PrecedentDuelModal } from "@/app/(dashboard)/jurisprudencia/_components/PrecedentDuelModal";
 
 interface CommandItem {
   id: string;
@@ -65,6 +70,8 @@ interface CommandPaletteProps {
 export function CommandPalette({ user }: CommandPaletteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPdfImporterOpen, setIsPdfImporterOpen] = useState(false);
+  const [isPocketSummaryOpen, setIsPocketSummaryOpen] = useState(false);
+  const [isPrecedentDuelOpen, setIsPrecedentDuelOpen] = useState(false);
   const [recentCommandIds, setRecentCommandIds] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -107,11 +114,27 @@ export function CommandPalette({ user }: CommandPaletteProps) {
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("open-command-palette", handleCustomOpen);
     window.addEventListener("open-pdf-importer", handleOpenPdfImporter);
+    const handleOpenPocketSummary = () => {
+      setIsOpen(false);
+      setIsPocketSummaryOpen(true);
+      triggerHaptic("light");
+    };
+
+    const handleOpenPrecedentDuel = () => {
+      setIsOpen(false);
+      setIsPrecedentDuelOpen(true);
+      triggerHaptic("light");
+    };
+
+    window.addEventListener("open-pocket-summary", handleOpenPocketSummary);
+    window.addEventListener("open-precedent-duel", handleOpenPrecedentDuel);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("open-command-palette", handleCustomOpen);
       window.removeEventListener("open-pdf-importer", handleOpenPdfImporter);
+      window.removeEventListener("open-pocket-summary", handleOpenPocketSummary);
+      window.removeEventListener("open-precedent-duel", handleOpenPrecedentDuel);
     };
   }, [isOpen]);
 
@@ -238,6 +261,16 @@ export function CommandPalette({ user }: CommandPaletteProps) {
         keywords: ["metricas", "desempenho", "graficos", "estatisticas", "retencao"],
       },
       {
+        id: "nav-lei-seca",
+        title: "Lei Seca Interativa (Active Recall)",
+        subtitle: "Ocultamento gradual de prazos e palavras-chave de artigos de lei",
+        category: "Navegação",
+        icon: ScrollText,
+        badge: "NOVO",
+        action: () => navigateTo("/lei-seca"),
+        keywords: ["lei seca", "artigos", "cf88", "lei 8112", "active recall", "cloze", "leis"],
+      },
+      {
         id: "nav-mindmaps",
         title: "Mapas Mentais & Macetes",
         subtitle: "Esquemas simples e macetes das principais bancas examinadoras",
@@ -298,6 +331,32 @@ export function CommandPalette({ user }: CommandPaletteProps) {
         badge: "Discursiva",
         action: () => navigateTo("/redacao"),
         keywords: ["redacao foto", "manuscrita", "discursiva foto", "camera", "caligrafia", "folha"],
+      },
+      {
+        id: "action-pocket-summary",
+        title: "Folha de Véspera em PDF de Bolso 📑",
+        subtitle: "Prazos fatais, mnemônicos e pegadinhas diagramados para dobrar e levar para a prova",
+        category: "Ações Rápidas",
+        icon: FileText,
+        badge: "PDF A4",
+        action: () => {
+          setIsOpen(false);
+          setIsPocketSummaryOpen(true);
+        },
+        keywords: ["folha de vespera", "pdf de bolso", "resumo", "prazos", "mnemonicos", "pegadinhas", "reta final", "imprimir"],
+      },
+      {
+        id: "action-precedent-duel",
+        title: "Duelo de Precedentes STF/STJ ⚔️",
+        subtitle: "Casos práticos interativos: julgue teses do STF e STJ antes da prova",
+        category: "Ações Rápidas",
+        icon: Swords,
+        badge: "Duelo",
+        action: () => {
+          setIsOpen(false);
+          setIsPrecedentDuelOpen(true);
+        },
+        keywords: ["duelo", "precedentes", "stf", "stj", "jurisprudencia", "casos praticos", "teses"],
       },
       {
         id: "action-import-pdf",
@@ -648,6 +707,19 @@ export function CommandPalette({ user }: CommandPaletteProps) {
     <PDFExamImporterModal
       isOpen={isPdfImporterOpen}
       onClose={() => setIsPdfImporterOpen(false)}
+    />
+
+    {/* Modal de Folha de Véspera em PDF de Bolso */}
+    <PocketSummaryModal
+      isOpen={isPocketSummaryOpen}
+      onClose={() => setIsPocketSummaryOpen(false)}
+      targetRole={user?.targetRole || undefined}
+    />
+
+    {/* Modal de Duelo de Precedentes STF/STJ */}
+    <PrecedentDuelModal
+      isOpen={isPrecedentDuelOpen}
+      onClose={() => setIsPrecedentDuelOpen(false)}
     />
   </>
   );

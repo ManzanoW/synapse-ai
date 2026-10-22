@@ -3,6 +3,7 @@
 import React, { useState, useTransition, useCallback, useEffect } from "react";
 import {
   Scale,
+  Swords,
   Search,
   Sparkles,
   Layers,
@@ -48,6 +49,7 @@ import {
 import { updateUserCareerFocusAction } from "@/actions/edital-templates-actions";
 import { enableLawModuleInTargetRole } from "@/lib/career-utils";
 import { PrintableJurisprudenceModal } from "./_components/PrintableJurisprudenceModal";
+import { PrecedentDuelModal } from "./_components/PrecedentDuelModal";
 
 interface JurisprudenciaClientProps {
   initialItems: JurisprudenceItem[];
@@ -93,6 +95,16 @@ export default function JurisprudenciaClient({
   const [bookmarkedIds, setBookmarkedIds] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<"ALL" | "SAVED">("ALL");
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
+  const [isDuelModalOpen, setIsDuelModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleOpenDuel = () => {
+      setIsDuelModalOpen(true);
+      triggerHaptic("medium");
+    };
+    window.addEventListener("open-precedent-duel", handleOpenDuel);
+    return () => window.removeEventListener("open-precedent-duel", handleOpenDuel);
+  }, []);
 
   // Carrega favoritos salvos do localStorage
   useEffect(() => {
@@ -457,6 +469,15 @@ export default function JurisprudenciaClient({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsDuelModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl border border-amber-500/40 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
+            >
+              <Swords size={15} className="text-amber-400" />
+              <span>⚔️ Duelo STF/STJ</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setIsPrintModalOpen(true)}
@@ -1088,6 +1109,12 @@ export default function JurisprudenciaClient({
         items={activeTab === "SAVED" ? items.filter((it) => Boolean(bookmarkedIds[it.id])) : items}
         tribunal={selectedTribunal}
         disciplina={selectedDisciplina}
+      />
+
+      {/* MODAL DE DUELO DE PRECEDENTES (STF/STJ) */}
+      <PrecedentDuelModal
+        isOpen={isDuelModalOpen}
+        onClose={() => setIsDuelModalOpen(false)}
       />
     </div>
   );

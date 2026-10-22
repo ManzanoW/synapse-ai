@@ -29,6 +29,7 @@ const SHORTCUTS_DATA: ShortcutItem[] = [
   { keys: ["G", "Q"], description: "Ir para o Banco de Questões & Simulados", category: "Navegação" },
   { keys: ["G", "F"], description: "Ir para Flashcards & Baralhos", category: "Navegação" },
   { keys: ["G", "E"], description: "Ir para o Edital Esquematizado", category: "Navegação" },
+  { keys: ["G", "L"], description: "Ir para a Lei Seca Interativa", category: "Navegação" },
   { keys: ["G", "C"], description: "Ir para o Cronograma de Ciclos da Semana", category: "Navegação" },
   { keys: ["G", "J"], description: "Ir para o Hub de Jurisprudência (STF/STJ)", category: "Navegação" },
   { keys: ["G", "N"], description: "Ir para o Caderno de Erros Ativo", category: "Navegação" },
@@ -128,6 +129,9 @@ export function KeyboardShortcutsModal() {
               break;
             case "E":
               router.push("/edital");
+              break;
+            case "L":
+              router.push("/lei-seca");
               break;
             case "C":
               router.push("/week");

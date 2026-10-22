@@ -115,6 +115,7 @@ export function QuestionCard({
   onClassifyError,
 }: QuestionCardProps) {
   const [eliminatedAlts, setEliminatedAlts] = useState<Record<string, boolean>>({});
+  const [confidence, setConfidence] = useState<"HIGH" | "EDUCATED_GUESS" | "BLIND_GUESS">("HIGH");
   const [selectedReason, setSelectedReason] = useState<ErrorClassification | null>(null);
   const [isMentorOpen, setIsMentorOpen] = useState(false);
   const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
@@ -698,6 +699,58 @@ export function QuestionCard({
               </div>
             </div>
 
+            {/* Seletor de Confianca da Resposta (Detector de Chutes) */}
+            <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800 p-1 rounded-xl w-full sm:w-auto justify-center">
+              <span className="text-[10px] text-slate-500 font-mono px-1.5 hidden md:inline">
+                Confiança:
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setConfidence("HIGH");
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                  confidence === "HIGH"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Certeza absoluta da matéria"
+              >
+                🟢 Certeza
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setConfidence("EDUCATED_GUESS");
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                  confidence === "EDUCATED_GUESS"
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Chute técnico com eliminação de alternativas"
+              >
+                🟡 Chute Técnico
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setConfidence("BLIND_GUESS");
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                  confidence === "BLIND_GUESS"
+                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Chute no escuro sem convicção"
+              >
+                🔴 Chute no Escuro
+              </button>
+            </div>
+
             <button
               disabled={!alternativaSelecionada}
               onClick={handleAnswer}
@@ -713,6 +766,20 @@ export function QuestionCard({
           </div>
         ) : (
           <div className="rounded-xl p-3.5 sm:p-4 animate-in fade-in duration-300 bg-slate-950/80 border border-slate-800/80 space-y-3">
+            {acertou && confidence !== "HIGH" && (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-300 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <Target size={14} className="text-amber-400 shrink-0" />
+                  <span>
+                    <strong>Acerto por Chute detectado!</strong> A IA catalogou este tópico para revisão ativa e validação futura de retenção.
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-200 shrink-0 font-bold">
+                  Fixação Necessária
+                </span>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
               <div className="flex items-center gap-2 font-bold text-xs">
                 {acertou ? (

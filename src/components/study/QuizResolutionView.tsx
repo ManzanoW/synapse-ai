@@ -45,6 +45,8 @@ import { MentorCopilotDrawer } from "@/components/mentor/MentorCopilotDrawer";
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 
+export type AnswerConfidence = "CERTEZA" | "CHUTE_TECNICO" | "CHUTE_ESCURO";
+
 export interface QuizResolutionViewProps {
   quizId?: string | null;
   banca?: string;
@@ -132,6 +134,7 @@ export function QuizResolutionView({
   >(initialErrorClassifications);
 
   // Alternativas riscadas/eliminadas pelo candidato
+  const [answerConfidences, setAnswerConfidences] = useState<Record<number, AnswerConfidence>>({});
   const [eliminatedAlts, setEliminatedAlts] = useState<
     Record<number, Record<string, boolean>>
   >({});
@@ -1344,6 +1347,69 @@ export function QuizResolutionView({
                       })}
                 </div>
 
+                {/* Seletor de Confiança da Resposta (Detector de Chute Consciente) */}
+                {!isCurrentAnswered && currentSelectedAlt && (
+                  <div className="mt-4 p-3 rounded-2xl bg-slate-900/60 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs animate-in fade-in duration-150 backdrop-blur-md">
+                    <span className="text-slate-300 font-semibold flex items-center gap-1.5">
+                      <Target size={14} className="text-violet-400" />
+                      <span>Grau de certeza nesta resposta:</span>
+                    </span>
+                    <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setAnswerConfidences((prev) => ({
+                            ...prev,
+                            [activeQuestionIndex]: "CERTEZA",
+                          }));
+                        }}
+                        className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          (answerConfidences[activeQuestionIndex] ?? "CERTEZA") === "CERTEZA"
+                            ? "bg-emerald-500/20 border border-emerald-400 text-emerald-300 shadow-sm shadow-emerald-500/20"
+                            : "bg-white/5 border border-transparent text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        🟢 Certeza
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setAnswerConfidences((prev) => ({
+                            ...prev,
+                            [activeQuestionIndex]: "CHUTE_TECNICO",
+                          }));
+                        }}
+                        className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          answerConfidences[activeQuestionIndex] === "CHUTE_TECNICO"
+                            ? "bg-amber-500/20 border border-amber-400 text-amber-300 shadow-sm shadow-amber-500/20"
+                            : "bg-white/5 border border-transparent text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        🟡 Chute Técnico
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setAnswerConfidences((prev) => ({
+                            ...prev,
+                            [activeQuestionIndex]: "CHUTE_ESCURO",
+                          }));
+                        }}
+                        className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          answerConfidences[activeQuestionIndex] === "CHUTE_ESCURO"
+                            ? "bg-rose-500/20 border border-rose-400 text-rose-300 shadow-sm shadow-rose-500/20"
+                            : "bg-white/5 border border-transparent text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        🔴 No Escuro
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* ================================================================= */}
                 {/* BOX DE JUSTIFICATIVA EXPANSÍVEL + APROFUNDAR COM IA */}
                 {/* ================================================================= */}
@@ -1378,6 +1444,11 @@ export function QuizResolutionView({
 
                         {/* Comparativo de Gabarito */}
                         <div className="flex items-center gap-1.5 text-xs font-mono">
+                          {isCurrentCorrect && answerConfidences[activeQuestionIndex] && answerConfidences[activeQuestionIndex] !== "CERTEZA" && (
+                            <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1">
+                              🎯 Acerto por Chute
+                            </span>
+                          )}
                           {!isCurrentCorrect && currentSelectedAlt && (
                             <>
                               <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">

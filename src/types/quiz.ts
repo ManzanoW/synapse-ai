@@ -1,5 +1,7 @@
 // src/types/quiz.ts
 
+export type ConfidenceLevel = "HIGH" | "EDUCATED_GUESS" | "BLIND_GUESS";
+
 export type ErrorClassification =
   | "THEORY_GAP"
   | "CONTENT_GAP"
@@ -17,6 +19,7 @@ export interface QuestionAnswerSubmission {
   selectedOption: number | string;
   isCorrect: boolean;
   timeSpentSeconds: number;
+  confidenceLevel?: ConfidenceLevel;
   errorReason?: ErrorClassification | string;
   questionText?: string;
   options?: Array<{ id: string; texto: string }> | string[];

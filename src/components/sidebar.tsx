@@ -44,6 +44,7 @@ import {
   PenTool,
   Scale,
   Mic,
+  ScrollText,
   Sun,
   Moon,
   X,
@@ -124,6 +125,12 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/mapas-mentais",
         icon: Brain,
         badge: "IA",
+      },
+      {
+        label: "Lei Seca Interativa",
+        href: "/lei-seca",
+        icon: ScrollText,
+        badge: "NOVO",
       },
       {
         label: "Jurisprudência",
