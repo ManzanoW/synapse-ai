@@ -521,7 +521,7 @@ export function ErrorNotebookView({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
               {/* Botão 1: Refazer as Mesmas Questões (Grátis) */}
               <button
                 disabled={isGeneratingDirectRevenge || isGeneratingRedemption}
