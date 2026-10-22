@@ -729,7 +729,7 @@ export function EditalSkillTree({
                     subColor={subColor}
                     isSelected={selectedTopic?.id === t.id}
                     isPro={isPro}
-                    onSelect={() => setSelectedTopic(t)}
+                    onSelect={() => setSelectedTopic({ ...t, subjectId: t.subjectId || group.subject.id, subjectName: t.subjectName || group.subject.name })}
                     onOpenProIncidence={() => setShowProIncidenceModal(true)}
                     index={idx}
                   />
@@ -750,6 +750,8 @@ export function EditalSkillTree({
           );
           const activeColor =
             activeSubject?.color || selectedTopic.subjectColor || "#6366f1";
+          const resolvedSubjectId = activeSubject?.id || selectedTopic.subjectId || "";
+          const resolvedSubjectName = activeSubject?.name || selectedTopic.subjectName || "";
           const m = getTopicMastery(selectedTopic);
 
           return (
@@ -868,11 +870,25 @@ export function EditalSkillTree({
 
                 {/* Ações Táticas Rápidas para o Nó */}
                 <div className="space-y-2 pt-2 relative z-10">
+                  {/* 1. Botão Direto para Ler Aula da Trilha */}
+                  <Link
+                    href={`/trilhas?topicId=${encodeURIComponent(selectedTopic.id)}`}
+                    onClick={() => setSelectedTopic(null)}
+                    className="w-full py-3 px-4 rounded-xl text-white text-xs font-bold transition-all shadow-md flex items-center justify-between cursor-pointer active:scale-95 group bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/20"
+                  >
+                    <div className="flex items-center gap-2">
+                      <BookOpen size={15} />
+                      <span>Ler Aula da Trilha (Teoria & Resumo)</span>
+                    </div>
+                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+
+                  {/* 2. Botão Direto para Fazer Questões do Tópico Pré-Filtrado */}
                   <Link
                     href={
-                      selectedTopic.subjectId
-                        ? `/questions?subjectId=${encodeURIComponent(selectedTopic.subjectId)}&topicId=${encodeURIComponent(selectedTopic.id)}`
-                        : "/questions"
+                      resolvedSubjectId || resolvedSubjectName
+                        ? `/questions?subjectId=${encodeURIComponent(resolvedSubjectId)}&topicId=${encodeURIComponent(selectedTopic.id)}&subject=${encodeURIComponent(resolvedSubjectName)}&topic=${encodeURIComponent(selectedTopic.title)}`
+                        : `/questions?topicId=${encodeURIComponent(selectedTopic.id)}&topic=${encodeURIComponent(selectedTopic.title)}`
                     }
                     onClick={() => setSelectedTopic(null)}
                     className="w-full py-3 px-4 rounded-xl text-white text-xs font-bold transition-all shadow-md flex items-center justify-between cursor-pointer active:scale-95 group"
@@ -888,15 +904,18 @@ export function EditalSkillTree({
                     <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                   </Link>
 
+                  {/* 3. Botão para Flashcards com Filtro Ativo do Assunto */}
                   <Link
-                    href="/flashcards"
+                    href={`/flashcards/decks?search=${encodeURIComponent(resolvedSubjectName || selectedTopic.title)}`}
                     onClick={() => setSelectedTopic(null)}
                     className="w-full py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95 group shadow-xs dark:shadow-none"
                     style={{ borderColor: hexToRgba(activeColor, 0.25) }}
                   >
                     <div className="flex items-center gap-2">
                       <Layers size={15} style={{ color: activeColor }} />
-                      <span>Revisar Flashcards Vinculados</span>
+                      <span>
+                        Revisar Flashcards Vinculados {resolvedSubjectName ? `(${resolvedSubjectName})` : ""}
+                      </span>
                     </div>
                     <ArrowRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                   </Link>

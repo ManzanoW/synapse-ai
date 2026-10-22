@@ -73,25 +73,45 @@ export function ErrorMetricsHeader({
 
   return (
     <div className="space-y-6 mb-8">
-      {/* 1. Header Hero Title */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs font-medium mb-2 backdrop-blur-md">
-            <Sparkles size={14} className="text-violet-400 animate-pulse" />
-            <span>Aprenda com seus Erros & Fixe o Conteúdo</span>
+      {/* 1. Header Hero Title & Action Toolbar */}
+      <div className="space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs font-medium mb-2 backdrop-blur-md">
+              <Sparkles size={14} className="text-violet-400 animate-pulse" />
+              <span>Aprenda com seus Erros & Fixe o Conteúdo</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+              <span className="p-2 rounded-xl bg-gradient-to-br from-violet-600/30 to-rose-600/30 border border-violet-500/30 text-violet-300 shadow-lg shadow-violet-500/10">
+                <BookOpenCheck className="w-7 h-7" />
+              </span>
+              Caderno de Erros Inteligente
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base mt-1 max-w-2xl">
+              Converta falhas em aprovação: entenda por que errou cada questão (falta de atenção, pegadinha ou matéria nova) e faça exercícios com IA para nunca mais errar na prova.
+            </p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <span className="p-2 rounded-xl bg-gradient-to-br from-violet-600/30 to-rose-600/30 border border-violet-500/30 text-violet-300 shadow-lg shadow-violet-500/10">
-              <BookOpenCheck className="w-7 h-7" />
-            </span>
-            Caderno de Erros Inteligente
-          </h1>
-          <p className="text-slate-400 text-sm md:text-base mt-1 max-w-2xl">
-            Converta falhas em aprovação: entenda por que errou cada questão (falta de atenção, pegadinha ou matéria nova) e faça exercícios com IA para nunca mais errar na prova.
-          </p>
+
+          {/* Ação Primária em Destaque ao lado do título (se houver pendentes) */}
+          {onOpenRemediationModal && pendingErrors > 0 && (
+            <div className="w-full sm:w-auto shrink-0 flex items-center">
+              <button
+                type="button"
+                onClick={onOpenRemediationModal}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 via-violet-600 to-rose-600 hover:from-amber-400 hover:via-violet-500 hover:to-rose-500 text-white text-xs md:text-sm font-extrabold shadow-lg shadow-violet-600/30 border border-amber-400/40 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer group min-h-[44px]"
+              >
+                <Zap size={16} className="text-amber-300 fill-amber-300 animate-pulse group-hover:scale-110 transition-transform" />
+                <span>Treinar Questões que Errei</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-black/30 text-amber-200 border border-white/20">
+                  {pendingErrors} pendentes
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full sm:w-auto shrink-0">
+        {/* 2. Barra de Ferramentas e Ações Rápidas (Wrap fluido, 100% contido e responsivo) */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 pt-2 border-t border-white/5">
           {onToggleSpotlight && (
             <SpotlightTriggerButton
               accentColor="emerald"
@@ -105,20 +125,20 @@ export function ErrorMetricsHeader({
               <button
                 type="button"
                 onClick={() => onOpenExportModal("print")}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-200 border border-violet-500/40 text-xs md:text-sm font-bold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[44px]"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-200 border border-violet-500/40 text-xs font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[38px]"
                 title="Apostila diagramada para impressão/PDF das suas questões erradas"
               >
-                <Printer size={16} className="text-violet-400" />
+                <Printer size={15} className="text-violet-400" />
                 <span>Apostila (PDF)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => onOpenExportModal("anki")}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 border border-blue-500/40 text-xs md:text-sm font-bold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[44px]"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 border border-blue-500/40 text-xs font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[38px]"
                 title="Exportar Caderno de Erros diretamente para o Anki (.txt)"
               >
-                <Download size={16} className="text-blue-400" />
+                <Download size={15} className="text-blue-400" />
                 <span>Exportar Anki</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-500/30 text-blue-300 font-mono font-bold">
                   .txt
@@ -132,39 +152,25 @@ export function ErrorMetricsHeader({
               type="button"
               onClick={onBatchCreateFlashcards}
               disabled={isCreatingBatchFlashcards}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 text-xs md:text-sm font-bold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[44px]"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 text-xs font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[38px]"
               title="Cria Cartões de Memória com todos os seus erros pendentes para revisar depois"
             >
               {isCreatingBatchFlashcards ? (
-                <Loader2 size={16} className="animate-spin text-indigo-400" />
+                <Loader2 size={15} className="animate-spin text-indigo-400" />
               ) : (
-                <Layers size={16} className="text-indigo-400" />
+                <Layers size={15} className="text-indigo-400" />
               )}
               <span>Virar Cartões de Memória</span>
             </button>
           )}
 
-          {onOpenRemediationModal && pendingErrors > 0 && (
-            <button
-              type="button"
-              onClick={onOpenRemediationModal}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-violet-600 to-rose-600 hover:from-amber-400 hover:via-violet-500 hover:to-rose-500 text-white text-xs md:text-sm font-extrabold shadow-lg shadow-violet-600/30 border border-amber-400/40 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer group min-h-[44px]"
-            >
-              <Zap size={16} className="text-amber-300 fill-amber-300 animate-pulse group-hover:scale-110 transition-transform" />
-              <span>Treinar Questões que Errei</span>
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-black/30 text-amber-200 border border-white/20">
-                {pendingErrors} pendentes
-              </span>
-            </button>
-          )}
-
           <Link
             href="/questions"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-white text-xs md:text-sm font-semibold shadow-md border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] min-h-[44px]"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white text-xs font-semibold shadow-sm border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] min-h-[38px]"
           >
-            <FileStack size={16} />
+            <FileStack size={15} />
             <span>Ir para Questões</span>
-            <ArrowRight size={14} className="opacity-70" />
+            <ArrowRight size={13} className="opacity-70" />
           </Link>
         </div>
       </div>

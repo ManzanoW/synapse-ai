@@ -17,6 +17,7 @@ import {
   Download,
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Deck } from "@/types";
 import CreateDeckModal from "@/components/decks/CreateDeckModal";
 import { AnkiExportModal } from "@/components/flashcards/AnkiExportModal";
@@ -85,7 +86,14 @@ function getSubjectTheme(color?: string | null, name?: string) {
 export default function DecksPage() {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams?.get("search") || searchParams?.get("subject") || "";
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+
+  useEffect(() => {
+    const q = searchParams?.get("search") || searchParams?.get("subject");
+    if (q) setSearchQuery(q);
+  }, [searchParams]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [exportDeck, setExportDeck] = useState<{ id: string; title: string } | null>(null);

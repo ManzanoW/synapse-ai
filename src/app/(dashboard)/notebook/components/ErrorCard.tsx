@@ -64,6 +64,7 @@ interface ErrorCardProps {
   isConvertingId?: string | null;
   convertedIds?: Set<string>;
   onSaveFlashcard?: (id: string) => Promise<void> | void;
+  index?: number;
 }
 
 const TAXONOMY_ICONS: Record<string, React.ElementType> = {
@@ -81,6 +82,7 @@ export function ErrorCard({
   isConvertingId,
   convertedIds,
   onSaveFlashcard,
+  index,
 }: ErrorCardProps) {
   const { refreshStats } = useGamification();
 
@@ -391,15 +393,20 @@ export function ErrorCard({
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: -10 }}
       transition={{ duration: 0.3 }}
-      className={`rounded-2xl backdrop-blur-xl border transition-all duration-300 overflow-hidden shadow-xl ${
+      className={`rounded-3xl backdrop-blur-xl border transition-all duration-300 overflow-hidden shadow-2xl relative ${
         isMastered
-          ? "bg-slate-900/50 border-emerald-500/30 hover:border-emerald-500/50 shadow-emerald-950/10"
-          : "bg-slate-900/70 border-violet-500/20 hover:border-violet-500/40 shadow-violet-950/15"
+          ? "bg-slate-900/80 border-emerald-500/30 hover:border-emerald-500/50 shadow-emerald-950/15 border-l-4 border-l-emerald-500"
+          : "bg-slate-900/85 border-white/10 hover:border-rose-500/40 shadow-rose-950/20 border-l-4 border-l-rose-500"
       }`}
     >
       {/* 1. Header do Card */}
       <div className="p-4 sm:p-5 border-b border-white/5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
+          {index !== undefined && (
+            <span className="px-2.5 py-1 rounded-xl text-xs font-black font-mono bg-white/10 text-white border border-white/10 shadow-xs">
+              #{index}
+            </span>
+          )}
           {/* Matéria e Tópico */}
           {errorItem.subject && (
             <span
@@ -464,14 +471,14 @@ export function ErrorCard({
       {/* 2. Corpo do Card: Enunciado e Comparação de Respostas */}
       <div className="p-4 sm:p-5 space-y-4">
         {/* Enunciado */}
-        <div className="text-sm md:text-base text-slate-200 leading-relaxed">
+        <div className="text-[15px] sm:text-base text-slate-100 font-sans leading-relaxed tracking-normal p-1">
           {renderFormattedText(errorItem.questionText)}
         </div>
 
         {/* Comparação: O que você marcou vs. Gabarito Oficial */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-3">
           {/* Alternativa marcada pelo aluno */}
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-start gap-2.5">
+          <div className="p-3.5 rounded-2xl bg-rose-950/30 border border-rose-500/30 flex items-start gap-3 shadow-inner">
             <div className="p-1 rounded-full bg-rose-500/20 text-rose-400 mt-0.5 shrink-0">
               <X size={14} />
             </div>
@@ -479,14 +486,14 @@ export function ErrorCard({
               <span className="font-semibold text-rose-300 block mb-0.5">
                 Sua Resposta:
               </span>
-              <span className="text-slate-200">
+              <span className="text-sm font-bold text-white block mt-0.5">
                 {errorItem.userAnswer || "Não informada"}
               </span>
             </div>
           </div>
 
           {/* Gabarito oficial correto */}
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-start gap-2.5">
+          <div className="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 flex items-start gap-3 shadow-inner">
             <div className="p-1 rounded-full bg-emerald-500/20 text-emerald-400 mt-0.5 shrink-0">
               <Check size={14} />
             </div>
@@ -494,7 +501,7 @@ export function ErrorCard({
               <span className="font-semibold text-emerald-300 block mb-0.5">
                 Resposta Correta (Gabarito):
               </span>
-              <span className="text-slate-200 font-medium">
+              <span className="text-sm font-bold text-emerald-200 block mt-0.5">
                 {errorItem.correctAnswer}
               </span>
             </div>

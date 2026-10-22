@@ -124,7 +124,7 @@ export function PricingSection() {
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className="mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto items-stretch pt-3 sm:pt-4">
+        <div className="mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-7xl mx-auto items-stretch pt-3 sm:pt-4">
           {/* ================= CARD 1: PLANO GRATUITO ================= */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -201,10 +201,10 @@ export function PricingSection() {
             {/* Volumetric Aura Glow behind Pro card */}
             <div className="pointer-events-none absolute -inset-2 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-cyan-500/15 rounded-3xl blur-2xl -z-10 group-hover:opacity-100 opacity-70 transition-opacity" />
 
-            {/* Top Amber Ribbon */}
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5 whitespace-nowrap z-20">
-              <Crown className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
-              <span>Mais Escolhido • Alta Capacidade & Zero Anúncios</span>
+            {/* Top Ribbon */}
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-indigo-500 via-indigo-400 to-cyan-400 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg shadow-indigo-500/30 flex items-center gap-1.5 whitespace-nowrap z-20">
+              <Sparkles className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+              <span>Mais Escolhido • Alta Capacidade</span>
             </div>
 
             {/* Inner Content Card com Vidro Temperado */}
@@ -275,6 +275,106 @@ export function PricingSection() {
                   className="w-full group inline-flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 border border-cyan-400/30 hover:border-cyan-300 shadow-xl shadow-indigo-500/25 hover:shadow-cyan-500/35 transition-all duration-200 active:scale-[0.98]"
                 >
                   <span>Quero Ser Synapse Pro</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+
+                <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-mono">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Garantia incondicional de 7 dias • Cancele com 1 clique</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ================= CARD 3: PLANO SYNAPSE ELITE ================= */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="rounded-3xl p-[2px] relative group shadow-2xl shadow-amber-950/80 transition-all duration-300 hover:scale-[1.01]"
+          >
+            {/* Border Beam Neon Contínuo Dourado / Âmbar */}
+            <BorderBeam duration={6} colorFrom="#f59e0b" colorTo="#f97316" />
+
+            {/* Volumetric Aura Glow behind Elite card */}
+            <div className="pointer-events-none absolute -inset-2 bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-yellow-500/15 rounded-3xl blur-2xl -z-10 group-hover:opacity-100 opacity-70 transition-opacity" />
+
+            {/* Top Amber Ribbon */}
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-orange-400 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg shadow-amber-500/40 flex items-center gap-1.5 whitespace-nowrap z-20">
+              <Crown className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+              <span>Substitui Cursinhos • Piloto Automático</span>
+            </div>
+
+            {/* Inner Content Card com Vidro Temperado Âmbar */}
+            <div className="relative rounded-[22px] bg-gradient-to-b from-[#1a1205] via-[#070b14] to-[#180d04] border border-amber-500/40 p-6 sm:p-8 flex flex-col justify-between backdrop-blur-2xl h-full z-10">
+              <div className="space-y-6 pt-2">
+                <div className="space-y-1.5">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-300">
+                    Mentoria & Teoria Sob Medida
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-2xl font-black text-white">Synapse Elite</h3>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono font-black">
+                      MENTOR IA 👑
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Para quem quer cronograma mastigado, teorias adaptativas e o mais alto nível de processamento com IA.
+                  </p>
+                </div>
+
+                <div className="py-3 border-y border-amber-500/20">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl sm:text-5xl font-black text-white">
+                      {billingCycle === "ANNUAL" ? "R$ 49,90" : "R$ 64,90"}
+                    </span>
+                    <span className="text-xs text-slate-300 font-bold">/mês</span>
+                    {billingCycle === "ANNUAL" && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/35 text-amber-300 font-mono text-[10px] font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+                        ~R$ 1,66 / dia
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-amber-300 mt-1 font-semibold font-mono">
+                    {billingCycle === "ANNUAL"
+                      ? "R$ 598,80 faturado anualmente (Economia de R$ 180/ano)"
+                      : "Assinatura mensal sem fidelidade ou carência"}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <span className="text-xs font-mono uppercase tracking-wider text-amber-200 font-black block">
+                    Tudo do Pro + Exclusividades Elite:
+                  </span>
+                  <ul className="space-y-2.5 text-xs text-slate-200">
+                    {[
+                      "120 Ajudas com IA por dia (Prioridade Máxima nos Servidores)",
+                      "Teoria Viva: Aulas que se adaptam aos seus erros nos simulados",
+                      "Detector de Pegadinhas e Armadilhas frequentes da Banca",
+                      "Diferenciação de Conceitos com quadros comparativos inteligentes",
+                      "Lembrete de Conteúdo a Esquecer (Revisão relâmpago de 60s)",
+                      "Resumo de Véspera A4 Imprimível e Personalizado",
+                      "Reescrita Modelo Nota 10 em todas as redações discursivas",
+                      "Áudio-Aulas Hands-Free & Flashcards com Síntese Neural",
+                      "100% Zero Anúncios (Foco Total)",
+                    ].map((feat, i) => (
+                      <li key={i} className="flex items-start gap-2.5 font-medium">
+                        <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="pt-8 space-y-3">
+                <Link
+                  href="/login"
+                  className="w-full group inline-flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-black text-sm text-slate-950 bg-gradient-to-r from-amber-400 via-amber-300 to-orange-400 hover:from-amber-300 hover:to-orange-300 border border-amber-300/60 shadow-xl shadow-amber-500/25 hover:shadow-orange-500/35 transition-all duration-200 active:scale-[0.98]"
+                >
+                  <Crown className="w-4 h-4 fill-slate-950 text-slate-950" />
+                  <span>Quero Ser Synapse Elite</span>
                   <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
 
