@@ -1424,6 +1424,49 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                     const isSimulado = lesson.lessonType === "SIMULADO";
                     const isNextUp = idx === firstPendingIdx;
 
+                    // Identifica disciplina, tópico e banca vinculados à aula/simulado
+                    const relatedSubject =
+                      lesson.subject ||
+                      (lesson.subjectId ? editalSubjects.find((s: any) => s.id === lesson.subjectId) : null) ||
+                      theoryLessonsOfSelectedWeek[0]?.subject ||
+                      (theoryLessonsOfSelectedWeek[0]?.subjectId
+                        ? editalSubjects.find((s: any) => s.id === theoryLessonsOfSelectedWeek[0].subjectId)
+                        : null) ||
+                      null;
+
+                    const relatedSubjectName = relatedSubject?.name || "";
+                    const relatedSubjectId = relatedSubject?.id || lesson.subjectId || "";
+
+                    const relatedTopic =
+                      lesson.topic ||
+                      (lesson.topicId && relatedSubject
+                        ? relatedSubject.topics?.find((t: any) => t.id === lesson.topicId)
+                        : null) ||
+                      theoryLessonsOfSelectedWeek[0]?.topic ||
+                      (theoryLessonsOfSelectedWeek[0]?.topicId && relatedSubject
+                        ? relatedSubject.topics?.find((t: any) => t.id === theoryLessonsOfSelectedWeek[0].topicId)
+                        : null) ||
+                      null;
+
+                    const relatedTopicTitle = relatedTopic?.title || "";
+                    const relatedTopicId = relatedTopic?.id || lesson.topicId || "";
+
+                    const trailBanca = trail?.banca || "IBAM";
+                    const matchedQtd = lesson.title?.match(/(\d+)\s*quest/i);
+                    const questionsCount = matchedQtd ? matchedQtd[1] : "20";
+
+                    const questionsUrl =
+                      `/questions?banca=${encodeURIComponent(trailBanca)}` +
+                      (relatedSubjectId ? `&subjectId=${encodeURIComponent(relatedSubjectId)}` : "") +
+                      (relatedSubjectName ? `&subject=${encodeURIComponent(relatedSubjectName)}` : "") +
+                      (relatedTopicId ? `&topicId=${encodeURIComponent(relatedTopicId)}` : "") +
+                      (relatedTopicTitle ? `&topic=${encodeURIComponent(relatedTopicTitle)}` : "") +
+                      `&qtd=${questionsCount}&trailLessonId=${encodeURIComponent(lesson.id)}&autoStart=1`;
+
+                    const flashcardsUrl = relatedSubjectName
+                      ? `/flashcards/decks?subject=${encodeURIComponent(relatedSubjectName)}&trailLessonId=${encodeURIComponent(lesson.id)}`
+                      : `/flashcards?trailLessonId=${encodeURIComponent(lesson.id)}`;
+
                     // Traduz títulos técnicos de FSRS para linguagem humana
                     const friendlyTitle = (lesson.title || "")
                       .replace(/Revisão Diária FSRS:\s*Flashcards de/i, "Cartões de Memorização:")
@@ -1502,7 +1545,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
 
                           {isFlashcard && (
                             <Link
-                              href="/flashcards"
+                              href={flashcardsUrl}
                               className="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] flex items-center gap-1.5 transition-all"
                             >
                               <Layers className="w-3.5 h-3.5" />
@@ -1512,7 +1555,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
 
                           {isSimulado && (
                             <Link
-                              href="/questions"
+                              href={questionsUrl}
                               className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 font-bold text-[11px] flex items-center gap-1.5 transition-all"
                             >
                               <Target className="w-3.5 h-3.5" />
