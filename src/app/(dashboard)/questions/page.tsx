@@ -659,6 +659,11 @@ export default function QuestoesPage() {
     return () => clearInterval(interval);
   }, [isTimerRunning, questions.length]);
 
+  // Reseta o cronômetro da questão atual ao trocar de questão para medição de pacing real
+  useEffect(() => {
+    setCurrentQuestionSeconds(0);
+  }, [focusedQuestionIndex]);
+
   const fetchSubjects = useCallback(async () => {
     setIsInitialLoading(true);
 
