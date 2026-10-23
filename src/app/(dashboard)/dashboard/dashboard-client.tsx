@@ -365,14 +365,30 @@ export default function DashboardClient({
 
   const getSuggestionUrl = (item: Suggestion): string => {
     let url = "/edital";
+    const matchedSubject = item.subjectId
+      ? subjects.find((s) => s.id === item.subjectId)
+      : null;
+    const resolvedSubjectName = matchedSubject?.name || "";
+
     if (item.actionUrl) {
       url = item.actionUrl;
     } else if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
-      url = item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+      const subjectParam = resolvedSubjectName
+        ? `&subject=${encodeURIComponent(resolvedSubjectName)}`
+        : item.subjectId
+          ? `&subjectId=${encodeURIComponent(item.subjectId)}`
+          : "";
+      url = item.topicId
+        ? `/questions?topicId=${item.topicId}${subjectParam}&autoStart=1`
+        : resolvedSubjectName
+          ? `/questions?subject=${encodeURIComponent(resolvedSubjectName)}&autoStart=1`
+          : "/questions";
     } else if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
       url = item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
     } else if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
-      url = "/flashcards";
+      url = resolvedSubjectName
+        ? `/flashcards/decks?subject=${encodeURIComponent(resolvedSubjectName)}`
+        : "/flashcards";
     } else {
       const titleLower = item.title?.toLowerCase() || "";
       if (
@@ -380,7 +396,11 @@ export default function DashboardClient({
         titleLower.includes("quiz") ||
         titleLower.includes("questõ")
       ) {
-        url = item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+        url = item.topicId
+          ? `/questions?topicId=${item.topicId}&autoStart=1`
+          : resolvedSubjectName
+            ? `/questions?subject=${encodeURIComponent(resolvedSubjectName)}&autoStart=1`
+            : "/questions";
       } else if (
         titleLower.includes("edital") ||
         titleLower.includes("avançar") ||
@@ -388,7 +408,9 @@ export default function DashboardClient({
       ) {
         url = item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
       } else if (titleLower.includes("card") || titleLower.includes("flashcard")) {
-        url = "/flashcards";
+        url = resolvedSubjectName
+          ? `/flashcards/decks?subject=${encodeURIComponent(resolvedSubjectName)}`
+          : "/flashcards";
       }
     }
 

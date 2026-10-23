@@ -778,6 +778,51 @@ export function ErrorCard({
                     )}
                   </div>
                 )}
+
+                {/* 5. Ações de Interconexão com Trilhas, Simulado e Flashcards */}
+                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-white/5 space-y-2.5">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                    🚀 Próximos Passos para Dominar este Conteúdo:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={
+                        errorItem.topicId
+                          ? `/trilhas?topicId=${encodeURIComponent(errorItem.topicId)}&openTheory=1`
+                          : errorItem.subjectId
+                            ? `/trilhas?subjectId=${encodeURIComponent(errorItem.subjectId)}`
+                            : "/trilhas"
+                      }
+                      className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+                    >
+                      <Sparkles size={12} className="text-amber-400" />
+                      <span>📖 Revisar Aula na Trilha</span>
+                    </Link>
+
+                    <Link
+                      href={`/questions?banca=${encodeURIComponent((errorItem as any).banca || "FGV")}` +
+                        (errorItem.subjectId ? `&subjectId=${encodeURIComponent(errorItem.subjectId)}` : "") +
+                        (errorItem.subject?.name ? `&subject=${encodeURIComponent(errorItem.subject.name)}` : "") +
+                        (errorItem.topicId ? `&topicId=${encodeURIComponent(errorItem.topicId)}` : "") +
+                        (errorItem.topic?.title ? `&topic=${encodeURIComponent(errorItem.topic.title)}` : "") +
+                        `&qtd=5&autoStart=1`}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+                    >
+                      <Target size={12} className="text-indigo-400" />
+                      <span>🎯 Treinar 5 Questões (${(errorItem as any).banca || "Banca"})</span>
+                    </Link>
+
+                    {errorItem.subject?.name && (
+                      <Link
+                        href={`/flashcards/decks?subject=${encodeURIComponent(errorItem.subject.name)}`}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+                      >
+                        <Layers size={12} className="text-emerald-400" />
+                        <span>🗂️ Baralho da Matéria</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

@@ -7,6 +7,7 @@ import React, {
   useTransition,
 } from "react";
 import {
+  Layers,
   Play,
   CheckCircle2,
   ChevronDown,
@@ -633,12 +634,21 @@ export function CycleView({
                             </Link>
 
                             <Link
-                              href={`/questions?subject=${encodeURIComponent(currentBlock.subjectName)}&topic=${encodeURIComponent(top.title)}`}
+                              href={`/questions?subject=${encodeURIComponent(currentBlock.subjectName)}&topic=${encodeURIComponent(top.title)}&autoStart=1`}
                               title="Treinar questões deste assunto"
                               className="px-2.5 py-1 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
                             >
                               <Target size={12} className="text-indigo-400" />
                               <span>Questões</span>
+                            </Link>
+
+                            <Link
+                              href={`/flashcards/decks?subject=${encodeURIComponent(currentBlock.subjectName)}`}
+                              title="Revisar flashcards deste assunto"
+                              className="px-2.5 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
+                            >
+                              <Layers size={12} className="text-emerald-400" />
+                              <span>Flashcards</span>
                             </Link>
                           </div>
                         </div>
@@ -813,12 +823,20 @@ export function CycleView({
                                 <span>Ler Aula</span>
                               </Link>
                               <Link
-                                href={`/questions?subject=${encodeURIComponent(block.subjectName)}&topic=${encodeURIComponent(top.title)}`}
+                                href={`/questions?subject=${encodeURIComponent(block.subjectName)}&topic=${encodeURIComponent(top.title)}&autoStart=1`}
                                 title="Treinar questões"
                                 className="px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold flex items-center gap-1"
                               >
                                 <Target size={10} />
                                 <span>Questões</span>
+                              </Link>
+                              <Link
+                                href={`/flashcards/decks?subject=${encodeURIComponent(block.subjectName)}`}
+                                title="Revisar flashcards"
+                                className="px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-[10px] font-bold flex items-center gap-1"
+                              >
+                                <Layers size={10} />
+                                <span>Flashcards</span>
                               </Link>
                             </div>
                           </div>
@@ -991,7 +1009,7 @@ export function CycleView({
                         </Link>
 
                         <Link
-                          href={`/questions?subject=${encodeURIComponent(activeSessionBlock.subjectName)}&topic=${encodeURIComponent(top.title)}`}
+                          href={`/questions?subject=${encodeURIComponent(activeSessionBlock.subjectName)}&topic=${encodeURIComponent(top.title)}&autoStart=1`}
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Treinar questões deste assunto em nova aba"
@@ -999,6 +1017,17 @@ export function CycleView({
                         >
                           <Target size={12} className="text-indigo-400" />
                           <span>Questões</span>
+                        </Link>
+
+                        <Link
+                          href={`/flashcards/decks?subject=${encodeURIComponent(activeSessionBlock.subjectName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Revisar flashcards deste assunto em nova aba"
+                          className="px-2.5 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                        >
+                          <Layers size={12} className="text-emerald-400" />
+                          <span>Flashcards</span>
                         </Link>
                       </div>
                     </div>
