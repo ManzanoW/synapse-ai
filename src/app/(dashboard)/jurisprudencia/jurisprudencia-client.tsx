@@ -488,7 +488,11 @@ export default function JurisprudenciaClient({
             </button>
 
             <Link
-              href="/questions"
+              href={
+                selectedDisciplina
+                  ? `/questions?materia=${encodeURIComponent(selectedDisciplina)}&subject=${encodeURIComponent(selectedDisciplina)}&banca=FGV&autoStart=1`
+                  : "/questions"
+              }
               className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-zinc-200 text-xs font-bold transition-all flex items-center gap-2 shadow-xs active:scale-95"
             >
               <HelpCircle size={15} className="text-amber-500" />
@@ -1034,7 +1038,7 @@ export default function JurisprudenciaClient({
 
                         {/* Botão Treinar Questões da Disciplina */}
                         <Link
-                          href={`/questions?materia=${encodeURIComponent(item.disciplina)}`}
+                          href={`/questions?materia=${encodeURIComponent(item.disciplina)}&subject=${encodeURIComponent(item.disciplina)}&topic=${encodeURIComponent(item.titulo || item.assunto || "")}&banca=FGV&autoStart=1`}
                           className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center gap-1.5 active:scale-95"
                         >
                           <HelpCircle size={13} />

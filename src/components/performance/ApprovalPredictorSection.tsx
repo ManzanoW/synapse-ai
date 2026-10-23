@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
+  BookOpen,
   BrainCircuit,
   Target,
   Sparkles,
@@ -881,7 +882,7 @@ export function ApprovalPredictorSection({
               {!questionGapMetrics.isAhead && questionGapMetrics.topLeverage.length > 0 && (
                 <div className="shrink-0 flex items-center gap-2">
                   <Link
-                    href={`/questions?subjectId=${encodeURIComponent(questionGapMetrics.topLeverage[0].name)}`}
+                    href={`/questions?subjectId=${encodeURIComponent(questionGapMetrics.topLeverage[0].name)}&subject=${encodeURIComponent(questionGapMetrics.topLeverage[0].name)}&autoStart=1`}
                     className="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-all shadow-md flex items-center gap-1.5 active:scale-95"
                   >
                     <span>
@@ -969,13 +970,24 @@ export function ApprovalPredictorSection({
                           )}
                         </div>
 
-                        <Link
-                          href={`/questions?subjectId=${encodeURIComponent(item.name)}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-violet-600/20 hover:bg-violet-600 border border-violet-500/30 hover:border-violet-500 text-violet-300 hover:text-white text-[11px] font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
-                        >
-                          <span>{isUntested ? "Fazer Diagnóstico" : "Treinar"}</span>
-                          <ArrowRight size={11} />
-                        </Link>
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={`/trilhas?subjectId=${encodeURIComponent(item.name)}&subject=${encodeURIComponent(item.name)}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
+                            title="Ver aulas e teoria na trilha"
+                          >
+                            <BookOpen size={11} />
+                            <span>Teoria</span>
+                          </Link>
+
+                          <Link
+                            href={`/questions?subjectId=${encodeURIComponent(item.name)}&subject=${encodeURIComponent(item.name)}&autoStart=1`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-violet-600/20 hover:bg-violet-600 border border-violet-500/30 hover:border-violet-500 text-violet-300 hover:text-white text-[11px] font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
+                          >
+                            <span>{isUntested ? "Fazer Diagnóstico" : "Treinar"}</span>
+                            <ArrowRight size={11} />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   );

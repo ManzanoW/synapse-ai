@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -76,6 +78,14 @@ export function ErrorNotebookView({
 
   // Estado de Paginação (lotes de 10 em 10)
   const [questions, setQuestions] = useState<Question[]>(initialItems || []);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const shouldOpenRevenge = searchParams.get("openRevenge") === "1";
+    if (shouldOpenRevenge && !isRedemptionOpen && !isGeneratingDirectRevenge) {
+      handleStartDirectRevenge(10);
+    }
+  }, [searchParams]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);

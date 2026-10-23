@@ -96,6 +96,8 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   const [lessonNotes, setLessonNotes] = useState<string>("");
   const [notesSaveStatus, setNotesSaveStatus] = useState<string>("✓ Salvo no banco");
   const [isSpeakingAudio, setIsSpeakingAudio] = useState(false);
+  const [isPlaylistMode, setIsPlaylistMode] = useState(false);
+  const [playlistIndex, setPlaylistIndex] = useState(0);
   const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>("pt-BR-FranciscaNeural");
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioAbortRef = useRef<boolean>(false);
@@ -315,6 +317,51 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
       });
     } catch {
       return false;
+    }
+  }
+
+  function startWeekPlaylist() {
+    if (theoryLessonsOfSelectedWeek.length === 0) {
+      showToast("Nenhuma aula teórica nesta semana para reproduzir.");
+      return;
+    }
+    setIsPlaylistMode(true);
+    setPlaylistIndex(0);
+    const firstLesson = theoryLessonsOfSelectedWeek[0];
+    setActiveLessonId(firstLesson.id);
+    showToast(`🎧 Iniciando Playlist Hands-Free da Semana ${selectedWeek}...`);
+    setTimeout(() => {
+      void toggleAudioLesson();
+    }, 400);
+  }
+
+  function handlePlaylistNext() {
+    if (playlistIndex + 1 < theoryLessonsOfSelectedWeek.length) {
+      const nextIdx = playlistIndex + 1;
+      setPlaylistIndex(nextIdx);
+      const nextLesson = theoryLessonsOfSelectedWeek[nextIdx];
+      setActiveLessonId(nextLesson.id);
+      stopAudioNarration();
+      setTimeout(() => {
+        void toggleAudioLesson();
+      }, 300);
+    } else {
+      setIsPlaylistMode(false);
+      stopAudioNarration();
+      showToast("🎉 Fim da Playlist Hands-Free da Semana!");
+    }
+  }
+
+  function handlePlaylistPrev() {
+    if (playlistIndex > 0) {
+      const prevIdx = playlistIndex - 1;
+      setPlaylistIndex(prevIdx);
+      const prevLesson = theoryLessonsOfSelectedWeek[prevIdx];
+      setActiveLessonId(prevLesson.id);
+      stopAudioNarration();
+      setTimeout(() => {
+        void toggleAudioLesson();
+      }, 300);
     }
   }
 
@@ -1400,13 +1447,35 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
             {/* 3. METAS E AULAS DA SEMANA SELECIONADA (FOCO PRINCIPAL IMEDIATO) */}
             <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/50 border border-slate-800/90 space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap w-full">
                   <span className="text-xs font-bold text-white">
                     📋 Seu Roteiro de Estudo da Semana {selectedWeek}
                   </span>
                   <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-mono">
                     {currentWeekStats.done} de {currentWeekStats.total} tarefas prontas
                   </span>
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button
+                      type="button"
+                      onClick={startWeekPlaylist}
+                      className="px-2.5 py-1 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-[10px] font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                      title="Ouvir todas as aulas da semana em sequência (Hands-Free para trânsito/treino)"
+                    >
+                      <Headphones className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>🎧 Playlist Hands-Free</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={printPersonalEveSheetA4}
+                      className="px-2.5 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[10px] font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                      title="Exportar Folha de Véspera A4 Imprimível desta Semana"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-amber-400" />
+                      <span>📄 Folha de Véspera A4</span>
+                    </button>
+                  </div>
                 </div>
 
                 <span className="text-[11px] text-slate-400">
@@ -1423,6 +1492,49 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                     const isFlashcard = lesson.lessonType === "FLASHCARDS";
                     const isSimulado = lesson.lessonType === "SIMULADO";
                     const isNextUp = idx === firstPendingIdx;
+
+                    // Identifica disciplina, tópico e banca vinculados à aula/simulado
+                    const relatedSubject =
+                      lesson.subject ||
+                      (lesson.subjectId ? editalSubjects.find((s: any) => s.id === lesson.subjectId) : null) ||
+                      theoryLessonsOfSelectedWeek[0]?.subject ||
+                      (theoryLessonsOfSelectedWeek[0]?.subjectId
+                        ? editalSubjects.find((s: any) => s.id === theoryLessonsOfSelectedWeek[0].subjectId)
+                        : null) ||
+                      null;
+
+                    const relatedSubjectName = relatedSubject?.name || "";
+                    const relatedSubjectId = relatedSubject?.id || lesson.subjectId || "";
+
+                    const relatedTopic =
+                      lesson.topic ||
+                      (lesson.topicId && relatedSubject
+                        ? relatedSubject.topics?.find((t: any) => t.id === lesson.topicId)
+                        : null) ||
+                      theoryLessonsOfSelectedWeek[0]?.topic ||
+                      (theoryLessonsOfSelectedWeek[0]?.topicId && relatedSubject
+                        ? relatedSubject.topics?.find((t: any) => t.id === theoryLessonsOfSelectedWeek[0].topicId)
+                        : null) ||
+                      null;
+
+                    const relatedTopicTitle = relatedTopic?.title || "";
+                    const relatedTopicId = relatedTopic?.id || lesson.topicId || "";
+
+                    const trailBanca = trail?.banca || "IBAM";
+                    const matchedQtd = lesson.title?.match(/(\d+)\s*quest/i);
+                    const questionsCount = matchedQtd ? matchedQtd[1] : "20";
+
+                    const questionsUrl =
+                      `/questions?banca=${encodeURIComponent(trailBanca)}` +
+                      (relatedSubjectId ? `&subjectId=${encodeURIComponent(relatedSubjectId)}` : "") +
+                      (relatedSubjectName ? `&subject=${encodeURIComponent(relatedSubjectName)}` : "") +
+                      (relatedTopicId ? `&topicId=${encodeURIComponent(relatedTopicId)}` : "") +
+                      (relatedTopicTitle ? `&topic=${encodeURIComponent(relatedTopicTitle)}` : "") +
+                      `&qtd=${questionsCount}&trailLessonId=${encodeURIComponent(lesson.id)}&autoStart=1`;
+
+                    const flashcardsUrl = relatedSubjectName
+                      ? `/flashcards/decks?subject=${encodeURIComponent(relatedSubjectName)}&trailLessonId=${encodeURIComponent(lesson.id)}`
+                      : `/flashcards?trailLessonId=${encodeURIComponent(lesson.id)}`;
 
                     // Traduz títulos técnicos de FSRS para linguagem humana
                     const friendlyTitle = (lesson.title || "")
@@ -1502,7 +1614,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
 
                           {isFlashcard && (
                             <Link
-                              href="/flashcards"
+                              href={flashcardsUrl}
                               className="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] flex items-center gap-1.5 transition-all"
                             >
                               <Layers className="w-3.5 h-3.5" />
@@ -1512,7 +1624,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
 
                           {isSimulado && (
                             <Link
-                              href="/questions"
+                              href={questionsUrl}
                               className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 font-bold text-[11px] flex items-center gap-1.5 transition-all"
                             >
                               <Target className="w-3.5 h-3.5" />
@@ -2858,6 +2970,62 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                 </Link>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Mini Player Flutuante da Playlist Hands-Free */}
+      {isPlaylistMode && theoryLessonsOfSelectedWeek.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-lg bg-slate-950/95 border-2 border-indigo-500/50 rounded-2xl shadow-2xl shadow-indigo-950/80 p-3 sm:p-4 backdrop-blur-2xl flex items-center justify-between gap-3 text-white animate-in slide-in-from-bottom-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center shrink-0 text-indigo-300">
+              <Headphones className="w-4 h-4 animate-pulse" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-mono font-bold text-indigo-300 uppercase tracking-wider block">
+                Playlist Hands-Free • Aula {playlistIndex + 1} de {theoryLessonsOfSelectedWeek.length}
+              </span>
+              <p className="text-xs font-bold truncate text-slate-100">
+                {theoryLessonsOfSelectedWeek[playlistIndex]?.title || "Aula em áudio"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handlePlaylistPrev}
+              disabled={playlistIndex === 0}
+              className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 disabled:opacity-40 cursor-pointer"
+              title="Aula Anterior"
+            >
+              ⏮
+            </button>
+            <button
+              type="button"
+              onClick={toggleAudioLesson}
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs cursor-pointer shadow-md"
+            >
+              {isSpeakingAudio ? "⏸ Pausar" : "▶ Tocar"}
+            </button>
+            <button
+              type="button"
+              onClick={handlePlaylistNext}
+              className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 cursor-pointer"
+              title="Próxima Aula"
+            >
+              ⏭
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsPlaylistMode(false);
+                stopAudioNarration();
+              }}
+              className="p-2 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer ml-1"
+              title="Fechar Playlist"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}

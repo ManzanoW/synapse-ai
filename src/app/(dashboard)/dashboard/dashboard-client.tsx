@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from "react";
 import Link from "next/link";
+import { PocketSummaryModal } from "@/components/summary/PocketSummaryModal";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import SubjectCard from "@/components/subject-card";
@@ -362,17 +363,34 @@ export default function DashboardClient({
 
   // Boletim Semanal do Concurseiro Modal
   const [isWeeklyReportOpen, setIsWeeklyReportOpen] = useState(false);
+  const [isPocketSummaryOpen, setIsPocketSummaryOpen] = useState(false);
 
   const getSuggestionUrl = (item: Suggestion): string => {
     let url = "/edital";
+    const matchedSubject = item.subjectId
+      ? subjects.find((s) => s.id === item.subjectId)
+      : null;
+    const resolvedSubjectName = matchedSubject?.name || "";
+
     if (item.actionUrl) {
       url = item.actionUrl;
     } else if (item.actionType === "QUIZ" || item.actionType === "SIMULADO") {
-      url = item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+      const subjectParam = resolvedSubjectName
+        ? `&subject=${encodeURIComponent(resolvedSubjectName)}`
+        : item.subjectId
+          ? `&subjectId=${encodeURIComponent(item.subjectId)}`
+          : "";
+      url = item.topicId
+        ? `/questions?topicId=${item.topicId}${subjectParam}&autoStart=1`
+        : resolvedSubjectName
+          ? `/questions?subject=${encodeURIComponent(resolvedSubjectName)}&autoStart=1`
+          : "/questions";
     } else if (item.actionType === "EDITAL" || item.actionType === "PLANNER") {
       url = item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
     } else if (item.actionType === "CARDS" || item.actionType === "FLASHCARDS") {
-      url = "/flashcards";
+      url = resolvedSubjectName
+        ? `/flashcards/decks?subject=${encodeURIComponent(resolvedSubjectName)}`
+        : "/flashcards";
     } else {
       const titleLower = item.title?.toLowerCase() || "";
       if (
@@ -380,7 +398,11 @@ export default function DashboardClient({
         titleLower.includes("quiz") ||
         titleLower.includes("questõ")
       ) {
-        url = item.topicId ? `/questions?topicId=${item.topicId}` : "/questions";
+        url = item.topicId
+          ? `/questions?topicId=${item.topicId}&autoStart=1`
+          : resolvedSubjectName
+            ? `/questions?subject=${encodeURIComponent(resolvedSubjectName)}&autoStart=1`
+            : "/questions";
       } else if (
         titleLower.includes("edital") ||
         titleLower.includes("avançar") ||
@@ -388,7 +410,9 @@ export default function DashboardClient({
       ) {
         url = item.subjectId ? `/edital?subjectId=${item.subjectId}` : "/edital";
       } else if (titleLower.includes("card") || titleLower.includes("flashcard")) {
-        url = "/flashcards";
+        url = resolvedSubjectName
+          ? `/flashcards/decks?subject=${encodeURIComponent(resolvedSubjectName)}`
+          : "/flashcards";
       }
     }
 
@@ -1425,19 +1449,45 @@ export default function DashboardClient({
                   </Link>
 
                   <Link
-                    href={getHref("/questions?filter=errors")}
-                    className="flex items-center justify-between p-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 hover:bg-rose-50 hover:border-rose-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:bg-rose-950/30 dark:hover:border-rose-500/30 transition-all group/btn"
+                    href={getHref("/notebook?openRevenge=1")}
+                    className="flex items-center justify-between p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 dark:border-rose-500/40 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 transition-all group/btn shadow-sm"
                   >
                     <div>
-                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                        Caderno de Erros
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-rose-500 dark:text-rose-300 block">
+                          ⚡ Exterminar Erros
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500/20 text-rose-300">
+                          1-Clique
+                        </span>
+                      </div>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Remediação de falhas
+                        Simulado relâmpago de redenção
                       </span>
                     </div>
-                    <ArrowRight size={14} className="text-slate-400 group-hover/btn:translate-x-1 group-hover/btn:text-rose-500 transition-all" />
+                    <ArrowRight size={14} className="text-rose-400 group-hover/btn:translate-x-1 transition-all" />
                   </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsPocketSummaryOpen(true)}
+                    className="flex items-center justify-between p-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 dark:border-amber-500/40 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 transition-all group/btn cursor-pointer text-left shadow-sm"
+                  >
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-amber-600 dark:text-amber-300 block">
+                          📄 Folha de Véspera A4
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-300">
+                          PDF
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Resumo de bolso & pegadinhas
+                      </span>
+                    </div>
+                    <ArrowRight size={14} className="text-amber-400 group-hover/btn:translate-x-1 transition-all" />
+                  </button>
 
                   <Link
                     href={getHref("/questions?scan=true")}

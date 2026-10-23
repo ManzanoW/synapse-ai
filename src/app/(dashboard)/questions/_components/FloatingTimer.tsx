@@ -197,6 +197,16 @@ export function FloatingTimer({
           </div>
         )}
 
+        {/* Alerta Visual de Pacing de Prova Real (> 2m30s) */}
+        {currentQuestionSeconds >= 150 && isRunning && !isExpanded && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-950/95 border border-amber-500/50 text-amber-200 text-[11px] shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2">
+            <AlertTriangle size={13} className="text-amber-400 shrink-0 animate-bounce" />
+            <span>
+              <strong>Pacing:</strong> +2m30s nesta questão. Marque para revisão e avance se estiver em dúvida!
+            </span>
+          </div>
+        )}
+
         {/* Painel Expansível de Pacing Real-Time */}
         {isVisible && isExpanded && (
           <div className="w-64 bg-[#0a0f20]/95 border border-white/10 backdrop-blur-2xl rounded-xl p-3 shadow-xl text-slate-200 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">

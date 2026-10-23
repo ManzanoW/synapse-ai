@@ -73,6 +73,7 @@ import {
   submitQuizAttemptAction,
   getSubjectDomainStatsAction,
 } from "@/actions/quiz-actions";
+import { toggleTrailLessonCompletionAction } from "@/actions/trail-actions";
 import { generateTargetedDeckAction } from "@/actions/deck-actions";
 import {
   getErrorMetricsAction,
@@ -353,6 +354,7 @@ export default function QuestoesPage() {
   } | null>(null);
 
   // Modal IA / Edital
+  const [trailLessonId, setTrailLessonId] = useState<string | null>(null);
   const [materia, setMateria] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [specificTopic, setSpecificTopic] = useState("");
@@ -657,6 +659,11 @@ export default function QuestoesPage() {
     return () => clearInterval(interval);
   }, [isTimerRunning, questions.length]);
 
+  // Reseta o cronômetro da questão atual ao trocar de questão para medição de pacing real
+  useEffect(() => {
+    setCurrentQuestionSeconds(0);
+  }, [focusedQuestionIndex]);
+
   const fetchSubjects = useCallback(async () => {
     setIsInitialLoading(true);
 
@@ -692,6 +699,19 @@ export default function QuestoesPage() {
 
       const paramSubjectId = searchParams.get("subjectId") || searchParams.get("subject");
       const paramTopicId = searchParams.get("topicId") || searchParams.get("topic");
+      const paramBanca = searchParams.get("banca");
+      const paramQtd = searchParams.get("qtd");
+      const paramTrailLessonId = searchParams.get("trailLessonId");
+
+      if (paramBanca) {
+        setBanca(decodeURIComponent(paramBanca));
+      }
+      if (paramQtd) {
+        setQtdQuestoes(paramQtd);
+      }
+      if (paramTrailLessonId) {
+        setTrailLessonId(paramTrailLessonId);
+      }
 
       if (paramSubjectId) {
         const decodedSubject = decodeURIComponent(paramSubjectId);
@@ -743,7 +763,7 @@ export default function QuestoesPage() {
         setMateria((prev) => prev || loadedSubjects[0].name);
       }
 
-      if (paramTopicId || paramSubjectId) {
+      if (paramTopicId || paramSubjectId || paramBanca) {
         setIsAIModalOpen(true);
       }
     } catch (err) {
@@ -931,6 +951,14 @@ export default function QuestoesPage() {
           });
 
           const data = await response.json();
+          if (trailLessonId) {
+            toggleTrailLessonCompletionAction({
+              lessonId: trailLessonId,
+              completed: true,
+              studyMinutes: Math.round(timerSeconds / 60) || 20,
+            }).catch((err) => console.error("[questions] Erro ao sincronizar conclusão da trilha:", err));
+          }
+
           const earnedXp = attemptResult.success
             ? attemptResult.data?.earnedXp || data.earnedXp || 0
             : data.earnedXp || 0;
@@ -1530,6 +1558,14 @@ export default function QuestoesPage() {
                     .catch(() => null),
                   syncQuizWithSM2(finalAcc).catch(() => null),
                 ]);
+
+                if (trailLessonId) {
+                  toggleTrailLessonCompletionAction({
+                    lessonId: trailLessonId,
+                    completed: true,
+                    studyMinutes: Math.round(finalData.timerSeconds / 60) || 20,
+                  }).catch((err) => console.error("[questions] Erro ao sincronizar conclusão da trilha:", err));
+                }
 
                 const earnedXp = attemptResult?.success
                   ? attemptResult.data?.earnedXp || saveResponse?.earnedXp || baseEarnedXp
