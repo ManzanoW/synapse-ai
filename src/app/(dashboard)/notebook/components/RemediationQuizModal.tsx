@@ -26,6 +26,7 @@ import {
 } from "@/actions/error-notebook-actions";
 import { TAXONOMY_METADATA, normalizeTaxonomy } from "@/lib/error-taxonomy";
 import { useGamification } from "@/context/GamificationContext";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface SubjectOption {
   id: string;
@@ -268,6 +269,7 @@ export function RemediationQuizModal({
         });
 
         // Som e efeitos visuais
+        triggerHaptic(isCorrect ? "success" : "warning");
         if (isCorrect) {
           playSound("correct");
           confetti({

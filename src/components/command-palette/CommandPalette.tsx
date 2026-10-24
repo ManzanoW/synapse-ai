@@ -503,6 +503,21 @@ export function CommandPalette({ user }: CommandPaletteProps) {
         keywords: ["tema", "modo claro", "modo escuro", "light", "dark"],
       },
       {
+        id: "action-sync-offline",
+        title: "Sincronizar Dados Offline & Limpar Trava de Rede",
+        subtitle: "Força o reenvio de revisões salvas localmente e valida a conexão ativa com a nuvem",
+        category: "Ações Rápidas",
+        icon: UploadCloud,
+        badge: "Offline",
+        action: () => {
+          triggerHaptic("medium");
+          window.dispatchEvent(new Event("online"));
+          playChime();
+          setIsOpen(false);
+        },
+        keywords: ["offline", "sincronizar", "rede", "conexao", "fila", "nuvem", "limpar"],
+      },
+      {
         id: "action-toggle-high-contrast",
         title: isHighContrast ? "Desativar Modo Alto Contraste / E-Ink" : "Ativar Modo Alto Contraste / E-Ink",
         subtitle: "Remove gradientes e brilhos para contraste nítido em leitura prolongada ou dispositivos e-ink",

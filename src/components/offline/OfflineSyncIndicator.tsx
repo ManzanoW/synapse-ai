@@ -83,6 +83,20 @@ export function OfflineSyncIndicator() {
           </>
         )}
 
+        {!isOnline && (
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic("medium");
+              triggerSync();
+            }}
+            className="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[10px] font-bold transition-all active:scale-95 cursor-pointer border border-amber-500/30 shrink-0"
+            title="Tentar reconectar com a nuvem agora"
+          >
+            <RefreshCw size={11} />
+            <span>Reconectar</span>
+          </button>
+        )}
         {isOnline && pendingCount > 0 && !isSyncing && (
           <button
             type="button"
