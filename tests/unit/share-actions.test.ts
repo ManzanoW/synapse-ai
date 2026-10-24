@@ -1,6 +1,7 @@
 // tests/unit/share-actions.test.ts
 import { describe, it, expect, vi } from "vitest";
 import { getPublicDeckAction, clonePublicDeckAction, getPublicMindmapAction } from "@/actions/share-actions";
+import { clearSensitiveUserStorage } from "@/lib/privacy/clear-user-storage";
 
 vi.mock("@/auth", () => ({
   auth: vi.fn().mockResolvedValue({
@@ -41,6 +42,24 @@ vi.mock("@/lib/prisma", () => ({
             ],
           });
         }
+        if (where.id === "deck-full-civil-name") {
+          return Promise.resolve({
+            id: "deck-full-civil-name",
+            title: "Direito Penal",
+            color: "bg-indigo-600",
+            createdAt: new Date("2026-01-01"),
+            subject: { name: "Direito Penal" },
+            topic: { title: "Teoria do Crime" },
+            user: {
+              id: "creator-2",
+              name: "João Victor Almeida Santos",
+              image: null,
+              role: "USER",
+              planTier: "FREE",
+            },
+            flashcards: [],
+          });
+        }
         return Promise.resolve(null);
       }),
       create: vi.fn().mockResolvedValue({
@@ -54,7 +73,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-describe("Public Share Actions (Viral Deck & Mindmap Sharing)", () => {
+describe("Public Share Actions & Client Storage Hygiene (LGPD)", () => {
   it("deve carregar dados públicos de um baralho sem vazar dados sensíveis do criador", async () => {
     const res = await getPublicDeckAction("deck-123");
 
@@ -67,6 +86,13 @@ describe("Public Share Actions (Viral Deck & Mindmap Sharing)", () => {
     // Não expõe id interno, email ou senhas
     expect(res.data?.author).not.toHaveProperty("id");
     expect(res.data?.author).not.toHaveProperty("email");
+  });
+
+  it("deve abreviar nomes civis completos (3+ palavras) em links públicos de baralho (Minimização LGPD)", async () => {
+    const res = await getPublicDeckAction("deck-full-civil-name");
+
+    expect(res.success).toBe(true);
+    expect(res.data?.author.name).toBe("João S.");
   });
 
   it("deve clonar o baralho com FSRS zerado para o usuário conectado", async () => {
@@ -84,5 +110,48 @@ describe("Public Share Actions (Viral Deck & Mindmap Sharing)", () => {
     expect(res.data?.title).toBe("Controle de Constitucionalidade");
     expect(res.data?.subject).toBe("Direito Constitucional");
     expect(res.data?.rootNode).toBeDefined();
+  });
+
+  it("deve limpar todas as chaves sensíveis do localStorage no Logout mantendo apenas tema e consentimento", () => {
+    const store: Record<string, string> = {
+      synapse_quick_scratchpad: "Minhas notas secretas",
+      synapse_offline_sync_queue_v1: '[{"id":"1"}]',
+      synapse_study_room_notes: "Resumo privado",
+      synapse_recent_commands: '["edital-top-1"]',
+      "synapse-theme": "dark",
+      synapse_lgpd_consent_v1: "accepted",
+    };
+
+    const mockStorage = {
+      get length() {
+        return Object.keys(store).length;
+      },
+      key: (idx: number) => Object.keys(store)[idx] ?? null,
+      getItem: (k: string) => store[k] ?? null,
+      setItem: (k: string, v: string) => {
+        store[k] = v;
+      },
+      removeItem: (k: string) => {
+        delete store[k];
+      },
+      clear: () => {
+        for (const k of Object.keys(store)) delete store[k];
+      },
+    };
+
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("localStorage", mockStorage);
+    vi.stubGlobal("sessionStorage", { removeItem: vi.fn(), clear: vi.fn() });
+
+    clearSensitiveUserStorage();
+
+    expect(store["synapse_quick_scratchpad"]).toBeUndefined();
+    expect(store["synapse_offline_sync_queue_v1"]).toBeUndefined();
+    expect(store["synapse_study_room_notes"]).toBeUndefined();
+    expect(store["synapse_recent_commands"]).toBeUndefined();
+    expect(store["synapse-theme"]).toBe("dark");
+    expect(store["synapse_lgpd_consent_v1"]).toBe("accepted");
+
+    vi.unstubAllGlobals();
   });
 });

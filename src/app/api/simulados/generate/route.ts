@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     console.error("Erro ao gerar simulado em /api/simulados/generate:", error);
 
     return NextResponse.json(
-      { error: "Falha ao gerar simulado.", details: errorMessage },
+      { error: "Falha ao gerar simulado." },
       { status: 500 },
     );
   }

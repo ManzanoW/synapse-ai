@@ -195,7 +195,7 @@ export async function GET(request: Request) {
       } catch (subErr) {
         console.error("❌ Erro no modo subjects:", subErr);
         return NextResponse.json(
-          { error: "Erro interno no modo subjects", details: String(subErr) },
+          { error: "Erro interno no modo subjects" },
           { status: 500 },
         );
       }
@@ -231,7 +231,7 @@ export async function GET(request: Request) {
     console.error("❌ ERRO NO GET /api/edital:", error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: message },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }
@@ -444,7 +444,7 @@ export async function POST(request: Request) {
     console.error("❌ ERRO NO POST /api/edital:", error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: message },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }

@@ -255,7 +255,7 @@ export async function POST(request: Request) {
       : "Falha ao analisar o edital.";
 
     return NextResponse.json(
-      { error: userFriendlyMessage, details: errorMessage },
+      { error: userFriendlyMessage },
       { status: isQuotaError ? 429 : 500 },
     );
   }

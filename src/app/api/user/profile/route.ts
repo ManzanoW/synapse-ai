@@ -227,11 +227,19 @@ export async function DELETE(req: Request) {
       // Ignora em contextos de teste sem cookieStore ativo
     }
 
-    return NextResponse.json({
-      success: true,
-      message:
-        "Conta e todos os dados pessoais e pedagógicos foram eliminados permanentemente em conformidade com o Art. 18, VI da LGPD.",
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "Conta e todos os dados pessoais e pedagógicos foram eliminados permanentemente em conformidade com o Art. 18, VI da LGPD.",
+      },
+      {
+        headers: {
+          "Cache-Control": "private, no-store, no-cache, must-revalidate",
+          "Clear-Site-Data": '"cookies", "storage"',
+        },
+      },
+    );
   } catch (error) {
     console.error("Erro no endpoint DELETE /api/user/profile (LGPD Erasure):", error);
     return NextResponse.json(

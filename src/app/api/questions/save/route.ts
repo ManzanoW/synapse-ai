@@ -433,7 +433,7 @@ export async function POST(request: Request) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Erro ao salvar quiz e tentativas:", error);
     return NextResponse.json(
-      { error: "Falha ao salvar quiz.", details: errorMessage },
+      { error: "Falha ao salvar quiz." },
       { status: 500 },
     );
   }

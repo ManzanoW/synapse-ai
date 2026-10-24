@@ -18,6 +18,7 @@ import {
   Lock,
 } from "lucide-react";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { clearSensitiveUserStorage } from "@/lib/privacy/clear-user-storage";
 
 interface LocalDataCounts {
   mindmapsCount: number;

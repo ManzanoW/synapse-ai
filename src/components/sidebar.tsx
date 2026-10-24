@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { clearSensitiveUserStorage } from "@/lib/privacy/clear-user-storage";
 
 interface SidebarProps {
   user?: {
@@ -349,6 +350,7 @@ export default function Sidebar({ user }: SidebarProps) {
       // 2. Limpar localStorage e sessionStorage no cliente
       if (typeof window !== "undefined") {
         try {
+          clearSensitiveUserStorage();
           localStorage.removeItem("synapse_demo_active");
           localStorage.removeItem("synapse-demo-session");
           localStorage.removeItem("auth_token");

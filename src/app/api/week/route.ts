@@ -134,7 +134,7 @@ export async function GET() {
     const message = error instanceof Error ? error.message : String(error);
     console.error("❌ ERRO NO GET /api/week:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: message },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }
@@ -391,7 +391,7 @@ export async function PATCH(request: Request) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("❌ ERRO GRAVE NO PATCH /api/week:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: message },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }

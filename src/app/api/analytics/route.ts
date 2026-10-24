@@ -124,7 +124,6 @@ export async function GET() {
     return NextResponse.json(
       {
         error: "Erro ao calcular analytics",
-        details: errorMessage,
       },
       { status: 500 },
     );

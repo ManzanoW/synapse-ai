@@ -31,6 +31,18 @@ const securityHeaders = [
   },
 ];
 
+const apiNoStoreHeaders = [
+  ...securityHeaders,
+  {
+    key: "Cache-Control",
+    value: "private, no-store, no-cache, must-revalidate",
+  },
+  {
+    key: "Pragma",
+    value: "no-cache",
+  },
+];
+
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["@prisma/client", "prisma"],
@@ -53,6 +65,10 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/api/:path*",
+        headers: apiNoStoreHeaders,
+      },
       {
         source: "/:path*",
         headers: securityHeaders,

@@ -167,7 +167,7 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("❌ ERRO NO POST /api/week/swap:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: message },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }

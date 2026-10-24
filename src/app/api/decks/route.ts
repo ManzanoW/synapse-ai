@@ -34,7 +34,7 @@ export async function GET() {
       error instanceof Error ? error.message : "Erro desconhecido";
     console.error("❌ Erro no GET /api/decks:", error);
     return NextResponse.json(
-      { error: "Falha ao buscar decks.", details: message },
+      { error: "Falha ao buscar decks." },
       { status: 500 },
     );
   }
@@ -183,7 +183,7 @@ export async function POST(request: Request) {
       error instanceof Error ? error.message : "Erro desconhecido";
     console.error("❌ Erro ao criar deck:", error);
     return NextResponse.json(
-      { error: "Falha ao processar deck.", details: message },
+      { error: "Falha ao processar deck." },
       { status: 500 },
     );
   }

@@ -18,7 +18,15 @@ export async function POST() {
     "next-auth.callback-url",
   ];
 
-  const response = NextResponse.json({ success: true, redirectUrl: "/login" });
+  const response = NextResponse.json(
+    { success: true, redirectUrl: "/login" },
+    {
+      headers: {
+        "Cache-Control": "private, no-store, no-cache, must-revalidate",
+        "Clear-Site-Data": '"cookies", "storage"',
+      },
+    },
+  );
 
   for (const cookieName of sessionCookieNames) {
     try {
