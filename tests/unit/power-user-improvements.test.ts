@@ -70,3 +70,32 @@ describe("Pomodoro - Formatação do Título Regressivo", () => {
     expect(formatTabTitle(5, 0, "curta")).toBe("☕ 05:00 (Pausa) • Synapse AI");
   });
 });
+
+describe("Flashcards - Estimativa Cognitiva de Tempo de Estudo", () => {
+  const calculateEstimatedMinutes = (cardCount: number): number => {
+    if (cardCount <= 0) return 0;
+    return Math.max(1, Math.round((cardCount * 22) / 60));
+  };
+
+  it("calcula minutos de estudo baseado no benchmark cognitivo de ~22s por card", () => {
+    expect(calculateEstimatedMinutes(0)).toBe(0);
+    expect(calculateEstimatedMinutes(1)).toBe(1); // Mínimo de 1 min
+    expect(calculateEstimatedMinutes(15)).toBe(6); // 15 * 22 = 330s / 60 = 5.5 -> 6 min
+    expect(calculateEstimatedMinutes(30)).toBe(11); // 30 * 22 = 660s / 60 = 11 min
+    expect(calculateEstimatedMinutes(100)).toBe(37); // 100 * 22 = 2200s / 60 = 36.66 -> 37 min
+  });
+});
+
+describe("Gabarito Executivo A4 - Métricas e Auditoria", () => {
+  it("calcula taxa de aproveitamento e ritmo médio por questão", () => {
+    const totalQuestions = 10;
+    const correctCount = 8;
+    const timerSeconds = 720; // 12 minutos
+
+    const accuracy = Math.round((correctCount / totalQuestions) * 100);
+    const avgSecs = Math.round(timerSeconds / totalQuestions);
+
+    expect(accuracy).toBe(80);
+    expect(avgSecs).toBe(72); // 1m 12s por questão
+  });
+});

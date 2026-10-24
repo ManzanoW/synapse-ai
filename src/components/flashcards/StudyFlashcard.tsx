@@ -29,6 +29,7 @@ import {
   WifiOff,
   RefreshCw,
   Headphones,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -784,6 +785,19 @@ export default function StudyFlashcard({
                 >
                   <Zap size={11} className={isLight ? "text-amber-600 fill-amber-600" : "text-amber-400 fill-amber-400"} />
                   <span>{currentTotalXp} XP</span>
+                </div>
+
+                <div
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-mono shadow-inner ${
+                    isLight
+                      ? "bg-indigo-50 border border-indigo-200/90 text-indigo-800"
+                      : "bg-indigo-500/10 border border-indigo-500/30 text-indigo-300"
+                  }`}
+                  title="Tempo estimado restante para concluir a sessão de revisão (~22s por card)"
+                >
+                  <Clock size={11} className="text-indigo-500 dark:text-indigo-400 shrink-0" />
+                  <span className="hidden sm:inline">~{Math.max(1, Math.round((Math.max(1, cards.length - currentIndex) * 22) / 60))} min restantes</span>
+                  <span className="sm:hidden">~{Math.max(1, Math.round((Math.max(1, cards.length - currentIndex) * 22) / 60))}m</span>
                 </div>
 
                 <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-mono shadow-inner ${

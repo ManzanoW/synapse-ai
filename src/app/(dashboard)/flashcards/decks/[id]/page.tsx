@@ -199,6 +199,13 @@ export default function DeckDetailPage({ params }: PageProps) {
                     {deck.subject.name}
                   </span>
                 )}
+                <span
+                  className="inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2.5 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-full"
+                  title="Tempo médio estimado de estudo (~22s por card)"
+                >
+                  <Clock size={11} className="text-indigo-400" />
+                  <span>~{Math.max(1, Math.round((flashcards.length * 22) / 60))} min de estudo</span>
+                </span>
               </div>
               <p className="text-slate-400 text-xs">
                 Gerencie seus cartões ou inicie o estudo com repetição espaçada.
@@ -272,12 +279,19 @@ export default function DeckDetailPage({ params }: PageProps) {
           />
         </div>
 
-        <div className="text-xs text-slate-400 font-medium self-end sm:self-center pr-1">
-          Exibindo{" "}
-          <span className="text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
-            {filteredCards.length}
-          </span>{" "}
-          de {flashcards.length} cards
+        <div className="text-xs text-slate-400 font-medium self-end sm:self-center pr-1 flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
+            <Clock size={12} className="text-indigo-400" />
+            ~{Math.max(1, Math.round((filteredCards.length * 22) / 60))} min
+          </span>
+          <span className="text-slate-600">•</span>
+          <span>
+            Exibindo{" "}
+            <span className="text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+              {filteredCards.length}
+            </span>{" "}
+            de {flashcards.length} cards
+          </span>
         </div>
       </div>
 
