@@ -1,5 +1,12 @@
 import type { NextConfig } from "next";
 
+const cspHeader = [
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  "object-src 'none'",
+].join("; ");
+
 const securityHeaders = [
   {
     key: "X-DNS-Prefetch-Control",
@@ -28,6 +35,10 @@ const securityHeaders = [
   {
     key: "X-Permitted-Cross-Domain-Policies",
     value: "none",
+  },
+  {
+    key: "Content-Security-Policy",
+    value: cspHeader,
   },
 ];
 

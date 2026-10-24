@@ -2,7 +2,7 @@
 
 /**
  * 🛡️ LGPD & AppSec (Proteção em Dispositivos Compartilhados):
- * Remove integralmente do localStorage e sessionStorage todos os rascunhos,
+ * Remove integralmente do localStorage, sessionStorage e IndexedDB todos os rascunhos,
  * anotações pessoais, filas de sincronização offline, históricos da Sala de Foco
  * e comandos recentes do usuário ao encerrar a sessão ou excluir a conta.
  *
@@ -21,6 +21,7 @@ const EXPLICIT_SENSITIVE_KEYS = [
   "synapse-demo-session",
   "auth_token",
   "synapse_offline_sync_queue_v1",
+  "synapse_offline_reviews_queue",
   "synapse_quick_scratchpad",
   "synapse_recent_commands",
   "synapse_study_room_notes",
@@ -42,7 +43,7 @@ export function clearSensitiveUserStorage(): void {
       sessionStorage.removeItem(key);
     }
 
-    // Varre quaisquer outras chaves dinâmicas do ecossistema Synapse (ex: rascunhos por ID)
+    // Varre quaisquer outras chaves dinâmicas do ecossistema Synapse (ex: rascunhos ou decks por ID)
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
@@ -59,6 +60,15 @@ export function clearSensitiveUserStorage(): void {
     }
 
     sessionStorage.clear();
+
+    // Limpa também o banco IndexedDB de sincronização offline (decks e revisões)
+    if (window.indexedDB && typeof window.indexedDB.deleteDatabase === "function") {
+      try {
+        window.indexedDB.deleteDatabase("synapse_offline_db");
+      } catch {
+        // Ignora se IndexedDB estiver bloqueado no navegador
+      }
+    }
   } catch (err) {
     console.warn("[Privacy] Aviso ao higienizar storage local:", err);
   }

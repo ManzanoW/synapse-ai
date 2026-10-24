@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 import { recordStudyActivityAction } from "@/actions/gamification-actions";
+import { isValidImageOrPdfSignature, sanitizeActionErrorMessage } from "@/lib/security/file-signature";
 
 export interface ScannedAlternative {
   id: string;
@@ -82,8 +83,14 @@ export async function scanQuestionFromImageAction(
       };
     }
 
-    // Converte para Base64
+    // Converte para Base64 e valida Magic Bytes reais da imagem/PDF
     const arrayBuffer = await file.arrayBuffer();
+    if (!isValidImageOrPdfSignature(new Uint8Array(arrayBuffer))) {
+      return {
+        success: false,
+        error: "O arquivo enviado não possui assinatura válida de imagem (PNG, JPEG, WEBP) ou PDF.",
+      };
+    }
     const buffer = Buffer.from(arrayBuffer);
     const base64Data = buffer.toString("base64");
 
@@ -258,9 +265,7 @@ Retorne EXCLUSIVAMENTE um objeto JSON estrito com esta estrutura:
     return {
       success: false,
       error:
-        error instanceof Error
-          ? error.message
-          : "Erro inesperado ao digitalizar questão com IA.",
+        sanitizeActionErrorMessage(error, "Erro inesperado ao digitalizar questão com IA."),
     };
   }
 }
@@ -342,9 +347,7 @@ export async function saveScannedQuestionToNotebookAction(input: {
     return {
       success: false,
       error:
-        error instanceof Error
-          ? error.message
-          : "Erro ao salvar no caderno de erros.",
+        sanitizeActionErrorMessage(error, "Erro ao salvar no caderno de erros."),
     };
   }
 }
@@ -410,9 +413,7 @@ export async function saveScannedQuestionToFlashcardAction(input: {
     return {
       success: false,
       error:
-        error instanceof Error
-          ? error.message
-          : "Erro ao salvar flashcard.",
+        sanitizeActionErrorMessage(error, "Erro ao salvar flashcard."),
     };
   }
 }

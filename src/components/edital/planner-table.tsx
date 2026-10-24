@@ -16,6 +16,7 @@ import {
   Scale,
   CheckCircle2,
   RotateCcw,
+  Clock,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { EditSubjectModal } from "./edit-subject-modal";
@@ -709,6 +710,21 @@ export function PlannerView({
                             <span>Ler Aula</span>
                           </Link>
 
+                          <Link
+                            href={`/study-room?subjectId=${encodeURIComponent(
+                              matchedSubject?.id || "",
+                            )}&subject=${encodeURIComponent(
+                              subjectName,
+                            )}&topicId=${encodeURIComponent(
+                              t.id,
+                            )}&topic=${encodeURIComponent(t.title)}`}
+                            className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1 px-2.5 py-2 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 text-xs font-bold rounded-xl border border-cyan-500/30 active:scale-95 transition-all"
+                            title="Abrir este assunto na Sala de Foco (Pomodoro)"
+                          >
+                            <Clock size={13} className="text-cyan-400" />
+                            <span>Focar</span>
+                          </Link>
+
                           {t.quizId ? (
                             <Link
                               href={`/questions?quizId=${t.quizId}`}
@@ -724,7 +740,9 @@ export function PlannerView({
                             <Link
                               href={`/questions?subjectId=${encodeURIComponent(
                                 subjectName,
-                              )}&topicId=${t.id}`}
+                              )}&topic=${encodeURIComponent(
+                                t.title,
+                              )}&topicId=${encodeURIComponent(t.id)}&autoStart=true`}
                               className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-2.5 py-2 bg-indigo-500/15 text-indigo-300 text-xs font-bold rounded-xl border border-indigo-500/30 active:scale-95 transition-all shadow-md shadow-indigo-500/10"
                             >
                               <Sparkles size={13} className="text-indigo-400" />

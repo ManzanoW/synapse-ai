@@ -5,6 +5,7 @@ import { PRESET_HEX_COLORS } from "@/constants/subjects";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { isUserPro } from "@/lib/subscription";
 import { extractText } from "unpdf";
+import { isValidPdfSignature } from "@/lib/security/file-signature";
 
 // Permite tempo suficiente para o Gemini processar editais longos sem timeout
 export const maxDuration = 60;
@@ -97,7 +98,14 @@ export async function POST(request: Request) {
         }
 
         const arrayBuffer = await file.arrayBuffer();
-        const { text: extracted } = await extractText(new Uint8Array(arrayBuffer), {
+        const pdfBytes = new Uint8Array(arrayBuffer);
+        if (!isValidPdfSignature(pdfBytes)) {
+          return NextResponse.json(
+            { error: "O arquivo enviado não possui assinatura binária válida de PDF (%PDF-)." },
+            { status: 400 },
+          );
+        }
+        const { text: extracted } = await extractText(pdfBytes, {
           mergePages: true,
         });
         rawInputText = (extracted as unknown as string) || "";
