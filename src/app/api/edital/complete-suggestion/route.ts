@@ -18,9 +18,25 @@ export async function POST(req: Request) {
       );
     }
 
+    // 🛡️ Prevenção de IDOR: Verifica se o tópico pertence a uma matéria do usuário autenticado
+    const ownedTopic = await prisma.topic.findFirst({
+      where: {
+        id: topicId,
+        subject: { userId: session.user.id },
+      },
+      select: { id: true },
+    });
+
+    if (!ownedTopic) {
+      return NextResponse.json(
+        { error: "Tópico não encontrado ou sem permissão" },
+        { status: 404 }
+      );
+    }
+
     // Atualiza a data do último quiz do tópico
     await prisma.topic.update({
-      where: { id: topicId },
+      where: { id: ownedTopic.id },
       data: {
         lastQuizAt: new Date(),
       },

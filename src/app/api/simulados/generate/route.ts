@@ -13,6 +13,13 @@ export async function POST(request: Request) {
     const session = await auth();
     const userId = session?.user?.id;
 
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Não autorizado. Faça login para gerar simulados." },
+        { status: 401 },
+      );
+    }
+
     const clientId = getClientIdentifier(request, userId);
     const rateCheck = checkRateLimitAndGenerateResponse(
       simuladoGenerationLimiter,

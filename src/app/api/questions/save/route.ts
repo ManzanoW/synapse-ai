@@ -65,8 +65,9 @@ export async function POST(request: Request) {
     }
 
     if (!resolvedTopicId && quizId) {
-      const existingQuiz = await prisma.quiz.findUnique({
-        where: { id: quizId },
+      // 🛡️ Prevenção de IDOR: filtra estritamente por userId ao resolver o tópico a partir do quizId
+      const existingQuiz = await prisma.quiz.findFirst({
+        where: { id: quizId, userId },
         select: { topicId: true },
       });
       if (existingQuiz?.topicId) {

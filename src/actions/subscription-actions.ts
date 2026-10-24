@@ -99,8 +99,28 @@ export async function toggleDemoPlanTierAction(
 
     const current = await prisma.user.findUnique({
       where: { id: userId },
-      select: { planTier: true },
+      select: { planTier: true, role: true, email: true },
     });
+
+    const isAdmin =
+      current?.role === "ADMIN" ||
+      Boolean(
+        current?.email &&
+          process.env.ADMIN_EMAIL &&
+          current.email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase(),
+      );
+
+    if (
+      process.env.NODE_ENV === "production" &&
+      process.env.ALLOW_DEMO_PLAN_TOGGLE === "false" &&
+      !isAdmin
+    ) {
+      return {
+        success: false,
+        newPlanTier: (current?.planTier as PlanTierType) || "FREE",
+        message: "Alternância de plano de demonstração desativada em produção.",
+      };
+    }
 
     let targetTier: PlanTierType;
     if (explicitTier) {

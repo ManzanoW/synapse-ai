@@ -35,10 +35,21 @@ export const authOptions: NextAuthConfig = {
         email: { label: "Email", type: "email" },
       },
       async authorize(credentials) {
+        // 🔒 Segurança AppSec: Nunca permite injeção de e-mail arbitrário (ex: ADMIN_EMAIL) via provider de demonstração
+        const rawEmail =
+          typeof credentials?.email === "string"
+            ? credentials.email.trim().toLowerCase()
+            : "";
+        const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+        const safeDemoEmail =
+          rawEmail && rawEmail === "estudante@synapse.ai" && rawEmail !== adminEmail
+            ? rawEmail
+            : "estudante@synapse.ai";
+
         return {
           id: "demo-user-id",
           name: "Estudante Synapse",
-          email: (credentials?.email as string) || "estudante@synapse.ai",
+          email: safeDemoEmail,
           image: null,
         };
       },
@@ -46,12 +57,12 @@ export const authOptions: NextAuthConfig = {
     Google({
       clientId: process.env.AUTH_GOOGLE_ID || process.env.AUTH_GOOGLE_CLIENT_ID || "placeholder-google-id",
       clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.AUTH_GOOGLE_CLIENT_SECRET || "placeholder-google-secret",
-      allowDangerousEmailAccountLinking: true,
+      allowDangerousEmailAccountLinking: process.env.ALLOW_OAUTH_EMAIL_LINKING === "true",
     }),
     GitHub({
       clientId: process.env.AUTH_GITHUB_ID || process.env.AUTH_GITHUB_CLIENT_ID || "placeholder-github-id",
       clientSecret: process.env.AUTH_GITHUB_SECRET || process.env.AUTH_GITHUB_CLIENT_SECRET || "placeholder-github-secret",
-      allowDangerousEmailAccountLinking: true,
+      allowDangerousEmailAccountLinking: process.env.ALLOW_OAUTH_EMAIL_LINKING === "true",
     }),
   ],
   callbacks: {

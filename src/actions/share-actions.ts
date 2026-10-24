@@ -50,7 +50,6 @@ export async function getPublicDeckAction(deckId: string): Promise<{
         topic: { select: { title: true } },
         user: {
           select: {
-            id: true,
             name: true,
             image: true,
             role: true,
@@ -73,8 +72,13 @@ export async function getPublicDeckAction(deckId: string): Promise<{
       return { success: false, error: "Baralho não encontrado ou removido." };
     }
 
-    const isPro = deck.user.role === "ADMIN" || deck.user.planTier === "PREMIUM";
+    const isPro =
+      deck.user.role === "ADMIN" ||
+      deck.user.planTier === "PREMIUM" ||
+      deck.user.planTier === "ELITE";
 
+    // 🛡️ LGPD (Art. 6º, III - Necessidade / Minimização de Dados):
+    // Nunca expõe ID interno, e-mail ou role administrativa privilegiada.
     const formatted: PublicDeckData = {
       id: deck.id,
       title: deck.title,
@@ -88,7 +92,7 @@ export async function getPublicDeckAction(deckId: string): Promise<{
         name: deck.user.name || "Estudante Synapse",
         image: deck.user.image,
         isPro,
-        role: deck.user.role,
+        role: "USER",
       },
     };
 

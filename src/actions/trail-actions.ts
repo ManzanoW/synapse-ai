@@ -1112,8 +1112,8 @@ export async function toggleTrailLessonCompletionAction(params: {
       include: { trail: true },
     });
 
-    if (!lesson) {
-      return { success: false, error: "Aula não encontrada." };
+    if (!lesson || (lesson.trail && lesson.trail.userId !== userId)) {
+      return { success: false, error: "Aula não encontrada ou sem permissão." };
     }
 
     const now = new Date();
@@ -1256,8 +1256,23 @@ export async function toggleTrailLessonCompletionAction(params: {
  */
 export async function setActiveTrailWeekAction(params: { trailId: string; weekNumber: number }) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Não autorizado." };
+    }
+
+    const ownedTrail = await prisma.studyTrail.findFirst({
+      where: { id: params.trailId, userId },
+      select: { id: true },
+    });
+
+    if (!ownedTrail) {
+      return { success: false, error: "Trilha não encontrada ou sem permissão." };
+    }
+
     const updated = await prisma.studyTrail.update({
-      where: { id: params.trailId },
+      where: { id: ownedTrail.id },
       data: { currentWeek: params.weekNumber },
     });
     revalidatePath("/trilhas");
@@ -1273,9 +1288,24 @@ export async function setActiveTrailWeekAction(params: { trailId: string; weekNu
  */
 export async function saveTrailLessonNotesAction(params: { lessonId: string; notes: string }) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Não autorizado." };
+    }
+
+    const ownedLesson = await prisma.trailLesson.findFirst({
+      where: { id: params.lessonId, trail: { userId } },
+      select: { id: true },
+    });
+
+    if (!ownedLesson) {
+      return { success: false, error: "Aula não encontrada ou sem permissão." };
+    }
+
     await prisma.trailLesson.update({
-      where: { id: params.lessonId },
-      data: { studentNotes: params.notes },
+      where: { id: ownedLesson.id },
+      data: { studentNotes: String(params.notes || "").slice(0, 20000) },
     });
     return { success: true };
   } catch (error) {
