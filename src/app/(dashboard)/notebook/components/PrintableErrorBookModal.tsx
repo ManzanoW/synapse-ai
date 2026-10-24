@@ -16,6 +16,9 @@ import {
   FileText,
   HelpCircle,
   Columns,
+  Table,
+  Copy,
+  FileSpreadsheet,
 } from "lucide-react";
 import { ErrorNotebookItem } from "@/types/quiz";
 import { TAXONOMY_METADATA } from "@/lib/error-taxonomy";
@@ -25,7 +28,7 @@ interface PrintableErrorBookModalProps {
   onClose: () => void;
   items: ErrorNotebookItem[];
   userName?: string | null;
-  initialTab?: "print" | "anki";
+  initialTab?: "print" | "anki" | "notion";
 }
 
 const TAXONOMY_LABELS: Record<string, { label: string; icon: React.ElementType }> = {
@@ -46,7 +49,9 @@ export function PrintableErrorBookModal({
   userName = "Concurseiro",
   initialTab = "print",
 }: PrintableErrorBookModalProps) {
-  const [activeTab, setActiveTab] = useState<"print" | "anki">(initialTab);
+  const [activeTab, setActiveTab] = useState<"print" | "anki" | "notion">(initialTab);
+  const [notionDownloaded, setNotionDownloaded] = useState<boolean>(false);
+  const [notionCopied, setNotionCopied] = useState<boolean>(false);
   const [selectedReason, setSelectedReason] = useState<string>("ALL");
   const [selectedSubject, setSelectedSubject] = useState<string>("ALL");
   const [onlyPending, setOnlyPending] = useState<boolean>(true);
@@ -93,6 +98,105 @@ export function PrintableErrorBookModal({
   }, [items, onlyPending, selectedReason, selectedSubject]);
 
   if (!isOpen) return null;
+
+
+  // Exportação para Notion / Planilhas (.csv formatado em UTF-8 BOM)
+  const handleExportCsv = () => {
+    if (filteredItems.length === 0) return;
+
+    const escapeCsv = (str: string | null | undefined) => {
+      if (!str) return '""';
+      const clean = str.replace(/"/g, '""');
+      return `"${clean}"`;
+    };
+
+    const headers = [
+      "ID",
+      "Materia",
+      "Enunciado",
+      "Alternativas",
+      "Sua Resposta",
+      "Gabarito Oficial",
+      "Classificacao do Erro",
+      "Fundamentacao",
+      "Diagnostico IA",
+      "Mnemonico",
+      "Status",
+    ];
+
+    const rows = filteredItems.map((item, idx) => {
+      const optionsText = Array.isArray(item.options)
+        ? item.options.map((o) => `${o.id}) ${o.texto}`).join(" | ")
+        : "";
+      const reasonMeta = item.errorReason ? TAXONOMY_METADATA[item.errorReason as keyof typeof TAXONOMY_METADATA] : null;
+      const reasonLabel = reasonMeta?.label || item.errorReason || "Geral";
+
+      return [
+        idx + 1,
+        escapeCsv(item.subject?.name || "Geral"),
+        escapeCsv(item.questionText),
+        escapeCsv(optionsText),
+        escapeCsv(item.userAnswer || "-"),
+        escapeCsv(item.correctAnswer || "-"),
+        escapeCsv(reasonLabel),
+        escapeCsv(item.explanation || "-"),
+        escapeCsv(item.aiExplanation || "-"),
+        escapeCsv(item.mnemonic || "-"),
+        escapeCsv(item.status === "MASTERED" ? "Superado" : "Pendente"),
+      ].join(",");
+    });
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `synapse-caderno-erros-notion-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setNotionDownloaded(true);
+    setTimeout(() => setNotionDownloaded(false), 4000);
+  };
+
+  const handleCopyNotionMarkdown = async () => {
+    if (filteredItems.length === 0) return;
+
+    let md = `# Caderno de Erros - Synapse AI (${new Date().toLocaleDateString("pt-BR")})\n\n`;
+    filteredItems.forEach((item, idx) => {
+      const reasonMeta = item.errorReason ? TAXONOMY_METADATA[item.errorReason as keyof typeof TAXONOMY_METADATA] : null;
+      const reasonLabel = reasonMeta?.label || item.errorReason || "Geral";
+      md += `### #${idx + 1} [${item.subject?.name || "Geral"}] ${reasonLabel}\n\n`;
+      md += `**Enunciado:**\n${item.questionText}\n\n`;
+      if (item.options && Array.isArray(item.options)) {
+        item.options.forEach((opt) => {
+          md += `- **${opt.id})** ${opt.texto}\n`;
+        });
+        md += `\n`;
+      }
+      md += `> **Gabarito Oficial:** \`${item.correctAnswer}\` (Sua marcacao: \`${item.userAnswer || "N/A"}\`)\n\n`;
+      if (item.explanation) {
+        md += `**Fundamentacao:**\n${item.explanation}\n\n`;
+      }
+      if (item.aiExplanation) {
+        md += `**Atencao da IA:**\n${item.aiExplanation}\n\n`;
+      }
+      if (item.mnemonic) {
+        md += `💡 **Mnemonico:** ${item.mnemonic}\n\n`;
+      }
+      md += `---\n\n`;
+    });
+
+    try {
+      await navigator.clipboard.writeText(md);
+      setNotionCopied(true);
+      setTimeout(() => setNotionCopied(false), 4000);
+    } catch (err) {
+      console.error("Falha ao copiar:", err);
+    }
+  };
 
   // Disparo de impressão
   const handlePrint = () => {
@@ -271,7 +375,21 @@ export function PrintableErrorBookModal({
                 }`}
               >
                 <Download size={14} />
-                <span>Exportar Anki (.txt)</span>
+                <span>Anki (.txt)</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "notion"}
+                onClick={() => setActiveTab("notion")}
+                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-violet-500 ${
+                  activeTab === "notion"
+                    ? "bg-emerald-600 text-white shadow"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Table size={14} />
+                <span>Notion / CSV</span>
               </button>
             </div>
 
@@ -504,7 +622,7 @@ export function PrintableErrorBookModal({
                   )}
                 </div>
               </div>
-            ) : (
+            ) : activeTab === "anki" ? (
               /* ABA DE EXPORTAÇÃO ANKI */
               <div className="max-w-2xl mx-auto space-y-5 py-4">
                 <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 space-y-4 shadow-xl text-center sm:text-left">
@@ -553,6 +671,77 @@ export function PrintableErrorBookModal({
                         <>
                           <Download size={18} />
                           <span>Baixar Arquivo para Anki ({filteredItems.length} Flashcards)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ABA DE EXPORTAÇÃO NOTION & PLANILHAS */
+              <div className="max-w-2xl mx-auto space-y-5 py-4">
+                <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 space-y-4 shadow-xl text-center sm:text-left">
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shrink-0">
+                      <FileSpreadsheet size={28} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                        Exportação para Notion, Sheets e Excel (.CSV)
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Exporte as <strong>{filteredItems.length} questões</strong> selecionadas com colunas de matéria, enunciado, gabarito, classificação do erro e fundamentação.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                    <span className="font-bold text-slate-900 dark:text-white block">
+                      Como importar no Notion ou Google Sheets:
+                    </span>
+                    <ol className="list-decimal pl-4 space-y-1 text-[11.5px]">
+                      <li>Clique em <strong>Baixar Arquivo CSV</strong> ou <strong>Copiar Markdown</strong>.</li>
+                      <li>No Notion: crie uma nova página, digite <code className="bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded text-emerald-500 font-mono">/table</code> ou importe o arquivo .csv em <strong>Settings ➔ Import</strong>.</li>
+                      <li>No Google Sheets / Excel: vá em <strong>Arquivo ➔ Importar</strong> e selecione o .csv gerado com codificação UTF-8 com BOM.</li>
+                      <li>Todas as colunas de pegadinha e diagnóstico da IA já vêm mapeadas e estruturadas.</li>
+                    </ol>
+                  </div>
+
+                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                    <button
+                      type="button"
+                      onClick={handleExportCsv}
+                      disabled={filteredItems.length === 0}
+                      className="flex-1 py-3 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {notionDownloaded ? (
+                        <>
+                          <CheckCircle2 size={18} className="text-emerald-200" />
+                          <span>CSV Baixado com Sucesso!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download size={18} />
+                          <span>Baixar Planilha CSV ({filteredItems.length} Questões)</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyNotionMarkdown}
+                      disabled={filteredItems.length === 0}
+                      className="py-3 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-800 dark:text-white font-bold text-xs sm:text-sm transition-all border border-slate-200 dark:border-white/10 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {notionCopied ? (
+                        <>
+                          <CheckCircle2 size={16} className="text-emerald-500" />
+                          <span>Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={16} />
+                          <span>Copiar Markdown</span>
                         </>
                       )}
                     </button>

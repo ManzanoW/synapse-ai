@@ -18,6 +18,8 @@ import {
   Crown,
   ArrowRight,
   ShieldCheck,
+  Minimize2,
+  Maximize2,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -74,6 +76,7 @@ export function AudioFlashcardPlayerModal({
   const [isProUser, setIsProUser] = useState<boolean>(isPro ?? false);
   const [audioSecondsToday, setAudioSecondsToday] = useState<number>(0);
   const [showLimitModal, setShowLimitModal] = useState<boolean>(false);
+  const [isMinimized, setIsMinimized] = useState<boolean>(false);
 
   useEffect(() => {
     setMounted(true);
@@ -242,6 +245,19 @@ export function AudioFlashcardPlayerModal({
                   </span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setIsMinimized(true);
+                }}
+                aria-label="Minimizar player de áudio"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none transition-colors cursor-pointer"
+                title="Minimizar para mini-barra de áudio"
+              >
+                <Minimize2 size={18} />
+              </button>
 
               <button
                 type="button"
@@ -574,6 +590,80 @@ export function AudioFlashcardPlayerModal({
       </div>
     </div>
   );
+
+  if (isMinimized) {
+    const miniContent = (
+      <div className="fixed bottom-20 md:bottom-5 right-4 left-4 md:left-auto md:right-6 z-[140] max-w-md mx-auto md:w-96 rounded-2xl bg-[#060913]/95 border border-indigo-500/40 shadow-2xl backdrop-blur-xl p-3 flex items-center justify-between gap-3 text-white animate-in slide-in-from-bottom-5 duration-200">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="flex items-end gap-0.5 h-4 w-4 shrink-0">
+            <span className={`w-1 rounded-full ${isPlaying ? "bg-indigo-400 animate-[pulse_0.7s_infinite] h-4" : "bg-slate-600 h-2"}`} />
+            <span className={`w-1 rounded-full ${isPlaying ? "bg-violet-400 animate-[pulse_1s_infinite] h-3" : "bg-slate-600 h-1.5"}`} />
+            <span className={`w-1 rounded-full ${isPlaying ? "bg-cyan-400 animate-[pulse_0.5s_infinite] h-3.5" : "bg-slate-600 h-2.5"}`} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold truncate">{deckTitle}</p>
+            <p className="text-[10px] text-slate-400 truncate flex items-center gap-1.5">
+              <span>Card {currentIndex + 1}/{totalCards}</span>
+              <span>•</span>
+              <span className={
+                currentPhase === "thinking"
+                  ? "text-amber-400 font-semibold"
+                  : currentPhase === "answer"
+                  ? "text-emerald-400 font-semibold"
+                  : "text-indigo-400 font-semibold"
+              }>
+                {currentPhase === "question" ? "Pergunta" : currentPhase === "thinking" ? `Pensando (${countdownRemaining}s)` : currentPhase === "answer" ? "Resposta" : "Pausado"}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={prev}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer transition"
+            title="Card anterior"
+          >
+            <SkipBack size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={handleTogglePlay}
+            className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer transition shadow-md shadow-indigo-600/30"
+            title={isPlaying ? "Pausar" : "Continuar"}
+          >
+            {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={next}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer transition"
+            title="Próximo card"
+          >
+            <SkipForward size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsMinimized(false)}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-indigo-400 hover:text-indigo-300 cursor-pointer transition"
+            title="Expandir player"
+          >
+            <Maximize2 size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300 cursor-pointer transition"
+            title="Fechar áudio"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+    );
+    return createPortal(miniContent, document.body);
+  }
 
   return createPortal(modalContent, document.body);
 }

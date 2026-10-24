@@ -19,6 +19,8 @@ import {
   Lock,
   ArrowRight,
   ShieldCheck,
+  Minimize2,
+  Maximize2,
 } from "lucide-react";
 import Link from "next/link";
 import { useSound } from "@/hooks/useSound";
@@ -60,6 +62,7 @@ export function AudioFlashcardPlayer({
   const [thinkingTime, setThinkingTime] = useState(5); // 3s, 5s ou 8s
   const [playbackSpeed, setPlaybackSpeed] = useState(1.1); // 0.9x, 1.1x, 1.3x
   const [countdown, setCountdown] = useState(5);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   // Controle de Cota Diária de Áudio (15 min Básico vs 120 min Pro)
   const [isProUser, setIsProUser] = useState<boolean>(isPro ?? false);
@@ -329,6 +332,86 @@ export function AudioFlashcardPlayer({
 
   if (!isOpen || cards.length === 0) return null;
 
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-20 md:bottom-5 right-4 left-4 md:left-auto md:right-6 z-[140] max-w-md mx-auto md:w-96 rounded-2xl bg-slate-900/95 dark:bg-[#07090e]/95 border border-indigo-500/40 shadow-2xl backdrop-blur-xl p-3 flex items-center justify-between gap-3 text-white animate-in slide-in-from-bottom-5 duration-200">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="flex items-end gap-0.5 h-4 w-4 shrink-0">
+            <span className={`w-1 rounded-full ${isPlaying ? "bg-indigo-400 animate-[pulse_0.7s_infinite] h-4" : "bg-slate-600 h-2"}`} />
+            <span className={`w-1 rounded-full ${isPlaying ? "bg-violet-400 animate-[pulse_1s_infinite] h-3" : "bg-slate-600 h-1.5"}`} />
+            <span className={`w-1 rounded-full ${isPlaying ? "bg-cyan-400 animate-[pulse_0.5s_infinite] h-3.5" : "bg-slate-600 h-2.5"}`} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold truncate">{deckTitle}</p>
+            <p className="text-[10px] text-slate-400 truncate flex items-center gap-1.5">
+              <span>Card {currentIndex + 1}/{cards.length}</span>
+              <span>•</span>
+              <span className={
+                phase === "thinking"
+                  ? "text-amber-400 font-semibold"
+                  : phase === "back"
+                  ? "text-emerald-400 font-semibold"
+                  : "text-indigo-400 font-semibold"
+              }>
+                {phase === "front" ? "Pergunta" : phase === "thinking" ? `Pensando (${countdown}s)` : phase === "back" ? "Resposta" : "Pausado"}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={handlePrevCard}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer transition"
+            title="Card anterior"
+          >
+            <SkipBack size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!isPlaying && !isProUser && audioSecondsToday >= FREE_AUDIO_LIMIT_SECONDS) {
+                setShowLimitModal(true);
+                return;
+              }
+              triggerHaptic("medium");
+              setIsPlaying((prev) => !prev);
+            }}
+            className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer transition shadow-md shadow-indigo-600/30"
+            title={isPlaying ? "Pausar" : "Continuar"}
+          >
+            {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={handleNextCard}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer transition"
+            title="Próximo card"
+          >
+            <SkipForward size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsMinimized(false)}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-indigo-400 hover:text-indigo-300 cursor-pointer transition"
+            title="Expandir player"
+          >
+            <Maximize2 size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300 cursor-pointer transition"
+            title="Fechar áudio"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-4 font-sans">
@@ -404,8 +487,21 @@ export function AudioFlashcardPlayer({
 
               <button
                 type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setIsMinimized(true);
+                }}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                title="Minimizar para mini-barra de áudio"
+              >
+                <Minimize2 size={18} />
+              </button>
+
+              <button
+                type="button"
                 onClick={handleClose}
                 className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                title="Fechar player de áudio"
               >
                 <X size={18} />
               </button>
