@@ -46,6 +46,7 @@ import {
   Mic,
   ScrollText,
   Sun,
+  Eye,
   Moon,
   X,
   Cpu,
@@ -183,7 +184,7 @@ export default function Sidebar({ user }: SidebarProps) {
   const { isOpen, closeSidebar } = useSidebar();
   const { stats, isLoading, refreshStats } = useGamification();
   const { isMuted, toggleMute } = useAudioContext();
-  const { isLight, toggleTheme } = useTheme();
+  const { isLight, toggleTheme, isHighContrast, toggleHighContrast } = useTheme();
 
   const isDemo =
     searchParams?.get("demo") === "true" ||
@@ -640,6 +641,26 @@ export default function Sidebar({ user }: SidebarProps) {
                     className="transition-transform active:scale-95"
                   />
                 )}
+              </button>
+
+              {/* Alternador de Alto Contraste / E-Ink */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("medium");
+                  toggleHighContrast();
+                }}
+                title={isHighContrast ? "Desativar Alto Contraste / E-Ink" : "Ativar Modo Alto Contraste / E-Ink"}
+                aria-label={isHighContrast ? "Desativar Alto Contraste" : "Ativar Alto Contraste"}
+                className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                  isHighContrast
+                    ? "bg-violet-600 text-white border-violet-400 shadow-xs"
+                    : isLight
+                    ? "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"
+                    : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <Eye size={15} className="transition-transform active:scale-95" />
               </button>
 
               {/* Alternador de Tema (Modo Claro Slate Ice / Modo Escuro) */}

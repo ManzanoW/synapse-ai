@@ -802,3 +802,40 @@ body[data-zen-mode="true"] #main-scroll-container {
   width: 100vw !important;
   padding-bottom: 2rem !important;
 }
+
+/* ========================================================================= */
+/* MODO ALTO CONTRASTE & LEITURA E-INK (Sem gradientes decorativos ou glow) */
+/* ========================================================================= */
+html[data-contrast="high"],
+body[data-contrast="high"] {
+  --tw-shadow: none !important;
+  --tw-shadow-colored: none !important;
+}
+
+html[data-contrast="high"] * {
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+html[data-contrast="high"].dark {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+html[data-contrast="high"].light {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+html[data-contrast="high"] [class*="blur-"],
+html[data-contrast="high"] [class*="bg-linear-"],
+html[data-contrast="high"] [class*="bg-gradient-"] {
+  filter: none !important;
+  background-image: none !important;
+}
+
+html[data-contrast="high"] [class*="border-slate-"],
+html[data-contrast="high"] [class*="border-white/"] {
+  border-color: currentColor !important;
+  opacity: 0.8 !important;
+}
