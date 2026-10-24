@@ -23,8 +23,13 @@ import {
   Headphones,
   CheckCircle2,
   Target,
+  Smartphone,
+  RefreshCw,
+  Wrench,
+  Check,
 } from 'lucide-react';
 import { triggerHaptic } from '@/lib/sensory/haptics';
+import { PwaInstallModal } from '@/components/landing/PwaInstallModal';
 
 interface FaqItem {
   q: string;
@@ -38,6 +43,41 @@ export default function HelpPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [openFaq, setOpenFaq] = useState<number | null>(0); // Primeiro item aberto por padrão
+  const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
+  const [isRepairing, setIsRepairing] = useState(false);
+  const [repairSuccess, setRepairSuccess] = useState(false);
+
+  const handleRepairCache = async () => {
+    triggerHaptic('medium');
+    setIsRepairing(true);
+    setRepairSuccess(false);
+
+    try {
+      if (typeof window !== 'undefined') {
+        const keysToRemove = [
+          'synapse_offline_queue_backup',
+          'synapse_spotlight_edital_dismissed',
+          'synapse_cache_version',
+        ];
+        keysToRemove.forEach((k) => localStorage.removeItem(k));
+
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const reg of registrations) {
+            await reg.update().catch(() => {});
+          }
+        }
+      }
+      await new Promise((r) => setTimeout(r, 600));
+      setRepairSuccess(true);
+      triggerHaptic('success');
+      setTimeout(() => setRepairSuccess(false), 3000);
+    } catch {
+      // Ignora silenciosamente
+    } finally {
+      setIsRepairing(false);
+    }
+  };
 
   const faqs: FaqItem[] = [
     {
@@ -353,6 +393,80 @@ export default function HelpPage() {
           </div>
         )}
       </div>
+
+      {/* 📱 CARD PWA & 🛠️ AUTO-REPARO DE CACHE */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Card 1: Instalar no Celular */}
+        <div className="p-5 rounded-3xl bg-linear-to-br from-indigo-950/40 via-[#070b14] to-slate-900 border border-indigo-500/30 flex flex-col justify-between space-y-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shrink-0">
+              <Smartphone size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Instalar Synapse no Celular</h3>
+                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  PWA
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                Use como aplicativo nativo em tela cheia no iPhone ou Android, com áudio em segundo plano e zero barras do navegador.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('medium');
+              setIsPwaModalOpen(true);
+            }}
+            className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer"
+          >
+            <Smartphone size={14} />
+            <span>Ver Como Instalar (Passo a Passo)</span>
+          </button>
+        </div>
+
+        {/* Card 2: Auto-Reparo & Limpeza de Cache Local */}
+        <div className="p-5 rounded-3xl bg-linear-to-br from-slate-900/80 via-[#070b14] to-slate-950 border border-slate-800 flex flex-col justify-between space-y-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0">
+              <Wrench size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Diagnóstico & Sincronização Local</h3>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                Sentiu lentidão ou dados desatualizados no navegador? Limpe os caches temporários do dispositivo mantendo sua conta intacta.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleRepairCache}
+            disabled={isRepairing}
+            className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-50"
+          >
+            {isRepairing ? (
+              <>
+                <RefreshCw size={14} className="animate-spin text-cyan-400" />
+                <span>Sincronizando dados locais...</span>
+              </>
+            ) : repairSuccess ? (
+              <>
+                <Check size={14} className="text-emerald-400" />
+                <span className="text-emerald-400">Dados Locais Sincronizados!</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw size={14} />
+                <span>Reparar e Atualizar Dados Locais</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <PwaInstallModal isOpen={isPwaModalOpen} onClose={() => setIsPwaModalOpen(false)} />
 
       {/* ✉️ BANNER DE CONTATO/SUPORTE DEDICADO */}
       <div className="p-6 bg-linear-to-r from-slate-900/90 via-slate-950 to-indigo-950/40 border border-slate-800/80 rounded-3xl backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

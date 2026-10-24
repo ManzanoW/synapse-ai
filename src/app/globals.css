@@ -720,6 +720,24 @@ html.light *::-webkit-scrollbar-thumb:hover {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  /* Evita quebras de página no meio de cards, tabelas e blocos de questões */
+  .page-break-avoid,
+  .print-avoid-break,
+  table,
+  tr,
+  article,
+  .card,
+  [class*="rounded-2xl"],
+  [class*="rounded-3xl"] {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-page-break {
+    break-after: page !important;
+    page-break-after: always !important;
+  }
 }
 
 /* ==========================================================================

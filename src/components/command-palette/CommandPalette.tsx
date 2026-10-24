@@ -38,6 +38,7 @@ import {
   Swords,
   Target,
   X,
+  Smartphone,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAudio } from "@/contexts/AudioContext";
@@ -457,6 +458,19 @@ export function CommandPalette({ user }: CommandPaletteProps) {
         badge: "Expresso",
         action: () => navigateTo("/questions?mode=express"),
         keywords: ["simulado rapido", "treinar agora", "10 questoes", "expresso"],
+      },
+      {
+        id: "action-install-pwa",
+        title: "Instalar Aplicativo (PWA Mobile & Desktop)",
+        subtitle: "Acesse em tela cheia com ícone no celular e estudos sem distrações",
+        category: "Ações Rápidas",
+        icon: Smartphone,
+        badge: "PWA",
+        action: () => {
+          setIsOpen(false);
+          window.dispatchEvent(new CustomEvent("open-pwa-install"));
+        },
+        keywords: ["pwa", "instalar", "app", "aplicativo", "celular", "mobile", "icone", "download"],
       },
       {
         id: "action-audio-study",
