@@ -18,6 +18,8 @@ import {
   Flame,
   Clock,
   CheckCircle2,
+  Trophy,
+  ChevronRight,
 } from "lucide-react";
 
 export default async function ProfilePage() {
@@ -225,6 +227,35 @@ export default async function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* 🏆 BANNER DA GALERIA DE CONQUISTAS */}
+      <Link
+        href="/achievements"
+        className="p-5 bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 hover:from-amber-500/15 hover:via-purple-500/15 hover:to-indigo-500/15 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all group shadow-xs hover:shadow-md cursor-pointer"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
+            <Trophy size={24} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                Galeria de Conquistas & Distintivos
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                20 Medalhas
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Veja suas medalhas desbloqueadas, marcos de estudos e raridades (Comum a Lendária).
+            </p>
+          </div>
+        </div>
+        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform self-end sm:self-auto shrink-0">
+          <span>Ver Conquistas</span>
+          <ChevronRight size={14} />
+        </div>
+      </Link>
 
       {/* ⚙️ OBJETIVO DA PROVA & PRIVACIDADE LGPD */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
