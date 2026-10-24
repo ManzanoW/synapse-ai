@@ -78,7 +78,7 @@ export default async function DashboardLayout({
               </div>
 
               {/* Sidebar Desktop */}
-              <div className="print:hidden shrink-0">
+              <div data-sidebar-container className="print:hidden shrink-0 transition-all duration-300">
                 <Sidebar
                   user={{
                     ...session.user,
@@ -98,7 +98,7 @@ export default async function DashboardLayout({
               </main>
 
               {/* Navegação Inferior Mobile */}
-              <div className="print:hidden">
+              <div data-bottom-nav-container className="print:hidden">
                 <BottomNavigation />
               </div>
 

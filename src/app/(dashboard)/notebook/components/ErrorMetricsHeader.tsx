@@ -18,6 +18,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Printer,
+  Table,
   Download,
   ChevronDown,
   ChevronUp,
@@ -39,7 +40,7 @@ interface ErrorMetricsHeaderProps {
   isCreatingBatchFlashcards?: boolean;
   onStartRedemption?: (count?: number) => Promise<void> | void;
   isGeneratingRedemption?: boolean;
-  onOpenExportModal?: (tab?: "print" | "anki") => void;
+  onOpenExportModal?: (tab?: "print" | "anki" | "notion") => void;
 }
 
 const TAXONOMY_ICONS: Record<string, React.ElementType> = {
@@ -206,7 +207,17 @@ export function ErrorMetricsHeader({
                     title="Exportar Caderno de Erros diretamente para o Anki (.txt)"
                   >
                     <Download size={15} className="text-blue-400" />
-                    <span>Exportar Anki (.txt)</span>
+                    <span>Exportar Anki</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onOpenExportModal("notion")}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-200 border border-emerald-500/40 text-xs font-bold shadow-sm transition-all cursor-pointer min-h-[38px]"
+                    title="Exportar para Notion, Planilhas e Excel (.CSV)"
+                  >
+                    <Table size={15} className="text-emerald-400" />
+                    <span>Exportar Notion (.csv)</span>
                   </button>
                 </>
               )}

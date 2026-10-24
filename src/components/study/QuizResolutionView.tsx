@@ -125,6 +125,8 @@ export function QuizResolutionView({
       document.body.removeAttribute("data-in-quiz");
     };
   }, []);
+
+
   const [direction, setDirection] = useState<1 | -1>(1);
 
   // Estados de resposta e resolução
@@ -167,6 +169,18 @@ export function QuizResolutionView({
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [filterOnlyFlagged, setFilterOnlyFlagged] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
+
+  // Sincroniza o Modo Foco Zen Fullscreen (ocultando sidebar e bottom nav)
+  useEffect(() => {
+    if (isZenMode) {
+      document.body.setAttribute("data-zen-mode", "true");
+    } else {
+      document.body.removeAttribute("data-zen-mode");
+    }
+    return () => {
+      document.body.removeAttribute("data-zen-mode");
+    };
+  }, [isZenMode]);
   const [deepeningStep, setDeepeningStep] = useState(0);
   const [isShortcutsBarOpen, setIsShortcutsBarOpen] = useState(false);
   const [questionFontSize, setQuestionFontSize] = useState<"normal" | "large" | "xlarge">("normal");
@@ -836,6 +850,25 @@ export function QuizResolutionView({
           </div>
         </div>
       </header>
+
+      {/* Banner discreto de status do Modo Foco Zen */}
+      {isZenMode && (
+        <div className="w-full bg-violet-950/70 border-b border-violet-500/25 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-violet-200 backdrop-blur-md sticky top-0 z-20 transition-all duration-300">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+            <span className="font-medium">
+              Modo Foco Zen ativo: barras laterais ocultadas para concentração máxima de prova.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsZenMode(false)}
+            className="text-[11px] font-bold text-violet-300 hover:text-white underline underline-offset-2 cursor-pointer transition-colors"
+          >
+            Sair do Modo Zen (Z)
+          </button>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* BARRA DE PROGRESSO SEGMENTADA SUPERIOR (Top Segmented Progress Strip)     */}

@@ -105,7 +105,7 @@ export function ErrorNotebookView({
   const [isRemediationOpen, setIsRemediationOpen] = useState(false);
   const [isCreatingBatchFlashcards, setIsCreatingBatchFlashcards] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [exportModalInitialTab, setExportModalInitialTab] = useState<"print" | "anki">("print");
+  const [exportModalInitialTab, setExportModalInitialTab] = useState<"print" | "anki" | "notion">("print");
 
   // Modo de visualização: Lista espaçada vs Modo Foco (1 por 1)
   const [viewMode, setViewMode] = useState<"list" | "focus">("list");
@@ -145,7 +145,7 @@ export function ErrorNotebookView({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [viewMode, questions.length]);
 
-  const handleOpenExportModal = useCallback((tab: "print" | "anki" = "print") => {
+  const handleOpenExportModal = useCallback((tab: "print" | "anki" | "notion" = "print") => {
     setExportModalInitialTab(tab);
     setIsExportModalOpen(true);
   }, []);

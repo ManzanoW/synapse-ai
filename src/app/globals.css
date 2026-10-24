@@ -787,3 +787,18 @@ html.light *::-webkit-scrollbar-thumb:hover {
 body[data-in-quiz="true"] .hide-on-quiz {
   display: none !important;
 }
+
+/* Modo Foco Zen Fullscreen de Resolução */
+body[data-zen-mode="true"] [data-sidebar-container],
+body[data-zen-mode="true"] [data-bottom-nav-container] {
+  display: none !important;
+}
+
+body[data-zen-mode="true"] #main-scroll-container {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+  padding-top: 0.5rem !important;
+  max-width: 100vw !important;
+  width: 100vw !important;
+  padding-bottom: 2rem !important;
+}
