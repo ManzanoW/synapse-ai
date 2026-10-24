@@ -9,14 +9,19 @@ interface ThemeContextType {
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
   isLight: boolean;
+  isHighContrast: boolean;
+  toggleHighContrast: () => void;
+  setIsHighContrast: (value: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEME_STORAGE_KEY = "synapse-theme";
+const CONTRAST_STORAGE_KEY = "synapse-contrast";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("dark");
+  const [isHighContrast, setIsHighContrastState] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Aplica a classe correspondente ao elemento HTML
@@ -35,6 +40,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const applyContrastToDocument = useCallback((high: boolean) => {
+    const root = document.documentElement;
+    if (high) {
+      root.classList.add("high-contrast");
+      root.setAttribute("data-contrast", "high");
+    } else {
+      root.classList.remove("high-contrast");
+      root.removeAttribute("data-contrast");
+    }
+  }, []);
+
   // Inicialização síncrona/hidratada a partir do localStorage
   useEffect(() => {
     try {
@@ -43,16 +59,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setThemeState(storedTheme);
         applyThemeToDocument(storedTheme);
       } else {
-        // Padrão do Synapse AI é dark
         applyThemeToDocument("dark");
       }
+
+      const storedContrast = localStorage.getItem(CONTRAST_STORAGE_KEY);
+      if (storedContrast === "true") {
+        setIsHighContrastState(true);
+        applyContrastToDocument(true);
+      }
     } catch {
-      // Fallback em caso de restrição do navegador
       applyThemeToDocument("dark");
     } finally {
       setMounted(true);
     }
-  }, [applyThemeToDocument]);
+  }, [applyThemeToDocument, applyContrastToDocument]);
 
   // Listener para sincronização entre múltiplas abas abertas
   useEffect(() => {
@@ -61,11 +81,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setThemeState(e.newValue);
         applyThemeToDocument(e.newValue);
       }
+      if (e.key === CONTRAST_STORAGE_KEY) {
+        const isHigh = e.newValue === "true";
+        setIsHighContrastState(isHigh);
+        applyContrastToDocument(isHigh);
+      }
     };
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, [applyThemeToDocument]);
+  }, [applyThemeToDocument, applyContrastToDocument]);
 
   const setTheme = useCallback(
     (newTheme: Theme) => {
@@ -84,6 +109,32 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme(theme === "dark" ? "light" : "dark");
   }, [theme, setTheme]);
 
+  const setIsHighContrast = useCallback(
+    (value: boolean) => {
+      setIsHighContrastState(value);
+      applyContrastToDocument(value);
+      try {
+        localStorage.setItem(CONTRAST_STORAGE_KEY, String(value));
+      } catch (err) {
+        console.error("Erro ao salvar preferência de contraste no localStorage:", err);
+      }
+    },
+    [applyContrastToDocument]
+  );
+
+  const toggleHighContrast = useCallback(() => {
+    setIsHighContrastState((prev) => {
+      const next = !prev;
+      applyContrastToDocument(next);
+      try {
+        localStorage.setItem(CONTRAST_STORAGE_KEY, String(next));
+      } catch (err) {
+        console.error("Erro ao salvar preferência de contraste no localStorage:", err);
+      }
+      return next;
+    });
+  }, [applyContrastToDocument]);
+
   return (
     <ThemeContext.Provider
       value={{
@@ -91,6 +142,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         toggleTheme,
         setTheme,
         isLight: mounted ? theme === "light" : false,
+        isHighContrast: mounted ? isHighContrast : false,
+        toggleHighContrast,
+        setIsHighContrast,
       }}
     >
       {children}

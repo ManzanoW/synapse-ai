@@ -38,6 +38,7 @@ import {
   Swords,
   Target,
   X,
+  Eye,
   Smartphone,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -101,7 +102,7 @@ export function CommandPalette({ user }: CommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, isHighContrast, toggleHighContrast } = useTheme();
   const { isMuted, toggleMute } = useAudio();
   const { playClick, playChime } = useSound();
 
@@ -500,6 +501,21 @@ export function CommandPalette({ user }: CommandPaletteProps) {
           setIsOpen(false);
         },
         keywords: ["tema", "modo claro", "modo escuro", "light", "dark"],
+      },
+      {
+        id: "action-toggle-high-contrast",
+        title: isHighContrast ? "Desativar Modo Alto Contraste / E-Ink" : "Ativar Modo Alto Contraste / E-Ink",
+        subtitle: "Remove gradientes e brilhos para contraste nítido em leitura prolongada ou dispositivos e-ink",
+        category: "Ações Rápidas",
+        icon: Eye,
+        badge: isHighContrast ? "ATIVO" : "E-INK",
+        action: () => {
+          playClick();
+          triggerHaptic("medium");
+          toggleHighContrast();
+          setIsOpen(false);
+        },
+        keywords: ["contraste", "alto contraste", "eink", "e-ink", "preto e branco", "acessibilidade", "leitura", "fadiga"],
       },
       {
         id: "action-toggle-sound",

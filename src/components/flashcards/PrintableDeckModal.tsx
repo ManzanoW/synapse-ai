@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   Printer,
+  BookOpen,
   X,
   FileText,
   Grid,
@@ -31,7 +32,7 @@ export function PrintableDeckModal({
   flashcards,
 }: PrintableDeckModalProps) {
   const [mounted, setMounted] = useState(false);
-  const [layoutMode, setLayoutMode] = useState<"cards" | "table">("cards");
+  const [layoutMode, setLayoutMode] = useState<"cards" | "table" | "pocket">("cards");
   const [showAnswers, setShowAnswers] = useState(true);
 
   useEffect(() => {
@@ -95,6 +96,31 @@ export function PrintableDeckModal({
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
               }
+              .pocket-sheet {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                grid-template-rows: repeat(4, 1fr) !important;
+                gap: 2mm !important;
+                min-height: 265mm !important;
+                max-height: 280mm !important;
+                padding: 3mm !important;
+                box-sizing: border-box !important;
+              }
+              .pocket-cell {
+                border: 1.5px dashed #4b5563 !important;
+                padding: 2.5mm !important;
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                font-size: 8pt !important;
+                line-height: 1.25 !important;
+                border-radius: 4px !important;
+              }
             }
           `
         }} />
@@ -142,12 +168,23 @@ export function PrintableDeckModal({
                   onClick={() => setLayoutMode("cards")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
                     layoutMode === "cards"
-                      ? "bg-indigo-600 text-white shadow-sm"
+                      ? "bg-indigo-600 text-white shadow-xs"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   <Grid size={13} />
                   Fichas Recortáveis
+                </button>
+                <button
+                  onClick={() => setLayoutMode("pocket")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                    layoutMode === "pocket"
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <BookOpen size={13} />
+                  Bolso A4 (8 em 1)
                 </button>
                 <button
                   onClick={() => setLayoutMode("table")}
@@ -311,6 +348,79 @@ export function PrintableDeckModal({
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Visualização 3: Minilivro de Bolso Dobrável A4 (8 cards por folha) */}
+            {layoutMode === "pocket" && (
+              <div className="space-y-8">
+                {/* Banner explicativo na tela */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/80 to-violet-950/80 border border-indigo-500/30 text-indigo-200 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400">
+                      <BookOpen size={20} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white flex items-center gap-2">
+                        <span>Formato Dobrável de Bolso (Pocket Book A4)</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 font-mono">
+                          8 cards por folha
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-indigo-300/90 mt-0.5">
+                        Imprima em folha A4 e dobre nas linhas tracejadas para transformar 8 cartões em um livreto portátil para revisar antes da prova.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Folhas de 8 cartões */}
+                {Array.from({ length: Math.ceil(flashcards.length / 8) }).map((_, sheetIdx) => {
+                  const sheetCards = flashcards.slice(sheetIdx * 8, (sheetIdx + 1) * 8);
+
+                  return (
+                    <div
+                      key={`pocket-sheet-${sheetIdx}`}
+                      className="pocket-sheet grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-4 bg-white text-slate-900 rounded-2xl border-2 border-slate-300 print:border-none print:p-0 print:m-0 print:gap-2 print:shadow-none"
+                    >
+                      {sheetCards.map((card, cardIdx) => {
+                        const globalIdx = sheetIdx * 8 + cardIdx;
+                        const front = getCardFront(card);
+                        const back = getCardBack(card);
+
+                        return (
+                          <div
+                            key={card.id || globalIdx}
+                            className="pocket-cell border-2 border-dashed border-slate-400 p-3 rounded-xl flex flex-col justify-between bg-slate-50/60 print:bg-white text-xs min-h-[140px] print:min-h-0 print:border-gray-500"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between border-b border-dashed border-slate-300 pb-1 mb-1.5 text-[9px] text-slate-500 font-mono">
+                                <span className="font-bold text-indigo-700 uppercase">
+                                  #{globalIdx + 1} • {deck.title}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Scissors size={9} /> Dobra
+                                </span>
+                              </div>
+                              <p className="font-bold text-slate-900 text-[11px] leading-snug">
+                                {front}
+                              </p>
+                            </div>
+
+                            <div className="mt-2 pt-1.5 border-t border-dashed border-slate-300">
+                              <span className="text-[8px] font-extrabold uppercase text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200 block w-fit mb-1">
+                                Resposta
+                              </span>
+                              <p className="text-[10px] text-slate-700 leading-tight">
+                                {showAnswers ? back : "_____________________"}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
