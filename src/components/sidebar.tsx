@@ -90,20 +90,20 @@ interface NavGroup {
 const NAV_GROUPS: NavGroup[] = [
   {
     id: "planejamento",
-    label: "Meu Estudo Diário",
+    label: "Estudo Diário",
     items: [
       { label: "Início (Meu Dia)", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Trilhas & Aulas", href: "/trilhas", icon: Compass, badge: "GUIADO" },
       { label: "Meu Edital", href: "/edital", icon: FileSpreadsheet },
-      { label: "Cronograma Semanal", href: "/week", icon: Sparkles },
+      { label: "Trilhas & Aulas", href: "/trilhas", icon: Compass },
+      { label: "Cronograma Semanal", href: "/week", icon: CalendarDays },
     ],
   },
   {
     id: "pratica",
-    label: "Prática Essencial",
+    label: "Prática & Revisão",
     items: [
       { label: "Simulados & Questões", href: "/questions", icon: FileStack },
-      { label: "Flashcards (Memória)", href: "/flashcards", icon: Layers },
+      { label: "Flashcards", href: "/flashcards", icon: Layers },
       {
         label: "Caderno de Erros",
         href: "/notebook",
@@ -113,74 +113,55 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Redação Oficial",
         href: "/redacao",
         icon: PenTool,
-        badge: "IA",
-      },
-    ],
-  },
-  {
-    id: "ferramentas",
-    label: "➕ Mais Ferramentas",
-    items: [
-      {
-        label: "Mapas Mentais",
-        href: "/mapas-mentais",
-        icon: Brain,
-        badge: "IA",
-      },
-      {
-        label: "Lei Seca Interativa",
-        href: "/lei-seca",
-        icon: ScrollText,
-        badge: "NOVO",
-      },
-      {
-        label: "Jurisprudência",
-        href: "/jurisprudencia",
-        icon: Scale,
-        badge: "IA",
-      },
-      {
-        label: "Treino de Prova Oral",
-        href: "/prova-oral",
-        icon: Mic,
-        badge: "VOZ",
-      },
-      {
-        label: "Sala de Foco (Timer)",
-        href: "/study-room",
-        icon: Headphones,
-      },
-      { label: "Calendário de Provas", href: "/calendar", icon: CalendarDays },
-      {
-        label: "Ler Prova em PDF",
-        href: "#import-pdf",
-        icon: UploadCloud,
-        badge: "PDF",
       },
     ],
   },
   {
     id: "evolucao",
-    label: "📊 Evolução & Ranking",
+    label: "Desempenho",
     items: [
       { label: "Meu Desempenho", href: "/performance", icon: TrendingUp },
       {
         label: "Ligas Semanais",
         href: "/leaderboard",
         icon: Trophy,
-        badge: "RANK",
-        isSpecial: true,
+      },
+    ],
+  },
+  {
+    id: "ferramentas",
+    label: "Ferramentas Extras",
+    items: [
+      {
+        label: "Sala de Foco (Timer)",
+        href: "/study-room",
+        icon: Headphones,
       },
       {
-        label: "Minhas Conquistas",
-        href: "/achievements",
-        icon: Award,
+        label: "Mapas Mentais",
+        href: "/mapas-mentais",
+        icon: Brain,
+      },
+      {
+        label: "Lei Seca Interativa",
+        href: "/lei-seca",
+        icon: ScrollText,
+      },
+      {
+        label: "Jurisprudência",
+        href: "/jurisprudencia",
+        icon: Scale,
+      },
+      {
+        label: "Treino de Prova Oral",
+        href: "/prova-oral",
+        icon: Mic,
       },
     ],
   },
   {
     id: "conta",
-    label: "Conta & Ajuda",
+    label: "Conta & Suporte",
     items: [
       {
         label: "Planos & Assinatura",
@@ -407,7 +388,7 @@ export default function Sidebar({ user }: SidebarProps) {
   // Estado para seções colapsadas com persistência no localStorage (secundárias colapsadas por padrão)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
     ferramentas: true,
-    evolucao: true,
+    conta: true,
   });
 
   useEffect(() => {
@@ -448,7 +429,13 @@ export default function Sidebar({ user }: SidebarProps) {
   const toggleGroupCollapse = (groupId: string) => {
     triggerHaptic("light");
     setCollapsedGroups((prev) => {
-      const next = { ...prev, [groupId]: !prev[groupId] };
+      const willCollapse = !prev[groupId];
+      const next: Record<string, boolean> = { ...prev, [groupId]: willCollapse };
+      // Modo Accordion nas seções secundárias para nunca estourar a altura da tela
+      if (!willCollapse && (groupId === "ferramentas" || groupId === "conta")) {
+        const otherId = groupId === "ferramentas" ? "conta" : "ferramentas";
+        next[otherId] = true;
+      }
       try {
         localStorage.setItem(
           "synapse_sidebar_collapsed_groups",
@@ -484,7 +471,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
   // Filtra módulos de Direito/Carreiras Jurídicas e adiciona link do Admin IA se for administrador
   const filteredNavGroups = NAV_GROUPS.map((group) => {
-    if (group.id === "pratica") {
+    if (group.id === "pratica" || group.id === "ferramentas") {
       return {
         ...group,
         items: group.items.filter((item) => {
@@ -855,9 +842,14 @@ export default function Sidebar({ user }: SidebarProps) {
                   <>
                     {/* Linha Superior: Ícone da Patente + Nível + Ofensiva */}
                     <div className="flex items-center justify-between gap-1.5">
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <Link
+                        href={getHref("/achievements")}
+                        onClick={closeSidebar}
+                        title="Ver minhas conquistas e medalhas"
+                        className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group/ach"
+                      >
                         <div
-                          className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 ${
+                          className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 transition-transform duration-300 group-hover/ach:scale-105 ${
                             gamification?.prestigeTier?.badgeColor ||
                             (isLight
                               ? "bg-indigo-50 border-indigo-200 text-indigo-600"
@@ -884,11 +876,11 @@ export default function Sidebar({ user }: SidebarProps) {
                               </span>
                             )}
                           </div>
-                          <span className={`text-sm font-black ${isLight ? "text-slate-900" : "text-white"} tracking-tight leading-none mt-1`}>
+                          <span className={`text-sm font-black ${isLight ? "text-slate-900" : "text-white"} group-hover/ach:text-indigo-500 dark:group-hover/ach:text-indigo-300 transition-colors tracking-tight leading-none mt-1`}>
                             Nível {currentLevel}
                           </span>
                         </div>
-                      </div>
+                      </Link>
 
                       <div className="flex items-center gap-1.5 shrink-0">
                         {canAscendPrestige && (

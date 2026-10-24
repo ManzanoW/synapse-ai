@@ -710,20 +710,6 @@ export function PlannerView({
                             <span>Ler Aula</span>
                           </Link>
 
-                          <Link
-                            href={`/study-room?subjectId=${encodeURIComponent(
-                              matchedSubject?.id || "",
-                            )}&subject=${encodeURIComponent(
-                              subjectName,
-                            )}&topicId=${encodeURIComponent(
-                              t.id,
-                            )}&topic=${encodeURIComponent(t.title)}`}
-                            className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1 px-2.5 py-2 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 text-xs font-bold rounded-xl border border-cyan-500/30 active:scale-95 transition-all"
-                            title="Abrir este assunto na Sala de Foco (Pomodoro)"
-                          >
-                            <Clock size={13} className="text-cyan-400" />
-                            <span>Focar</span>
-                          </Link>
 
                           {t.quizId ? (
                             <Link

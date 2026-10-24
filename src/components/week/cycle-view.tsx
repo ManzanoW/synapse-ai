@@ -633,14 +633,6 @@ export function CycleView({
                               <span>Ler Aula</span>
                             </Link>
 
-                            <Link
-                              href={`/study-room?subjectId=${encodeURIComponent(currentBlock.subjectId)}&subject=${encodeURIComponent(currentBlock.subjectName)}&topicId=${encodeURIComponent(top.id)}&topic=${encodeURIComponent(top.title)}`}
-                              title="Abrir este tópico na Sala de Foco (Pomodoro)"
-                              className="px-2.5 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
-                            >
-                              <Clock size={12} className="text-cyan-400" />
-                              <span>Focar</span>
-                            </Link>
 
                             <Link
                               href={`/questions?subjectId=${encodeURIComponent(currentBlock.subjectName)}&topic=${encodeURIComponent(top.title)}&topicId=${encodeURIComponent(top.id)}&autoStart=true`}
@@ -685,22 +677,7 @@ export function CycleView({
                 <span className="text-xs font-mono text-slate-400 text-center lg:text-right mt-2.5">
                   Abre o cronômetro + lousa de anotações
                 </span>
-                <div className="flex items-center justify-center lg:justify-end gap-2 mt-3">
-                  <Link
-                    href={`/study-room?subjectId=${encodeURIComponent(currentBlock.subjectId)}&subject=${encodeURIComponent(currentBlock.subjectName)}`}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-bold transition-all cursor-pointer"
-                  >
-                    <Clock size={13} />
-                    <span>Sala de Foco (Pomodoro)</span>
-                  </Link>
-                  <Link
-                    href={`/questions?subjectId=${encodeURIComponent(currentBlock.subjectName)}&autoStart=true`}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-xs font-bold transition-all cursor-pointer"
-                  >
-                    <Target size={13} />
-                    <span>Simulado do Bloco</span>
-                  </Link>
-                </div>
+
               </div>
             </div>
           </div>
