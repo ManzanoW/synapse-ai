@@ -9,6 +9,7 @@ export interface FinishFocusSessionInput {
   durationMinutes: number;
   subjectId?: string;
   tasksCompleted?: string[];
+  completedTopicIds?: string[];
   notes?: string;
   isFullPomodoroCycle?: boolean;
 }
@@ -20,6 +21,7 @@ export interface FinishFocusSessionResult {
   streakProtected: boolean;
   durationMinutes: number;
   completedAt: string;
+  syncedTopicsCount?: number;
 }
 
 export interface FocusMetricsData {
@@ -31,8 +33,57 @@ export interface FocusMetricsData {
 }
 
 /**
+ * Sincroniza diretamente um tópico do Edital estudado na Sala de Foco / Pomodoro.
+ */
+export async function syncFocusTopicStatusAction(
+  topicId: string,
+  status: "Em Estudo" | "Concluido" = "Concluido",
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Não autorizado" };
+    }
+
+    const topic = await prisma.topic.findFirst({
+      where: {
+        id: topicId,
+        subject: { userId },
+      },
+      select: { id: true, firstStudy: true },
+    });
+
+    if (!topic) {
+      return { success: false, error: "Tópico não encontrado no seu edital." };
+    }
+
+    const now = new Date();
+    const nextRevDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 1ª revisão em 24h
+
+    await prisma.topic.update({
+      where: { id: topic.id },
+      data: {
+        firstStudy: status,
+        lastRev: now,
+        nextRev: status === "Concluido" ? nextRevDate : undefined,
+      },
+    });
+
+    revalidatePath("/edital");
+    revalidatePath("/performance");
+    revalidatePath("/study-room");
+
+    return { success: true };
+  } catch (error) {
+    console.error("❌ [syncFocusTopicStatusAction] Erro ao sincronizar tópico:", error);
+    return { success: false, error: "Erro ao sincronizar tópico com o edital." };
+  }
+}
+
+/**
  * Registra a conclusão de uma sessão de foco / Pomodoro,
- * calculando XP e alimentando atomicamente streaks e sessões de estudo.
+ * calculando XP e alimentando atomicamente streaks, sessões de estudo e tópicos do edital.
  */
 export async function finishFocusSessionAction(
   input: FinishFocusSessionInput,
@@ -64,6 +115,29 @@ export async function finishFocusSessionAction(
       "POMODORO",
       duration,
     );
+
+    // Se houver tópicos do edital vinculados às micro-metas concluídas, atualiza-os para "Concluido"
+    let syncedTopicsCount = 0;
+    if (input.completedTopicIds && input.completedTopicIds.length > 0) {
+      try {
+        const now = new Date();
+        const nextRevDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const updateRes = await prisma.topic.updateMany({
+          where: {
+            id: { in: input.completedTopicIds },
+            subject: { userId },
+          },
+          data: {
+            firstStudy: "Concluido",
+            lastRev: now,
+            nextRev: nextRevDate,
+          },
+        });
+        syncedTopicsCount = updateRes.count;
+      } catch (syncErr) {
+        console.warn("⚠️ [finishFocusSessionAction] Falha ao sincronizar tópicos:", syncErr);
+      }
+    }
 
     // Enriquece a sessão de estudo gravada com metadados da matéria e tarefas
     try {
@@ -111,6 +185,8 @@ export async function finishFocusSessionAction(
     revalidatePath("/dashboard");
     revalidatePath("/study-room");
     revalidatePath("/week");
+    revalidatePath("/edital");
+    revalidatePath("/performance");
 
     return {
       success: true,
@@ -121,6 +197,7 @@ export async function finishFocusSessionAction(
         streakProtected: recordResult.data?.streakProtected ?? false,
         durationMinutes: duration,
         completedAt: new Date().toISOString(),
+        syncedTopicsCount,
       },
     };
   } catch (error) {

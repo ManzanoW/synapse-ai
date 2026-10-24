@@ -22,6 +22,7 @@ import {
   runMonteCarloSimulationAction,
   MonteCarloSimulationResult,
 } from "@/actions/monte-carlo-actions";
+import { extractTurboFlashcardsAction } from "@/actions/flashcard-actions";
 import {
   Menu,
   TrendingUp,
@@ -51,17 +52,26 @@ import {
   Search,
   Filter,
   BarChart3,
+  Network,
+  BookOpenCheck,
+  ArrowUpDown,
 } from "lucide-react";
 
 interface SubjectPerformance {
   subjectId?: string;
   subject: string;
+  weight?: number;
   total: number;
   correct: number;
   accuracy: number | null;
   hasActivity?: boolean;
   baseWeeklyMinutes?: number;
   targetWeeklyMinutes?: number;
+  totalTopics?: number;
+  completedTopics?: number;
+  inProgressTopics?: number;
+  coveragePercent?: number;
+  pendingErrorsCount?: number;
   isReinforced?: boolean;
   isOptimized?: boolean;
 }
@@ -70,6 +80,8 @@ interface WeakTopic {
   id?: string;
   title: string;
   subject: string;
+  subjectId?: string;
+  weight?: number;
   accuracy: number;
   total: number;
 }
@@ -103,6 +115,9 @@ interface AnalyticsData {
     };
     avgEasiness: number;
     materiasPendentes: number;
+    pendingErrorsTotal?: number;
+    weeklyStudyMinutes?: number;
+    weeklyGoalMinutes?: number;
     cognitiveMastery?: {
       score: number;
       level: string;
@@ -117,7 +132,7 @@ interface AnalyticsData {
       leechCards: number;
     };
   };
-  chartDistribution: Array<{ day: string; quantidade: number }>;
+  chartDistribution: Array<{ day: string; quantidade: number; minutes?: number }>;
   performanceSummary: {
     bom: number;
     dificil: number;
@@ -181,13 +196,41 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
     window.history.replaceState(null, "", newUrl);
   };
 
-  // Filtros da aba Edital (Aproveitamento por Disciplina)
+  // Filtros e ordenação da aba Edital (Aproveitamento por Disciplina)
   const [subjectFilter, setSubjectFilter] = useState<"all" | "active" | "critical" | "pending">("all");
+  const [subjectSort, setSubjectSort] = useState<"critical" | "weight" | "coverage" | "alpha">("critical");
   const [subjectSearch, setSubjectSearch] = useState("");
+  const [chartMetricMode, setChartMetricMode] = useState<"sessions" | "minutes">("sessions");
+  const [generatingTopicCardId, setGeneratingTopicCardId] = useState<string | null>(null);
+  const [generatedTopicCardMap, setGeneratedTopicCardMap] = useState<Record<string, boolean>>({});
 
   const handleSetSubjectFilter = (filter: "all" | "active" | "critical" | "pending") => {
     triggerHaptic("light");
     setSubjectFilter(filter);
+  };
+
+  const handleGenerateTopicFlashcards = async (topic: WeakTopic) => {
+    const key = topic.id || topic.title;
+    if (generatingTopicCardId || generatedTopicCardMap[key]) return;
+    try {
+      setGeneratingTopicCardId(key);
+      triggerHaptic("medium");
+      const res = await extractTurboFlashcardsAction({
+        rawText: `Tópico Crítico de Concurso: ${topic.title} (Disciplina: ${topic.subject}). Foco nos pontos mais cobrados em prova e pegadinhas recorrentes.`,
+        targetCount: 5,
+        deckTitle: `${topic.subject} • ${topic.title}`,
+        subjectId: topic.subjectId,
+        topicId: topic.id,
+      });
+      if (res.success) {
+        triggerHaptic("success");
+        setGeneratedTopicCardMap((prev) => ({ ...prev, [key]: true }));
+      }
+    } catch (err) {
+      console.error("Erro ao gerar flashcards de resgate:", err);
+    } finally {
+      setGeneratingTopicCardId(null);
+    }
   };
 
   // Expansão da lista de reforço do Adaptive Rebalancer
@@ -303,18 +346,35 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
     (s) => !s.hasActivity || s.accuracy === null,
   ).length;
 
-  const filteredSubjects = allSubjects.filter((s) => {
-    if (subjectSearch.trim()) {
-      const q = subjectSearch.toLowerCase();
-      if (!s.subject.toLowerCase().includes(q)) return false;
-    }
-    if (subjectFilter === "active") return s.hasActivity && s.accuracy !== null;
-    if (subjectFilter === "critical")
-      return s.hasActivity && s.accuracy !== null && s.accuracy < 60;
-    if (subjectFilter === "pending")
-      return !s.hasActivity || s.accuracy === null;
-    return true;
-  });
+  const filteredSubjects = allSubjects
+    .filter((s) => {
+      if (subjectSearch.trim()) {
+        const q = subjectSearch.toLowerCase();
+        if (!s.subject.toLowerCase().includes(q)) return false;
+      }
+      if (subjectFilter === "active") return s.hasActivity && s.accuracy !== null;
+      if (subjectFilter === "critical")
+        return s.hasActivity && s.accuracy !== null && s.accuracy < 60;
+      if (subjectFilter === "pending")
+        return !s.hasActivity || s.accuracy === null;
+      return true;
+    })
+    .sort((a, b) => {
+      if (subjectSort === "weight") {
+        return (b.weight || 5) - (a.weight || 5);
+      }
+      if (subjectSort === "coverage") {
+        return (a.coveragePercent || 0) - (b.coveragePercent || 0);
+      }
+      if (subjectSort === "alpha") {
+        return a.subject.localeCompare(b.subject, "pt-BR");
+      }
+      // default: critical (lowest accuracy first among tested, then untested)
+      const accA = a.accuracy !== null ? a.accuracy : 999;
+      const accB = b.accuracy !== null ? b.accuracy : 999;
+      if (accA !== accB) return accA - accB;
+      return (b.weight || 5) - (a.weight || 5);
+    });
 
   if (isLoading) {
     return (
@@ -349,9 +409,19 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
     (data.performanceSummary.errei || 0);
 
   const maxChartQty = Math.max(
-    ...data.chartDistribution.map((d) => d.quantidade),
+    ...data.chartDistribution.map((d) =>
+      chartMetricMode === "minutes" ? d.minutes || 0 : d.quantidade,
+    ),
     1,
   );
+  const weeklyStudyMinutes = data.metrics.weeklyStudyMinutes || 0;
+  const weeklyGoalMinutes = data.metrics.weeklyGoalMinutes || 600;
+  const weeklyGoalPercent = Math.min(
+    100,
+    Math.round((weeklyStudyMinutes / Math.max(1, weeklyGoalMinutes)) * 100),
+  );
+  const topWeakTopic = data.weakTopics?.[0] || null;
+  const pendingErrorsTotal = data.metrics.pendingErrorsTotal || 0;
 
   // Rebalance suggestions reais vindas da inteligência matemática
   const highPrioritySubjects = data.rebalanceSuggestions?.highPriority || [];
@@ -634,6 +704,147 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                 </div>
               </div>
             )}
+
+            {/* PLANO DE AÇÃO DE MAIOR IMPACTO HOJE (ROI DE APROVAÇÃO) */}
+            <div className="bg-gradient-to-r from-indigo-500/[0.07] via-violet-500/[0.05] to-cyan-500/[0.07] border border-indigo-500/20 dark:border-indigo-500/25 rounded-3xl p-5 backdrop-blur-xl space-y-3.5 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400">
+                    <Sparkles size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      Plano de Ação Recomendado para Hoje (Maior ROI na Nota)
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Ações calculadas cruzando o peso de cada matéria no edital com seus pontos fracos e revisões pendentes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Ação 1: Ponto Cego Nº 1 */}
+                <div className="p-3.5 rounded-2xl bg-white/85 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/10 flex flex-col justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                      <AlertCircle size={12} /> Prioridade #1 • Ponto Cego
+                    </span>
+                    {topWeakTopic ? (
+                      <>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">
+                          {topWeakTopic.title}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          {topWeakTopic.subject} • <strong className="text-rose-600 dark:text-rose-400 font-mono">{topWeakTopic.accuracy}% acerto</strong> (Peso {topWeakTopic.weight || 5})
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">
+                          Nenhum ponto cego crítico (&lt;60%)
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Resolva uma bateria inédita para testar novos tópicos do edital.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={
+                        topWeakTopic
+                          ? `/questions?subjectId=${encodeURIComponent(topWeakTopic.subject)}&topic=${encodeURIComponent(topWeakTopic.title)}&topicId=${encodeURIComponent(topWeakTopic.id || "")}&autoStart=true`
+                          : "/questions"
+                      }
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[11px] transition-all shadow-2xs"
+                    >
+                      <Zap size={12} />
+                      <span>{topWeakTopic ? "Bateria de Resgate" : "Gerar Simulado"}</span>
+                    </Link>
+                    {topWeakTopic && (
+                      <Link
+                        href={`/study-room?subjectId=${encodeURIComponent(topWeakTopic.subjectId || "")}&subject=${encodeURIComponent(topWeakTopic.subject)}&topicId=${encodeURIComponent(topWeakTopic.id || "")}&topic=${encodeURIComponent(topWeakTopic.title)}`}
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 font-semibold text-[11px] transition-all"
+                        title="Focar 25 min neste tópico no Pomodoro"
+                      >
+                        ⏱️ Focar
+                      </Link>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ação 2: Caderno de Erros & Cartões Críticos */}
+                <div className="p-3.5 rounded-2xl bg-white/85 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/10 flex flex-col justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 flex items-center gap-1">
+                      <BookOpenCheck size={12} /> Prioridade #2 • Remediação
+                    </span>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">
+                      {pendingErrorsTotal > 0
+                        ? `${pendingErrorsTotal} erro(s) pendente(s) no Caderno`
+                        : fsrsMaturity && fsrsMaturity.leechCards > 0
+                          ? `${fsrsMaturity.leechCards} cartão(ões) com dificuldade`
+                          : "Caderno de Erros em dia!"}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {pendingErrorsTotal > 0
+                        ? "Use a IA socrática para eliminar a causa-raiz dos seus erros recentes."
+                        : "Revise seus flashcards para blindar a retenção de longo prazo."}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={pendingErrorsTotal > 0 ? "/notebook" : "/flashcards"}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-[11px] transition-all shadow-2xs"
+                    >
+                      <Layers size={12} />
+                      <span>
+                        {pendingErrorsTotal > 0 ? "Dominar Erros no Caderno" : "Revisar Flashcards"}
+                      </span>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Ação 3: Meta de Foco Semanal & Revisões */}
+                <div className="p-3.5 rounded-2xl bg-white/85 dark:bg-slate-950/60 border border-slate-200/80 dark:border-white/10 flex flex-col justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                        <Clock size={12} /> Prioridade #3 • Meta Semanal
+                      </span>
+                      <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300">
+                        {weeklyGoalPercent}% cumprida
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">
+                      {Math.floor(weeklyStudyMinutes / 60)}h {weeklyStudyMinutes % 60}m de {Math.round(weeklyGoalMinutes / 60)}h na semana
+                    </p>
+                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.max(4, weeklyGoalPercent)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/study-room"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[11px] transition-all shadow-2xs"
+                    >
+                      <Clock size={12} />
+                      <span>Iniciar Sessão Pomodoro</span>
+                    </Link>
+                    <Link
+                      href="/edital"
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 font-semibold text-[11px] transition-all"
+                    >
+                      Edital
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* SELETOR DE ABAS PRINCIPAL (SEGMENTED CONTROL ESTILO LINEAR) */}
             <div className="inline-flex p-1 rounded-xl bg-slate-200/60 dark:bg-slate-900/80 border border-slate-200/80 dark:border-white/10 backdrop-blur-xl w-full sm:w-auto gap-1">
@@ -965,75 +1176,190 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                 transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
-                {/* PONTOS FRACOS (< 60% COM PELO MENOS 3 QUESTÕES) */}
+                {/* PONTOS FRACOS (< 60% COM PELO MENOS 3 QUESTÕES) - CENTRAL DE RESGATE 4-EM-1 */}
                 {data.weakTopics && data.weakTopics.length > 0 && (
                   <div className="bg-white/80 dark:bg-slate-900/60 border border-rose-200/80 dark:border-rose-500/20 rounded-3xl p-6 backdrop-blur-xl space-y-4 shadow-sm dark:shadow-2xl">
-                    <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 dark:border-white/10 pb-3">
                       <div className="flex items-center gap-2">
                         <AlertCircle size={18} className="text-rose-600 dark:text-rose-400" />
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Atenção Prioritária (Pontos Fracos Validados)
-                        </h3>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                            Central de Resgate de Pontos Cegos (Ordenados por Impacto no Edital)
+                          </h3>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            Ataque cada tópico crítico com Bateria de Questões, Flashcards IA, Mapa Mental ou Sessão Pomodoro.
+                          </p>
+                        </div>
                       </div>
-                      <span className="text-[11px] font-bold text-rose-700 dark:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 rounded-full">
-                        {data.weakTopics.length} tópico(s) com taxa &lt; 60%
+                      <span className="text-[11px] font-bold text-rose-700 dark:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 rounded-full self-start sm:self-center">
+                        {data.weakTopics.length} tópico(s) &lt; 60%
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                      {data.weakTopics.map((topic, i) => (
-                        <Link
-                          key={`weak-${i}`}
-                          href={`/questions?topicId=${encodeURIComponent(topic.id || topic.title)}`}
-                          className="bg-slate-50/70 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5 hover:border-rose-400/60 dark:hover:border-rose-500/40 p-4 rounded-2xl flex flex-col justify-between space-y-3 transition-all hover:bg-white dark:hover:bg-white/[0.04] cursor-pointer group shadow-xs hover:shadow-sm"
-                        >
-                          <div className="space-y-1.5">
-                            <span className="text-[9px] font-bold text-rose-700 dark:text-rose-400 uppercase bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
-                              {topic.subject}
-                            </span>
-                            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-rose-600 dark:group-hover:text-rose-300 transition-colors">
-                              {topic.title}
-                            </h4>
-                          </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {data.weakTopics.map((topic, i) => {
+                        const topicKey = topic.id || topic.title;
+                        const isGeneratingCards = generatingTopicCardId === topicKey;
+                        const cardsGenerated = Boolean(generatedTopicCardMap[topicKey]);
 
-                          <div className="flex items-center justify-between border-t border-slate-200/60 dark:border-white/5 pt-2.5">
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                              {topic.total} questões
-                            </span>
-                            <span className="text-xs font-black text-rose-600 dark:text-rose-400 font-mono">
-                              {topic.accuracy}% acerto
-                            </span>
+                        return (
+                          <div
+                            key={`weak-${i}`}
+                            className="bg-slate-50/80 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/10 hover:border-rose-400/60 dark:hover:border-rose-500/40 p-4 rounded-2xl flex flex-col justify-between space-y-3.5 transition-all shadow-xs"
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[9px] font-bold text-rose-700 dark:text-rose-400 uppercase bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full truncate">
+                                  {topic.subject}
+                                </span>
+                                <span className="text-[10px] font-mono font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+                                  Peso {topic.weight || 5}
+                                </span>
+                              </div>
+                              <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 line-clamp-2 leading-snug">
+                                {topic.title}
+                              </h4>
+
+                              {/* Barra de Acurácia vs Meta 75% */}
+                              <div className="space-y-1 pt-1">
+                                <div className="flex items-center justify-between text-[10px] font-mono">
+                                  <span className="text-slate-500 dark:text-slate-400">
+                                    {topic.total} questões • Meta: 75%
+                                  </span>
+                                  <span className="font-black text-rose-600 dark:text-rose-400">
+                                    {topic.accuracy}% acerto
+                                  </span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-rose-500 rounded-full transition-all duration-500"
+                                    style={{ width: `${Math.max(4, topic.accuracy)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 4 Botões Táticos de Resgate */}
+                            <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-200/60 dark:border-white/5">
+                              <Link
+                                href={`/questions?subjectId=${encodeURIComponent(topic.subject)}&topic=${encodeURIComponent(topic.title)}&topicId=${encodeURIComponent(topic.id || "")}&autoStart=true`}
+                                className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all shadow-2xs"
+                              >
+                                <Zap size={12} />
+                                <span>Questões</span>
+                              </Link>
+
+                              <button
+                                type="button"
+                                onClick={() => handleGenerateTopicFlashcards(topic)}
+                                disabled={isGeneratingCards}
+                                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                                  cardsGenerated
+                                    ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+                                    : "bg-white dark:bg-white/5 hover:bg-indigo-50 dark:hover:bg-indigo-500/20 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200"
+                                }`}
+                                title="Gerar 5 Flashcards FSRS focados neste ponto fraco"
+                              >
+                                {isGeneratingCards ? (
+                                  <>
+                                    <Loader2 size={11} className="animate-spin" />
+                                    <span>Gerando...</span>
+                                  </>
+                                ) : cardsGenerated ? (
+                                  <>
+                                    <Check size={11} />
+                                    <span>5 Cards ✓</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Layers size={11} className="text-indigo-500" />
+                                    <span>+5 Cards</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <Link
+                                href={`/mapas-mentais?subject=${encodeURIComponent(topic.subject)}&topic=${encodeURIComponent(topic.title)}&autoGenerate=true`}
+                                className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-[11px] font-semibold flex items-center justify-center gap-1 transition-all"
+                              >
+                                <Network size={11} className="text-cyan-500" />
+                                <span>Mapa Mental</span>
+                              </Link>
+
+                              <Link
+                                href={`/study-room?subjectId=${encodeURIComponent(topic.subjectId || "")}&subject=${encodeURIComponent(topic.subject)}&topicId=${encodeURIComponent(topic.id || "")}&topic=${encodeURIComponent(topic.title)}`}
+                                className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-[11px] font-semibold flex items-center justify-center gap-1 transition-all"
+                              >
+                                <Clock size={11} className="text-violet-500" />
+                                <span>Pomodoro</span>
+                              </Link>
+                            </div>
                           </div>
-                        </Link>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* APROVEITAMENTO POR DISCIPLINA COM BUSCA E FILTROS */}
+                {/* APROVEITAMENTO POR DISCIPLINA COM BUSCA, FILTROS, ORDENAÇÃO E DUPLA BARRA (ACURÁCIA + COBERTURA) */}
                 {data.subjectStats && data.subjectStats.length > 0 && (
                   <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 md:p-7 backdrop-blur-xl space-y-5 shadow-sm dark:shadow-2xl">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200/80 dark:border-white/10">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-slate-200/80 dark:border-white/10">
                       <div className="flex items-center gap-2">
                         <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Aproveitamento por Disciplina
-                        </h3>
-                        <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                          ({filteredSubjects.length} de {allSubjects.length})
-                        </span>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            Raio-X por Disciplina (Acurácia &amp; Cobertura do Edital)
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                              ({filteredSubjects.length} de {allSubjects.length})
+                            </span>
+                          </h3>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            Compare sua taxa de acerto em questões com o percentual de tópicos concluídos em cada matéria.
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Campo de Busca de Disciplina */}
-                      <div className="relative min-w-[200px] sm:w-64">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                          type="text"
-                          value={subjectSearch}
-                          onChange={(e) => setSubjectSearch(e.target.value)}
-                          placeholder="Buscar disciplina..."
-                          className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
-                        />
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Ordenação Inteligente */}
+                        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-2.5 py-1.5">
+                          <ArrowUpDown size={13} className="text-indigo-500 shrink-0" />
+                          <select
+                            value={subjectSort}
+                            onChange={(e) =>
+                              setSubjectSort(
+                                e.target.value as "critical" | "weight" | "coverage" | "alpha",
+                              )
+                            }
+                            aria-label="Ordenar disciplinas"
+                            className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+                          >
+                            <option value="critical" className="bg-white dark:bg-slate-900">
+                              Ordenar: Menor Acurácia
+                            </option>
+                            <option value="weight" className="bg-white dark:bg-slate-900">
+                              Ordenar: Maior Peso no Edital
+                            </option>
+                            <option value="coverage" className="bg-white dark:bg-slate-900">
+                              Ordenar: Menor Cobertura
+                            </option>
+                            <option value="alpha" className="bg-white dark:bg-slate-900">
+                              Ordenar: Alfabética (A-Z)
+                            </option>
+                          </select>
+                        </div>
+
+                        {/* Campo de Busca de Disciplina */}
+                        <div className="relative min-w-[200px] sm:w-56">
+                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            value={subjectSearch}
+                            onChange={(e) => setSubjectSearch(e.target.value)}
+                            placeholder="Buscar disciplina..."
+                            className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -1087,30 +1413,75 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
 
                     {/* Grid em 2 Colunas de Disciplinas */}
                     {filteredSubjects.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
                         {filteredSubjects.map((subj, i) => {
                           const hasData = subj.hasActivity && subj.accuracy !== null;
+                          const coveragePct = subj.coveragePercent ?? 0;
+                          const completedT = subj.completedTopics ?? 0;
+                          const totalT = subj.totalTopics ?? 0;
+                          const pendingErrors = subj.pendingErrorsCount ?? 0;
 
                           return (
                             <div
                               key={`subj-${i}`}
-                              className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/15 transition-all flex flex-col justify-between space-y-2.5 shadow-xs"
+                              className="p-4 rounded-2xl bg-slate-50/80 dark:bg-white/[0.02] border border-slate-200/70 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all flex flex-col justify-between space-y-3 shadow-xs"
                             >
                               <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0 flex-1">
-                                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                                    {subj.subject}
-                                  </h4>
-                                  <span className="text-[10px] text-slate-500 font-mono">
-                                    Meta: {subj.targetWeeklyMinutes || 120}m/sem
+                                <div className="min-w-0 flex-1 space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                                      {subj.subject}
+                                    </h4>
+                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                                      Peso {subj.weight || 5}
+                                    </span>
+                                    {pendingErrors > 0 && (
+                                      <Link
+                                        href="/notebook"
+                                        className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-colors"
+                                        title="Ver erros pendentes desta matéria no Caderno de Erros"
+                                      >
+                                        {pendingErrors} erro(s)
+                                      </Link>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono block">
+                                    Meta recomendada: {subj.targetWeeklyMinutes || 120}m/sem
                                   </span>
                                 </div>
 
-                                <div className="flex items-center gap-2 shrink-0">
-                                  {hasData ? (
-                                    <div className="text-right">
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <Link
+                                    href={`/questions?subjectId=${encodeURIComponent(subj.subject)}&autoStart=true`}
+                                    className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all text-[11px] font-semibold flex items-center gap-1 cursor-pointer shadow-2xs"
+                                    title={`Treinar questões de ${subj.subject}`}
+                                  >
+                                    <Zap size={12} />
+                                    <span>Treinar</span>
+                                  </Link>
+
+                                  <Link
+                                    href={`/study-room?subjectId=${encodeURIComponent(subj.subjectId || "")}&subject=${encodeURIComponent(subj.subject)}`}
+                                    className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 transition-all text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                                    title={`Iniciar Pomodoro em ${subj.subject}`}
+                                  >
+                                    <Clock size={12} className="text-violet-500" />
+                                    <span className="hidden sm:inline">Focar</span>
+                                  </Link>
+                                </div>
+                              </div>
+
+                              {/* Dupla Barra: 1. Acurácia em Questões | 2. Cobertura do Edital */}
+                              <div className="space-y-2 pt-1">
+                                {/* Barra 1: Acurácia */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between text-[11px]">
+                                    <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                      Acurácia em Questões
+                                    </span>
+                                    {hasData ? (
                                       <span
-                                        className={`font-mono font-bold text-xs ${
+                                        className={`font-mono font-bold ${
                                           subj.accuracy! >= 80
                                             ? "text-emerald-600 dark:text-emerald-400"
                                             : subj.accuracy! >= 60
@@ -1118,44 +1489,49 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                                               : "text-rose-600 dark:text-rose-400"
                                         }`}
                                       >
-                                        {subj.accuracy}%
+                                        {subj.accuracy}% ({subj.correct}/{subj.total})
                                       </span>
-                                      <span className="text-[10px] text-slate-500 font-mono block">
-                                        {subj.correct}/{subj.total} acertos
+                                    ) : (
+                                      <span className="text-[10px] font-mono text-slate-400">
+                                        Sem simulados
                                       </span>
-                                    </div>
-                                  ) : (
-                                    <span className="text-[10px] font-mono text-slate-500 bg-slate-200/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded-full">
-                                      Sem simulados
-                                    </span>
-                                  )}
-
-                                  <Link
-                                    href={`/questions?subjectId=${encodeURIComponent(subj.subject)}`}
-                                    className="p-1.5 rounded-lg bg-white dark:bg-white/5 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 transition-all text-xs flex items-center gap-1 cursor-pointer shadow-2xs"
-                                    title={`Treinar questões de ${subj.subject}`}
-                                  >
-                                    <Zap size={13} />
-                                    <span className="hidden sm:inline font-semibold">Treinar</span>
-                                  </Link>
+                                    )}
+                                  </div>
+                                  <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden">
+                                    <div
+                                      style={{
+                                        width: hasData ? `${Math.max(subj.accuracy!, 4)}%` : "0%",
+                                      }}
+                                      className={`h-full rounded-full transition-all duration-500 ${
+                                        !hasData
+                                          ? "bg-slate-300 dark:bg-slate-800"
+                                          : subj.accuracy! >= 80
+                                            ? "bg-emerald-500"
+                                            : subj.accuracy! >= 60
+                                              ? "bg-amber-500"
+                                              : "bg-rose-500"
+                                      }`}
+                                    />
+                                  </div>
                                 </div>
-                              </div>
 
-                              <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden border border-slate-300/30 dark:border-white/5">
-                                <div
-                                  style={{
-                                    width: hasData ? `${Math.max(subj.accuracy!, 3)}%` : "0%",
-                                  }}
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    !hasData
-                                      ? "bg-slate-300 dark:bg-slate-800"
-                                      : subj.accuracy! >= 80
-                                        ? "bg-emerald-500"
-                                        : subj.accuracy! >= 60
-                                          ? "bg-amber-500"
-                                          : "bg-rose-500"
-                                  }`}
-                                />
+                                {/* Barra 2: Cobertura do Edital */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between text-[11px]">
+                                    <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                      Cobertura do Edital
+                                    </span>
+                                    <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                                      {coveragePct}% ({completedT}/{totalT} tópicos)
+                                    </span>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden">
+                                    <div
+                                      style={{ width: `${Math.max(coveragePct, totalT > 0 && completedT > 0 ? 4 : 0)}%` }}
+                                      className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           );
@@ -1202,9 +1578,18 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                           Nível de Fixação dos Seus Cartões de Memória
                         </h3>
                       </div>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                        {fsrsMaturity.totalCards} cartões em processo de memorização
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                          {fsrsMaturity.totalCards} cartões no total
+                        </span>
+                        <Link
+                          href="/flashcards"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-all shadow-2xs"
+                        >
+                          <Zap size={12} />
+                          <span>Revisar Agora</span>
+                        </Link>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1262,24 +1647,48 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                 {/* CARGA DE REVISÃO E QUALIDADE DE MEMORIZAÇÃO */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
                   <div className="lg:col-span-7 bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 md:p-7 backdrop-blur-xl shadow-sm dark:shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-                          Carga de Revisão da Semana
+                          Ritmo de Estudo &amp; Revisão por Dia da Semana
                         </h3>
                         <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
-                          Sessões de repetição realizadas ao longo dos dias.
+                          {chartMetricMode === "minutes"
+                            ? `Total acumulado na semana: ${Math.floor(weeklyStudyMinutes / 60)}h ${weeklyStudyMinutes % 60}m (${weeklyGoalPercent}% da meta)`
+                            : "Sessões de estudo e repetição distribuídas nos dias da semana."}
                         </p>
                       </div>
-                      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
-                        <Zap size={13} className="text-indigo-600 dark:text-indigo-400" />
-                        <span>Semana Atual</span>
+                      <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => setChartMetricMode("sessions")}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                            chartMetricMode === "sessions"
+                              ? "bg-indigo-600 text-white shadow-2xs"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          }`}
+                        >
+                          Sessões
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setChartMetricMode("minutes")}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                            chartMetricMode === "minutes"
+                              ? "bg-indigo-600 text-white shadow-2xs"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          }`}
+                        >
+                          Minutos
+                        </button>
                       </div>
                     </div>
 
                     <div className="h-56 w-full flex items-end justify-between gap-2 md:gap-3 pt-6 px-1">
                       {data.chartDistribution.map((item, idx) => {
-                        const heightPercent = `${(item.quantidade / maxChartQty) * 100}%`;
+                        const val =
+                          chartMetricMode === "minutes" ? item.minutes || 0 : item.quantidade;
+                        const heightPercent = `${(val / maxChartQty) * 100}%`;
                         const isToday = item.day.toUpperCase() === currentDayName;
 
                         return (
@@ -1288,17 +1697,17 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                             tabIndex={0}
                             role="button"
                             onClick={() => triggerHaptic("light")}
-                            aria-label={`${item.day}: ${item.quantidade} questões resolvidas`}
+                            aria-label={`${item.day}: ${val} ${chartMetricMode === "minutes" ? "minutos" : "sessões"}`}
                             className="flex-1 flex flex-col items-center gap-1.5 sm:gap-2 h-full justify-end group cursor-pointer focus-visible:outline-hidden"
                           >
                             <span
                               className={`transition-all duration-200 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-white dark:bg-indigo-950/90 border border-indigo-200 dark:border-indigo-500/40 px-1.5 sm:px-2 py-0.5 rounded-md shadow-md pointer-events-none ${
-                                item.quantidade > 0
+                                val > 0
                                   ? "opacity-90 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100 group-active:opacity-100"
                                   : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100"
                               }`}
                             >
-                              {item.quantidade}
+                              {chartMetricMode === "minutes" ? `${val}m` : val}
                             </span>
 
                             <div
@@ -1310,10 +1719,10 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                             >
                               <div
                                 style={{
-                                  height: item.quantidade > 0 ? heightPercent : "8%",
+                                  height: val > 0 ? heightPercent : "8%",
                                 }}
                                 className={`w-full rounded-xl transition-all duration-700 ${
-                                  item.quantidade > 0
+                                  val > 0
                                     ? "bg-indigo-600 dark:bg-gradient-to-t dark:from-indigo-600 dark:via-purple-500 dark:to-indigo-400"
                                     : "bg-slate-200 dark:bg-slate-800/40"
                                 }`}
