@@ -104,7 +104,7 @@ export async function PATCH(
     const message = error instanceof Error ? error.message : String(error);
     console.error("❌ ERRO AO ATUALIZAR TÓPICO:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: message },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

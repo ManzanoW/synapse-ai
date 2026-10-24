@@ -37,7 +37,7 @@ export async function GET() {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("ERRO REAL DA API LIST:", error);
     return NextResponse.json(
-      { error: "Failed to list history.", details: errorMessage },
+      { error: "Failed to list history." },
       { status: 500 },
     );
   }

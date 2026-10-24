@@ -117,6 +117,14 @@ export function QuizResolutionView({
   createdFlashcards = {},
 }: QuizResolutionViewProps) {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+
+  // Oculta widgets flutuantes periféricos (rascunho, scroll) durante a prova ativa
+  useEffect(() => {
+    document.body.setAttribute("data-in-quiz", "true");
+    return () => {
+      document.body.removeAttribute("data-in-quiz");
+    };
+  }, []);
   const [direction, setDirection] = useState<1 | -1>(1);
 
   // Estados de resposta e resolução
@@ -1970,9 +1978,10 @@ export function QuizResolutionView({
                         onClick={handleConfirmAnswer}
                         disabled={!currentSelectedAlt}
                         type="button"
-                        className="px-6 py-2.5 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-violet-950/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-95"
+                        className="px-6 py-2.5 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-violet-950/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-95 flex items-center gap-2"
                       >
-                        Responder Questão
+                        <span>Responder Questão</span>
+                        <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-white/20 text-[10px] font-mono font-bold lowercase tracking-normal">↵ enter</kbd>
                       </button>
                     ) : (
                       <button

@@ -28,8 +28,10 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSoundscape } from "@/hooks/useSoundscape";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { useSearchParams } from "next/navigation";
 import {
   finishFocusSessionAction,
+  syncFocusTopicStatusAction,
   FinishFocusSessionResult,
   FocusMetricsData,
 } from "@/actions/focus-session-actions";
@@ -37,6 +39,7 @@ import { SoundscapePlayer } from "./_components/SoundscapePlayer";
 import {
   SessionTaskChecklist,
   SessionTask,
+  StudyRoomTopicOption,
 } from "./_components/SessionTaskChecklist";
 import { FocusCelebrationModal } from "./_components/FocusCelebrationModal";
 import { MiniTimerPiP } from "./_components/MiniTimerPiP";
@@ -49,7 +52,12 @@ interface StudyRoomClientProps {
     name?: string | null;
     email?: string | null;
   };
-  initialSubjects: Array<{ id: string; name: string; color: string | null }>;
+  initialSubjects: Array<{
+    id: string;
+    name: string;
+    color: string | null;
+    topics?: StudyRoomTopicOption[];
+  }>;
   initialMetrics: FocusMetricsData;
 }
 
@@ -94,17 +102,64 @@ export default function StudyRoomClient({
   const [minutes, setMinutes] = useState(25);
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
+  const searchParams = useSearchParams();
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
+  const [syncingTaskId, setSyncingTaskId] = useState<string | null>(null);
 
-  // Recupera matéria de foco salva anteriormente
+  // Recupera matéria de foco via URL deep-link (?subjectId=...&topicId=...) ou salva anteriormente
   useEffect(() => {
     try {
+      const paramSubjectId = searchParams.get("subjectId");
+      const paramSubjectName = searchParams.get("subject");
+      const paramTopicId = searchParams.get("topicId");
+      const paramTopicTitle = searchParams.get("topic");
+
+      let matchedSubject = initialSubjects.find((s) => s.id === paramSubjectId);
+      if (!matchedSubject && paramSubjectName) {
+        matchedSubject = initialSubjects.find(
+          (s) => s.name.toLowerCase() === paramSubjectName.toLowerCase(),
+        );
+      }
+
+      if (matchedSubject) {
+        setSelectedSubjectId(matchedSubject.id);
+        localStorage.setItem("synapse_study_room_subject", matchedSubject.id);
+
+        if (paramTopicId || paramTopicTitle) {
+          const matchedTopic = matchedSubject.topics?.find(
+            (t) =>
+              t.id === paramTopicId ||
+              (paramTopicTitle && t.title.toLowerCase() === paramTopicTitle.toLowerCase()),
+          );
+          const taskTitle = matchedTopic
+            ? `Estudar/Revisar: ${matchedTopic.title}`
+            : `Estudar/Revisar: ${paramTopicTitle}`;
+          const resolvedTopicId = matchedTopic?.id || paramTopicId || undefined;
+
+          setTasks((prev) => {
+            if (prev.some((item) => item.topicId === resolvedTopicId || item.text === taskTitle)) {
+              return prev;
+            }
+            return [
+              ...prev,
+              {
+                id: `deep-${Date.now()}`,
+                text: taskTitle,
+                completed: false,
+                topicId: resolvedTopicId,
+              },
+            ];
+          });
+        }
+        return;
+      }
+
       const saved = localStorage.getItem("synapse_study_room_subject");
       if (saved && initialSubjects.some((s) => s.id === saved)) {
         setSelectedSubjectId(saved);
       }
     } catch {}
-  }, [initialSubjects]);
+  }, [initialSubjects, searchParams]);
 
   const handleSelectSubject = (id: string) => {
     setSelectedSubjectId(id);
@@ -204,13 +259,25 @@ export default function StudyRoomClient({
         const completedTasksList = tasks
           .filter((t) => t.completed)
           .map((t) => t.text);
+        const completedTopicIds = tasks
+          .filter((t) => t.completed && t.topicId && !t.syncedToEdital)
+          .map((t) => t.topicId!);
 
         const res = await finishFocusSessionAction({
           durationMinutes: durationMin,
           subjectId: selectedSubjectId || undefined,
           tasksCompleted: completedTasksList,
+          completedTopicIds,
           isFullPomodoroCycle,
         });
+
+        if (res.success && completedTopicIds.length > 0) {
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.completed && t.topicId ? { ...t, syncedToEdital: true } : t,
+            ),
+          );
+        }
 
         if (res.success && res.data) {
           setCelebrationResult(res.data);
@@ -342,15 +409,67 @@ export default function StudyRoomClient({
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, [isZenMode]);
 
-  // Gerenciamento de Micro-Tarefas
-  const handleAddTask = (text: string) => {
+  const selectedSubject = useMemo(
+    () => initialSubjects.find((s) => s.id === selectedSubjectId),
+    [initialSubjects, selectedSubjectId],
+  );
+
+  // Gerenciamento de Micro-Tarefas & Sincronização Edital
+  const handleAddTask = (text: string, topicId?: string) => {
+    triggerHaptic("light");
     setTasks((prev) => [
       ...prev,
-      { id: String(Date.now()), text, completed: false },
+      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, text, completed: false, topicId },
     ]);
   };
 
+  const handleImportPendingTopics = () => {
+    if (!selectedSubject?.topics || selectedSubject.topics.length === 0) return;
+    triggerHaptic("medium");
+    const now = new Date();
+    const candidates = selectedSubject.topics.filter(
+      (t) => t.firstStudy !== "Concluido" || (t.nextRev && new Date(t.nextRev) <= now),
+    );
+    const toImport = (candidates.length > 0 ? candidates : selectedSubject.topics).slice(0, 3);
+
+    setTasks((prev) => {
+      const existingTopicIds = new Set(prev.map((item) => item.topicId).filter(Boolean));
+      const newItems: SessionTask[] = [];
+      for (const topic of toImport) {
+        if (!existingTopicIds.has(topic.id)) {
+          newItems.push({
+            id: `edital-${topic.id}-${Date.now()}`,
+            text: `${topic.firstStudy === "Concluido" ? "Revisar" : "Estudar"}: ${topic.title}`,
+            completed: false,
+            topicId: topic.id,
+          });
+        }
+      }
+      return [...prev, ...newItems];
+    });
+  };
+
+  const handleSyncTopicToEdital = async (taskId: string, topicId: string) => {
+    try {
+      setSyncingTaskId(taskId);
+      triggerHaptic("medium");
+      const res = await syncFocusTopicStatusAction(topicId, "Concluido");
+      if (res.success) {
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId ? { ...t, completed: true, syncedToEdital: true } : t,
+          ),
+        );
+      }
+    } catch (err) {
+      console.error("Erro ao sincronizar tópico com edital:", err);
+    } finally {
+      setSyncingTaskId(null);
+    }
+  };
+
   const handleToggleTask = (id: string) => {
+    triggerHaptic("light");
     setTasks((prev) =>
       prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
     );
@@ -359,11 +478,6 @@ export default function StudyRoomClient({
   const handleDeleteTask = (id: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
-
-  const selectedSubject = useMemo(
-    () => initialSubjects.find((s) => s.id === selectedSubjectId),
-    [initialSubjects, selectedSubjectId],
-  );
 
   // ==========================================
   // RENDERIZAÇÃO DO MODO ZEN TOTAL (IMERSÃO MÁXIMA)
@@ -960,62 +1074,16 @@ export default function StudyRoomClient({
         <div className="space-y-6 flex flex-col justify-between">
           <SessionTaskChecklist
             tasks={tasks}
+            subjectName={selectedSubject?.name}
+            availableTopics={selectedSubject?.topics || []}
             onAddTask={handleAddTask}
+            onImportPendingTopics={handleImportPendingTopics}
             onToggleTask={handleToggleTask}
             onDeleteTask={handleDeleteTask}
+            onSyncTopicToEdital={handleSyncTopicToEdital}
+            syncingTaskId={syncingTaskId}
           />
 
-          {/* Dock de Atalhos Rápidos para Estudar em Foco */}
-          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl shadow-xl space-y-3">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <BookOpen size={16} className="text-indigo-400" />
-              Atalhos de Prática
-            </h3>
-            <p className="text-xs text-slate-400">
-              Pratique enquanto o timer do bloco corre:
-            </p>
-
-            <div className="space-y-2">
-              <Link
-                href="/notebook"
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 hover:bg-indigo-950/30 border border-slate-800/80 hover:border-indigo-500/40 transition-all text-xs text-slate-200 group"
-              >
-                <div className="flex items-center gap-2">
-                  <BookOpenCheck size={16} className="text-violet-400" />
-                  <span className="font-semibold">Caderno de Erros (IA)</span>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 font-mono font-bold">
-                  VIP
-                </span>
-              </Link>
-
-              <Link
-                href="/questions"
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 hover:bg-indigo-950/30 border border-slate-800/80 hover:border-indigo-500/40 transition-all text-xs text-slate-200 group"
-              >
-                <div className="flex items-center gap-2">
-                  <FileStack size={16} className="text-indigo-400" />
-                  <span className="font-semibold">Banco de Questões</span>
-                </div>
-                <span className="text-[10px] text-slate-500 group-hover:text-indigo-400">
-                  Simulado
-                </span>
-              </Link>
-
-              <Link
-                href="/flashcards"
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 hover:bg-indigo-950/30 border border-slate-800/80 hover:border-indigo-500/40 transition-all text-xs text-slate-200 group"
-              >
-                <div className="flex items-center gap-2">
-                  <Layers size={16} className="text-emerald-400" />
-                  <span className="font-semibold">Cartões de Memória</span>
-                </div>
-                <span className="text-[10px] text-slate-500 group-hover:text-emerald-400">
-                  Revisar
-                </span>
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
 

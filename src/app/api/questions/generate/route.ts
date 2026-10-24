@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import {
   generateSimuladoInParallel,
   getDeterministicFallbackQuestions,
@@ -48,7 +50,78 @@ export async function POST(request: Request) {
       adaptiveMode,
       formatoQuestao,
       nivelCargo,
+      isFullMockExam,
+      subjectsDistribution,
     } = body;
+
+    // 🏆 Simulado Completo Proporcional ao Edital (Modo Dia da Prova)
+    if (isFullMockExam && Array.isArray(subjectsDistribution) && subjectsDistribution.length > 0) {
+      const distributedResults = await Promise.all(
+        subjectsDistribution.map(async (dist: { materia: string; count: number }) => {
+          try {
+            const res = await generateSimuladoInParallel(
+              {
+                banca: banca || "FGV",
+                materia: dist.materia,
+                qtdQuestoes: dist.count,
+                dificuldade: dificuldade || "Média",
+                formatoQuestao: formatoQuestao || "auto",
+                nivelCargo: nivelCargo || "superior",
+                fonteConteudo: "banca",
+              },
+              userId,
+            );
+            return (res.data || []).map((q: any) => ({
+              ...q,
+              materia: dist.materia,
+            }));
+          } catch {
+            const fallback = await getDeterministicFallbackQuestions({
+              materia: dist.materia,
+              banca: banca || "FGV",
+              qtdQuestoes: dist.count,
+            });
+            return fallback.map((q: any) => ({
+              ...q,
+              materia: dist.materia,
+            }));
+          }
+        }),
+      );
+
+      const allMockQuestions = distributedResults.flat();
+
+      let savedQuiz = null;
+      if (userId && allMockQuestions.length > 0) {
+        savedQuiz = await prisma.quiz.create({
+          data: {
+            userId,
+            banca: banca || "FGV",
+            subject: "🏆 Simulado Prova Real • Edital Completo",
+            difficulty: dificuldade || "Média",
+            questions: allMockQuestions as unknown as Prisma.InputJsonValue,
+          },
+        });
+      }
+
+      await consumeAiQuota(userId, "SIMULADO").catch(() => {});
+
+      return NextResponse.json(
+        {
+          success: true,
+          id: savedQuiz?.id || null,
+          simuladoId: savedQuiz?.id || null,
+          quizId: savedQuiz?.id || null,
+          sessionId: savedQuiz?.id || null,
+          total: allMockQuestions.length,
+          data: allMockQuestions,
+          usedModel: "proportional-full-mock",
+          durationMs: 0,
+          isFullMockExam: true,
+        },
+        { headers: rateCheck.headers },
+      );
+    }
 
     if (!banca || !materia || !qtdQuestoes) {
       return NextResponse.json(

@@ -13,6 +13,16 @@ import { addOnboardingActivationBonus } from "@/lib/ai-quota-service";
 
 export async function getUserStatsAction(userId: string) {
   try {
+    const session = await auth();
+    const sessionUserId = session?.user?.id;
+    if (!sessionUserId) {
+      return { success: false, error: "Não autorizado." };
+    }
+    if (userId && userId !== sessionUserId && userId !== "demo-user-id") {
+      return { success: false, error: "Acesso negado: violação de posse de recurso (IDOR)." };
+    }
+    userId = sessionUserId;
+
     const userStats = await getCachedUserStats(userId);
 
     const totalXp = userStats?.totalXp ?? 0;
@@ -97,6 +107,16 @@ export async function getUserStatsAction(userId: string) {
 
 export async function getAchievementsProgressAction(userId: string) {
   try {
+    const session = await auth();
+    const sessionUserId = session?.user?.id;
+    if (!sessionUserId) {
+      return { success: false, error: "Não autorizado." };
+    }
+    if (userId && userId !== sessionUserId && userId !== "demo-user-id") {
+      return { success: false, error: "Acesso negado: violação de posse de recurso (IDOR)." };
+    }
+    userId = sessionUserId;
+
     const data = await getCachedAchievementsProgress(userId);
     return { success: true, data };
   } catch (err) {
@@ -113,6 +133,16 @@ export async function getAchievementsProgressAction(userId: string) {
  */
 export async function claimPrestigeAction(userId: string) {
   try {
+    const session = await auth();
+    const sessionUserId = session?.user?.id;
+    if (!sessionUserId) {
+      return { success: false, error: "Não autorizado." };
+    }
+    if (userId && userId !== sessionUserId && userId !== "demo-user-id") {
+      return { success: false, error: "Acesso negado: violação de posse de recurso (IDOR)." };
+    }
+    userId = sessionUserId;
+
     const userStats = await prisma.userStats.findUnique({
       where: { userId },
     });
@@ -202,10 +232,28 @@ export async function recordStudyActivityAction(
   durationMinutes: number = 1,
 ): Promise<RecordStudyActivityResult> {
   try {
+    const session = await auth();
+    const sessionUserId = session?.user?.id;
+    if (!sessionUserId) {
+      return {
+        success: false,
+        error: "Não autorizado.",
+      };
+    }
+    if (userId && userId !== sessionUserId && userId !== "demo-user-id") {
+      return {
+        success: false,
+        error: "Acesso negado: violação de posse de recurso (IDOR).",
+      };
+    }
+    userId = sessionUserId;
+    // Limita earnedXp por evento individual para evitar abuso via DevTools
+    const safeEarnedXp = Math.min(Math.max(0, Math.round(Number(earnedXp) || 0)), 500);
+
     // Validação estrita via Zod
     const validation = RecordStudyActivitySchema.safeParse({
       userId,
-      earnedXp,
+      earnedXp: safeEarnedXp,
       activityType,
       durationMinutes,
     });

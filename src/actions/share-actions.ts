@@ -30,6 +30,33 @@ export interface PublicDeckData {
 }
 
 /**
+ * 🛡️ LGPD (Art. 6º, III - Minimização de Dados em Links Públicos):
+ * Nunca expõe endereços de e-mail caso o provedor OAuth tenha preenchido `name` com e-mail,
+ * e abrevia nomes civis completos (3+ nomes) para "Nome S." em páginas públicas sem login.
+ */
+function sanitizePublicAuthorName(rawName?: string | null): string {
+  if (!rawName) return "Estudante Synapse";
+  const trimmed = rawName.trim();
+  if (!trimmed) return "Estudante Synapse";
+
+  if (trimmed.includes("@")) {
+    const localPart = trimmed.split("@")[0].replace(/[._-]+/g, " ").trim();
+    if (!localPart) return "Estudante Synapse";
+    const firstWord = localPart.split(/\s+/)[0];
+    return `${firstWord.charAt(0).toUpperCase()}${firstWord.slice(1).toLowerCase()}`;
+  }
+
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length >= 3) {
+    const first = parts[0];
+    const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+    return `${first} ${lastInitial}.`;
+  }
+
+  return trimmed;
+}
+
+/**
  * 📥 Busca dados públicos de um Baralho para visualização e compartilhamento
  * Não exige autenticação — acessível para qualquer visitante.
  */
@@ -50,7 +77,6 @@ export async function getPublicDeckAction(deckId: string): Promise<{
         topic: { select: { title: true } },
         user: {
           select: {
-            id: true,
             name: true,
             image: true,
             role: true,
@@ -73,8 +99,13 @@ export async function getPublicDeckAction(deckId: string): Promise<{
       return { success: false, error: "Baralho não encontrado ou removido." };
     }
 
-    const isPro = deck.user.role === "ADMIN" || deck.user.planTier === "PREMIUM";
+    const isPro =
+      deck.user.role === "ADMIN" ||
+      deck.user.planTier === "PREMIUM" ||
+      deck.user.planTier === "ELITE";
 
+    // 🛡️ LGPD (Art. 6º, III - Necessidade / Minimização de Dados):
+    // Nunca expõe ID interno, e-mail, nome civil completo ou role administrativa privilegiada.
     const formatted: PublicDeckData = {
       id: deck.id,
       title: deck.title,
@@ -85,10 +116,10 @@ export async function getPublicDeckAction(deckId: string): Promise<{
       totalCards: deck.flashcards.length,
       flashcards: deck.flashcards,
       author: {
-        name: deck.user.name || "Estudante Synapse",
+        name: sanitizePublicAuthorName(deck.user.name),
         image: deck.user.image,
         isPro,
-        role: deck.user.role,
+        role: "USER",
       },
     };
 
@@ -216,4 +247,3 @@ export async function getPublicMindmapAction(mindmapId: string): Promise<{
     return { success: false, error: "Falha ao carregar mapa mental compartilhado." };
   }
 }
-

@@ -88,6 +88,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   const [isTheoryOpen, setIsTheoryOpen] = useState(false);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [isSummaryMode, setIsSummaryMode] = useState(false);
+  const [showReaderSettings, setShowReaderSettings] = useState(false);
   const [openFaqIndices, setOpenFaqIndices] = useState<Record<number, boolean>>({});
   const [showCognitiveRadar, setShowCognitiveRadar] = useState(false);
   const [showSubjectsDrawer, setShowSubjectsDrawer] = useState(false);
@@ -130,6 +131,20 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   const [pomodoroSeconds, setPomodoroSeconds] = useState(25 * 60);
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
   const [lessonFontSize, setLessonFontSize] = useState<"normal" | "large" | "xlarge">("normal");
+  const [readingTheme, setReadingTheme] = useState<"dark" | "sepia" | "light">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("synapse_reading_theme");
+      if (saved === "sepia" || saved === "light" || saved === "dark") return saved;
+    }
+    return "dark";
+  });
+
+  const handleSetReadingTheme = (theme: "dark" | "sepia" | "light") => {
+    setReadingTheme(theme);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("synapse_reading_theme", theme);
+    }
+  };
 
   // Estado do Wizard de Criação/Customização de Trilha (3 Passos)
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -1338,6 +1353,49 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
            ========================================================= */}
         {activeTab === "trilhas" && trail && (
           <div className="p-5 sm:p-6 rounded-2xl bg-slate-950/80 border border-slate-800/90 space-y-5">
+            {/* CONTINUAR DE ONDE PAROU (AÇÃO DIRETA EM 1 CLIQUE) */}
+            {(() => {
+              const nextLessonToStudy =
+                allLessons.find((l: any) => !l.isCompleted && l.lessonType === "THEORY") ||
+                allLessons.find((l: any) => !l.isCompleted) ||
+                allLessons[0];
+
+              if (!nextLessonToStudy) return null;
+
+              return (
+                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900/80 to-slate-900/60 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-indigo-950/20">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center shrink-0">
+                      <Play className="w-5 h-5 fill-indigo-400 ml-0.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                          CONTINUAR DE ONDE PAROU
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          Semana {nextLessonToStudy.weekNumber}
+                        </span>
+                      </div>
+                      <h3 className="text-sm sm:text-base font-bold text-white truncate mt-0.5">
+                        {nextLessonToStudy.title}
+                      </h3>
+                      <p className="text-xs text-slate-400 truncate">
+                        {nextLessonToStudy.subjectName || "Teoria & Resumo da Semana"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openTheoryModalForLesson(nextLessonToStudy.id)}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer shrink-0"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    <span>Continuar Aula</span>
+                  </button>
+                </div>
+              );
+            })()}
             {/* 1. CABEÇALHO COMPACTO DA TRILHA */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
               <div className="flex items-center gap-3.5">
@@ -1688,15 +1746,6 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
 
                   <button
                     type="button"
-                    onClick={printPersonalEveSheetA4}
-                    title="Gera uma folha A4 pronta para imprimir com o resumo das aulas desta semana"
-                    className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-[11px] transition-all cursor-pointer"
-                  >
-                    🖨️ Baixar Resumo p/ Imprimir (A4)
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => setShowCognitiveRadar((prev) => !prev)}
                     className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] transition-all cursor-pointer"
                   >
@@ -1940,9 +1989,21 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
          ========================================================= */}
       {isTheoryOpen && activeLesson && activeTheoryData && (
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[92vh]">
+          <div className={`rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[92vh] border transition-colors ${
+            readingTheme === "sepia"
+              ? "bg-[#fbf0d9] border-[#e2d4b7] text-[#2c2214]"
+              : readingTheme === "light"
+                ? "bg-white border-slate-200 text-slate-900"
+                : "bg-slate-900 border-slate-700 text-slate-300"
+          }`}>
             {/* Barra de Topo do Leitor */}
-            <div className="p-4 sm:p-5 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+            <div className={`p-4 sm:p-5 border-b flex flex-wrap items-center justify-between gap-3 transition-colors ${
+              readingTheme === "sepia"
+                ? "bg-[#f5e7cc] border-[#decbb0]"
+                : readingTheme === "light"
+                  ? "bg-slate-100 border-slate-200"
+                  : "bg-slate-950 border-slate-800"
+            }`}>
               {/* Seletor de Aulas da Semana (Sempre começando pela Aula 1) */}
               <div className="flex items-center gap-2 flex-wrap">
                 {theoryLessonsOfSelectedWeek.map((l: any, idx: number) => {
@@ -1970,7 +2031,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                 })}
               </div>
 
-              {/* Controles de Estudo: Modo Resumo Rápido + Áudio-Aula + Apostila A4 + Pomodoro + Fechar */}
+              {/* Controles Principais de Estudo: Resumo Rápido + Ouvir Aula + Ajustes de Leitura + Fechar */}
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setIsSummaryMode((prev) => !prev)}
@@ -1984,101 +2045,40 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                   <span>{isSummaryMode ? "📖 Ver Teoria Completa" : "⚡ Resumo Rápido"}</span>
                 </button>
 
-                <div className="inline-flex items-center rounded-xl bg-slate-900 border border-slate-800 overflow-hidden">
-                  <button
-                    onClick={toggleAudioLesson}
-                    className={`px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
-                      isSpeakingAudio
-                        ? "bg-emerald-500/20 text-emerald-300"
-                        : "hover:bg-slate-800 text-slate-300"
-                    }`}
-                    title="Ouvir narração neural de estúdio desta aula"
-                  >
-                    {isSpeakingAudio ? (
-                      <>
-                        <VolumeX className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Parar Áudio</span>
-                      </>
-                    ) : (
-                      <>
-                        <Headphones className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Ouvir Aula</span>
-                      </>
-                    )}
-                  </button>
-                  <select
-                    aria-label="Selecionar voz neural da aula"
-                    value={selectedVoiceURI}
-                    onChange={(e) => handleChangeVoice(e.target.value)}
-                    className="bg-slate-950 border-l border-slate-800 px-2 py-1.5 text-[11px] font-semibold text-slate-300 focus:outline-none cursor-pointer"
-                    title="Mesmas vozes neurais de estúdio dos Flashcards em Áudio"
-                  >
-                    {NEURAL_VOICE_OPTIONS.map((v) => (
-                      <option key={v.voiceURI} value={v.voiceURI}>
-                        🎙️ {v.name.split(" ")[0]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="inline-flex items-center rounded-xl bg-indigo-500/15 border border-indigo-500/30 overflow-hidden">
-                  <select
-                    aria-label="Selecionar nível de dificuldade da aula"
-                    value={activeLesson?.level || "BEGINNER"}
-                    disabled={isSyncingAITheory}
-                    onChange={(e) =>
-                      handleSyncOrGenerateLessonTheory(
-                        false,
-                        e.target.value as "BEGINNER" | "INTERMEDIATE" | "ADVANCED",
-                      )
-                    }
-                    className="bg-slate-950/90 px-2.5 py-1.5 text-[11px] font-bold text-indigo-200 focus:outline-none cursor-pointer"
-                    title="Escolha se prefere uma explicação mais fácil ou mais aprofundada"
-                  >
-                    <option value="BEGINNER">🌱 Explicação Fácil</option>
-                    <option value="INTERMEDIATE">⚖️ Nível da Prova</option>
-                    <option value="ADVANCED">🔥 Aprofundado</option>
-                  </select>
-                </div>
-
-                {/* Controle de Tamanho da Letra (Acessibilidade para leitura confortável) */}
                 <button
-                  type="button"
-                  onClick={() =>
-                    setLessonFontSize((prev) =>
-                      prev === "normal" ? "large" : prev === "large" ? "xlarge" : "normal",
-                    )
-                  }
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-colors ${
-                    lessonFontSize !== "normal"
-                      ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                  onClick={toggleAudioLesson}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    isSpeakingAudio
+                      ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
                       : "bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300"
                   }`}
-                  title="Aumentar ou diminuir o tamanho da letra da aula para facilitar a leitura"
+                  title="Ouvir narração neural de estúdio desta aula"
                 >
-                  <span>🔤 Letra: {lessonFontSize === "normal" ? "Normal (A+)" : lessonFontSize === "large" ? "Grande (A++)" : "Extra Grande"}</span>
-                </button>
-
-                <button
-                  onClick={printLessonApostila}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-                  title="Imprimir ou Salvar PDF A4 desta aula com suas anotações"
-                >
-                  <Printer className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Imprimir Aula</span>
-                </button>
-
-                <button
-                  onClick={() => setPomodoroRunning((r) => !r)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/40 flex items-center gap-1.5 text-xs font-mono text-slate-300 cursor-pointer"
-                  title="Clique para iniciar/pausar seu cronômetro de estudo"
-                >
-                  {pomodoroRunning ? (
-                    <Pause className="w-3.5 h-3.5 text-amber-400" />
+                  {isSpeakingAudio ? (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Parar Áudio</span>
+                    </>
                   ) : (
-                    <Play className="w-3.5 h-3.5 text-emerald-400" />
+                    <>
+                      <Headphones className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Ouvir Aula</span>
+                    </>
                   )}
-                  <span>{formatTimer(pomodoroSeconds)}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowReaderSettings((prev) => !prev)}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    showReaderSettings
+                      ? "bg-indigo-600/20 border-indigo-500/40 text-indigo-200"
+                      : "bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300"
+                  }`}
+                  title="Ajustar tamanho da letra, tema de leitura, nível da explicação, voz, timer ou imprimir"
+                >
+                  <span>⚙️ Ajustes</span>
+                  {showReaderSettings ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </button>
 
                 <button
@@ -2087,15 +2087,110 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                     setIsTheoryOpen(false);
                   }}
                   className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white cursor-pointer"
+                  title="Fechar aula"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Corpo da Aula (Scrollável com Tamanho de Letra Ajustável) */}
+            {/* Barra Colapsável de Ajustes de Leitura (Sob demanda, sem poluir o topo) */}
+            {showReaderSettings && (
+              <div className="px-4 py-2.5 bg-slate-950/95 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Nível da Explicação */}
+                  <div className="inline-flex items-center rounded-xl bg-indigo-500/15 border border-indigo-500/30 overflow-hidden">
+                    <select
+                      aria-label="Selecionar nível de dificuldade da aula"
+                      value={activeLesson?.level || "BEGINNER"}
+                      disabled={isSyncingAITheory}
+                      onChange={(e) =>
+                        handleSyncOrGenerateLessonTheory(
+                          false,
+                          e.target.value as "BEGINNER" | "INTERMEDIATE" | "ADVANCED",
+                        )
+                      }
+                      className="bg-slate-950/90 px-2.5 py-1.5 text-[11px] font-bold text-indigo-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="BEGINNER">🌱 Explicação Fácil</option>
+                      <option value="INTERMEDIATE">⚖️ Nível da Prova</option>
+                      <option value="ADVANCED">🔥 Aprofundado</option>
+                    </select>
+                  </div>
+
+                  {/* Tema de Leitura */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextTheme = readingTheme === "dark" ? "sepia" : readingTheme === "sepia" ? "light" : "dark";
+                      handleSetReadingTheme(nextTheme);
+                    }}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-[11px] cursor-pointer"
+                  >
+                    {readingTheme === "dark" ? "🌙 Tema: Escuro" : readingTheme === "sepia" ? "📜 Tema: Sépia" : "☀️ Tema: Claro"}
+                  </button>
+
+                  {/* Tamanho da Letra */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLessonFontSize((prev) =>
+                        prev === "normal" ? "large" : prev === "large" ? "xlarge" : "normal",
+                      )
+                    }
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-[11px] cursor-pointer"
+                  >
+                    🔤 Letra: {lessonFontSize === "normal" ? "Normal (A+)" : lessonFontSize === "large" ? "Grande (A++)" : "Extra Grande"}
+                  </button>
+
+                  {/* Voz do Áudio */}
+                  <select
+                    aria-label="Selecionar voz neural da aula"
+                    value={selectedVoiceURI}
+                    onChange={(e) => handleChangeVoice(e.target.value)}
+                    className="rounded-xl bg-slate-900 border border-slate-800 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 focus:outline-none cursor-pointer"
+                  >
+                    {NEURAL_VOICE_OPTIONS.map((v) => (
+                      <option key={v.voiceURI} value={v.voiceURI}>
+                        🎙️ Voz: {v.name.split(" ")[0]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={printLessonApostila}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Imprimir Aula</span>
+                  </button>
+
+                  <button
+                    onClick={() => setPomodoroRunning((r) => !r)}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/40 flex items-center gap-1.5 text-[11px] font-mono text-slate-300 cursor-pointer"
+                  >
+                    {pomodoroRunning ? (
+                      <Pause className="w-3.5 h-3.5 text-amber-400" />
+                    ) : (
+                      <Play className="w-3.5 h-3.5 text-emerald-400" />
+                    )}
+                    <span>{formatTimer(pomodoroSeconds)}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Corpo da Aula (Scrollável com Tamanho de Letra e Tema Ajustáveis) */}
             <div
-              className={`p-6 sm:p-8 overflow-y-auto space-y-6 text-slate-300 leading-relaxed ${
+              className={`p-6 sm:p-8 overflow-y-auto space-y-6 leading-relaxed transition-colors ${
+                readingTheme === "sepia"
+                  ? "text-[#3b2b18]"
+                  : readingTheme === "light"
+                    ? "text-slate-800"
+                    : "text-slate-300"
+              } ${
                 lessonFontSize === "xlarge"
                   ? "text-lg"
                   : lessonFontSize === "large"
@@ -2104,7 +2199,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
               }`}
             >
               {/* Cabeçalho da Aula */}
-              <div className="space-y-2 border-b border-slate-800 pb-5">
+              <div className={`space-y-2 border-b pb-5 ${readingTheme === "sepia" ? "border-[#decbb0]" : readingTheme === "light" ? "border-slate-200" : "border-slate-800"}`}>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-[10px] font-mono font-bold uppercase">
                     {activeTheoryData.moduleTag}
@@ -2149,7 +2244,13 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                     </button>
                   </div>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-white">
+                <h2 className={`text-xl sm:text-2xl font-extrabold ${
+                  readingTheme === "sepia"
+                    ? "text-[#241708]"
+                    : readingTheme === "light"
+                      ? "text-slate-950"
+                      : "text-white"
+                }`}>
                   {activeLesson.title}
                 </h2>
               </div>
@@ -2239,7 +2340,13 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
               ) : (
                 <div className="space-y-6">
                   {/* Introdução */}
-                  <p className="text-slate-200 font-medium leading-relaxed bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80">
+                  <p className={`font-medium leading-relaxed p-4 rounded-2xl border ${
+                    readingTheme === "sepia"
+                      ? "bg-[#f4e4c3] text-[#2c2214] border-[#dccea9]"
+                      : readingTheme === "light"
+                        ? "bg-slate-50 text-slate-800 border-slate-200"
+                        : "bg-slate-950/50 text-slate-200 border-slate-800/80"
+                  }`}>
                     {activeTheoryData.introLead}
                   </p>
 

@@ -128,6 +128,14 @@ export default function StudyFlashcard({
     cardStartTimeRef.current = Date.now();
   }, []);
 
+  // Oculta widgets flutuantes periféricos (rascunho de notas, scroll) durante a sessão de flashcards
+  useEffect(() => {
+    document.body.setAttribute("data-in-quiz", "true");
+    return () => {
+      document.body.removeAttribute("data-in-quiz");
+    };
+  }, []);
+
   const x = useMotionValue(0);
   const cardRotate = useTransform(x, [-250, 250], [-12, 12]);
 

@@ -92,7 +92,7 @@ export function QuickScratchpadWidget() {
   const hasContent = noteContent.trim().length > 0;
 
   return (
-    <div className="fixed bottom-24 left-4 sm:bottom-6 sm:left-6 z-40 print:hidden select-none">
+    <div className="hide-on-quiz fixed bottom-24 left-4 sm:bottom-6 sm:left-6 z-40 print:hidden select-none">
       <AnimatePresence>
         {isOpen ? (
           <motion.div

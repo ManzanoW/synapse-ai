@@ -13,6 +13,13 @@ export async function POST(request: Request) {
     const session = await auth();
     const userId = session?.user?.id;
 
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Não autorizado. Faça login para gerar simulados." },
+        { status: 401 },
+      );
+    }
+
     const clientId = getClientIdentifier(request, userId);
     const rateCheck = checkRateLimitAndGenerateResponse(
       simuladoGenerationLimiter,
@@ -94,7 +101,7 @@ export async function POST(request: Request) {
     console.error("Erro ao gerar simulado em /api/simulados/generate:", error);
 
     return NextResponse.json(
-      { error: "Falha ao gerar simulado.", details: errorMessage },
+      { error: "Falha ao gerar simulado." },
       { status: 500 },
     );
   }

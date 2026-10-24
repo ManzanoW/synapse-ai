@@ -788,12 +788,21 @@ export default function WeekPage() {
           {/* Barra Superior Limpa: Ler Aulas + Atrasou? Reorganizar + Ajustes */}
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
             <Link
+              href="/calendar"
+              title="Abrir o Calendário Mensal de Revisões"
+              className="inline-flex items-center justify-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/25 text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <CalendarDays size={14} className="text-indigo-500 dark:text-indigo-400" />
+              <span>Calendário de Revisões</span>
+            </Link>
+
+            <Link
               href="/trilhas?openTheory=1"
               title="Abrir suas Aulas e Resumos da semana"
               className="inline-flex items-center justify-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-300 border border-amber-500/30 text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <BookOpen size={14} className="text-amber-500 dark:text-amber-400" />
-              <span>📖 Ler Aulas</span>
+              <span>Ler Aulas</span>
             </Link>
 
             {/* Menu amigável para quem atrasou ou quer redistribuir */}
@@ -1364,6 +1373,7 @@ export default function WeekPage() {
                                       <span>Iniciar</span>
                                     </button>
 
+
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1435,8 +1445,9 @@ export default function WeekPage() {
                                               <span>Ler Aula</span>
                                             </Link>
 
+
                                             <Link
-                                              href={`/questions?subject=${encodeURIComponent(subject.name)}&topic=${encodeURIComponent(topic.title)}`}
+                                              href={`/questions?subjectId=${encodeURIComponent(subject.name)}&topic=${encodeURIComponent(topic.title)}&topicId=${encodeURIComponent(topic.id)}&autoStart=true`}
                                               onClick={(e) => e.stopPropagation()}
                                               title="Treinar questões deste assunto"
                                               className="px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold flex items-center gap-1 transition-colors"

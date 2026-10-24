@@ -18,6 +18,8 @@ import {
   Flame,
   Clock,
   CheckCircle2,
+  Trophy,
+  ChevronRight,
 } from "lucide-react";
 
 export default async function ProfilePage() {
@@ -43,6 +45,11 @@ export default async function ProfilePage() {
       targetRole: true,
       planTier: true,
       role: true,
+      userStats: {
+        select: {
+          streakDays: true,
+        },
+      },
     },
   });
 
@@ -66,6 +73,7 @@ export default async function ProfilePage() {
   };
 
   const weeklyGoalHours = dbUser?.weeklyGoalHours ?? 10;
+  const streakDays = dbUser?.userStats?.streakDays ?? 0;
   const studyModeLabel =
     dbUser?.studyMode === "CYCLE"
       ? "Ciclo de Estudos Dinâmico"
@@ -177,7 +185,7 @@ export default async function ProfilePage() {
               Ofensiva de Estudos
             </span>
             <span className="text-lg font-bold text-slate-900 dark:text-white">
-              5 Dias Seguidos
+              {streakDays} {streakDays === 1 ? "Dia Seguido" : "Dias Seguidos"}
             </span>
           </div>
         </div>
@@ -211,51 +219,47 @@ export default async function ProfilePage() {
           </div>
           <div>
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">
-              Status da Conta
+              Modo do Cronograma
             </span>
             <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-              Ativa & Protegida
+              {studyModeLabel}
             </span>
           </div>
         </div>
       </div>
 
-      {/* ⚙️ SEÇÕES DETALHADAS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Bloco 1: Informações da Conta */}
-        <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/60 rounded-2xl p-6 space-y-4 backdrop-blur-xl shadow-xs">
-          <div className="flex items-center gap-2.5 border-b border-slate-200 dark:border-slate-800/60 pb-3">
-            <User size={18} className="text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-              Informações Pessoais
-            </h2>
+      {/* 🏆 BANNER DA GALERIA DE CONQUISTAS */}
+      <Link
+        href="/achievements"
+        className="p-5 bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 hover:from-amber-500/15 hover:via-purple-500/15 hover:to-indigo-500/15 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all group shadow-xs hover:shadow-md cursor-pointer"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
+            <Trophy size={24} />
           </div>
-
-          <div className="space-y-3">
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                Nome Exibido
-              </label>
-              <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-slate-200 font-medium">
-                {dbUser?.name || "Não informado"}
-              </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                Galeria de Conquistas & Distintivos
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                20 Medalhas
+              </span>
             </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                E-mail de Acesso
-              </label>
-              <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-slate-200 font-medium flex items-center justify-between">
-                <span className="truncate">
-                  {dbUser?.email || "Não informado"}
-                </span>
-                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-              </div>
-            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Veja suas medalhas desbloqueadas, marcos de estudos e raridades (Comum a Lendária).
+            </p>
           </div>
         </div>
+        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform self-end sm:self-auto shrink-0">
+          <span>Ver Conquistas</span>
+          <ChevronRight size={14} />
+        </div>
+      </Link>
 
-        {/* Bloco 2: Card de Objetivo da Prova */}
+      {/* ⚙️ OBJETIVO DA PROVA & PRIVACIDADE LGPD */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Card de Objetivo da Prova */}
         <div className="md:col-span-2">
           <ProfileTargetForm
             initialTargetDate={dbUser?.targetExamDate}
@@ -264,41 +268,7 @@ export default async function ProfilePage() {
           />
         </div>
 
-        {/* Bloco 3: Configurações de Estudo */}
-        <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/60 rounded-2xl p-6 space-y-4 backdrop-blur-xl md:col-span-2 shadow-xs">
-          <div className="flex items-center gap-2.5 border-b border-slate-200 dark:border-slate-800/60 pb-3">
-            <Shield size={18} className="text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-              Configurações de Estudo
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                Foco Acadêmico / Carreira
-              </label>
-              <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-slate-200 font-medium flex items-center justify-between">
-                <span className="truncate pr-2">{dbUser?.careerFocus || "Tecnologia da Informação & Dados"}</span>
-                <span className="text-xs bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20 font-bold shrink-0">
-                  Definido
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                Modo do Cronograma
-              </label>
-              <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-slate-200 font-medium flex items-center justify-between">
-                <span>{studyModeLabel}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">Ciclo Adaptativo</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bloco 4: Central de Backup & Portabilidade de Dados */}
+        {/* Central de Backup & Portabilidade de Dados */}
         <LocalDataBackupCard />
       </div>
     </div>

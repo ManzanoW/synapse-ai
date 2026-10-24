@@ -29,6 +29,7 @@ export function ErrorFiltersBar({
   isGeneratingRedemption = false,
 }: ErrorFiltersBarProps) {
   const [searchValue, setSearchValue] = React.useState(filters.search || "");
+  const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
 
   // Sincroniza estado local se o filtro for resetado ou alterado externamente
   React.useEffect(() => {
@@ -146,48 +147,66 @@ export function ErrorFiltersBar({
             />
           </div>
 
-          {/* Seletor de Período */}
-          <div className="relative min-w-[120px] flex-1 sm:flex-initial">
-            <select
-              value={filters.period || "all"}
-              onChange={(e) =>
-                onFilterChange({
-                  period: e.target.value as "7d" | "30d" | "90d" | "all",
-                })
-              }
-              className="w-full px-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8 min-h-[44px]"
-            >
-              <option value="all">Todo o Período</option>
-              <option value="7d">Últimos 7 dias</option>
-              <option value="30d">Últimos 30 dias</option>
-              <option value="90d">Últimos 90 dias</option>
-            </select>
-            <Clock
-              size={14}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-            />
-          </div>
+          {/* Botão Mais Filtros (Período e Origem sob demanda) */}
+          <button
+            type="button"
+            onClick={() => setShowAdvancedFilters((prev) => !prev)}
+            className={`inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer min-h-[44px] ${
+              showAdvancedFilters || (filters.period && filters.period !== "all") || (filters.origin && filters.origin !== "ALL")
+                ? "bg-violet-500/15 border-violet-500/40 text-violet-200"
+                : "bg-slate-800/80 border-white/10 text-slate-300 hover:text-white"
+            }`}
+          >
+            <Filter size={13} />
+            <span>Mais filtros</span>
+          </button>
 
-          {/* Seletor de Origem (Simulado Cronometrado vs Treino Avulso) */}
-          <div className="relative min-w-[130px] flex-1 sm:flex-initial">
-            <select
-              value={filters.origin || "ALL"}
-              onChange={(e) =>
-                onFilterChange({
-                  origin: e.target.value as "ALL" | "TIMED" | "PRACTICE",
-                })
-              }
-              className="w-full px-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8 min-h-[44px]"
-            >
-              <option value="ALL">Origem: Todas</option>
-              <option value="TIMED">⏱️ Simulado / Prova</option>
-              <option value="PRACTICE">📖 Treino Avulso</option>
-            </select>
-            <Timer
-              size={14}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-            />
-          </div>
+          {(showAdvancedFilters || (filters.period && filters.period !== "all") || (filters.origin && filters.origin !== "ALL")) && (
+            <>
+              {/* Seletor de Período */}
+              <div className="relative min-w-[120px] flex-1 sm:flex-initial">
+                <select
+                  value={filters.period || "all"}
+                  onChange={(e) =>
+                    onFilterChange({
+                      period: e.target.value as "7d" | "30d" | "90d" | "all",
+                    })
+                  }
+                  className="w-full px-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8 min-h-[44px]"
+                >
+                  <option value="all">Todo o Período</option>
+                  <option value="7d">Últimos 7 dias</option>
+                  <option value="30d">Últimos 30 dias</option>
+                  <option value="90d">Últimos 90 dias</option>
+                </select>
+                <Clock
+                  size={14}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
+              </div>
+
+              {/* Seletor de Origem (Simulado Cronometrado vs Treino Avulso) */}
+              <div className="relative min-w-[130px] flex-1 sm:flex-initial">
+                <select
+                  value={filters.origin || "ALL"}
+                  onChange={(e) =>
+                    onFilterChange({
+                      origin: e.target.value as "ALL" | "TIMED" | "PRACTICE",
+                    })
+                  }
+                  className="w-full px-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer appearance-none pr-8 min-h-[44px]"
+                >
+                  <option value="ALL">Origem: Todas</option>
+                  <option value="TIMED">⏱️ Simulado / Prova</option>
+                  <option value="PRACTICE">📖 Treino Avulso</option>
+                </select>
+                <Timer
+                  size={14}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
+              </div>
+            </>
+          )}
 
           {/* Botão Contextual de Redenção por Matéria */}
           {onStartRedemption && filters.subjectId && filters.subjectId !== "ALL" && (

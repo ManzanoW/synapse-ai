@@ -71,7 +71,7 @@ export function ScrollToTopButton() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: 10 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-40 print:hidden select-none"
+          className="hide-on-quiz fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-40 print:hidden select-none"
         >
           <button
             type="button"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -13,15 +13,26 @@ import {
   Sparkles,
   X,
   BookOpen,
+  CheckCircle2,
+  Target,
+  Timer,
 } from "lucide-react";
 import { Topic } from "@/types";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 
+type ReviewGrade = "ERREI" | "DIFICIL" | "BOM" | "FACIL";
+
 export default function CalendarPage() {
   const [data, setData] = useState<Record<string, number>>({});
+  const [overdueCount, setOverdueCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | "overdue" | null>(
+    null,
+  );
+  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   const [selectedTopics, setSelectedTopics] = useState<Topic[]>([]);
+  const [reviewingTopicId, setReviewingTopicId] = useState<string | null>(null);
+  const [reviewedTopicIds, setReviewedTopicIds] = useState<Record<string, ReviewGrade>>({});
 
   // 1. Instância dinâmica da data atual do sistema
   const [now] = useState(() => new Date());
@@ -41,24 +52,37 @@ export default function CalendarPage() {
     year: "numeric",
   });
 
-  useEffect(() => {
-    async function loadCalendarData() {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/calendar?month=${monthParam}`);
-        if (!res.ok) throw new Error("Falha na API");
-        const json = await res.json();
-        setData(json.data || {});
-      } catch (err) {
-        console.error("Erro ao carregar calendário:", err);
-      } finally {
-        setLoading(false);
-      }
+  const loadCalendarData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/calendar?month=${monthParam}`);
+      if (!res.ok) throw new Error("Falha na API");
+      const json = await res.json();
+      setData(json.data || {});
+      setOverdueCount(typeof json.overdueCount === "number" ? json.overdueCount : 0);
+    } catch (err) {
+      console.error("Erro ao carregar calendário:", err);
+    } finally {
+      setLoading(false);
     }
-    loadCalendarData();
   }, [monthParam]);
 
-  async function handleDayClick(dateStr: string, day: number) {
+  useEffect(() => {
+    loadCalendarData();
+  }, [loadCalendarData]);
+
+  useEffect(() => {
+    if (!selectedDay) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedDay(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedDay]);
+
+  async function handleDayClick(dateStr: string, day: number | "overdue") {
     triggerHaptic("light");
     setLoading(true);
     try {
@@ -66,11 +90,34 @@ export default function CalendarPage() {
       const json = await res.json();
 
       setSelectedTopics(json.data || []);
+      setSelectedDateStr(dateStr);
       setSelectedDay(day);
+      setReviewedTopicIds({});
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleQuickReview(topicId: string, grade: ReviewGrade) {
+    if (reviewingTopicId) return;
+    triggerHaptic("medium");
+    setReviewingTopicId(topicId);
+    try {
+      const res = await fetch("/api/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topicId, grade }),
+      });
+      if (!res.ok) throw new Error("Falha ao registrar revisão");
+      triggerHaptic("success");
+      setReviewedTopicIds((prev) => ({ ...prev, [topicId]: grade }));
+      await loadCalendarData();
+    } catch (err) {
+      console.error("Erro ao registrar revisão:", err);
+    } finally {
+      setReviewingTopicId(null);
     }
   }
 
@@ -136,33 +183,51 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <div className="bg-white/90 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border border-slate-200/80 dark:border-white/10 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-sm dark:shadow-2xl flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => handleDayClick(realTodayStr, now.getDate())}
+            className="text-left bg-white/90 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border border-slate-200/80 dark:border-white/10 hover:border-indigo-500/40 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-sm dark:shadow-2xl flex items-center justify-between transition-all cursor-pointer group"
+          >
             <div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider">
-                Revisões de Hoje
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider flex items-center gap-1.5">
+                <span>Revisões de Hoje</span>
+                <span className="text-[9px] text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                  • Ver lista
+                </span>
               </p>
               <p className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono mt-1">
                 {todayCount}
               </p>
             </div>
-            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400">
+            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 group-hover:scale-105 transition-transform">
               <Clock size={18} />
             </div>
-          </div>
+          </button>
 
-          <div className="bg-white/90 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border border-slate-200/80 dark:border-white/10 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-sm dark:shadow-2xl flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => handleDayClick("overdue", "overdue")}
+            className={`text-left bg-white/90 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-sm dark:shadow-2xl flex items-center justify-between transition-all cursor-pointer group ${
+              overdueCount > 0
+                ? "border-rose-500/40 hover:border-rose-500"
+                : "border-slate-200/80 dark:border-white/10 hover:border-rose-500/40"
+            }`}
+          >
             <div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider">
-                Revisões Atrasadas
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider flex items-center gap-1.5">
+                <span>Revisões Atrasadas</span>
+                <span className="text-[9px] text-rose-500 dark:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                  • Regularizar
+                </span>
               </p>
               <p className="text-xl sm:text-2xl font-black text-rose-500 dark:text-rose-400 font-mono mt-1">
-                0
+                {overdueCount}
               </p>
             </div>
-            <div className="p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 dark:text-rose-400">
+            <div className="p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 dark:text-rose-400 group-hover:scale-105 transition-transform">
               <AlertCircle size={18} />
             </div>
-          </div>
+          </button>
         </div>
 
         {/* CABEÇALHO DO CALENDÁRIO */}
@@ -290,66 +355,179 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* MODAL DE DETALHES DO DIA */}
+      {/* MODAL DE DETALHES DO DIA / ATRASADAS */}
       {selectedDay && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="calendar-modal-title"
           className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
           onClick={() => setSelectedDay(null)}
         >
           <div
-            className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl relative space-y-5"
+            className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-white/10 rounded-3xl p-5 sm:p-6 w-full max-w-lg shadow-2xl relative space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-white/10 pb-4">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400">
-                  <BookOpen size={18} />
+                <div
+                  className={`p-2 rounded-xl border ${
+                    selectedDay === "overdue"
+                      ? "bg-rose-500/10 border-rose-500/20 text-rose-500 dark:text-rose-400"
+                      : "bg-indigo-500/10 border-indigo-500/20 text-indigo-500 dark:text-indigo-400"
+                  }`}
+                >
+                  {selectedDay === "overdue" ? (
+                    <AlertCircle size={18} />
+                  ) : (
+                    <BookOpen size={18} />
+                  )}
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Revisões do Dia
+                  <h2
+                    id="calendar-modal-title"
+                    className="text-sm font-bold text-slate-900 dark:text-white"
+                  >
+                    {selectedDay === "overdue"
+                      ? "Revisões em Atraso"
+                      : "Revisões do Dia"}
                   </h2>
-                  <p className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5">
-                    {selectedDay} de {monthName}
+                  <p
+                    className={`text-xs font-semibold mt-0.5 ${
+                      selectedDay === "overdue"
+                        ? "text-rose-600 dark:text-rose-400"
+                        : "text-indigo-600 dark:text-indigo-400"
+                    }`}
+                  >
+                    {selectedDay === "overdue"
+                      ? `${selectedTopics.length} tópico(s) aguardando regularização`
+                      : selectedDateStr === realTodayStr
+                        ? `Hoje (${now.getDate()} de ${now.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })})`
+                        : `${selectedDay} de ${monthName}`}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedDay(null)}
+                aria-label="Fechar modal"
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
               {selectedTopics.length > 0 ? (
-                selectedTopics.map((topic) => (
-                  <div
-                    key={topic.id}
-                    className="p-3.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-white/10 hover:border-indigo-500/30 rounded-2xl flex items-center justify-between gap-3 group transition-all"
-                  >
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block truncate">
-                        {topic.subject?.name || "Sem Matéria"}
-                      </span>
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-white">
-                        {topic.title}
-                      </p>
-                    </div>
+                selectedTopics.map((topic) => {
+                  const isReviewed = Boolean(reviewedTopicIds[topic.id]);
+                  const isReviewing = reviewingTopicId === topic.id;
+                  const subjectName = topic.subject?.name || "Sem Matéria";
+                  const subjectId = topic.subjectId || topic.subject?.id || "";
 
-                    <Link
-                      href={`/revisar/${topic.id}`}
-                      className="text-[11px] font-bold bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white px-3.5 py-1.5 rounded-xl transition-all shadow-md shadow-indigo-600/20 shrink-0 cursor-pointer"
+                  return (
+                    <div
+                      key={topic.id}
+                      className={`p-3.5 rounded-2xl border transition-all space-y-3 ${
+                        isReviewed
+                          ? "bg-emerald-500/5 border-emerald-500/30"
+                          : "bg-slate-50 dark:bg-slate-950/80 border-slate-200/80 dark:border-white/10 hover:border-indigo-500/30"
+                      }`}
                     >
-                      Revisar
-                    </Link>
-                  </div>
-                ))
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block truncate">
+                            {subjectName}
+                          </span>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">
+                            {topic.title}
+                          </p>
+                        </div>
+
+                        {/* Atalhos para Questões e Pomodoro */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Link
+                            href={`/questions?subjectId=${encodeURIComponent(subjectName)}&topic=${encodeURIComponent(topic.title)}&topicId=${encodeURIComponent(topic.id)}&autoStart=true`}
+                            title="Praticar questões deste tópico"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/25 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold transition-all cursor-pointer"
+                          >
+                            <Target size={11} />
+                            <span>Questões</span>
+                          </Link>
+                          <Link
+                            href={`/study-room?subjectId=${encodeURIComponent(subjectId)}&subject=${encodeURIComponent(subjectName)}&topicId=${encodeURIComponent(topic.id)}&topic=${encodeURIComponent(topic.title)}`}
+                            title="Abrir tópico na Sala de Foco (Pomodoro)"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/25 text-cyan-600 dark:text-cyan-300 text-[10px] font-bold transition-all cursor-pointer"
+                          >
+                            <Timer size={11} />
+                            <span>Pomodoro</span>
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Avaliação de Retenção 1-Clique (FSRS / SM-2) */}
+                      <div className="pt-2 border-t border-slate-200/70 dark:border-white/5 flex items-center justify-between gap-2">
+                        {isReviewed ? (
+                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
+                            <CheckCircle2 size={14} />
+                            <span>
+                              Revisão registrada ({reviewedTopicIds[topic.id]})! Próximo ciclo agendado.
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                              Concluir revisão agora:
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {(
+                                [
+                                  {
+                                    grade: "ERREI",
+                                    label: "Errei",
+                                    cls: "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-rose-600 dark:text-rose-300",
+                                  },
+                                  {
+                                    grade: "DIFICIL",
+                                    label: "Difícil",
+                                    cls: "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-600 dark:text-amber-300",
+                                  },
+                                  {
+                                    grade: "BOM",
+                                    label: "Bom",
+                                    cls: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/30 text-indigo-600 dark:text-indigo-300",
+                                  },
+                                  {
+                                    grade: "FACIL",
+                                    label: "Fácil",
+                                    cls: "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-300",
+                                  },
+                                ] as const
+                              ).map((btn) => (
+                                <button
+                                  key={btn.grade}
+                                  type="button"
+                                  disabled={isReviewing}
+                                  onClick={() =>
+                                    handleQuickReview(topic.id, btn.grade)
+                                  }
+                                  className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all active:scale-95 cursor-pointer disabled:opacity-50 ${btn.cls}`}
+                                >
+                                  {isReviewing ? "..." : btn.label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
                 <div className="py-8 text-center space-y-1">
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Nenhuma revisão agendada para este dia.
+                    {selectedDay === "overdue"
+                      ? "Parabéns! Você não possui nenhuma revisão em atraso."
+                      : "Nenhuma revisão agendada para este dia."}
                   </p>
                 </div>
               )}

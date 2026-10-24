@@ -17,6 +17,28 @@ export async function GET(request: Request) {
     if (!date)
       return NextResponse.json({ error: "Data necessária" }, { status: 400 });
 
+    if (date === "overdue") {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const startOfToday = new Date(`${todayStr}T00:00:00Z`);
+
+      const overdueTopics = await prisma.topic.findMany({
+        where: {
+          nextRev: {
+            lt: startOfToday,
+          },
+          firstStudy: {
+            not: "Pendente",
+          },
+          subject: { userId: userId },
+        },
+        orderBy: { nextRev: "asc" },
+        include: { subject: { select: { id: true, name: true } } },
+      });
+
+      return NextResponse.json({ data: overdueTopics });
+    }
+
     const startOfDay = new Date(`${date}T00:00:00Z`);
     const endOfDay = new Date(`${date}T23:59:59Z`);
 
@@ -28,7 +50,7 @@ export async function GET(request: Request) {
         },
         subject: { userId: userId }, // 🔒 Isola tópicos do usuário
       },
-      include: { subject: { select: { name: true } } },
+      include: { subject: { select: { id: true, name: true } } },
     });
 
     return NextResponse.json({ data: topics });

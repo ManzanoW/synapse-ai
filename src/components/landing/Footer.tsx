@@ -37,23 +37,18 @@ export function Footer() {
             </span>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#metodo" className="hover:text-white transition-colors">
-                  O Método (Arcaico vs. Synapse)
-                </a>
-              </li>
-              <li>
-                <a href="#cockpit" className="hover:text-white transition-colors">
-                  Cockpit em Ação
+                <a href="#fluxo" className="hover:text-white transition-colors">
+                  Como Funciona (3 Passos)
                 </a>
               </li>
               <li>
                 <a href="#arsenal" className="hover:text-white transition-colors">
-                  Arsenal Cognitivo (Bento Grid)
+                  Recursos Principais
                 </a>
               </li>
               <li>
-                <a href="#fluxo" className="hover:text-white transition-colors">
-                  Como Funciona (3 Passos)
+                <a href="#cockpit" className="hover:text-white transition-colors">
+                  Por Dentro do Cockpit
                 </a>
               </li>
               <li>

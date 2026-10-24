@@ -633,8 +633,9 @@ export function CycleView({
                               <span>Ler Aula</span>
                             </Link>
 
+
                             <Link
-                              href={`/questions?subject=${encodeURIComponent(currentBlock.subjectName)}&topic=${encodeURIComponent(top.title)}&autoStart=1`}
+                              href={`/questions?subjectId=${encodeURIComponent(currentBlock.subjectName)}&topic=${encodeURIComponent(top.title)}&topicId=${encodeURIComponent(top.id)}&autoStart=true`}
                               title="Treinar questões deste assunto"
                               className="px-2.5 py-1 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
                             >
@@ -676,6 +677,7 @@ export function CycleView({
                 <span className="text-xs font-mono text-slate-400 text-center lg:text-right mt-2.5">
                   Abre o cronômetro + lousa de anotações
                 </span>
+
               </div>
             </div>
           </div>

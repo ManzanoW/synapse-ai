@@ -425,8 +425,8 @@ export function GenerateAIModal({
               <label className="text-slate-400 font-semibold uppercase tracking-wider block">
                 Volume
               </label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {["5", "10", "15", "20"].map((num) => (
+              <div className="grid grid-cols-5 gap-1.5">
+                {["5", "10", "15", "20", "30"].map((num) => (
                   <button
                     key={`qtd-${num}`}
                     type="button"
@@ -438,7 +438,7 @@ export function GenerateAIModal({
                         : "bg-slate-950 border-slate-800 text-slate-400"
                     }`}
                   >
-                    {num} Q
+                    {num === "30" ? "30 🏆" : `${num} Q`}
                   </button>
                 ))}
               </div>

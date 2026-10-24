@@ -29,6 +29,7 @@ export async function GET() {
       flashcards,
       reviewHistories,
       userRecord,
+      pendingQuestionErrors,
     ] = await Promise.all([
       prisma.subject.findMany({
         where: { userId },
@@ -53,6 +54,7 @@ export async function GET() {
         where: { userId },
         select: {
           createdAt: true,
+          durationMinutes: true,
         },
       }),
       prisma.quizAttempt.findMany({
@@ -89,9 +91,24 @@ export async function GET() {
       }),
       prisma.user.findUnique({
         where: { id: userId },
-        select: { weeklyGoalHours: true },
+        select: { weeklyGoalHours: true, targetRole: true, name: true },
+      }),
+      prisma.questionError.findMany({
+        where: { userId, status: "PENDING" },
+        select: { id: true, subjectId: true, topicId: true },
       }),
     ]);
+
+    // Map de erros pendentes por disciplina
+    const pendingErrorsBySubjectId = new Map<string, number>();
+    for (const err of pendingQuestionErrors) {
+      if (err.subjectId) {
+        pendingErrorsBySubjectId.set(
+          err.subjectId,
+          (pendingErrorsBySubjectId.get(err.subjectId) || 0) + 1,
+        );
+      }
+    }
 
     // 2. Indexação em Hash Maps O(1) para evitar .filter() dentro de loops de tópicos
     const quizStatsByTopic = new Map<string, { total: number; correct: number }>();
@@ -134,6 +151,8 @@ export async function GET() {
       id: string;
       title: string;
       subject: string;
+      subjectId: string;
+      weight: number;
       accuracy: number;
       total: number;
     }> = [];
@@ -164,6 +183,8 @@ export async function GET() {
               id: topic.id,
               title: topic.title,
               subject: sub.name,
+              subjectId: sub.id,
+              weight: sub.weight || 5,
               accuracy,
               total: topicQuiz.total,
             });
@@ -171,6 +192,11 @@ export async function GET() {
         }
       }
     }
+
+    // Ordena os pontos fracos pelo maior impacto na aprovação (Peso no Edital * Déficit de Acurácia)
+    weakTopics.sort(
+      (a, b) => b.weight * (100 - b.accuracy) - a.weight * (100 - a.accuracy),
+    );
 
     const avgEasiness = totalTopics > 0 ? Number((sumEasiness / totalTopics).toFixed(2)) : 2.5;
 
@@ -289,7 +315,7 @@ export async function GET() {
       }
     }
 
-    // 7. Estatísticas por Disciplina
+    // 7. Estatísticas por Disciplina (Incluindo Cobertura do Edital e Caderno de Erros)
     const userWeeklyHours = userRecord?.weeklyGoalHours || 10;
     const totalWeeklyMinutesCalc = userWeeklyHours * 60;
     const totalWeight = subjects.reduce((acc, s) => acc + (s.weight || 5), 0);
@@ -307,6 +333,10 @@ export async function GET() {
         correct: number;
         baseWeeklyMinutes: number;
         targetWeeklyMinutes: number;
+        totalTopics: number;
+        completedTopics: number;
+        inProgressTopics: number;
+        pendingErrorsCount: number;
       }
     >();
 
@@ -314,12 +344,19 @@ export async function GET() {
       const key = sub.name.trim().toLowerCase();
       let total = 0;
       let correct = 0;
+      let completedTopics = 0;
+      let inProgressTopics = 0;
 
       for (const t of sub.topics) {
         const item = quizStatsByTopic.get(t.id);
         if (item) {
           total += item.total;
           correct += item.correct;
+        }
+        if (t.firstStudy === "Concluido") {
+          completedTopics++;
+        } else if (t.firstStudy === "Em Estudo") {
+          inProgressTopics++;
         }
       }
 
@@ -329,6 +366,7 @@ export async function GET() {
       const targetWeeklyMinutes = Math.round(
         (totalWeeklyMinutesCalc * (sub.priority || 1)) / Math.max(1, totalPriority),
       );
+      const subjErrors = pendingErrorsBySubjectId.get(sub.id) || 0;
 
       if (!subjectMap.has(key)) {
         subjectMap.set(key, {
@@ -340,11 +378,19 @@ export async function GET() {
           correct,
           baseWeeklyMinutes,
           targetWeeklyMinutes,
+          totalTopics: sub.topics.length,
+          completedTopics,
+          inProgressTopics,
+          pendingErrorsCount: subjErrors,
         });
       } else {
         const existing = subjectMap.get(key)!;
         existing.total += total;
         existing.correct += correct;
+        existing.totalTopics += sub.topics.length;
+        existing.completedTopics += completedTopics;
+        existing.inProgressTopics += inProgressTopics;
+        existing.pendingErrorsCount += subjErrors;
       }
     }
 
@@ -352,6 +398,10 @@ export async function GET() {
       const hasActivity = item.total > 0;
       const accuracy = hasActivity ? Math.round((item.correct / item.total) * 100) : null;
       const priorityRatio = item.priority / Math.max(1, item.weight);
+      const coveragePercent =
+        item.totalTopics > 0
+          ? Math.round((item.completedTopics / item.totalTopics) * 100)
+          : 0;
 
       const isReinforced =
         hasActivity &&
@@ -370,12 +420,18 @@ export async function GET() {
       return {
         subjectId: item.subjectId,
         subject: item.subject,
+        weight: item.weight,
         total: item.total,
         correct: item.correct,
         hasActivity,
         accuracy,
         baseWeeklyMinutes: item.baseWeeklyMinutes,
         targetWeeklyMinutes: item.targetWeeklyMinutes,
+        totalTopics: item.totalTopics,
+        completedTopics: item.completedTopics,
+        inProgressTopics: item.inProgressTopics,
+        coveragePercent,
+        pendingErrorsCount: item.pendingErrorsCount,
         isReinforced,
         isOptimized,
       };
@@ -397,21 +453,35 @@ export async function GET() {
         ? optimizedSubjects.every((s) => s.isOptimized)
         : false;
 
-    // 9. Carga de revisão por dia da semana
+    // 9. Carga de revisão e minutos de foco por dia da semana
     const daysOfWeek = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
     const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+    const dayMinutes = [0, 0, 0, 0, 0, 0, 0];
+
+    // Filtra sessões dos últimos 7 dias para o indicador de meta semanal
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    let weeklyStudyMinutes = 0;
 
     for (const s of studySessions) {
-      const day = new Date(s.createdAt).getDay();
+      const sessionDate = new Date(s.createdAt);
+      const day = sessionDate.getDay();
+      const mins = s.durationMinutes && s.durationMinutes > 0 ? s.durationMinutes : 25;
       dayCounts[day]++;
+      dayMinutes[day] += mins;
+      if (sessionDate >= sevenDaysAgo) {
+        weeklyStudyMinutes += mins;
+      }
     }
 
     const chartDistribution = daysOfWeek.map((dayLabel, index) => ({
       day: dayLabel,
       quantidade: dayCounts[index],
+      minutes: dayMinutes[index],
     }));
 
     return NextResponse.json({
+      targetRole: userRecord?.targetRole || "Concurso Público",
+      userName: userRecord?.name || "Concurseiro(a)",
       metrics: {
         totalTopics,
         completedReviews: studySessions.length,
@@ -420,6 +490,9 @@ export async function GET() {
         retentionStatus,
         avgEasiness,
         materiasPendentes: pendingReviewsCount,
+        pendingErrorsTotal: pendingQuestionErrors.length,
+        weeklyStudyMinutes,
+        weeklyGoalMinutes: totalWeeklyMinutesCalc,
         cognitiveMastery: {
           score: masteryScore,
           level: masteryLevel,

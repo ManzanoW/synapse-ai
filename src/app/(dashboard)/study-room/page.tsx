@@ -19,7 +19,7 @@ export default async function StudyRoomPage() {
     redirect("/login");
   }
 
-  // Busca concorrente de matérias e métricas do estudante
+  // Busca concorrente de matérias (com tópicos do edital) e métricas do estudante
   const [subjects, metricsRes] = await Promise.all([
     prisma.subject.findMany({
       where: { userId },
@@ -27,11 +27,34 @@ export default async function StudyRoomPage() {
         id: true,
         name: true,
         color: true,
+        topics: {
+          select: {
+            id: true,
+            title: true,
+            firstStudy: true,
+            nextRev: true,
+            performance: true,
+          },
+          orderBy: { title: "asc" },
+        },
       },
       orderBy: { name: "asc" },
     }),
     getFocusMetricsAction(userId),
   ]);
+
+  const serializedSubjects = subjects.map((s) => ({
+    id: s.id,
+    name: s.name,
+    color: s.color,
+    topics: s.topics.map((t) => ({
+      id: t.id,
+      title: t.title,
+      firstStudy: t.firstStudy,
+      nextRev: t.nextRev ? t.nextRev.toISOString() : null,
+      performance: t.performance,
+    })),
+  }));
 
   const initialMetrics = metricsRes.success && metricsRes.data
     ? metricsRes.data
@@ -50,7 +73,7 @@ export default async function StudyRoomPage() {
         name: session.user?.name,
         email: session.user?.email,
       }}
-      initialSubjects={subjects}
+      initialSubjects={serializedSubjects}
       initialMetrics={initialMetrics}
     />
   );

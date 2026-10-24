@@ -195,7 +195,7 @@ export async function GET(request: Request) {
       } catch (subErr) {
         console.error("❌ Erro no modo subjects:", subErr);
         return NextResponse.json(
-          { error: "Erro interno no modo subjects", details: String(subErr) },
+          { error: "Erro interno no modo subjects" },
           { status: 500 },
         );
       }
@@ -231,7 +231,7 @@ export async function GET(request: Request) {
     console.error("❌ ERRO NO GET /api/edital:", error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: message },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }
@@ -298,6 +298,46 @@ export async function POST(request: Request) {
         { message: "Conteúdo criado com sucesso!", data: newTopic },
         { status: 201 },
       );
+    }
+
+    if (body.action === "BATCH_UPDATE_TOPICS") {
+      const { topicIds, subjectId, status } = body;
+      const safeStatus = status === "Concluido" ? "Concluido" : "Pendente";
+      const now = new Date();
+
+      const whereClause: any = {
+        subject: { userId },
+      };
+
+      if (Array.isArray(topicIds) && topicIds.length > 0) {
+        whereClause.id = { in: topicIds };
+      } else if (subjectId) {
+        whereClause.subjectId = subjectId;
+      } else {
+        return NextResponse.json(
+          { error: "topicIds ou subjectId é obrigatório para atualização em lote." },
+          { status: 400 },
+        );
+      }
+
+      const updateResult = await prisma.topic.updateMany({
+        where: whereClause,
+        data: {
+          firstStudy: safeStatus,
+          performance: safeStatus === "Concluido" ? 100 : 0,
+          lastRev: safeStatus === "Concluido" ? now : null,
+          nextRev: safeStatus === "Concluido" ? new Date(now.getTime() + 24 * 60 * 60 * 1000) : now,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        count: updateResult.count,
+        message:
+          safeStatus === "Concluido"
+            ? `${updateResult.count} tópico(s) marcados como concluídos com sucesso!`
+            : `${updateResult.count} tópico(s) zerados com sucesso!`,
+      });
     }
 
     const { topicId, grade, performance, streakDays = 0 } = body;
@@ -404,7 +444,7 @@ export async function POST(request: Request) {
     console.error("❌ ERRO NO POST /api/edital:", error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: message },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }

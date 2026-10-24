@@ -13,6 +13,7 @@ import {
   Layers,
   PenTool,
   Trophy,
+  Award,
   BarChart3,
   Scale,
   Mic,
@@ -20,12 +21,10 @@ import {
   Sun,
   Volume2,
   VolumeX,
-  Sparkles,
   Zap,
   ArrowRight,
   Headphones,
   CalendarDays,
-  Flame,
   Brain,
   Activity,
   UploadCloud,
@@ -34,10 +33,10 @@ import {
   Keyboard,
   FileEdit,
   FileText,
-  History,
   Camera,
   ScrollText,
   Swords,
+  Target,
   X,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -49,15 +48,36 @@ import { PDFExamImporterModal } from "@/components/exam-importer/PDFExamImporter
 import { PocketSummaryModal } from "@/components/summary/PocketSummaryModal";
 import { PrecedentDuelModal } from "@/app/(dashboard)/jurisprudencia/_components/PrecedentDuelModal";
 
+interface EditalTopicSummary {
+  id: string;
+  title: string;
+  firstStudy?: string | null;
+}
+
+interface EditalSubjectSummary {
+  id: string;
+  name: string;
+  topics?: EditalTopicSummary[];
+}
+
 interface CommandItem {
   id: string;
   title: string;
   subtitle?: string;
-  category: "Recentes" | "Navegação" | "Ações Rápidas" | "Carreiras Jurídicas";
+  category:
+    | "Recentes"
+    | "Navegação"
+    | "Seu Edital"
+    | "Ações Rápidas"
+    | "Carreiras Jurídicas";
   icon: React.ElementType;
   badge?: string;
   action: () => void;
   keywords?: string[];
+  quickActions?: {
+    label: string;
+    path: string;
+  }[];
 }
 
 interface CommandPaletteProps {
@@ -73,6 +93,8 @@ export function CommandPalette({ user }: CommandPaletteProps) {
   const [isPocketSummaryOpen, setIsPocketSummaryOpen] = useState(false);
   const [isPrecedentDuelOpen, setIsPrecedentDuelOpen] = useState(false);
   const [recentCommandIds, setRecentCommandIds] = useState<string[]>([]);
+  const [editalSubjects, setEditalSubjects] = useState<EditalSubjectSummary[]>([]);
+  const editalLoadedRef = useRef(false);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -138,7 +160,7 @@ export function CommandPalette({ user }: CommandPaletteProps) {
     };
   }, [isOpen]);
 
-  // Foco no input ao abrir
+  // Foco no input ao abrir + carregamento sob demanda das matérias/tópicos do Edital
   useEffect(() => {
     if (isOpen) {
       setQuery("");
@@ -147,9 +169,25 @@ export function CommandPalette({ user }: CommandPaletteProps) {
       setTimeout(() => inputRef.current?.focus(), 50);
       if (typeof window !== "undefined") {
         try {
-          const saved = JSON.parse(localStorage.getItem("synapse_recent_commands") || "[]");
+          const saved = JSON.parse(
+            localStorage.getItem("synapse_recent_commands") || "[]",
+          );
           setRecentCommandIds(Array.isArray(saved) ? saved : []);
         } catch {}
+      }
+
+      if (!editalLoadedRef.current) {
+        editalLoadedRef.current = true;
+        fetch("/api/edital")
+          .then((res) => (res.ok ? res.json() : null))
+          .then((json) => {
+            if (json && Array.isArray(json.data)) {
+              setEditalSubjects(json.data);
+            }
+          })
+          .catch(() => {
+            editalLoadedRef.current = false;
+          });
       }
     }
   }, [isOpen, playChime]);
@@ -157,9 +195,17 @@ export function CommandPalette({ user }: CommandPaletteProps) {
   const recordRecent = (id: string) => {
     if (typeof window !== "undefined") {
       try {
-        const saved = JSON.parse(localStorage.getItem("synapse_recent_commands") || "[]");
-        const updated = [id, ...saved.filter((x: string) => x !== id)].slice(0, 5);
-        localStorage.setItem("synapse_recent_commands", JSON.stringify(updated));
+        const saved = JSON.parse(
+          localStorage.getItem("synapse_recent_commands") || "[]",
+        );
+        const updated = [id, ...saved.filter((x: string) => x !== id)].slice(
+          0,
+          5,
+        );
+        localStorage.setItem(
+          "synapse_recent_commands",
+          JSON.stringify(updated),
+        );
         setRecentCommandIds(updated);
       } catch {}
     }
@@ -231,6 +277,16 @@ export function CommandPalette({ user }: CommandPaletteProps) {
         badge: "IA",
         action: () => navigateTo("/redacao"),
         keywords: ["redacao", "discursiva", "espelho", "tema", "texto", "cebraspe"],
+      },
+      {
+        id: "nav-achievements",
+        title: "Galeria de Conquistas & Distintivos",
+        subtitle: "20 medalhas desbloqueáveis, marcos de consistência e raridades",
+        category: "Navegação",
+        icon: Award,
+        badge: "20 BADGES",
+        action: () => navigateTo("/achievements"),
+        keywords: ["conquistas", "medalhas", "distintivos", "trofeus", "badges", "achievements", "recompensas"],
       },
       {
         id: "nav-leaderboard",
@@ -469,30 +525,116 @@ export function CommandPalette({ user }: CommandPaletteProps) {
           badge: "Direito",
           action: () => navigateTo("/prova-oral"),
           keywords: ["oral", "prova oral", "arguicao", "magistratura", "defensoria", "delegado"],
-        }
+        },
       );
     }
 
+    // MATÉRIAS E TÓPICOS DO EDITAL DO ALUNO (BUSCA DIRETA NO CTRL+K)
+    for (const subject of editalSubjects) {
+      const subjectTopics = subject.topics || [];
+      const doneTopics = subjectTopics.filter(
+        (t) => t.firstStudy && t.firstStudy !== "Pendente",
+      ).length;
+
+      list.push({
+        id: `edital-sub-${subject.id}`,
+        title: subject.name,
+        subtitle: `Matéria do Edital • ${doneTopics}/${subjectTopics.length} tópicos estudados`,
+        category: "Seu Edital",
+        icon: BookOpen,
+        badge: "Matéria",
+        action: () =>
+          navigateTo(
+            `/questions?subjectId=${encodeURIComponent(subject.name)}&autoStart=true`,
+            `edital-sub-${subject.id}`,
+          ),
+        keywords: ["edital", "materia", "disciplina", subject.name],
+        quickActions: [
+          {
+            label: "⏱️ Pomodoro",
+            path: `/study-room?subjectId=${encodeURIComponent(subject.id)}&subject=${encodeURIComponent(subject.name)}`,
+          },
+          {
+            label: "🎯 Questões",
+            path: `/questions?subjectId=${encodeURIComponent(subject.name)}&autoStart=true`,
+          },
+        ],
+      });
+
+      for (const topic of subjectTopics) {
+        const isStudied = topic.firstStudy && topic.firstStudy !== "Pendente";
+        list.push({
+          id: `edital-top-${topic.id}`,
+          title: topic.title,
+          subtitle: `${subject.name} • ${isStudied ? "Estudado" : "Pendente no Edital"}`,
+          category: "Seu Edital",
+          icon: Target,
+          badge: isStudied ? "Concluído" : "Pendente",
+          action: () =>
+            navigateTo(
+              `/questions?subjectId=${encodeURIComponent(subject.name)}&topic=${encodeURIComponent(topic.title)}&topicId=${encodeURIComponent(topic.id)}&autoStart=true`,
+              `edital-top-${topic.id}`,
+            ),
+          keywords: [
+            "topico",
+            "edital",
+            "assunto",
+            subject.name,
+            topic.title,
+          ],
+          quickActions: [
+            {
+              label: "⏱️ Pomodoro",
+              path: `/study-room?subjectId=${encodeURIComponent(subject.id)}&subject=${encodeURIComponent(subject.name)}&topicId=${encodeURIComponent(topic.id)}&topic=${encodeURIComponent(topic.title)}`,
+            },
+            {
+              label: "🗺️ Mapa",
+              path: `/mapas-mentais?subject=${encodeURIComponent(subject.name)}&topic=${encodeURIComponent(topic.title)}&autoGenerate=true`,
+            },
+          ],
+        });
+      }
+    }
+
     return list;
-  }, [hasLaw, theme, isMuted, toggleTheme, toggleMute, playClick, playChime]);
+  }, [
+    hasLaw,
+    theme,
+    isMuted,
+    toggleTheme,
+    toggleMute,
+    playClick,
+    playChime,
+    editalSubjects,
+  ]);
 
   // Filtragem
   const filteredItems = useMemo(() => {
     if (!query.trim()) {
+      const staticAndTopEdital = items.filter(
+        (it) => it.category !== "Seu Edital",
+      );
+      const topEditalSubjects = items
+        .filter((it) => it.category === "Seu Edital" && it.id.startsWith("edital-sub-"))
+        .slice(0, 4);
+      const baseList = [...staticAndTopEdital, ...topEditalSubjects];
+
       if (recentCommandIds.length > 0) {
         const recentItems = recentCommandIds
           .map((rId) => items.find((it) => it.id === rId))
           .filter(Boolean) as CommandItem[];
-        
+
         const recentsWithCategory = recentItems.map((it) => ({
           ...it,
           category: "Recentes" as const,
         }));
-        
-        const restItems = items.filter((it) => !recentCommandIds.includes(it.id));
+
+        const restItems = baseList.filter(
+          (it) => !recentCommandIds.includes(it.id),
+        );
         return [...recentsWithCategory, ...restItems];
       }
-      return items;
+      return baseList;
     }
     const q = query.toLowerCase().trim();
     return items.filter(
@@ -500,9 +642,9 @@ export function CommandPalette({ user }: CommandPaletteProps) {
         item.title.toLowerCase().includes(q) ||
         item.subtitle?.toLowerCase().includes(q) ||
         item.category.toLowerCase().includes(q) ||
-        item.keywords?.some((k) => k.toLowerCase().includes(q))
+        item.keywords?.some((k) => k.toLowerCase().includes(q)),
     );
-  }, [items, query]);
+  }, [items, query, recentCommandIds]);
 
   // Navegação via setas
   const handleInputKeyDown = (e: React.KeyboardEvent) => {
@@ -513,7 +655,7 @@ export function CommandPalette({ user }: CommandPaletteProps) {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setSelectedIndex((prev) =>
-        prev === 0 ? Math.max(filteredItems.length - 1, 0) : prev - 1
+        prev === 0 ? Math.max(filteredItems.length - 1, 0) : prev - 1,
       );
       triggerHaptic("light");
     } else if (e.key === "Enter") {
@@ -530,197 +672,229 @@ export function CommandPalette({ user }: CommandPaletteProps) {
     <>
       <AnimatePresence>
         {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-6 sm:pt-24 p-3 pb-[max(env(safe-area-inset-bottom),1rem)] font-sans">
-          {/* Backdrop com blur sofisticado */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md transition-all"
-          />
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-6 sm:pt-24 p-3 pb-[max(env(safe-area-inset-bottom),1rem)] font-sans">
+            {/* Backdrop com blur sofisticado */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md transition-all"
+            />
 
-          {/* Modal Container */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="relative w-full max-w-xl bg-white dark:bg-[#07090e] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header com Input de Busca */}
-            <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-3 sm:py-3.5 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
-              <Search className="text-slate-400 dark:text-slate-500 shrink-0" size={18} />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setSelectedIndex(0);
-                }}
-                onKeyDown={handleInputKeyDown}
-                placeholder="O que você deseja fazer ou acessar? (ex: Redação, Flashcards, Tema...)"
-                className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
-              />
-              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md">
-                ESC
-              </kbd>
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic("light");
-                  setIsOpen(false);
-                }}
-                aria-label="Fechar paleta de comandos"
-                className="sm:hidden p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer active:scale-95"
-              >
-                <X size={16} />
-              </button>
-            </div>
+            {/* Modal Container */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="relative w-full max-w-xl bg-white dark:bg-[#07090e] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header com Input de Busca */}
+              <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-3 sm:py-3.5 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+                <Search
+                  className="text-slate-400 dark:text-slate-500 shrink-0"
+                  size={18}
+                />
+                <input
+                  ref={inputRef}
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setSelectedIndex(0);
+                  }}
+                  onKeyDown={handleInputKeyDown}
+                  placeholder="Busque páginas, ações ou qualquer matéria/tópico do seu edital..."
+                  className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
+                />
+                <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md">
+                  ESC
+                </kbd>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setIsOpen(false);
+                  }}
+                  aria-label="Fechar paleta de comandos"
+                  className="sm:hidden p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer active:scale-95"
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
-            {/* Lista de Resultados */}
-            <div className="max-h-[50vh] sm:max-h-[380px] overflow-y-auto p-2 divide-y divide-slate-100 dark:divide-white/[0.04]">
-              {filteredItems.length > 0 ? (
-                filteredItems.map((item, idx) => {
-                  const isSelected = idx === selectedIndex;
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => {
-                        recordRecent(item.id);
-                        item.action();
-                      }}
-                      onMouseEnter={() => setSelectedIndex(idx)}
-                      className={`flex items-center justify-between gap-3 px-3 py-3 sm:py-2.5 min-h-[46px] rounded-xl cursor-pointer transition-all active:scale-[0.98] ${
-                        isSelected
-                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                          : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className={`p-2 rounded-lg shrink-0 transition-colors ${
-                            isSelected
-                              ? "bg-white/20 text-white"
-                              : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400"
-                          }`}
-                        >
-                          <Icon size={16} />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-xs font-bold truncate ${
-                                isSelected ? "text-white" : "text-slate-900 dark:text-white"
-                              }`}
-                            >
-                              {item.title}
-                            </span>
-                            {item.badge && (
+              {/* Lista de Resultados */}
+              <div className="max-h-[50vh] sm:max-h-[380px] overflow-y-auto p-2 divide-y divide-slate-100 dark:divide-white/[0.04]">
+                {filteredItems.length > 0 ? (
+                  filteredItems.map((item, idx) => {
+                    const isSelected = idx === selectedIndex;
+                    const Icon = item.icon;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          recordRecent(item.id);
+                          item.action();
+                        }}
+                        onMouseEnter={() => setSelectedIndex(idx)}
+                        className={`flex items-center justify-between gap-3 px-3 py-3 sm:py-2.5 min-h-[46px] rounded-xl cursor-pointer transition-all active:scale-[0.98] ${
+                          isSelected
+                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                            : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className={`p-2 rounded-lg shrink-0 transition-colors ${
+                              isSelected
+                                ? "bg-white/20 text-white"
+                                : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400"
+                            }`}
+                          >
+                            <Icon size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
                               <span
-                                className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded-full border ${
+                                className={`text-xs font-bold truncate ${
                                   isSelected
-                                    ? "bg-white/20 text-white border-white/30"
-                                    : "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20"
+                                    ? "text-white"
+                                    : "text-slate-900 dark:text-white"
                                 }`}
                               >
-                                {item.badge}
+                                {item.title}
                               </span>
+                              {item.badge && (
+                                <span
+                                  className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded-full border shrink-0 ${
+                                    isSelected
+                                      ? "bg-white/20 text-white border-white/30"
+                                      : "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20"
+                                  }`}
+                                >
+                                  {item.badge}
+                                </span>
+                              )}
+                            </div>
+                            {item.subtitle && (
+                              <p
+                                className={`text-[11px] truncate ${
+                                  isSelected
+                                    ? "text-indigo-100"
+                                    : "text-slate-500 dark:text-slate-400"
+                                }`}
+                              >
+                                {item.subtitle}
+                              </p>
                             )}
                           </div>
-                          {item.subtitle && (
-                            <p
-                              className={`text-[11px] truncate ${
-                                isSelected ? "text-indigo-100" : "text-slate-500 dark:text-slate-400"
-                              }`}
-                            >
-                              {item.subtitle}
-                            </p>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {item.quickActions && item.quickActions.length > 0 && (
+                            <div className="hidden sm:flex items-center gap-1 mr-1">
+                              {item.quickActions.map((qa) => (
+                                <button
+                                  key={qa.label}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigateTo(qa.path, item.id);
+                                  }}
+                                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                                    isSelected
+                                      ? "bg-white/20 hover:bg-white/30 text-white border-white/30"
+                                      : "bg-slate-100 dark:bg-white/5 hover:bg-indigo-500/15 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10"
+                                  }`}
+                                >
+                                  {qa.label}
+                                </button>
+                              ))}
+                            </div>
                           )}
+                          <span
+                            className={`text-[10px] font-medium hidden sm:inline ${
+                              isSelected ? "text-indigo-100" : "text-slate-400"
+                            }`}
+                          >
+                            {item.category}
+                          </span>
+                          <ArrowRight
+                            size={13}
+                            className={`transition-transform ${
+                              isSelected
+                                ? "translate-x-0.5 text-white"
+                                : "opacity-0"
+                            }`}
+                          />
                         </div>
                       </div>
+                    );
+                  })
+                ) : (
+                  <div className="py-12 text-center space-y-2">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                      Nenhum comando ou tópico encontrado para &quot;{query}
+                      &quot;.
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Tente buscar por matérias do seu edital,{" "}
+                      <em>Redação</em>, <em>Flashcards</em> ou <em>Ligas</em>.
+                    </p>
+                  </div>
+                )}
+              </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span
-                          className={`text-[10px] font-medium hidden sm:inline ${
-                            isSelected ? "text-indigo-100" : "text-slate-400"
-                          }`}
-                        >
-                          {item.category}
-                        </span>
-                        <ArrowRight
-                          size={13}
-                          className={`transition-transform ${
-                            isSelected ? "translate-x-0.5 text-white" : "opacity-0"
-                          }`}
-                        />
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="py-12 text-center space-y-2">
-                  <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                    Nenhum comando ou página encontrado para &quot;{query}&quot;.
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    Tente buscar por termos como <em>Redação</em>, <em>Flashcards</em>, <em>Ligas</em> ou <em>Tema</em>.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer com Dicas de Atalho */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-200 dark:border-white/10 text-[10px] text-slate-500 dark:text-slate-400">
-              <span className="sm:hidden font-medium text-slate-400">
-                Toque para selecionar
-              </span>
-              <div className="hidden sm:flex items-center gap-3">
-                <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 font-mono bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded">
-                    ↑
-                  </kbd>
-                  <kbd className="px-1.5 py-0.5 font-mono bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded">
-                    ↓
-                  </kbd>{" "}
-                  Navegar
+              {/* Footer com Dicas de Atalho */}
+              <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-200 dark:border-white/10 text-[10px] text-slate-500 dark:text-slate-400">
+                <span className="sm:hidden font-medium text-slate-400">
+                  Toque para selecionar
                 </span>
-                <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 font-mono bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded">
-                    ↵
-                  </kbd>{" "}
-                  Abrir
+                <div className="hidden sm:flex items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 font-mono bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded">
+                      ↑
+                    </kbd>
+                    <kbd className="px-1.5 py-0.5 font-mono bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded">
+                      ↓
+                    </kbd>{" "}
+                    Navegar
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 font-mono bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded">
+                      ↵
+                    </kbd>{" "}
+                    Abrir
+                  </span>
+                </div>
+                <span className="font-mono text-indigo-500 dark:text-indigo-400 font-bold">
+                  Synapse Command AI
                 </span>
               </div>
-              <span className="font-mono text-indigo-500 dark:text-indigo-400 font-bold">
-                Synapse Command AI
-              </span>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-    {/* Modal Global de Importação de Provas em PDF */}
-    <PDFExamImporterModal
-      isOpen={isPdfImporterOpen}
-      onClose={() => setIsPdfImporterOpen(false)}
-    />
+      {/* Modal Global de Importação de Provas em PDF */}
+      <PDFExamImporterModal
+        isOpen={isPdfImporterOpen}
+        onClose={() => setIsPdfImporterOpen(false)}
+      />
 
-    {/* Modal de Folha de Véspera em PDF de Bolso */}
-    <PocketSummaryModal
-      isOpen={isPocketSummaryOpen}
-      onClose={() => setIsPocketSummaryOpen(false)}
-      targetRole={user?.targetRole || undefined}
-    />
+      {/* Modal de Folha de Véspera em PDF de Bolso */}
+      <PocketSummaryModal
+        isOpen={isPocketSummaryOpen}
+        onClose={() => setIsPocketSummaryOpen(false)}
+        targetRole={user?.targetRole || undefined}
+      />
 
-    {/* Modal de Duelo de Precedentes STF/STJ */}
-    <PrecedentDuelModal
-      isOpen={isPrecedentDuelOpen}
-      onClose={() => setIsPrecedentDuelOpen(false)}
-    />
-  </>
+      {/* Modal de Duelo de Precedentes STF/STJ */}
+      <PrecedentDuelModal
+        isOpen={isPrecedentDuelOpen}
+        onClose={() => setIsPrecedentDuelOpen(false)}
+      />
+    </>
   );
 }

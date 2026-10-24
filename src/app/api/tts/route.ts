@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("ERRO NO SERVIDOR /api/tts:", error?.message || error);
     return NextResponse.json(
-      { error: "Falha interna ao sintetizar áudio", message: error?.message },
+      { error: "Falha interna ao sintetizar áudio" },
       { status: 500 },
     );
   }

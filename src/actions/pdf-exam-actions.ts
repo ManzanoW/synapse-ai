@@ -6,6 +6,7 @@ import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { Type } from "@google/genai";
 import { revalidatePath } from "next/cache";
 import { isUserPro } from "@/lib/subscription";
+import { isValidPdfSignature, sanitizeActionErrorMessage } from "@/lib/security/file-signature";
 
 export interface ParsedQuestionOption {
   id: string; // A, B, C, D, E ou C, E
@@ -77,6 +78,12 @@ export async function parseExamPdfAction(
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    if (!isValidPdfSignature(new Uint8Array(arrayBuffer))) {
+      return {
+        success: false,
+        error: "O arquivo selecionado não possui assinatura binária válida de PDF (%PDF-).",
+      };
+    }
     const base64Data = buffer.toString("base64");
 
     const prompt = `Você é o Perito Especialista em Bancas de Concurso Público e OCR da Synapse AI.
@@ -232,10 +239,7 @@ Retorne OBRIGATORIAMENTE um JSON estrito correspondente ao schema fornecido.`;
     console.error("[parseExamPdfAction] Erro:", err);
     return {
       success: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Erro inesperado ao processar o arquivo PDF da prova.",
+      error: sanitizeActionErrorMessage(err, "Erro ao processar o PDF da prova."),
     };
   }
 }
@@ -290,10 +294,7 @@ export async function saveImportedExamToQuizAction(params: {
     console.error("[saveImportedExamToQuizAction] Erro:", err);
     return {
       success: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Falha ao salvar a prova no seu acervo.",
+      error: sanitizeActionErrorMessage(err, "Erro ao processar o PDF da prova."),
     };
   }
 }

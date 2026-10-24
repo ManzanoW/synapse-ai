@@ -53,7 +53,7 @@ export async function GET(
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Prisma Error ao buscar simulado:", error);
     return NextResponse.json(
-      { error: "Falha ao obter o simulado.", details: errorMessage },
+      { error: "Falha ao obter o simulado." },
       { status: 500 },
     );
   }
@@ -109,7 +109,7 @@ export async function DELETE(
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Prisma Error ao deletar:", error);
     return NextResponse.json(
-      { error: "Falha ao excluir o simulado.", details: errorMessage },
+      { error: "Falha ao excluir o simulado." },
       { status: 500 },
     );
   }

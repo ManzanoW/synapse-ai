@@ -14,6 +14,9 @@ import {
   Filter,
   Pencil,
   Scale,
+  CheckCircle2,
+  RotateCcw,
+  Clock,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { EditSubjectModal } from "./edit-subject-modal";
@@ -82,6 +85,44 @@ export function PlannerView({
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSimpleEditalView, setIsSimpleEditalView] = useState(true);
+  const [batchUpdatingSubject, setBatchUpdatingSubject] = useState<string | null>(null);
+  const [batchResetSubject, setBatchResetSubject] = useState<string | null>(null);
+
+  const handleBatchUpdate = async (subjectName: string, status: "Concluido" | "Pendente") => {
+    const subjectTopicList = topics.filter(
+      (t) => (t.subjectName || "Geral").trim().toLowerCase() === subjectName.trim().toLowerCase(),
+    );
+    if (subjectTopicList.length === 0) return;
+    const topicIds = subjectTopicList.map((t) => t.id);
+
+    try {
+      setBatchUpdatingSubject(subjectName);
+      const res = await fetch("/api/edital", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "BATCH_UPDATE_TOPICS",
+          topicIds,
+          status,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Falha ao atualizar tópicos em lote.");
+      }
+
+      if (onSubjectUpdated) {
+        await onSubjectUpdated();
+      }
+    } catch (err: unknown) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Erro ao atualizar tópicos da matéria.");
+    } finally {
+      setBatchUpdatingSubject(null);
+      setBatchResetSubject(null);
+    }
+  };
 
   const handleConfirmDeleteTopic = async () => {
     if (!topicToDelete || !onDeleteTopic) return;
@@ -565,6 +606,38 @@ export function PlannerView({
                   }}
                 >
                   <div className="p-2.5 sm:p-4 space-y-2 bg-black/20">
+                    {/* ⚡ Barra de Ações Rápidas em Lote da Matéria */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 px-3 rounded-xl bg-white/3 border border-white/5 mb-2">
+                      <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold">Ações em Lote:</span>
+                        <span className="text-[11px] text-slate-300 font-semibold">{subjectTopics.length} tópicos</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={batchUpdatingSubject === subjectName || progressPercent === 100}
+                          onClick={() => handleBatchUpdate(subjectName, "Concluido")}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 hover:border-emerald-500/40 text-emerald-300 font-bold text-[11px] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 active:scale-95 shadow-xs"
+                          title="Marcar todos os tópicos desta matéria como estudados de uma só vez"
+                        >
+                          <CheckCircle2 size={13} className="text-emerald-400" />
+                          <span>{batchUpdatingSubject === subjectName ? "Atualizando..." : "Marcar Todos Concluídos"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={batchUpdatingSubject === subjectName || completedTopics === 0}
+                          onClick={() => setBatchResetSubject(subjectName)}
+                          className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 hover:border-rose-500/40 text-rose-300 font-bold text-[11px] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 active:scale-95 shadow-xs"
+                          title="Zerar o status de todos os tópicos desta matéria para recomeçar o ciclo de estudos"
+                        >
+                          <RotateCcw size={13} className="text-rose-400" />
+                          <span>Zerar Matéria</span>
+                        </button>
+                      </div>
+                    </div>
+
                     {displayedTopics.map((t) => (
                       <div
                         key={t.id}
@@ -637,6 +710,7 @@ export function PlannerView({
                             <span>Ler Aula</span>
                           </Link>
 
+
                           {t.quizId ? (
                             <Link
                               href={`/questions?quizId=${t.quizId}`}
@@ -652,7 +726,9 @@ export function PlannerView({
                             <Link
                               href={`/questions?subjectId=${encodeURIComponent(
                                 subjectName,
-                              )}&topicId=${t.id}`}
+                              )}&topic=${encodeURIComponent(
+                                t.title,
+                              )}&topicId=${encodeURIComponent(t.id)}&autoStart=true`}
                               className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-2.5 py-2 bg-indigo-500/15 text-indigo-300 text-xs font-bold rounded-xl border border-indigo-500/30 active:scale-95 transition-all shadow-md shadow-indigo-500/10"
                             >
                               <Sparkles size={13} className="text-indigo-400" />
@@ -702,6 +778,21 @@ export function PlannerView({
           })
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!batchResetSubject}
+        title={`Zerar Matéria: ${batchResetSubject}`}
+        description={`Tem certeza que deseja zerar o progresso de todos os tópicos de "${batchResetSubject}"? Todos os assuntos voltarão para o status "Não estudado".`}
+        confirmText="Sim, Zerar Matéria"
+        cancelText="Cancelar"
+        isLoading={batchUpdatingSubject === batchResetSubject}
+        onConfirm={() => {
+          if (batchResetSubject) {
+            handleBatchUpdate(batchResetSubject, "Pendente");
+          }
+        }}
+        onClose={() => setBatchResetSubject(null)}
+      />
 
       <ConfirmModal
         isOpen={!!topicToDelete || !!subjectToDelete}

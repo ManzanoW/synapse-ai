@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Search,
+  Filter,
   UploadCloud,
   Plus,
   Loader2,
@@ -32,7 +33,6 @@ import { EditalSkillTree } from "@/components/edital/edital-skill-tree";
 import { NewContentModal } from "@/components/create-subject-modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
-import { UpcomingReviewsTimeline } from "@/components/analytics/UpcomingReviewsTimeline";
 import { useSearchParams } from "next/navigation";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 
@@ -68,6 +68,7 @@ interface ApiSubject {
 
 function PlannerContent() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterPendingOnly, setFilterPendingOnly] = useState(false);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [subjects, setSubjects] = useState<ApiSubject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -280,7 +281,7 @@ function PlannerContent() {
     }
   }
 
-  const mappedTopicsForView = topics.map((t) => {
+  const allMappedTopics = topics.map((t) => {
     const item = t as unknown as ApiTopic;
     return {
       id: item.id,
@@ -297,6 +298,15 @@ function PlannerContent() {
           : null,
     };
   });
+
+  const mappedTopicsForView = filterPendingOnly
+    ? allMappedTopics.filter(
+        (t) =>
+          !t.firstStudy ||
+          t.firstStudy === "Pendente" ||
+          (t.performance ?? 0) < 100,
+      )
+    : allMappedTopics;
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-3.5 sm:p-6 font-sans antialiased relative">
@@ -498,27 +508,10 @@ function PlannerContent() {
                       <span>Abrir Trilha & Teorias</span>
                     </Link>
 
-                    <Link
-                      href="/week"
-                      role="menuitem"
-                      onClick={() => setIsActionsOpen(false)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors text-left cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
-                    >
-                      <CalendarDays size={14} className="text-emerald-400" />
-                      <span>Distribuir no Cronograma</span>
-                    </Link>
                   </div>
                 )}
               </div>
             )}
-
-            <Link
-              href="/trilhas"
-              className="flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0"
-            >
-              <BookOpen size={14} />
-              <span>Trilha & Teoria</span>
-            </Link>
 
             <button
               type="button"
@@ -652,11 +645,6 @@ function PlannerContent() {
             })()}
           </div>
         </div>
-
-        {/* Projeção Visual de Revisões Futuras (FSRS Timeline) */}
-        {!loading && subjects.length > 0 && (
-          <UpcomingReviewsTimeline />
-        )}
 
         {/* GUIA DIDÁTICO QUANDO NÃO HÁ MATÉRIAS */}
 

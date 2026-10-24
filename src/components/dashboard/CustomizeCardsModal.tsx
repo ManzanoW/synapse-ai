@@ -49,15 +49,6 @@ const CARDS_CONFIG: CardItemConfig[] = [
     iconBg: "bg-indigo-500/10 border-indigo-500/30",
   },
   {
-    key: "quickActions",
-    title: "Atalhos Rápidos",
-    category: "essencial",
-    description: "Botões de acesso veloz para Questões, Flashcards, Edital e Conquistas.",
-    icon: Zap,
-    iconColor: "text-amber-400",
-    iconBg: "bg-amber-500/10 border-amber-500/30",
-  },
-  {
     key: "dailyQuests",
     title: "Missões Diárias & Metas",
     category: "essencial",

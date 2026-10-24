@@ -19,6 +19,9 @@ import {
   ShieldCheck,
   Printer,
   Download,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
 } from "lucide-react";
 import { ErrorNotebookMetrics, ErrorTaxonomyMetric } from "@/types/quiz";
 import { SpotlightTriggerButton } from "@/components/onboarding/PageSpotlightBanner";
@@ -62,6 +65,7 @@ export function ErrorMetricsHeader({
   isGeneratingRedemption = false,
   onOpenExportModal,
 }: ErrorMetricsHeaderProps) {
+  const [showMoreTools, setShowMoreTools] = React.useState(false);
   const classifyHandler = onBatchClassify || onAutoClassify;
   const { totalErrors, pendingErrors, masteredErrors, masteryRate, taxonomyDistribution } =
     metrics;
@@ -110,68 +114,104 @@ export function ErrorMetricsHeader({
           )}
         </div>
 
-        {/* 2. Barra de Ferramentas e Ações Rápidas (Wrap fluido, 100% contido e responsivo) */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 pt-2 border-t border-white/5">
-          {onToggleSpotlight && (
-            <SpotlightTriggerButton
-              accentColor="emerald"
-              onClick={onToggleSpotlight}
-              label="Como Funciona?"
-            />
-          )}
-
-          {onOpenExportModal && totalErrors > 0 && (
-            <>
-              <button
-                type="button"
-                onClick={() => onOpenExportModal("print")}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-200 border border-violet-500/40 text-xs font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[38px]"
-                title="Apostila diagramada para impressão/PDF das suas questões erradas"
-              >
-                <Printer size={15} className="text-violet-400" />
-                <span>Apostila (PDF)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onOpenExportModal("anki")}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 border border-blue-500/40 text-xs font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[38px]"
-                title="Exportar Caderno de Erros diretamente para o Anki (.txt)"
-              >
-                <Download size={15} className="text-blue-400" />
-                <span>Exportar Anki</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-500/30 text-blue-300 font-mono font-bold">
-                  .txt
-                </span>
-              </button>
-            </>
-          )}
-
-          {onBatchCreateFlashcards && pendingErrors > 0 && (
-            <button
-              type="button"
-              onClick={onBatchCreateFlashcards}
-              disabled={isCreatingBatchFlashcards}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 text-xs font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[38px]"
-              title="Cria Cartões de Memória com todos os seus erros pendentes para revisar depois"
-            >
-              {isCreatingBatchFlashcards ? (
-                <Loader2 size={15} className="animate-spin text-indigo-400" />
-              ) : (
-                <Layers size={15} className="text-indigo-400" />
+        {/* 2. Barra de Ferramentas Secundárias Agrupadas ("Mais ferramentas") */}
+        <div className="space-y-2.5 pt-2 border-t border-white/5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {onToggleSpotlight && (
+                <SpotlightTriggerButton
+                  accentColor="emerald"
+                  onClick={onToggleSpotlight}
+                  label="Como Funciona?"
+                />
               )}
-              <span>Virar Cartões de Memória</span>
-            </button>
-          )}
 
-          <Link
-            href="/questions"
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white text-xs font-semibold shadow-sm border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] min-h-[38px]"
-          >
-            <FileStack size={15} />
-            <span>Ir para Questões</span>
-            <ArrowRight size={13} className="opacity-70" />
-          </Link>
+              <button
+                type="button"
+                onClick={() => setShowMoreTools((prev) => !prev)}
+                className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
+                  showMoreTools
+                    ? "bg-violet-600/20 border-violet-500/40 text-violet-200"
+                    : "bg-slate-800/70 hover:bg-slate-800 border-white/10 text-slate-300 hover:text-white"
+                }`}
+              >
+                <SlidersHorizontal size={14} className="text-violet-400" />
+                <span>Mais ferramentas</span>
+                {showMoreTools ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              </button>
+            </div>
+
+            <Link
+              href="/questions"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 hover:text-white text-xs font-semibold border border-white/10 transition-all min-h-[38px]"
+            >
+              <FileStack size={14} />
+              <span>Ir para Questões</span>
+              <ArrowRight size={12} className="opacity-70" />
+            </Link>
+          </div>
+
+          {showMoreTools && (
+            <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl bg-slate-900/80 border border-white/10 animate-in fade-in slide-in-from-top-1 duration-200">
+              {onBatchCreateFlashcards && pendingErrors > 0 && (
+                <button
+                  type="button"
+                  onClick={onBatchCreateFlashcards}
+                  disabled={isCreatingBatchFlashcards}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 text-xs font-bold shadow-sm transition-all cursor-pointer min-h-[38px]"
+                  title="Cria Cartões de Memória com todos os seus erros pendentes para revisar depois"
+                >
+                  {isCreatingBatchFlashcards ? (
+                    <Loader2 size={15} className="animate-spin text-indigo-400" />
+                  ) : (
+                    <Layers size={15} className="text-indigo-400" />
+                  )}
+                  <span>Virar Cartões de Memória</span>
+                </button>
+              )}
+
+              {classifyHandler && unclassifiedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={classifyHandler}
+                  disabled={isClassifying}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-500/40 text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-50 min-h-[38px]"
+                  title={`Pedir para a IA descobrir o motivo de até 20 erros (${unclassifiedCount} sem motivo definido)`}
+                >
+                  {isClassifying ? (
+                    <Loader2 size={14} className="animate-spin text-amber-300" />
+                  ) : (
+                    <Zap size={14} className="text-amber-400" />
+                  )}
+                  <span>Classificar Motivos com IA ({unclassifiedCount})</span>
+                </button>
+              )}
+
+              {onOpenExportModal && totalErrors > 0 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onOpenExportModal("print")}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-200 border border-violet-500/40 text-xs font-bold shadow-sm transition-all cursor-pointer min-h-[38px]"
+                    title="Apostila diagramada para impressão/PDF das suas questões erradas"
+                  >
+                    <Printer size={15} className="text-violet-400" />
+                    <span>Apostila (PDF)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onOpenExportModal("anki")}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 border border-blue-500/40 text-xs font-bold shadow-sm transition-all cursor-pointer min-h-[38px]"
+                    title="Exportar Caderno de Erros diretamente para o Anki (.txt)"
+                  >
+                    <Download size={15} className="text-blue-400" />
+                    <span>Exportar Anki (.txt)</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

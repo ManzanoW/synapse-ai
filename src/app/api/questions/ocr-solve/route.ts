@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: result.data });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error?.message || "Erro interno ao processar OCR da questão." },
+      { error: "Erro interno ao processar OCR da questão." },
       { status: 500 }
     );
   }

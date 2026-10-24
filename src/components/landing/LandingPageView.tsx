@@ -5,34 +5,16 @@ import dynamic from "next/dynamic";
 import { Navbar } from "./Navbar";
 import { HeroSection } from "./HeroSection";
 import { BancasMarquee } from "./BancasMarquee";
-import { PainTransitionSection } from "./PainTransitionSection";
-import { InteractiveStickyShowcase } from "./InteractiveStickyShowcase";
-import { RealityCheckSection } from "./RealityCheckSection";
-import { ArsenalBentoGrid } from "./ArsenalBentoGrid";
 import { StickyShowcaseWorkflow } from "./StickyShowcaseWorkflow";
+import { ArsenalBentoGrid } from "./ArsenalBentoGrid";
+import { InteractiveStickyShowcase } from "./InteractiveStickyShowcase";
 import { motion, useScroll, useSpring, AnimatePresence } from "framer-motion";
 import { ChevronUp, Zap, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 import { useAdaptivePerformance } from "@/hooks/useAdaptivePerformance";
 
-// Dynamic Code Splitting para seções inferiores (First Contentful Paint ultra leve no mobile)
-const TimeRecoveryCalculator = dynamic(
-  () => import("./TimeRecoveryCalculator").then((m) => m.TimeRecoveryCalculator),
-  { ssr: true }
-);
-const OpportunityCostCalculator = dynamic(
-  () => import("./OpportunityCostCalculator").then((m) => m.OpportunityCostCalculator),
-  { ssr: true }
-);
-const ComparisonMatrixSection = dynamic(
-  () => import("./ComparisonMatrixSection").then((m) => m.ComparisonMatrixSection),
-  { ssr: true }
-);
-const TestimonialsSection = dynamic(
-  () => import("./TestimonialsSection").then((m) => m.TestimonialsSection),
-  { ssr: true }
-);
+// Dynamic Code Splitting para seções inferiores essenciais (First Contentful Paint ultra leve)
 const PricingSection = dynamic(
   () => import("./PricingSection").then((m) => m.PricingSection),
   { ssr: true }
@@ -120,62 +102,34 @@ export function LandingPageView() {
         onOpenPwaModal={() => setIsPwaModalOpen(true)}
       />
 
-      {/* Scrollytelling Main Content Flow */}
+      {/* Fluxo Essencial, Direto e Focado em Qualidade */}
       <main className="w-full">
-        {/* 1. Hero com Parallax Cognitivo (100vh) */}
+        {/* 1. Hero com Proposta de Valor Clara */}
         <HeroSection />
 
-        {/* 2. Faixa Institucional de Bancas & Concursos Mapeados (Trust Marquee) */}
+        {/* 2. Faixa Institucional de Bancas & Concursos Mapeados */}
         <BancasMarquee />
 
-        {/* 3. Transição da Dor ao Alívio (Scrollytelling Sticky) */}
-        <PainTransitionSection />
+        {/* 3. Como Funciona na Prática: Do Edital Bruto ao Ciclo em 3 Passos */}
+        <StickyShowcaseWorkflow />
 
-        {/* 4. Sticky Showcase 3D do Cockpit Synapse (Táctil & Interativo) */}
-        <InteractiveStickyShowcase />
-
-        {/* 5. O Choque de Realidade: Método Arcaico vs. Synapse AI */}
-        <RealityCheckSection />
-
-        {/* 6. O Arsenal Cognitivo (Bento Grid Interativo com Antes vs. Depois) */}
+        {/* 4. Recursos Essenciais (Bento Grid Interativo: Redação, Áudio, Flashcards FSRS, Caderno de Erros) */}
         <ArsenalBentoGrid />
 
-        {/* 7. Do Edital Bruto ao Cronograma em 3 Passos */}
-        <div className="landing-section-deferred">
-          <StickyShowcaseWorkflow />
-        </div>
+        {/* 5. Visão Por Dentro do Cockpit Synapse */}
+        <InteractiveStickyShowcase />
 
-        {/* 8. Calculadora Interativa de Horas Líquidas (ROI do Concurseiro) */}
-        <div className="landing-section-deferred">
-          <TimeRecoveryCalculator />
-        </div>
-
-        {/* 8.1. Calculadora do Custo de Oportunidade (O Salário da Posse) */}
-        <div className="landing-section-deferred">
-          <OpportunityCostCalculator />
-        </div>
-
-        {/* 9. Matriz Comparativa Racional: Synapse AI vs. Cursinhos vs. Anki */}
-        <div className="landing-section-deferred">
-          <ComparisonMatrixSection />
-        </div>
-
-        {/* 9.1. Muro de Prova Social • Depoimentos Verificados */}
-        <div className="landing-section-deferred">
-          <TestimonialsSection />
-        </div>
-
-        {/* 10. Planos Transparentes */}
+        {/* 6. Planos Transparentes (Gratuito, Pro e Elite) */}
         <div className="landing-section-deferred">
           <PricingSection />
         </div>
 
-        {/* 10. FAQ em Accordion */}
+        {/* 7. Perguntas Frequentes (FAQ) */}
         <div className="landing-section-deferred">
           <FaqSection />
         </div>
 
-        {/* 11. Chamada Final à Ação */}
+        {/* 8. Chamada Final à Ação */}
         <div className="landing-section-deferred">
           <FinalCtaSection />
         </div>

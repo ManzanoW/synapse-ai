@@ -1,5 +1,12 @@
 import type { NextConfig } from "next";
 
+const cspHeader = [
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  "object-src 'none'",
+].join("; ");
+
 const securityHeaders = [
   {
     key: "X-DNS-Prefetch-Control",
@@ -29,6 +36,22 @@ const securityHeaders = [
     key: "X-Permitted-Cross-Domain-Policies",
     value: "none",
   },
+  {
+    key: "Content-Security-Policy",
+    value: cspHeader,
+  },
+];
+
+const apiNoStoreHeaders = [
+  ...securityHeaders,
+  {
+    key: "Cache-Control",
+    value: "private, no-store, no-cache, must-revalidate",
+  },
+  {
+    key: "Pragma",
+    value: "no-cache",
+  },
 ];
 
 const nextConfig: NextConfig = {
@@ -53,6 +76,10 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/api/:path*",
+        headers: apiNoStoreHeaders,
+      },
       {
         source: "/:path*",
         headers: securityHeaders,

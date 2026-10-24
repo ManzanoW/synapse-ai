@@ -16,6 +16,7 @@ export interface QueuedOfflineReview {
   rating?: number | string;
   grade?: number | string;
   responseTimeMs?: number;
+  userId?: string;
   timestamp: number;
 }
 
@@ -54,18 +55,25 @@ export function isOnlineStatus(): boolean {
   return navigator.onLine;
 }
 
-export function getPendingOfflineReviews(): QueuedOfflineReview[] {
+export function getPendingOfflineReviews(activeUserId?: string): QueuedOfflineReview[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as QueuedOfflineReview[];
+    const parsed = JSON.parse(raw) as QueuedOfflineReview[];
+    if (!Array.isArray(parsed)) return [];
+    if (activeUserId) {
+      return parsed.filter((item) => !item.userId || item.userId === activeUserId);
+    }
+    return parsed;
   } catch {
     return [];
   }
 }
 
-export async function enqueueOfflineReviewAsync(input: ReviewFlashcardInput): Promise<void> {
+export async function enqueueOfflineReviewAsync(
+  input: ReviewFlashcardInput & { userId?: string }
+): Promise<void> {
   if (typeof window === "undefined") return;
 
   const item: QueuedOfflineReview = {
@@ -74,6 +82,7 @@ export async function enqueueOfflineReviewAsync(input: ReviewFlashcardInput): Pr
     rating: input.rating,
     grade: input.grade,
     responseTimeMs: input.responseTimeMs,
+    userId: input.userId,
     timestamp: Date.now(),
   };
 
@@ -98,7 +107,9 @@ export async function enqueueOfflineReviewAsync(input: ReviewFlashcardInput): Pr
   }
 }
 
-export function enqueueOfflineReview(input: ReviewFlashcardInput): void {
+export function enqueueOfflineReview(
+  input: ReviewFlashcardInput & { userId?: string }
+): void {
   // Fire-and-forget seguro
   enqueueOfflineReviewAsync(input).catch(() => {});
 }
@@ -213,9 +224,17 @@ export async function flushOfflineReviews(): Promise<{
         responseTimeMs: item.responseTimeMs,
       });
 
-      if (res.success) {
-        synced++;
-        // Remove do IndexedDB
+      // 🛡️ Se a revisão foi aplicada OU se o cartão pertence a outra conta / não existe mais,
+      // remove da fila para nunca vazar ou re-tentar mutações de outra sessão no navegador.
+      const isPermanentOwnershipMismatch =
+        !res.success &&
+        typeof res.error === "string" &&
+        (res.error.includes("não encontrado") ||
+          res.error.includes("acesso negado") ||
+          res.error.includes("pertence"));
+
+      if (res.success || isPermanentOwnershipMismatch) {
+        if (res.success) synced++;
         try {
           const db = await openOfflineDB();
           if (db) {

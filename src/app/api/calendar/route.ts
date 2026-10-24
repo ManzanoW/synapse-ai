@@ -22,16 +22,33 @@ export async function GET(request: Request) {
     new Date(startDate).setUTCMonth(startDate.getUTCMonth() + 1),
   );
 
-  const topics = await prisma.topic.findMany({
-    where: {
-      nextRev: {
-        gte: startDate,
-        lt: endDate,
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const startOfToday = new Date(`${todayStr}T00:00:00Z`);
+
+  const [topics, overdueCount] = await Promise.all([
+    prisma.topic.findMany({
+      where: {
+        nextRev: {
+          gte: startDate,
+          lt: endDate,
+        },
+        subject: { userId: userId }, // 🔒 Utiliza a sessão do usuário
       },
-      subject: { userId: userId }, // 🔒 Utiliza a sessão do usuário
-    },
-    select: { nextRev: true },
-  });
+      select: { nextRev: true },
+    }),
+    prisma.topic.count({
+      where: {
+        nextRev: {
+          lt: startOfToday,
+        },
+        firstStudy: {
+          not: "Pendente",
+        },
+        subject: { userId: userId },
+      },
+    }),
+  ]);
 
   const counts = topics.reduce((acc: Record<string, number>, t) => {
     if (!t.nextRev) return acc;
@@ -40,5 +57,5 @@ export async function GET(request: Request) {
     return acc;
   }, {});
 
-  return NextResponse.json({ data: counts });
+  return NextResponse.json({ data: counts, overdueCount });
 }

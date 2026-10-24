@@ -37,7 +37,14 @@ export async function rebalanceScheduleAction(
 ): Promise<RebalanceActionResult> {
   try {
     const session = await auth();
-    const userId = userIdParam || session?.user?.id;
+    const sessionUserId = session?.user?.id;
+    if (sessionUserId && userIdParam && userIdParam !== sessionUserId) {
+      return {
+        success: false,
+        error: "Acesso negado: violação de posse de recurso (IDOR).",
+      };
+    }
+    const userId = sessionUserId || userIdParam;
 
     if (!userId) {
       return {
@@ -145,7 +152,14 @@ export async function autoRebalanceFromPerformanceAction(
 ): Promise<RebalanceActionResult> {
   try {
     const session = await auth();
-    const userId = userIdParam || session?.user?.id;
+    const sessionUserId = session?.user?.id;
+    if (sessionUserId && userIdParam && userIdParam !== sessionUserId) {
+      return {
+        success: false,
+        error: "Acesso negado: violação de posse de recurso (IDOR).",
+      };
+    }
+    const userId = sessionUserId || userIdParam;
 
     if (!userId) {
       return {
@@ -746,7 +760,14 @@ export async function resetScheduleToDefaultAction(userIdParam?: string): Promis
 }> {
   try {
     const session = await auth();
-    const userId = userIdParam || session?.user?.id;
+    const sessionUserId = session?.user?.id;
+    if (sessionUserId && userIdParam && userIdParam !== sessionUserId) {
+      return {
+        success: false,
+        error: "Acesso negado: violação de posse de recurso (IDOR).",
+      };
+    }
+    const userId = sessionUserId || userIdParam;
 
     if (!userId) {
       return { success: false, error: "Usuário não autenticado." };

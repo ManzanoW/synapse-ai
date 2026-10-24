@@ -21,9 +21,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Busca o tópico e a matéria relacionada com métricas reais
-    const topic = await prisma.topic.findUnique({
-      where: { id: topicId },
+    // 1. 🛡️ Prevenção de IDOR: Busca o tópico garantindo posse estrita pelo userId autenticado
+    const topic = await prisma.topic.findFirst({
+      where: {
+        id: topicId,
+        subject: { userId: session.user.id },
+      },
       include: {
         subject: {
           include: {

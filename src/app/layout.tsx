@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AudioProvider } from "@/contexts/AudioContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { LgpdConsentBanner } from "@/components/privacy/LgpdConsentBanner";
 
 const sansFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -77,7 +78,7 @@ export default function RootLayout({
                 } else {
                   document.documentElement.classList.add("dark");
                   document.documentElement.setAttribute("data-theme", "dark");
-                  document.documentElement.style.colorScheme = "dark";
+                  document.documentElement.style.colorScheme = "dark");
                 }
               } catch (e) {}
             `,
@@ -86,7 +87,10 @@ export default function RootLayout({
       </head>
       <body className={`${sansFont.className} antialiased font-sans transition-colors duration-200 bg-[#030712] text-slate-100 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900`}>
         <ThemeProvider>
-          <AudioProvider>{children}</AudioProvider>
+          <AudioProvider>
+            {children}
+            <LgpdConsentBanner />
+          </AudioProvider>
         </ThemeProvider>
       </body>
     </html>

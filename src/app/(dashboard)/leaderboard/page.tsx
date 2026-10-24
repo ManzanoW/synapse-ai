@@ -371,14 +371,25 @@ export default function LeaderboardPage() {
           </button>
         </div>
 
-        <button
-          onClick={loadData}
-          disabled={loading}
-          className="flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-          <span className="hidden sm:inline">Atualizar</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/achievements"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-bold transition-all active:scale-95 shadow-2xs"
+            title="Ver Galeria de Conquistas e Medalhas"
+          >
+            <Award className="h-3.5 w-3.5" />
+            <span>Conquistas</span>
+          </Link>
+
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Atualizar</span>
+          </button>
+        </div>
       </div>
 
       {/* ================= 3. CONTEÚDO DAS ABAS ================= */}
