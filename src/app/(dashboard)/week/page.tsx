@@ -1364,6 +1364,24 @@ export default function WeekPage() {
                                       <span>Iniciar</span>
                                     </button>
 
+                                    <Link
+                                      href={`/study-room?subjectId=${encodeURIComponent(subject.id)}&subject=${encodeURIComponent(subject.name)}`}
+                                      title="Abrir matéria na Sala de Foco (Pomodoro)"
+                                      className="p-1.5 px-2.5 rounded-lg bg-cyan-50 text-cyan-700 hover:bg-cyan-100 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20 dark:border-cyan-500/25 transition-all active:scale-95 flex items-center gap-1 text-[11px] font-semibold cursor-pointer shadow-2xs"
+                                    >
+                                      <Clock size={12} />
+                                      <span className="hidden sm:inline">Pomodoro</span>
+                                    </Link>
+
+                                    <Link
+                                      href={`/questions?subjectId=${encodeURIComponent(subject.name)}&autoStart=true`}
+                                      title="Treinar simulado desta matéria"
+                                      className="p-1.5 px-2.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20 dark:border-indigo-500/25 transition-all active:scale-95 flex items-center gap-1 text-[11px] font-semibold cursor-pointer shadow-2xs"
+                                    >
+                                      <Target size={12} />
+                                      <span className="hidden sm:inline">Simulado</span>
+                                    </Link>
+
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1436,7 +1454,17 @@ export default function WeekPage() {
                                             </Link>
 
                                             <Link
-                                              href={`/questions?subject=${encodeURIComponent(subject.name)}&topic=${encodeURIComponent(topic.title)}`}
+                                              href={`/study-room?subjectId=${encodeURIComponent(subject.id)}&subject=${encodeURIComponent(subject.name)}&topicId=${encodeURIComponent(topic.id)}&topic=${encodeURIComponent(topic.title)}`}
+                                              onClick={(e) => e.stopPropagation()}
+                                              title="Abrir tópico na Sala de Foco (Pomodoro)"
+                                              className="px-2 py-0.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-600 dark:text-cyan-300 text-[10px] font-bold flex items-center gap-1 transition-colors"
+                                            >
+                                              <Clock size={11} />
+                                              <span>Focar</span>
+                                            </Link>
+
+                                            <Link
+                                              href={`/questions?subjectId=${encodeURIComponent(subject.name)}&topic=${encodeURIComponent(topic.title)}&topicId=${encodeURIComponent(topic.id)}&autoStart=true`}
                                               onClick={(e) => e.stopPropagation()}
                                               title="Treinar questões deste assunto"
                                               className="px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold flex items-center gap-1 transition-colors"
