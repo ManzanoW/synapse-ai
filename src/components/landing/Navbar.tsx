@@ -23,11 +23,9 @@ export function Navbar({ onOpenCommandMenu, onOpenPwaModal }: NavbarProps = {}) 
   }, []);
 
   const navLinks = [
-    { label: "Método", href: "#metodo" },
-    { label: "Cockpit", href: "#cockpit" },
-    { label: "Arsenal", href: "#arsenal" },
-    { label: "Workflow", href: "#fluxo" },
-    { label: "Comparativo", href: "#comparativo" },
+    { label: "Como Funciona", href: "#fluxo" },
+    { label: "Recursos", href: "#arsenal" },
+    { label: "Por Dentro", href: "#cockpit" },
     { label: "Planos", href: "#planos" },
     { label: "FAQ", href: "#faq" },
   ];
