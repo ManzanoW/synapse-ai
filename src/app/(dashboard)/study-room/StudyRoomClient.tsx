@@ -1084,69 +1084,6 @@ export default function StudyRoomClient({
             syncingTaskId={syncingTaskId}
           />
 
-          {/* Dock de Atalhos Rápidos Contextuais à Matéria em Foco */}
-          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl shadow-xl space-y-3">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <BookOpen size={16} className="text-indigo-400" />
-              Atalhos de Prática {selectedSubject ? `• ${selectedSubject.name}` : ""}
-            </h3>
-            <p className="text-xs text-slate-400">
-              Pratique na disciplina selecionada enquanto o timer corre:
-            </p>
-
-            <div className="space-y-2">
-              <Link
-                href={
-                  selectedSubject
-                    ? `/questions?subjectId=${encodeURIComponent(selectedSubject.name)}&autoStart=true`
-                    : "/questions"
-                }
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 hover:bg-indigo-950/30 border border-slate-800/80 hover:border-indigo-500/40 transition-all text-xs text-slate-200 group"
-              >
-                <div className="flex items-center gap-2">
-                  <FileStack size={16} className="text-indigo-400" />
-                  <span className="font-semibold">
-                    {selectedSubject ? `Questões de ${selectedSubject.name}` : "Banco de Questões"}
-                  </span>
-                </div>
-                <span className="text-[10px] text-slate-500 group-hover:text-indigo-400">
-                  Simulado ⚡
-                </span>
-              </Link>
-
-              <Link
-                href={
-                  selectedSubject
-                    ? `/flashcards?subject=${encodeURIComponent(selectedSubject.name)}`
-                    : "/flashcards"
-                }
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 hover:bg-indigo-950/30 border border-slate-800/80 hover:border-indigo-500/40 transition-all text-xs text-slate-200 group"
-              >
-                <div className="flex items-center gap-2">
-                  <Layers size={16} className="text-emerald-400" />
-                  <span className="font-semibold">
-                    {selectedSubject ? `Flashcards de ${selectedSubject.name}` : "Cartões de Memória"}
-                  </span>
-                </div>
-                <span className="text-[10px] text-slate-500 group-hover:text-emerald-400">
-                  Revisar
-                </span>
-              </Link>
-
-              <Link
-                href="/notebook"
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 hover:bg-indigo-950/30 border border-slate-800/80 hover:border-indigo-500/40 transition-all text-xs text-slate-200 group"
-              >
-                <div className="flex items-center gap-2">
-                  <BookOpenCheck size={16} className="text-violet-400" />
-                  <span className="font-semibold">Caderno de Erros (IA)</span>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 font-mono font-bold">
-                  VIP
-                </span>
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
 

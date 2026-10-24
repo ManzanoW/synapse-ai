@@ -172,186 +172,8 @@ export default async function FlashcardsPage() {
             </div>
           </div>
 
-          {/* PAINEL DE PERFORMANCE */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div className="p-5 sm:p-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Flame
-                    size={16}
-                    className="text-amber-400 fill-amber-400/20"
-                  />
-                  Dias Seguidos
-                </span>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  {streakDays} {streakDays === 1 ? "dia" : "dias"}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between gap-1 pt-1 overflow-x-auto scrollbar-none py-1">
-                {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(
-                  (day, idx) => {
-                    const isActive =
-                      streakDays > 0 && idx < Math.min(streakDays, 7);
-                    return (
-                      <div
-                        key={day}
-                        className="flex flex-col items-center gap-1.5 shrink-0"
-                      >
-                        <div
-                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center text-xs transition-all ${
-                            isActive
-                              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                              : "bg-slate-950/80 text-slate-700 border border-slate-800"
-                          }`}
-                        >
-                          {isActive && <Check size={13} strokeWidth={3} />}
-                        </div>
-                        <span className="text-[9px] font-semibold text-slate-400">
-                          {day}
-                        </span>
-                      </div>
-                    );
-                  },
-                )}
-              </div>
-            </div>
-
-            <div className="p-5 sm:p-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Brain size={16} className="text-emerald-400" />
-                  Nível de Memorização
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">
-                  Automático
-                </span>
-              </div>
-
-              <div className="flex items-baseline gap-2.5 pt-1">
-                <p className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  {estimatedRetention}
-                </p>
-                <span className="text-[11px] text-slate-400">
-                  de domínio médio
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-500 leading-normal">
-                Calculado a partir dos seus{" "}
-                <strong className="text-slate-300">{totalCards} cartões</strong>{" "}
-                já estudados.
-              </p>
-            </div>
-
-            <div className="p-5 sm:p-6 bg-gradient-to-br from-indigo-950/40 via-slate-900/60 to-slate-900/40 border border-indigo-500/30 rounded-2xl backdrop-blur-xl flex flex-col justify-between relative overflow-hidden group sm:col-span-2 lg:col-span-1">
-              <div>
-                <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1.5">
-                  <Sparkles size={15} className="animate-pulse" />
-                  <span>Gerador com IA</span>
-                </div>
-                <h3 className="text-base font-bold text-white mb-1">
-                  Criar Cartões do Edital
-                </h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Transforme qualquer assunto da sua matéria em cartões de pergunta e resposta em segundos.
-                </p>
-              </div>
-
-              <div className="pt-3">
-                <Link
-                  href="/flashcards/decks?openModal=true"
-                  className="inline-flex items-center gap-2 text-xs font-bold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-4 py-2.5 rounded-xl transition-all cursor-pointer w-full sm:w-auto justify-center"
-                >
-                  <span>Criar Cartões Automaticamente</span>
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* PAINEL: DISTRIBUIÇÃO DOS SEUS CARTÕES */}
-          {totalCards > 0 && (
-            <div className="p-5 sm:p-6 bg-slate-900/50 border border-slate-800/80 rounded-2xl backdrop-blur-xl shadow-lg space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/60 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                    <Brain size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                      Como estão seus Cartões de Memória
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Veja o que você já memorizou e o que ainda precisa revisar
-                    </p>
-                  </div>
-                </div>
-
-                <span className="text-xs font-mono text-slate-400">
-                  {totalCards} cartões no total
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {/* Novos */}
-                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
-                  <span className="text-[11px] font-bold text-violet-400 uppercase tracking-wider block">
-                    🟣 Novos
-                  </span>
-                  <p className="text-xl font-black font-mono text-white">
-                    {analytics.maturity.newCount}
-                  </p>
-                  <p className="text-[10px] text-slate-500">
-                    Ainda não estudados
-                  </p>
-                </div>
-
-                {/* Em Fixação */}
-                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
-                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
-                    🟡 Aprendendo
-                  </span>
-                  <p className="text-xl font-black font-mono text-white">
-                    {analytics.maturity.learningCount}
-                  </p>
-                  <p className="text-[10px] text-slate-500">
-                    Revisando nos próximos dias
-                  </p>
-                </div>
-
-                {/* Maduros / Longo Prazo */}
-                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
-                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
-                    🟢 Memorizados
-                  </span>
-                  <p className="text-xl font-black font-mono text-white">
-                    {analytics.maturity.matureCount}
-                  </p>
-                  <p className="text-[10px] text-slate-500">
-                    Já fixados na memória
-                  </p>
-                </div>
-
-                {/* Pontos Cegos / Leeches */}
-                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
-                  <span className="text-[11px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1">
-                    <AlertCircle size={12} />
-                    Mais Difíceis
-                  </span>
-                  <p className="text-xl font-black font-mono text-white">
-                    {analytics.maturity.leechCount}
-                  </p>
-                  <p className="text-[10px] text-slate-500">
-                    Errou 3 vezes ou mais
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SESSÃO: BARALHOS PRIORITÁRIOS */}
-          <div className="space-y-4 pt-2">
+          {/* 1. SESSÃO PRINCIPAL: BARALHOS PRIORITÁRIOS (ACIMA DA DOBRA) */}
+          <div className="space-y-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Clock size={17} className="text-indigo-400" />
@@ -454,6 +276,49 @@ export default async function FlashcardsPage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* 2. RESUMO COMPACTO DE MEMORIZAÇÃO (1 FAIXA ENXUTA) */}
+          <div className="p-4 sm:p-5 bg-slate-900/40 border border-slate-800/80 rounded-2xl backdrop-blur-xl space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Brain size={16} className="text-indigo-400" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Resumo da Sua Memória ({totalCards} cartões)
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="inline-flex items-center gap-1 text-amber-400 font-bold">
+                  <Flame size={14} className="fill-amber-400/20" />
+                  {streakDays} {streakDays === 1 ? "dia seguido" : "dias seguidos"}
+                </span>
+                <span className="text-slate-700">•</span>
+                <span className="text-emerald-400 font-bold font-mono">
+                  {estimatedRetention} retenção média
+                </span>
+              </div>
+            </div>
+
+            {totalCards > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-violet-400">🟣 Novos</span>
+                  <span className="text-sm font-black font-mono text-white">{analytics.maturity.newCount}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-amber-400">🟡 Aprendendo</span>
+                  <span className="text-sm font-black font-mono text-white">{analytics.maturity.learningCount}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-emerald-400">🟢 Memorizados</span>
+                  <span className="text-sm font-black font-mono text-white">{analytics.maturity.matureCount}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-rose-400">🔴 Difíceis</span>
+                  <span className="text-sm font-black font-mono text-white">{analytics.maturity.leechCount}</span>
+                </div>
               </div>
             )}
           </div>
