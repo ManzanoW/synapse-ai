@@ -287,6 +287,25 @@ function getServerSnapshot() {
   return true;
 }
 
+
+/**
+ * Limpa a fila offline e redefine os bloqueios de sincronização em caso de falha de conexão prolongada
+ */
+export function clearOrphanedOfflineQueue(): { clearedCount: number } {
+  if (typeof window === "undefined") return { clearedCount: 0 };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { clearedCount: 0 };
+    const parsed = JSON.parse(raw);
+    const count = Array.isArray(parsed) ? parsed.length : 0;
+    localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new Event("synapse_offline_queue_updated"));
+    return { clearedCount: count };
+  } catch {
+    return { clearedCount: 0 };
+  }
+}
+
 export function useOfflineSync() {
   const isOnline = useSyncExternalStore(subscribeOnline, getOnlineSnapshot, getServerSnapshot);
   const [pendingCount, setPendingCount] = useState<number>(0);
@@ -322,5 +341,6 @@ export function useOfflineSync() {
     isSyncing,
     triggerSync,
     refreshPendingCount,
+    clearOrphanedQueue: clearOrphanedOfflineQueue,
   };
 }

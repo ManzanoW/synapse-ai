@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -40,6 +40,7 @@ import { useGamification } from "@/context/GamificationContext";
 import {
   deepenExplanationAction,
   DeepenExplanationResult,
+  getRecentQuizAttemptsAction,
 } from "@/actions/quiz-actions";
 import {
   saveWrongQuestionsToNotebookAction,
@@ -100,6 +101,8 @@ export function QuizResultView({
 }: QuizResultViewProps) {
   const { stats } = useGamification();
 
+
+
   // Estados de navegação e filtros
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
   const [filterReview, setFilterReview] = useState<"all" | "incorrect" | "correct">("all");
@@ -136,6 +139,36 @@ export function QuizResultView({
   const incorrectCount = totalQuestions - correctCount;
   const percentageAcc =
     totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+
+  // Histórico recente para comparativo de evolução
+  const [recentAttempts, setRecentAttempts] = useState<any[]>([]);
+
+  useEffect(() => {
+    getRecentQuizAttemptsAction(subject)
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setRecentAttempts(res.data);
+        }
+      })
+      .catch(() => {});
+  }, [subject]);
+
+  const recentStats = useMemo(() => {
+    if (!recentAttempts || recentAttempts.length < 2) return null;
+    const previous = recentAttempts.slice(1);
+    const avgPrevious =
+      previous.reduce((sum, att) => {
+        const p = att.totalCount > 0 ? (att.correctCount / att.totalCount) * 100 : 0;
+        return sum + p;
+      }, 0) / previous.length;
+
+    const delta = Math.round(percentageAcc - avgPrevious);
+    return {
+      avgPrevious: Math.round(avgPrevious),
+      delta,
+      previousAttempts: previous,
+    };
+  }, [recentAttempts, percentageAcc]);
 
   const averageTimePerQuestion =
     totalQuestions > 0 ? Math.round(timerSeconds / totalQuestions) : 0;
@@ -899,8 +932,60 @@ export function QuizResultView({
         </div>
 
         {/* ========================================================================= */}
-        {/* NOVO: MATRIZ DE PACING (TEMPO VS PRECISÃO) & RADAR DE COMPETÊNCIAS        */}
+        {/* EVOLUÇÃO RECENTE NESTA MATÉRIA (ÚLTIMAS TENTATIVAS)                       */}
         {/* ========================================================================= */}
+        {recentStats && (
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#090d18] via-[#070b16] to-[#04060c] border border-white/10 hover:border-indigo-500/30 rounded-3xl p-5 sm:p-6 shadow-xl transition-all">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 shrink-0">
+                  <Activity size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                    <span>Evolução Recente em {subject}</span>
+                    <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                      recentStats.delta > 2
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                        : recentStats.delta < -2
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                        : "bg-slate-500/20 text-slate-300 border-slate-500/30"
+                    }`}>
+                      {recentStats.delta > 0 ? `+${recentStats.delta}%` : `${recentStats.delta}%`} vs média recente
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Média das tentativas anteriores: <strong className="text-slate-200">{recentStats.avgPrevious}%</strong> • Desempenho atual: <strong className="text-white">{percentageAcc}%</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {recentAttempts.slice(0, 3).map((att, idx) => {
+                  const pct = att.totalCount > 0 ? Math.round((att.correctCount / att.totalCount) * 100) : 0;
+                  const isCurrent = idx === 0;
+                  return (
+                    <div
+                      key={att.id || idx}
+                      className={`px-3 py-1.5 rounded-xl border text-center transition-all ${
+                        isCurrent
+                          ? "bg-indigo-600/20 border-indigo-500 text-white font-bold"
+                          : "bg-white/[0.03] border-white/10 text-slate-400"
+                      }`}
+                    >
+                      <span className="text-[9px] uppercase tracking-wider block font-mono">
+                        {isCurrent ? "Atual" : `#${recentAttempts.length - idx}`}
+                      </span>
+                      <span className="text-xs font-mono font-black text-white">{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* LADO ESQUERDO (7 cols): MATRIZ DE PACING EM 4 QUADRANTES */}
           <div className="lg:col-span-7 bg-gradient-to-br from-[#090d18] via-[#070b16] to-[#04060c] border border-white/10 hover:border-violet-500/30 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 transition-all">

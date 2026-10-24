@@ -620,3 +620,63 @@ Responda APENAS com o JSON válido sem blocos markdown adicionais.`;
 }
 
 
+
+/**
+ * Busca o histórico recente de tentativas de simulados para comparativo de evolução
+ */
+export async function getRecentQuizAttemptsAction(subjectName?: string) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    const attempts = await prisma.quizAttempt.findMany({
+      where: {
+        userId,
+        ...(subjectName && subjectName !== "Conhecimentos Gerais"
+          ? {
+              topic: {
+                subject: {
+                  name: {
+                    contains: subjectName,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            }
+          : {}),
+      },
+      orderBy: {
+        completedAt: "desc",
+      },
+      take: 4,
+      select: {
+        id: true,
+        totalCount: true,
+        correctCount: true,
+        completedAt: true,
+        topic: {
+          select: {
+            title: true,
+            subject: {
+              select: {
+                name: true,
+                color: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return { success: true, data: attempts };
+  } catch (err) {
+    console.error("Erro em getRecentQuizAttemptsAction:", err);
+    return {
+      success: false,
+      error: "Falha ao carregar histórico recente de tentativas.",
+    };
+  }
+}
