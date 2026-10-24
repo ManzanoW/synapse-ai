@@ -88,6 +88,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   const [isTheoryOpen, setIsTheoryOpen] = useState(false);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [isSummaryMode, setIsSummaryMode] = useState(false);
+  const [showReaderSettings, setShowReaderSettings] = useState(false);
   const [openFaqIndices, setOpenFaqIndices] = useState<Record<number, boolean>>({});
   const [showCognitiveRadar, setShowCognitiveRadar] = useState(false);
   const [showSubjectsDrawer, setShowSubjectsDrawer] = useState(false);
@@ -1702,15 +1703,6 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
 
                   <button
                     type="button"
-                    onClick={printPersonalEveSheetA4}
-                    title="Gera uma folha A4 pronta para imprimir com o resumo das aulas desta semana"
-                    className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-[11px] transition-all cursor-pointer"
-                  >
-                    🖨️ Baixar Resumo p/ Imprimir (A4)
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => setShowCognitiveRadar((prev) => !prev)}
                     className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] transition-all cursor-pointer"
                   >
@@ -1996,7 +1988,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                 })}
               </div>
 
-              {/* Controles de Estudo: Modo Resumo Rápido + Áudio-Aula + Apostila A4 + Pomodoro + Fechar */}
+              {/* Controles Principais de Estudo: Resumo Rápido + Ouvir Aula + Ajustes de Leitura + Fechar */}
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setIsSummaryMode((prev) => !prev)}
@@ -2010,126 +2002,40 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                   <span>{isSummaryMode ? "📖 Ver Teoria Completa" : "⚡ Resumo Rápido"}</span>
                 </button>
 
-                <div className="inline-flex items-center rounded-xl bg-slate-900 border border-slate-800 overflow-hidden">
-                  <button
-                    onClick={toggleAudioLesson}
-                    className={`px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
-                      isSpeakingAudio
-                        ? "bg-emerald-500/20 text-emerald-300"
-                        : "hover:bg-slate-800 text-slate-300"
-                    }`}
-                    title="Ouvir narração neural de estúdio desta aula"
-                  >
-                    {isSpeakingAudio ? (
-                      <>
-                        <VolumeX className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Parar Áudio</span>
-                      </>
-                    ) : (
-                      <>
-                        <Headphones className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Ouvir Aula</span>
-                      </>
-                    )}
-                  </button>
-                  <select
-                    aria-label="Selecionar voz neural da aula"
-                    value={selectedVoiceURI}
-                    onChange={(e) => handleChangeVoice(e.target.value)}
-                    className="bg-slate-950 border-l border-slate-800 px-2 py-1.5 text-[11px] font-semibold text-slate-300 focus:outline-none cursor-pointer"
-                    title="Mesmas vozes neurais de estúdio dos Flashcards em Áudio"
-                  >
-                    {NEURAL_VOICE_OPTIONS.map((v) => (
-                      <option key={v.voiceURI} value={v.voiceURI}>
-                        🎙️ {v.name.split(" ")[0]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="inline-flex items-center rounded-xl bg-indigo-500/15 border border-indigo-500/30 overflow-hidden">
-                  <select
-                    aria-label="Selecionar nível de dificuldade da aula"
-                    value={activeLesson?.level || "BEGINNER"}
-                    disabled={isSyncingAITheory}
-                    onChange={(e) =>
-                      handleSyncOrGenerateLessonTheory(
-                        false,
-                        e.target.value as "BEGINNER" | "INTERMEDIATE" | "ADVANCED",
-                      )
-                    }
-                    className="bg-slate-950/90 px-2.5 py-1.5 text-[11px] font-bold text-indigo-200 focus:outline-none cursor-pointer"
-                    title="Escolha se prefere uma explicação mais fácil ou mais aprofundada"
-                  >
-                    <option value="BEGINNER">🌱 Explicação Fácil</option>
-                    <option value="INTERMEDIATE">⚖️ Nível da Prova</option>
-                    <option value="ADVANCED">🔥 Aprofundado</option>
-                  </select>
-                </div>
-
-                {/* Controle de Modo de Leitura Conforto (Dark, Sépia Livro, Clean Claro) */}
                 <button
-                  type="button"
-                  onClick={() => {
-                    const next = readingTheme === "dark" ? "sepia" : readingTheme === "sepia" ? "light" : "dark";
-                    handleSetReadingTheme(next);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-colors ${
-                    readingTheme === "sepia"
-                      ? "bg-[#e8d7b7] border-[#d4be94] text-[#422c0e] shadow-xs"
-                      : readingTheme === "light"
-                        ? "bg-slate-200 border-slate-300 text-slate-800 shadow-xs"
-                        : "bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300"
+                  onClick={toggleAudioLesson}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    isSpeakingAudio
+                      ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                      : "bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300"
                   }`}
-                  title="Alternar entre modo Cósmico (Escuro), Sépia Livro (Conforto sem cansaço visual) ou Clean Claro"
+                  title="Ouvir narração neural de estúdio desta aula"
                 >
-                  <span>
-                    {readingTheme === "dark" ? "🌙 Cósmico" : readingTheme === "sepia" ? "📜 Sépia Livro" : "☀️ Clean Claro"}
-                  </span>
-                </button>
-
-                {/* Controle de Tamanho da Letra (Acessibilidade para leitura confortável) */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setLessonFontSize((prev) =>
-                      prev === "normal" ? "large" : prev === "large" ? "xlarge" : "normal",
-                    )
-                  }
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-colors ${
-                    lessonFontSize !== "normal"
-                      ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
-                      : readingTheme === "sepia"
-                        ? "bg-[#efe0c4] border-[#dccea9] hover:bg-[#e7d5b5] text-[#3d2f1d]"
-                        : readingTheme === "light"
-                          ? "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-800"
-                          : "bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300"
-                  }`}
-                  title="Aumentar ou diminuir o tamanho da letra da aula para facilitar a leitura"
-                >
-                  <span>🔤 Letra: {lessonFontSize === "normal" ? "Normal (A+)" : lessonFontSize === "large" ? "Grande (A++)" : "Extra Grande"}</span>
-                </button>
-
-                <button
-                  onClick={printLessonApostila}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-                  title="Imprimir ou Salvar PDF A4 desta aula com suas anotações"
-                >
-                  <Printer className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Imprimir Aula</span>
-                </button>
-
-                <button
-                  onClick={() => setPomodoroRunning((r) => !r)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/40 flex items-center gap-1.5 text-xs font-mono text-slate-300 cursor-pointer"
-                  title="Clique para iniciar/pausar seu cronômetro de estudo"
-                >
-                  {pomodoroRunning ? (
-                    <Pause className="w-3.5 h-3.5 text-amber-400" />
+                  {isSpeakingAudio ? (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Parar Áudio</span>
+                    </>
                   ) : (
-                    <Play className="w-3.5 h-3.5 text-emerald-400" />
+                    <>
+                      <Headphones className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Ouvir Aula</span>
+                    </>
                   )}
-                  <span>{formatTimer(pomodoroSeconds)}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowReaderSettings((prev) => !prev)}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    showReaderSettings
+                      ? "bg-indigo-600/20 border-indigo-500/40 text-indigo-200"
+                      : "bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300"
+                  }`}
+                  title="Ajustar tamanho da letra, tema de leitura, nível da explicação, voz, timer ou imprimir"
+                >
+                  <span>⚙️ Ajustes</span>
+                  {showReaderSettings ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </button>
 
                 <button
@@ -2138,11 +2044,100 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                     setIsTheoryOpen(false);
                   }}
                   className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white cursor-pointer"
+                  title="Fechar aula"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
+
+            {/* Barra Colapsável de Ajustes de Leitura (Sob demanda, sem poluir o topo) */}
+            {showReaderSettings && (
+              <div className="px-4 py-2.5 bg-slate-950/95 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Nível da Explicação */}
+                  <div className="inline-flex items-center rounded-xl bg-indigo-500/15 border border-indigo-500/30 overflow-hidden">
+                    <select
+                      aria-label="Selecionar nível de dificuldade da aula"
+                      value={activeLesson?.level || "BEGINNER"}
+                      disabled={isSyncingAITheory}
+                      onChange={(e) =>
+                        handleSyncOrGenerateLessonTheory(
+                          false,
+                          e.target.value as "BEGINNER" | "INTERMEDIATE" | "ADVANCED",
+                        )
+                      }
+                      className="bg-slate-950/90 px-2.5 py-1.5 text-[11px] font-bold text-indigo-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="BEGINNER">🌱 Explicação Fácil</option>
+                      <option value="INTERMEDIATE">⚖️ Nível da Prova</option>
+                      <option value="ADVANCED">🔥 Aprofundado</option>
+                    </select>
+                  </div>
+
+                  {/* Tema de Leitura */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextTheme = readingTheme === "dark" ? "sepia" : readingTheme === "sepia" ? "light" : "dark";
+                      handleSetReadingTheme(nextTheme);
+                    }}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-[11px] cursor-pointer"
+                  >
+                    {readingTheme === "dark" ? "🌙 Tema: Escuro" : readingTheme === "sepia" ? "📜 Tema: Sépia" : "☀️ Tema: Claro"}
+                  </button>
+
+                  {/* Tamanho da Letra */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLessonFontSize((prev) =>
+                        prev === "normal" ? "large" : prev === "large" ? "xlarge" : "normal",
+                      )
+                    }
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-[11px] cursor-pointer"
+                  >
+                    🔤 Letra: {lessonFontSize === "normal" ? "Normal (A+)" : lessonFontSize === "large" ? "Grande (A++)" : "Extra Grande"}
+                  </button>
+
+                  {/* Voz do Áudio */}
+                  <select
+                    aria-label="Selecionar voz neural da aula"
+                    value={selectedVoiceURI}
+                    onChange={(e) => handleChangeVoice(e.target.value)}
+                    className="rounded-xl bg-slate-900 border border-slate-800 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 focus:outline-none cursor-pointer"
+                  >
+                    {NEURAL_VOICE_OPTIONS.map((v) => (
+                      <option key={v.voiceURI} value={v.voiceURI}>
+                        🎙️ Voz: {v.name.split(" ")[0]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={printLessonApostila}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Imprimir Aula</span>
+                  </button>
+
+                  <button
+                    onClick={() => setPomodoroRunning((r) => !r)}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/40 flex items-center gap-1.5 text-[11px] font-mono text-slate-300 cursor-pointer"
+                  >
+                    {pomodoroRunning ? (
+                      <Pause className="w-3.5 h-3.5 text-amber-400" />
+                    ) : (
+                      <Play className="w-3.5 h-3.5 text-emerald-400" />
+                    )}
+                    <span>{formatTimer(pomodoroSeconds)}</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Corpo da Aula (Scrollável com Tamanho de Letra e Tema Ajustáveis) */}
             <div
