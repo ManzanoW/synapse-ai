@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
@@ -33,6 +33,7 @@ import {
   Printer,
   BookOpen,
   Focus,
+  Zap,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
@@ -277,6 +278,17 @@ export function QuizResolutionView({
     totalQuestions > 0
       ? Math.round((answeredCount / totalQuestions) * 100)
       : 0;
+
+  // Métricas de Pacing / Ritmo de Prova
+  const avgSecondsPerAnswered = answeredCount > 0 ? Math.round(timerSeconds / answeredCount) : 0;
+
+  const formatPacingTime = (secs: number) => {
+    if (secs <= 0) return "--";
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    if (m === 0) return `${s}s`;
+    return `${m}m ${String(s).padStart(2, "0")}s`;
+  };
 
   // Formatação de cronômetro padronizada HH:MM:SS (ex: "00:15:30")
   const formatTimer = (totalSecs: number) => {
@@ -787,6 +799,24 @@ export function QuizResolutionView({
               </button>
             </div>
 
+            {/* Pacing Alert Dinâmico */}
+            {answeredCount > 0 && (
+              <div
+                className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border font-mono text-xs transition-all ${
+                  avgSecondsPerAnswered > 210
+                    ? "bg-rose-950/40 border-rose-500/30 text-rose-300"
+                    : avgSecondsPerAnswered > 150
+                    ? "bg-cyan-950/40 border-cyan-500/30 text-cyan-300"
+                    : "bg-emerald-950/40 border-emerald-500/30 text-emerald-300"
+                }`}
+                title={`Média de ${formatPacingTime(avgSecondsPerAnswered)} por questão resolvida. ${Math.max(0, totalQuestions - answeredCount)} restante(s).`}
+              >
+                <Zap size={12} className={avgSecondsPerAnswered > 210 ? "text-rose-400 animate-pulse" : "text-cyan-400"} />
+                <span className="font-bold">{formatPacingTime(avgSecondsPerAnswered)}</span>
+                <span className="text-[10px] text-zinc-400 font-sans">/ qst</span>
+              </div>
+            )}
+
             {/* Botão de Filtrar Questões Sinalizadas */}
             <button
               onClick={toggleFilterOnlyFlagged}
@@ -984,6 +1014,11 @@ export function QuizResolutionView({
               className={isTimerRunning ? "text-emerald-400 animate-pulse" : "text-slate-500"}
             />
             <span>{formatTimer(timerSeconds)}</span>
+            {answeredCount > 0 && (
+              <span className="text-[10px] text-zinc-400 border-l border-white/10 pl-1.5 font-sans">
+                {formatPacingTime(avgSecondsPerAnswered)}/q
+              </span>
+            )}
           </div>
         </div>
       </header>

@@ -19,6 +19,7 @@ import { DailyQuestsPanel } from "@/components/dashboard/DailyQuestsPanel";
 import { GamificationCockpitCard } from "@/components/dashboard/GamificationCockpitCard";
 import { LeagueWidgetCard } from "@/components/dashboard/LeagueWidgetCard";
 import { KeyMetricsCard } from "@/components/dashboard/KeyMetricsCard";
+import { QuickWeakSpotCard } from "@/components/dashboard/QuickWeakSpotCard";
 import { useGamification } from "@/context/GamificationContext";
 
 // Lazy-loaded Modais & Overlays pesados para otimização de bundle e LCP
@@ -1194,6 +1195,11 @@ export default function DashboardClient({
             <div className="space-y-4">
               {/* ROI & TEMPO ECONOMIZADO PELA IA */}
               <AiValueSummaryWidget />
+
+                  {/* CARD DE ATAQUE RÁPIDO AO PONTO FRACO */}
+                  {!isLoading && subjects.length > 0 && (
+                    <QuickWeakSpotCard subjects={subjects} isLoading={isLoading} />
+                  )}
 
               {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
               <ApprovalOddsCard initialData={initialApprovalOdds} />
