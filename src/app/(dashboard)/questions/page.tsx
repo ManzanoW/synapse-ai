@@ -58,6 +58,7 @@ import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationMo
 import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 import { OpticalAnswerSheetModal } from "@/components/questions/OpticalAnswerSheetModal";
 import { SpeedQuizModal } from "@/components/questions/SpeedQuizModal";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 import { QuestionScannerModal } from "@/components/questions/QuestionScannerModal";
 import { streamSimuladoGeneration } from "@/lib/sse-client";
 
@@ -355,6 +356,7 @@ export default function QuestoesPage() {
     quizId: string | null;
   } | null>(null);
 
+
   // Modal IA / Edital
   const [trailLessonId, setTrailLessonId] = useState<string | null>(null);
   const [materia, setMateria] = useState("");
@@ -374,6 +376,23 @@ export default function QuestoesPage() {
   const [textoBase, setTextoBase] = useState("");
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // Restaura filtros de geração aos padrões recomendados
+  const handleResetGeneratorFilters = useCallback(() => {
+    triggerHaptic("light");
+    setBanca("FGV");
+    setDificuldade("Média");
+    setQtdQuestoes("5");
+    setFormatoQuestao("auto");
+    setFonteConteudo("banca");
+    setNivelCargo("superior");
+    setSelectedTopicId("");
+    setSpecificTopic("");
+    setTextoBase("");
+    if (subjects.length > 0) {
+      setMateria(subjects[0].name);
+    }
+  }, [subjects]);
 
   // Histórico
   const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
@@ -2745,6 +2764,7 @@ export default function QuestoesPage() {
         onFormatoQuestaoChange={setFormatoQuestao}
         nivelCargo={nivelCargo}
         onNivelCargoChange={setNivelCargo}
+        onResetFilters={handleResetGeneratorFilters}
         onSubmit={handleGenerateSimulado}
       />
 

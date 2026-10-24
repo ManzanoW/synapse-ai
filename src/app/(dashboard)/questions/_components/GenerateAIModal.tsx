@@ -11,6 +11,7 @@ import {
   X,
   AlertTriangle,
   ArrowRight,
+  RotateCcw,
 } from "lucide-react";
 
 interface SubjectItem {
@@ -48,6 +49,7 @@ interface GenerateAIModalProps {
   nivelCargo?: "medio" | "superior" | "juridico";
   onNivelCargoChange?: (val: "medio" | "superior" | "juridico") => void;
   onSubmit: (e: React.FormEvent) => void;
+  onResetFilters?: () => void;
 }
 
 export function GenerateAIModal({
@@ -77,6 +79,7 @@ export function GenerateAIModal({
   nivelCargo = "superior",
   onNivelCargoChange,
   onSubmit,
+  onResetFilters,
 }: GenerateAIModalProps) {
   React.useEffect(() => {
     if (!isOpen) return;
@@ -122,18 +125,33 @@ export function GenerateAIModal({
           <X size={18} />
         </button>
 
-        <div className="flex items-center gap-3 border-b border-slate-900 pb-3">
-          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl animate-pulse shrink-0">
-            <Sparkles size={20} />
+        <div className="flex items-center justify-between border-b border-slate-900 pb-3 pr-10">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl animate-pulse shrink-0">
+              <Sparkles size={20} />
+            </div>
+            <div className="min-w-0">
+              <h3 id="generate-ai-modal-title" className="text-base font-bold text-slate-200 truncate">
+                Gerador Cognitivo por IA
+              </h3>
+              <p id="generate-ai-modal-desc" className="text-[11px] text-slate-400 mt-0.5 truncate">
+                Configure o escopo para simular sua prova.
+              </p>
+            </div>
           </div>
-          <div className="min-w-0 pr-6">
-            <h3 id="generate-ai-modal-title" className="text-base font-bold text-slate-200 truncate">
-              Gerador Cognitivo por IA
-            </h3>
-            <p id="generate-ai-modal-desc" className="text-[11px] text-slate-400 mt-0.5 truncate">
-              Configure o escopo para simular sua prova.
-            </p>
-          </div>
+
+          {onResetFilters && (
+            <button
+              type="button"
+              onClick={onResetFilters}
+              disabled={isGenerating}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-[11px] font-semibold text-slate-300 hover:text-white transition-all cursor-pointer active:scale-95 shrink-0"
+              title="Restaurar parâmetros padrão da banca e dificuldade"
+            >
+              <RotateCcw size={12} className="text-indigo-400" />
+              <span>Restaurar Padrões</span>
+            </button>
+          )}
         </div>
 
         {hasNoSubjects ? (

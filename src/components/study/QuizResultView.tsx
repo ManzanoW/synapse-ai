@@ -34,6 +34,7 @@ import {
   Radar,
   Gauge,
   Timer,
+  Printer,
 } from "lucide-react";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 import { useGamification } from "@/context/GamificationContext";
@@ -48,6 +49,7 @@ import {
 } from "@/actions/error-notebook-actions";
 import { createFlashcardsFromQuizResultsAction } from "@/actions/error-flashcard-actions";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { PrintableQuizSummaryModal } from "./PrintableQuizSummaryModal";
 
 export interface QuizResultViewProps {
   quizId?: string | null;
@@ -104,6 +106,7 @@ export function QuizResultView({
 
 
   // Estados de navegação e filtros
+  const [isPrintSummaryOpen, setIsPrintSummaryOpen] = useState(false);
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
   const [filterReview, setFilterReview] = useState<"all" | "incorrect" | "correct">("all");
 
@@ -595,7 +598,19 @@ export function QuizResultView({
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+            <button
+              onClick={() => {
+                triggerHaptic("light");
+                setIsPrintSummaryOpen(true);
+              }}
+              type="button"
+              className="flex-1 sm:flex-initial px-3.5 py-2 bg-slate-900/90 hover:bg-slate-800 border border-indigo-500/30 text-indigo-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+              title="Visualizar e Imprimir Folha de Respostas A4 (1 Página)"
+            >
+              <Printer size={13} className="text-indigo-400" />
+              <span>Gabarito A4 (1 Pág)</span>
+            </button>
             <button
               onClick={onRestart}
               type="button"
@@ -1328,6 +1343,32 @@ export function QuizResultView({
 
           {/* BOTÕES SECUNDÁRIOS: REFAZER E CONCLUIR (4 cols, Compactos e Proporcionais) */}
           <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-2.5 justify-between">
+            {/* Card: Folha de Respostas A4 (1 Pág) */}
+            <button
+              onClick={() => {
+                triggerHaptic("light");
+                setIsPrintSummaryOpen(true);
+              }}
+              type="button"
+              className="flex-1 py-3 px-3.5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 hover:border-indigo-500/40 transition-all flex items-center justify-between group cursor-pointer text-left shadow-xs active:scale-[0.99]"
+              title="Visualizar e Imprimir Folha de Respostas A4"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 rounded-xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-300 group-hover:scale-105 transition-transform shrink-0">
+                  <Printer size={15} />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors truncate">
+                    Gabarito A4 (1 Pág)
+                  </h4>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    Folha de respostas executiva
+                  </p>
+                </div>
+              </div>
+              <ArrowRight size={13} className="text-slate-500 group-hover:text-indigo-300 group-hover:translate-x-0.5 transition-all shrink-0 ml-1.5" />
+            </button>
+
             {/* Card 1: Refazer Este Simulado (Compacto) */}
             <button
               onClick={onRestart}
@@ -1778,6 +1819,18 @@ export function QuizResultView({
           </div>
         </div>
       </div>
+      <PrintableQuizSummaryModal
+        isOpen={isPrintSummaryOpen}
+        onClose={() => setIsPrintSummaryOpen(false)}
+        banca={banca}
+        subject={subject}
+        questions={questions}
+        selectedAnswers={selectedAnswers}
+        timerSeconds={timerSeconds}
+        accuracyPercentage={percentageAcc}
+        correctCount={correctCount}
+        wrongCount={incorrectCount}
+      />
     </div>
   );
 }
