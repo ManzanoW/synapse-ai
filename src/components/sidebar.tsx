@@ -692,6 +692,11 @@ export default function Sidebar({ user }: SidebarProps) {
                       <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-400 group-hover/header:text-slate-600 dark:text-slate-500 dark:group-hover/header:text-slate-300 transition-colors truncate">
                         {group.label}
                       </span>
+                      {group.id === "ferramentas" && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 shrink-0">
+                          {group.items.length}
+                        </span>
+                      )}
                       {/* Se o grupo estiver colapsado mas contiver a rota ativa, exibe indicador sutil de contexto */}
                       {isCollapsed && hasActiveItem && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25 text-[8.5px] font-semibold tracking-normal lowercase shrink-0 animate-fade-in shadow-2xs">

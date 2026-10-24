@@ -117,6 +117,14 @@ export function QuizResolutionView({
   createdFlashcards = {},
 }: QuizResolutionViewProps) {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+
+  // Oculta widgets flutuantes periféricos (rascunho, scroll) durante a prova ativa
+  useEffect(() => {
+    document.body.setAttribute("data-in-quiz", "true");
+    return () => {
+      document.body.removeAttribute("data-in-quiz");
+    };
+  }, []);
   const [direction, setDirection] = useState<1 | -1>(1);
 
   // Estados de resposta e resolução

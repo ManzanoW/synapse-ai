@@ -1353,6 +1353,49 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
            ========================================================= */}
         {activeTab === "trilhas" && trail && (
           <div className="p-5 sm:p-6 rounded-2xl bg-slate-950/80 border border-slate-800/90 space-y-5">
+            {/* CONTINUAR DE ONDE PAROU (AÇÃO DIRETA EM 1 CLIQUE) */}
+            {(() => {
+              const nextLessonToStudy =
+                allLessons.find((l: any) => !l.isCompleted && l.lessonType === "THEORY") ||
+                allLessons.find((l: any) => !l.isCompleted) ||
+                allLessons[0];
+
+              if (!nextLessonToStudy) return null;
+
+              return (
+                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900/80 to-slate-900/60 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-indigo-950/20">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center shrink-0">
+                      <Play className="w-5 h-5 fill-indigo-400 ml-0.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                          CONTINUAR DE ONDE PAROU
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          Semana {nextLessonToStudy.weekNumber}
+                        </span>
+                      </div>
+                      <h3 className="text-sm sm:text-base font-bold text-white truncate mt-0.5">
+                        {nextLessonToStudy.title}
+                      </h3>
+                      <p className="text-xs text-slate-400 truncate">
+                        {nextLessonToStudy.subjectName || "Teoria & Resumo da Semana"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openTheoryModalForLesson(nextLessonToStudy.id)}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer shrink-0"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    <span>Continuar Aula</span>
+                  </button>
+                </div>
+              );
+            })()}
             {/* 1. CABEÇALHO COMPACTO DA TRILHA */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
               <div className="flex items-center gap-3.5">

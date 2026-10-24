@@ -764,3 +764,8 @@ html.light *::-webkit-scrollbar-thumb:hover {
   content-visibility: auto;
   contain-intrinsic-size: 1px 750px;
 }
+
+/* Oculta widgets flutuantes de fundo durante resolução de simulado/prova */
+body[data-in-quiz="true"] .hide-on-quiz {
+  display: none !important;
+}
