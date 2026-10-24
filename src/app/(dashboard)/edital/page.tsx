@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Search,
+  Filter,
   UploadCloud,
   Plus,
   Loader2,
@@ -67,6 +68,7 @@ interface ApiSubject {
 
 function PlannerContent() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterPendingOnly, setFilterPendingOnly] = useState(false);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [subjects, setSubjects] = useState<ApiSubject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -279,7 +281,7 @@ function PlannerContent() {
     }
   }
 
-  const mappedTopicsForView = topics.map((t) => {
+  const allMappedTopics = topics.map((t) => {
     const item = t as unknown as ApiTopic;
     return {
       id: item.id,
@@ -296,6 +298,15 @@ function PlannerContent() {
           : null,
     };
   });
+
+  const mappedTopicsForView = filterPendingOnly
+    ? allMappedTopics.filter(
+        (t) =>
+          !t.firstStudy ||
+          t.firstStudy === "Pendente" ||
+          (t.performance ?? 0) < 100,
+      )
+    : allMappedTopics;
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 p-3.5 sm:p-6 font-sans antialiased relative">

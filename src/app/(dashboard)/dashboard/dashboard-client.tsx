@@ -1044,11 +1044,20 @@ export default function DashboardClient({
                 {isLoading ? (
                   <div className="h-4 w-16 rounded bg-slate-200 dark:bg-white/10 animate-pulse" />
                 ) : (
-                  <strong className="font-mono text-amber-600 dark:text-amber-300/90">
-                    {hasEditalSubjects && stats?.journey?.currentPace && stats.journey.currentPace > 0
-                      ? `${stats.journey.currentPace} / sem`
-                      : "—"}
-                  </strong>
+                  <div className="flex items-center gap-1.5">
+                    <strong className="font-mono text-amber-600 dark:text-amber-300/90">
+                      {hasEditalSubjects && stats?.journey?.currentPace && stats.journey.currentPace > 0
+                        ? `${stats.journey.currentPace} / sem`
+                        : "—"}
+                    </strong>
+                    {hasEditalSubjects &&
+                      (stats?.journey?.currentPace ?? 0) >= (stats?.journey?.topicsPerWeek ?? 1) &&
+                      (stats?.journey?.topicsPerWeek ?? 0) > 0 && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          ✨ No Alvo
+                        </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
