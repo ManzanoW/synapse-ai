@@ -116,6 +116,8 @@ interface SubjectItem {
   id: string;
   name: string;
   color?: string;
+  weight?: number;
+  priority?: number;
   topics?: { id: string; title: string }[];
 }
 
@@ -1316,6 +1318,111 @@ export default function QuestoesPage() {
     [banca, materia, subjects, dificuldade],
   );
 
+  const handleStartFullMockExam = useCallback(
+    async (options?: { totalQtd?: number; targetBanca?: string }) => {
+      const totalQtd = options?.totalQtd || 30;
+      const finalBanca = options?.targetBanca || banca || "FGV";
+
+      let activeSubjects = subjects;
+      if (activeSubjects.length === 0) {
+        activeSubjects = [
+          { id: "1", name: "Língua Portuguesa", weight: 8 },
+          { id: "2", name: "Direito Constitucional", weight: 7 },
+          { id: "3", name: "Direito Administrativo", weight: 7 },
+          { id: "4", name: "Raciocínio Lógico", weight: 5 },
+          { id: "5", name: "Informática", weight: 3 },
+        ];
+      }
+
+      const totalWeight = activeSubjects.reduce((acc, s) => {
+        const w = typeof s.weight === "number" && !isNaN(s.weight) ? s.weight : s.priority || 5.0;
+        return acc + w;
+      }, 0);
+
+      let allocatedCount = 0;
+      const distribution = activeSubjects.map((s, idx) => {
+        const w = typeof s.weight === "number" && !isNaN(s.weight) ? s.weight : s.priority || 5.0;
+        if (idx === activeSubjects.length - 1) {
+          const rem = Math.max(1, totalQtd - allocatedCount);
+          allocatedCount += rem;
+          return { materia: s.name, count: rem };
+        }
+        const proportional = Math.max(1, Math.round((w / totalWeight) * totalQtd));
+        allocatedCount += proportional;
+        return { materia: s.name, count: proportional };
+      });
+
+      if (allocatedCount !== totalQtd && distribution.length > 0) {
+        const diff = totalQtd - allocatedCount;
+        distribution[0].count = Math.max(1, distribution[0].count + diff);
+      }
+
+      setBanca(finalBanca);
+      setMateria("🏆 Simulado Prova Real (Edital Completo)");
+      setQtdQuestoes(String(totalQtd));
+      setDificuldade("Média");
+
+      setIsAIModalOpen(false);
+      setIsGenerating(true);
+      setSimuladoGenerationError(null);
+      setPendingSimuladoData(null);
+      pendingSimuladoDataRef.current = null;
+      setIsSimuladoModalOpen(true);
+
+      try {
+        const response = await fetch("/api/questions/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            banca: finalBanca,
+            materia: "🏆 Simulado Prova Real • Edital Completo",
+            qtdQuestoes: totalQtd,
+            dificuldade: "Média",
+            fonteConteudo: "banca",
+            isFullMockExam: true,
+            subjectsDistribution: distribution,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Erro ao gerar Simulado Prova Real.");
+        }
+
+        triggerAiQuotaRefresh();
+
+        const questionsList: QuestaoIA[] = Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.questions)
+          ? data.questions
+          : Array.isArray(data.data?.questions)
+          ? data.data.questions
+          : [];
+
+        if (questionsList.length === 0) {
+          throw new Error("Nenhuma questão foi gerada para o simulado.");
+        }
+
+        const quizId = data.id || data.quizId || data.simuladoId || null;
+        const payload = {
+          questions: questionsList,
+          quizId: quizId,
+        };
+
+        pendingSimuladoDataRef.current = payload;
+        setPendingSimuladoData(payload);
+      } catch (err: unknown) {
+        console.error("Erro no Simulado Prova Real:", err);
+        setSimuladoGenerationError(
+          err instanceof Error ? err.message : "Falha ao gerar Simulado Prova Real.",
+        );
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [banca, subjects],
+  );
+
   // ATALHOS DE TECLADO
   useEffect(() => {
     if (
@@ -1999,7 +2106,17 @@ export default function QuestoesPage() {
                                 className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-violet-600/30 transition-all active:scale-95 cursor-pointer"
                               >
                                 <Play size={16} className="fill-white" />
-                                <span>▶️ Começar Treino de Hoje (10 Questões)</span>
+                                <span>▶️ Treino Rápido (10 Q)</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleStartFullMockExam({ totalQtd: 30 })}
+                                className="inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-linear-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-xs sm:text-sm shadow-lg shadow-amber-600/30 transition-all active:scale-95 cursor-pointer border border-amber-400/30"
+                                title="Gera um simulado completo de 30 questões com distribuição proporcional aos pesos das matérias do edital"
+                              >
+                                <Award size={16} className="text-amber-100" />
+                                <span>🏆 Simulado Prova Real (Edital Completo)</span>
                               </button>
 
                               <button
@@ -2008,7 +2125,7 @@ export default function QuestoesPage() {
                                 className="inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200 dark:border-white/15 text-slate-800 dark:text-white font-bold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer"
                               >
                                 <Sparkles size={15} className="text-violet-500 dark:text-violet-400" />
-                                <span>Escolher Matéria ou Banca</span>
+                                <span>Escolher Matéria</span>
                               </button>
                             </div>
                           </div>
@@ -2195,32 +2312,32 @@ export default function QuestoesPage() {
                             </div>
                           </motion.div>
 
-                          {/* MODO 4: Modo Prova Real */}
+                          {/* MODO 4: Simulado Prova Real (Edital Completo por Pesos) */}
                           <motion.div
                             whileHover={{ y: -3, transition: { duration: 0.15 } }}
-                            onClick={() => setIsTimedLaunchModalOpen(true)}
+                            onClick={() => handleStartFullMockExam({ totalQtd: 30 })}
                             className="group relative backdrop-blur-xl bg-white dark:bg-zinc-950 dark:bg-gradient-to-b dark:from-emerald-950/20 dark:via-zinc-900/60 dark:to-zinc-950 border border-emerald-200 dark:border-emerald-500/20 hover:border-emerald-300 dark:hover:border-emerald-500/40 rounded-2xl p-5 cursor-pointer transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
                           >
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
                                 <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs">
-                                  <Timer size={18} />
+                                  <Award size={18} />
                                 </div>
                                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300">
-                                  Pacing Estrito
+                                  30 Q Proporcionais
                                 </span>
                               </div>
                               <div>
                                 <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-200 transition-colors">
-                                  Modo Prova Real
+                                  Simulado Dia da Prova
                                 </h4>
                                 <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed">
-                                  Simule as condições de prova com limite de tempo e bloqueio de distrações.
+                                  Questões distribuídas conforme os pesos de cada disciplina do seu edital.
                                 </p>
                               </div>
                             </div>
                             <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                              <span>Definir Ritmo</span>
+                              <span>Iniciar Simulado</span>
                               <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
                             </div>
                           </motion.div>

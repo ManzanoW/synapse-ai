@@ -130,6 +130,20 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   const [pomodoroSeconds, setPomodoroSeconds] = useState(25 * 60);
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
   const [lessonFontSize, setLessonFontSize] = useState<"normal" | "large" | "xlarge">("normal");
+  const [readingTheme, setReadingTheme] = useState<"dark" | "sepia" | "light">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("synapse_reading_theme");
+      if (saved === "sepia" || saved === "light" || saved === "dark") return saved;
+    }
+    return "dark";
+  });
+
+  const handleSetReadingTheme = (theme: "dark" | "sepia" | "light") => {
+    setReadingTheme(theme);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("synapse_reading_theme", theme);
+    }
+  };
 
   // Estado do Wizard de Criação/Customização de Trilha (3 Passos)
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -1940,9 +1954,21 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
          ========================================================= */}
       {isTheoryOpen && activeLesson && activeTheoryData && (
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[92vh]">
+          <div className={`rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[92vh] border transition-colors ${
+            readingTheme === "sepia"
+              ? "bg-[#fbf0d9] border-[#e2d4b7] text-[#2c2214]"
+              : readingTheme === "light"
+                ? "bg-white border-slate-200 text-slate-900"
+                : "bg-slate-900 border-slate-700 text-slate-300"
+          }`}>
             {/* Barra de Topo do Leitor */}
-            <div className="p-4 sm:p-5 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+            <div className={`p-4 sm:p-5 border-b flex flex-wrap items-center justify-between gap-3 transition-colors ${
+              readingTheme === "sepia"
+                ? "bg-[#f5e7cc] border-[#decbb0]"
+                : readingTheme === "light"
+                  ? "bg-slate-100 border-slate-200"
+                  : "bg-slate-950 border-slate-800"
+            }`}>
               {/* Seletor de Aulas da Semana (Sempre começando pela Aula 1) */}
               <div className="flex items-center gap-2 flex-wrap">
                 {theoryLessonsOfSelectedWeek.map((l: any, idx: number) => {
@@ -2041,6 +2067,27 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                   </select>
                 </div>
 
+                {/* Controle de Modo de Leitura Conforto (Dark, Sépia Livro, Clean Claro) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = readingTheme === "dark" ? "sepia" : readingTheme === "sepia" ? "light" : "dark";
+                    handleSetReadingTheme(next);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    readingTheme === "sepia"
+                      ? "bg-[#e8d7b7] border-[#d4be94] text-[#422c0e] shadow-xs"
+                      : readingTheme === "light"
+                        ? "bg-slate-200 border-slate-300 text-slate-800 shadow-xs"
+                        : "bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300"
+                  }`}
+                  title="Alternar entre modo Cósmico (Escuro), Sépia Livro (Conforto sem cansaço visual) ou Clean Claro"
+                >
+                  <span>
+                    {readingTheme === "dark" ? "🌙 Cósmico" : readingTheme === "sepia" ? "📜 Sépia Livro" : "☀️ Clean Claro"}
+                  </span>
+                </button>
+
                 {/* Controle de Tamanho da Letra (Acessibilidade para leitura confortável) */}
                 <button
                   type="button"
@@ -2052,7 +2099,11 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                   className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-colors ${
                     lessonFontSize !== "normal"
                       ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
-                      : "bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300"
+                      : readingTheme === "sepia"
+                        ? "bg-[#efe0c4] border-[#dccea9] hover:bg-[#e7d5b5] text-[#3d2f1d]"
+                        : readingTheme === "light"
+                          ? "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-800"
+                          : "bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300"
                   }`}
                   title="Aumentar ou diminuir o tamanho da letra da aula para facilitar a leitura"
                 >
@@ -2093,9 +2144,15 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
               </div>
             </div>
 
-            {/* Corpo da Aula (Scrollável com Tamanho de Letra Ajustável) */}
+            {/* Corpo da Aula (Scrollável com Tamanho de Letra e Tema Ajustáveis) */}
             <div
-              className={`p-6 sm:p-8 overflow-y-auto space-y-6 text-slate-300 leading-relaxed ${
+              className={`p-6 sm:p-8 overflow-y-auto space-y-6 leading-relaxed transition-colors ${
+                readingTheme === "sepia"
+                  ? "text-[#3b2b18]"
+                  : readingTheme === "light"
+                    ? "text-slate-800"
+                    : "text-slate-300"
+              } ${
                 lessonFontSize === "xlarge"
                   ? "text-lg"
                   : lessonFontSize === "large"
@@ -2104,7 +2161,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
               }`}
             >
               {/* Cabeçalho da Aula */}
-              <div className="space-y-2 border-b border-slate-800 pb-5">
+              <div className={`space-y-2 border-b pb-5 ${readingTheme === "sepia" ? "border-[#decbb0]" : readingTheme === "light" ? "border-slate-200" : "border-slate-800"}`}>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-[10px] font-mono font-bold uppercase">
                     {activeTheoryData.moduleTag}
@@ -2149,7 +2206,13 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                     </button>
                   </div>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-white">
+                <h2 className={`text-xl sm:text-2xl font-extrabold ${
+                  readingTheme === "sepia"
+                    ? "text-[#241708]"
+                    : readingTheme === "light"
+                      ? "text-slate-950"
+                      : "text-white"
+                }`}>
                   {activeLesson.title}
                 </h2>
               </div>
@@ -2239,7 +2302,13 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
               ) : (
                 <div className="space-y-6">
                   {/* Introdução */}
-                  <p className="text-slate-200 font-medium leading-relaxed bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80">
+                  <p className={`font-medium leading-relaxed p-4 rounded-2xl border ${
+                    readingTheme === "sepia"
+                      ? "bg-[#f4e4c3] text-[#2c2214] border-[#dccea9]"
+                      : readingTheme === "light"
+                        ? "bg-slate-50 text-slate-800 border-slate-200"
+                        : "bg-slate-950/50 text-slate-200 border-slate-800/80"
+                  }`}>
                     {activeTheoryData.introLead}
                   </p>
 

@@ -300,6 +300,46 @@ export async function POST(request: Request) {
       );
     }
 
+    if (body.action === "BATCH_UPDATE_TOPICS") {
+      const { topicIds, subjectId, status } = body;
+      const safeStatus = status === "Concluido" ? "Concluido" : "Pendente";
+      const now = new Date();
+
+      const whereClause: any = {
+        subject: { userId },
+      };
+
+      if (Array.isArray(topicIds) && topicIds.length > 0) {
+        whereClause.id = { in: topicIds };
+      } else if (subjectId) {
+        whereClause.subjectId = subjectId;
+      } else {
+        return NextResponse.json(
+          { error: "topicIds ou subjectId é obrigatório para atualização em lote." },
+          { status: 400 },
+        );
+      }
+
+      const updateResult = await prisma.topic.updateMany({
+        where: whereClause,
+        data: {
+          firstStudy: safeStatus,
+          performance: safeStatus === "Concluido" ? 100 : 0,
+          lastRev: safeStatus === "Concluido" ? now : null,
+          nextRev: safeStatus === "Concluido" ? new Date(now.getTime() + 24 * 60 * 60 * 1000) : now,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        count: updateResult.count,
+        message:
+          safeStatus === "Concluido"
+            ? `${updateResult.count} tópico(s) marcados como concluídos com sucesso!`
+            : `${updateResult.count} tópico(s) zerados com sucesso!`,
+      });
+    }
+
     const { topicId, grade, performance, streakDays = 0 } = body;
 
     if (!topicId || grade === undefined) {
