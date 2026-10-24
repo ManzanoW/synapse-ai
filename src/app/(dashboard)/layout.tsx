@@ -12,6 +12,7 @@ import { DemoSessionSync } from "@/components/auth/demo-session-sync";
 import { SoundscapeFloatingWidget } from "@/components/audio/SoundscapeFloatingWidget";
 import { SynapticExhaustionModal } from "@/components/quota/SynapticExhaustionModal";
 import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator";
+import { GlobalPwaModal } from "@/components/pwa/GlobalPwaModal";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -109,6 +110,11 @@ export default async function DashboardLayout({
 
               {/* Guia Global de Atalhos de Teclado (?) */}
               <KeyboardShortcutsModal />
+
+              {/* Modal Global de Instalação PWA */}
+              <div className="print:hidden">
+                <GlobalPwaModal />
+              </div>
 
               {/* Modal Global de Pausa Cognitiva / Exaustão Sináptica */}
               <div className="print:hidden">

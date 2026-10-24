@@ -2,6 +2,8 @@ import React from "react";
 import { getStudyTrailsOverviewAction } from "@/actions/trail-actions";
 import { TrilhasClient } from "./trilhas-client";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Trilhas Guiadas & Cursos | Synapse AI",
   description:
