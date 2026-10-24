@@ -175,7 +175,7 @@ export interface DashboardCardVisibility {
 
 export const DEFAULT_FULL_CARDS: DashboardCardVisibility = {
   heroJourney: true,
-  quickActions: true,
+  quickActions: false,
   dailyQuests: true,
   keyMetrics: true,
   radarDomain: true,
@@ -188,9 +188,9 @@ export const DEFAULT_FULL_CARDS: DashboardCardVisibility = {
 };
 
 export const DEFAULT_MINIMAL_CARDS: DashboardCardVisibility = {
-  heroJourney: false,
+  heroJourney: true,
   quickActions: false,
-  dailyQuests: false,
+  dailyQuests: true,
   keyMetrics: false,
   radarDomain: false,
   aiSuggestions: false,
@@ -203,7 +203,7 @@ export const DEFAULT_MINIMAL_CARDS: DashboardCardVisibility = {
 
 export const DEFAULT_PRACTICE_CARDS: DashboardCardVisibility = {
   heroJourney: true,
-  quickActions: true,
+  quickActions: false,
   dailyQuests: true,
   keyMetrics: true,
   radarDomain: false,
@@ -881,70 +881,6 @@ export default function DashboardClient({
               }}
             />
           )}
-
-        {/* ================= ATALHOS RÁPIDOS (Linguagem simples e direta) ================= */}
-        {visibleCards.quickActions && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
-            {[
-              {
-                title: "Aulas da Semana",
-                icon: Compass,
-                color: "text-emerald-500 dark:text-emerald-400",
-                href: "/trilhas",
-                badge: "Passo a Passo",
-              },
-              {
-                title: "Fazer Questões",
-                icon: HelpCircle,
-                color: "text-amber-500 dark:text-amber-400",
-                href: "/questions",
-              },
-              {
-                title: "Revisar Cartões",
-                icon: Layers,
-                color: "text-indigo-500 dark:text-indigo-400",
-                href: "/flashcards",
-              },
-              {
-                title: "Meu Edital",
-                icon: BookOpen,
-                color: "text-cyan-500 dark:text-cyan-400",
-                href: "/edital",
-                badge: !isLoading && !hasEditalSubjects ? "Comece Aqui" : undefined,
-              },
-              {
-                title: "Foto de Questão",
-                icon: Camera,
-                color: "text-rose-500 dark:text-rose-400",
-                href: "/questions?scan=true",
-                badge: "IA",
-              },
-            ].map((item, idx) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={idx}
-                  href={getHref(item.href)}
-                  className="relative flex items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50/90 p-2.5 sm:p-3 backdrop-blur-xl transition-all duration-200 hover:border-slate-300 dark:border-white/[0.07] dark:bg-slate-950/40 dark:hover:border-white/15 dark:hover:bg-slate-900/40 active:scale-[0.98] shadow-2xs hover:shadow-xs group"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className={`shrink-0 rounded-lg p-1.5 bg-slate-50 border border-slate-200/80 dark:bg-white/[0.03] dark:border-white/5 ${item.color} group-hover:scale-105 transition-transform`}>
-                      <Icon size={15} />
-                    </div>
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                      {item.title}
-                    </span>
-                  </div>
-                  {item.badge && (
-                    <span className="shrink-0 rounded-full border border-amber-300 bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 px-1.5 py-0.2 text-[8px] font-extrabold uppercase text-amber-800 dark:text-amber-300">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        )}
 
         {/* ================= 2. BANNER RESUMO DA JORNADA ================= */}
         {visibleCards.heroJourney && (
@@ -1734,6 +1670,10 @@ export default function DashboardClient({
                     </div>
                   )}
                 </div>
+              )}
+
+              {dashboardMode === "minimal" && visibleCards.dailyQuests && (
+                <DailyQuestsPanel />
               )}
             </section>
 
