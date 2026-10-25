@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ErrorNotebookFilters,
@@ -208,6 +208,7 @@ export function ErrorNotebookView({
 
   // Refs de controle de requisição e Sentinela de Rolagem
   const requestIdRef = useRef(0);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const observerTarget = useRef<HTMLDivElement | null>(null);
 
   // Sincroniza métricas se atualizadas pelo componente pai
@@ -281,6 +282,26 @@ export function ErrorNotebookView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Filtro Instantâneo em Memória (Zero Latência)
+  const displayedQuestions = useMemo<Question[]>(() => {
+    const term = (filters.search || "").trim().toLowerCase();
+    if (!term) return questions;
+    return questions.filter((q: Question) => {
+      const qText = (q.questionText || "").toLowerCase();
+      const exp = (q.explanation || "").toLowerCase();
+      const aiExp = (q.aiExplanation || "").toLowerCase();
+      const sub = (q.subject?.name || "").toLowerCase();
+      const top = (q.topic?.title || "").toLowerCase();
+      return (
+        qText.includes(term) ||
+        exp.includes(term) ||
+        aiExp.includes(term) ||
+        sub.includes(term) ||
+        top.includes(term)
+      );
+    });
+  }, [questions, filters.search]);
+
   // Implementação da Sentinela de Rolagem com IntersectionObserver nativo
   useEffect(() => {
     if (!hasMore || isLoadingMore || isFiltering) return;
@@ -307,10 +328,20 @@ export function ErrorNotebookView({
     };
   }, [hasMore, isLoadingMore, isFiltering, page, filters, fetchQuestions]);
 
-  // Alteração de filtros: resetar para page = 1, zerar questions e buscar do início
+  // Alteração de filtros: instantâneo em memória + busca debounced no servidor
   const handleFilterChange = (newFilters: Partial<ErrorNotebookFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
     setFilters(updatedFilters);
+
+    if (newFilters.search !== undefined) {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = setTimeout(() => {
+        setPage(1);
+        fetchQuestions(1, updatedFilters, true);
+      }, 350);
+      return;
+    }
+
     setPage(1);
     setQuestions([]);
     setHasMore(true);
@@ -790,7 +821,7 @@ export function ErrorNotebookView({
         <div className="space-y-8">
           <motion.div layout className="space-y-8">
             <AnimatePresence mode="popLayout">
-              {questions.map((item, idx) => (
+              {displayedQuestions.map((item, idx) => (
                 <ErrorCard
                   key={item.id}
                   index={idx + 1}
