@@ -107,40 +107,7 @@ export function QuizResultView({
 
   // Estados de navegação e filtros
   const [isPrintSummaryOpen, setIsPrintSummaryOpen] = useState(false);
-  // Atalho de Teclado [G]: Abrir Folha de Respostas Executiva A4
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        (e.target as HTMLElement)?.isContentEditable
-      ) {
-        return;
-      }
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-      if (e.key.toLowerCase() === "g") {
-        e.preventDefault();
-        triggerHaptic("light");
-        setIsPrintSummaryOpen((prev) => !prev);
-      } else if (e.key === "1") {
-        e.preventDefault();
-        triggerHaptic("light");
-        setFilterReview("all");
-      } else if (e.key === "2") {
-        e.preventDefault();
-        triggerHaptic("light");
-        setFilterReview("incorrect");
-      } else if (e.key === "3") {
-        e.preventDefault();
-        triggerHaptic("light");
-        setFilterReview("correct");
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
   const [filterReview, setFilterReview] = useState<"all" | "incorrect" | "correct">("all");
@@ -457,6 +424,90 @@ export function QuizResultView({
         return true;
       });
   }, [questions, selectedAnswers, filterReview]);
+
+  // Atalhos de Teclado Globais: [G], [1, 2, 3] e Navegação de Questões [J / K / ↓ / ↑ / Esc]
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement)?.isContentEditable
+      ) {
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === "g") {
+        e.preventDefault();
+        triggerHaptic("light");
+        setIsPrintSummaryOpen((prev) => !prev);
+      } else if (key === "1") {
+        e.preventDefault();
+        triggerHaptic("light");
+        setFilterReview("all");
+      } else if (key === "2") {
+        e.preventDefault();
+        triggerHaptic("light");
+        setFilterReview("incorrect");
+      } else if (key === "3") {
+        e.preventDefault();
+        triggerHaptic("light");
+        setFilterReview("correct");
+      } else if (key === "j" || e.key === "ArrowDown") {
+        if (filteredQuestions.length === 0) return;
+        e.preventDefault();
+        triggerHaptic("light");
+
+        let nextIdx = filteredQuestions[0].index;
+        if (expandedQuestion !== null) {
+          const currentPos = filteredQuestions.findIndex(
+            (item) => item.index === expandedQuestion
+          );
+          if (currentPos !== -1 && currentPos < filteredQuestions.length - 1) {
+            nextIdx = filteredQuestions[currentPos + 1].index;
+          } else if (currentPos !== -1) {
+            nextIdx = filteredQuestions[currentPos].index;
+          }
+        }
+        setExpandedQuestion(nextIdx);
+        const el = document.getElementById(`review-question-card-${nextIdx}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      } else if (key === "k" || e.key === "ArrowUp") {
+        if (filteredQuestions.length === 0) return;
+        e.preventDefault();
+        triggerHaptic("light");
+
+        let prevIdx = filteredQuestions[filteredQuestions.length - 1].index;
+        if (expandedQuestion !== null) {
+          const currentPos = filteredQuestions.findIndex(
+            (item) => item.index === expandedQuestion
+          );
+          if (currentPos > 0) {
+            prevIdx = filteredQuestions[currentPos - 1].index;
+          } else if (currentPos === 0) {
+            prevIdx = filteredQuestions[0].index;
+          }
+        }
+        setExpandedQuestion(prevIdx);
+        const el = document.getElementById(`review-question-card-${prevIdx}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      } else if (e.key === "Escape") {
+        if (expandedQuestion !== null) {
+          e.preventDefault();
+          setExpandedQuestion(null);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [filteredQuestions, expandedQuestion]);
 
   // Ação: Salvar Questões Erradas no Caderno de Erros
   const handleSaveWrongQuestions = async () => {
@@ -1471,9 +1522,11 @@ export function QuizResultView({
                   {totalQuestions}
                 </span>
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Revise alternativa por alternativa e aprofunde o raciocínio das
-                pegadinhas com a IA.
+              <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span>Revise alternativa por alternativa e aprofunde o raciocínio das pegadinhas com a IA.</span>
+                <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded-lg border border-slate-800">
+                  Navegar: <kbd className="text-violet-300 font-bold">J</kbd> / <kbd className="text-violet-300 font-bold">K</kbd> ou <kbd className="text-violet-300 font-bold">↓</kbd> / <kbd className="text-violet-300 font-bold">↑</kbd>
+                </span>
               </p>
             </div>
 
@@ -1550,8 +1603,9 @@ export function QuizResultView({
 
                 return (
                   <div
+                    id={`review-question-card-${item.index}`}
                     key={`review-q-${item.index}`}
-                    className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                    className={`rounded-2xl border transition-all duration-200 overflow-hidden scroll-mt-24 ${
                       item.isCorrect
                         ? "bg-[#060a14]/80 border-emerald-500/20 hover:border-emerald-500/40"
                         : "bg-[#0b0c16]/90 border-rose-500/30 hover:border-rose-500/50 shadow-sm"

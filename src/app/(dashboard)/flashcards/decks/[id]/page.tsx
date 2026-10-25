@@ -18,6 +18,7 @@ import {
   Download,
   Printer,
   Share2,
+  FileSpreadsheet,
   Target,
   CheckCircle2,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import FlashcardModal from "@/components/flashcards/FlashcardModal";
 import { AnkiExportModal } from "@/components/flashcards/AnkiExportModal";
 import { PrintableDeckModal } from "@/components/flashcards/PrintableDeckModal";
 import { ShareDeckModal } from "@/components/flashcards/ShareDeckModal";
+import { triggerHaptic } from "@/lib/sensory/haptics";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -88,6 +90,61 @@ export default function DeckDetailPage({ params }: PageProps) {
       ignore = true;
     };
   }, [deckId]);
+
+  // Exportação em Planilha CSV (RFC 4180 com BOM UTF-8)
+  const handleExportCSV = useCallback(() => {
+    triggerHaptic("light");
+    if (!flashcards || flashcards.length === 0) return;
+
+    const headers = [
+      "ID",
+      "Frente",
+      "Verso",
+      "Maturidade",
+      "Intervalo_Dias",
+      "Repeticoes",
+      "Assunto",
+    ];
+
+    const escapeCSV = (val: string | number | null | undefined): string => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = flashcards.map((card, idx) => {
+      const front = getCardFront(card);
+      const back = getCardBack(card);
+      const reps = card.repetitions ?? 0;
+      const interval = card.interval ?? 0;
+      const maturity =
+        reps === 0 ? "Novo" : interval >= 21 ? "Maduro" : "Aprendendo";
+
+      return [
+        escapeCSV(card.id || idx + 1),
+        escapeCSV(front),
+        escapeCSV(back),
+        escapeCSV(maturity),
+        escapeCSV(interval),
+        escapeCSV(reps),
+        escapeCSV(deck?.subject?.name || ""),
+      ].join(",");
+    });
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const safeTitle = (deck?.title || "baralho")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/gi, "-");
+    link.href = url;
+    link.download = `synapse-${safeTitle}-flashcards.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [flashcards, deck]);
 
   const handleDeleteCard = async (cardId: string) => {
     if (!confirm("Deseja realmente excluir este flashcard?")) return;
@@ -313,6 +370,15 @@ export default function DeckDetailPage({ params }: PageProps) {
             </button>
 
             <button
+              onClick={handleExportCSV}
+              className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs px-3.5 py-3 rounded-xl border border-slate-700/80 transition-all active:scale-95 cursor-pointer shadow-sm"
+              title="Baixar cartões em planilha CSV (Excel / Google Sheets)"
+            >
+              <FileSpreadsheet size={15} className="text-emerald-400" />
+              <span>Exportar CSV</span>
+            </button>
+
+            <button
               onClick={() => setIsShareModalOpen(true)}
               className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-indigo-950/50 hover:bg-indigo-900/60 text-indigo-200 font-semibold text-xs px-3.5 py-3 rounded-xl border border-indigo-500/30 transition-all active:scale-95 cursor-pointer shadow-sm"
               title="Compartilhar baralho publicamente"
@@ -332,12 +398,23 @@ export default function DeckDetailPage({ params }: PageProps) {
               <span>Novo Card</span>
             </button>
 
+            {dailyReviewGoal.pendingCount > 0 && (
+              <Link
+                href={`/flashcards/study/${deck.id}?filter=due`}
+                className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-semibold text-xs px-4 py-3 rounded-xl transition-all border border-amber-500/30 active:scale-95 cursor-pointer shadow-sm"
+                title="Estudar exclusivamente os cartões pendentes de revisão hoje ou novos"
+              >
+                <Target size={15} className="text-amber-400" />
+                <span>Estudar Pendentes ({dailyReviewGoal.pendingCount})</span>
+              </Link>
+            )}
+
             <Link
               href={`/flashcards/study/${deck.id}`}
               className="flex-1 lg:flex-initial flex items-center justify-center gap-1.5 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-xs px-5 py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/25 border border-indigo-400/20 active:scale-95 cursor-pointer"
             >
               <Play size={15} className="fill-white" />
-              <span>Estudar Agora</span>
+              <span>Estudar Todos</span>
             </Link>
           </div>
         </div>
