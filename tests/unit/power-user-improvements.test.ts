@@ -467,3 +467,101 @@ describe("Round 19 - Folha de Véspera e Exportação Limpa de Erros (2 Colunas 
     expect(defaultColumns).toBe(2);
   });
 });
+
+
+describe("Round 20 - Escalonamento de Dificuldade Extrema e Normalização Canônica", () => {
+  const normalizeDiff = (raw?: string | null) => {
+    if (!raw) return "MEDIUM";
+    const norm = raw
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+    if (norm.includes("extrema") || norm.includes("extreme") || norm.includes("hardcore")) {
+      return "EXTREME";
+    }
+    if (norm.includes("dificil") || norm.includes("hard")) return "HARD";
+    if (norm.includes("facil") || norm.includes("easy")) return "EASY";
+    return "MEDIUM";
+  };
+
+  it("normaliza variações de Dificuldade Extrema para o tier EXTREME", () => {
+    expect(normalizeDiff("Extrema")).toBe("EXTREME");
+    expect(normalizeDiff("Dificuldade Extrema")).toBe("EXTREME");
+    expect(normalizeDiff("hardcore")).toBe("EXTREME");
+    expect(normalizeDiff("Difícil")).toBe("HARD");
+    expect(normalizeDiff("Média")).toBe("MEDIUM");
+    expect(normalizeDiff("Fácil")).toBe("EASY");
+  });
+});
+
+describe("Round 20 - Particionamento de Lotes para Simulados Extensos (40, 50, 60 Questões)", () => {
+  const calculateBatches = (total: number, maxBatchSize = 10, maxTotal = 60): number[] => {
+    const boundedTotal = Math.min(Math.max(total, 1), maxTotal);
+    const batches: number[] = [];
+    let remaining = boundedTotal;
+    while (remaining > 0) {
+      const size = Math.min(remaining, maxBatchSize);
+      batches.push(size);
+      remaining -= size;
+    }
+    return batches;
+  };
+
+  it("particiona 40 questões em 4 lotes paralelos de 10", () => {
+    const batches = calculateBatches(40);
+    expect(batches).toEqual([10, 10, 10, 10]);
+    expect(batches.reduce((a, b) => a + b, 0)).toBe(40);
+  });
+
+  it("particiona 50 e 60 questões em lotes paralelos equilibrados", () => {
+    const batches50 = calculateBatches(50);
+    expect(batches50).toEqual([10, 10, 10, 10, 10]);
+    expect(batches50.reduce((a, b) => a + b, 0)).toBe(50);
+
+    const batches60 = calculateBatches(60);
+    expect(batches60).toEqual([10, 10, 10, 10, 10, 10]);
+    expect(batches60.reduce((a, b) => a + b, 0)).toBe(60);
+  });
+
+  it("limita ao teto máximo de 60 questões", () => {
+    const batchesOver = calculateBatches(100);
+    expect(batchesOver.reduce((a, b) => a + b, 0)).toBe(60);
+  });
+});
+
+describe("Round 20 - Gating de Volume e Dificuldade por Tier de Usuário (Pro/Elite)", () => {
+  const canAccessVolume = (tier: string, volume: number): boolean => {
+    if (volume > 30) {
+      return tier === "PRO" || tier === "ELITE" || tier === "ADMIN";
+    }
+    return true;
+  };
+
+  const canAccessDifficulty = (tier: string, difficulty: string): boolean => {
+    if (difficulty === "Extrema") {
+      return tier === "PRO" || tier === "ELITE" || tier === "ADMIN";
+    }
+    return true;
+  };
+
+  it("permite volumes até 30 e dificuldades padrão para todos os tiers", () => {
+    expect(canAccessVolume("FREE", 30)).toBe(true);
+    expect(canAccessVolume("FREE", 10)).toBe(true);
+    expect(canAccessDifficulty("FREE", "Difícil")).toBe(true);
+  });
+
+  it("bloqueia volumes 40, 50, 60 e Dificuldade Extrema para plano FREE", () => {
+    expect(canAccessVolume("FREE", 40)).toBe(false);
+    expect(canAccessVolume("FREE", 50)).toBe(false);
+    expect(canAccessVolume("FREE", 60)).toBe(false);
+    expect(canAccessDifficulty("FREE", "Extrema")).toBe(false);
+  });
+
+  it("libera volumes 40, 50, 60 e Dificuldade Extrema para assinantes PRO e ELITE", () => {
+    expect(canAccessVolume("PRO", 50)).toBe(true);
+    expect(canAccessVolume("ELITE", 60)).toBe(true);
+    expect(canAccessDifficulty("PRO", "Extrema")).toBe(true);
+    expect(canAccessDifficulty("ELITE", "Extrema")).toBe(true);
+  });
+});

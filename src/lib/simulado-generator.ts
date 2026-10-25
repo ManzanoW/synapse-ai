@@ -119,8 +119,8 @@ function shuffleArray<T>(items: T[]): T[] {
  * 10 questões -> [5, 5]
  * 5 questões -> [5]
  */
-export function calculateBatchSizes(total: number, maxBatchSize = 5): number[] {
-  const boundedTotal = Math.min(Math.max(total, 1), 30);
+export function calculateBatchSizes(total: number, maxBatchSize = 10, maxTotal = 60): number[] {
+  const boundedTotal = Math.min(Math.max(total, 1), maxTotal);
   const batches: number[] = [];
   let remaining = boundedTotal;
 
@@ -303,7 +303,7 @@ export async function getDeterministicFallbackQuestions(params: {
     const candidateQuizzes = await prisma.quiz.findMany({
       where: orConditions.length > 0 ? { OR: orConditions } : {},
       select: { questions: true },
-      take: 40,
+      take: 70,
       orderBy: { createdAt: "desc" },
     });
 
@@ -513,7 +513,7 @@ export async function generateSimuladoInParallel(
 
   const quantidadeTotal = Math.min(
     Math.max(parseInt(String(qtdQuestoes), 10) || 5, 1),
-    30,
+    60,
   );
 
   const isAllTopics =
@@ -760,6 +760,11 @@ DIRETRIZ PEDAGÓGICA OBRIGATÓRIA:
           : ""
       }Nível de Dificuldade: "${dificuldade}". 
       Banca Organizadora: "${banca}".
+      ${
+        dificuldade?.toLowerCase().includes("extrema") || dificuldade?.toLowerCase().includes("hardcore")
+          ? `\n      🚨 DIRETRIZ DE DIFICULDADE EXTREMA (NÍVEL AUDITOR / JURÍDICO DE ELITE):\n         - Elabore questões de altíssima complexidade analítica com casos práticos concretos e situações hipotéticas ricas em detalhes.\n         - Em Direito/Legislação: Foque expressamente em súmulas vinculantes, teses de repercussão geral, jurisprudência recente (STF/STJ) e divergências doutrinárias pacificadas.\n         - Em Exatas/TI/Gerais: Explore problemas em múltiplos estágios de raciocínio, com distratores refinados construídos sobre equívocos metodológicos comuns.\n         - É proibida a mera decoreba isolada de prazos; priorize raciocínio analítico aprofundado.\n`
+          : ""
+      }
       ${careerLevelDirective}
       ${bancaProfileDirective}
       
