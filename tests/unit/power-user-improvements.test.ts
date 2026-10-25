@@ -251,6 +251,58 @@ describe("Navegação Sequencial J/K na Revisão de Questões", () => {
   });
 });
 
+describe("Metacognição - Detecção de Acerto por Hesitação", () => {
+  it("identifica acerto com hesitação quando houve troca de alternativa", () => {
+    const switchesCount = { 0: 2, 1: 0, 2: 1 };
+    const selectedAnswers = { 0: "A", 1: "B", 2: "C" };
+    const correctAnswers = { 0: "A", 1: "B", 2: "D" };
+
+    const isHesitantCorrect = (idx: number) => {
+      const isCorrect = selectedAnswers[idx as keyof typeof selectedAnswers] === correctAnswers[idx as keyof typeof correctAnswers];
+      const hasSwitches = (switchesCount[idx as keyof typeof switchesCount] || 0) >= 1;
+      return isCorrect && hasSwitches;
+    };
+
+    expect(isHesitantCorrect(0)).toBe(true);  // Acertou, mas trocou 2 vezes -> Hesitante
+    expect(isHesitantCorrect(1)).toBe(false); // Acertou de primeira -> Confiante
+    expect(isHesitantCorrect(2)).toBe(false); // Errou -> Erro regular
+  });
+});
+
+describe("Caderno de Erros - Busca Instantânea Local em Memória", () => {
+  interface MockErrorQuestion {
+    text: string;
+    explanation?: string;
+    subject?: string;
+  }
+
+  const filterQuestionsInstant = (items: MockErrorQuestion[], term: string) => {
+    const cleanTerm = term.trim().toLowerCase();
+    if (!cleanTerm) return items;
+    return items.filter((q) => {
+      return (
+        q.text.toLowerCase().includes(cleanTerm) ||
+        (q.explanation || "").toLowerCase().includes(cleanTerm) ||
+        (q.subject || "").toLowerCase().includes(cleanTerm)
+      );
+    });
+  };
+
+  it("filtra instantaneamente por enunciado, explicação ou matéria sem latência", () => {
+    const questions: MockErrorQuestion[] = [
+      { text: "Artigo 5 da CF sobre direitos fundamentais", subject: "Direito Constitucional" },
+      { text: "Competência tributária dos Municípios", subject: "Direito Tributário" },
+      { text: "Ato administrativo discricionário e vinculado", explanation: "Súmula Vinculante 13 do STF", subject: "Direito Administrativo" },
+    ];
+
+    expect(filterQuestionsInstant(questions, "Tributário").length).toBe(1);
+    expect(filterQuestionsInstant(questions, "Súmula Vinculante").length).toBe(1);
+    expect(filterQuestionsInstant(questions, "Direito").length).toBe(3);
+    expect(filterQuestionsInstant(questions, "inexistente").length).toBe(0);
+    expect(filterQuestionsInstant(questions, "").length).toBe(3);
+  });
+});
+
 describe("Gabarito Executivo A4 - Métricas e Auditoria", () => {
   it("calcula taxa de aproveitamento e ritmo médio por questão", () => {
     const totalQuestions = 10;

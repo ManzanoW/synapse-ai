@@ -60,6 +60,7 @@ export interface QuizResultViewProps {
   selectedAnswers: Record<number, string>;
   timerSeconds: number;
   earnedXp: number;
+  hesitantQuestions?: Record<number, boolean>;
   levelUpData?: {
     leveledUp: boolean;
     newLevel: number;
@@ -98,6 +99,7 @@ export function QuizResultView({
   timerSeconds,
   earnedXp,
   levelUpData,
+  hesitantQuestions = {},
   onRestart,
   onExit,
 }: QuizResultViewProps) {
@@ -1658,6 +1660,16 @@ export function QuizResultView({
                               </span>
                             )}
 
+                            {item.isCorrect && Boolean(hesitantQuestions?.[item.index]) && (
+                              <span
+                                className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border bg-amber-500/15 border-amber-500/30 text-amber-300 flex items-center gap-1"
+                                title="Você alternou alternativas antes de confirmar esta questão. Vale a pena revisar o fundamento para consolidar a certeza."
+                              >
+                                <HelpCircle size={10} className="text-amber-400" />
+                                Acerto com Hesitação
+                              </span>
+                            )}
+
                             {deepData && (
                               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border bg-violet-500/20 border-violet-500/40 text-violet-300 flex items-center gap-1">
                                 <Sparkles size={10} />
@@ -1813,6 +1825,19 @@ export function QuizResultView({
                                   })}
                             </div>
                           </div>
+
+                          {/* ALERTA METACOGNITIVO: ACERTO COM HESITAÇÃO */}
+                          {item.isCorrect && Boolean(hesitantQuestions?.[item.index]) && (
+                            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-1">
+                              <span className="text-[10px] uppercase font-black text-amber-300 flex items-center gap-1.5 tracking-wider">
+                                <HelpCircle size={12} className="text-amber-400" />
+                                Atenção Metacognitiva: Acerto com Hesitação
+                              </span>
+                              <p className="text-amber-100/90 leading-relaxed text-xs">
+                                Você acertou esta questão após alternar alternativas. Recomendamos revisar o fundamento abaixo para garantir que na prova oficial a resposta venha com convicção imediata.
+                              </p>
+                            </div>
+                          )}
 
                           {/* ALERTA DE PEGADINHA DA BANCA IDENTIFICADA */}
                           {(item.question.pegadinhaBanca || item.question.mentorGuidance?.trapWarning) && (

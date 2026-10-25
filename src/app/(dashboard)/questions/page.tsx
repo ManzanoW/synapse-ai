@@ -332,6 +332,7 @@ export default function QuestoesPage() {
   const [currentQuestionSeconds, setCurrentQuestionSeconds] = useState(0);
   const [isAdaptiveMode, setIsAdaptiveMode] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [hesitantQuestions, setHesitantQuestions] = useState<Record<number, boolean>>({});
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [isSyncingSM2, setIsSyncingSM2] = useState(false);
   const [lastEarnedXp, setLastEarnedXp] = useState(0);
@@ -441,6 +442,29 @@ export default function QuestoesPage() {
     const timer = setTimeout(() => {
       setIsMounted(true);
       try {
+        // 1. Restaura autosave ativo transparente (< 24h)
+        const activeSaved = localStorage.getItem("synapse_active_quiz_autosave");
+        if (activeSaved) {
+          const parsed = JSON.parse(activeSaved);
+          if (
+            parsed.questions?.length > 0 &&
+            Date.now() - (parsed.timestamp || 0) < 24 * 3600 * 1000
+          ) {
+            setQuestions(parsed.questions);
+            setSelectedAnswers(parsed.selectedAnswers || {});
+            setCheckedQuestions(parsed.checkedQuestions || {});
+            setFlaggedQuestions(parsed.flaggedQuestions || {});
+            setErrorClassifications(parsed.errorClassifications || {});
+            setTimerSeconds(parsed.timerSeconds || 0);
+            setFocusedQuestionIndex(parsed.activeQuestionIndex || 0);
+            setBanca(parsed.banca || "FGV");
+            setMateria(parsed.subject || "");
+            setCurrentQuizId(parsed.quizId || null);
+            setIsTimerRunning(true);
+            return;
+          }
+        }
+
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
@@ -1605,6 +1629,7 @@ export default function QuestoesPage() {
           initialFlaggedQuestions={flaggedQuestions}
           initialErrorClassifications={errorClassifications}
           initialTimerSeconds={timerSeconds}
+          initialActiveQuestionIndex={focusedQuestionIndex}
           isInitialTimerRunning={isTimerRunning && !showCompletionModal}
           onAnswerQuestion={(index, altId, isCorrect) => {
             setSelectedAnswers((prev) => ({ ...prev, [index]: altId }));
@@ -1614,6 +1639,7 @@ export default function QuestoesPage() {
             setSelectedAnswers(finalData.selectedAnswers);
             setCheckedQuestions(finalData.checkedQuestions);
             setErrorClassifications(finalData.errorClassifications);
+            if (finalData.hesitantQuestions) setHesitantQuestions(finalData.hesitantQuestions);
             setTimerSeconds(finalData.timerSeconds);
             setIsTimerRunning(false);
 
@@ -1760,6 +1786,7 @@ export default function QuestoesPage() {
               timerSeconds={timerSeconds}
               earnedXp={lastEarnedXp}
               levelUpData={levelUpData}
+              hesitantQuestions={hesitantQuestions}
               onRestart={() => {
                 setSelectedAnswers({});
                 setCheckedQuestions({});

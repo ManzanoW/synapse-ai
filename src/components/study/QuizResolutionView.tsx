@@ -59,6 +59,7 @@ export interface QuizResolutionViewProps {
   initialFlaggedQuestions?: Record<number, boolean>;
   initialErrorClassifications?: Record<number, ErrorClassification>;
   initialTimerSeconds?: number;
+  initialActiveQuestionIndex?: number;
   isInitialTimerRunning?: boolean;
   onAnswerQuestion?: (
     index: number,
@@ -72,6 +73,7 @@ export interface QuizResolutionViewProps {
     selectedAnswers: Record<number, string>;
     checkedQuestions: Record<number, boolean>;
     errorClassifications: Record<number, ErrorClassification>;
+    hesitantQuestions?: Record<number, boolean>;
   }) => void;
   onExit: () => void;
   onCreateFlashcard?: (index: number) => Promise<void> | void;
@@ -109,6 +111,7 @@ export function QuizResolutionView({
   initialFlaggedQuestions = {},
   initialErrorClassifications = {},
   initialTimerSeconds = 0,
+  initialActiveQuestionIndex = 0,
   isInitialTimerRunning = true,
   onAnswerQuestion,
   onFinishQuiz,
@@ -117,7 +120,7 @@ export function QuizResolutionView({
   isCreatingFlashcard = false,
   createdFlashcards = {},
 }: QuizResolutionViewProps) {
-  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(initialActiveQuestionIndex || 0);
 
   // Oculta widgets flutuantes periféricos (rascunho, scroll) durante a prova ativa
   useEffect(() => {
@@ -131,6 +134,7 @@ export function QuizResolutionView({
   const [direction, setDirection] = useState<1 | -1>(1);
 
   // Estados de resposta e resolução
+  const [switchesCount, setSwitchesCount] = useState<Record<number, number>>({});
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<number, string>
   >(initialSelectedAnswers);
@@ -170,6 +174,42 @@ export function QuizResolutionView({
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [filterOnlyFlagged, setFilterOnlyFlagged] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
+
+  // Salvamento contínuo em background para resiliência total contra quedas de bateria/conexão
+  useEffect(() => {
+    if (!questions || questions.length === 0) return;
+    try {
+      const activeState = {
+        quizId,
+        banca,
+        subject,
+        questions,
+        selectedAnswers,
+        checkedQuestions,
+        flaggedQuestions,
+        errorClassifications,
+        timerSeconds,
+        activeQuestionIndex,
+        switchesCount,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem("synapse_active_quiz_autosave", JSON.stringify(activeState));
+    } catch (e) {
+      console.warn("Autosave silencioso:", e);
+    }
+  }, [
+    quizId,
+    banca,
+    subject,
+    questions,
+    selectedAnswers,
+    checkedQuestions,
+    flaggedQuestions,
+    errorClassifications,
+    timerSeconds,
+    activeQuestionIndex,
+    switchesCount,
+  ]);
 
   // Sincroniza o Modo Foco Zen Fullscreen (ocultando sidebar e bottom nav)
   useEffect(() => {
@@ -385,10 +425,18 @@ export function QuizResolutionView({
     (altId: string) => {
       if (isCurrentAnswered) return;
       triggerHaptic("light");
-      setSelectedAnswers((prev) => ({
-        ...prev,
-        [activeQuestionIndex]: altId,
-      }));
+      setSelectedAnswers((prev) => {
+        if (prev[activeQuestionIndex] && prev[activeQuestionIndex] !== altId) {
+          setSwitchesCount((s) => ({
+            ...s,
+            [activeQuestionIndex]: (s[activeQuestionIndex] || 0) + 1,
+          }));
+        }
+        return {
+          ...prev,
+          [activeQuestionIndex]: altId,
+        };
+      });
     },
     [isCurrentAnswered, activeQuestionIndex],
   );
@@ -520,6 +568,20 @@ export function QuizResolutionView({
     }
 
     setIsFinalizing(true);
+    try {
+      localStorage.removeItem("synapse_active_quiz_autosave");
+    } catch (e) {
+      // Ignora erro de storage
+    }
+
+    const hesitantQuestions: Record<number, boolean> = {};
+    Object.entries(switchesCount).forEach(([idxStr, count]) => {
+      const idx = Number(idxStr);
+      if (count >= 1) {
+        hesitantQuestions[idx] = true;
+      }
+    });
+
     onFinishQuiz({
       totalQuestions,
       correctCount,
@@ -527,6 +589,7 @@ export function QuizResolutionView({
       selectedAnswers,
       checkedQuestions,
       errorClassifications,
+      hesitantQuestions,
     });
   };
 
