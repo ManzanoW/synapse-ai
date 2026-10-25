@@ -55,7 +55,7 @@ export function PrintableErrorBookModal({
   const [selectedReason, setSelectedReason] = useState<string>("ALL");
   const [selectedSubject, setSelectedSubject] = useState<string>("ALL");
   const [onlyPending, setOnlyPending] = useState<boolean>(true);
-  const [columns, setColumns] = useState<1 | 2>(1);
+  const [columns, setColumns] = useState<1 | 2>(2);
   const [ankiDownloaded, setAnkiDownloaded] = useState<boolean>(false);
 
   useEffect(() => {
