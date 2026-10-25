@@ -124,6 +124,35 @@ export default function DeckDetailPage({ params }: PageProps) {
     return { interval, repetitions };
   };
 
+  // Distribuição da Consolidação na Memória (FSRS / Intervalo)
+  const retentionStats = useMemo(() => {
+    let novos = 0;
+    let aprendendo = 0;
+    let maduros = 0;
+
+    flashcards.forEach((card) => {
+      const reps = card.repetitions ?? 0;
+      const interval = card.interval ?? 0;
+      if (reps === 0) {
+        novos++;
+      } else if (interval >= 21) {
+        maduros++;
+      } else {
+        aprendendo++;
+      }
+    });
+
+    const total = flashcards.length || 1;
+    return {
+      novos,
+      aprendendo,
+      maduros,
+      novosPct: Math.round((novos / total) * 100),
+      aprendendoPct: Math.round((aprendendo / total) * 100),
+      madurosPct: Math.round((maduros / total) * 100),
+    };
+  }, [flashcards]);
+
   const filteredCards = useMemo(() => {
     if (!searchQuery.trim()) return flashcards;
     const q = searchQuery.toLowerCase();
@@ -263,6 +292,59 @@ export default function DeckDetailPage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* Barra de Distribuição da Memória (Novos, Aprendendo, Maduros) */}
+      {flashcards.length > 0 && (
+        <div className="bg-slate-900/40 p-4 border border-slate-800/80 rounded-2xl backdrop-blur-xl space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-200">Consolidação da Memória</span>
+              <span className="text-[11px] text-slate-400">
+                (FSRS / Espaçamento Anki)
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] font-mono">
+              <span className="flex items-center gap-1.5 text-blue-400" title="Cartões ainda não revisados">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                Novos: <strong>{retentionStats.novos}</strong> ({retentionStats.novosPct}%)
+              </span>
+              <span className="flex items-center gap-1.5 text-amber-400" title="Cartões em fase de reforço (intervalo < 21d)">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                Aprendendo: <strong>{retentionStats.aprendendo}</strong> ({retentionStats.aprendendoPct}%)
+              </span>
+              <span className="flex items-center gap-1.5 text-emerald-400" title="Cartões consolidados na memória de longo prazo (intervalo ≥ 21d)">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Maduros: <strong>{retentionStats.maduros}</strong> ({retentionStats.madurosPct}%)
+              </span>
+            </div>
+          </div>
+
+          {/* Barra Visual Segmentada */}
+          <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden flex border border-slate-800/60 p-0.5">
+            {retentionStats.novos > 0 && (
+              <div
+                style={{ width: `${(retentionStats.novos / flashcards.length) * 100}%` }}
+                className="bg-blue-500 rounded-l-full transition-all"
+                title={`${retentionStats.novos} cards novos (${retentionStats.novosPct}%)`}
+              />
+            )}
+            {retentionStats.aprendendo > 0 && (
+              <div
+                style={{ width: `${(retentionStats.aprendendo / flashcards.length) * 100}%` }}
+                className="bg-amber-500 transition-all"
+                title={`${retentionStats.aprendendo} cards em aprendizado (${retentionStats.aprendendoPct}%)`}
+              />
+            )}
+            {retentionStats.maduros > 0 && (
+              <div
+                style={{ width: `${(retentionStats.maduros / flashcards.length) * 100}%` }}
+                className="bg-emerald-500 rounded-r-full transition-all"
+                title={`${retentionStats.maduros} cards maduros consolidados (${retentionStats.madurosPct}%)`}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Busca */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/40 p-3.5 border border-slate-800/80 rounded-2xl backdrop-blur-xl">
         <div className="relative w-full sm:w-96">
@@ -360,16 +442,25 @@ export default function DeckDetailPage({ params }: PageProps) {
                 </div>
 
                 <div className="pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
-                  <div className="flex items-center gap-3 text-[11px] font-medium text-slate-400">
-                    <span className="flex items-center gap-1" title="Intervalo">
-                      <Clock size={12} className="text-indigo-400" />
-                      {interval}d
-                    </span>
+                  <div className="flex items-center gap-2.5 text-[11px] font-medium text-slate-400 flex-wrap">
+                    {repetitions === 0 ? (
+                      <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                        Novo
+                      </span>
+                    ) : interval >= 21 ? (
+                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        Maduro ({interval}d)
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                        Aprendendo ({interval}d)
+                      </span>
+                    )}
                     <span
-                      className="flex items-center gap-1"
-                      title="Repetições"
+                      className="flex items-center gap-1 text-slate-500"
+                      title="Repetições acumuladas"
                     >
-                      <Repeat size={12} className="text-violet-400" />
+                      <Repeat size={11} className="text-violet-400" />
                       {repetitions} reps
                     </span>
                   </div>
