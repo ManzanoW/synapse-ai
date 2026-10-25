@@ -61,6 +61,7 @@ export interface QuizResolutionViewProps {
   initialTimerSeconds?: number;
   initialActiveQuestionIndex?: number;
   isInitialTimerRunning?: boolean;
+  timeLimitSeconds?: number;
   onAnswerQuestion?: (
     index: number,
     selectedAlt: string,
@@ -113,6 +114,7 @@ export function QuizResolutionView({
   initialTimerSeconds = 0,
   initialActiveQuestionIndex = 0,
   isInitialTimerRunning = true,
+  timeLimitSeconds,
   onAnswerQuestion,
   onFinishQuiz,
   onExit,
@@ -154,9 +156,22 @@ export function QuizResolutionView({
     Record<number, Record<string, boolean>>
   >({});
 
-  // Cronômetro
+  // Cronômetro e Simulação de Tempo Oficial de Concurso
   const [timerSeconds, setTimerSeconds] = useState(initialTimerSeconds);
   const [isTimerRunning, setIsTimerRunning] = useState(isInitialTimerRunning);
+  const [showTimeExpiredModal, setShowTimeExpiredModal] = useState(false);
+  const [hasDismissedTimeExpired, setHasDismissedTimeExpired] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(Boolean(timeLimitSeconds && timeLimitSeconds > 0));
+
+  const remainingSeconds = timeLimitSeconds ? Math.max(0, timeLimitSeconds - timerSeconds) : 0;
+  const isExpiringSoon = Boolean(timeLimitSeconds && remainingSeconds <= 600 && remainingSeconds > 0);
+  const isCriticalTime = Boolean(timeLimitSeconds && remainingSeconds <= 180 && remainingSeconds > 0);
+
+  useEffect(() => {
+    if (timeLimitSeconds && timerSeconds >= timeLimitSeconds && !hasDismissedTimeExpired) {
+      setShowTimeExpiredModal(true);
+    }
+  }, [timeLimitSeconds, timerSeconds, hasDismissedTimeExpired]);
 
   // UI States
   const [feedbackTab, setFeedbackTab] = useState<"BANCA" | "DISTRATORES" | "MNEMONICO">("BANCA");
@@ -881,13 +896,49 @@ export function QuizResolutionView({
 
           {/* Lado Direito */}
           <div className="flex items-center gap-3 shrink-0">
-            {/* Badge de Timer ("00:15:30") com indicador de pausa */}
-            <div className="flex items-center gap-2 bg-zinc-900/90 border border-white/10 px-3 py-1.5 rounded-xl font-mono text-xs text-zinc-200 shadow-inner">
+            {/* Badge de Timer ("00:15:30") com suporte a tempo oficial de prova e contagem regressiva */}
+            <div
+              className={`flex items-center gap-2 border px-3 py-1.5 rounded-xl font-mono text-xs shadow-inner transition-colors ${
+                isCriticalTime
+                  ? "bg-rose-950/60 border-rose-500/50 text-rose-200 animate-pulse"
+                  : isExpiringSoon
+                  ? "bg-amber-950/50 border-amber-500/40 text-amber-200"
+                  : "bg-zinc-900/90 border-white/10 text-zinc-200"
+              }`}
+            >
               <Clock
                 size={14}
-                className={isTimerRunning ? "text-emerald-400 animate-pulse" : "text-amber-400"}
+                className={
+                  isCriticalTime
+                    ? "text-rose-400"
+                    : isExpiringSoon
+                    ? "text-amber-400"
+                    : isTimerRunning
+                    ? "text-emerald-400 animate-pulse"
+                    : "text-amber-400"
+                }
               />
-              <span className="font-bold tracking-wider">{formatTimer(timerSeconds)}</span>
+              <button
+                type="button"
+                onClick={() => timeLimitSeconds && setShowCountdown((prev) => !prev)}
+                className={`font-bold tracking-wider cursor-pointer ${
+                  timeLimitSeconds ? "hover:underline" : ""
+                }`}
+                title={
+                  timeLimitSeconds
+                    ? showCountdown
+                      ? `Tempo restante: ${formatTimer(remainingSeconds)} de ${formatTimer(timeLimitSeconds)} (Clique para ver tempo decorrido)`
+                      : `Tempo decorrido: ${formatTimer(timerSeconds)} (Clique para ver contagem regressiva)`
+                    : "Tempo decorrido"
+                }
+              >
+                {timeLimitSeconds && showCountdown ? formatTimer(remainingSeconds) : formatTimer(timerSeconds)}
+              </button>
+              {timeLimitSeconds && (
+                <span className="text-[9px] uppercase px-1 rounded bg-white/10 text-zinc-300 font-sans">
+                  {showCountdown ? "restam" : "total"}
+                </span>
+              )}
               <button
                 onClick={() => setIsTimerRunning((prev) => !prev)}
                 type="button"
@@ -1131,13 +1182,40 @@ export function QuizResolutionView({
             {String(totalQuestions).padStart(2, "0")}
           </span>
 
-          {/* Timer Compacto */}
-          <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 px-2.5 py-1 rounded-xl text-xs font-mono text-slate-200">
+          {/* Timer Compacto com suporte a contagem regressiva */}
+          <div
+            className={`flex items-center gap-1.5 border px-2.5 py-1 rounded-xl text-xs font-mono ${
+              isCriticalTime
+                ? "bg-rose-950/60 border-rose-500/50 text-rose-200"
+                : isExpiringSoon
+                ? "bg-amber-950/50 border-amber-500/40 text-amber-200"
+                : "bg-slate-900/90 border-slate-800 text-slate-200"
+            }`}
+          >
             <Clock
               size={12}
-              className={isTimerRunning ? "text-emerald-400 animate-pulse" : "text-slate-500"}
+              className={
+                isCriticalTime
+                  ? "text-rose-400 animate-pulse"
+                  : isExpiringSoon
+                  ? "text-amber-400"
+                  : isTimerRunning
+                  ? "text-emerald-400 animate-pulse"
+                  : "text-slate-500"
+              }
             />
-            <span>{formatTimer(timerSeconds)}</span>
+            <button
+              type="button"
+              onClick={() => timeLimitSeconds && setShowCountdown((prev) => !prev)}
+              className="font-bold"
+            >
+              {timeLimitSeconds && showCountdown ? formatTimer(remainingSeconds) : formatTimer(timerSeconds)}
+            </button>
+            {timeLimitSeconds && (
+              <span className="text-[9px] text-zinc-400 font-sans">
+                {showCountdown ? "r" : "t"}
+              </span>
+            )}
             {answeredCount > 0 && (
               <span className="text-[10px] text-zinc-400 border-l border-white/10 pl-1.5 font-sans">
                 {formatPacingTime(avgSecondsPerAnswered)}/q
@@ -2571,6 +2649,52 @@ export function QuizResolutionView({
                   className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all shadow-md shadow-violet-950/40 cursor-pointer"
                 >
                   Salvar e Sair
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE TEMPO OFICIAL ESGOTADO */}
+      <AnimatePresence>
+        {showTimeExpiredModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="max-w-md w-full bg-[#0c101d] border border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-4 text-center"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+                <Clock size={24} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-white">Tempo Oficial Esgotado!</h3>
+                <p className="text-xs text-slate-300">
+                  O tempo limite de {timeLimitSeconds ? Math.round(timeLimitSeconds / 60) : 0} minutos configurado para este simulado encerrou. Como deseja proceder?
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTimeExpiredModal(false);
+                    setHasDismissedTimeExpired(true);
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl border border-white/10 hover:bg-white/5 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Continuar Simulado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTimeExpiredModal(false);
+                    handleFinalize();
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all cursor-pointer shadow-lg shadow-amber-950/40"
+                >
+                  Entregar Prova
                 </button>
               </div>
             </motion.div>

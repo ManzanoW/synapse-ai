@@ -27,6 +27,7 @@ import {
   Headphones,
   VolumeX,
   Layers,
+  Flame,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import Link from "next/link";
@@ -65,6 +66,7 @@ interface ErrorCardProps {
   convertedIds?: Set<string>;
   onSaveFlashcard?: (id: string) => Promise<void> | void;
   index?: number;
+  recurrentCount?: number;
 }
 
 const TAXONOMY_ICONS: Record<string, React.ElementType> = {
@@ -83,6 +85,7 @@ export function ErrorCard({
   convertedIds,
   onSaveFlashcard,
   index,
+  recurrentCount,
 }: ErrorCardProps) {
   const { refreshStats } = useGamification();
 
@@ -405,6 +408,15 @@ export function ErrorCard({
           {index !== undefined && (
             <span className="px-2.5 py-1 rounded-xl text-xs font-black font-mono bg-white/10 text-white border border-white/10 shadow-xs">
               #{index}
+            </span>
+          )}
+          {recurrentCount !== undefined && recurrentCount > 1 && (
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-xs"
+              title={`Questão com erro repetido (${recurrentCount} ocorrências registradas)`}
+            >
+              <Flame size={12} className="text-amber-400" />
+              <span>Reincidente (${recurrentCount}x)</span>
             </span>
           )}
           {/* Matéria e Tópico */}

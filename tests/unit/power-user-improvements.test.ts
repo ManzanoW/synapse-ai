@@ -565,3 +565,160 @@ describe("Round 20 - Gating de Volume e Dificuldade por Tier de Usuário (Pro/El
     expect(canAccessDifficulty("ELITE", "Extrema")).toBe(true);
   });
 });
+
+describe("Round 21 - Preset de Tempo Oficial de Concurso (3 min/questão)", () => {
+  const calculateOfficialExamTime = (questionCount: number) => {
+    return questionCount * 3 * 60; // 3 min por questão em segundos
+  };
+
+  const getTimerWarningStatus = (timeLimitSeconds: number, elapsedSeconds: number) => {
+    const remaining = Math.max(0, timeLimitSeconds - elapsedSeconds);
+    const isCritical = remaining <= 180 && remaining > 0; // <= 3 min
+    const isWarning = remaining <= 600 && remaining > 0;  // <= 10 min
+    const isExpired = remaining === 0;
+    return { remaining, isCritical, isWarning, isExpired };
+  };
+
+  it("calcula o tempo oficial de prova com precisão para diferentes volumes", () => {
+    expect(calculateOfficialExamTime(5)).toBe(900);     // 15 min
+    expect(calculateOfficialExamTime(30)).toBe(5400);   // 90 min (1h30)
+    expect(calculateOfficialExamTime(40)).toBe(7200);   // 120 min (2h)
+    expect(calculateOfficialExamTime(60)).toBe(10800);  // 180 min (3h)
+  });
+
+  it("dispara alertas visuais corretos em 10min e 3min restantes e ao expirar", () => {
+    const limit = 5400; // 90 min
+
+    // Tranquilo (40 min restantes)
+    const calm = getTimerWarningStatus(limit, 3000);
+    expect(calm.isWarning).toBe(false);
+    expect(calm.isCritical).toBe(false);
+    expect(calm.isExpired).toBe(false);
+
+    // Alerta Suave (9 min restantes <= 600s)
+    const warning = getTimerWarningStatus(limit, 4860);
+    expect(warning.isWarning).toBe(true);
+    expect(warning.isCritical).toBe(false);
+
+    // Crítico (2 min restantes <= 180s)
+    const critical = getTimerWarningStatus(limit, 5280);
+    expect(critical.isWarning).toBe(true);
+    expect(critical.isCritical).toBe(true);
+    expect(critical.isExpired).toBe(false);
+
+    // Expirado (0s)
+    const expired = getTimerWarningStatus(limit, 5400);
+    expect(expired.isExpired).toBe(true);
+  });
+});
+
+describe("Round 21 - Exportação de Relatório de Simulado em Planilha CSV", () => {
+  const generateQuizCSV = (params: {
+    banca: string;
+    subject: string;
+    questions: Array<{ gabaritoCorreto: string; enunciado: string }>;
+    selectedAnswers: Record<number, string>;
+    timerFormatted: string;
+  }) => {
+    const headers = [
+      "Numero",
+      "Materia",
+      "Banca",
+      "Gabarito Oficial",
+      "Sua Resposta",
+      "Resultado",
+      "Enunciado Resumido",
+    ];
+
+    let correctCount = 0;
+    const rows = params.questions.map((q, idx) => {
+      const userAns = params.selectedAnswers[idx] || "Em branco";
+      const isCorrect = userAns === q.gabaritoCorreto;
+      if (isCorrect) correctCount++;
+      const cleanEnunciado = (q.enunciado || "")
+        .replace(/[\r\n]+/g, " ")
+        .replace(/"/g, '""')
+        .slice(0, 160);
+      return [
+        idx + 1,
+        `"${params.subject}"`,
+        `"${params.banca}"`,
+        `"${q.gabaritoCorreto}"`,
+        `"${userAns}"`,
+        isCorrect ? "ACERTOU" : "ERROU",
+        `"${cleanEnunciado}"`,
+      ].join(",");
+    });
+
+    const summary = [
+      "",
+      "# RESUMO DE RENDIMENTO",
+      `Total de Questoes,${params.questions.length}`,
+      `Acertos,${correctCount}`,
+      `Erros,${params.questions.length - correctCount}`,
+      `Tempo Total,${params.timerFormatted}`,
+    ].join("\n");
+
+    return "\uFEFF" + [headers.join(","), ...rows, summary].join("\n");
+  };
+
+  it("gera arquivo CSV com BOM UTF-8 e estrutura completa de gabarito e métricas", () => {
+    const csv = generateQuizCSV({
+      banca: "FGV",
+      subject: "Direito Constitucional",
+      questions: [
+        { gabaritoCorreto: "B", enunciado: "Nos termos da CF/88, assinale..." },
+        { gabaritoCorreto: "D", enunciado: "Sobre os direitos fundamentais..." },
+      ],
+      selectedAnswers: { 0: "B", 1: "A" },
+      timerFormatted: "00:04:30",
+    });
+
+    // Inicia com BOM UTF-8 para compatibilidade perfeita com Excel no Windows
+    expect(csv.startsWith("\uFEFF")).toBe(true);
+    expect(csv).toContain("Gabarito Oficial,Sua Resposta,Resultado");
+    expect(csv).toContain('1,"Direito Constitucional","FGV","B","B",ACERTOU');
+    expect(csv).toContain('2,"Direito Constitucional","FGV","D","A",ERROU');
+    expect(csv).toContain("# RESUMO DE RENDIMENTO");
+    expect(csv).toContain("Total de Questoes,2");
+    expect(csv).toContain("Acertos,1");
+    expect(csv).toContain("Erros,1");
+  });
+});
+
+describe("Round 21 - Mapeamento e Filtragem de Reincidência no Caderno de Erros", () => {
+  const computeRecurrence = (errors: Array<{ questionText: string; errorReason: string }>) => {
+    const map: Record<string, number> = {};
+    for (const q of errors) {
+      const key = (q.questionText || "").trim().toLowerCase().slice(0, 100);
+      if (key) map[key] = (map[key] || 0) + 1;
+    }
+    return map;
+  };
+
+  const filterByRecurrence = (
+    errors: Array<{ questionText: string; errorReason: string }>,
+    map: Record<string, number>
+  ) => {
+    return errors.filter((q) => {
+      const key = (q.questionText || "").trim().toLowerCase().slice(0, 100);
+      return (map[key] || 0) > 1;
+    });
+  };
+
+  it("identifica corretamente questões reincidentes quando há múltiplas falhas no mesmo enunciado", () => {
+    const errorList = [
+      { questionText: "Sobre o princípio da legalidade estrita...", errorReason: "CONTENT_GAP" },
+      { questionText: "Sobre o princípio da legalidade estrita...", errorReason: "TRICK_QUESTION" },
+      { questionText: "Assinale a opção referente à desapropriação...", errorReason: "INTERPRETATION" },
+    ];
+
+    const map = computeRecurrence(errorList);
+    const key = "sobre o princípio da legalidade estrita...";
+    expect(map[key]).toBe(2);
+
+    const recurrent = filterByRecurrence(errorList, map);
+    expect(recurrent.length).toBe(2);
+    expect(recurrent.every((r) => r.questionText.startsWith("Sobre o princípio"))).toBe(true);
+  });
+});

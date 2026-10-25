@@ -12,6 +12,7 @@ import {
   Target,
   Trophy,
   Leaf,
+  Download,
 } from "lucide-react";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 
@@ -84,6 +85,60 @@ export function PrintableQuizSummaryModal({
     window.print();
   };
 
+  const handleDownloadCSV = () => {
+    const headers = [
+      "Numero",
+      "Materia",
+      "Banca",
+      "Gabarito Oficial",
+      "Sua Resposta",
+      "Resultado",
+      "Enunciado Resumido",
+    ];
+    const rows = questions.map((q, idx) => {
+      const userAns = selectedAnswers[idx] || "Em branco";
+      const isCorrect = userAns === q.gabaritoCorreto;
+      const cleanEnunciado = (q.enunciado || "")
+        .replace(/[\r\n]+/g, " ")
+        .replace(/"/g, '""')
+        .slice(0, 160);
+      return [
+        idx + 1,
+        `"${(subject || "Geral").replace(/"/g, '""')}"`,
+        `"${(banca || "Geral").replace(/"/g, '""')}"`,
+        `"${q.gabaritoCorreto}"`,
+        `"${userAns}"`,
+        isCorrect ? "ACERTOU" : "ERROU",
+        `"${cleanEnunciado}"`,
+      ].join(",");
+    });
+
+    const summary = [
+      "",
+      "# RESUMO DE RENDIMENTO",
+      `Total de Questoes,${questions.length}`,
+      `Acertos,${correctCount}`,
+      `Erros,${wrongCount}`,
+      `Aproveitamento,${accuracyPercentage}%`,
+      `Tempo Total,${timeFormatted}`,
+      `Data,${dateFormatted}`,
+    ].join("\n");
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows, summary].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `simulado_${(banca || "geral").toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const modalContent = (
     <div
       role="dialog"
@@ -127,6 +182,16 @@ export function PrintableQuizSummaryModal({
               <span>{ecoMode ? "Modo Eco (Tinta Zero)" : "Econômico / Eco"}</span>
             </button>
 
+            <button
+              type="button"
+              onClick={handleDownloadCSV}
+              aria-label="Baixar planilha CSV para Excel ou Notion"
+              className="min-h-[38px] px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-700 cursor-pointer active:scale-95 shadow-xs"
+              title="Baixar planilha CSV com gabarito completo e métricas para Excel, Google Planilhas ou Notion"
+            >
+              <Download size={14} className="text-slate-400" />
+              <span>Baixar CSV</span>
+            </button>
             <button
               type="button"
               onClick={handlePrint}
