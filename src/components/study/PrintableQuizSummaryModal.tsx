@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 
+const TRAP_WORDS_REGEX = /\b(EXCETO|INCORRETO|INCORRETA|INCORRETAS|INCORRETOS|VEDADO|VEDADA|VEDADOS|VEDADAS|DEFESO|DEFESA|PRESCINDE|PRESCINDÍVEL|PRIVATIVAMENTE|EXCLUSIVAMENTE|NUNCA|SEMPRE|SALVO|NÃO\s+PODE|NÃO\s+É|NÃO\s+SERÁ)\b/i;
+
 interface PrintableQuizSummaryModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -226,6 +228,11 @@ export function PrintableQuizSummaryModal({
               {questions.map((q, idx) => {
                 const userAns = selectedAnswers[idx] || "Em branco";
                 const isCorrect = userAns === q.gabaritoCorreto;
+                const hasTrap = Boolean(
+                  q.pegadinhaBanca ||
+                  q.mentorGuidance?.trapWarning ||
+                  TRAP_WORDS_REGEX.test(q.enunciado || "")
+                );
                 const cleanEnunciado = q.enunciado
                   ? q.enunciado.replace(/\*\*/g, "").slice(0, 100) +
                     (q.enunciado.length > 100 ? "..." : "")
@@ -246,7 +253,7 @@ export function PrintableQuizSummaryModal({
                   >
                     <div>
                       <div className="flex items-center justify-between gap-1 mb-1 border-b border-slate-200/80 pb-1">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-black text-slate-900 text-[11px]">
                             #{idx + 1}
                           </span>
@@ -259,6 +266,14 @@ export function PrintableQuizSummaryModal({
                           >
                             {isCorrect ? "Acertou" : "Errou"}
                           </span>
+                          {hasTrap && (
+                            <span
+                              className="text-[8.5px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1"
+                              title={q.pegadinhaBanca || q.mentorGuidance?.trapWarning || "Contém pegadinha ou armadilha da banca"}
+                            >
+                              ⚠️ Pegadinha
+                            </span>
+                          )}
                         </div>
                         <div className="text-[10px] font-mono text-slate-600">
                           Resp: <strong className={isCorrect ? "text-emerald-700" : "text-rose-700 font-bold"}>{userAns}</strong> • Gab:{" "}
@@ -275,6 +290,12 @@ export function PrintableQuizSummaryModal({
                       <div className="mt-1 pt-1 border-t border-dashed border-slate-200 text-[9.5px] text-slate-600 line-clamp-2 leading-snug">
                         <strong className="text-slate-700">Fundamento:</strong>{" "}
                         {cleanJustificativa}
+                      </div>
+                    )}
+
+                    {q.pegadinhaBanca && (
+                      <div className="mt-0.5 text-[9px] text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 line-clamp-1">
+                        <strong>Pegadinha:</strong> {q.pegadinhaBanca}
                       </div>
                     )}
                   </div>

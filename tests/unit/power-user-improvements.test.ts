@@ -86,6 +86,70 @@ describe("Flashcards - Estimativa Cognitiva de Tempo de Estudo", () => {
   });
 });
 
+describe("Flashcards - Segmentação por Nível de Retenção (Novo, Aprendendo, Maduro)", () => {
+  interface MockCard {
+    repetitions?: number;
+    interval?: number;
+  }
+
+  const categorizeCards = (cards: MockCard[]) => {
+    let novos = 0;
+    let aprendendo = 0;
+    let maduros = 0;
+
+    cards.forEach((c) => {
+      const reps = c.repetitions ?? 0;
+      const interval = c.interval ?? 0;
+      if (reps === 0) novos++;
+      else if (interval >= 21) maduros++;
+      else aprendendo++;
+    });
+
+    const total = cards.length || 1;
+    return {
+      novos,
+      aprendendo,
+      maduros,
+      novosPct: Math.round((novos / total) * 100),
+      aprendendoPct: Math.round((aprendendo / total) * 100),
+      madurosPct: Math.round((maduros / total) * 100),
+    };
+  };
+
+  it("classifica corretamente cartões sem revisão como Novos", () => {
+    const cards: MockCard[] = [{ repetitions: 0, interval: 0 }, {}];
+    const stats = categorizeCards(cards);
+    expect(stats.novos).toBe(2);
+    expect(stats.aprendendo).toBe(0);
+    expect(stats.maduros).toBe(0);
+    expect(stats.novosPct).toBe(100);
+  });
+
+  it("classifica cartões com intervalo >= 21 dias como Maduros", () => {
+    const cards: MockCard[] = [
+      { repetitions: 4, interval: 25 },
+      { repetitions: 6, interval: 40 },
+    ];
+    const stats = categorizeCards(cards);
+    expect(stats.maduros).toBe(2);
+    expect(stats.aprendendo).toBe(0);
+    expect(stats.novos).toBe(0);
+    expect(stats.madurosPct).toBe(100);
+  });
+
+  it("classifica cartões revisados com intervalo < 21 dias como Aprendendo", () => {
+    const cards: MockCard[] = [
+      { repetitions: 1, interval: 1 },
+      { repetitions: 2, interval: 6 },
+      { repetitions: 3, interval: 14 },
+    ];
+    const stats = categorizeCards(cards);
+    expect(stats.aprendendo).toBe(3);
+    expect(stats.maduros).toBe(0);
+    expect(stats.novos).toBe(0);
+  });
+});
+
 describe("Gabarito Executivo A4 - Métricas e Auditoria", () => {
   it("calcula taxa de aproveitamento e ritmo médio por questão", () => {
     const totalQuestions = 10;

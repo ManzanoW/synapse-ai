@@ -107,6 +107,29 @@ export function QuizResultView({
 
   // Estados de navegação e filtros
   const [isPrintSummaryOpen, setIsPrintSummaryOpen] = useState(false);
+  // Atalho de Teclado [G]: Abrir Folha de Respostas Executiva A4
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement)?.isContentEditable
+      ) {
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      if (e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        triggerHaptic("light");
+        setIsPrintSummaryOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
   const [filterReview, setFilterReview] = useState<"all" | "incorrect" | "correct">("all");
 
@@ -610,6 +633,9 @@ export function QuizResultView({
             >
               <Printer size={13} className="text-indigo-400" />
               <span>Gabarito A4 (1 Pág)</span>
+              <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30">
+                G
+              </kbd>
             </button>
             <button
               onClick={onRestart}
@@ -1358,9 +1384,14 @@ export function QuizResultView({
                   <Printer size={15} />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors truncate">
-                    Gabarito A4 (1 Pág)
-                  </h4>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors truncate">
+                      Gabarito A4 (1 Pág)
+                    </h4>
+                    <kbd className="px-1.5 py-0.2 text-[9px] font-mono font-bold bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30">
+                      G
+                    </kbd>
+                  </div>
                   <p className="text-[11px] text-slate-400 truncate">
                     Folha de respostas executiva
                   </p>
@@ -1546,6 +1577,20 @@ export function QuizResultView({
                                 IA Analisada
                               </span>
                             )}
+
+                            {Boolean(
+                              item.question.pegadinhaBanca ||
+                              item.question.mentorGuidance?.trapWarning ||
+                              /\b(EXCETO|INCORRETO|INCORRETA|VEDADO|VEDADA|PRESCINDE|PRIVATIVAMENTE|DEFESO|NÃO\s+PODE)\b/i.test(item.question.enunciado || "")
+                            ) && (
+                              <span
+                                className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border bg-amber-500/15 border-amber-500/30 text-amber-300 flex items-center gap-1"
+                                title={item.question.pegadinhaBanca || item.question.mentorGuidance?.trapWarning || "Contém pegadinha da banca"}
+                              >
+                                <AlertTriangle size={10} className="text-amber-400" />
+                                Pegadinha da Banca
+                              </span>
+                            )}
                           </div>
 
                           <p className="text-xs text-slate-400 truncate max-w-xl sm:max-w-2xl">
@@ -1681,6 +1726,19 @@ export function QuizResultView({
                                   })}
                             </div>
                           </div>
+
+                          {/* ALERTA DE PEGADINHA DA BANCA IDENTIFICADA */}
+                          {(item.question.pegadinhaBanca || item.question.mentorGuidance?.trapWarning) && (
+                            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+                              <span className="text-[10px] uppercase font-black text-amber-300 flex items-center gap-1.5 tracking-wider">
+                                <AlertTriangle size={12} className="text-amber-400" />
+                                Pegadinha da Banca Identificada
+                              </span>
+                              <p className="text-amber-100/90 leading-relaxed text-xs">
+                                {item.question.pegadinhaBanca || item.question.mentorGuidance?.trapWarning}
+                              </p>
+                            </div>
+                          )}
 
                           {/* 3. JUSTIFICATIVA OFICIAL DA BANCA */}
                           {item.question.justificativa && (
