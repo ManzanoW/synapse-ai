@@ -110,6 +110,24 @@ export function ErrorNotebookView({
   // Modo de visualização: Lista espaçada vs Modo Foco (1 por 1)
   const [viewMode, setViewMode] = useState<"list" | "focus">("list");
   const [focusIndex, setFocusIndex] = useState<number>(0);
+  const [quickCategory, setQuickCategory] = useState<"all" | "recurrent" | "trick">("all");
+
+  // Mapeamento dinâmico de erros repetidos/reincidentes por questão
+  const recurrenceCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const q of questions) {
+      const key = (q.questionText || "").trim().toLowerCase().slice(0, 100);
+      if (key) map[key] = (map[key] || 0) + 1;
+    }
+    return map;
+  }, [questions]);
+
+  const recurrentErrorsCount = useMemo(() => {
+    return questions.filter((q) => {
+      const key = (q.questionText || "").trim().toLowerCase().slice(0, 100);
+      return (recurrenceCountMap[key] || 0) > 1;
+    }).length;
+  }, [questions, recurrenceCountMap]);
 
   // Garante que focusIndex esteja dentro do range de questões
   useEffect(() => {
@@ -289,11 +307,21 @@ export function ErrorNotebookView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filtro Instantâneo em Memória (Zero Latência)
+  // Filtro Instantâneo em Memória (Zero Latência) com suporte a Reincidência e Pegadinhas
   const displayedQuestions = useMemo<Question[]>(() => {
+    let list = questions;
+    if (quickCategory === "recurrent") {
+      list = list.filter((q) => {
+        const key = (q.questionText || "").trim().toLowerCase().slice(0, 100);
+        return (recurrenceCountMap[key] || 0) > 1;
+      });
+    } else if (quickCategory === "trick") {
+      list = list.filter((q) => q.errorReason === "TRICK_QUESTION");
+    }
+
     const term = (filters.search || "").trim().toLowerCase();
-    if (!term) return questions;
-    return questions.filter((q: Question) => {
+    if (!term) return list;
+    return list.filter((q: Question) => {
       const qText = (q.questionText || "").toLowerCase();
       const exp = (q.explanation || "").toLowerCase();
       const aiExp = (q.aiExplanation || "").toLowerCase();
@@ -307,7 +335,7 @@ export function ErrorNotebookView({
         top.includes(term)
       );
     });
-  }, [questions, filters.search]);
+  }, [questions, filters.search, quickCategory, recurrenceCountMap]);
 
   // Implementação da Sentinela de Rolagem com IntersectionObserver nativo
   useEffect(() => {
@@ -732,6 +760,36 @@ export function ErrorNotebookView({
                 <span>🎯 Modo Foco (1 por 1)</span>
               </button>
             </div>
+
+            {/* Pílulas de filtro rápido por Reincidência */}
+            <div className="hidden sm:flex items-center gap-1.5 border-l border-white/10 pl-2.5">
+              <button
+                type="button"
+                onClick={() => setQuickCategory("all")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  quickCategory === "all"
+                    ? "bg-white/15 text-white"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Todos
+              </button>
+              {recurrentErrorsCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setQuickCategory(quickCategory === "recurrent" ? "all" : "recurrent")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                    quickCategory === "recurrent"
+                      ? "bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-xs"
+                      : "text-slate-400 hover:text-amber-300"
+                  }`}
+                  title="Filtrar erros recorrentes com mais de 1 ocorrência"
+                >
+                  <Flame size={12} className="text-amber-400" />
+                  <span>Reincidentes (${recurrentErrorsCount})</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="text-xs text-slate-400 font-mono">
@@ -809,6 +867,7 @@ export function ErrorNotebookView({
                 <ErrorCard
                   errorItem={questions[focusIndex]}
                   index={focusIndex + 1}
+                  recurrentCount={recurrenceCountMap[(questions[focusIndex]?.questionText || "").trim().toLowerCase().slice(0, 100)] || 1}
                   onItemUpdated={handleItemUpdated}
                   onItemDeleted={(id) => {
                     handleItemDeleted(id);
@@ -834,6 +893,7 @@ export function ErrorNotebookView({
                   key={item.id}
                   index={idx + 1}
                   errorItem={item}
+                  recurrentCount={recurrenceCountMap[(item.questionText || "").trim().toLowerCase().slice(0, 100)] || 1}
                   onItemUpdated={handleItemUpdated}
                   onItemDeleted={handleItemDeleted}
                   isConvertingId={isConvertingId}

@@ -370,6 +370,8 @@ export default function QuestoesPage() {
     "banca",
   );
   const [dificuldade, setDificuldade] = useState("Média");
+  const [modoTempo, setModoTempo] = useState<"livre" | "oficial">("livre");
+  const [simuladoTimeLimitSeconds, setSimuladoTimeLimitSeconds] = useState<number | undefined>(undefined);
   const [userPlanTier, setUserPlanTier] = useState<string>("FREE");
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [upgradeContextMessage, setUpgradeContextMessage] = useState("");
@@ -1122,6 +1124,13 @@ export default function QuestoesPage() {
     e.preventDefault();
     if (subjects.length === 0) return;
 
+    // Configura o limite oficial de tempo de prova caso selecionado
+    if (modoTempo === "oficial") {
+      setSimuladoTimeLimitSeconds(Number(qtdQuestoes) * 3 * 60);
+    } else {
+      setSimuladoTimeLimitSeconds(undefined);
+    }
+
     // Dispara imediatamente o modal futurista e fecha a tela de configuração
     setIsAIModalOpen(false);
     setIsGenerating(true);
@@ -1638,6 +1647,7 @@ export default function QuestoesPage() {
           banca={banca}
           subject={materia || "Simulado"}
           questions={questions}
+          timeLimitSeconds={simuladoTimeLimitSeconds}
           strictAntiDistraction={searchParams.get("focus") === "true"}
           initialSelectedAnswers={selectedAnswers}
           initialCheckedQuestions={checkedQuestions}
@@ -2820,6 +2830,8 @@ export default function QuestoesPage() {
         onFormatoQuestaoChange={setFormatoQuestao}
         nivelCargo={nivelCargo}
         onNivelCargoChange={setNivelCargo}
+        modoTempo={modoTempo}
+        onModoTempoChange={setModoTempo}
         onResetFilters={handleResetGeneratorFilters}
         userPlanTier={userPlanTier}
         onOpenUpgradeModal={(msg) => {

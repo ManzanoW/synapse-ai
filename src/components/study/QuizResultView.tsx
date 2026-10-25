@@ -35,6 +35,7 @@ import {
   Gauge,
   Timer,
   Printer,
+  Download,
 } from "lucide-react";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 import { useGamification } from "@/context/GamificationContext";
@@ -111,6 +112,60 @@ export function QuizResultView({
 
   // Estados de navegação e filtros
   const [isPrintSummaryOpen, setIsPrintSummaryOpen] = useState(false);
+
+  const handleDownloadCSV = () => {
+    const headers = [
+      "Numero",
+      "Materia",
+      "Banca",
+      "Gabarito Oficial",
+      "Sua Resposta",
+      "Resultado",
+      "Enunciado Resumido",
+    ];
+    const rows = questions.map((q, idx) => {
+      const userAns = selectedAnswers[idx] || "Em branco";
+      const isCorrect = userAns === q.gabaritoCorreto;
+      const cleanEnunciado = (q.enunciado || "")
+        .replace(/[\r\n]+/g, " ")
+        .replace(/"/g, '""')
+        .slice(0, 160);
+      return [
+        idx + 1,
+        `"${(subject || "Geral").replace(/"/g, '""')}"`,
+        `"${(banca || "Geral").replace(/"/g, '""')}"`,
+        `"${q.gabaritoCorreto}"`,
+        `"${userAns}"`,
+        isCorrect ? "ACERTOU" : "ERROU",
+        `"${cleanEnunciado}"`,
+      ].join(",");
+    });
+
+    const summary = [
+      "",
+      "# RESUMO DE RENDIMENTO",
+      `Total de Questoes,${questions.length}`,
+      `Acertos,${correctCount}`,
+      `Erros,${wrongQuestions.length}`,
+      `Aproveitamento,${percentageAcc}%`,
+      `Tempo Total,${formatTimer(timerSeconds)}`,
+      `Data,${new Date().toLocaleDateString("pt-BR")}`,
+    ].join("\n");
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows, summary].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `simulado_${(banca || "geral").toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
 
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
@@ -708,6 +763,18 @@ export function QuizResultView({
               <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30">
                 G
               </kbd>
+            </button>
+            <button
+              onClick={() => {
+                triggerHaptic("light");
+                handleDownloadCSV();
+              }}
+              type="button"
+              className="flex-1 sm:flex-initial px-3.5 py-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+              title="Baixar planilha CSV (Excel / Notion) com gabarito e desempenho detalhado"
+            >
+              <Download size={13} className="text-slate-400" />
+              <span>Exportar CSV</span>
             </button>
             {onRetryWrongOnly && wrongQuestions.length > 0 && (
               <button

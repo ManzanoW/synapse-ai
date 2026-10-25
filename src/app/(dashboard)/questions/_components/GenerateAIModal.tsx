@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   ArrowRight,
   RotateCcw,
+  Clock,
 } from "lucide-react";
 
 interface SubjectItem {
@@ -48,6 +49,8 @@ interface GenerateAIModalProps {
   onFormatoQuestaoChange?: (val: "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos") => void;
   nivelCargo?: "medio" | "superior" | "juridico";
   onNivelCargoChange?: (val: "medio" | "superior" | "juridico") => void;
+  modoTempo?: "livre" | "oficial";
+  onModoTempoChange?: (val: "livre" | "oficial") => void;
   onSubmit: (e: React.FormEvent) => void;
   onResetFilters?: () => void;
   userPlanTier?: string;
@@ -80,6 +83,8 @@ export function GenerateAIModal({
   onFormatoQuestaoChange,
   nivelCargo = "superior",
   onNivelCargoChange,
+  modoTempo = "livre",
+  onModoTempoChange,
   onSubmit,
   onResetFilters,
   userPlanTier = "FREE",
@@ -530,6 +535,46 @@ export function GenerateAIModal({
                   <span>Modo Prova Extensa: treina sua estamina mental e gestão de tempo sob pressão real.</span>
                 </p>
               )}
+            </div>
+
+            {/* SELETOR DE MODO DE TEMPO / GESTÃO DE ESTAMINA */}
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Clock size={12} className="text-indigo-400" /> Modo de Tempo
+                </span>
+                <span className="text-[10px] text-indigo-400 font-normal">
+                  {modoTempo === "oficial"
+                    ? `${Number(qtdQuestoes) * 3} min (${Math.floor((Number(qtdQuestoes) * 3) / 60)}h ${(Number(qtdQuestoes) * 3) % 60}m)`
+                    : "Contagem livre"}
+                </span>
+              </label>
+              <div className="grid grid-cols-2 gap-1.5 bg-slate-950 border border-slate-800 p-1 rounded-xl items-center">
+                <button
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={() => onModoTempoChange?.("livre")}
+                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer ${
+                    modoTempo === "livre"
+                      ? "bg-indigo-600 text-slate-100 shadow-sm"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Livre (Sem Limite)
+                </button>
+                <button
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={() => onModoTempoChange?.("oficial")}
+                  className={`py-2 rounded-lg font-bold text-[10px] transition-all text-center cursor-pointer flex items-center justify-center gap-1 ${
+                    modoTempo === "oficial"
+                      ? "bg-indigo-600 text-slate-100 shadow-sm"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <span>⏱️ Oficial (3 min/qst)</span>
+                </button>
+              </div>
             </div>
 
             <button
