@@ -1332,6 +1332,13 @@ export function QuizResolutionView({
                               onClick={() =>
                                 !isEliminated && handleSelectAnswer(alt.id)
                               }
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                if (!isCurrentAnswered) {
+                                  toggleEliminateAlt(e, alt.id);
+                                }
+                              }
+                              }
                               type="button"
                               className={`w-full text-left p-4 sm:p-5 rounded-2xl border font-medium transition-all flex items-start justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] ${
                                 questionFontSize === "xlarge"
@@ -1414,12 +1421,16 @@ export function QuizResolutionView({
                       })
                     : ["Certo", "Errado"].map((opcao, altIdx) => {
                         const isSelected = currentSelectedAlt === opcao;
+                        const isEliminated = Boolean(currentEliminations[opcao]);
                         const atalhoNum = altIdx + 1;
 
                         let ceStyle =
                           "bg-slate-950/50 border-slate-800/80 hover:border-violet-500/50 hover:bg-violet-950/20 text-slate-200";
 
-                        if (isCurrentAnswered) {
+                        if (isEliminated && !isCurrentAnswered) {
+                          ceStyle =
+                            "opacity-30 line-through bg-slate-950/20 border-slate-900 text-slate-500";
+                        } else if (isCurrentAnswered) {
                           if (opcao === currentQuestion.gabaritoCorreto) {
                             ceStyle =
                               "bg-emerald-500/15 border-emerald-500/80 text-emerald-100 ring-1 ring-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.15)]";
@@ -1439,7 +1450,13 @@ export function QuizResolutionView({
                           <button
                             key={`ce-${opcao}`}
                             disabled={isCurrentAnswered}
-                            onClick={() => handleSelectAnswer(opcao)}
+                            onClick={() => !isEliminated && handleSelectAnswer(opcao)}
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              if (!isCurrentAnswered) {
+                                toggleEliminateAlt(e, opcao);
+                              }
+                            }}
                             type="button"
                             className={`w-full text-left p-4 sm:p-5 rounded-2xl border font-semibold transition-all flex items-center justify-between cursor-pointer disabled:cursor-default active:scale-[0.99] group ${
                               questionFontSize === "xlarge"
@@ -2324,6 +2341,11 @@ export function QuizResolutionView({
           <span className="flex items-center gap-1.5">
             <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-zinc-100">A-E</kbd>
             <span className="text-zinc-400">Escolher</span>
+          </span>
+          <span className="opacity-25 text-zinc-500">•</span>
+          <span className="flex items-center gap-1.5" title="Clique direito sobre qualquer alternativa para eliminá-la">
+            <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-zinc-100">Right-Click</kbd>
+            <span className="text-zinc-400">Riscar</span>
           </span>
           <span className="opacity-25 text-zinc-500">•</span>
           <span className="flex items-center gap-1.5">

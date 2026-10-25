@@ -67,6 +67,7 @@ export interface QuizResultViewProps {
     title?: string;
   } | null;
   onRestart: () => void;
+  onRetryWrongOnly?: (wrongQuestions: QuestaoIA[]) => void;
   onExit: () => void;
 }
 
@@ -101,6 +102,7 @@ export function QuizResultView({
   levelUpData,
   hesitantQuestions = {},
   onRestart,
+  onRetryWrongOnly,
   onExit,
 }: QuizResultViewProps) {
   const { stats } = useGamification();
@@ -144,6 +146,11 @@ export function QuizResultView({
   }, [questions, selectedAnswers]);
 
   const incorrectCount = totalQuestions - correctCount;
+  const wrongQuestions = useMemo(() => {
+    return questions.filter(
+      (q, idx) => selectedAnswers[idx] !== q.gabaritoCorreto
+    );
+  }, [questions, selectedAnswers]);
   const percentageAcc =
     totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
 
@@ -702,6 +709,17 @@ export function QuizResultView({
                 G
               </kbd>
             </button>
+            {onRetryWrongOnly && wrongQuestions.length > 0 && (
+              <button
+                onClick={() => onRetryWrongOnly(wrongQuestions)}
+                type="button"
+                className="flex-1 sm:flex-initial px-3.5 py-2 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+                title={`Iniciar mini-simulado focado nas ${wrongQuestions.length} questões incorretas`}
+              >
+                <RotateCcw size={13} className="text-rose-400" />
+                <span>Treinar Incorretas ({wrongQuestions.length})</span>
+              </button>
+            )}
             <button
               onClick={onRestart}
               type="button"
@@ -1464,6 +1482,30 @@ export function QuizResultView({
               </div>
               <ArrowRight size={13} className="text-slate-500 group-hover:text-indigo-300 group-hover:translate-x-0.5 transition-all shrink-0 ml-1.5" />
             </button>
+
+            {/* Card: Treinar Apenas as Erradas (Quando houver erros) */}
+            {onRetryWrongOnly && wrongQuestions.length > 0 && (
+              <button
+                onClick={() => onRetryWrongOnly(wrongQuestions)}
+                type="button"
+                className="flex-1 py-3 px-3.5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 hover:border-rose-500/40 transition-all flex items-center justify-between group cursor-pointer text-left shadow-xs active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-2 rounded-xl bg-rose-500/15 border border-rose-500/25 text-rose-300 group-hover:scale-105 transition-transform shrink-0">
+                    <RotateCcw size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold text-white group-hover:text-rose-300 transition-colors truncate">
+                      Treinar Incorretas ({wrongQuestions.length})
+                    </h4>
+                    <p className="text-[11px] text-slate-400 truncate">
+                      Re-ancoragem ativa imediata
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight size={13} className="text-slate-500 group-hover:text-rose-300 group-hover:translate-x-0.5 transition-all shrink-0 ml-1.5" />
+              </button>
+            )}
 
             {/* Card 1: Refazer Este Simulado (Compacto) */}
             <button
