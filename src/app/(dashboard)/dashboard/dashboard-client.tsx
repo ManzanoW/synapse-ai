@@ -20,6 +20,7 @@ import { GamificationCockpitCard } from "@/components/dashboard/GamificationCock
 import { LeagueWidgetCard } from "@/components/dashboard/LeagueWidgetCard";
 import { KeyMetricsCard } from "@/components/dashboard/KeyMetricsCard";
 import { QuickWeakSpotCard } from "@/components/dashboard/QuickWeakSpotCard";
+import { RecentErrorsCard } from "@/components/dashboard/RecentErrorsCard";
 import { useGamification } from "@/context/GamificationContext";
 
 // Lazy-loaded Modais & Overlays pesados para otimização de bundle e LCP
@@ -1199,6 +1200,11 @@ export default function DashboardClient({
                   {/* CARD DE ATAQUE RÁPIDO AO PONTO FRACO */}
                   {!isLoading && subjects.length > 0 && (
                     <QuickWeakSpotCard subjects={subjects} isLoading={isLoading} />
+                  )}
+
+                  {/* CARD DE ERROS RECENTES EM SIMULADOS */}
+                  {!isLoading && (
+                    <RecentErrorsCard />
                   )}
 
               {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
