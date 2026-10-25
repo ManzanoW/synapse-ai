@@ -118,6 +118,13 @@ export function ErrorNotebookView({
     }
   }, [questions.length, focusIndex]);
 
+
+
+  const handleOpenExportModal = useCallback((tab: "print" | "anki" | "notion" = "print") => {
+    setExportModalInitialTab(tab);
+    setIsExportModalOpen(true);
+  }, []);
+
   // Navegação por teclado no Modo Foco (Setas <- e ->)
   useEffect(() => {
     if (viewMode !== "focus") return;
@@ -138,17 +145,17 @@ export function ErrorNotebookView({
         e.preventDefault();
         setFocusIndex((prev) => Math.min(questions.length - 1, prev + 1));
         triggerHaptic("light");
+      } else if ((e.key === "p" || e.key === "P") && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        handleOpenExportModal("print");
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [viewMode, questions.length]);
+  }, [viewMode, questions.length, handleOpenExportModal]);
 
-  const handleOpenExportModal = useCallback((tab: "print" | "anki" | "notion" = "print") => {
-    setExportModalInitialTab(tab);
-    setIsExportModalOpen(true);
-  }, []);
+
 
   // Notificações Toast
   const [toastMessage, setToastMessage] = useState<{
@@ -674,6 +681,7 @@ export function ErrorNotebookView({
         onResetFilters={handleResetFilters}
         onStartRedemption={handleStartRedemption}
         isGeneratingRedemption={isGeneratingRedemption}
+        onOpenPrintModal={() => handleOpenExportModal("print")}
       />
 
       {/* 3. Indicador de Carregamento nos Filtros / Busca */}

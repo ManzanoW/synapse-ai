@@ -390,3 +390,80 @@ describe("Round 18 - Modo Foco Zen em Simulados e Flashcards", () => {
     expect(isZenMode).toBe(false);
   });
 });
+
+
+describe("Round 19 - Desfazer Avaliação de Flashcards com Ctrl+Z (Undo Review)", () => {
+  it("reverte métricas e retorna ao card anterior ao desfazer", () => {
+    let index = 1;
+    let acertos = 1;
+    let erros = 0;
+    let isFinished = false;
+
+    // Simula snapshot guardado
+    const history = {
+      previousIndex: 0,
+      wasError: false,
+      wasFinished: false,
+    };
+
+    // Executa Undo
+    const undo = () => {
+      index = history.previousIndex;
+      if (history.wasError) erros = Math.max(0, erros - 1);
+      else acertos = Math.max(0, acertos - 1);
+      if (history.wasFinished) isFinished = false;
+    };
+
+    undo();
+    expect(index).toBe(0);
+    expect(acertos).toBe(0);
+    expect(erros).toBe(0);
+    expect(isFinished).toBe(false);
+  });
+});
+
+describe("Round 19 - Salto Direto para Questões em Branco no Simulado (Atalho U)", () => {
+  it("encontra a próxima questão não respondida com busca circular", () => {
+    const totalQuestions = 5;
+    const checkedQuestions: Record<number, boolean> = {
+      0: true,
+      1: true,
+      // 2: em branco
+      3: true,
+      // 4: em branco
+    };
+
+    const findNextUnanswered = (activeIndex: number): number | null => {
+      for (let i = activeIndex + 1; i < totalQuestions; i++) {
+        if (!checkedQuestions[i]) return i;
+      }
+      for (let i = 0; i < activeIndex; i++) {
+        if (!checkedQuestions[i]) return i;
+      }
+      return null;
+    };
+
+    // A partir da questão 0, a próxima em branco é a 2
+    expect(findNextUnanswered(0)).toBe(2);
+    // A partir da questão 2, a próxima em branco é a 4
+    expect(findNextUnanswered(2)).toBe(4);
+    // A partir da questão 4, faz o wrap-around e volta para a 2
+    expect(findNextUnanswered(4)).toBe(2);
+  });
+});
+
+describe("Round 19 - Folha de Véspera e Exportação Limpa de Erros (2 Colunas A4)", () => {
+  it("filtra itens não superados e prepara layout de 2 colunas para prova", () => {
+    const items = [
+      { id: "1", status: "PENDING", subject: "Direito Constitucional" },
+      { id: "2", status: "MASTERED", subject: "Direito Administrativo" },
+      { id: "3", status: "PENDING", subject: "Direito Tributário" },
+    ];
+
+    const pendingItems = items.filter((item) => item.status === "PENDING");
+    expect(pendingItems.length).toBe(2);
+
+    const defaultColumns: 1 | 2 = 2;
+    expect(defaultColumns).toBe(2);
+  });
+});

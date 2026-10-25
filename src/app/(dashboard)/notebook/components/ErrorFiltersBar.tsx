@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, Filter, BookOpen, Brain, CheckCircle, Clock, X, ShieldCheck, Loader2, Timer } from "lucide-react";
+import { Search, Filter, BookOpen, Brain, CheckCircle, Clock, X, ShieldCheck, Loader2, Timer, Printer } from "lucide-react";
 import { ErrorNotebookFilters } from "@/types/quiz";
 import { TAXONOMY_METADATA } from "@/lib/error-taxonomy";
 
@@ -18,6 +18,7 @@ interface ErrorFiltersBarProps {
   onResetFilters: () => void;
   onStartRedemption?: (count?: number) => Promise<void> | void;
   isGeneratingRedemption?: boolean;
+  onOpenPrintModal?: () => void;
 }
 
 export function ErrorFiltersBar({
@@ -27,6 +28,7 @@ export function ErrorFiltersBar({
   onResetFilters,
   onStartRedemption,
   isGeneratingRedemption = false,
+  onOpenPrintModal,
 }: ErrorFiltersBarProps) {
   const [searchValue, setSearchValue] = React.useState(filters.search || "");
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
@@ -228,6 +230,22 @@ export function ErrorFiltersBar({
                   <span>Redenção desta Matéria</span>
                 </>
               )}
+            </button>
+          )}
+
+          {/* Botão de Exportação / Impressão Folha de Véspera (PDF A4) */}
+          {onOpenPrintModal && (
+            <button
+              onClick={onOpenPrintModal}
+              type="button"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 rounded-xl transition-all cursor-pointer min-h-[44px] shadow-xs active:scale-95"
+              title="Visualizar e Imprimir Folha de Erros para Véspera em PDF A4 (Atalho: P)"
+            >
+              <Printer size={13} className="text-violet-400" />
+              <span className="hidden sm:inline">Folha de Véspera (PDF/A4)</span>
+              <kbd className="hidden md:inline-block px-1 py-0.2 text-[9px] font-mono font-bold bg-white/10 text-zinc-300 rounded border border-white/10">
+                P
+              </kbd>
             </button>
           )}
 

@@ -174,6 +174,7 @@ export function QuizResolutionView({
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [filterOnlyFlagged, setFilterOnlyFlagged] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
+  const [unansweredToastMessage, setUnansweredToastMessage] = useState<string | null>(null);
 
   // Salvamento contínuo em background para resiliência total contra quedas de bateria/conexão
   useEffect(() => {
@@ -602,6 +603,37 @@ export function QuizResolutionView({
     }
   };
 
+  // Salto rápido para a próxima questão não respondida (em branco)
+  const handleJumpToNextUnanswered = useCallback(() => {
+    if (totalQuestions === 0) return;
+
+    for (let i = activeQuestionIndex + 1; i < totalQuestions; i++) {
+      if (!checkedQuestions[i]) {
+        triggerHaptic("light");
+        navigateTo(i);
+        return;
+      }
+    }
+
+    for (let i = 0; i < activeQuestionIndex; i++) {
+      if (!checkedQuestions[i]) {
+        triggerHaptic("light");
+        navigateTo(i);
+        return;
+      }
+    }
+
+    if (!checkedQuestions[activeQuestionIndex]) {
+      setUnansweredToastMessage("Esta é a última questão pendente!");
+      setTimeout(() => setUnansweredToastMessage(null), 3000);
+      return;
+    }
+
+    triggerHaptic("success");
+    setUnansweredToastMessage("Todas as questões já foram respondidas!");
+    setTimeout(() => setUnansweredToastMessage(null), 3000);
+  }, [totalQuestions, activeQuestionIndex, checkedQuestions, navigateTo]);
+
   // Atalhos de teclado Turbo (Desktop)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -685,6 +717,13 @@ export function QuizResolutionView({
         return;
       }
 
+      // Atalho U: Pular para próxima questão não respondida (em branco)
+      if (keyUpper === "U") {
+        e.preventDefault();
+        handleJumpToNextUnanswered();
+        return;
+      }
+
       // Atalho Z: Alternar Modo Foco Zen
       if (keyUpper === "Z") {
         e.preventDefault();
@@ -749,6 +788,7 @@ export function QuizResolutionView({
     onCreateFlashcard,
     isCreatingFlashcard,
     handlePromptFinalize,
+    handleJumpToNextUnanswered,
   ]);
 
   if (isPrintMode) {
@@ -944,6 +984,14 @@ export function QuizResolutionView({
         </div>
       </header>
 
+      {/* Toast sutil de status das questões em branco */}
+      {unansweredToastMessage && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-emerald-950/90 border border-emerald-500/40 text-emerald-200 text-xs font-bold shadow-2xl backdrop-blur-md animate-fade-in flex items-center gap-2 pointer-events-none">
+          <CheckCircle2 size={14} className="text-emerald-400" />
+          <span>{unansweredToastMessage}</span>
+        </div>
+      )}
+
       {/* Banner discreto de status do Modo Foco Zen */}
       {isZenMode && (
         <div className="w-full bg-violet-950/70 border-b border-violet-500/25 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-violet-200 backdrop-blur-md sticky top-0 z-20 transition-all duration-300">
@@ -1001,6 +1049,19 @@ export function QuizResolutionView({
             <span className="text-zinc-400">
               {answeredCount}/{totalQuestions}
             </span>
+            {totalQuestions - answeredCount > 0 && (
+              <button
+                type="button"
+                onClick={handleJumpToNextUnanswered}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-mono bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all cursor-pointer active:scale-95"
+                title="Pular direto para a próxima questão em branco (Atalho: U)"
+              >
+                <span>{totalQuestions - answeredCount} em branco</span>
+                <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] bg-amber-500/20 rounded border border-amber-500/30 font-bold">
+                  U
+                </kbd>
+              </button>
+            )}
             {answeredCount > 0 && (
               <span className={`px-2 py-0.5 rounded-md text-[11px] ${
                 percentageAcc >= 70 ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
@@ -2346,6 +2407,11 @@ export function QuizResolutionView({
           <span className="flex items-center gap-1.5" title="Clique direito sobre qualquer alternativa para eliminá-la">
             <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-zinc-100">Right-Click</kbd>
             <span className="text-zinc-400">Riscar</span>
+          </span>
+          <span className="opacity-25 text-zinc-500">•</span>
+          <span className="flex items-center gap-1.5" title="Pular para a próxima questão em branco (Atalho: U)">
+            <kbd className="font-mono text-[10px] font-bold bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-zinc-100">U</kbd>
+            <span className="text-zinc-400">Em branco</span>
           </span>
           <span className="opacity-25 text-zinc-500">•</span>
           <span className="flex items-center gap-1.5">

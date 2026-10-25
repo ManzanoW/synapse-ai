@@ -106,6 +106,13 @@ export default function StudyFlashcard({
   const [isZenMode, setIsZenMode] = useState(false);
   const isDraggingRef = useRef(false);
   const cardStartTimeRef = useRef(0);
+  const lastReviewHistoryRef = useRef<{
+    previousIndex: number;
+    grade: ReviewGrade;
+    xpDelta: number;
+    wasFinished: boolean;
+    wasError: boolean;
+  } | null>(null);
 
   const { isOnline, pendingCount, isSyncing, triggerSync } = useOfflineSync();
 
@@ -344,6 +351,14 @@ export default function StudyFlashcard({
       // Requisito 3: +5 XP se errou (nota 1), +13 XP se acertou (notas 2, 3, 4)
       const xpDelta = grade === 1 ? 5 : 13;
 
+      lastReviewHistoryRef.current = {
+        previousIndex: currentIndex,
+        grade,
+        xpDelta,
+        wasFinished: isLastCard,
+        wasError: grade < 3,
+      };
+
       // 2. Transição instantânea visual do card
       setIsFlipped(false);
 
@@ -516,6 +531,33 @@ export default function StudyFlashcard({
     toggleFlip();
   };
 
+  const handleUndoReview = useCallback(() => {
+    const history = lastReviewHistoryRef.current;
+    if (!history) return;
+
+    triggerHaptic("medium");
+    lastReviewHistoryRef.current = null;
+
+    setPerformanceStats((prev) => ({
+      acertos: history.wasError ? prev.acertos : Math.max(0, prev.acertos - 1),
+      erros: history.wasError ? Math.max(0, prev.erros - 1) : prev.erros,
+    }));
+
+    if (history.wasFinished) {
+      setIsFinished(false);
+    }
+
+    setIndex(history.previousIndex);
+    setIsFlipped(false);
+
+    startTransition(() => {
+      setOptimisticStudy({
+        nextIndex: history.previousIndex,
+        xpDelta: -history.xpDelta,
+      });
+    });
+  }, [setOptimisticStudy]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Evita acionar atalhos caso o foco esteja em algum input
@@ -523,6 +565,13 @@ export default function StudyFlashcard({
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
       ) {
+        return;
+      }
+
+      // Atalho Ctrl+Z / Cmd+Z: Desfazer última avaliação de cartão
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        handleUndoReview();
         return;
       }
 
@@ -587,6 +636,7 @@ export default function StudyFlashcard({
     showEbbinghausCurve,
     setShowEbbinghausCurve,
     setIsZenMode,
+    handleUndoReview,
   ]);
 
   if (!cards || cards.length === 0) {
