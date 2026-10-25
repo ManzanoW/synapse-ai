@@ -198,6 +198,59 @@ describe("Flashcards - Meta Diária de Revisão", () => {
   });
 });
 
+describe("Flashcards - Exportação CSV RFC 4180", () => {
+  const escapeCSV = (val: string | number | null | undefined): string => {
+    if (val === null || val === undefined) return '""';
+    const str = String(val).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
+  it("escapa aspas duplas e envolve valores com aspas conforme RFC 4180", () => {
+    expect(escapeCSV("Texto normal")).toBe('"Texto normal"');
+    expect(escapeCSV('Texto com "aspas"')).toBe('"Texto com ""aspas"""');
+    expect(escapeCSV("Texto\ncom\nlinhas")).toBe('"Texto\ncom\nlinhas"');
+    expect(escapeCSV(42)).toBe('"42"');
+    expect(escapeCSV(null)).toBe('""');
+  });
+});
+
+describe("Navegação Sequencial J/K na Revisão de Questões", () => {
+  const getNextIndex = (
+    currentIdx: number | null,
+    list: number[]
+  ): number => {
+    if (list.length === 0) return 0;
+    if (currentIdx === null) return list[0];
+    const pos = list.indexOf(currentIdx);
+    if (pos === -1 || pos >= list.length - 1) return list[list.length - 1];
+    return list[pos + 1];
+  };
+
+  const getPrevIndex = (
+    currentIdx: number | null,
+    list: number[]
+  ): number => {
+    if (list.length === 0) return 0;
+    if (currentIdx === null) return list[list.length - 1];
+    const pos = list.indexOf(currentIdx);
+    if (pos <= 0) return list[0];
+    return list[pos - 1];
+  };
+
+  it("avança e retrocede respeitando os limites da lista", () => {
+    const questions = [0, 1, 2, 3];
+    expect(getNextIndex(null, questions)).toBe(0);
+    expect(getNextIndex(0, questions)).toBe(1);
+    expect(getNextIndex(2, questions)).toBe(3);
+    expect(getNextIndex(3, questions)).toBe(3); // Clamped
+
+    expect(getPrevIndex(null, questions)).toBe(3);
+    expect(getPrevIndex(3, questions)).toBe(2);
+    expect(getPrevIndex(1, questions)).toBe(0);
+    expect(getPrevIndex(0, questions)).toBe(0); // Clamped
+  });
+});
+
 describe("Gabarito Executivo A4 - Métricas e Auditoria", () => {
   it("calcula taxa de aproveitamento e ritmo médio por questão", () => {
     const totalQuestions = 10;
