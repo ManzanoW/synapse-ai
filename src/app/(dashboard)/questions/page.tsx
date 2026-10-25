@@ -1796,6 +1796,20 @@ export default function QuestoesPage() {
                 setIsTimerRunning(true);
                 setShowCompletionModal(false);
               }}
+              onRetryWrongOnly={(wrongQuestions) => {
+                setQuestions(wrongQuestions);
+                setSelectedAnswers({});
+                setCheckedQuestions({});
+                setFlaggedQuestions({});
+                setErrorClassifications({});
+                setTimerSeconds(0);
+                setIsTimerRunning(true);
+                setShowCompletionModal(false);
+                setFocusedQuestionIndex(0);
+                if (typeof window !== 'undefined') {
+                  localStorage.removeItem('synapse_active_quiz_autosave');
+                }
+              }}
               onExit={() => {
                 setQuestions([]);
                 setSelectedAnswers({});

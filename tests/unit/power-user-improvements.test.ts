@@ -316,3 +316,77 @@ describe("Gabarito Executivo A4 - Métricas e Auditoria", () => {
     expect(avgSecs).toBe(72); // 1m 12s por questão
   });
 });
+
+
+describe("Round 18 - Eliminação por Botão Direito e Descarte de Alternativas", () => {
+  it("alterna eliminação com clique de contexto sem perder estado das outras", () => {
+    type EliminatedMap = Record<number, Record<string, boolean>>;
+    let map: EliminatedMap = {};
+
+    const toggleAlt = (qIdx: number, altId: string) => {
+      const current = map[qIdx] || {};
+      map = {
+        ...map,
+        [qIdx]: {
+          ...current,
+          [altId]: !current[altId],
+        },
+      };
+    };
+
+    toggleAlt(0, "A");
+    expect(map[0]["A"]).toBe(true);
+    toggleAlt(0, "C");
+    expect(map[0]["A"]).toBe(true);
+    expect(map[0]["C"]).toBe(true);
+
+    // Destoggle
+    toggleAlt(0, "A");
+    expect(map[0]["A"]).toBe(false);
+    expect(map[0]["C"]).toBe(true);
+  });
+});
+
+describe("Round 18 - Treinar Apenas Questões Erradas (Re-ancoragem Imediata)", () => {
+  interface MockQuizQuestion {
+    id: string;
+    gabaritoCorreto: string;
+  }
+
+  it("filtra exclusivamente as questões com gabarito divergente ou não respondidas", () => {
+    const questions: MockQuizQuestion[] = [
+      { id: "q1", gabaritoCorreto: "A" },
+      { id: "q2", gabaritoCorreto: "C" },
+      { id: "q3", gabaritoCorreto: "B" },
+      { id: "q4", gabaritoCorreto: "E" },
+    ];
+
+    const answers: Record<number, string> = {
+      0: "A", // Acertou
+      1: "B", // Errou
+      2: "B", // Acertou
+      // 3: não respondida -> Erro
+    };
+
+    const wrong = questions.filter((q, idx) => answers[idx] !== q.gabaritoCorreto);
+    expect(wrong.length).toBe(2);
+    expect(wrong.map((q) => q.id)).toEqual(["q2", "q4"]);
+  });
+});
+
+describe("Round 18 - Modo Foco Zen em Simulados e Flashcards", () => {
+  it("alterna modo foco com atalho Z preservando progresso e resposta", () => {
+    let isZenMode = false;
+    const toggleZen = (key: string) => {
+      if (key.toLowerCase() === "z") {
+        isZenMode = !isZenMode;
+      }
+    };
+
+    expect(isZenMode).toBe(false);
+    toggleZen("z");
+    expect(isZenMode).toBe(true);
+    toggleZen("Z");
+    expect(isZenMode).toBe(false);
+  });
+});

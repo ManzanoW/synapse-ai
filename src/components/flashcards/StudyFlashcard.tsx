@@ -31,6 +31,7 @@ import {
   Headphones,
   Clock,
   Volume2,
+  Focus,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -102,6 +103,7 @@ export default function StudyFlashcard({
   const [showEbbinghausCurve, setShowEbbinghausCurve] = useState(false);
   const [isAudioPlayerOpen, setIsAudioPlayerOpen] = useState(false);
   const [isAutoAudioEnabled, setIsAutoAudioEnabled] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false);
   const isDraggingRef = useRef(false);
   const cardStartTimeRef = useRef(0);
 
@@ -564,6 +566,13 @@ export default function StudyFlashcard({
         setIsAudioPlayerOpen((prev) => !prev);
         return;
       }
+
+      // Atalho Z: Alternar Modo Foco Zen
+      if (e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        setIsZenMode((prev) => !prev);
+        return;
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -577,6 +586,7 @@ export default function StudyFlashcard({
     setIsAudioPlayerOpen,
     showEbbinghausCurve,
     setShowEbbinghausCurve,
+    setIsZenMode,
   ]);
 
   if (!cards || cards.length === 0) {
@@ -763,7 +773,31 @@ export default function StudyFlashcard({
               </Link>
 
               <div className="flex items-center gap-2 shrink-0">
-                {(!isOnline || pendingCount > 0) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setIsZenMode((prev) => !prev);
+                  }}
+                  aria-label={isZenMode ? "Desativar Modo Foco Zen (Atalho: Z)" : "Ativar Modo Foco Zen (Atalho: Z)"}
+                  className={`min-h-[36px] inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition-all shadow-xs cursor-pointer active:scale-95 ${
+                    isZenMode
+                      ? "bg-violet-600/30 text-violet-300 border border-violet-400/50 shadow-md shadow-violet-950/40 ring-1 ring-violet-400"
+                      : isLight
+                        ? "bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700"
+                        : "bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white"
+                  }`}
+                  title={isZenMode ? "Desativar Modo Foco Zen (Atalho: Z)" : "Ativar Modo Foco Zen (Atalho: Z)"}
+                >
+                  <Focus size={13} className={isZenMode ? "text-violet-300" : isLight ? "text-slate-600" : "text-zinc-400"} />
+                  <span className="hidden sm:inline">{isZenMode ? "Modo Zen" : "Zen"}</span>
+                  <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] font-mono font-bold bg-white/10 text-zinc-300 rounded border border-white/10">
+                    Z
+                  </kbd>
+                </button>
+                {!isZenMode && (
+                  <>
+                    {(!isOnline || pendingCount > 0) && (
                   <button
                     type="button"
                     onClick={triggerSync}
@@ -853,6 +887,8 @@ export default function StudyFlashcard({
                   <span className="hidden sm:inline">~{Math.max(1, Math.round((Math.max(1, cards.length - currentIndex) * 22) / 60))} min restantes</span>
                   <span className="sm:hidden">~{Math.max(1, Math.round((Math.max(1, cards.length - currentIndex) * 22) / 60))}m</span>
                 </div>
+                  </>
+                )}
 
                 <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-mono shadow-inner ${
                   isLight
