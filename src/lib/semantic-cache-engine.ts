@@ -6,7 +6,7 @@
 // 3. Flashcards FSRS
 // 4. Editais Verticalizados por Cargo/Carreira
 
-export type DifficultyTier = "EASY" | "MEDIUM" | "HARD";
+export type DifficultyTier = "EASY" | "MEDIUM" | "HARD" | "EXTREME";
 
 const STOPWORDS_PT = new Set([
   "de", "da", "do", "das", "dos", "em", "na", "no", "nas", "nos", "para", "por",
@@ -77,6 +77,15 @@ export function normalizeDifficultyTier(rawDifficulty?: string | null): Difficul
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
+
+  if (
+    norm.includes("extrema") ||
+    norm.includes("extreme") ||
+    norm.includes("elite") ||
+    norm.includes("perito")
+  ) {
+    return "EXTREME";
+  }
 
   if (
     norm.includes("facil") ||

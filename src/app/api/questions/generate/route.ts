@@ -144,7 +144,7 @@ export async function POST(request: Request) {
         materia,
         topicoId,
         banca,
-        qtdQuestoes: Math.min(Math.max(parseInt(String(qtdQuestoes || 5), 10), 1), 30),
+        qtdQuestoes: Math.min(Math.max(parseInt(String(qtdQuestoes || 5), 10), 1), 60),
       });
 
       return NextResponse.json(

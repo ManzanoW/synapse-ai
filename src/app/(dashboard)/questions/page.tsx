@@ -55,6 +55,8 @@ import { QuestionMinimap } from "./_components/QuestionMinimap";
 import { TimedLaunchModal } from "./_components/TimedLaunchModal";
 import { TimedPacingModal } from "./_components/TimedPacingModal";
 import { SimuladoGenerationModal } from "@/components/study/SimuladoGenerationModal";
+import { FreeQuotaModal } from "@/components/quota/FreeQuotaModal";
+import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 import { OpticalAnswerSheetModal } from "@/components/questions/OpticalAnswerSheetModal";
 import { SpeedQuizModal } from "@/components/questions/SpeedQuizModal";
@@ -368,6 +370,19 @@ export default function QuestoesPage() {
     "banca",
   );
   const [dificuldade, setDificuldade] = useState("Média");
+  const [userPlanTier, setUserPlanTier] = useState<string>("FREE");
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [upgradeContextMessage, setUpgradeContextMessage] = useState("");
+
+  useEffect(() => {
+    getAiQuotaStatusAction()
+      .then((res) => {
+        if (res.success && res.data) {
+          setUserPlanTier(res.data.planTier || (res.data.isUnlimited ? "ELITE" : "FREE"));
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [formatoQuestao, setFormatoQuestao] = useState<
     "auto" | "certo_errado" | "multipla_4" | "multipla_5" | "casos_praticos"
   >("auto");
@@ -2806,7 +2821,19 @@ export default function QuestoesPage() {
         nivelCargo={nivelCargo}
         onNivelCargoChange={setNivelCargo}
         onResetFilters={handleResetGeneratorFilters}
+        userPlanTier={userPlanTier}
+        onOpenUpgradeModal={(msg) => {
+          setUpgradeContextMessage(msg);
+          setIsUpgradeModalOpen(true);
+        }}
         onSubmit={handleGenerateSimulado}
+      />
+
+      <FreeQuotaModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        feature="SIMULADO"
+        contextMessage={upgradeContextMessage}
       />
 
       <SimuladoGenerationModal

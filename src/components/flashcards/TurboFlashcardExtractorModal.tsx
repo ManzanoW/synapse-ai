@@ -26,6 +26,7 @@ import {
   extractTurboFlashcardsAction,
   ExtractTurboFlashcardsResult,
 } from "@/actions/flashcard-actions";
+import { DifficultyTier } from "@/lib/semantic-cache-engine";
 
 interface TurboFlashcardExtractorModalProps {
   isOpen: boolean;
@@ -71,7 +72,7 @@ export function TurboFlashcardExtractorModal({
   const [mode, setMode] = useState<
     "CLOZE_AND_CONCEPTS" | "LAW_EXCEPTIONS" | "DEADLINES_AND_NUMBERS"
   >("CLOZE_AND_CONCEPTS");
-  const [difficulty, setDifficulty] = useState<"EASY" | "MEDIUM" | "HARD">("MEDIUM");
+  const [difficulty, setDifficulty] = useState<DifficultyTier>("MEDIUM");
   const [selectedDeckId, setSelectedDeckId] = useState<string>("");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -108,7 +109,7 @@ export function TurboFlashcardExtractorModal({
   };
 
   const handleGenerate = async (
-    overrideDifficulty?: "EASY" | "MEDIUM" | "HARD",
+    overrideDifficulty?: DifficultyTier,
     forceRegenerateAI?: boolean,
   ) => {
     if (!rawText.trim() || rawText.trim().length < 25) {

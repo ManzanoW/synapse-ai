@@ -50,6 +50,8 @@ interface GenerateAIModalProps {
   onNivelCargoChange?: (val: "medio" | "superior" | "juridico") => void;
   onSubmit: (e: React.FormEvent) => void;
   onResetFilters?: () => void;
+  userPlanTier?: string;
+  onOpenUpgradeModal?: (contextMessage: string) => void;
 }
 
 export function GenerateAIModal({
@@ -80,6 +82,8 @@ export function GenerateAIModal({
   onNivelCargoChange,
   onSubmit,
   onResetFilters,
+  userPlanTier = "FREE",
+  onOpenUpgradeModal,
 }: GenerateAIModalProps) {
   React.useEffect(() => {
     if (!isOpen) return;
@@ -93,6 +97,36 @@ export function GenerateAIModal({
   }, [isOpen, isGenerating, onClose]);
 
   if (!isOpen) return null;
+
+  const isProOrElite =
+    userPlanTier === "PRO" ||
+    userPlanTier === "ELITE" ||
+    userPlanTier === "ADMIN";
+
+  const handleSelectDificuldade = (nivel: string) => {
+    if (nivel === "Extrema" && !isProOrElite) {
+      if (onOpenUpgradeModal) {
+        onOpenUpgradeModal(
+          "A Dificuldade Extrema (Jurisprudência STF/STJ & Casos Práticos) é exclusiva dos assinantes Pro e Elite."
+        );
+      }
+      return;
+    }
+    onDificuldadeChange(nivel);
+  };
+
+  const handleSelectQtd = (num: string) => {
+    const val = Number(num);
+    if (val > 30 && !isProOrElite) {
+      if (onOpenUpgradeModal) {
+        onOpenUpgradeModal(
+          `Simulados de ${num} questões (Treino de Resistência de Prova) são exclusivos dos assinantes Pro e Elite.`
+        );
+      }
+      return;
+    }
+    onQtdQuestoesChange(num);
+  };
 
   const hasNoSubjects = subjects.length === 0;
 
@@ -420,46 +454,82 @@ export function GenerateAIModal({
               <label className="text-slate-400 font-semibold uppercase tracking-wider block">
                 Dificuldade
               </label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {["Fácil", "Média", "Difícil", "Aleatória"].map((nivel) => (
-                  <button
-                    key={`diff-${nivel}`}
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={() => onDificuldadeChange(nivel)}
-                    className={`py-2.5 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer ${
-                      dificuldade === nivel
-                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
-                        : "bg-slate-950 border-slate-800 text-slate-400"
-                    }`}
-                  >
-                    {nivel}
-                  </button>
-                ))}
+              <div className="grid grid-cols-5 gap-1.5">
+                {["Fácil", "Média", "Difícil", "Extrema", "Aleatória"].map((nivel) => {
+                  const isExtrema = nivel === "Extrema";
+                  const isSelected = dificuldade === nivel;
+                  return (
+                    <button
+                      key={`diff-${nivel}`}
+                      type="button"
+                      disabled={isGenerating}
+                      onClick={() => handleSelectDificuldade(nivel)}
+                      className={`py-2 rounded-xl border font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                        isSelected
+                          ? isExtrema
+                            ? "bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500 shadow-md shadow-amber-950/40"
+                            : "bg-indigo-600/20 border-indigo-500 text-indigo-300"
+                          : isExtrema
+                            ? "bg-amber-950/20 border-amber-500/30 text-amber-400/90 hover:bg-amber-950/40"
+                            : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white"
+                      }`}
+                      title={isExtrema ? "Extrema: Casos práticos complexos e jurisprudência STF/STJ (Exclusivo Pro/Elite)" : undefined}
+                    >
+                      <span>{nivel}</span>
+                      {isExtrema && <span className="text-[9px]">👑</span>}
+                    </button>
+                  );
+                })}
               </div>
+              {dificuldade === "Extrema" && (
+                <p className="text-[11px] text-amber-300/90 mt-1 flex items-center gap-1 leading-tight">
+                  <span>👑</span>
+                  <span>Dificuldade Extrema: Casos práticos, súmulas e teses jurisprudenciais recentes do STF/STJ.</span>
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5 border-t border-slate-900 pt-3">
               <label className="text-slate-400 font-semibold uppercase tracking-wider block">
                 Volume
               </label>
-              <div className="grid grid-cols-5 gap-1.5">
-                {["5", "10", "15", "20", "30"].map((num) => (
-                  <button
-                    key={`qtd-${num}`}
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={() => onQtdQuestoesChange(num)}
-                    className={`py-2.5 rounded-xl border font-bold text-xs transition-all cursor-pointer ${
-                      qtdQuestoes === num
-                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
-                        : "bg-slate-950 border-slate-800 text-slate-400"
-                    }`}
-                  >
-                    {num === "30" ? "30 🏆" : `${num} Q`}
-                  </button>
-                ))}
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                {["5", "10", "15", "20", "30", "40", "50", "60"].map((num) => {
+                  const isProQtd = Number(num) > 30;
+                  const isSelected = qtdQuestoes === num;
+                  return (
+                    <button
+                      key={`qtd-${num}`}
+                      type="button"
+                      disabled={isGenerating}
+                      onClick={() => handleSelectQtd(num)}
+                      className={`py-2.5 rounded-xl border font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                        isSelected
+                          ? isProQtd
+                            ? "bg-violet-600/25 border-violet-500 text-violet-200 ring-1 ring-violet-500 shadow-md shadow-violet-950/40"
+                            : "bg-indigo-600/20 border-indigo-500 text-indigo-300"
+                          : isProQtd
+                            ? "bg-violet-950/20 border-violet-500/30 text-violet-400/90 hover:bg-violet-950/40"
+                            : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white"
+                      }`}
+                      title={isProQtd ? `Simulado Extenso (${num} questões) - Exclusivo Pro/Elite` : undefined}
+                    >
+                      <span>{num}</span>
+                      {isProQtd ? (
+                        <span className="text-[9px]">👑</span>
+                      ) : num === "30" ? (
+                        <span className="text-[10px]">🏆</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
+              {Number(qtdQuestoes) >= 40 && (
+                <p className="text-[11px] text-violet-300/90 mt-1 flex items-center gap-1 leading-tight">
+                  <span>👑</span>
+                  <span>Modo Prova Extensa: treina sua estamina mental e gestão de tempo sob pressão real.</span>
+                </p>
+              )}
             </div>
 
             <button

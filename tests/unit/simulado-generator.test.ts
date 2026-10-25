@@ -24,12 +24,12 @@ describe("Simulado Generator Engine", () => {
       expect(calculateBatchSizes(5, 5)).toEqual([5]);
     });
 
-    it("deve limitar o total entre 1 e 30 por segurança", () => {
+    it("deve limitar o total entre 1 e 60 por segurança", () => {
       const zeroBatch = calculateBatchSizes(0, 5);
       expect(zeroBatch.reduce((a, b) => a + b, 0)).toBe(1);
 
       const hugeBatch = calculateBatchSizes(100, 5);
-      expect(hugeBatch.reduce((a, b) => a + b, 0)).toBe(30);
+      expect(hugeBatch.reduce((a, b) => a + b, 0)).toBe(60);
     });
   });
 
