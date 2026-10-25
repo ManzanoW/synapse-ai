@@ -30,6 +30,7 @@ import {
   RefreshCw,
   Headphones,
   Clock,
+  Volume2,
 } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
@@ -100,10 +101,12 @@ export default function StudyFlashcard({
   const [meritEarnedMessage, setMeritEarnedMessage] = useState<string | null>(null);
   const [showEbbinghausCurve, setShowEbbinghausCurve] = useState(false);
   const [isAudioPlayerOpen, setIsAudioPlayerOpen] = useState(false);
+  const [isAutoAudioEnabled, setIsAutoAudioEnabled] = useState(false);
   const isDraggingRef = useRef(false);
   const cardStartTimeRef = useRef(0);
 
   const { isOnline, pendingCount, isSyncing, triggerSync } = useOfflineSync();
+
 
   // Escuta acionamento global do modo áudio pela Command Palette
   useEffect(() => {
@@ -198,6 +201,34 @@ export default function StudyFlashcard({
   const currentCard = cards[currentIndex];
   const progress =
     cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
+
+  // Auto-Áudio: narra a frente do cartão automaticamente ao avançar
+  useEffect(() => {
+    if (!isAutoAudioEnabled || isFinished || !cards[currentIndex]) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    window.speechSynthesis.cancel();
+    const frontText = cards[currentIndex].front || cards[currentIndex].question || "";
+    if (!frontText) return;
+
+    const utterance = new SpeechSynthesisUtterance(frontText);
+    utterance.lang = "pt-BR";
+    utterance.rate = 1.1;
+
+    const voices = window.speechSynthesis.getVoices();
+    const ptVoice = voices.find(
+      (v) => v.lang === "pt-BR" || v.lang.startsWith("pt")
+    );
+    if (ptVoice) utterance.voice = ptVoice;
+
+    window.speechSynthesis.speak(utterance);
+
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [currentIndex, isAutoAudioEnabled, isFinished, cards]);
 
   // Estado local para mnemônicos gerados durante a sessão
   const [mnemonicOverrides, setMnemonicOverrides] = useState<Record<string, string>>({});
@@ -752,6 +783,29 @@ export default function StudyFlashcard({
                     )}
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setIsAutoAudioEnabled((prev) => !prev);
+                  }}
+                  aria-label="Alternar leitura automática da pergunta do cartão em voz alta"
+                  className={`min-h-[36px] inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition-all shadow-xs cursor-pointer active:scale-95 ${
+                    isAutoAudioEnabled
+                      ? "bg-violet-600 text-white shadow-md shadow-violet-900/40"
+                      : isLight
+                        ? "bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700"
+                        : "bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white"
+                  }`}
+                  title="Auto-Voz: lê em voz alta a pergunta assim que o cartão aparecer"
+                >
+                  <Volume2 size={13} className={isAutoAudioEnabled ? "text-white" : "text-violet-400"} />
+                  <span className="hidden sm:inline">Auto-Voz</span>
+                  {isAutoAudioEnabled && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
+                </button>
 
                 <button
                   type="button"

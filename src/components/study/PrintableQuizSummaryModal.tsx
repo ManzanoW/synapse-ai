@@ -11,6 +11,7 @@ import {
   Clock,
   Target,
   Trophy,
+  Leaf,
 } from "lucide-react";
 import { QuestaoIA } from "@/app/(dashboard)/questions/page";
 
@@ -42,6 +43,7 @@ export function PrintableQuizSummaryModal({
   wrongCount,
 }: PrintableQuizSummaryModalProps) {
   const [mounted, setMounted] = useState(false);
+  const [ecoMode, setEcoMode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -112,6 +114,21 @@ export function PrintableQuizSummaryModal({
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setEcoMode((prev) => !prev)}
+              aria-label="Alternar modo de economia de tinta para impressão"
+              className={`min-h-[38px] px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer active:scale-95 ${
+                ecoMode
+                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                  : "bg-slate-800 text-slate-300 border-slate-700 hover:text-white"
+              }`}
+              title="Modo Tinta Zero (Eco): Remove sombreamentos e fundos coloridos para impressão limpa em preto e branco"
+            >
+              <Leaf size={14} className={ecoMode ? "text-emerald-400" : "text-slate-400"} />
+              <span>{ecoMode ? "Modo Eco (Tinta Zero)" : "Econômico / Eco"}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handlePrint}
               aria-label="Imprimir ou salvar PDF do gabarito"
               className="min-h-[38px] px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-indigo-900/30 cursor-pointer active:scale-95"
@@ -133,6 +150,7 @@ export function PrintableQuizSummaryModal({
         {/* Conteúdo Executivo A4 */}
         <div
           id="printable-quiz-summary-sheet"
+          data-eco-mode={ecoMode ? "true" : "false"}
           className="p-5 sm:p-8 space-y-4 overflow-y-auto print:p-0 print:overflow-visible text-slate-900 bg-white"
         >
           {/* Cabeçalho da Folha */}
@@ -332,6 +350,26 @@ export function PrintableQuizSummaryModal({
               margin: 0 !important;
               font-size: 11px !important;
             }
+          }
+          #printable-quiz-summary-sheet[data-eco-mode="true"],
+          #printable-quiz-summary-sheet[data-eco-mode="true"] * {
+            background-color: transparent !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+          #printable-quiz-summary-sheet[data-eco-mode="true"] .bg-slate-900 {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border-bottom: 2px solid #000000 !important;
+          }
+          #printable-quiz-summary-sheet[data-eco-mode="true"] .text-white {
+            color: #000000 !important;
+          }
+          #printable-quiz-summary-sheet[data-eco-mode="true"] .border-emerald-200,
+          #printable-quiz-summary-sheet[data-eco-mode="true"] .border-rose-200,
+          #printable-quiz-summary-sheet[data-eco-mode="true"] .border-slate-200,
+          #printable-quiz-summary-sheet[data-eco-mode="true"] .border-slate-300 {
+            border-color: #64748b !important;
           }
         `}</style>
       </div>
