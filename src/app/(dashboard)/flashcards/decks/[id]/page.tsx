@@ -18,6 +18,8 @@ import {
   Download,
   Printer,
   Share2,
+  Target,
+  CheckCircle2,
 } from "lucide-react";
 import { Flashcard, Deck } from "@/types";
 import FlashcardModal from "@/components/flashcards/FlashcardModal";
@@ -43,6 +45,7 @@ export default function DeckDetailPage({ params }: PageProps) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [maturityFilter, setMaturityFilter] = useState<"all" | "new" | "learning" | "mature">("all");
 
   const fetchDeckData = useCallback(async () => {
     try {
@@ -153,15 +156,46 @@ export default function DeckDetailPage({ params }: PageProps) {
     };
   }, [flashcards]);
 
+  // Meta Diária de Revisão (vencidos hoje ou novos)
+  const dailyReviewGoal = useMemo(() => {
+    const dueToday = flashcards.filter((card) => {
+      if (!card.repetitions || card.repetitions === 0) return true;
+      if (!card.dueDate) return false;
+      const due = new Date(card.dueDate);
+      const now = new Date();
+      return due <= now;
+    });
+
+    const pendingCount = dueToday.length;
+    const isCompleted = pendingCount === 0 && flashcards.length > 0;
+
+    return {
+      pendingCount,
+      isCompleted,
+    };
+  }, [flashcards]);
+
   const filteredCards = useMemo(() => {
-    if (!searchQuery.trim()) return flashcards;
+    let result = flashcards;
+
+    if (maturityFilter === "new") {
+      result = result.filter((card) => (card.repetitions ?? 0) === 0);
+    } else if (maturityFilter === "learning") {
+      result = result.filter(
+        (card) => (card.repetitions ?? 0) > 0 && (card.interval ?? 0) < 21
+      );
+    } else if (maturityFilter === "mature") {
+      result = result.filter((card) => (card.interval ?? 0) >= 21);
+    }
+
+    if (!searchQuery.trim()) return result;
     const q = searchQuery.toLowerCase();
-    return flashcards.filter((card) => {
+    return result.filter((card) => {
       const frontText = getCardFront(card).toLowerCase();
       const backText = getCardBack(card).toLowerCase();
       return frontText.includes(q) || backText.includes(q);
     });
-  }, [flashcards, searchQuery]);
+  }, [flashcards, searchQuery, maturityFilter]);
 
   if (loading) {
     return (
@@ -235,6 +269,23 @@ export default function DeckDetailPage({ params }: PageProps) {
                   <Clock size={11} className="text-indigo-400" />
                   <span>~{Math.max(1, Math.round((flashcards.length * 22) / 60))} min de estudo</span>
                 </span>
+                {dailyReviewGoal.isCompleted ? (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2.5 py-0.5 bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 rounded-full"
+                    title="Todos os cartões do baralho estão em dia!"
+                  >
+                    <CheckCircle2 size={11} className="text-emerald-400" />
+                    <span>Meta em dia 🎉</span>
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2.5 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/25 rounded-full"
+                    title={`${dailyReviewGoal.pendingCount} cartões pendentes de revisão hoje`}
+                  >
+                    <Target size={11} className="text-amber-400" />
+                    <span>{dailyReviewGoal.pendingCount} pendentes hoje</span>
+                  </span>
+                )}
               </div>
               <p className="text-slate-400 text-xs">
                 Gerencie seus cartões ou inicie o estudo com repetição espaçada.
@@ -302,19 +353,58 @@ export default function DeckDetailPage({ params }: PageProps) {
                 (FSRS / Espaçamento Anki)
               </span>
             </div>
-            <div className="flex items-center gap-3 text-[11px] font-mono">
-              <span className="flex items-center gap-1.5 text-blue-400" title="Cartões ainda não revisados">
+            <div className="flex items-center gap-2 text-[11px] font-mono flex-wrap">
+              <button
+                type="button"
+                onClick={() => setMaturityFilter(maturityFilter === "new" ? "all" : "new")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                  maturityFilter === "new"
+                    ? "bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm"
+                    : "text-blue-400 bg-blue-500/5 border-blue-500/20 hover:bg-blue-500/10"
+                }`}
+                title="Filtrar apenas cartões novos"
+              >
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
                 Novos: <strong>{retentionStats.novos}</strong> ({retentionStats.novosPct}%)
-              </span>
-              <span className="flex items-center gap-1.5 text-amber-400" title="Cartões em fase de reforço (intervalo < 21d)">
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMaturityFilter(maturityFilter === "learning" ? "all" : "learning")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                  maturityFilter === "learning"
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm"
+                    : "text-amber-400 bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10"
+                }`}
+                title="Filtrar apenas cartões em aprendizado"
+              >
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
                 Aprendendo: <strong>{retentionStats.aprendendo}</strong> ({retentionStats.aprendendoPct}%)
-              </span>
-              <span className="flex items-center gap-1.5 text-emerald-400" title="Cartões consolidados na memória de longo prazo (intervalo ≥ 21d)">
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMaturityFilter(maturityFilter === "mature" ? "all" : "mature")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                  maturityFilter === "mature"
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-sm"
+                    : "text-emerald-400 bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10"
+                }`}
+                title="Filtrar apenas cartões maduros"
+              >
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 Maduros: <strong>{retentionStats.maduros}</strong> ({retentionStats.madurosPct}%)
-              </span>
+              </button>
+
+              {maturityFilter !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setMaturityFilter("all")}
+                  className="px-2 py-0.5 text-[10px] text-indigo-400 hover:text-indigo-300 underline cursor-pointer"
+                >
+                  Limpar filtro
+                </button>
+              )}
             </div>
           </div>
 

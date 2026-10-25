@@ -123,6 +123,18 @@ export function QuizResultView({
         e.preventDefault();
         triggerHaptic("light");
         setIsPrintSummaryOpen((prev) => !prev);
+      } else if (e.key === "1") {
+        e.preventDefault();
+        triggerHaptic("light");
+        setFilterReview("all");
+      } else if (e.key === "2") {
+        e.preventDefault();
+        triggerHaptic("light");
+        setFilterReview("incorrect");
+      } else if (e.key === "3") {
+        e.preventDefault();
+        triggerHaptic("light");
+        setFilterReview("correct");
       }
     };
 
@@ -1468,37 +1480,58 @@ export function QuizResultView({
             {/* Filtros em Pílulas */}
             <div className="flex items-center gap-1.5 text-xs bg-slate-950/80 p-1 rounded-xl border border-slate-800">
               <button
-                onClick={() => setFilterReview("all")}
+                onClick={() => {
+                  triggerHaptic("light");
+                  setFilterReview("all");
+                }}
                 type="button"
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   filterReview === "all"
                     ? "bg-violet-600 text-white shadow-sm"
                     : "text-slate-400 hover:text-white"
                 }`}
+                title="Exibir todas as questões (Atalho [1])"
               >
-                Todas ({totalQuestions})
+                <span>Todas ({totalQuestions})</span>
+                <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] font-mono font-bold bg-white/10 rounded border border-white/20">
+                  1
+                </kbd>
               </button>
               <button
-                onClick={() => setFilterReview("incorrect")}
+                onClick={() => {
+                  triggerHaptic("light");
+                  setFilterReview("incorrect");
+                }}
                 type="button"
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   filterReview === "incorrect"
                     ? "bg-rose-600 text-white shadow-sm"
                     : "text-slate-400 hover:text-white"
                 }`}
+                title="Exibir apenas erros (Atalho [2])"
               >
-                Erros ({incorrectCount})
+                <span>Erros ({incorrectCount})</span>
+                <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] font-mono font-bold bg-white/10 rounded border border-white/20">
+                  2
+                </kbd>
               </button>
               <button
-                onClick={() => setFilterReview("correct")}
+                onClick={() => {
+                  triggerHaptic("light");
+                  setFilterReview("correct");
+                }}
                 type="button"
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   filterReview === "correct"
                     ? "bg-emerald-600 text-white shadow-sm"
                     : "text-slate-400 hover:text-white"
                 }`}
+                title="Exibir apenas acertos (Atalho [3])"
               >
-                Acertos ({correctCount})
+                <span>Acertos ({correctCount})</span>
+                <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] font-mono font-bold bg-white/10 rounded border border-white/20">
+                  3
+                </kbd>
               </button>
             </div>
           </div>

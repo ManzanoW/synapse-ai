@@ -150,6 +150,54 @@ describe("Flashcards - Segmentação por Nível de Retenção (Novo, Aprendendo,
   });
 });
 
+describe("Flashcards - Meta Diária de Revisão", () => {
+  interface MockCard {
+    repetitions?: number;
+    dueDate?: string | Date;
+  }
+
+  const computeDailyGoal = (cards: MockCard[]) => {
+    const now = new Date();
+    const dueToday = cards.filter((card) => {
+      if (!card.repetitions || card.repetitions === 0) return true;
+      if (!card.dueDate) return false;
+      const due = new Date(card.dueDate);
+      return due <= now;
+    });
+
+    const pendingCount = dueToday.length;
+    const isCompleted = pendingCount === 0 && cards.length > 0;
+    return { pendingCount, isCompleted };
+  };
+
+  it("considera cartões novos e cartões com data de vencimento ultrapassada como pendentes hoje", () => {
+    const pastDate = new Date(Date.now() - 3600 * 1000 * 24); // Ontem
+    const futureDate = new Date(Date.now() + 3600 * 1000 * 24 * 5); // Em 5 dias
+
+    const cards: MockCard[] = [
+      { repetitions: 0 }, // Novo: pendente
+      { repetitions: 2, dueDate: pastDate }, // Vencido: pendente
+      { repetitions: 5, dueDate: futureDate }, // Futuro: em dia
+    ];
+
+    const result = computeDailyGoal(cards);
+    expect(result.pendingCount).toBe(2);
+    expect(result.isCompleted).toBe(false);
+  });
+
+  it("marca a meta como concluída quando todos os cartões já revisados estão com vencimento futuro", () => {
+    const futureDate = new Date(Date.now() + 3600 * 1000 * 24 * 3);
+    const cards: MockCard[] = [
+      { repetitions: 1, dueDate: futureDate },
+      { repetitions: 4, dueDate: futureDate },
+    ];
+
+    const result = computeDailyGoal(cards);
+    expect(result.pendingCount).toBe(0);
+    expect(result.isCompleted).toBe(true);
+  });
+});
+
 describe("Gabarito Executivo A4 - Métricas e Auditoria", () => {
   it("calcula taxa de aproveitamento e ritmo médio por questão", () => {
     const totalQuestions = 10;
