@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import { auth } from "@/auth";
-import { isUserPro } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
@@ -13,16 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
-    const userIsPro = await isUserPro(userId);
-    if (!userIsPro) {
-      return NextResponse.json(
-        {
-          error: "FEATURE_LOCKED_PRO",
-          message: "A síntese de voz neural com qualidade de estúdio é exclusiva para membros Synapse Pro.",
-        },
-        { status: 403 }
-      );
-    }
+
 
     const body = await req.json();
     const text = body?.text;
