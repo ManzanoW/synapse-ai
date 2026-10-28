@@ -293,29 +293,87 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
     setIsSpeakingAudio(false);
   }
 
-  async function playNeuralChunk(chunkText: string, voiceURI: string): Promise<boolean> {
+  function formatLessonSpeechText(text: string): string {
+    if (!text) return "";
+    return text
+      .replace(/\[\.\.\.\]/g, "lacuna")
+      .replace(/[*_#`~>|]/g, " ")
+      .replace(/[-*+]\s+/g, ". ")
+      .replace(/(\d+)\.\s+/g, "$1, ")
+      .replace(/&/g, " e ")
+      .replace(/<[^>]*>/g, "")
+      .replace(/(Portanto|Logo|Assim|Dessa forma|Por conseguinte|Nesse sentido|Ademais|Outrossim),?/gi, "$1, ")
+      .replace(/\n+/g, ". ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getFallbackVoice(voiceURI: string): SpeechSynthesisVoice | null {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    const isFemale = voiceURI.includes("Thalita") || voiceURI.includes("Francisca");
+    const preferred = isFemale
+      ? ["Thalita", "Francisca", "Google português do Brasil", "Luciana", "Maria", "Letícia"]
+      : ["Antonio", "Nicolau", "Google português do Brasil", "Daniel", "Felipe"];
+
+    for (const name of preferred) {
+      const match = voices.find(
+        (v) =>
+          (v.lang.includes("pt-BR") || v.lang.includes("pt_BR") || v.lang.startsWith("pt")) &&
+          v.name.toLowerCase().includes(name.toLowerCase())
+      );
+      if (match) return match;
+    }
+
+    return (
+      voices.find((v) => v.lang.includes("pt-BR") || v.lang.includes("pt_BR")) ||
+      voices.find((v) => v.lang.startsWith("pt")) ||
+      null
+    );
+  }
+
+  async function prefetchAudioChunk(chunkText: string, voiceURI: string): Promise<string | null> {
     const cacheKey = `${voiceURI}::${chunkText}`;
+    const cached = audioCacheRef.current.get(cacheKey);
+    if (cached) return cached;
+
     try {
-      let audioUrl = audioCacheRef.current.get(cacheKey);
-      if (!audioUrl) {
-        const res = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text: chunkText.slice(0, 2400),
-            voice: voiceURI,
-          }),
-        });
-        if (!res.ok) return false;
-        const blob = await res.blob();
-        audioUrl = URL.createObjectURL(blob);
-        audioCacheRef.current.set(cacheKey, audioUrl);
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: chunkText.slice(0, 2400),
+          voice: voiceURI,
+        }),
+      });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      audioCacheRef.current.set(cacheKey, audioUrl);
+      return audioUrl;
+    } catch {
+      return null;
+    }
+  }
+
+  async function playNeuralChunk(
+    chunkText: string,
+    voiceURI: string,
+    nextChunkText?: string
+  ): Promise<boolean> {
+    try {
+      const audioUrl = await prefetchAudioChunk(chunkText, voiceURI);
+      if (!audioUrl || audioAbortRef.current) return false;
+
+      // Dispara prefetch paralelo do próximo bloco em background sem travar o áudio atual
+      if (nextChunkText && !audioAbortRef.current) {
+        void prefetchAudioChunk(nextChunkText, voiceURI);
       }
 
-      if (audioAbortRef.current) return true;
-
       return await new Promise<boolean>((resolve) => {
-        const audio = new Audio(audioUrl!);
+        const audio = new Audio(audioUrl);
         currentAudioRef.current = audio;
         audio.onended = () => {
           currentAudioRef.current = null;
@@ -392,36 +450,88 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
     audioAbortRef.current = false;
     setIsSpeakingAudio(true);
 
-    // Divide a aula em blocos (<2400 caracteres) para usar o sintetizador neural de estúdio (/api/tts)
-    const chunks: string[] = isSummaryMode
+    // Integração nativa com MediaSession (Controles na tela de bloqueio e fone Bluetooth)
+    if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+      try {
+        const voiceObj = NEURAL_VOICE_OPTIONS.find((v) => v.voiceURI === selectedVoiceURI);
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: activeLesson?.title || "Aula Teórica",
+          artist: `Synapse AI • ${voiceObj?.name || "Voz Neural"}`,
+          album: activeLesson?.subject?.name || trail?.title || "Trilhas de Estudo",
+        });
+        navigator.mediaSession.setActionHandler("pause", () => stopAudioNarration());
+        navigator.mediaSession.setActionHandler("stop", () => stopAudioNarration());
+      } catch {}
+    }
+
+    // Monta os blocos de fala higienizados contra markdown e fragmentos robóticos
+    const rawSegments: string[] = isSummaryMode
       ? [
           `${activeLesson?.title}. Resumo Rápido de Véspera: ${activeTheoryData.summaryPoints.join(". ")}`,
         ]
       : [
           `${activeLesson?.title}. ${activeTheoryData.introLead}`,
-          ...activeTheoryData.sections.map(
-            (s) => `${s.heading}. ${s.body}. ${s.calloutTitle ? `${s.calloutTitle}: ${s.calloutText}` : ""}`,
-          ),
-          `Dica de prova e mnemônico: ${activeTheoryData.examTipTitle}. ${activeTheoryData.examTipText}`,
-        ];
+          ...activeTheoryData.sections.flatMap((s) => [
+            s.heading,
+            s.body,
+            s.calloutTitle && s.calloutText ? `${s.calloutTitle}: ${s.calloutText}` : "",
+          ]),
+          activeTheoryData.examTipTitle && activeTheoryData.examTipText
+            ? `Dica de prova e mnemônico: ${activeTheoryData.examTipTitle}. ${activeTheoryData.examTipText}`
+            : "",
+        ].filter(Boolean);
+
+    const cleanedSegments = rawSegments
+      .map((s) => formatLessonSpeechText(s))
+      .filter((s) => s.length > 0);
+
+    // Divide em blocos confortáveis (< 800 caracteres) para streaming imediato
+    const chunks: string[] = [];
+    let currentChunk = "";
+    for (const seg of cleanedSegments) {
+      if (seg.length > 800) {
+        const sentences = seg.split(/(?<=[.?!])\s+/);
+        for (const sentence of sentences) {
+          if ((currentChunk + " " + sentence).length > 800 && currentChunk.length > 0) {
+            chunks.push(currentChunk.trim());
+            currentChunk = sentence;
+          } else {
+            currentChunk = currentChunk ? `${currentChunk} ${sentence}` : sentence;
+          }
+        }
+      } else if ((currentChunk + " " + seg).length > 800 && currentChunk.length > 0) {
+        chunks.push(currentChunk.trim());
+        currentChunk = seg;
+      } else {
+        currentChunk = currentChunk ? `${currentChunk} ${seg}` : seg;
+      }
+    }
+    if (currentChunk.trim().length > 0) {
+      chunks.push(currentChunk.trim());
+    }
 
     let usedFallback = false;
-    for (const chunk of chunks) {
+    for (let i = 0; i < chunks.length; i++) {
       if (audioAbortRef.current) break;
-      const ok = await playNeuralChunk(chunk, selectedVoiceURI);
+      const nextChunk = i + 1 < chunks.length ? chunks[i + 1] : undefined;
+      const ok = await playNeuralChunk(chunks[i], selectedVoiceURI, nextChunk);
       if (!ok) {
         usedFallback = true;
         break;
       }
     }
 
-    // Fallback nativo caso o usuário esteja no plano gratuito ou offline
+    // Fallback nativo calibrado caso o usuário esteja completamente offline
     if (usedFallback && !audioAbortRef.current && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       const fullText = chunks.join(" ");
       const utterance = new SpeechSynthesisUtterance(fullText);
+      const matchedVoice = getFallbackVoice(selectedVoiceURI);
+      if (matchedVoice) {
+        utterance.voice = matchedVoice;
+      }
       utterance.lang = "pt-BR";
-      utterance.rate = 1.08;
+      utterance.rate = 1.05;
       utterance.onend = () => setIsSpeakingAudio(false);
       utterance.onerror = () => setIsSpeakingAudio(false);
       window.speechSynthesis.speak(utterance);

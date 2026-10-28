@@ -722,3 +722,80 @@ describe("Round 21 - Mapeamento e Filtragem de Reincidência no Caderno de Erros
     expect(recurrent.every((r) => r.questionText.startsWith("Sobre o princípio"))).toBe(true);
   });
 });
+
+describe("Round 22 - Pipeline de Áudio Neural das Aulas (Sem Voz Robótica)", () => {
+  const formatLessonSpeechText = (text: string): string => {
+    if (!text) return "";
+    return text
+      .replace(/\[\.\.\.\]/g, "lacuna")
+      .replace(/[*_#`~>|]/g, " ")
+      .replace(/[-*+]\s+/g, ". ")
+      .replace(/(\d+)\.\s+/g, "$1, ")
+      .replace(/&/g, " e ")
+      .replace(/<[^>]*>/g, "")
+      .replace(/(Portanto|Logo|Assim|Dessa forma|Por conseguinte|Nesse sentido|Ademais|Outrossim),?/gi, "$1, ")
+      .replace(/\n+/g, ". ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const getFallbackVoiceMatch = (
+    voiceURI: string,
+    availableVoices: Array<{ name: string; lang: string }>
+  ) => {
+    const isFemale = voiceURI.includes("Thalita") || voiceURI.includes("Francisca");
+    const preferred = isFemale
+      ? ["Thalita", "Francisca", "Google português do Brasil", "Luciana", "Maria", "Letícia"]
+      : ["Antonio", "Nicolau", "Google português do Brasil", "Daniel", "Felipe"];
+
+    for (const name of preferred) {
+      const match = availableVoices.find(
+        (v) =>
+          (v.lang.includes("pt-BR") || v.lang.includes("pt_BR") || v.lang.startsWith("pt")) &&
+          v.name.toLowerCase().includes(name.toLowerCase())
+      );
+      if (match) return match;
+    }
+
+    return (
+      availableVoices.find((v) => v.lang.includes("pt-BR") || v.lang.includes("pt_BR")) ||
+      availableVoices.find((v) => v.lang.startsWith("pt")) ||
+      null
+    );
+  };
+
+  it("higieniza formatações markdown e pontuação para fala natural sem símbolos lidos literalmente", () => {
+    const rawLessonMarkdown = `
+### 1. Transações ACID e Isolamento
+- **Atomicidade**: ou tudo executa, ou nada executa!
+| Nível | Dirty Read |
+| READ COMMITTED | NÃO |
+Portanto a regra de ouro: sempre use transações seguras & consistentes.
+`;
+    const clean = formatLessonSpeechText(rawLessonMarkdown);
+
+    // Sem asteriscos, hashtags ou barras verticais de tabela
+    expect(clean).not.toContain("###");
+    expect(clean).not.toContain("**");
+    expect(clean).not.toContain("|");
+    expect(clean).not.toContain("&");
+    expect(clean).toContain("1, Transações ACID");
+    expect(clean).toContain("e consistentes");
+    expect(clean).toContain("Portanto, a regra de ouro");
+  });
+
+  it("associa voz feminina (Thalita/Francisca) e masculina (Antônio/Nicolau) aos perfis corretos em fallback", () => {
+    const mockBrowserVoices = [
+      { name: "Microsoft David Desktop - English (United States)", lang: "en-US" },
+      { name: "Microsoft Thalita Online (Natural) - Portuguese (Brazil)", lang: "pt-BR" },
+      { name: "Microsoft Antonio Online (Natural) - Portuguese (Brazil)", lang: "pt-BR" },
+      { name: "Google português do Brasil", lang: "pt-BR" },
+    ];
+
+    const thalitaMatch = getFallbackVoiceMatch("pt-BR-ThalitaNeural", mockBrowserVoices);
+    expect(thalitaMatch?.name).toContain("Thalita");
+
+    const antonioMatch = getFallbackVoiceMatch("pt-BR-AntonioNeural", mockBrowserVoices);
+    expect(antonioMatch?.name).toContain("Antonio");
+  });
+});
