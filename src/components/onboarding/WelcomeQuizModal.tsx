@@ -76,6 +76,7 @@ export function WelcomeQuizModal({
   const [customRoleInput, setCustomRoleInput] = useState<string>("");
   const [careerCategoryFilter, setCareerCategoryFilter] = useState<string>("all");
   const [isActivatingEdital, setIsActivatingEdital] = useState(false);
+  const [selectedBanca, setSelectedBanca] = useState<string>("CEBRASPE");
 
   if (!isOpen) return null;
 
@@ -146,7 +147,7 @@ export function WelcomeQuizModal({
 
     // Navega para o destino escolhido
     if (destination === "questions") {
-      router.push("/questions?autoStart=1");
+      router.push(`/questions?banca=${selectedBanca}&autoStart=1&count=3`);
     } else if (selectedCareerTemplate === "custom") {
       router.push("/edital?import=true");
     } else {
@@ -353,6 +354,39 @@ export function WelcomeQuizModal({
                       </p>
                     </div>
                   </button>
+                </div>
+
+                {/* 3. SELETOR DE ESTILO DE BANCA ORGANIZADORA */}
+                <div className="pt-2.5 border-t border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Target size={14} className="text-amber-400" />
+                      Qual é o seu estilo ou banca de preferência?
+                    </span>
+                    <span className="text-[10px] text-slate-400 hidden sm:inline">Calibra o formato dos simulados</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: "CEBRASPE", label: "⚖️ Cebraspe", desc: "Certo / Errado" },
+                      { id: "FGV", label: "📝 FGV", desc: "Casos Práticos (A-E)" },
+                      { id: "FCC", label: "🏛️ FCC", desc: "Letra da Lei (A-E)" },
+                      { id: "GERAL", label: "🎲 Misto", desc: "Todas as bancas" },
+                    ].map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setSelectedBanca(b.id)}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          selectedBanca === b.id
+                            ? "border-amber-400/80 bg-amber-500/15 text-white ring-1 ring-amber-400/50 shadow-sm"
+                            : "border-white/10 bg-white/[0.02] hover:bg-white/5 text-slate-300"
+                        }`}
+                      >
+                        <span className="text-xs font-bold block">{b.label}</span>
+                        <span className="text-[9.5px] text-slate-400 block mt-0.5">{b.desc}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </motion.div>
             )}

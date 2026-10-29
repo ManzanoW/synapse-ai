@@ -99,6 +99,8 @@ const WeeklyReportModal = dynamic(
   { ssr: false }
 );
 import { FirstStepsChecklistCard } from "@/components/dashboard/FirstStepsChecklistCard";
+import { FirstDayMissionCard } from "@/components/dashboard/FirstDayMissionCard";
+import { SpotlightTour } from "@/components/dashboard/SpotlightTour";
 import { DailyFlowCard } from "@/components/dashboard/DailyFlowCard";
 import type { DailyFlowData } from "@/actions/daily-flow-actions";
 import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
@@ -859,6 +861,16 @@ export default function DashboardClient({
               isLoading={isLoading}
             />
           )}
+
+        {/* ================= 1ª MISSÃO DO DIA (PARA NOVOS ALUNOS NÃO SE SENTIREM PERDIDOS) ================= */}
+        {!isLoading && (
+          <FirstDayMissionCard
+            firstSubjectName={subjects[0]?.name || "Língua Portuguesa"}
+            hasSubjects={hasEditalSubjects}
+            questionsCount={stats?.metrics?.questionsCount ?? 0}
+            getHref={getHref}
+          />
+        )}
 
         {/* ================= PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS PARA NOVOS ALUNOS) ================= */}
         {!isLoading && (
@@ -2114,6 +2126,9 @@ export default function DashboardClient({
         isOpen={isWeeklyReportOpen}
         onClose={() => setIsWeeklyReportOpen(false)}
       />
+
+      {/* SPOTLIGHT TOUR DE 3 PASSOS DE BOAS-VINDAS */}
+      <SpotlightTour />
     </div>
   );
 }
