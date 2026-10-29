@@ -56,6 +56,7 @@ import {
 } from "@/components/week/RebalanceImpactModal";
 import { CalendarExportModal } from "@/components/week/CalendarExportModal";
 import { DDayPacingWidget } from "@/components/week/DDayPacingWidget";
+import { PageSpotlightBanner, useSpotlight, SpotlightTriggerButton } from "@/components/onboarding/PageSpotlightBanner";
 
 
 const HIGH_CONTRAST_PALETTE = [
@@ -157,6 +158,7 @@ export default function WeekPage() {
   const rescueMenuRef = useRef<HTMLDivElement>(null);
 
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+  const weekSpotlight = useSpotlight("synapse_spotlight_week_v1");
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -807,6 +809,7 @@ export default function WeekPage() {
 
           {/* Barra Superior Limpa: Ler Aulas + Atrasou? Reorganizar + Ajustes */}
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <SpotlightTriggerButton onClick={weekSpotlight.toggle} label="Como Funciona?" accentColor="indigo" />
             <Link
               href="/calendar"
               title="Abrir o Calendário Mensal de Revisões"
@@ -1028,6 +1031,41 @@ export default function WeekPage() {
           </div>
         </div>
 
+
+        {/* GUIA PASSO A PASSO / TOUR DO CRONOGRAMA */}
+        <PageSpotlightBanner
+          storageKey="synapse_spotlight_week_v1"
+          externalIsOpen={weekSpotlight.isOpen}
+          onClose={weekSpotlight.dismiss}
+          badgeText="📅 Guia do Cronograma & Ciclo"
+          title="Como funciona o seu Cronograma Inteligente em 3 passos:"
+          description="Sua rotina foi desenhada com base nas horas disponíveis e no peso das matérias da sua banca:"
+          accentColor="indigo"
+          primaryActionLabel="Entendi, ver meus horários!"
+          steps={[
+            {
+              icon: <CalendarDays className="w-4 h-4" />,
+              title: "1. Escolha Entre Grade Semanal ou Ciclo Flexível",
+              description:
+                "Estude por dias fixos da semana (Segunda a Domingo) ou adote o Ciclo Contínuo que nunca atrasa mesmo se sua rotina mudar.",
+              tag: "Flexibilidade",
+            },
+            {
+              icon: <Target className="w-4 h-4" />,
+              title: "2. Estude e Conclua os Blocos",
+              description:
+                "Cada bloco indica a disciplina e a minutagem ideal. Clique em Estudar para ler a aula ou treinar questões na hora.",
+              tag: "Ação Imediata",
+            },
+            {
+              icon: <LifeBuoy className="w-4 h-4" />,
+              title: "3. Reorganize com Inteligência Artificial",
+              description:
+                "Atrasou matérias ou errou muitas questões? Use o botão 'Atrasou? Reorganizar' para a IA redistribuir a carga automaticamente.",
+              tag: "IA Adaptativa",
+            },
+          ]}
+        />
         {/* Mode Selector & Meta Bar */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-2 bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-xs dark:shadow-xl">
           <div className="inline-flex items-center bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80 w-full md:w-auto">

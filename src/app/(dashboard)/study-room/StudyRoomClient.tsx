@@ -43,6 +43,7 @@ import {
 } from "./_components/SessionTaskChecklist";
 import { FocusCelebrationModal } from "./_components/FocusCelebrationModal";
 import { MiniTimerPiP } from "./_components/MiniTimerPiP";
+import { PageSpotlightBanner, useSpotlight, SpotlightTriggerButton } from "@/components/onboarding/PageSpotlightBanner";
 
 type TimerMode = "foco_25" | "foco_50" | "curta" | "longa";
 
@@ -185,6 +186,7 @@ export default function StudyRoomClient({
 
   // Picture-in-Picture (Mini-Timer Flutuante)
   const [isPiPOpen, setIsPiPOpen] = useState(false);
+  const studyRoomSpotlight = useSpotlight("synapse_spotlight_studyroom_v1");
 
   // Modal de Celebração
   const [celebrationResult, setCelebrationResult] =
@@ -846,6 +848,8 @@ export default function StudyRoomClient({
             </div>
           </div>
 
+          <SpotlightTriggerButton onClick={studyRoomSpotlight.toggle} label="Como Funciona?" accentColor="violet" />
+
           {/* Botão Picture-in-Picture (Janela Flutuante) */}
           <button
             onClick={() => setIsPiPOpen((prev) => !prev)}
@@ -879,6 +883,41 @@ export default function StudyRoomClient({
           </button>
         </div>
       </div>
+
+      {/* GUIA PASSO A PASSO / TOUR DA SALA DE FOCO */}
+      <PageSpotlightBanner
+        storageKey="synapse_spotlight_studyroom_v1"
+        externalIsOpen={studyRoomSpotlight.isOpen}
+        onClose={studyRoomSpotlight.dismiss}
+        badgeText="🎧 Guia da Sala de Foco & Pomodoro"
+        title="Maximize sua concentração em 3 passos:"
+        description="A Sala de Foco elimina distrações e registra suas horas líquidas de estudo diretamente no seu edital:"
+        accentColor="violet"
+        primaryActionLabel="Entendi, entrar em foco!"
+        steps={[
+          {
+            icon: <Clock className="w-4 h-4" />,
+            title: "1. Escolha o Ciclo Pomodoro & Matéria",
+            description:
+              "Alterne entre blocos de 25 min (padrão) ou 50 min (foco profundo). Selecione a matéria para computar horas no edital.",
+            tag: "Controle Total",
+          },
+          {
+            icon: <Headphones className="w-4 h-4" />,
+            title: "2. Ative os Sons Imersivos (Soundscapes)",
+            description:
+              "Conecte seus fones e escute ruído marrom, chuva ou ondas binaurais alfa para entrar no estado de hiperfoco.",
+            tag: "Imersão Sonora",
+          },
+          {
+            icon: <ExternalLink className="w-4 h-4" />,
+            title: "3. Use a Janela Flutuante (Picture-in-Picture)",
+            description:
+              "Abra o PiP para manter o timer flutuando sobre PDFs, videoaulas ou resumos em qualquer outra tela do computador.",
+            tag: "Produtividade",
+          },
+        ]}
+      />
 
       {/* Grid Central: Cockpit Pomodoro + Checklist */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

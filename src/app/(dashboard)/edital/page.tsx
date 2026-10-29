@@ -33,6 +33,7 @@ import { EditalSkillTree } from "@/components/edital/edital-skill-tree";
 import { NewContentModal } from "@/components/create-subject-modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
+import { PageSpotlightBanner, useSpotlight, SpotlightTriggerButton } from "@/components/onboarding/PageSpotlightBanner";
 import { useSearchParams } from "next/navigation";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 
@@ -94,6 +95,7 @@ function PlannerContent() {
   const [viewMode, setViewMode] = useState<"table" | "skill-tree">("table");
   // Menu de Mais Ações
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const editalSpotlight = useSpotlight("synapse_spotlight_edital_v1");
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -345,6 +347,7 @@ function PlannerContent() {
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
+            <SpotlightTriggerButton onClick={editalSpotlight.toggle} label="Como Funciona?" accentColor="indigo" />
             <Link
               href="/week"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-300 text-xs font-semibold transition-all shadow-sm active:scale-95"
@@ -355,6 +358,41 @@ function PlannerContent() {
             </Link>
           </div>
         </div>
+
+        {/* GUIA PASSO A PASSO / TOUR DO EDITAL */}
+        <PageSpotlightBanner
+          storageKey="synapse_spotlight_edital_v1"
+          externalIsOpen={editalSpotlight.isOpen}
+          onClose={editalSpotlight.dismiss}
+          badgeText="📋 Guia do Edital Verticalizado"
+          title="Domine 100% do Conteúdo Programático em 3 passos:"
+          description="O Edital Verticalizado organiza cada linha do conteúdo oficial da sua banca para você nunca estudar às cegas:"
+          accentColor="indigo"
+          primaryActionLabel="Entendi, explorar meu edital!"
+          steps={[
+            {
+              icon: <BookOpen className="w-4 h-4" />,
+              title: "1. Acompanhe seu Progresso por Matéria",
+              description:
+                "Visualize todos os tópicos exigidos no concurso com status de estudo, taxa de acerto e ciclo de revisão Ebbinghaus.",
+              tag: "Visão Geral",
+            },
+            {
+              icon: <Scale className="w-4 h-4" />,
+              title: "2. Calibre os Pesos da sua Banca",
+              description:
+                "Defina o peso e a relevância de cada disciplina para o algoritmo priorizar as matérias com maior pontuação no edital.",
+              tag: "Estratégia",
+            },
+            {
+              icon: <Printer className="w-4 h-4" />,
+              title: "3. Imprima ou Importe Novo Edital",
+              description:
+                "Gere seu Edital A4 para colar na parede ou importe um PDF em segundos via Inteligência Artificial.",
+              tag: "Prático & Físico",
+            },
+          ]}
+        />
 
         {/* Command Bar Consolidada (Linear / macOS Style) */}
         <div className="relative z-30 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-[#090d16]/90 border border-slate-800/80 p-2.5 sm:p-3 rounded-2xl shadow-xl backdrop-blur-md">
