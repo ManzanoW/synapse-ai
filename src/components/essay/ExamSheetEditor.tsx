@@ -19,6 +19,8 @@ import {
   Printer,
   Crown,
   Gift,
+  Play,
+  Pause,
 } from "lucide-react";
 import { EssayTheme } from "@/actions/essay-actions";
 import { triggerHaptic } from "@/lib/sensory/haptics";
@@ -50,7 +52,7 @@ export function ExamSheetEditor({
 
   const [content, setContent] = useState<string>(initialContent);
   const [seconds, setSeconds] = useState<number>(0);
-  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(true);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(false);
   const [showInstructions, setShowInstructions] = useState<boolean>(true);
@@ -215,10 +217,29 @@ export function ExamSheetEditor({
           <button
             type="button"
             onClick={() => setIsTimerRunning(!isTimerRunning)}
-            aria-label={isTimerRunning ? "Pausar cronômetro de prova" : "Retomar cronômetro de prova"}
-            className="min-h-[36px] px-3 py-1 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-violet-500"
+            aria-label={isTimerRunning ? "Pausar cronômetro de prova" : "Iniciar ou retomar cronômetro de prova"}
+            className={`min-h-[36px] px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-violet-500 flex items-center gap-1.5 ${
+              !isTimerRunning && seconds === 0
+                ? "bg-violet-600 hover:bg-violet-500 text-white border-violet-500 shadow-md shadow-violet-600/25"
+                : "border-slate-200 dark:border-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
+            }`}
           >
-            {isTimerRunning ? "Pausar" : "Retomar"}
+            {isTimerRunning ? (
+              <>
+                <Pause size={13} />
+                <span>Pausar</span>
+              </>
+            ) : seconds > 0 ? (
+              <>
+                <Play size={13} />
+                <span>Retomar</span>
+              </>
+            ) : (
+              <>
+                <Play size={13} className="fill-white" />
+                <span>Iniciar Tempo</span>
+              </>
+            )}
           </button>
 
           <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold">
@@ -480,7 +501,12 @@ export function ExamSheetEditor({
             <textarea
               ref={textareaRef}
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => {
+                if (!isTimerRunning && seconds === 0 && e.target.value.trim().length > 0) {
+                  setIsTimerRunning(true);
+                }
+                setContent(e.target.value);
+              }}
               placeholder="Inicie sua redação aqui. Use o botão '⇥ Parágrafo' ou pressione espaço para dar o recuo obrigatório de início de parágrafo..."
               rows={Math.max(30, lineCount)}
               className="relative w-full h-full bg-transparent text-slate-900 dark:text-slate-100 text-[16px] sm:text-[14.5px] font-serif leading-[34px] px-3 sm:px-4 py-3 resize-none focus:outline-hidden placeholder:text-slate-400 dark:placeholder:text-slate-600 placeholder:font-sans placeholder:text-xs z-10 break-words whitespace-pre-wrap overflow-x-hidden"

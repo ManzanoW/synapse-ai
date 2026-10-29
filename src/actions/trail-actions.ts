@@ -469,16 +469,23 @@ export async function getStudyTrailsOverviewAction() {
           .catch(() => []),
       ]);
 
-    let activeTrail = existingTrails.find((t: any) => t.status === "ACTIVE") || existingTrails[0] || null;
-    let coursesList = externalCourses;
+    let activeTrail: any = existingTrails.find((t: any) => t.status === "ACTIVE") || existingTrails[0] || null;
+    let allTrails = existingTrails;
 
-    // Se o usuário ainda não tem uma Trilha Guiada, criamos uma trilha inicial sincronizada com o Edital dele
-    if (!activeTrail) {
-      const seedRes = await seedDefaultTrailForUser(userId, existingSubjects, user?.targetRole);
-      if (seedRes) {
-        activeTrail = seedRes.trail;
-      }
+    // Se o usuário tinha a trilha de exemplo pré-carregada da Prefeitura de Santos
+    // e seu cargo pretendido não é Santos, limpamos a trilha mock para abrir espaço para a personalizada
+    if (
+      activeTrail &&
+      activeTrail.title === "Trilha Completa • Prefeitura Municipal de Santos • Analista de TI" &&
+      user?.targetRole !== "Prefeitura Municipal de Santos • Analista de TI"
+    ) {
+      await prisma.studyTrail.delete({ where: { id: activeTrail.id } }).catch(() => {});
+      const mockId = activeTrail.id;
+      activeTrail = null;
+      allTrails = allTrails.filter((t: any) => t.id !== mockId);
     }
+
+    let coursesList = externalCourses;
 
     // Se o usuário ainda não tem Cursos Externos de exemplo, populamos 2 cursos sincronizados
     if (!coursesList || coursesList.length === 0) {
@@ -497,7 +504,7 @@ export async function getStudyTrailsOverviewAction() {
       data: {
         user,
         activeTrail,
-        allTrails: existingTrails,
+        allTrails,
         editalSubjects: updatedSubjects,
         externalCourses: coursesList,
         dueFlashcardsCount: dueFlashcardsCount || 15,
@@ -2155,3 +2162,29 @@ Retorne APENAS um JSON válido seguindo exatamente esta estrutura:
   }
 }
 
+
+export async function deleteStudyTrailAction(trailId: string) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) return { success: false, error: "Não autenticado" };
+
+    const trail = await prisma.studyTrail.findFirst({
+      where: { id: trailId, userId },
+    });
+
+    if (!trail) {
+      return { success: false, error: "Trilha não encontrada" };
+    }
+
+    await prisma.studyTrail.delete({
+      where: { id: trailId },
+    });
+
+    revalidatePath("/trilhas");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[deleteStudyTrailAction] Erro:", error);
+    return { success: false, error: "Falha ao excluir trilha" };
+  }
+}

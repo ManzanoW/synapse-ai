@@ -77,7 +77,15 @@ const DEFAULT_THEME: EssayTheme = {
 export function EssayWorkspace() {
   const spotlight = useSpotlight("synapse_spotlight_redacao");
   const [viewMode, setViewMode] = useState<"write" | "result" | "history">("write");
-  const [theme, setTheme] = useState<EssayTheme>(DEFAULT_THEME);
+  const [theme, setTheme] = useState<EssayTheme>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("synapse_active_essay_theme");
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return DEFAULT_THEME;
+  });
   const [evaluationResult, setEvaluationResult] = useState<EssayEvaluationResult | null>(null);
 
   const [isThemeModalOpen, setIsThemeModalOpen] = useState<boolean>(false);
@@ -120,6 +128,9 @@ export function EssayWorkspace() {
 
   const handleSelectTheme = (newTheme: EssayTheme) => {
     setTheme(newTheme);
+    try {
+      localStorage.setItem("synapse_active_essay_theme", JSON.stringify(newTheme));
+    } catch {}
     setViewMode("write");
   };
 
@@ -380,6 +391,38 @@ export function EssayWorkspace() {
       {/* TELA 1: FOLHA DE REDAÇÃO (COM ESCOLHA CLARA DE 2 FORMAS DE PRATICAR) */}
       {viewMode === "write" && (
         <div className="space-y-4">
+          {/* BANNER DE ESCOLHA / TROCA DE TEMA */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-violet-950/60 via-slate-900/80 to-indigo-950/60 border border-violet-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-violet-950/20">
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-violet-600/20 text-violet-300 border border-violet-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                <Sparkles className="w-5 h-5 text-violet-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-violet-300 bg-violet-500/10 px-2 py-0.5 rounded-full border border-violet-500/20">
+                    Banca {theme.banca} • {theme.subjectArea}
+                  </span>
+                </div>
+                <h3 className="text-sm sm:text-base font-bold text-white mt-1 leading-snug">
+                  {theme.title}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Você pode treinar com este tema sugerido ou gerar uma proposta inédita para o seu concurso.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setIsThemeModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-violet-600/30 transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Escolher / Gerar Outro Tema</span>
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800">
             <div className="p-3.5 rounded-xl bg-violet-600/15 border-2 border-violet-500/50 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
