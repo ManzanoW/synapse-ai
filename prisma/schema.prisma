@@ -30,8 +30,10 @@ model User {
   sessions Session[]
 
   // 🛡️ Papel e Nível de Acesso (Controle de Cotas & Testes)
-  role              String   @default("USER") // "USER" | "ADMIN"
-  planTier          String   @default("FREE") // "FREE" | "PREMIUM"
+  role              String    @default("USER") // "USER" | "ADMIN"
+  planTier          String    @default("FREE") // "FREE" | "PREMIUM" | "ELITE"
+  planExpiresAt     DateTime? // Data de expiração do plano/assinatura
+  paymentOrders     PaymentOrder[]
 
   // Relações de Estudo
   subjects          Subject[]
@@ -495,3 +497,25 @@ model ExternalCourseItem {
   @@index([courseId, orderIndex])
 }
 
+// 💳 Histórico de Pedidos e Pagamentos (Mercado Pago / PIX / Cartão)
+model PaymentOrder {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mercadoPagoId      String?   @unique
+  status             String    @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED, REFUNDED
+  planTier           String    @default("PREMIUM") // PREMIUM | ELITE
+  billingCycle       String    @default("MONTHLY") // MONTHLY | ANNUAL
+  amount             Float
+  paymentMethod      String?   // "pix" | "credit_card" | "ticket"
+  qrCode             String?   @db.Text // String Pix Copia e Cola
+  qrCodeBase64       String?   @db.Text // Imagem Base64 do QR Code para exibição direta
+  ticketUrl          String?   // Link do comprovante ou fatura
+  paidAt             DateTime?
+  expiresAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
