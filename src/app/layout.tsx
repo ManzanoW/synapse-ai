@@ -23,13 +23,27 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const appUrl =
-  process.env.NEXTAUTH_URL ||
-  process.env.NEXT_PUBLIC_APP_URL ||
-  "https://synapseconcursos.com.br";
+function getSafeMetadataBase(): URL {
+  let raw = (
+    process.env.NEXTAUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+    "https://synapseconcursos.vercel.app"
+  ).trim();
+
+  if (!raw.startsWith("http://") && !raw.startsWith("https://")) {
+    raw = `https://${raw}`;
+  }
+
+  try {
+    return new URL(raw);
+  } catch {
+    return new URL("https://synapseconcursos.vercel.app");
+  }
+}
 
 export const metadata: Metadata = {
-  metadataBase: new URL(appUrl),
+  metadataBase: getSafeMetadataBase(),
   title: {
     default: "Synapse AI • Estudos de Alta Performance",
     template: "%s | Synapse AI",
