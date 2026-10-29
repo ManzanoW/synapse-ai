@@ -22,6 +22,7 @@ import {
   Loader2,
   Wand2,
   HelpCircle,
+  UploadCloud,
 } from "lucide-react";
 import {
   importStarterEditalAction,
@@ -84,7 +85,7 @@ export function WelcomeQuizModal({
     if (step < 3) {
       setStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
     } else if (step === 3) {
-      // Se selecionou custom IA mas não digitou nada, foca no input ou seleciona padrão
+      // Se selecionou custom IA mas não digitou nada, seleciona TI padrão
       if (selectedCareerTemplate === "ai-custom" && !customRoleInput.trim()) {
         setSelectedCareerTemplate("ti");
       }
@@ -147,7 +148,7 @@ export function WelcomeQuizModal({
     if (destination === "questions") {
       router.push("/questions?autoStart=1");
     } else if (selectedCareerTemplate === "custom") {
-      router.push("/edital");
+      router.push("/edital?import=true");
     } else {
       router.push("/dashboard");
     }
@@ -171,7 +172,7 @@ export function WelcomeQuizModal({
     selectedCareerTemplate === "ai-custom"
       ? customRoleInput.trim() || "Cargo Personalizado por IA"
       : selectedCareerTemplate === "custom"
-        ? "Edital Próprio em PDF"
+        ? "Edital Próprio em PDF / Texto"
         : STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.title.split("(")[0].trim() ||
           "Tecnologia da Informação & Dados";
 
@@ -463,7 +464,7 @@ export function WelcomeQuizModal({
               </motion.div>
             )}
 
-            {/* ETAPA 3: ESCOLHA DA CARREIRA OU PERSONALIZAÇÃO COM IA (REFORMULADA COM CLAREZA TOTAL) */}
+            {/* ETAPA 3: ESCOLHA DA CARREIRA OU PERSONALIZAÇÃO COM IA */}
             {step === 3 && (
               <motion.div
                 key="step3"
@@ -483,73 +484,127 @@ export function WelcomeQuizModal({
                     </h2>
                   </div>
                   <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Escolha uma carreira pronta ou digite seu cargo desejado para a IA estruturar suas disciplinas, simulados e cronograma semanal.
+                    Escolha uma carreira pronta, personalize com IA ou importe seu edital próprio em PDF.
                   </p>
                 </div>
 
-                {/* 1. HERO CARD: PERSONALIZAR COM IA (DIGITE SEU CARGO DESEJADO) */}
-                <div
-                  className={`rounded-2xl border p-4 transition-all ${
-                    selectedCareerTemplate === "ai-custom"
-                      ? "border-indigo-400/80 bg-indigo-950/40 ring-1 ring-indigo-400/50 shadow-[0_0_24px_rgba(99,102,241,0.2)]"
-                      : "border-white/10 bg-white/[0.02] hover:border-white/20"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
-                      <Wand2 size={20} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
-                          Personalizar com IA (Meu Cargo ou Edital)
-                        </span>
-                        <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                          ✨ Mais flexível
-                        </span>
+                {/* ================= SEÇÃO SUPERIOR: AS 2 OPÇÕES PERSONALIZADAS (IA + UPLOAD PDF) ================= */}
+                <div className="space-y-2.5">
+                  {/* 1. HERO CARD: PERSONALIZAR COM IA (DIGITE SEU CARGO DESEJADO) */}
+                  <div
+                    className={`rounded-2xl border p-4 transition-all ${
+                      selectedCareerTemplate === "ai-custom"
+                        ? "border-indigo-400/80 bg-indigo-950/40 ring-1 ring-indigo-400/50 shadow-[0_0_24px_rgba(99,102,241,0.2)]"
+                        : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                        <Wand2 size={20} />
                       </div>
-                      <p className="text-[11px] text-slate-300 mt-0.5">
-                        Digite qualquer concurso do Brasil e a IA monta sua grade de matérias oficial na hora.
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
+                            Personalizar com IA (Meu Cargo ou Concurso)
+                          </span>
+                          <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            ✨ Mais flexível
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-0.5">
+                          Digite qualquer concurso do Brasil e a IA monta sua grade de matérias oficial na hora.
+                        </p>
 
-                      {/* Campo de Texto para o Cargo */}
-                      <div className="mt-3">
-                        <input
-                          type="text"
-                          value={customRoleInput}
-                          onChange={(e) => {
-                            setCustomRoleInput(e.target.value);
-                            setSelectedCareerTemplate("ai-custom");
-                          }}
-                          onFocus={() => setSelectedCareerTemplate("ai-custom")}
-                          placeholder="Ex: Perito Criminal PF, Analista Judiciário TRF, Auditor da Receita, Caixa..."
-                          className="w-full bg-slate-900/90 border border-white/15 focus:border-indigo-400 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors shadow-inner"
-                        />
-                      </div>
-
-                      {/* Pílulas de Sugestões Rápidas (1 Clique) */}
-                      <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-bold text-slate-400 mr-1">Sugestões:</span>
-                        {QUICK_AI_SUGGESTIONS.map((sug) => (
-                          <button
-                            key={sug.label}
-                            type="button"
-                            onClick={() => {
-                              setCustomRoleInput(sug.value);
+                        {/* Campo de Texto para o Cargo */}
+                        <div className="mt-3">
+                          <input
+                            type="text"
+                            value={customRoleInput}
+                            onChange={(e) => {
+                              setCustomRoleInput(e.target.value);
                               setSelectedCareerTemplate("ai-custom");
                             }}
-                            className={`px-2 py-1 rounded-lg text-[10.5px] font-medium border transition-all cursor-pointer ${
-                              selectedCareerTemplate === "ai-custom" && customRoleInput === sug.value
-                                ? "bg-indigo-500 text-white border-indigo-400 shadow-sm"
-                                : "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
-                            }`}
-                          >
-                            {sug.label}
-                          </button>
-                        ))}
+                            onFocus={() => setSelectedCareerTemplate("ai-custom")}
+                            placeholder="Ex: Perito Criminal PF, Analista Judiciário TRF, Auditor da Receita, Caixa..."
+                            className="w-full bg-slate-900/90 border border-white/15 focus:border-indigo-400 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors shadow-inner"
+                          />
+                        </div>
+
+                        {/* Pílulas de Sugestões Rápidas (1 Clique) */}
+                        <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold text-slate-400 mr-1">Sugestões:</span>
+                          {QUICK_AI_SUGGESTIONS.map((sug) => (
+                            <button
+                              key={sug.label}
+                              type="button"
+                              onClick={() => {
+                                setCustomRoleInput(sug.value);
+                                setSelectedCareerTemplate("ai-custom");
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[10.5px] font-medium border transition-all cursor-pointer ${
+                                selectedCareerTemplate === "ai-custom" && customRoleInput === sug.value
+                                  ? "bg-indigo-500 text-white border-indigo-400 shadow-sm"
+                                  : "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                              }`}
+                            >
+                              {sug.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* 2. CARD EM DESTAQUE NO TOPO: IMPORTAR EDITAL PRÓPRIO EM PDF / TEXTO */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCareerTemplate("custom");
+                      setCustomRoleInput("");
+                    }}
+                    className={`w-full p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      selectedCareerTemplate === "custom"
+                        ? "border-emerald-400/80 bg-emerald-950/40 ring-1 ring-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-emerald-500/40 text-slate-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`p-2.5 rounded-xl border shrink-0 transition-colors ${
+                          selectedCareerTemplate === "custom"
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                            : "bg-white/5 text-slate-300 border-white/10"
+                        }`}
+                      >
+                        <UploadCloud size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs sm:text-sm font-black text-white block">
+                            Tenho Edital Próprio em PDF ou Texto
+                          </span>
+                          <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Upload PDF 📄
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-0.5">
+                          Faça upload do seu edital ou cole o conteúdo programático para a IA extrair sua grade.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex items-center gap-2 pl-2">
+                      {selectedCareerTemplate === "custom" ? (
+                        <div className="p-1.5 rounded-full bg-emerald-400 text-slate-950">
+                          <Check size={14} strokeWidth={3} />
+                        </div>
+                      ) : (
+                        <span className="text-xs font-bold text-emerald-400/90 hidden sm:inline-flex items-center gap-1">
+                          Importar <ArrowRight size={13} />
+                        </span>
+                      )}
+                    </div>
+                  </button>
                 </div>
 
                 {/* DIVISOR ELEGANTE */}
@@ -588,7 +643,7 @@ export function WelcomeQuizModal({
                 </div>
 
                 {/* GRID DE CARREIRAS OFICIAIS (SEM TRUNCAMENTO DE TEXTO) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
                   {filteredTemplates.map((tpl) => {
                     const isSelected = selectedCareerTemplate === tpl.id;
                     const cleanTitle = tpl.title.split("(")[0].trim();
@@ -630,37 +685,6 @@ export function WelcomeQuizModal({
                       </button>
                     );
                   })}
-
-                  {/* Opção Edital Próprio em PDF */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCareerTemplate("custom");
-                      setCustomRoleInput("");
-                    }}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 relative sm:col-span-2 ${
-                      selectedCareerTemplate === "custom"
-                        ? "border-amber-400/80 bg-amber-500/15 text-white ring-1 ring-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
-                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 text-slate-300"
-                    }`}
-                  >
-                    <div className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 shrink-0">
-                      <FileText size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-bold text-white block">
-                        Tenho um edital próprio em PDF / Texto
-                      </span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">
-                        Você poderá fazer upload do PDF ou colar o conteúdo no menu Edital.
-                      </span>
-                    </div>
-                    {selectedCareerTemplate === "custom" && (
-                      <div className="p-1 rounded-full bg-amber-400 text-slate-950 self-center">
-                        <Check size={12} strokeWidth={3} />
-                      </div>
-                    )}
-                  </button>
                 </div>
               </motion.div>
             )}
@@ -683,7 +707,9 @@ export function WelcomeQuizModal({
                     Tudo pronto para sua aprovação, {firstName}!
                   </h2>
                   <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                    Seu ambiente e seu ciclo de estudos foram calibrados para sua carreira.
+                    {selectedCareerTemplate === "custom"
+                      ? "Seu perfil foi configurado. Agora você será direcionado para carregar o seu edital oficial."
+                      : "Seu ambiente e seu ciclo de estudos foram calibrados para sua carreira."}
                   </p>
                 </div>
 
@@ -738,20 +764,26 @@ export function WelcomeQuizModal({
                       </>
                     ) : (
                       <>
-                        <span>Acessar Meu Painel de Estudos</span>
+                        <span>
+                          {selectedCareerTemplate === "custom"
+                            ? "Importar Meu Edital em PDF 📄"
+                            : "Acessar Meu Painel de Estudos"}
+                        </span>
                         <ArrowRight size={16} />
                       </>
                     )}
                   </button>
 
-                  <button
-                    type="button"
-                    disabled={isActivatingEdital}
-                    onClick={() => handleFinish("questions")}
-                    className="w-full px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <span>⚡ Fazer Simulado Diagnóstico Rápido (5 questões)</span>
-                  </button>
+                  {selectedCareerTemplate !== "custom" && (
+                    <button
+                      type="button"
+                      disabled={isActivatingEdital}
+                      onClick={() => handleFinish("questions")}
+                      className="w-full px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>⚡ Fazer Simulado Diagnóstico Rápido (5 questões)</span>
+                    </button>
+                  )}
                 </div>
 
                 {onOpenFullTour && (
