@@ -1,10 +1,16 @@
+import { authConfig, getBaseUrl, baseUrl, normalizeUrl } from "./auth.config";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
-import { authConfig, getBaseUrl, baseUrl } from "./auth.config";
 import { cookies, headers } from "next/headers";
+
+// 🔒 Garante sanitização de URLs no runtime de auth
+if (process.env.NEXTAUTH_URL) process.env.NEXTAUTH_URL = normalizeUrl(process.env.NEXTAUTH_URL);
+if (process.env.AUTH_URL) process.env.AUTH_URL = normalizeUrl(process.env.AUTH_URL);
+if (process.env.VERCEL_URL) process.env.VERCEL_URL = normalizeUrl(process.env.VERCEL_URL);
+process.env.AUTH_TRUST_HOST = "true";
 
 export { getBaseUrl, baseUrl };
 

@@ -5,20 +5,22 @@ import { activateUserPlan } from "@/actions/mercadopago-actions";
 
 export async function POST(request: NextRequest) {
   try {
-    const url = new URL(request.url);
+    const searchParams =
+      request.nextUrl?.searchParams ||
+      new URL(request.url, "https://synapseconcursos.vercel.app").searchParams;
     const body = await request.json().catch(() => ({}));
 
     // O ID pode vir no corpo (v2) ou como query param (v1/IPN)
     const paymentId =
       body?.data?.id ||
-      url.searchParams.get("data.id") ||
-      url.searchParams.get("id");
+      searchParams.get("data.id") ||
+      searchParams.get("id");
 
     const eventType =
       body?.type ||
       body?.action ||
-      url.searchParams.get("type") ||
-      url.searchParams.get("topic");
+      searchParams.get("type") ||
+      searchParams.get("topic");
 
     console.log(`[Mercado Pago Webhook] Recebido evento: ${eventType}, ID: ${paymentId}`);
 
