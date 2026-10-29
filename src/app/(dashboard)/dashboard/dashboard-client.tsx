@@ -107,6 +107,8 @@ import { autoRebalanceFromPerformanceAction } from "@/actions/adaptive-actions";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 import { DailyTipCard } from "@/components/dashboard/DailyTipCard";
 import { FsrsReviewWidget } from "@/components/dashboard/FsrsReviewWidget";
+import { StudyReminderWidget } from "@/components/dashboard/StudyReminderWidget";
+import { ApprovalThermometerCard } from "@/components/dashboard/ApprovalThermometerCard";
 
 interface JourneyData {
   hasObjective: boolean;
@@ -225,6 +227,8 @@ interface DashboardClientProps {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    careerFocus?: string | null;
+    targetRole?: string | null;
   };
   initialApprovalOdds?: ApprovalOddsData | null;
   initialDailyFlow?: DailyFlowData | null;
@@ -835,6 +839,15 @@ export default function DashboardClient({
               <span>Boletim da Semana</span>
             </button>
 
+            <Link
+              href="/study-room"
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-600/10 hover:bg-violet-600/20 px-3 py-1.5 text-xs font-bold text-violet-300 transition-all shadow-xs"
+              title="Abrir Sala de Foco com Pomodoro e Sons Neurais Procedurais"
+            >
+              <Headphones size={13} className="text-violet-400" />
+              <span>🎧 Sala de Foco & Sons</span>
+            </Link>
+
             <button
               type="button"
               onClick={() => setIsCustomizeModalOpen(true)}
@@ -880,6 +893,23 @@ export default function DashboardClient({
             questionsCount={stats?.metrics?.questionsCount ?? 0}
             getHref={getHref}
           />
+        )}
+
+        {/* ================= TERMÔMETRO DE APROVAÇÃO & NOTA DE CORTE ================= */}
+        {!isLoading && hasEditalSubjects && (
+          <ApprovalThermometerCard
+            subjects={subjects}
+            precisionText={stats?.metrics?.precision || "0%"}
+            completedTopicsCount={stats?.journey?.completedTopics || 0}
+            totalTopicsCount={stats?.journey?.totalTopics || 0}
+            banca={user.careerFocus || (typeof window !== "undefined" ? localStorage.getItem("synapse_preferred_banca") : null) || "CEBRASPE"}
+            targetRole={user.targetRole || (typeof window !== "undefined" ? localStorage.getItem("synapse_target_role") : null) || "Concurso Geral"}
+          />
+        )}
+
+        {/* ================= LEMBRETE DIÁRIO DE ESTUDOS (PROTEÇÃO DE STREAK) ================= */}
+        {!isLoading && (
+          <StudyReminderWidget currentStreak={stats?.streak?.currentDays || 0} />
         )}
 
         {/* BANNER DE REMANEJAMENTO */}

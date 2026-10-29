@@ -442,6 +442,19 @@ function PlannerContent() {
             </button>
 
             {subjects.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsPrintModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 bg-cyan-600/15 hover:bg-cyan-600/25 border border-cyan-500/30 text-cyan-300 text-xs font-bold px-3 py-2 rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
+                title="Exportar Folha A4 Imprimível do Edital para colar na parede"
+              >
+                <Printer size={14} className="text-cyan-400" />
+                <span className="hidden sm:inline">Imprimir Edital A4 (Parede)</span>
+                <span className="sm:hidden">Imprimir A4</span>
+              </button>
+            )}
+
+            {subjects.length > 0 && (
               <div className="relative z-30" ref={actionsMenuRef}>
                 <button
                   type="button"
