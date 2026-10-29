@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   calculateBatchSizes,
   shuffleAlternatives,
+  isCorrectAnswerMatch,
+  normalizeQuestionData,
   QuestaoGerada,
 } from "@/lib/simulado-generator";
 
@@ -30,6 +32,72 @@ describe("Simulado Generator Engine", () => {
 
       const hugeBatch = calculateBatchSizes(100, 5);
       expect(hugeBatch.reduce((a, b) => a + b, 0)).toBe(60);
+    });
+  });
+
+  describe("isCorrectAnswerMatch", () => {
+    it("deve validar acertos com letras idênticas maiúsculas e minúsculas", () => {
+      expect(isCorrectAnswerMatch("A", "A")).toBe(true);
+      expect(isCorrectAnswerMatch("a", "A")).toBe(true);
+      expect(isCorrectAnswerMatch("B", "b")).toBe(true);
+      expect(isCorrectAnswerMatch("A", "B")).toBe(false);
+    });
+
+    it("deve tolerar pontuação ou espaços como 'A.' e ' A '", () => {
+      expect(isCorrectAnswerMatch("A", "A.")).toBe(true);
+      expect(isCorrectAnswerMatch(" B ", "B")).toBe(true);
+      expect(isCorrectAnswerMatch("Alternativa C", "C")).toBe(true);
+    });
+
+    it("deve normalizar respostas do formato Certo/Errado flexivelmente", () => {
+      expect(isCorrectAnswerMatch("Certo", "certo")).toBe(true);
+      expect(isCorrectAnswerMatch("Certo", "CERTO")).toBe(true);
+      expect(isCorrectAnswerMatch("C", "Certo")).toBe(true);
+      expect(isCorrectAnswerMatch("Errado", "errado")).toBe(true);
+      expect(isCorrectAnswerMatch("E", "Errado")).toBe(true);
+      expect(isCorrectAnswerMatch("Certo", "Errado")).toBe(false);
+    });
+  });
+
+  describe("normalizeQuestionData", () => {
+    it("deve limpar e garantir maiúsculas no gabarito e alternativas de múltipla escolha", () => {
+      const raw: QuestaoGerada = {
+        enunciado: "Qual a duração do mandato?",
+        formato: "multipla",
+        justificativa: "Mandato de 4 anos.",
+        alternativas: [
+          { id: "a", texto: "2 anos" },
+          { id: "b", texto: "4 anos" },
+        ],
+        gabaritoCorreto: "b.",
+        flashcardFrente: "Duração?",
+        flashcardVerso: "4 anos.",
+      };
+
+      const clean = normalizeQuestionData(raw);
+      expect(clean.gabaritoCorreto).toBe("B");
+      expect(clean.alternativas[0].id).toBe("A");
+      expect(clean.alternativas[1].id).toBe("B");
+    });
+
+    it("deve padronizar Certo/Errado para 'Certo' ou 'Errado' exatos", () => {
+      const rawCerto: QuestaoGerada = {
+        enunciado: "A soberania é fundamento da RFB.",
+        formato: "certo_errado",
+        justificativa: "Art. 1º, I da CF/88.",
+        alternativas: [],
+        gabaritoCorreto: "CERTO",
+        flashcardFrente: "Soberania é fundamento?",
+        flashcardVerso: "Sim.",
+      };
+
+      expect(normalizeQuestionData(rawCerto).gabaritoCorreto).toBe("Certo");
+
+      const rawErrado: QuestaoGerada = {
+        ...rawCerto,
+        gabaritoCorreto: "e",
+      };
+      expect(normalizeQuestionData(rawErrado).gabaritoCorreto).toBe("Errado");
     });
   });
 
@@ -78,7 +146,7 @@ describe("Simulado Generator Engine", () => {
 
       const [res] = shuffleAlternatives([certoErrado]);
       expect(res.gabaritoCorreto).toBe("Certo");
-      expect(res.alternativas).toEqual(certoErrado.alternativas);
+      expect(res.alternativas).toEqual([]);
     });
   });
 });

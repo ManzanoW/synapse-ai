@@ -37,6 +37,7 @@ import {
 import { SocraticWhyWrongModal } from "@/components/questions/SocraticWhyWrongModal";
 import { useSound } from "@/hooks/useSound";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { isCorrectAnswerMatch } from "@/lib/simulado-generator";
 
 interface QuestionCardProps {
   questao: QuestaoIA;
@@ -149,13 +150,13 @@ export function QuestionCard({
     setEliminatedAlts((prev) => ({ ...prev, [altId]: !prev[altId] }));
   };
 
-  const acertou = alternativaSelecionada === questao.gabaritoCorreto;
+  const acertou = isCorrectAnswerMatch(alternativaSelecionada, questao.gabaritoCorreto);
 
   // Resposta com classificação automática invisível para o Caderno de Erros e Sensory feedback
   const handleAnswer = useCallback(() => {
     if (!alternativaSelecionada) return;
     onAnswerQuestion();
-    if (alternativaSelecionada === questao.gabaritoCorreto) {
+    if (isCorrectAnswerMatch(alternativaSelecionada, questao.gabaritoCorreto)) {
       playCorrect();
       triggerHaptic("success");
     } else {
@@ -509,7 +510,7 @@ export function QuestionCard({
                       isEliminated && !respondida
                         ? "opacity-30 line-through bg-slate-950/20 border-slate-900/50 text-slate-500"
                         : respondida
-                          ? alt.id === questao.gabaritoCorreto
+                          ? isCorrectAnswerMatch(alt.id, questao.gabaritoCorreto)
                             ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 font-semibold shadow-xs"
                             : isSelected
                               ? "bg-rose-500/10 border-rose-500/80 text-rose-300"
@@ -595,7 +596,7 @@ export function QuestionCard({
                     aria-label={`Opção ${opcao}`}
                     className={`flex-1 text-left px-4 py-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-between group cursor-pointer disabled:cursor-default active:scale-[0.99] min-h-[48px] focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none ${
                       respondida
-                        ? opcao === questao.gabaritoCorreto
+                        ? isCorrectAnswerMatch(opcao, questao.gabaritoCorreto)
                           ? "bg-emerald-500/10 border-emerald-500/80 text-emerald-300 shadow-xs"
                           : isSelected
                             ? "bg-rose-500/10 border-rose-500/80 text-rose-300"
