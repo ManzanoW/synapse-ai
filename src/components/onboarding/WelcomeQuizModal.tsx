@@ -9,23 +9,19 @@ import {
   Clock,
   Target,
   Flame,
-  BookOpen,
   ArrowRight,
   ArrowLeft,
   X,
   CheckCircle2,
   Zap,
-  PenTool,
-  Layers,
-  Compass,
   Coffee,
   Rocket,
-  ShieldCheck,
   GraduationCap,
   FileText,
   Check,
   Loader2,
   Wand2,
+  HelpCircle,
 } from "lucide-react";
 import {
   importStarterEditalAction,
@@ -52,6 +48,16 @@ interface WelcomeQuizModalProps {
   userName?: string | null;
 }
 
+const QUICK_AI_SUGGESTIONS = [
+  { label: "👮 PF / PRF", value: "Polícia Federal - Agente / PRF" },
+  { label: "💰 Receita Federal", value: "Auditor Fiscal da Receita Federal" },
+  { label: "🏛️ Tribunais (TRF/TJ)", value: "Técnico / Analista Judiciário TRF" },
+  { label: "💻 TI & Dados", value: "Analista de Tecnologia da Informação" },
+  { label: "🏦 BB / Caixa", value: "Carreira Bancária - Banco do Brasil / Caixa" },
+  { label: "📋 INSS", value: "Técnico do Seguro Social - INSS" },
+  { label: "⚖️ Jurídico / OAB", value: "Exame de Ordem OAB / Analista Jurídico" },
+];
+
 export function WelcomeQuizModal({
   isOpen,
   onClose,
@@ -63,17 +69,12 @@ export function WelcomeQuizModal({
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Estados das escolhas do usuário
-  const [selectedMode, setSelectedMode] =
-    useState<OnboardingProfileMode>("minimal");
+  const [selectedMode, setSelectedMode] = useState<OnboardingProfileMode>("minimal");
   const [selectedHours, setSelectedHours] = useState<number>(2);
-  const [selectedAction, setSelectedAction] = useState<
-    "dashboard" | "flashcards" | "questions" | "redacao" | "edital"
-  >("edital");
   const [selectedCareerTemplate, setSelectedCareerTemplate] = useState<string>("ti");
   const [customRoleInput, setCustomRoleInput] = useState<string>("");
   const [careerCategoryFilter, setCareerCategoryFilter] = useState<string>("all");
   const [isActivatingEdital, setIsActivatingEdital] = useState(false);
-  const [activationError, setActivationError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -83,6 +84,10 @@ export function WelcomeQuizModal({
     if (step < 3) {
       setStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
     } else if (step === 3) {
+      // Se selecionou custom IA mas não digitou nada, foca no input ou seleciona padrão
+      if (selectedCareerTemplate === "ai-custom" && !customRoleInput.trim()) {
+        setSelectedCareerTemplate("ti");
+      }
       setStep(4);
     }
   };
@@ -93,34 +98,35 @@ export function WelcomeQuizModal({
     }
   };
 
-  const handleFinish = async () => {
+  const handleFinish = async (destination: "dashboard" | "questions" = "dashboard") => {
     setIsActivatingEdital(true);
-    setActivationError(null);
 
     try {
-      // 1. Salva preferências e meta de horas diretamente no banco de dados do usuário (PostgreSQL)
+      // 1. Salva preferências e meta de horas no perfil do usuário
       await saveOnboardingPreferencesAction({
         dailyHours: selectedHours,
         profileMode: selectedMode,
       });
 
-      // 2. Se escolheu cadastrar edital / carreira
-      if (selectedAction === "edital") {
-        if (selectedCareerTemplate === "ai-custom" && customRoleInput.trim()) {
-          const res = await generateCustomEditalAction(customRoleInput.trim());
-          if (!res.success) {
-            console.warn("Erro ao gerar edital com IA, prosseguindo:", res.error);
-          }
-        } else if (selectedCareerTemplate && selectedCareerTemplate !== "custom" && selectedCareerTemplate !== "ai-custom") {
-          await importStarterEditalAction(selectedCareerTemplate);
+      // 2. Sempre importa a carreira escolhida para garantir que o aluno comece com matérias prontas
+      if (selectedCareerTemplate === "ai-custom" && customRoleInput.trim()) {
+        const res = await generateCustomEditalAction(customRoleInput.trim());
+        if (!res.success) {
+          console.warn("Erro ao gerar edital com IA, prosseguindo:", res.error);
         }
-
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
+      } else if (
+        selectedCareerTemplate &&
+        selectedCareerTemplate !== "custom" &&
+        selectedCareerTemplate !== "ai-custom"
+      ) {
+        await importStarterEditalAction(selectedCareerTemplate);
       }
+
+      confetti({
+        particleCount: 90,
+        spread: 75,
+        origin: { y: 0.6 },
+      });
     } catch (err) {
       console.error("Erro ao ativar preferências e edital no onboarding:", err);
     } finally {
@@ -130,7 +136,7 @@ export function WelcomeQuizModal({
     const result: OnboardingQuizResult = {
       profileMode: selectedMode,
       dailyHours: selectedHours,
-      startAction: selectedAction,
+      startAction: destination === "questions" ? "questions" : "edital",
       careerTemplate: selectedCareerTemplate,
       customRole: customRoleInput.trim() || null,
     };
@@ -138,24 +144,16 @@ export function WelcomeQuizModal({
     onComplete(result);
 
     // Navega para o destino escolhido
-    if (selectedAction === "edital") {
-      if (selectedCareerTemplate === "custom") {
-        router.push("/edital");
-      } else {
-        router.push("/dashboard");
-      }
-    } else if (selectedAction === "flashcards") {
-      router.push("/flashcards");
-    } else if (selectedAction === "questions") {
-      router.push("/questions");
-    } else if (selectedAction === "redacao") {
-      router.push("/redacao");
+    if (destination === "questions") {
+      router.push("/questions?autoStart=1");
+    } else if (selectedCareerTemplate === "custom") {
+      router.push("/edital");
     } else {
       router.push("/dashboard");
     }
   };
 
-  // Filtragem de templates de carreiras
+  // Filtragem de templates de carreiras oficiais
   const allTemplates = Object.values(STARTER_EDITAL_TEMPLATES);
   const filteredTemplates = allTemplates.filter((t) => {
     if (careerCategoryFilter === "all") return true;
@@ -167,6 +165,15 @@ export function WelcomeQuizModal({
     if (careerCategoryFilter === "saude_educacao") return t.category === "saude_educacao";
     return true;
   });
+
+  // Nome legível da carreira selecionada para o resumo do Passo 4
+  const selectedCareerLabel =
+    selectedCareerTemplate === "ai-custom"
+      ? customRoleInput.trim() || "Cargo Personalizado por IA"
+      : selectedCareerTemplate === "custom"
+        ? "Edital Próprio em PDF"
+        : STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.title.split("(")[0].trim() ||
+          "Tecnologia da Informação & Dados";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
@@ -221,10 +228,10 @@ export function WelcomeQuizModal({
           />
         </div>
 
-        {/* ================= CONTEÚDO PRINCIPAL (CORPO DO WIZARD) ================= */}
-        <div className="relative z-10 flex-1 overflow-y-auto p-5 sm:p-6 custom-scrollbar">
+        {/* ================= CORPO DAS ETAPAS ================= */}
+        <div className="relative z-10 p-5 sm:p-6 overflow-y-auto flex-1 custom-scrollbar">
           <AnimatePresence mode="wait">
-            {/* ETAPA 1: MOMENTO E RITMO */}
+            {/* ETAPA 1: MOMENTO DE ESTUDOS */}
             {step === 1 && (
               <motion.div
                 key="step1"
@@ -239,7 +246,7 @@ export function WelcomeQuizModal({
                     Olá, {firstName}! Qual é o seu momento de estudos hoje?
                   </h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    Vamos ajustar a quantidade de informações da sua tela para você estudar sem ansiedade.
+                    Vamos ajustar a quantidade de informações da sua tela para você estudar com foco e sem ansiedade.
                   </p>
                 </div>
 
@@ -456,7 +463,7 @@ export function WelcomeQuizModal({
               </motion.div>
             )}
 
-            {/* ETAPA 3: PONTO DE PARTIDA & SELEÇÃO DE CARREIRA */}
+            {/* ETAPA 3: ESCOLHA DA CARREIRA OU PERSONALIZAÇÃO COM IA (REFORMULADA COM CLAREZA TOTAL) */}
             {step === 3 && (
               <motion.div
                 key="step3"
@@ -467,292 +474,198 @@ export function WelcomeQuizModal({
                 className="space-y-4"
               >
                 <div>
-                  <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                    Por onde você gostaria de começar hoje?
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Definir seu foco carrega disciplinas, simulados, cartões de memória e seu cronograma inteligente.
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      <GraduationCap size={16} />
+                    </span>
+                    <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                      Qual é o seu concurso ou foco de estudo?
+                    </h2>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    Escolha uma carreira pronta ou digite seu cargo desejado para a IA estruturar suas disciplinas, simulados e cronograma semanal.
                   </p>
                 </div>
 
-                <div className="space-y-3 pt-1">
-                  {/* Opção Principal: Definir Concurso / Edital */}
-                  <div
-                    className={`rounded-2xl border transition-all ${
-                      selectedAction === "edital"
-                        ? "border-amber-500/60 bg-amber-950/20 ring-1 ring-amber-500/40 p-4"
-                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 p-3.5"
+                {/* 1. HERO CARD: PERSONALIZAR COM IA (DIGITE SEU CARGO DESEJADO) */}
+                <div
+                  className={`rounded-2xl border p-4 transition-all ${
+                    selectedCareerTemplate === "ai-custom"
+                      ? "border-indigo-400/80 bg-indigo-950/40 ring-1 ring-indigo-400/50 shadow-[0_0_24px_rgba(99,102,241,0.2)]"
+                      : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                      <Wand2 size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
+                          Personalizar com IA (Meu Cargo ou Edital)
+                        </span>
+                        <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                          ✨ Mais flexível
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 mt-0.5">
+                        Digite qualquer concurso do Brasil e a IA monta sua grade de matérias oficial na hora.
+                      </p>
+
+                      {/* Campo de Texto para o Cargo */}
+                      <div className="mt-3">
+                        <input
+                          type="text"
+                          value={customRoleInput}
+                          onChange={(e) => {
+                            setCustomRoleInput(e.target.value);
+                            setSelectedCareerTemplate("ai-custom");
+                          }}
+                          onFocus={() => setSelectedCareerTemplate("ai-custom")}
+                          placeholder="Ex: Perito Criminal PF, Analista Judiciário TRF, Auditor da Receita, Caixa..."
+                          className="w-full bg-slate-900/90 border border-white/15 focus:border-indigo-400 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors shadow-inner"
+                        />
+                      </div>
+
+                      {/* Pílulas de Sugestões Rápidas (1 Clique) */}
+                      <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-slate-400 mr-1">Sugestões:</span>
+                        {QUICK_AI_SUGGESTIONS.map((sug) => (
+                          <button
+                            key={sug.label}
+                            type="button"
+                            onClick={() => {
+                              setCustomRoleInput(sug.value);
+                              setSelectedCareerTemplate("ai-custom");
+                            }}
+                            className={`px-2 py-1 rounded-lg text-[10.5px] font-medium border transition-all cursor-pointer ${
+                              selectedCareerTemplate === "ai-custom" && customRoleInput === sug.value
+                                ? "bg-indigo-500 text-white border-indigo-400 shadow-sm"
+                                : "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                            }`}
+                          >
+                            {sug.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* DIVISOR ELEGANTE */}
+                <div className="flex items-center gap-3 pt-1">
+                  <div className="h-px flex-1 bg-white/10" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Ou escolha uma carreira pronta
+                  </span>
+                  <div className="h-px flex-1 bg-white/10" />
+                </div>
+
+                {/* FILTRO DE CATEGORIAS (FLEX-WRAP LIMPO SEM ROLAGEM DUPLA) */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { id: "all", label: `🔥 Todas (${allTemplates.length})` },
+                    { id: "ti", label: `💻 TI & Dados` },
+                    { id: "policial", label: `👮 Policial` },
+                    { id: "fiscal_controle", label: `💰 Fiscal & Controle` },
+                    { id: "administrativo", label: `🏛️ Tribunais & Adm` },
+                    { id: "juridica", label: `⚖️ Jurídica` },
+                    { id: "saude_educacao", label: `🩺 Saúde & Educação` },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCareerCategoryFilter(cat.id)}
+                      className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                        careerCategoryFilter === cat.id
+                          ? "bg-amber-500 text-slate-950 shadow-sm"
+                          : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* GRID DE CARREIRAS OFICIAIS (SEM TRUNCAMENTO DE TEXTO) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                  {filteredTemplates.map((tpl) => {
+                    const isSelected = selectedCareerTemplate === tpl.id;
+                    const cleanTitle = tpl.title.split("(")[0].trim();
+                    return (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCareerTemplate(tpl.id);
+                          setCustomRoleInput("");
+                        }}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 relative ${
+                          isSelected
+                            ? "border-amber-400/80 bg-amber-500/15 text-white ring-1 ring-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                            : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 text-slate-200"
+                        }`}
+                      >
+                        <span className="text-2xl shrink-0 mt-0.5">{tpl.icon}</span>
+                        <div className="flex-1 min-w-0 pr-6">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-white block leading-snug">
+                              {cleanTitle}
+                            </span>
+                            {tpl.badge && (
+                              <span className="text-[8.5px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+                                {tpl.badge}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-400 block mt-1">
+                            {tpl.materias.length} matérias essenciais inclusas
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-3 right-3 p-1 rounded-full bg-amber-400 text-slate-950">
+                            <Check size={12} strokeWidth={3} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+
+                  {/* Opção Edital Próprio em PDF */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCareerTemplate("custom");
+                      setCustomRoleInput("");
+                    }}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 relative sm:col-span-2 ${
+                      selectedCareerTemplate === "custom"
+                        ? "border-amber-400/80 bg-amber-500/15 text-white ring-1 ring-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 text-slate-300"
                     }`}
                   >
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAction("edital")}
-                      className="w-full flex items-start gap-3 text-left cursor-pointer"
-                    >
-                      <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
-                        <GraduationCap size={20} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs sm:text-sm font-black text-white">
-                            Definir meu Concurso / Área de Estudo
-                          </span>
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
-                            ⭐ Recomendado 1º Passo
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                          Escolha sua carreira pronta ou personalize com IA para carregar as matérias essenciais em 1 clique.
-                        </p>
-                      </div>
-                    </button>
-
-                    {/* Sub-seletor de carreiras quando Edital está selecionado */}
-                    {selectedAction === "edital" && (
-                      <div className="mt-4 pt-3 border-t border-white/10 space-y-3">
-                        {/* Filtro de Categorias de Carreira */}
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
-                          {[
-                            { id: "all", label: `🔥 Todas (${allTemplates.length})` },
-                            { id: "ti", label: `💻 TI & Dados (${allTemplates.filter((t) => t.category === "ti").length})` },
-                            { id: "policial", label: `👮 Policial (${allTemplates.filter((t) => t.category === "policial").length})` },
-                            { id: "fiscal_controle", label: `💰 Fiscal & Controle (${allTemplates.filter((t) => t.category === "fiscal_controle").length})` },
-                            { id: "administrativo", label: `🏛️ Tribunais & Adm (${allTemplates.filter((t) => t.category === "administrativo").length})` },
-                            { id: "juridica", label: `⚖️ Jurídica (${allTemplates.filter((t) => t.category === "juridica").length})` },
-                            { id: "saude_educacao", label: `🩺 Saúde & Educação (${allTemplates.filter((t) => t.category === "saude_educacao").length})` },
-                          ].map((cat) => (
-                            <button
-                              key={cat.id}
-                              type="button"
-                              onClick={() => setCareerCategoryFilter(cat.id)}
-                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
-                                careerCategoryFilter === cat.id
-                                  ? "bg-amber-500 text-slate-950 shadow-sm"
-                                  : "bg-white/5 text-slate-400 hover:text-white"
-                              }`}
-                            >
-                              {cat.label}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Grid de Carreiras */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
-                          {/* Opção 1: Personalizar com IA */}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedCareerTemplate("ai-custom")}
-                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 sm:col-span-2 ${
-                              selectedCareerTemplate === "ai-custom"
-                                ? "border-indigo-400/80 bg-indigo-500/20 text-white ring-1 ring-indigo-400/60 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
-                                : "border-indigo-500/30 bg-indigo-950/30 text-slate-200 hover:border-indigo-400/50"
-                            }`}
-                          >
-                            <span className="p-1.5 rounded-lg bg-indigo-500/30 text-indigo-300 shrink-0">
-                              <Wand2 size={16} />
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-black block text-indigo-200">
-                                  Personalizar com IA (Meu Cargo/Foco)
-                                </span>
-                                <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.2 rounded-md bg-indigo-400/20 text-indigo-300 border border-indigo-400/30">
-                                  Novo ✨
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-slate-400 block truncate">
-                                Digite o cargo/concurso desejado e a IA cria sua grade na hora
-                              </span>
-                            </div>
-                            {selectedCareerTemplate === "ai-custom" && (
-                              <Check size={14} className="text-indigo-400 shrink-0" />
-                            )}
-                          </button>
-
-                          {/* Templates oficiais */}
-                          {filteredTemplates.map((tpl) => (
-                            <button
-                              key={tpl.id}
-                              type="button"
-                              onClick={() => setSelectedCareerTemplate(tpl.id)}
-                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
-                                selectedCareerTemplate === tpl.id
-                                  ? "border-amber-400/60 bg-amber-500/15 text-white ring-1 ring-amber-400/40"
-                                  : "border-white/10 bg-black/40 text-slate-300 hover:border-white/20"
-                              }`}
-                            >
-                              <span className="text-lg">{tpl.icon}</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className="text-xs font-bold block truncate">
-                                    {tpl.title.split("(")[0].trim()}
-                                  </span>
-                                  {tpl.badge && (
-                                    <span className="text-[8.5px] px-1 py-0.2 rounded bg-white/5 text-amber-300 shrink-0 font-medium">
-                                      {tpl.badge}
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[10px] text-slate-400 block truncate">
-                                  {tpl.materias.length} matérias base
-                                </span>
-                              </div>
-                              {selectedCareerTemplate === tpl.id && (
-                                <Check size={14} className="text-amber-400 shrink-0" />
-                              )}
-                            </button>
-                          ))}
-
-                          {/* Opção Edital Próprio */}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedCareerTemplate("custom")}
-                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
-                              selectedCareerTemplate === "custom"
-                                ? "border-amber-400/60 bg-amber-500/15 text-white ring-1 ring-amber-400/40"
-                                : "border-white/10 bg-black/40 text-slate-300 hover:border-white/20"
-                            }`}
-                          >
-                            <FileText size={18} className="text-slate-400 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <span className="text-xs font-bold block truncate">
-                                Tenho edital próprio em PDF
-                              </span>
-                              <span className="text-[10px] text-slate-400 block truncate">
-                                Importar texto ou arquivo
-                              </span>
-                            </div>
-                            {selectedCareerTemplate === "custom" && (
-                              <Check size={14} className="text-amber-400 shrink-0" />
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Input quando a opção "Personalizar com IA" está ativa */}
-                        {selectedCareerTemplate === "ai-custom" && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="p-3 rounded-xl border border-indigo-500/30 bg-indigo-950/40 space-y-1.5"
-                          >
-                            <label className="text-[11px] font-bold text-indigo-300 block">
-                              Qual é o concurso e/ou cargo desejado?
-                            </label>
-                            <input
-                              type="text"
-                              value={customRoleInput}
-                              onChange={(e) => setCustomRoleInput(e.target.value)}
-                              placeholder="Ex: Analista de TI - Banco Central, Perito Criminal Forense, Auditor Fiscal..."
-                              className="w-full bg-slate-900 border border-indigo-500/30 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-colors"
-                            />
-                            <p className="text-[10px] text-slate-400 leading-tight">
-                              💡 A IA do Synapse vai pesquisar as matérias oficiais e tópicos mais cobrados para este cargo e cadastrar tudo no seu plano.
-                            </p>
-                          </motion.div>
-                        )}
+                    <div className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 shrink-0">
+                      <FileText size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-bold text-white block">
+                        Tenho um edital próprio em PDF / Texto
+                      </span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                        Você poderá fazer upload do PDF ou colar o conteúdo no menu Edital.
+                      </span>
+                    </div>
+                    {selectedCareerTemplate === "custom" && (
+                      <div className="p-1 rounded-full bg-amber-400 text-slate-950 self-center">
+                        <Check size={12} strokeWidth={3} />
                       </div>
                     )}
-                  </div>
-
-                  {/* 4 Outras Opções Rápidas */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {/* Simulados */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAction("questions")}
-                      className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                        selectedAction === "questions"
-                          ? "border-emerald-500/60 bg-emerald-950/25 ring-1 ring-emerald-500/30"
-                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
-                      }`}
-                    >
-                      <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
-                        <BookOpen size={16} />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-white block">
-                          Fazer Simulado Rápido
-                        </span>
-                        <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                          Resolva questões calibradas por banca e tema.
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* Flashcards */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAction("flashcards")}
-                      className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                        selectedAction === "flashcards"
-                          ? "border-cyan-500/60 bg-cyan-950/25 ring-1 ring-cyan-500/30"
-                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
-                      }`}
-                    >
-                      <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0">
-                        <Layers size={16} />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-white block">
-                          Cartões de Memória
-                        </span>
-                        <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                          Repetição inteligente para fixar o conteúdo na memória.
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* Redação */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAction("redacao")}
-                      className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                        selectedAction === "redacao"
-                          ? "border-pink-500/60 bg-pink-950/25 ring-1 ring-pink-500/30"
-                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
-                      }`}
-                    >
-                      <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/30 shrink-0">
-                        <PenTool size={16} />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-white block">
-                          Redação & Discursivas
-                        </span>
-                        <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                          Correção estilo Cebraspe com IA e Padrão Ouro.
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* Dashboard */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAction("dashboard")}
-                      className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                        selectedAction === "dashboard"
-                          ? "border-violet-500/60 bg-violet-950/25 ring-1 ring-violet-500/30"
-                          : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20"
-                      }`}
-                    >
-                      <div className="p-2 rounded-xl bg-violet-500/20 text-violet-400 border border-violet-500/30 shrink-0">
-                        <Compass size={16} />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-white block">
-                          Entrar no Dashboard
-                        </span>
-                        <span className="text-[10px] text-slate-400 leading-snug block mt-0.5">
-                          Ver meu cronograma ajustado ao perfil.
-                        </span>
-                      </div>
-                    </button>
-                  </div>
+                  </button>
                 </div>
               </motion.div>
             )}
 
-            {/* ETAPA 4: CONFIRMAÇÃO & RESUMO */}
+            {/* ETAPA 4: CONFIRMAÇÃO & DIRECIONAMENTO ACOLHEDOR */}
             {step === 4 && (
               <motion.div
                 key="step4"
@@ -767,10 +680,10 @@ export function WelcomeQuizModal({
 
                 <div>
                   <h2 className="text-xl font-black text-white tracking-tight">
-                    Tudo pronto para sua aprovação!
+                    Tudo pronto para sua aprovação, {firstName}!
                   </h2>
                   <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                    Seu ambiente foi configurado com sucesso e sua meta diária foi salva no seu perfil.
+                    Seu ambiente e seu ciclo de estudos foram calibrados para sua carreira.
                   </p>
                 </div>
 
@@ -778,14 +691,10 @@ export function WelcomeQuizModal({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-lg mx-auto text-left pt-2">
                   <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02]">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">
-                      Modo Ativado
+                      Foco / Carreira
                     </span>
-                    <span className="text-xs font-black text-white mt-0.5 block">
-                      {selectedMode === "minimal"
-                        ? "🌟 Modo Essencial"
-                        : selectedMode === "practice"
-                          ? "🎯 Modo Prática"
-                          : "🚀 Modo Completo"}
+                    <span className="text-xs font-black text-amber-300 mt-0.5 block truncate">
+                      {selectedCareerLabel}
                     </span>
                   </div>
 
@@ -803,59 +712,60 @@ export function WelcomeQuizModal({
 
                   <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02]">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">
-                      Foco Inicial
+                      Modo Ativado
                     </span>
-                    <span className="text-xs font-black text-white mt-0.5 block truncate">
-                      {selectedAction === "edital"
-                        ? selectedCareerTemplate === "ai-custom"
-                          ? `🤖 ${customRoleInput.trim() || "Foco com IA"}`
-                          : selectedCareerTemplate === "custom"
-                            ? "Importar Edital"
-                            : `${STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.icon || "📚"} ${
-                                STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.title.split("(")[0].trim() || "Edital"
-                              }`
-                        : selectedAction === "flashcards"
-                          ? "Cartões de Memória"
-                          : selectedAction === "questions"
-                            ? "Simulado"
-                            : selectedAction === "redacao"
-                              ? "Redação IA"
-                              : "Dashboard"}
+                    <span className="text-xs font-black text-white mt-0.5 block">
+                      {selectedMode === "minimal"
+                        ? "🌟 Modo Essencial"
+                        : selectedMode === "practice"
+                          ? "🎯 Modo Prática"
+                          : "🚀 Modo Completo"}
                     </span>
                   </div>
                 </div>
 
-                <div className="pt-2">
+                {/* Botões de Ação Direta para o Aluno não se sentir perdido */}
+                <div className="pt-3 max-w-md mx-auto space-y-2">
                   <button
                     disabled={isActivatingEdital}
-                    onClick={handleFinish}
-                    className="w-full sm:w-auto px-8 py-3 rounded-xl bg-linear-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => handleFinish("dashboard")}
+                    className="w-full px-6 py-3.5 rounded-xl bg-linear-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isActivatingEdital ? (
                       <>
-                        <Loader2 size={15} className="animate-spin" />
+                        <Loader2 size={16} className="animate-spin" />
                         <span>Configurando seu plano...</span>
                       </>
                     ) : (
                       <>
-                        <span>Começar Meus Estudos Agora</span>
-                        <ArrowRight size={15} />
+                        <span>Acessar Meu Painel de Estudos</span>
+                        <ArrowRight size={16} />
                       </>
                     )}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isActivatingEdital}
+                    onClick={() => handleFinish("questions")}
+                    className="w-full px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span>⚡ Fazer Simulado Diagnóstico Rápido (5 questões)</span>
                   </button>
                 </div>
 
                 {onOpenFullTour && (
-                  <div className="pt-1">
+                  <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => {
                         onClose();
                         onOpenFullTour();
                       }}
-                      className="text-[11px] text-slate-400 hover:text-white underline underline-offset-4 transition-colors cursor-pointer"
+                      className="text-[11px] text-slate-400 hover:text-white underline underline-offset-4 transition-colors cursor-pointer inline-flex items-center gap-1"
                     >
-                      Deseja ver o manual completo de cada ferramenta? Abrir Tour Detalhado
+                      <HelpCircle size={12} />
+                      <span>Deseja ver o manual completo de cada ferramenta? Abrir Tour</span>
                     </button>
                   </div>
                 )}
@@ -893,7 +803,7 @@ export function WelcomeQuizModal({
               onClick={handleNext}
               className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-md shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer"
             >
-              <span>{step === 3 ? "Concluir Perfil" : "Continuar"}</span>
+              <span>{step === 3 ? "Criar Meu Plano de Estudos" : "Continuar"}</span>
               <ArrowRight size={14} />
             </button>
           </div>
