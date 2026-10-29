@@ -11,6 +11,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { SubmitQuizAttemptInput, SubjectDomainMetric, MentorGuidance } from "@/types/quiz";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { normalizeTaxonomy } from "@/lib/error-taxonomy";
+import { syncErrorToFlashcardCore } from "@/actions/error-notebook-actions";
 import { SubmitQuizAttemptSchema } from "@/lib/validations/quiz.schema";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
@@ -135,8 +136,9 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
             },
           });
 
+          let errorRecordId: string;
           if (existing) {
-            await prisma.questionError.update({
+            const updated = await prisma.questionError.update({
               where: { id: existing.id },
               data: {
                 userAnswer: String(item.selectedOption || "Não informada"),
@@ -148,8 +150,9 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
                 updatedAt: new Date(),
               },
             });
+            errorRecordId = updated.id;
           } else {
-            await prisma.questionError.create({
+            const created = await prisma.questionError.create({
               data: {
                 userId,
                 subjectId: item.subjectId || input.subjectId || null,
@@ -163,6 +166,14 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
                 status: "PENDING",
               },
             });
+            errorRecordId = created.id;
+          }
+
+          // ⚡ Sincronização automática com Flashcard FSRS para repetição espaçada
+          try {
+            await syncErrorToFlashcardCore(userId, errorRecordId);
+          } catch (flashcardErr) {
+            console.warn("Auto-sync flashcard FSRS falhou:", flashcardErr);
           }
         } catch (e: unknown) {
           console.warn("Erro ao registrar questionError em submitQuizAttemptAction:", e);

@@ -66,7 +66,29 @@ export default function TimedQuizPage() {
   const [phase, setPhase] = useState<"setup" | "exam" | "results">("setup");
 
   // Parâmetros de Configuração
-  const [banca, setBanca] = useState("FGV");
+  const [banca, setBancaState] = useState<string>("FGV");
+
+  useEffect(() => {
+    const urlBanca = searchParams.get("banca");
+    if (urlBanca) {
+      setBancaState(urlBanca);
+      try {
+        localStorage.setItem("synapse_preferred_banca", urlBanca);
+      } catch {}
+    } else {
+      try {
+        const stored = localStorage.getItem("synapse_preferred_banca");
+        if (stored) setBancaState(stored);
+      } catch {}
+    }
+  }, [searchParams]);
+
+  const setBanca = useCallback((val: string) => {
+    setBancaState(val);
+    try {
+      localStorage.setItem("synapse_preferred_banca", val);
+    } catch {}
+  }, []);
   const [materia, setMateria] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [qtdQuestoes, setQtdQuestoes] = useState("10");
@@ -144,10 +166,9 @@ export default function TimedQuizPage() {
     const blockParam = parseInt(searchParams.get("block") || "30", 10);
     const focusParam = searchParams.get("focus") === "true";
 
-    // Se acessado diretamente sem nenhum parâmetro de exame, redireciona para a Central em /questions
+    // Se acessado diretamente sem exame pré-gerado, mantém na tela de configuração do simulado cronometrado
     if (!examId && !source && !searchParams.get("subjectId") && !searchParams.get("topicId")) {
-      router.replace("/questions?tab=history");
-      return;
+      setPhase("setup");
     }
 
     if (examId) {

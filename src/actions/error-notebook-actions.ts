@@ -732,32 +732,16 @@ export async function markErrorAsMasteredAction(
 }
 
 /**
- * ⚡ CONVERSÃO DIRETA EM FLASHCARD (ZERO TOKENS DE IA)
- * Aproveita o enunciado, gabarito e justificativa existentes da questão
+ * ⚡ FUNÇÃO CENTRAL: Cria ou sincroniza flashcard FSRS direto de um QuestionError (Zero tokens de IA)
  */
-export async function convertErrorToFlashcardAction(errorId: string): Promise<{
+export async function syncErrorToFlashcardCore(userId: string, errorId: string): Promise<{
   success: boolean;
   cardId?: string;
   error?: string;
 }> {
   try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (!userId) {
-      return { success: false, error: "Não autorizado." };
-    }
-
-    const validation = ConvertErrorToFlashcardSchema.safeParse({ errorId });
-    if (!validation.success) {
-      return {
-        success: false,
-        error: validation.error.issues[0]?.message || "ID do erro inválido.",
-      };
-    }
-
     const item = await prisma.questionError.findFirst({
-      where: { id: validation.data.errorId, userId },
+      where: { id: errorId, userId },
       include: { subject: true, topic: true },
     });
 
@@ -819,10 +803,48 @@ export async function convertErrorToFlashcardAction(errorId: string): Promise<{
       },
     });
 
-    revalidatePath("/flashcards");
-    revalidatePath("/notebook");
-
     return { success: true, cardId: card.id };
+  } catch (err: unknown) {
+    console.error("[syncErrorToFlashcardCore] Erro:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha ao sincronizar flashcard.",
+    };
+  }
+}
+
+/**
+ * ⚡ CONVERSÃO DIRETA EM FLASHCARD (ZERO TOKENS DE IA)
+ * Aproveita o enunciado, gabarito e justificativa existentes da questão
+ */
+export async function convertErrorToFlashcardAction(errorId: string): Promise<{
+  success: boolean;
+  cardId?: string;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return { success: false, error: "Não autorizado." };
+    }
+
+    const validation = ConvertErrorToFlashcardSchema.safeParse({ errorId });
+    if (!validation.success) {
+      return {
+        success: false,
+        error: validation.error.issues[0]?.message || "ID do erro inválido.",
+      };
+    }
+
+    const res = await syncErrorToFlashcardCore(userId, validation.data.errorId);
+    if (res.success) {
+      revalidatePath("/flashcards");
+      revalidatePath("/notebook");
+    }
+
+    return res;
   } catch (err: unknown) {
     console.error("[convertErrorToFlashcardAction] Erro:", err);
     return {

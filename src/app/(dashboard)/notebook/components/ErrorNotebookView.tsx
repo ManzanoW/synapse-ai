@@ -680,6 +680,16 @@ export function ErrorNotebookView({
                   </>
                 )}
               </button>
+
+              {/* Botão 3: Revisar nos Flashcards (FSRS) */}
+              <Link
+                href="/flashcards"
+                className="px-4 py-2.5 sm:py-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 font-bold text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 cursor-pointer"
+                title="Suas questões erradas viram Flashcards com repetição espaçada automática (FSRS)"
+              >
+                <Layers className="w-4 h-4 text-indigo-400" />
+                <span>Revisar em Flashcards (FSRS)</span>
+              </Link>
             </div>
           </div>
         </div>

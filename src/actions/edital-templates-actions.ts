@@ -448,9 +448,17 @@ Para cada matéria:
 export async function saveOnboardingPreferencesAction({
   dailyHours,
   profileMode,
+  targetRole,
+  careerFocus,
+  banca,
+  activeDaysPerWeek,
 }: {
   dailyHours: number;
   profileMode: string;
+  targetRole?: string;
+  careerFocus?: string;
+  banca?: string;
+  activeDaysPerWeek?: number;
 }) {
   try {
     const session = await auth();
@@ -460,16 +468,29 @@ export async function saveOnboardingPreferencesAction({
       return { success: false, error: "Usuário não autenticado." };
     }
 
-    // Calcula meta semanal em horas (ex: 2h/dia * 5 dias = 10h; 3h * 5 = 15h; 5h * 5 = 25h)
     const validDaily = Math.max(1, Math.min(12, Number(dailyHours) || 2));
-    const weeklyGoalHours = validDaily * 5;
+    const validDays = Math.max(1, Math.min(7, Number(activeDaysPerWeek) || 5));
+    const weeklyGoalHours = validDaily * validDays;
+
+    const updateData: any = {
+      weeklyGoalHours,
+      activeDaysPerWeek: validDays,
+      studyMode: "WEEKLY",
+    };
+
+    if (targetRole && targetRole.trim()) {
+      updateData.targetRole = targetRole.trim();
+    }
+
+    if (banca && banca.trim()) {
+      updateData.careerFocus = banca.trim();
+    } else if (careerFocus && careerFocus.trim()) {
+      updateData.careerFocus = careerFocus.trim();
+    }
 
     await prisma.user.update({
       where: { id: userId },
-      data: {
-        weeklyGoalHours,
-        studyMode: "WEEKLY",
-      },
+      data: updateData,
     });
 
     try {

@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
+import { syncErrorToFlashcardCore } from "@/actions/error-notebook-actions";
 
 export interface TheorySection {
   heading: string;
@@ -1492,7 +1493,15 @@ export async function saveFixationQuizToErrorNotebookAction(params: {
       },
     });
 
+    // ⚡ Sincroniza automaticamente a questão errada da aula com o baralho FSRS
+    try {
+      await syncErrorToFlashcardCore(userId, createdError.id);
+    } catch (flashcardErr) {
+      console.warn("Auto-sync flashcard da aula falhou:", flashcardErr);
+    }
+
     revalidatePath("/notebook");
+    revalidatePath("/flashcards");
     return { success: true, data: createdError };
   } catch (error) {
     console.error("[saveFixationQuizToErrorNotebookAction] Erro:", error);

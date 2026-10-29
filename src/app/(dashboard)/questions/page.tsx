@@ -301,8 +301,30 @@ export default function QuestoesPage() {
     useState<QuizHistoryItem | null>(null);
   const [isErrorsPacingModalOpen, setIsErrorsPacingModalOpen] = useState(false);
 
-  // Estados do caderno / questões
-  const [banca, setBanca] = useState("FGV");
+  // Estados do caderno / questões calibrados com a banca do aluno
+  const [banca, setBancaState] = useState<string>("FGV");
+
+  useEffect(() => {
+    const urlBanca = searchParams.get("banca");
+    if (urlBanca) {
+      setBancaState(urlBanca);
+      try {
+        localStorage.setItem("synapse_preferred_banca", urlBanca);
+      } catch {}
+    } else {
+      try {
+        const stored = localStorage.getItem("synapse_preferred_banca");
+        if (stored) setBancaState(stored);
+      } catch {}
+    }
+  }, [searchParams]);
+
+  const setBanca = useCallback((val: string) => {
+    setBancaState(val);
+    try {
+      localStorage.setItem("synapse_preferred_banca", val);
+    } catch {}
+  }, []);
   const [questions, setQuestions] = useState<QuestaoIA[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<number, string>
