@@ -59,6 +59,7 @@ import { FreeQuotaModal } from "@/components/quota/FreeQuotaModal";
 import { getAiQuotaStatusAction } from "@/actions/quota-actions";
 import { QuizResolutionView } from "@/components/study/QuizResolutionView";
 import { OpticalAnswerSheetModal } from "@/components/questions/OpticalAnswerSheetModal";
+import { PageSpotlightBanner, useSpotlight, SpotlightTriggerButton } from "@/components/onboarding/PageSpotlightBanner";
 import { SpeedQuizModal } from "@/components/questions/SpeedQuizModal";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 import { QuestionScannerModal } from "@/components/questions/QuestionScannerModal";
@@ -368,6 +369,7 @@ export default function QuestoesPage() {
   const [pendingLaunchSpeedQuiz, setPendingLaunchSpeedQuiz] = useState(false);
   // Modal de Scanner OCR de Questões com Visão Computacional
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
+  const questionsSpotlight = useSpotlight("synapse_spotlight_questions_v1");
 
   // Modal de Feedback Visual Premium de Geração com IA
   const [isSimuladoModalOpen, setIsSimuladoModalOpen] = useState(false);
@@ -1943,6 +1945,7 @@ export default function QuestoesPage() {
             </div>
 
             <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0 flex-wrap">
+              <SpotlightTriggerButton onClick={questionsSpotlight.toggle} label="Como Funciona?" accentColor="violet" />
               <button
                 type="button"
                 onClick={() => setIsScannerModalOpen(true)}
@@ -1969,6 +1972,43 @@ export default function QuestoesPage() {
           </div>
         )}
 
+
+        {/* GUIA PASSO A PASSO / TOUR DE QUESTÕES E SIMULADOS */}
+        {!isZenMode && questions.length === 0 && (
+          <PageSpotlightBanner
+            storageKey="synapse_spotlight_questions_v1"
+            externalIsOpen={questionsSpotlight.isOpen}
+            onClose={questionsSpotlight.dismiss}
+            badgeText="🎯 Guia de Simulados & Questões"
+            title="Como treinar para gabaritar em 3 passos:"
+            description="O Banco de Provas e Simulados adapta as questões ao nível exato exigido pela banca do seu concurso:"
+            accentColor="violet"
+            primaryActionLabel="Entendi, vamos treinar!"
+            steps={[
+              {
+                icon: <Target className="w-4 h-4" />,
+                title: "1. Gere Cadernos por Matéria ou Banca",
+                description:
+                  "Escolha qualquer assunto do seu edital ou faça simulados focados no estilo exato da banca examinadora.",
+                tag: "Foco Total",
+              },
+              {
+                icon: <Timer className="w-4 h-4" />,
+                title: "2. Treine com Pressão de Tempo Real",
+                description:
+                  "Ative o modo Simulado com Tempo para monitorar seus minutos por questão e treinar as condições do grande dia.",
+                tag: "Ritmo de Prova",
+              },
+              {
+                icon: <Sparkles className="w-4 h-4" />,
+                title: "3. Aprenda com os Erros e Crie Flashcards",
+                description:
+                  "Cada erro é catalogado no Caderno de Erros e vira flashcard FSRS automático para você nunca mais errar o assunto.",
+                tag: "Anti-Esquecimento",
+              },
+            ]}
+          />
+        )}
         {/* 2. NAVEGAÇÃO DE ABAS */}
         {!isZenMode && (
           <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
