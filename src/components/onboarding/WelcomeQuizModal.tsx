@@ -104,10 +104,26 @@ export function WelcomeQuizModal({
     setIsActivatingEdital(true);
 
     try {
-      // 1. Salva preferências e meta de horas no perfil do usuário
+      const roleToSave =
+        selectedCareerTemplate === "ai-custom"
+          ? customRoleInput.trim()
+          : selectedCareerTemplate && selectedCareerTemplate !== "custom"
+            ? STARTER_EDITAL_TEMPLATES[selectedCareerTemplate]?.title.split("(")[0].trim()
+            : customRoleInput.trim() || "Concurso Geral";
+
+      try {
+        localStorage.setItem("synapse_preferred_banca", selectedBanca);
+        localStorage.setItem("synapse_target_role", roleToSave);
+      } catch {}
+
+      // 1. Salva preferências, banca e meta de horas no perfil do usuário
       await saveOnboardingPreferencesAction({
         dailyHours: selectedHours,
         profileMode: selectedMode,
+        targetRole: roleToSave,
+        banca: selectedBanca,
+        careerFocus: selectedBanca,
+        activeDaysPerWeek: 5,
       });
 
       // 2. Sempre importa a carreira escolhida para garantir que o aluno comece com matérias prontas

@@ -48,6 +48,8 @@ export async function GET() {
         studyMode: true,
         cycleCurrentIndex: true,
         cycleLap: true,
+        targetRole: true,
+        careerFocus: true,
       },
     });
 
@@ -124,6 +126,8 @@ export async function GET() {
         activeDaysPerWeek: user.activeDaysPerWeek ?? 5,
         cycleCurrentIndex: user.cycleCurrentIndex ?? 0,
         cycleLap: user.cycleLap ?? 1,
+        targetRole: user.targetRole ?? "Concurso Geral",
+        careerFocus: user.careerFocus ?? "CEBRASPE",
         missedDayName,
         scheduleByDay,
         subjectOverview,

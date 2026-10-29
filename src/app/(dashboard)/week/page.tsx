@@ -134,6 +134,8 @@ interface WeekData {
   activeDaysPerWeek: number;
   cycleCurrentIndex: number;
   cycleLap: number;
+  targetRole?: string;
+  careerFocus?: string;
   missedDayName?: string | null;
   scheduleByDay: DaySchedule[];
   subjectOverview: SubjectOverview[];
@@ -777,6 +779,24 @@ export default function WeekPage() {
                   : "Seu Cronograma da Semana"}
               </h1>
             </div>
+
+            {/* Banner de Calibração com o Concurso do Aluno */}
+            {data && (
+              <div className="mt-2.5 inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="font-semibold text-white">
+                  {data.targetRole || "Concurso Geral"}
+                </span>
+                <span className="text-slate-600">•</span>
+                <span className="text-indigo-400 font-mono text-[11px] font-bold">
+                  Banca {data.careerFocus || "CEBRASPE"}
+                </span>
+                <span className="text-slate-600">•</span>
+                <span className="text-slate-400 text-[11px]">
+                  {Math.round((goalHours / Math.max(1, activeDays)) * 10) / 10}h por dia ({activeDays} dias na semana)
+                </span>
+              </div>
+            )}
 
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
               {studyMode === "CYCLE"
