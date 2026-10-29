@@ -37,7 +37,7 @@ import {
 import { SocraticWhyWrongModal } from "@/components/questions/SocraticWhyWrongModal";
 import { useSound } from "@/hooks/useSound";
 import { triggerHaptic } from "@/lib/sensory/haptics";
-import { isCorrectAnswerMatch } from "@/lib/simulado-generator";
+import { isCorrectAnswerMatch } from "@/lib/quiz-utils";
 
 interface QuestionCardProps {
   questao: QuestaoIA;
