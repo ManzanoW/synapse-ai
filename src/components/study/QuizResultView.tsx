@@ -50,7 +50,7 @@ import {
 } from "@/actions/error-notebook-actions";
 import { createFlashcardsFromQuizResultsAction } from "@/actions/error-flashcard-actions";
 import { triggerHaptic } from "@/lib/sensory/haptics";
-import { isCorrectAnswerMatch } from "@/lib/simulado-generator";
+import { isCorrectAnswerMatch } from "@/lib/quiz-utils";
 import { PrintableQuizSummaryModal } from "./PrintableQuizSummaryModal";
 
 export interface QuizResultViewProps {

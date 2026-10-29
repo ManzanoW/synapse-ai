@@ -45,7 +45,7 @@ import {
 import { MentorCopilotDrawer } from "@/components/mentor/MentorCopilotDrawer";
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { triggerHaptic } from "@/lib/sensory/haptics";
-import { isCorrectAnswerMatch } from "@/lib/simulado-generator";
+import { isCorrectAnswerMatch } from "@/lib/quiz-utils";
 
 export type AnswerConfidence = "CERTEZA" | "CHUTE_TECNICO" | "CHUTE_ESCURO";
 
