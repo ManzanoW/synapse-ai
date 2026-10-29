@@ -45,6 +45,7 @@ import {
 import { MentorCopilotDrawer } from "@/components/mentor/MentorCopilotDrawer";
 import { PrintableQuestions } from "@/components/questions/printable-questions";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { isCorrectAnswerMatch } from "@/lib/simulado-generator";
 
 export type AnswerConfidence = "CERTEZA" | "CHUTE_TECNICO" | "CHUTE_ESCURO";
 
@@ -325,7 +326,7 @@ export function QuizResolutionView({
     const idx = Number(k);
     return (
       checkedQuestions[idx] &&
-      selectedAnswers[idx] === questions[idx]?.gabaritoCorreto
+      isCorrectAnswerMatch(selectedAnswers[idx], questions[idx]?.gabaritoCorreto)
     );
   }).length;
   const percentageAcc =
@@ -483,8 +484,10 @@ export function QuizResolutionView({
       [activeQuestionIndex]: true,
     }));
 
-    const isCorrect =
-      currentSelectedAlt === currentQuestion.gabaritoCorreto;
+    const isCorrect = isCorrectAnswerMatch(
+      currentSelectedAlt,
+      currentQuestion.gabaritoCorreto
+    );
 
     triggerHaptic(isCorrect ? "success" : "warning");
 
@@ -1072,7 +1075,7 @@ export function QuizResolutionView({
               const isCurrent = idx === activeQuestionIndex;
               const isAnswered = Boolean(checkedQuestions[idx]);
               const isFlagged = Boolean(flaggedQuestions[idx]);
-              const isCorrect = isAnswered && selectedAnswers[idx] === q.gabaritoCorreto;
+              const isCorrect = isAnswered && isCorrectAnswerMatch(selectedAnswers[idx], q.gabaritoCorreto);
 
               return (
                 <button
@@ -1446,7 +1449,7 @@ export function QuizResolutionView({
                           altStyle =
                             "opacity-30 line-through bg-slate-950/20 border-slate-900 text-slate-500";
                         } else if (isCurrentAnswered) {
-                          if (alt.id === currentQuestion.gabaritoCorreto) {
+                          if (isCorrectAnswerMatch(alt.id, currentQuestion.gabaritoCorreto)) {
                             altStyle =
                               "bg-emerald-500/15 border-emerald-500/80 text-emerald-100 ring-1 ring-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.15)]";
                           } else if (isSelected) {
@@ -1492,7 +1495,7 @@ export function QuizResolutionView({
                                 <span
                                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 transition-all ${
                                     isCurrentAnswered &&
-                                    alt.id === currentQuestion.gabaritoCorreto
+                                    isCorrectAnswerMatch(alt.id, currentQuestion.gabaritoCorreto)
                                       ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30"
                                       : isCurrentAnswered && isSelected
                                         ? "bg-rose-500 text-white shadow-md shadow-rose-500/30"
@@ -1517,14 +1520,14 @@ export function QuizResolutionView({
                                 </kbd>
                               )}
 
-                              {isCurrentAnswered && alt.id === currentQuestion.gabaritoCorreto && (
+                              {isCurrentAnswered && isCorrectAnswerMatch(alt.id, currentQuestion.gabaritoCorreto) && (
                                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-1 rounded-lg shrink-0 self-center shadow-[0_0_12px_rgba(16,185,129,0.25)]">
                                   <Check size={13} className="stroke-[3] text-emerald-400" />
                                   <span>Gabarito</span>
                                 </span>
                               )}
 
-                              {isCurrentAnswered && isSelected && alt.id !== currentQuestion.gabaritoCorreto && (
+                              {isCurrentAnswered && isSelected && !isCorrectAnswerMatch(alt.id, currentQuestion.gabaritoCorreto) && (
                                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 rounded-lg shrink-0 self-center shadow-[0_0_12px_rgba(244,63,94,0.25)]">
                                   <X size={13} className="stroke-[3] text-rose-400" />
                                   <span>Sua escolha</span>
@@ -1570,7 +1573,7 @@ export function QuizResolutionView({
                           ceStyle =
                             "opacity-30 line-through bg-slate-950/20 border-slate-900 text-slate-500";
                         } else if (isCurrentAnswered) {
-                          if (opcao === currentQuestion.gabaritoCorreto) {
+                          if (isCorrectAnswerMatch(opcao, currentQuestion.gabaritoCorreto)) {
                             ceStyle =
                               "bg-emerald-500/15 border-emerald-500/80 text-emerald-100 ring-1 ring-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.15)]";
                           } else if (isSelected) {
@@ -1624,14 +1627,14 @@ export function QuizResolutionView({
                               </kbd>
                             )}
 
-                            {isCurrentAnswered && opcao === currentQuestion.gabaritoCorreto && (
+                            {isCurrentAnswered && isCorrectAnswerMatch(opcao, currentQuestion.gabaritoCorreto) && (
                               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-1 rounded-lg shrink-0 self-center shadow-[0_0_12px_rgba(16,185,129,0.25)]">
                                 <Check size={13} className="stroke-[3] text-emerald-400" />
                                 <span>Gabarito</span>
                               </span>
                             )}
 
-                            {isCurrentAnswered && isSelected && opcao !== currentQuestion.gabaritoCorreto && (
+                            {isCurrentAnswered && isSelected && !isCorrectAnswerMatch(opcao, currentQuestion.gabaritoCorreto) && (
                               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 rounded-lg shrink-0 self-center shadow-[0_0_12px_rgba(244,63,94,0.25)]">
                                 <X size={13} className="stroke-[3] text-rose-400" />
                                 <span>Sua escolha</span>

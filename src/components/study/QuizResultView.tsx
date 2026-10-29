@@ -50,6 +50,7 @@ import {
 } from "@/actions/error-notebook-actions";
 import { createFlashcardsFromQuizResultsAction } from "@/actions/error-flashcard-actions";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { isCorrectAnswerMatch } from "@/lib/simulado-generator";
 import { PrintableQuizSummaryModal } from "./PrintableQuizSummaryModal";
 
 export interface QuizResultViewProps {
@@ -125,7 +126,7 @@ export function QuizResultView({
     ];
     const rows = questions.map((q, idx) => {
       const userAns = selectedAnswers[idx] || "Em branco";
-      const isCorrect = userAns === q.gabaritoCorreto;
+      const isCorrect = isCorrectAnswerMatch(userAns, q.gabaritoCorreto);
       const cleanEnunciado = (q.enunciado || "")
         .replace(/[\r\n]+/g, " ")
         .replace(/"/g, '""')
@@ -196,14 +197,14 @@ export function QuizResultView({
   const totalQuestions = questions.length;
   const correctCount = useMemo(() => {
     return questions.filter(
-      (q, idx) => selectedAnswers[idx] === q.gabaritoCorreto
+      (q, idx) => isCorrectAnswerMatch(selectedAnswers[idx], q.gabaritoCorreto)
     ).length;
   }, [questions, selectedAnswers]);
 
   const incorrectCount = totalQuestions - correctCount;
   const wrongQuestions = useMemo(() => {
     return questions.filter(
-      (q, idx) => selectedAnswers[idx] !== q.gabaritoCorreto
+      (q, idx) => !isCorrectAnswerMatch(selectedAnswers[idx], q.gabaritoCorreto)
     );
   }, [questions, selectedAnswers]);
   const percentageAcc =
@@ -396,7 +397,7 @@ export function QuizResultView({
     let slowIncorrect = 0; // ⚠️ Dreno de Tempo (tempo excessivo e erro)
 
     questions.forEach((q, idx) => {
-      const isCorrect = selectedAnswers[idx] === q.gabaritoCorreto;
+      const isCorrect = isCorrectAnswerMatch(selectedAnswers[idx], q.gabaritoCorreto);
       const wordCount = (q.enunciado || "").split(/\s+/).length;
       const estimatedTime = averageTimePerQuestion * (wordCount > 60 ? 1.2 : 0.85);
 
