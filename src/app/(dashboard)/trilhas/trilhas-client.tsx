@@ -46,6 +46,7 @@ import {
   toggleExternalCourseItemAction,
   createExternalCourseAction,
   generateOrReuseTheoryForLessonAction,
+  deleteStudyTrailAction,
   type RichTheoryData,
   type CreateTrailSubjectInput,
 } from "@/actions/trail-actions";
@@ -193,6 +194,27 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
     initialData.activeTrail?.customInstructions || "",
   );
   const [isSubmittingWizard, setIsSubmittingWizard] = useState(false);
+  const [isDeletingTrail, setIsDeletingTrail] = useState(false);
+
+  async function handleDeleteTrail() {
+    if (!trail) return;
+    const confirmed = window.confirm(
+      "Tem certeza que deseja excluir esta trilha? Você poderá criar uma nova trilha personalizada com IA a qualquer momento."
+    );
+    if (!confirmed) return;
+
+    setIsDeletingTrail(true);
+    const res = await deleteStudyTrailAction(trail.id);
+    setIsDeletingTrail(false);
+
+    if (res.success) {
+      setTrail(null);
+      showToast("Trilha excluída! Crie sua nova trilha personalizada com IA.");
+    } else {
+      showToast(res.error || "Erro ao excluir trilha.");
+    }
+  }
+
 
   // Modal de Cadastro de Curso Externo / PDF
   const [isNewCourseModalOpen, setIsNewCourseModalOpen] = useState(false);
@@ -1540,6 +1562,17 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                   <span>Continuar Minha Próxima Aula</span>
                 </button>
 
+                <button
+                  type="button"
+                  onClick={handleDeleteTrail}
+                  disabled={isDeletingTrail}
+                  className="px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Excluir esta trilha e começar do zero com IA"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Excluir</span>
+                </button>
+
                 <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">
                   <div className="text-right">
                     <span className="text-[11px] text-slate-400 block">Seu Progresso</span>
@@ -2010,6 +2043,93 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                     );
                   })}
                 </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        
+        {/* =========================================================
+            ESTADO EM BRANCO (SEM TRILHA ATIVA): CTA PARA CRIAR COM IA
+           ========================================================= */}
+        {activeTab === "trilhas" && !trail && (
+          <div className="p-8 sm:p-14 rounded-3xl bg-gradient-to-b from-slate-900/80 via-slate-950 to-slate-950 border border-slate-800 text-center flex flex-col items-center justify-center max-w-3xl mx-auto space-y-6 shadow-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-600/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-xl shadow-indigo-600/10">
+              <Compass className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2 max-w-xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Trilha de Aprendizado com IA</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                Você ainda não possui uma Trilha de Estudos Ativa
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                Monte um roteiro semana a semana sob medida para o seu concurso, com aulas teóricas explicadas pela IA, questões da sua banca e revisões automáticas no seu ritmo diário.
+              </p>
+            </div>
+
+            {/* CARDS DE DESTAQUE */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl text-left">
+              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+                <div className="text-indigo-400 font-bold text-xs flex items-center gap-1.5 mb-1.5">
+                  <Target className="w-4 h-4" />
+                  <span>Focado na sua Banca</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Aulas formatadas para a cobrança da Cebraspe, FGV, FCC, Vunesp ou IBAM.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+                <div className="text-cyan-400 font-bold text-xs flex items-center gap-1.5 mb-1.5">
+                  <Clock className="w-4 h-4" />
+                  <span>No seu Tempo</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Defina quantas horas por dia e quais dias da semana você tem disponíveis.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+                <div className="text-emerald-400 font-bold text-xs flex items-center gap-1.5 mb-1.5">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>100% Sincronizado</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Cada aula concluída atualiza seu progresso direto no Edital Verticalizado.
+                </p>
+              </div>
+            </div>
+
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 w-full justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setWizardStep(1);
+                  setIsWizardOpen(true);
+                }}
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Criar Minha Trilha Personalizada com IA</span>
+              </button>
+
+              {editalSubjects && editalSubjects.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWizardStep(2);
+                    setIsWizardOpen(true);
+                  }}
+                  className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
+                >
+                  <BookOpen className="w-4 h-4 text-indigo-400" />
+                  <span>Usar {editalSubjects.length} matérias do meu Edital</span>
+                </button>
               )}
             </div>
           </div>
