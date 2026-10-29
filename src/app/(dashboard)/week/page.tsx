@@ -825,6 +825,19 @@ export default function WeekPage() {
               <span>Ler Aulas</span>
             </Link>
 
+            {hasSubjects && (
+              <button
+                type="button"
+                onClick={() => setIsPrintPlannerOpen(true)}
+                title="Exportar seu Cronograma Semanal diagramado em folha A4 para colar na parede"
+                className="inline-flex items-center justify-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+              >
+                <Printer size={14} className="text-indigo-400" />
+                <span className="hidden sm:inline">Imprimir Cronograma A4 (Parede)</span>
+                <span className="sm:hidden">Imprimir A4</span>
+              </button>
+            )}
+
             {/* Menu amigável para quem atrasou ou quer redistribuir */}
             <div className="relative" ref={rescueMenuRef}>
               <button
