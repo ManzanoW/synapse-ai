@@ -369,6 +369,62 @@ export function CommandPalette({ user }: CommandPaletteProps) {
         keywords: ["rascunho", "notas", "bloco", "anotacoes", "scratchpad", "calculo", "mnemonico"],
       },
 
+      // NOVAS AÇÕES RÁPIDAS
+      {
+        id: "action-quick-diagnostic",
+        title: "🎯 Fazer Diagnóstico Inicial (3 min)",
+        subtitle: "5 questões comentadas da banca para calibrar seu nível",
+        category: "Ações Rápidas",
+        icon: Target,
+        badge: "3 min",
+        action: () => {
+          recordRecent("action-quick-diagnostic");
+          setIsOpen(false);
+          window.dispatchEvent(new CustomEvent("open-quick-diagnostic"));
+          navigateTo("/dashboard?openDiagnostic=true");
+        },
+        keywords: ["diagnostico", "teste", "nivel", "simulado inicial", "calibrar", "3 min"],
+      },
+      {
+        id: "action-dday-final",
+        title: "⏱️ Reta Final & D-Day da Prova",
+        subtitle: "Acompanhe a contagem regressiva e ritmo diário para a prova",
+        category: "Ações Rápidas",
+        icon: CalendarDays,
+        badge: "D-Day",
+        action: () => navigateTo("/dashboard"),
+        keywords: ["dday", "prova", "data", "contagem", "reta final", "ritmo"],
+      },
+      {
+        id: "action-study-room-pomodoro",
+        title: "🎧 Sala de Foco & Pomodoro",
+        subtitle: "Sons binaurais, ruído marrom e timer em tela cheia",
+        category: "Ações Rápidas",
+        icon: Headphones,
+        badge: "Pomodoro",
+        action: () => navigateTo("/study-room"),
+        keywords: ["foco", "pomodoro", "som", "ruido", "musica", "estudo", "timer"],
+      },
+      {
+        id: "action-print-edital-a4",
+        title: "📄 Imprimir Edital Verticalizado A4 (Parede)",
+        subtitle: "Gere seu PDF pronto para colar na parede e marcar com caneta",
+        category: "Ações Rápidas",
+        icon: FileText,
+        badge: "A4",
+        action: () => navigateTo("/edital"),
+        keywords: ["imprimir", "edital", "a4", "parede", "pdf"],
+      },
+      {
+        id: "action-print-week-a4",
+        title: "📅 Imprimir Cronograma Semanal A4 (Parede)",
+        subtitle: "Folha semanal de planejamento para colar na parede",
+        category: "Ações Rápidas",
+        icon: Calendar,
+        badge: "A4",
+        action: () => navigateTo("/week"),
+        keywords: ["imprimir", "cronograma", "semana", "horarios", "a4"],
+      },
       // AÇÕES RÁPIDAS
       {
         id: "action-rescue-week",

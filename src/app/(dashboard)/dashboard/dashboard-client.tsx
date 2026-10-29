@@ -98,6 +98,16 @@ const WeeklyReportModal = dynamic(
   () => import("@/components/dashboard/WeeklyReportModal").then((m) => m.WeeklyReportModal),
   { ssr: false }
 );
+import { Search } from "lucide-react";
+const QuickDiagnosticModal = dynamic(
+  () => import("@/components/onboarding/QuickDiagnosticModal").then((m) => m.QuickDiagnosticModal),
+  { ssr: false }
+);
+const WelcomeGiftModal = dynamic(
+  () => import("@/components/onboarding/WelcomeGiftModal").then((m) => m.WelcomeGiftModal),
+  { ssr: false }
+);
+import { DashboardDDayWidget } from "@/components/dashboard/DashboardDDayWidget";
 import { FirstStepsChecklistCard } from "@/components/dashboard/FirstStepsChecklistCard";
 import { FirstDayMissionCard } from "@/components/dashboard/FirstDayMissionCard";
 import { SpotlightTour } from "@/components/dashboard/SpotlightTour";
@@ -258,6 +268,7 @@ export default function DashboardClient({
   );
 
   const [isWelcomeQuizOpen, setIsWelcomeQuizOpen] = useState(false);
+  const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -269,9 +280,20 @@ export default function DashboardClient({
   const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
   const [showHeaderExtras, setShowHeaderExtras] = useState(false);
 
+  useEffect(() => {
+    const handleOpenDiagnostic = () => setIsDiagnosticModalOpen(true);
+    window.addEventListener("open-quick-diagnostic", handleOpenDiagnostic);
+    return () => window.removeEventListener("open-quick-diagnostic", handleOpenDiagnostic);
+  }, []);
+
   // Carrega preferências salvas e exibe Welcome Quiz no 1º acesso ou sob demanda via query params
   useEffect(() => {
     try {
+      const openDiagnosticParam = searchParams?.get("openDiagnostic") === "true";
+      if (openDiagnosticParam) {
+        setIsDiagnosticModalOpen(true);
+      }
+
       const openQuizParam = searchParams?.get("openQuiz") === "true";
       const openTourParam = searchParams?.get("openTour") === "true";
 
@@ -777,6 +799,31 @@ export default function DashboardClient({
               </button>
             </div>
 
+            {/* Botão de Busca & Atalho Global Cmd+K */}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200/80 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all active:scale-95"
+              title="Buscar matérias, simulados ou ferramentas (Ctrl+K)"
+            >
+              <Search size={14} className="text-slate-400" />
+              <span className="hidden sm:inline">Buscar</span>
+              <kbd className="font-mono text-[10px] text-slate-500 dark:text-slate-400 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded shadow-2xs">
+                ⌘K
+              </kbd>
+            </button>
+
+            {/* Botão Diagnóstico Rápido */}
+            <button
+              type="button"
+              onClick={() => setIsDiagnosticModalOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-600/10 hover:bg-violet-600/20 px-3 py-2 text-xs font-bold text-violet-300 transition-all active:scale-95 shadow-xs"
+              title="Fazer Diagnóstico Rápido de 3 minutos com 5 questões comentadas da banca"
+            >
+              <Target size={14} className="text-violet-400" />
+              <span>Diagnóstico (3 min)</span>
+            </button>
+
             {/* Botão Como Funciona (Tour) */}
             <button
               type="button"
@@ -857,6 +904,15 @@ export default function DashboardClient({
               <span>Escolher Cards da Tela</span>
             </button>
           </div>
+        )}
+
+        {/* ================= WIDGET RETA FINAL & CONTAGEM REGRESSIVA (D-DAY) ================= */}
+        {!isLoading && (
+          <DashboardDDayWidget
+            targetRole={user?.targetRole}
+            careerFocus={user?.careerFocus}
+            dailyGoalHours={Math.max(1, Math.round((stats?.weeklyGoal?.target || 21) / 7))}
+          />
         )}
 
         {/* ================= #1 PRIORIDADE MÁXIMA: SESSÃO RECOMENDADA DE HOJE (DAILY FLOW 1-CLIQUE) ================= */}
@@ -2156,6 +2212,15 @@ export default function DashboardClient({
         isOpen={isWeeklyReportOpen}
         onClose={() => setIsWeeklyReportOpen(false)}
       />
+
+      {/* MODAL DE DIAGNÓSTICO RÁPIDO DE 3 MINUTOS */}
+      <QuickDiagnosticModal
+        isOpen={isDiagnosticModalOpen}
+        onClose={() => setIsDiagnosticModalOpen(false)}
+      />
+
+      {/* MODAL DE PRESENTE DE BOAS-VINDAS (+100 XP IMEDIATO) */}
+      <WelcomeGiftModal userName={user?.name} />
 
       {/* SPOTLIGHT TOUR DE 3 PASSOS DE BOAS-VINDAS */}
       <SpotlightTour />
