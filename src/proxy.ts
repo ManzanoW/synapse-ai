@@ -1,16 +1,23 @@
+import { authConfig, normalizeUrl, getBaseUrl } from "./auth.config";
 import NextAuth from "next-auth";
-import { authConfig } from "./auth.config";
 import { NextResponse } from "next/server";
+
+// 🔒 Garante sanitização de URLs no runtime de edge/middleware
+if (process.env.NEXTAUTH_URL) process.env.NEXTAUTH_URL = normalizeUrl(process.env.NEXTAUTH_URL);
+if (process.env.AUTH_URL) process.env.AUTH_URL = normalizeUrl(process.env.AUTH_URL);
+if (process.env.VERCEL_URL) process.env.VERCEL_URL = normalizeUrl(process.env.VERCEL_URL);
+process.env.AUTH_TRUST_HOST = "true";
 
 const { auth } = NextAuth(authConfig);
 
 export const proxy = auth((req) => {
   const pathname = req.nextUrl.pathname;
 
-  // Ignora assets estáticos e rotas públicas
+  // Ignora assets estáticos, webhooks externos e rotas públicas
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/webhooks") ||
     pathname === "/favicon.ico" ||
     pathname === "/icon.svg"
   ) {

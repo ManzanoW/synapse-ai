@@ -2,6 +2,33 @@ import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 
+export function normalizeUrl(raw?: string): string {
+  if (!raw) return "https://synapseconcursos.vercel.app";
+  let url = raw.trim();
+  if (!url) return "https://synapseconcursos.vercel.app";
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = `https://${url}`;
+  }
+  return url.replace(/\/$/, "");
+}
+
+// 🔒 Garante sanitização antecipada de todas as variáveis de ambiente usadas pelo NextAuth
+if (process.env.NEXTAUTH_URL) {
+  process.env.NEXTAUTH_URL = normalizeUrl(process.env.NEXTAUTH_URL);
+}
+if (process.env.AUTH_URL) {
+  process.env.AUTH_URL = normalizeUrl(process.env.AUTH_URL);
+}
+if (process.env.VERCEL_URL) {
+  process.env.VERCEL_URL = normalizeUrl(process.env.VERCEL_URL);
+}
+if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+  process.env.VERCEL_PROJECT_PRODUCTION_URL = normalizeUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+}
+if (process.env.NEXT_PUBLIC_APP_URL) {
+  process.env.NEXT_PUBLIC_APP_URL = normalizeUrl(process.env.NEXT_PUBLIC_APP_URL);
+}
+
 export function getBaseUrl(): string {
   let url = "";
   if (process.env.AUTH_URL && !process.env.AUTH_URL.includes("localhost")) {
@@ -18,33 +45,35 @@ export function getBaseUrl(): string {
     return "http://localhost:3000";
   }
 
-  url = url.trim();
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    url = `https://${url}`;
-  }
-  return url.replace(/\/$/, "");
+  return normalizeUrl(url);
 }
 
 const host = getBaseUrl();
-if (!process.env.AUTH_URL) {
-  process.env.AUTH_URL = host;
-}
-if (!process.env.NEXTAUTH_URL) {
-  process.env.NEXTAUTH_URL = host;
-}
+// Força sempre protocolo completo válido para o NextAuth interno
+process.env.AUTH_URL = host;
+process.env.NEXTAUTH_URL = host;
 process.env.AUTH_TRUST_HOST = "true";
 
 export const baseUrl = host;
 
 function getRequestBaseUrl(request: { headers: Headers; nextUrl?: { host?: string; protocol?: string; origin?: string } }): string {
-  const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
-  const forwardedProto =
-    request.headers.get("x-forwarded-proto") ||
-    (request.nextUrl?.protocol ? request.nextUrl.protocol.replace(":", "") : "https");
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
+  try {
+    const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
+    const forwardedProto =
+      request.headers.get("x-forwarded-proto") ||
+      (request.nextUrl?.protocol ? request.nextUrl.protocol.replace(":", "") : "https");
+    if (forwardedHost) {
+      const cleanHost = forwardedHost.split(",")[0].trim();
+      const proto = forwardedProto.split(",")[0].trim().replace(":", "");
+      return `${proto}://${cleanHost}`;
+    }
+    if (request.nextUrl?.origin && request.nextUrl.origin !== "null") {
+      return request.nextUrl.origin;
+    }
+  } catch {
+    // Fallback silencioso
   }
-  return request.nextUrl?.origin || baseUrl;
+  return baseUrl;
 }
 
 export const authConfig = {
@@ -115,14 +144,22 @@ export const authConfig = {
         if (isLoggedIn) return true;
         // Não redireciona chamadas internas de RSC/prefetch para evitar erro de CORS
         if (isRSC) return true;
-        const baseUrl = getRequestBaseUrl(request);
-        return Response.redirect(new URL("/login", baseUrl));
+        const reqBaseUrl = getRequestBaseUrl(request);
+        try {
+          return Response.redirect(new URL("/login", reqBaseUrl));
+        } catch {
+          return Response.redirect(new URL("/login", baseUrl));
+        }
       }
 
       if (isLoggedIn && nextUrl.pathname === "/login") {
         if (isRSC) return true;
-        const baseUrl = getRequestBaseUrl(request);
-        return Response.redirect(new URL("/dashboard?demo=true", baseUrl));
+        const reqBaseUrl = getRequestBaseUrl(request);
+        try {
+          return Response.redirect(new URL("/dashboard?demo=true", reqBaseUrl));
+        } catch {
+          return Response.redirect(new URL("/dashboard?demo=true", baseUrl));
+        }
       }
 
       return true;

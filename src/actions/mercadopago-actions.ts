@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/auth";
+import { auth, getBaseUrl } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
   paymentClient,
@@ -35,9 +35,7 @@ export interface CreatePreferenceResult {
 }
 
 function getAppBaseUrl(): string {
-  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL.replace(/\/$/, "");
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
+  return getBaseUrl();
 }
 
 /**
