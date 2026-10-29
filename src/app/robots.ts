@@ -1,10 +1,15 @@
 import { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl =
+  let baseUrl = (
     process.env.NEXTAUTH_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    "https://synapseconcursos.com.br";
+    "https://synapseconcursos.vercel.app"
+  ).trim();
+  if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
+    baseUrl = `https://${baseUrl}`;
+  }
+  baseUrl = baseUrl.replace(/\/$/, "");
 
   return {
     rules: [

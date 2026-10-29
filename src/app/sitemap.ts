@@ -2,10 +2,15 @@ import { MetadataRoute } from "next";
 import { PRESET_MINDMAPS } from "@/lib/mindmap-presets";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl =
+  let baseUrl = (
     process.env.NEXTAUTH_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    "https://synapseconcursos.com.br";
+    "https://synapseconcursos.vercel.app"
+  ).trim();
+  if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
+    baseUrl = `https://${baseUrl}`;
+  }
+  baseUrl = baseUrl.replace(/\/$/, "");
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
