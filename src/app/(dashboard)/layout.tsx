@@ -13,6 +13,7 @@ import { SoundscapeFloatingWidget } from "@/components/audio/SoundscapeFloatingW
 import { SynapticExhaustionModal } from "@/components/quota/SynapticExhaustionModal";
 import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator";
 import { GlobalPwaModal } from "@/components/pwa/GlobalPwaModal";
+import { FloatingAiMentorWidget } from "@/components/mentor/FloatingAiMentorWidget";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -104,6 +105,9 @@ export default async function DashboardLayout({
 
               {/* Botão Flutuante Voltar ao Topo com Progresso */}
               <ScrollToTopButton />
+
+              {/* Mentor & Professor Sináptico Flutuante (24/7) */}
+              <FloatingAiMentorWidget />
 
               {/* Bloco de Rascunho Rápido Flutuante (Alt+N) */}
               <QuickScratchpadWidget />
