@@ -13,6 +13,8 @@ import {
   FileText,
   ShieldAlert,
   Wand2,
+  ChevronLeft,
+  Search,
 } from "lucide-react";
 import {
   STARTER_EDITAL_TEMPLATES,
@@ -29,6 +31,74 @@ interface StarterEditalSelectorProps {
   compact?: boolean;
 }
 
+interface MacroArea {
+  id: string;
+  name: string;
+  icon: string;
+  tag: string;
+  badge: string;
+  description: string;
+  categoryFilter: (tpl: EditalTemplate) => boolean;
+}
+
+const MACRO_AREAS: MacroArea[] = [
+  {
+    id: "policial",
+    name: "Carreira Policial",
+    icon: "👮",
+    tag: "PF, PRF, Polícias Civis e PM",
+    badge: "Popular 🔥",
+    description: "Direito Penal, Processo Penal, Constitucional, RLM e Legislação Especial.",
+    categoryFilter: (t) => t.category === "policial",
+  },
+  {
+    id: "juridica",
+    name: "Tribunais & Jurídica",
+    icon: "⚖️",
+    tag: "TJ, TRT, TRE, TRF e Cartórios",
+    badge: "Estável 🏛️",
+    description: "Processo Civil, Processo do Trabalho, Eleitoral e Direito Público.",
+    categoryFilter: (t) => t.category === "juridica",
+  },
+  {
+    id: "fiscal_controle",
+    name: "Fiscal & Controle",
+    icon: "💰",
+    tag: "Receita Federal, SEFAZ, TCU e TCE",
+    badge: "Altos Salários 💎",
+    description: "Direito Tributário, Auditoria, Contabilidade Geral e Pública.",
+    categoryFilter: (t) => t.category === "fiscal_controle",
+  },
+  {
+    id: "administrativo",
+    name: "Administrativo & Bancário",
+    icon: "🏛️",
+    tag: "INSS, Banco do Brasil, Caixa e CNU",
+    badge: "Muitas Vagas 🚀",
+    description: "Atendimento bancário, Seguridade Social, Administração Pública e AFA.",
+    categoryFilter: (t) =>
+      t.category === "administrativo" || t.id === "bancario" || t.category === "geral",
+  },
+  {
+    id: "ti",
+    name: "Tecnologia & Dados",
+    icon: "💻",
+    tag: "TI Bancos, CNU Bloco 2, Dev e Dados",
+    badge: "Em Alta ⚡",
+    description: "Engenharia de Software, Bancos de Dados, Segurança e Inteligência Artificial.",
+    categoryFilter: (t) => t.category === "ti",
+  },
+  {
+    id: "saude_educacao",
+    name: "Saúde & Educação",
+    icon: "🩺",
+    tag: "EBSERH, SUS, Enfermagem e Professores",
+    badge: "Essencial 🌱",
+    description: "Legislação do SUS, Enfermagem, Didática e Fundamentos da Educação.",
+    categoryFilter: (t) => t.category === "saude_educacao",
+  },
+];
+
 export function StarterEditalSelector({
   onSuccess,
   showCustomLink = true,
@@ -39,8 +109,8 @@ export function StarterEditalSelector({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Filtro por categorias
-  const [activeCategory, setActiveCategory] = useState<string>("all");
+  // Seleção Guiada em 2 Etapas: Nenhuma área selecionada no início (ou seleciona a primeira)
+  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
 
   // Modo de importação: mesclar ou substituir grade existente
   const [replaceExisting, setReplaceExisting] = useState<boolean>(false);
@@ -49,6 +119,14 @@ export function StarterEditalSelector({
   const [customRoleInput, setCustomRoleInput] = useState<string>("");
   const [customDifficulty, setCustomDifficulty] = useState<"EASY" | "MEDIUM" | "HARD">("MEDIUM");
   const [isGeneratingCustom, setIsGeneratingCustom] = useState<boolean>(false);
+  const [showAiCustomBox, setShowAiCustomBox] = useState<boolean>(false);
+
+  const allTemplates = Object.values(STARTER_EDITAL_TEMPLATES);
+
+  const activeArea = MACRO_AREAS.find((a) => a.id === selectedAreaId) || null;
+  const filteredTemplates = activeArea
+    ? allTemplates.filter(activeArea.categoryFilter)
+    : [];
 
   const handleSelectTemplate = async (templateId: string) => {
     triggerHaptic("medium");
@@ -152,18 +230,6 @@ export function StarterEditalSelector({
     }
   };
 
-  const allTemplates = Object.values(STARTER_EDITAL_TEMPLATES);
-  const filteredTemplates = allTemplates.filter((tpl) => {
-    if (activeCategory === "all") return true;
-    if (activeCategory === "ti") return tpl.category === "ti";
-    if (activeCategory === "policial") return tpl.category === "policial";
-    if (activeCategory === "fiscal_controle") return tpl.category === "fiscal_controle";
-    if (activeCategory === "administrativo") return tpl.category === "administrativo";
-    if (activeCategory === "juridica") return tpl.category === "juridica";
-    if (activeCategory === "saude_educacao") return tpl.category === "saude_educacao";
-    return true;
-  });
-
   return (
     <div className="space-y-4 w-full">
       {errorMessage && (
@@ -180,221 +246,274 @@ export function StarterEditalSelector({
         </div>
       )}
 
-      {/* CARD PROMINENTE: PERSONALIZAR MEU FOCO COM IA */}
-      <div className="relative overflow-hidden rounded-2xl border border-indigo-500/40 bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-indigo-950/40 p-4 shadow-xl space-y-3">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
-            <Wand2 size={18} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-white">
-                Personalizar meu Foco com IA
-              </span>
-              <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                Qualquer Concurso / Cargo
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Digite o concurso ou cargo desejado e a IA pesquisa e estrutura as disciplinas e tópicos oficiais em segundos.
+      {/* =========================================================================
+          ETAPA 1: ESCOLHA DA CARREIRA (6 CARDS VISUAIS - SEM CONGELAMENTO DE DECISÃO)
+         ========================================================================= */}
+      {!selectedAreaId ? (
+        <div className="space-y-3.5">
+          <div className="text-center sm:text-left">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-400 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20">
+              Passo 1 de 2 • Escolha sua Área
+            </span>
+            <h3 className="text-base sm:text-lg font-black text-white mt-1.5 tracking-tight">
+              Qual carreira de concurso você deseja conquistar?
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Selecione sua área para ver os editais mais consagrados com pesos calibrados:
             </p>
           </div>
-        </div>
 
-        <form
-          onSubmit={handleGenerateCustom}
-          className="space-y-2.5 w-full pt-0.5"
-        >
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-            <input
-              type="text"
-              value={customRoleInput}
-              onChange={(e) => setCustomRoleInput(e.target.value)}
-              placeholder="Ex: Analista de TI - Caixa, Perito Criminal, SEFAZ..."
-              className="flex-1 min-w-0 bg-slate-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={isGeneratingCustom || !customRoleInput.trim()}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-            >
-              {isGeneratingCustom ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" />
-                  <span>Estruturando...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={13} />
-                  <span>Gerar / Reutilizar Edital</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Seletor de Profundidade / Dificuldade do Edital */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-            <span className="text-[11px] text-slate-300 font-medium">
-              Profundidade da Grade (se achar fácil, mude para Hardcore):
-            </span>
-            <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-950/90 border border-slate-800">
-              {(
-                [
-                  { id: "EASY", label: "🌱 Essencial" },
-                  { id: "MEDIUM", label: "⚖️ Padrão" },
-                  { id: "HARD", label: "🔥 Verticalizado Hardcore" },
-                ] as const
-              ).map((lvl) => {
-                const isSelected = customDifficulty === lvl.id;
-                return (
-                  <button
-                    key={lvl.id}
-                    type="button"
-                    onClick={() => setCustomDifficulty(lvl.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                      isSelected
-                        ? lvl.id === "HARD"
-                          ? "bg-rose-600 text-white shadow-sm"
-                          : "bg-indigo-600 text-white shadow-sm"
-                        : "text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    {lvl.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </form>
-      </div>
-
-      {/* OPÇÃO DE MODO DE CARGA: SUBSTITUIR OU ADICIONAR */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
-        <label className="flex items-center gap-2 text-slate-300 hover:text-white cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={replaceExisting}
-            onChange={(e) => setReplaceExisting(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-          />
-          <span className="font-medium text-[11px] sm:text-xs">
-            Substituir matérias anteriores (limpar edital antes de carregar nova carreira)
-          </span>
-        </label>
-        {replaceExisting && (
-          <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 font-bold">
-            ⚠️ Modo Substituição Limpa Ativado
-          </span>
-        )}
-      </div>
-
-      {/* FILTROS POR CATEGORIA DE CARREIRA */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
-        {[
-          { id: "all", label: `🔥 Todas (${allTemplates.length})` },
-          { id: "ti", label: `💻 TI & Dados (${allTemplates.filter((t) => t.category === "ti").length})` },
-          { id: "policial", label: `👮 Policial (${allTemplates.filter((t) => t.category === "policial").length})` },
-          { id: "fiscal_controle", label: `💰 Fiscal & Controle (${allTemplates.filter((t) => t.category === "fiscal_controle").length})` },
-          { id: "administrativo", label: `🏛️ Tribunais & Adm (${allTemplates.filter((t) => t.category === "administrativo").length})` },
-          { id: "juridica", label: `⚖️ Jurídica (${allTemplates.filter((t) => t.category === "juridica").length})` },
-          { id: "saude_educacao", label: `🩺 Saúde & Educação (${allTemplates.filter((t) => t.category === "saude_educacao").length})` },
-        ].map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => { triggerHaptic("light"); setActiveCategory(cat.id); }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-              activeCategory === cat.id
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
-
-      {/* GRID DE CARREIRAS PRONTAS */}
-      <div
-        className={`grid gap-3 ${
-          compact
-            ? "grid-cols-1 sm:grid-cols-2"
-            : "grid-cols-1 md:grid-cols-2"
-        }`}
-      >
-        {filteredTemplates.map((tpl) => {
-          const isLoading = loadingTemplateId === tpl.id;
-          const visibleMaterias = tpl.materias.slice(0, 3);
-          const remainingCount = tpl.materias.length - visibleMaterias.length;
-
-          return (
-            <div
-              key={tpl.id}
-              className="relative group p-3.5 rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-2.5"
-            >
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xl shrink-0">{tpl.icon}</span>
-                    <span className="text-xs font-bold text-white leading-tight truncate">
-                      {tpl.title}
+          {/* Grid de 6 Áreas Claras */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {MACRO_AREAS.map((area) => (
+              <button
+                key={area.id}
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setSelectedAreaId(area.id);
+                }}
+                className="group relative p-4 rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-950/40 text-left transition-all cursor-pointer flex flex-col justify-between space-y-2.5 active:scale-98"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-2xl">{area.icon}</span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300 group-hover:text-indigo-300 group-hover:border-indigo-500/30">
+                      {area.badge}
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shrink-0">
-                    {tpl.badge}
+                  <h4 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
+                    {area.name}
+                  </h4>
+                  <p className="text-[11px] text-indigo-400/90 font-medium mt-0.5">
+                    {area.tag}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                    {area.description}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-slate-400 group-hover:text-white font-medium">
+                  <span>Explorar editais</span>
+                  <ArrowRight size={13} className="transition-transform group-hover:translate-x-1 text-indigo-400" />
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Botão de Escape para Concurso Específico com IA */}
+          <div className="pt-2">
+            {!showAiCustomBox ? (
+              <button
+                type="button"
+                onClick={() => setShowAiCustomBox(true)}
+                className="w-full py-3 px-4 rounded-2xl border border-dashed border-indigo-500/40 bg-indigo-500/5 hover:bg-indigo-500/10 text-xs font-semibold text-indigo-300 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Wand2 size={15} className="text-indigo-400" />
+                <span>Não encontrou seu concurso exato? Digite o cargo e a IA monta o edital em 3 segundos</span>
+              </button>
+            ) : (
+              <div className="p-4 rounded-2xl border border-indigo-500/40 bg-indigo-950/20 space-y-3 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-2">
+                    <Sparkles size={14} className="text-amber-400" />
+                    Gerar Qualquer Concurso com Inteligência Artificial
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowAiCustomBox(false)}
+                    className="text-xs text-slate-500 hover:text-slate-300"
+                  >
+                    Fechar
+                  </button>
                 </div>
 
-                <p className="text-[11px] text-slate-400 leading-snug line-clamp-2">
-                  {tpl.shortDescription}
-                </p>
-
-                {/* Resumo das Matérias (Compacto e Elegante) */}
-                <div className="flex flex-wrap gap-1 pt-0.5">
-                  {visibleMaterias.map((m, idx) => (
-                    <span
-                      key={idx}
-                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 truncate max-w-[140px]"
-                    >
-                      {m.name}
-                    </span>
-                  ))}
-                  {remainingCount > 0 && (
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
-                      +{remainingCount} matérias
-                    </span>
-                  )}
-                </div>
+                <form onSubmit={handleGenerateCustom} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customRoleInput}
+                    onChange={(e) => setCustomRoleInput(e.target.value)}
+                    placeholder="Ex: Auditor SEFAZ-SP, Analista IBAMA, Oficial PM..."
+                    className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isGeneratingCustom || !customRoleInput.trim()}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shrink-0"
+                  >
+                    {isGeneratingCustom ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Wand2 size={14} />
+                    )}
+                    <span>Gerar Edital</span>
+                  </button>
+                </form>
               </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* =========================================================================
+            ETAPA 2: EDITAIS PRONTOS DA ÁREA ESCOLHIDA (POUCAS OPÇÕES, DECISÃO RÁPIDA)
+           ========================================================================= */
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Barra Superior de Retorno */}
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                setSelectedAreaId(null);
+              }}
+              className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer group"
+            >
+              <ChevronLeft size={16} className="transition-transform group-hover:-translate-x-0.5" />
+              <span>Voltar para todas as áreas</span>
+            </button>
 
-              <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-                <span className="text-[10px] text-slate-400 font-medium">
-                  {tpl.materias.length} matérias mapeadas
-                </span>
+            <span className="text-xs font-bold text-white flex items-center gap-2">
+              <span className="text-lg">{activeArea?.icon}</span>
+              <span>{activeArea?.name}</span>
+            </span>
+          </div>
 
-                <button
-                  type="button"
-                  disabled={loadingTemplateId !== null || isGeneratingCustom}
-                  onClick={() => handleSelectTemplate(tpl.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-md shadow-indigo-950/50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          {/* Opção de Substituição Limpa */}
+          <div className="flex items-center justify-between gap-2 px-1 text-xs">
+            <label className="flex items-center gap-2 text-slate-300 hover:text-white cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={replaceExisting}
+                onChange={(e) => setReplaceExisting(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+              <span className="font-medium text-[11px] sm:text-xs">
+                Substituir matérias anteriores (limpar grade antes de carregar nova carreira)
+              </span>
+            </label>
+            {replaceExisting && (
+              <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 font-bold">
+                ⚠️ Modo Limpeza Ativo
+              </span>
+            )}
+          </div>
+
+          {/* Cards dos Editais Prontos */}
+          <div
+            className={`grid gap-3 ${
+              compact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+            }`}
+          >
+            {filteredTemplates.map((tpl) => {
+              const isLoading = loadingTemplateId === tpl.id;
+              const visibleMaterias = tpl.materias.slice(0, 4);
+              const remainingCount = tpl.materias.length - visibleMaterias.length;
+
+              return (
+                <div
+                  key={tpl.id}
+                  className="relative p-4 rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-3"
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin" />
-                      <span>Ativando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={13} />
-                      <span>Ativar em 1 Clique</span>
-                    </>
-                  )}
-                </button>
-              </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xl shrink-0">{tpl.icon}</span>
+                        <span className="text-sm font-bold text-white leading-tight truncate">
+                          {tpl.title}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shrink-0">
+                        {tpl.badge}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-snug">
+                      {tpl.shortDescription}
+                    </p>
+
+                    {/* Matérias Principais */}
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {visibleMaterias.map((m, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 truncate max-w-[150px]"
+                        >
+                          {m.name}
+                        </span>
+                      ))}
+                      {remainingCount > 0 && (
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+                          +{remainingCount} matérias
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {tpl.materias.length} disciplinas mapeadas
+                    </span>
+
+                    <button
+                      type="button"
+                      disabled={loadingTemplateId !== null || isGeneratingCustom}
+                      onClick={() => handleSelectTemplate(tpl.id)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-md shadow-indigo-950/50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" />
+                          <span>Ativando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={13} />
+                          <span>Ativar em 1 Clique</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Caixa de IA Específica para a Área */}
+          <div className="p-3.5 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+            <div className="text-slate-300">
+              <span className="font-semibold text-white">Não é o edital que você procura?</span>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Digite o cargo exato da área {activeArea?.name} e a IA gera o conteúdo verticalizado:
+              </p>
             </div>
-          );
-        })}
-      </div>
+
+            <form
+              onSubmit={handleGenerateCustom}
+              className="flex items-center gap-2 sm:w-auto w-full"
+            >
+              <input
+                type="text"
+                value={customRoleInput}
+                onChange={(e) => setCustomRoleInput(e.target.value)}
+                placeholder={`Ex: Cargo em ${activeArea?.name}...`}
+                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 w-full sm:w-60"
+              />
+              <button
+                type="submit"
+                disabled={isGeneratingCustom || !customRoleInput.trim()}
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1 shrink-0"
+              >
+                {isGeneratingCustom ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Wand2 size={13} />
+                )}
+                <span>Gerar</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showCustomLink && (
         <div className="pt-2 text-center">
@@ -403,7 +522,7 @@ export function StarterEditalSelector({
             className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition-colors font-medium"
           >
             <FileText size={13} />
-            <span>Já tem outro edital em PDF ou texto? Importe aqui com IA</span>
+            <span>Já tem o arquivo do seu edital em PDF? Importe com análise de IA aqui</span>
             <ArrowRight size={13} />
           </a>
         </div>

@@ -108,6 +108,8 @@ const WelcomeGiftModal = dynamic(
   { ssr: false }
 );
 import { DashboardDDayWidget } from "@/components/dashboard/DashboardDDayWidget";
+import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
+import { DashboardPwaBanner } from "@/components/pwa/DashboardPwaBanner";
 import { FirstStepsChecklistCard } from "@/components/dashboard/FirstStepsChecklistCard";
 import { FirstDayMissionCard } from "@/components/dashboard/FirstDayMissionCard";
 import { SpotlightTour } from "@/components/dashboard/SpotlightTour";
@@ -905,6 +907,20 @@ export default function DashboardClient({
             </button>
           </div>
         )}
+
+        {/* ================= RESUMO DIÁRIO EXECUTIVO (DAILY BRIEFING) ================= */}
+        {!isLoading && (
+          <DailyBriefingCard
+            userName={user?.name}
+            targetRole={user?.targetRole}
+            firstSubjectName={subjects[0]?.name || "Língua Portuguesa"}
+            dueFlashcardsCount={stats?.metrics?.dueFlashcards ?? 0}
+            streakDays={stats?.streak?.currentDays || 0}
+          />
+        )}
+
+        {/* ================= BANNER DE INSTALAÇÃO NO CELULAR (PWA) ================= */}
+        {!isLoading && <DashboardPwaBanner />}
 
         {/* ================= WIDGET RETA FINAL & CONTAGEM REGRESSIVA (D-DAY) ================= */}
         {!isLoading && (
