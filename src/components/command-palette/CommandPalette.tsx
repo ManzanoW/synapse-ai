@@ -371,6 +371,51 @@ export function CommandPalette({ user }: CommandPaletteProps) {
 
       // NOVAS AÇÕES RÁPIDAS
       {
+        id: "action-commitment-contract",
+        title: "📜 Gerar Contrato de Compromisso com a Posse (A4)",
+        subtitle: "Termo solene para assinar e colar na parede do quarto de estudos",
+        category: "Ações Rápidas",
+        icon: Award,
+        badge: "A4",
+        action: () => {
+          recordRecent("action-commitment-contract");
+          setIsOpen(false);
+          window.dispatchEvent(new CustomEvent("open-commitment-contract"));
+          navigateTo("/dashboard?openContract=true");
+        },
+        keywords: ["contrato", "compromisso", "posse", "termo", "imprimir", "parede", "meta"],
+      },
+      {
+        id: "action-schedule-sync",
+        title: "⏰ Definir Horário Nobre & Sincronizar Agenda",
+        subtitle: "Configure seu melhor horário e exporte alarme para Google / Apple Calendar",
+        category: "Ações Rápidas",
+        icon: CalendarDays,
+        badge: "Agenda",
+        action: () => {
+          recordRecent("action-schedule-sync");
+          setIsOpen(false);
+          window.dispatchEvent(new CustomEvent("open-schedule-sync"));
+          navigateTo("/dashboard");
+        },
+        keywords: ["horario", "agenda", "alarme", "google calendar", "apple", "ics", "notificacao", "habito"],
+      },
+      {
+        id: "action-hour-value-calculator",
+        title: "💰 Quanto Vale Sua Hora de Estudo?",
+        subtitle: "Simulador de retorno financeiro e valor acumulado por Pomodoro",
+        category: "Ações Rápidas",
+        icon: Zap,
+        badge: "Dopamina",
+        action: () => {
+          recordRecent("action-hour-value-calculator");
+          setIsOpen(false);
+          window.dispatchEvent(new CustomEvent("open-hour-value-calculator"));
+          navigateTo("/dashboard");
+        },
+        keywords: ["valor", "hora", "salario", "calculadora", "dopamina", "retorno", "pomodoro", "dinheiro"],
+      },
+      {
         id: "action-quick-diagnostic",
         title: "🎯 Fazer Diagnóstico Inicial (3 min)",
         subtitle: "5 questões comentadas da banca para calibrar seu nível",
