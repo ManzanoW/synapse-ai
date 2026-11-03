@@ -61,6 +61,8 @@ import {
   Compass,
   SlidersHorizontal,
   Settings2,
+  Clock,
+  DollarSign,
   CheckSquare,
   Square,
   Eye,
@@ -107,6 +109,19 @@ const WelcomeGiftModal = dynamic(
   () => import("@/components/onboarding/WelcomeGiftModal").then((m) => m.WelcomeGiftModal),
   { ssr: false }
 );
+const CommitmentContractModal = dynamic(
+  () => import("@/components/onboarding/CommitmentContractModal").then((m) => m.CommitmentContractModal),
+  { ssr: false }
+);
+const StudyScheduleSyncModal = dynamic(
+  () => import("@/components/onboarding/StudyScheduleSyncModal").then((m) => m.StudyScheduleSyncModal),
+  { ssr: false }
+);
+const StudyHourValueCalculatorModal = dynamic(
+  () => import("@/components/dashboard/StudyHourValueCalculatorModal").then((m) => m.StudyHourValueCalculatorModal),
+  { ssr: false }
+);
+import { MentorAudioWelcomeCard } from "@/components/onboarding/MentorAudioWelcomeCard";
 import { DashboardDDayWidget } from "@/components/dashboard/DashboardDDayWidget";
 import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
 import { DashboardPwaBanner } from "@/components/pwa/DashboardPwaBanner";
@@ -271,6 +286,9 @@ export default function DashboardClient({
 
   const [isWelcomeQuizOpen, setIsWelcomeQuizOpen] = useState(false);
   const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
+  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+  const [isScheduleSyncModalOpen, setIsScheduleSyncModalOpen] = useState(false);
+  const [isHourValueModalOpen, setIsHourValueModalOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -863,6 +881,36 @@ export default function DashboardClient({
           <div className="flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/90 dark:bg-slate-900/60 p-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
             <button
               type="button"
+              onClick={() => setIsContractModalOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
+              title="Gerar e imprimir o Termo de Compromisso Oficial com a Posse em folha A4"
+            >
+              <Award size={13} className="text-amber-500" />
+              <span>📜 Contrato com a Posse (A4)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsScheduleSyncModalOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
+              title="Definir seu horário nobre de estudo e sincronizar com Google / Apple Calendar"
+            >
+              <Clock size={13} className="text-indigo-400" />
+              <span>⏰ Horário Nobre & Agenda</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsHourValueModalOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
+              title="Calcular o valor financeiro acumulado por cada hora e bloco Pomodoro de estudo"
+            >
+              <DollarSign size={13} className="text-emerald-400" />
+              <span>💰 Valor da Minha Hora</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setIsWelcomeQuizOpen(true)}
               className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
             >
@@ -919,6 +967,14 @@ export default function DashboardClient({
           />
         )}
 
+
+        {/* ================= ÁUDIO DE BOAS-VINDAS DO MENTOR (VOZ HUMANA NATURAL) ================= */}
+        {!isLoading && (
+          <MentorAudioWelcomeCard
+            userName={user?.name}
+            targetRole={user?.targetRole}
+          />
+        )}
         {/* ================= BANNER DE INSTALAÇÃO NO CELULAR (PWA) ================= */}
         {!isLoading && <DashboardPwaBanner />}
 
@@ -2227,6 +2283,32 @@ export default function DashboardClient({
       <WeeklyReportModal
         isOpen={isWeeklyReportOpen}
         onClose={() => setIsWeeklyReportOpen(false)}
+      />
+
+      {/* MODAL CONTRATO DE COMPROMISSO COM A POSSE (A4) */}
+      <CommitmentContractModal
+        isOpen={isContractModalOpen}
+        onClose={() => setIsContractModalOpen(false)}
+        userName={user?.name}
+        targetRole={user?.targetRole}
+        careerFocus={user?.careerFocus}
+        dailyHours={Math.max(1, Math.round((stats?.weeklyGoal?.target || 21) / 7))}
+      />
+
+      {/* MODAL DEFINIR HORÁRIO NOBRE & SINCRONIZAÇÃO DE AGENDA */}
+      <StudyScheduleSyncModal
+        isOpen={isScheduleSyncModalOpen}
+        onClose={() => setIsScheduleSyncModalOpen(false)}
+        userName={user?.name}
+        targetRole={user?.targetRole}
+        dailyHours={Math.max(1, Math.round((stats?.weeklyGoal?.target || 21) / 7))}
+      />
+
+      {/* MODAL SIMULADOR VALOR DA HORA ESTUDADA */}
+      <StudyHourValueCalculatorModal
+        isOpen={isHourValueModalOpen}
+        onClose={() => setIsHourValueModalOpen(false)}
+        targetRole={user?.targetRole}
       />
 
       {/* MODAL DE DIAGNÓSTICO RÁPIDO DE 3 MINUTOS */}
