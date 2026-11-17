@@ -804,7 +804,7 @@ body[data-zen-mode="true"] #main-scroll-container {
 }
 
 /* ========================================================================= */
-/* MODO ALTO CONTRASTE & LEITURA E-INK (Sem gradientes decorativos ou glow) */
+/* MODO ALTO CONTRASTE & ACESSIBILIDADE WCAG AAA (Leitura Nítida & Sem Ruído) */
 /* ========================================================================= */
 html[data-contrast="high"],
 body[data-contrast="high"] {
@@ -817,16 +817,20 @@ html[data-contrast="high"] * {
   box-shadow: none !important;
 }
 
-html[data-contrast="high"].dark {
-  background-color: #000000 !important;
+/* 1. FUNDOS PRINCIPAIS E SUPERFÍCIES SÓLIDAS */
+html[data-contrast="high"].dark,
+html[data-contrast="high"].dark body {
+  background-color: #030712 !important;
   color: #ffffff !important;
 }
 
-html[data-contrast="high"].light {
+html[data-contrast="high"].light,
+html[data-contrast="high"].light body {
   background-color: #ffffff !important;
   color: #000000 !important;
 }
 
+/* Remove efeitos de blur, glows decorativos e gradientes que causam distração */
 html[data-contrast="high"] [class*="blur-"],
 html[data-contrast="high"] [class*="bg-linear-"],
 html[data-contrast="high"] [class*="bg-gradient-"] {
@@ -834,8 +838,100 @@ html[data-contrast="high"] [class*="bg-gradient-"] {
   background-image: none !important;
 }
 
-html[data-contrast="high"] [class*="border-slate-"],
-html[data-contrast="high"] [class*="border-white/"] {
-  border-color: currentColor !important;
-  opacity: 0.8 !important;
+/* Oculta orbes e glows decorativos */
+html[data-contrast="high"] .pointer-events-none[class*="blur-"] {
+  display: none !important;
+}
+
+/* 2. SUPERFÍCIES DE CARDS E PAINÉIS (SÓLIDOS & LEGÍVEIS, SEM TRANSPARÊNCIA FANTASMA) */
+html[data-contrast="high"].dark [class*="bg-slate-900"],
+html[data-contrast="high"].dark [class*="bg-slate-950"],
+html[data-contrast="high"].dark [class*="bg-[#070"],
+html[data-contrast="high"].dark [class*="bg-[#0b1"],
+html[data-contrast="high"].dark [class*="bg-[#0d1"],
+html[data-contrast="high"].dark [class*="bg-[#030712]"],
+html[data-contrast="high"].dark [class*="bg-white/[0.0"],
+html[data-contrast="high"].dark [class*="bg-white/5"] {
+  background-color: #0b1120 !important;
+  opacity: 1 !important;
+}
+
+html[data-contrast="high"].light [class*="bg-slate-100"],
+html[data-contrast="high"].light [class*="bg-slate-50"],
+html[data-contrast="high"].light [class*="bg-white"] {
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* 3. BORDAS PRECISAS E NÍTIDAS (ELIMINA CURRENTCOLOR E OPACITY: 0.8) */
+html[data-contrast="high"].dark [class*="border-slate-"],
+html[data-contrast="high"].dark [class*="border-white/"],
+html[data-contrast="high"].dark [class*="border-gray-"] {
+  border-color: #334155 !important;
+  opacity: 1 !important;
+}
+
+html[data-contrast="high"].light [class*="border-slate-"],
+html[data-contrast="high"].light [class*="border-white/"],
+html[data-contrast="high"].light [class*="border-gray-"] {
+  border-color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+/* 4. TIPOGRAFIA DE ALTO CONTRASTE (WCAG AAA >= 7:1) */
+/* Textos secundários ou esmaecidos são elevados para legibilidade excelente */
+html[data-contrast="high"].dark [class*="text-slate-400"],
+html[data-contrast="high"].dark [class*="text-slate-500"],
+html[data-contrast="high"].dark [class*="text-gray-400"],
+html[data-contrast="high"].dark [class*="text-gray-500"],
+html[data-contrast="high"].dark [class*="text-muted-foreground"] {
+  color: #cbd5e1 !important;
+}
+
+html[data-contrast="high"].dark [class*="text-slate-300"] {
+  color: #e2e8f0 !important;
+}
+
+html[data-contrast="high"].dark [class*="text-slate-200"],
+html[data-contrast="high"].dark [class*="text-slate-100"],
+html[data-contrast="high"].dark h1,
+html[data-contrast="high"].dark h2,
+html[data-contrast="high"].dark h3,
+html[data-contrast="high"].dark h4,
+html[data-contrast="high"].dark h5,
+html[data-contrast="high"].dark strong {
+  color: #ffffff !important;
+}
+
+html[data-contrast="high"].light [class*="text-slate-400"],
+html[data-contrast="high"].light [class*="text-slate-500"],
+html[data-contrast="high"].light [class*="text-gray-400"],
+html[data-contrast="high"].light [class*="text-gray-500"],
+html[data-contrast="high"].light [class*="text-muted-foreground"] {
+  color: #0f172a !important;
+}
+
+/* 5. BOTÕES DE AÇÃO COM MÁXIMO CONTRASTE */
+html[data-contrast="high"].dark button[class*="bg-indigo-"],
+html[data-contrast="high"].dark a[class*="bg-indigo-"],
+html[data-contrast="high"].dark button[class*="bg-violet-"],
+html[data-contrast="high"].dark a[class*="bg-violet-"] {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+  border-color: #818cf8 !important;
+}
+
+html[data-contrast="high"].dark button[class*="bg-emerald-"],
+html[data-contrast="high"].dark a[class*="bg-emerald-"] {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border-color: #34d399 !important;
+}
+
+/* 6. FOCO ACESSÍVEL PARA NAVEGAÇÃO */
+html[data-contrast="high"] button:focus-visible,
+html[data-contrast="high"] a:focus-visible,
+html[data-contrast="high"] input:focus-visible {
+  outline: 2px solid #38bdf8 !important;
+  outline-offset: 2px !important;
 }
