@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   X,
   DollarSign,
@@ -45,7 +45,29 @@ export function StudyHourValueCalculatorModal({
   const [studyHoursTarget, setStudyHoursTarget] = useState<number>(750);
   const [horizonYears, setHorizonYears] = useState<number>(5);
 
-  if (!isOpen) return null;
+  // Fecha com ESC e trava scroll
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Atualiza salário sugerido se targetRole mudar
+  useEffect(() => {
+    if (targetRole) {
+      const role = targetRole.toLowerCase();
+      if (role.includes("receita") || role.includes("auditor") || role.includes("fiscal") || role.includes("juiz") || role.includes("delegado")) {
+        setSalary(22000);
+      } else if (role.includes("polícia") || role.includes("prf") || role.includes("perito") || role.includes("analista")) {
+        setSalary(14000);
+      } else if (role.includes("técnico") || role.includes("inss") || role.includes("caixa") || role.includes("banco")) {
+        setSalary(7500);
+      }
+    }
+  }, [targetRole]);
 
   const calculations = useMemo(() => {
     const monthlyTotal = salary + 1500; // Salário + Benefícios médios (alimentação/saúde)
@@ -64,8 +86,17 @@ export function StudyHourValueCalculatorModal({
     };
   }, [salary, studyHoursTarget, horizonYears]);
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="dialog"
+      aria-modal="true"
+    >
       <div className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-emerald-500/30 bg-[#070d18] p-5 sm:p-7 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-200">
         {/* Glow de fundo */}
         <div className="absolute -top-24 -left-24 w-52 h-52 rounded-full bg-emerald-600/20 blur-3xl pointer-events-none" />
@@ -94,7 +125,7 @@ export function StudyHourValueCalculatorModal({
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
-            title="Fechar"
+            title="Fechar (Esc)"
           >
             <X size={16} />
           </button>
@@ -226,3 +257,5 @@ export function StudyHourValueCalculatorModal({
     </div>
   );
 }
+
+export default StudyHourValueCalculatorModal;
