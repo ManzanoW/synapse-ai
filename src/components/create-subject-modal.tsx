@@ -29,9 +29,17 @@ export function NewContentModal({
   const [title, setTitle] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [customSubject, setCustomSubject] = useState("");
-  const [isCreatingNewSubject, setIsCreatingNewSubject] = useState(false);
+  const [isCreatingNewSubject, setIsCreatingNewSubject] = useState(
+    subjects.length === 0
+  );
   const [weight, setWeight] = useState("5/10");
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (subjects.length === 0) {
+      setIsCreatingNewSubject(true);
+    }
+  }, [subjects.length, isOpen]);
 
   const handleClose = () => {
     triggerHaptic("light");

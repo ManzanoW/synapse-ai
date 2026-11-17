@@ -147,14 +147,25 @@ function PlannerContent() {
           })),
         );
 
-        if (extractedTopics.length > 0) {
-          setTopics(extractedTopics as unknown as Topic[]);
-        }
+        setTopics(extractedTopics as unknown as Topic[]);
       }
     } catch (err) {
       console.error("Erro ao atualizar dados:", err);
+    } finally {
+      setLoading(false);
     }
   }
+
+  // Sincronização em tempo real quando um edital ou matéria é carregado em qualquer lugar
+  useEffect(() => {
+    const handleEditalSync = () => {
+      refreshData();
+    };
+    window.addEventListener("synapse-edital-updated", handleEditalSync);
+    return () => {
+      window.removeEventListener("synapse-edital-updated", handleEditalSync);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -224,6 +235,9 @@ function PlannerContent() {
       if (!response.ok) throw new Error("Erro ao criar novo conteúdo.");
 
       setIsCreateModalOpen(false);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("synapse-edital-updated"));
+      }
       await refreshData();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Falha ao salvar");
