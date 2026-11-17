@@ -118,10 +118,7 @@ const StudyScheduleSyncModal = dynamic(
   () => import("@/components/onboarding/StudyScheduleSyncModal").then((m) => m.StudyScheduleSyncModal),
   { ssr: false }
 );
-const StudyHourValueCalculatorModal = dynamic(
-  () => import("@/components/dashboard/StudyHourValueCalculatorModal").then((m) => m.StudyHourValueCalculatorModal),
-  { ssr: false }
-);
+import { StudyHourValueCalculatorModal } from "@/components/dashboard/StudyHourValueCalculatorModal";
 import { MentorAudioWelcomeCard } from "@/components/onboarding/MentorAudioWelcomeCard";
 import { DashboardDDayWidget } from "@/components/dashboard/DashboardDDayWidget";
 import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
@@ -307,6 +304,26 @@ export default function DashboardClient({
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
   const [showHeaderExtras, setShowHeaderExtras] = useState(false);
+  const optionsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Fecha menu flutuante de Mais Opções ao clicar fora ou apertar Esc
+  useEffect(() => {
+    if (!showHeaderExtras) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(e.target as Node)) {
+        setShowHeaderExtras(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowHeaderExtras(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showHeaderExtras]);
 
   useEffect(() => {
     const handleOpenDiagnostic = () => setIsDiagnosticModalOpen(true);
@@ -854,112 +871,252 @@ export default function DashboardClient({
 
             
 
-            {/* Botão Mais Opções (Evita 9 botões abertos de uma vez) */}
-            <button
-              type="button"
-              onClick={() => setShowHeaderExtras((prev) => !prev)}
-              className={`cursor-pointer inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all active:scale-95 ${
-                showHeaderExtras
-                  ? "border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
-                  : "border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200/80 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300"
-              }`}
-              title="Mais ferramentas (Meu Perfil, Modo Zen, Boletim Semanal, Personalizar)"
-            >
-              <Settings2 size={13} />
-              <span className="hidden sm:inline">Mais opções</span>
-              {showHeaderExtras ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            </button>
+            {/* Menu Suspenso Mais Opções (Organizado e Categorizado) */}
+            <div className="relative" ref={optionsMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowHeaderExtras((prev) => !prev)}
+                className={`cursor-pointer inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all active:scale-95 ${
+                  showHeaderExtras
+                    ? "border-indigo-400 dark:border-indigo-500/50 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                    : "border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200/80 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300"
+                }`}
+                title="Mais ferramentas e atalhos de produtividade"
+                aria-expanded={showHeaderExtras}
+                aria-haspopup="true"
+              >
+                <Settings2 size={13} />
+                <span className="hidden sm:inline">Mais opções</span>
+                {showHeaderExtras ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+
+              {/* Popover Flutuante Elegante e Categorizado */}
+              {showHeaderExtras && (
+                <div
+                  className="absolute right-0 top-full mt-2 w-80 sm:w-88 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 dark:border-white/10 bg-white/95 dark:bg-[#0c1322]/95 backdrop-blur-2xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-2.5 text-slate-800 dark:text-slate-100"
+                  role="menu"
+                >
+                  {/* Grupo 1: Metas & Compromisso */}
+                  <div className="space-y-1">
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                      <Award size={11} className="text-amber-500" />
+                      <span>Metas & Compromisso</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHeaderExtras(false);
+                        setIsContractModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
+                    >
+                      <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 group-hover:scale-105 transition-transform shrink-0">
+                        <Award size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Contrato com a Posse (A4)
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Imprimir termo solene para seu mural
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHeaderExtras(false);
+                        setIsScheduleSyncModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
+                    >
+                      <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 group-hover:scale-105 transition-transform shrink-0">
+                        <Clock size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Horário Nobre & Agenda
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Sincronizar turnos com Google/Apple Calendar
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHeaderExtras(false);
+                        setIsHourValueModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
+                    >
+                      <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
+                        <DollarSign size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          Valor da Minha Hora
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">
+                            Dopamina
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Calcular retorno financeiro acumulado por hora
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-slate-200/80 dark:border-white/5" />
+
+                  {/* Grupo 2: Foco & Produtividade */}
+                  <div className="space-y-1">
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                      <Zap size={11} className="text-violet-500" />
+                      <span>Foco & Produtividade</span>
+                    </div>
+
+                    <Link
+                      href="/study-room"
+                      onClick={() => setShowHeaderExtras(false)}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
+                    >
+                      <div className="p-2 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 group-hover:scale-105 transition-transform shrink-0">
+                        <Headphones size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Sala de Foco & Sons Neurais
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Pomodoro imersivo com áudios binaurais
+                        </div>
+                      </div>
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHeaderExtras(false);
+                        setIsZenModeOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
+                    >
+                      <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 group-hover:scale-105 transition-transform shrink-0">
+                        <Maximize2 size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Timer Modo Zen
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Foco minimalista em tela cheia sem distrações
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHeaderExtras(false);
+                        setIsWeeklyReportOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
+                    >
+                      <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 group-hover:scale-105 transition-transform shrink-0">
+                        <Trophy size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Boletim da Semana
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Relatório semanal de horas e consistência
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-slate-200/80 dark:border-white/5" />
+
+                  {/* Grupo 3: Personalização & Ajuda */}
+                  <div className="space-y-1">
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                      <SlidersHorizontal size={11} className="text-slate-400" />
+                      <span>Personalização & Ajuda</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHeaderExtras(false);
+                        setIsWelcomeQuizOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
+                    >
+                      <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 group-hover:scale-105 transition-transform shrink-0">
+                        <Sparkles size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Ajustar Perfil & Metas
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Recalibrar cargo, horas e turnos
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHeaderExtras(false);
+                        setIsCustomizeModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
+                    >
+                      <div className="p-2 rounded-lg bg-slate-500/10 text-slate-600 dark:text-slate-300 border border-slate-500/20 group-hover:scale-105 transition-transform shrink-0">
+                        <SlidersHorizontal size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Personalizar Painel
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Escolher quais cards aparecem na tela
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHeaderExtras(false);
+                        setIsTutorialOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors text-left group cursor-pointer"
+                    >
+                      <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 group-hover:scale-105 transition-transform shrink-0">
+                        <HelpCircle size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Como funciona? (Tutorial)
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Tour passo a passo da plataforma
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Barra Secundária Colapsável (Só aparece quando o usuário clica em "Mais opções") */}
-        {showHeaderExtras && (
-          <div className="flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/90 dark:bg-slate-900/60 p-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
-            <button
-              type="button"
-              onClick={() => setIsTutorialOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition-all"
-              title="Entenda passo a passo como usar a plataforma"
-            >
-              <HelpCircle size={13} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Como funciona? (Tutorial)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsContractModalOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
-              title="Gerar e imprimir o Termo de Compromisso Oficial com a Posse em folha A4"
-            >
-              <Award size={13} className="text-amber-500" />
-              <span>📜 Contrato com a Posse (A4)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsScheduleSyncModalOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
-              title="Definir seu horário nobre de estudo e sincronizar com Google / Apple Calendar"
-            >
-              <Clock size={13} className="text-indigo-400" />
-              <span>⏰ Horário Nobre & Agenda</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsHourValueModalOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
-              title="Calcular o valor financeiro acumulado por cada hora e bloco Pomodoro de estudo"
-            >
-              <DollarSign size={13} className="text-emerald-400" />
-              <span>💰 Valor da Minha Hora</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsWelcomeQuizOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
-            >
-              <Sparkles size={13} className="text-amber-500" />
-              <span>Ajustar Meu Perfil & Horas</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsZenModeOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
-            >
-              <Maximize2 size={13} className="text-violet-600 dark:text-violet-400" />
-              <span>Timer Modo Zen</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsWeeklyReportOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
-            >
-              <Trophy size={13} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Boletim da Semana</span>
-            </button>
-
-            <Link
-              href="/study-room"
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-600/10 hover:bg-violet-600/20 px-3 py-1.5 text-xs font-bold text-violet-300 transition-all shadow-xs"
-              title="Abrir Sala de Foco com Pomodoro e Sons Neurais Procedurais"
-            >
-              <Headphones size={13} className="text-violet-400" />
-              <span>🎧 Sala de Foco & Sons</span>
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => setIsCustomizeModalOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
-            >
-              <SlidersHorizontal size={13} className="text-cyan-600 dark:text-cyan-400" />
-              <span>Escolher Cards da Tela</span>
-            </button>
-          </div>
-        )}
 
         {/* ================= RESUMO DIÁRIO EXECUTIVO (DAILY BRIEFING) ================= */}
         {/* Visível no modo Completo para manter a Visão Simples 100% limpa */}
