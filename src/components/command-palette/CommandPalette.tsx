@@ -39,6 +39,7 @@ import {
   Target,
   X,
   Eye,
+  Contrast,
   Smartphone,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -620,18 +621,18 @@ export function CommandPalette({ user }: CommandPaletteProps) {
       },
       {
         id: "action-toggle-high-contrast",
-        title: isHighContrast ? "Desativar Modo Alto Contraste / E-Ink" : "Ativar Modo Alto Contraste / E-Ink",
-        subtitle: "Remove gradientes e brilhos para contraste nítido em leitura prolongada ou dispositivos e-ink",
+        title: isHighContrast ? "Desativar Modo Alto Contraste" : "Ativar Modo Alto Contraste (Acessibilidade)",
+        subtitle: "Aumenta o contraste das fontes, ajusta superfícies sólidas e remove distrações visuais",
         category: "Ações Rápidas",
-        icon: Eye,
-        badge: isHighContrast ? "ATIVO" : "E-INK",
+        icon: Contrast,
+        badge: isHighContrast ? "ATIVO" : "NITIDEZ",
         action: () => {
           playClick();
           triggerHaptic("medium");
           toggleHighContrast();
           setIsOpen(false);
         },
-        keywords: ["contraste", "alto contraste", "eink", "e-ink", "preto e branco", "acessibilidade", "leitura", "fadiga"],
+        keywords: ["contraste", "alto contraste", "acessibilidade", "leitura", "fadiga", "nitidez", "eink", "preto e branco"],
       },
       {
         id: "action-toggle-sound",

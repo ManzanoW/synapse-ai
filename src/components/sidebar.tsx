@@ -47,6 +47,7 @@ import {
   ScrollText,
   Sun,
   Eye,
+  Contrast,
   Moon,
   X,
   Cpu,
@@ -643,24 +644,24 @@ export default function Sidebar({ user }: SidebarProps) {
                 )}
               </button>
 
-              {/* Alternador de Alto Contraste / E-Ink */}
+              {/* Alternador de Alto Contraste (Acessibilidade & Leitura Nítida) */}
               <button
                 type="button"
                 onClick={() => {
                   triggerHaptic("medium");
                   toggleHighContrast();
                 }}
-                title={isHighContrast ? "Desativar Alto Contraste / E-Ink" : "Ativar Modo Alto Contraste / E-Ink"}
+                title={isHighContrast ? "Alto Contraste: Ativado (Clique para desativar)" : "Alto Contraste: Desativado (Clique para ativar legibilidade nítida)"}
                 aria-label={isHighContrast ? "Desativar Alto Contraste" : "Ativar Alto Contraste"}
                 className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
                   isHighContrast
-                    ? "bg-violet-600 text-white border-violet-400 shadow-xs"
+                    ? "bg-amber-400 text-slate-950 border-amber-300 font-bold shadow-xs ring-2 ring-amber-400/40"
                     : isLight
                     ? "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"
                     : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
                 }`}
               >
-                <Eye size={15} className="transition-transform active:scale-95" />
+                <Contrast size={15} className="transition-transform active:scale-95" />
               </button>
 
               {/* Alternador de Tema (Modo Claro Slate Ice / Modo Escuro) */}
