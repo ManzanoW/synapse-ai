@@ -52,6 +52,17 @@ export function CommitmentContractModal({
 
   const printAreaRef = useRef<HTMLDivElement>(null);
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handlePrint = () => {
@@ -71,37 +82,85 @@ export function CommitmentContractModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md overflow-y-auto">
-      {/* Botões de Ação Fixos no Topo da Tela (Não aparecem na impressão) */}
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-2 print:hidden">
-        <button
-          type="button"
-          onClick={handlePrint}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-xl shadow-indigo-950/60 transition-all cursor-pointer active:scale-95"
-          title="Imprimir contrato em folha A4 para assinar e colar na parede"
-        >
-          <Printer size={15} />
-          <span>Imprimir Contrato A4 (Parede)</span>
-        </button>
+    <>
+      {/* Estilos específicos para Impressão Perfeita A4 (Remove todas as bordas pretas do modal/fundo) */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 6mm 8mm;
+          }
+          html,
+          body {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          #synapse-commitment-contract,
+          #synapse-commitment-contract * {
+            visibility: visible !important;
+          }
+          #synapse-commitment-contract {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 24px 28px !important;
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border: 2px solid #0f172a !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            display: block !important;
+            page-break-inside: avoid !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-          title="Fechar"
-        >
-          <X size={16} />
-        </button>
-      </div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md overflow-y-auto print:p-0 print:m-0 print:bg-white print:backdrop-blur-none print:static print:overflow-visible">
+        {/* Botões de Ação Fixos no Topo da Tela (Não aparecem na impressão) */}
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 print:hidden no-print">
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-xl shadow-indigo-950/60 transition-all cursor-pointer active:scale-95"
+            title="Imprimir contrato em folha A4 para assinar e colar na parede"
+          >
+            <Printer size={15} />
+            <span>Imprimir Contrato A4 (Parede)</span>
+          </button>
 
-      {/* Conteúdo do Contrato A4 Diagramado */}
-      <div
-        ref={printAreaRef}
-        className="w-full max-w-[800px] my-auto bg-white text-slate-900 p-8 sm:p-12 rounded-3xl shadow-2xl border-4 border-slate-900 relative overflow-hidden print:p-8 print:m-0 print:border-4 print:border-black print:rounded-none print:shadow-none print:max-w-none print:w-full print:block"
-        style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
-      >
-        {/* Moldura Interna Clássica de Certificado */}
-        <div className="absolute inset-2 border-2 border-slate-300 pointer-events-none rounded-2xl print:inset-2 print:border-2 print:border-black" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            title="Fechar"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Conteúdo do Contrato A4 Diagramado */}
+        <div
+          id="synapse-commitment-contract"
+          ref={printAreaRef}
+          className="w-full max-w-[800px] my-auto bg-white text-slate-900 p-8 sm:p-12 rounded-3xl shadow-2xl border-4 border-slate-900 relative overflow-hidden print:p-6 print:m-0 print:border-2 print:border-slate-900 print:rounded-none print:shadow-none print:max-w-none print:w-full print:block"
+          style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+        >
+          {/* Moldura Interna Clássica de Certificado */}
+          <div className="absolute inset-2 border-2 border-slate-300 pointer-events-none rounded-2xl print:inset-1.5 print:border print:border-slate-400 print:rounded-none" />
 
         {/* Marca d'água sutil de fundo */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none text-9xl font-black font-sans uppercase">
@@ -229,6 +288,6 @@ export function CommitmentContractModal({
           <span className="font-bold text-slate-700">Cole na parede acima da sua mesa</span>
         </div>
       </div>
-    </div>
+    </>
   );
 }
