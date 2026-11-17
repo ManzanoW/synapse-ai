@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useCallback,
   useRef,
+  useMemo,
 } from "react";
 import Link from "next/link";
 import { PocketSummaryModal } from "@/components/summary/PocketSummaryModal";
@@ -221,7 +222,7 @@ export const DEFAULT_FULL_CARDS: DashboardCardVisibility = {
 };
 
 export const DEFAULT_MINIMAL_CARDS: DashboardCardVisibility = {
-  heroJourney: true,
+  heroJourney: false,
   quickActions: false,
   dailyQuests: true,
   keyMetrics: false,
@@ -267,6 +268,13 @@ export default function DashboardClient({
   initialDailyFlow,
 }: DashboardClientProps) {
   const { openSidebar } = useSidebar();
+
+  const greetingPeriod = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Bom dia";
+    if (hour >= 12 && hour < 18) return "Boa tarde";
+    return "Boa noite";
+  }, []);
   const searchParams = useSearchParams();
 
   const isDemo =
@@ -763,11 +771,11 @@ export default function DashboardClient({
                 Meu Estudo de Hoje
               </h1>
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Bem-vindo de volta,{" "}
+                {greetingPeriod},{" "}
                 <strong className="font-bold text-slate-800 dark:text-slate-200">
-                  {user.name || "Estudante"}
+                  {user.name ? user.name.split(" ")[0] : "Estudante"}
                 </strong>
-                {" "}— veja por onde começar hoje sem complicação.
+                {" "}— foco no que importa hoje, sem distrações.
               </p>
             </div>
           </div>
@@ -844,19 +852,7 @@ export default function DashboardClient({
               <span>Diagnóstico (3 min)</span>
             </button>
 
-            {/* Botão Como Funciona (Tour) */}
-            <button
-              type="button"
-              onClick={() => setIsTutorialOpen(true)}
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition-all active:scale-95 relative"
-              title="Entenda passo a passo como usar a plataforma"
-            >
-              <HelpCircle size={14} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Como funciona?</span>
-              {!hasCompletedTutorial && (
-                <span className="w-2 h-2 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-ping absolute -top-0.5 -right-0.5" />
-              )}
-            </button>
+            
 
             {/* Botão Mais Opções (Evita 9 botões abertos de uma vez) */}
             <button
@@ -879,6 +875,15 @@ export default function DashboardClient({
         {/* Barra Secundária Colapsável (Só aparece quando o usuário clica em "Mais opções") */}
         {showHeaderExtras && (
           <div className="flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/90 dark:bg-slate-900/60 p-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+            <button
+              type="button"
+              onClick={() => setIsTutorialOpen(true)}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition-all"
+              title="Entenda passo a passo como usar a plataforma"
+            >
+              <HelpCircle size={13} className="text-indigo-600 dark:text-indigo-400" />
+              <span>Como funciona? (Tutorial)</span>
+            </button>
             <button
               type="button"
               onClick={() => setIsContractModalOpen(true)}
@@ -957,7 +962,8 @@ export default function DashboardClient({
         )}
 
         {/* ================= RESUMO DIÁRIO EXECUTIVO (DAILY BRIEFING) ================= */}
-        {!isLoading && (
+        {/* Visível no modo Completo para manter a Visão Simples 100% limpa */}
+        {!isLoading && dashboardMode === "full" && (
           <DailyBriefingCard
             userName={user?.name}
             targetRole={user?.targetRole}
@@ -967,19 +973,25 @@ export default function DashboardClient({
           />
         )}
 
-
-        {/* ================= ÁUDIO DE BOAS-VINDAS DO MENTOR (VOZ HUMANA NATURAL) ================= */}
-        {!isLoading && (
+        {/* ================= ÁUDIO DE BOAS-VINDAS DO MENTOR ================= */}
+        {!isLoading && dashboardMode === "full" && (
           <MentorAudioWelcomeCard
             userName={user?.name}
             targetRole={user?.targetRole}
           />
         )}
-        {/* ================= BANNER DE INSTALAÇÃO NO CELULAR (PWA) ================= */}
-        {!isLoading && <DashboardPwaBanner />}
+
+        {/* ================= BANNER PWA ================= */}
+        {/* Apenas no modo Completo em telas menores que desktop */}
+        {!isLoading && dashboardMode === "full" && (
+          <div className="block lg:hidden">
+            <DashboardPwaBanner />
+          </div>
+        )}
 
         {/* ================= WIDGET RETA FINAL & CONTAGEM REGRESSIVA (D-DAY) ================= */}
-        {!isLoading && (
+        {/* Exibe se o aluno tem matérias e se a seção heroJourney não estiver duplicando */}
+        {!isLoading && hasEditalSubjects && !visibleCards.heroJourney && (
           <DashboardDDayWidget
             targetRole={user?.targetRole}
             careerFocus={user?.careerFocus}
@@ -988,13 +1000,14 @@ export default function DashboardClient({
         )}
 
         {/* ================= #1 PRIORIDADE MÁXIMA: SESSÃO RECOMENDADA DE HOJE (DAILY FLOW 1-CLIQUE) ================= */}
-        {!isLoading && (
+        {!isLoading && hasEditalSubjects && (
           <DailyFlowCard flowData={initialDailyFlow || null} />
         )}
 
-        {/* ================= WIDGET DE REVISÃO PENDENTE HOJE (Apenas se não houver Daily Flow ativo) ================= */}
+        {/* ================= WIDGET DE REVISÃO PENDENTE HOJE ================= */}
         {!isLoading &&
           !initialDailyFlow?.hasActivity &&
+          hasEditalSubjects &&
           (stats?.metrics?.dueFlashcards ?? 0) > 0 && (
             <FsrsReviewWidget
               dueCount={stats?.metrics?.dueFlashcards ?? 0}
@@ -1003,18 +1016,9 @@ export default function DashboardClient({
             />
           )}
 
-        {/* ================= 1ª MISSÃO DO DIA (PARA NOVOS ALUNOS NÃO SE SENTIREM PERDIDOS) ================= */}
-        {!isLoading && (
-          <FirstDayMissionCard
-            firstSubjectName={subjects[0]?.name || "Língua Portuguesa"}
-            hasSubjects={hasEditalSubjects}
-            questionsCount={stats?.metrics?.questionsCount ?? 0}
-            getHref={getHref}
-          />
-        )}
-
-        {/* ================= PRIMEIRAS CONQUISTAS (CHECKLIST DE BOAS-VINDAS PARA NOVOS ALUNOS) ================= */}
-        {!isLoading && (
+        {/* ================= ONBOARDING DE PRIMEIROS PASSOS (PARA NOVOS ALUNOS) ================= */}
+        {/* Se o aluno é novo (não cadastrou matérias), exibe UNICAMENTE o checklist guiado sem banners concorrentes */}
+        {!isLoading && !hasEditalSubjects && (
           <FirstStepsChecklistCard
             hasEditalSubjects={hasEditalSubjects}
             sessionsCount={stats?.metrics?.sessionsCount ?? 0}
@@ -1023,8 +1027,19 @@ export default function DashboardClient({
           />
         )}
 
+        {/* ================= 1ª MISSÃO DO DIA ================= */}
+        {/* Exibe apenas quando já tem matérias cadastradas e fora da Visão Simples */}
+        {!isLoading && hasEditalSubjects && dashboardMode !== "minimal" && (
+          <FirstDayMissionCard
+            firstSubjectName={subjects[0]?.name || "Língua Portuguesa"}
+            hasSubjects={hasEditalSubjects}
+            questionsCount={stats?.metrics?.questionsCount ?? 0}
+            getHref={getHref}
+          />
+        )}
+
         {/* ================= TERMÔMETRO DE APROVAÇÃO & NOTA DE CORTE ================= */}
-        {!isLoading && hasEditalSubjects && (
+        {!isLoading && hasEditalSubjects && dashboardMode === "full" && (
           <ApprovalThermometerCard
             subjects={subjects}
             precisionText={stats?.metrics?.precision || "0%"}
@@ -1035,8 +1050,8 @@ export default function DashboardClient({
           />
         )}
 
-        {/* ================= LEMBRETE DIÁRIO DE ESTUDOS (PROTEÇÃO DE STREAK) ================= */}
-        {!isLoading && (
+        {/* ================= LEMBRETE DIÁRIO DE ESTUDOS ================= */}
+        {!isLoading && dashboardMode === "full" && (
           <StudyReminderWidget currentStreak={stats?.streak?.currentDays || 0} />
         )}
 
