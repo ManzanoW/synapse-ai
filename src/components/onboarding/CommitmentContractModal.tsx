@@ -288,6 +288,7 @@ export function CommitmentContractModal({
           <span className="font-bold text-slate-700">Cole na parede acima da sua mesa</span>
         </div>
       </div>
-    </>
-  );
+    </div>
+  </>
+);
 }

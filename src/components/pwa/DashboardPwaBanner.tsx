@@ -9,7 +9,13 @@ export function DashboardPwaBanner() {
 
   useEffect(() => {
     try {
-      // 1. Checa se já está em modo standalone (PWA já instalado)
+      // 1. Oculta no desktop (telas amplas), pois o banner é focado na experiência mobile/tablet
+      if (typeof window !== "undefined" && window.innerWidth > 1024) {
+        setIsVisible(false);
+        return;
+      }
+
+      // 2. Checa se já está em modo standalone (PWA já instalado)
       const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as unknown as { standalone?: boolean }).standalone === true;
@@ -19,7 +25,7 @@ export function DashboardPwaBanner() {
         return;
       }
 
-      // 2. Checa se o usuário dispensou o aviso
+      // 3. Checa se o usuário dispensou o aviso
       const dismissed = localStorage.getItem("synapse_pwa_banner_dismissed");
       if (!dismissed) {
         setIsVisible(true);
