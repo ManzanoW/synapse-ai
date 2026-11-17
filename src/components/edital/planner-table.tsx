@@ -175,12 +175,21 @@ export function PlannerView({
       }
     });
 
+    // Garante que todas as matérias cadastradas existam na visão, mesmo sem tópicos
+    subjects.forEach((sub) => {
+      const subName = sub.name.trim();
+      const matchesSearch = !query || subName.toLowerCase().includes(query);
+      if (matchesSearch && !groups[subName]) {
+        groups[subName] = [];
+      }
+    });
+
     Object.keys(groups).forEach((key) => {
       groups[key].sort((a, b) => a.title.localeCompare(b.title, "pt-BR"));
     });
 
     return groups;
-  }, [topics, searchQuery, statusFilter]);
+  }, [topics, subjects, searchQuery, statusFilter]);
 
   const sortedSubjectNames = useMemo(() => {
     const names = Object.keys(groupedData).filter((subjectName) => {
@@ -638,7 +647,12 @@ export function PlannerView({
                       </div>
                     </div>
 
-                    {displayedTopics.map((t) => (
+                    {displayedTopics.length === 0 ? (
+                      <div className="p-4 sm:p-6 text-center rounded-xl bg-white/2 border border-dashed border-white/10 text-xs text-slate-400">
+                        Nenhum assunto ou tópico cadastrado nesta matéria ainda. Clique no botão <strong className="text-white">Novo conteúdo</strong> no topo para adicionar tópicos.
+                      </div>
+                    ) : (
+                      displayedTopics.map((t) => (
                       <div
                         key={t.id}
                         className="bg-white/2 border border-white/5 hover:border-white/15 rounded-xl p-3 flex flex-col lg:grid lg:grid-cols-12 gap-3 items-start lg:items-center hover:bg-white/4 transition-all"
@@ -758,7 +772,7 @@ export function PlannerView({
                           )}
                         </div>
                       </div>
-                    ))}
+                    )))}
 
                     {hasMore && (
                       <div className="text-center pt-2">

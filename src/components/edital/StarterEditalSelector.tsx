@@ -148,17 +148,27 @@ export function StarterEditalSelector({
           `Edital de "${res.data.templateTitle}" ativado! (${res.data.subjectsCount} matérias e ${res.data.topicsCount} tópicos carregados)`
         );
 
+        // Dispara evento global de sincronização para atualizar Week, Edital e Dashboard
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("synapse-edital-updated", { detail: res.data })
+          );
+        }
+
         if (onSuccess) {
           setTimeout(() => {
             onSuccess({
               subjectsCount: res.data.subjectsCount,
               topicsCount: res.data.topicsCount,
             });
-          }, 800);
+          }, 500);
         } else {
           setTimeout(() => {
             router.refresh();
-          }, 800);
+            if (typeof window !== "undefined") {
+              window.location.reload();
+            }
+          }, 700);
         }
       } else {
         triggerHaptic("warning");
@@ -206,17 +216,27 @@ export function StarterEditalSelector({
         );
         setCustomRoleInput("");
 
+        // Dispara evento global de sincronização para atualizar Week, Edital e Dashboard
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("synapse-edital-updated", { detail: res.data })
+          );
+        }
+
         if (onSuccess) {
           setTimeout(() => {
             onSuccess({
               subjectsCount: res.data.subjectsCount,
               topicsCount: res.data.topicsCount,
             });
-          }, 800);
+          }, 500);
         } else {
           setTimeout(() => {
             router.refresh();
-          }, 800);
+            if (typeof window !== "undefined") {
+              window.location.reload();
+            }
+          }, 700);
         }
       } else {
         triggerHaptic("warning");

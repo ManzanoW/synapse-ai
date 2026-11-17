@@ -283,7 +283,17 @@ export default function WeekPage() {
 
     fetchData();
 
-    return () => controller.abort();
+    // Sincronização em tempo real quando um edital ou matéria é carregado em qualquer lugar
+    const handleEditalSync = () => {
+      setLoading(true);
+      loadWeekData();
+    };
+    window.addEventListener("synapse-edital-updated", handleEditalSync);
+
+    return () => {
+      controller.abort();
+      window.removeEventListener("synapse-edital-updated", handleEditalSync);
+    };
   }, []);
 
   useEffect(() => {
@@ -1187,6 +1197,10 @@ export default function WeekPage() {
           <EditalEmptyState
             title="Seu Planejamento precisa de um Edital"
             description="Cadastre as disciplinas do seu concurso para que a IA organize automaticamente seu planejamento semanal e ciclo de estudos adaptativo."
+            onSuccess={() => {
+              setLoading(true);
+              loadWeekData();
+            }}
           />
         ) : studyMode === "CYCLE" ? (
           <CycleView
