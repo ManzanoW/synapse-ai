@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { unstable_cache, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getUserAchievementsProgress } from "@/lib/achievements-engine";
 
@@ -70,4 +70,46 @@ export const getCachedDashboardMetrics = (userId: string) =>
       revalidate: 120, // Revalida automaticamente a cada 120 segundos
     },
   )();
+
+/**
+ * Cache reativo para as configurações de cronograma e ciclo do usuário
+ * Tag: user-schedule-${userId}, TTL: 120s
+ */
+export const getCachedUserScheduleConfig = (userId: string) =>
+  unstable_cache(
+    async () => {
+      return await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          weeklyGoalHours: true,
+          activeDaysPerWeek: true,
+          studyMode: true,
+          cycleCurrentIndex: true,
+          cycleLap: true,
+          targetRole: true,
+          careerFocus: true,
+        },
+      });
+    },
+    [`user-schedule-${userId}`],
+    {
+      tags: [`user-schedule-${userId}`],
+      revalidate: 120,
+    },
+  )();
+
+/**
+ * Invalida todos os caches relacionados ao dashboard e progresso do usuário
+ */
+export function invalidateUserDashboardCache(userId: string) {
+  try {
+    (revalidateTag as any)(`user-dashboard-${userId}`);
+    (revalidateTag as any)(`user-stats-${userId}`);
+    (revalidateTag as any)(`user-achievements-${userId}`);
+    (revalidateTag as any)(`user-schedule-${userId}`);
+    (revalidateTag as any)(`user-edital-${userId}`);
+  } catch (err) {
+    console.warn("Aviso ao invalidar tags de cache do dashboard:", err);
+  }
+}
 

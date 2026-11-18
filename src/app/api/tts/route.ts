@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import { auth } from "@/auth";
+import {
+  getClientIdentifier,
+  checkRateLimitAndGenerateResponse,
+  ttsLimiter,
+} from "@/lib/rate-limiter";
 
 export const runtime = "nodejs";
 
@@ -10,6 +15,13 @@ export async function POST(req: NextRequest) {
     const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
+
+    // 🛡️ Proteção de Custos & CPU: Rate limiting para síntese de áudio
+    const clientId = getClientIdentifier(req, userId);
+    const rateCheck = checkRateLimitAndGenerateResponse(ttsLimiter, clientId);
+    if (!rateCheck.allowed && rateCheck.response) {
+      return rateCheck.response;
     }
 
 

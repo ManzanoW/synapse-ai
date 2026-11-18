@@ -232,3 +232,24 @@ export const simuladoGenerationLimiter = new TokenBucketRateLimiter({
   refillTokensPerInterval: 8,
   intervalMs: 60000,
 });
+
+/** Rate limiter para o Professor IA / Mentor (10 por minuto, burst de 5) */
+export const mentorLimiter = new TokenBucketRateLimiter({
+  capacity: 5,
+  refillTokensPerInterval: 10,
+  intervalMs: 60000,
+});
+
+/** Rate limiter para síntese de áudio TTS (15 por minuto, burst de 6) */
+export const ttsLimiter = new TokenBucketRateLimiter({
+  capacity: 6,
+  refillTokensPerInterval: 15,
+  intervalMs: 60000,
+});
+
+/** Rate limiter para importação e extração de editais com IA (4 por minuto, burst de 3) */
+export const editalParseLimiter = new TokenBucketRateLimiter({
+  capacity: 3,
+  refillTokensPerInterval: 4,
+  intervalMs: 60000,
+});

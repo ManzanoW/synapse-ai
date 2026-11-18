@@ -223,6 +223,10 @@ export async function GET() {
         current: weeklyLogs.length,
       },
       heatmap,
+    }, {
+      headers: {
+        "Cache-Control": "private, max-age=15, stale-while-revalidate=60",
+      },
     });
   } catch (error) {
     console.error("❌ Erro ao buscar dados da dashboard:", error);

@@ -4,6 +4,11 @@ import {
   getDeterministicFallbackQuestions,
 } from "@/lib/simulado-generator";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
+import {
+  getClientIdentifier,
+  checkRateLimitAndGenerateResponse,
+  questionGenerationLimiter,
+} from "@/lib/rate-limiter";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -14,6 +19,16 @@ export async function POST(request: Request) {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // 🛡️ Proteção de Custos: Rate limiting compartilhado de geração de questões
+  const clientId = getClientIdentifier(request, userId);
+  const rateCheck = checkRateLimitAndGenerateResponse(
+    questionGenerationLimiter,
+    clientId,
+  );
+  if (!rateCheck.allowed && rateCheck.response) {
+    return rateCheck.response;
   }
 
   let body: any = {};

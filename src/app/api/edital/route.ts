@@ -191,6 +191,10 @@ export async function GET(request: Request) {
         return NextResponse.json({
           globalProgress,
           data: formattedSubjects,
+        }, {
+          headers: {
+            "Cache-Control": "private, max-age=15, stale-while-revalidate=60",
+          },
         });
       } catch (subErr) {
         console.error("❌ Erro no modo subjects:", subErr);

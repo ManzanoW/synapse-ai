@@ -3,6 +3,9 @@ import {
   TokenBucketRateLimiter,
   getClientIdentifier,
   checkRateLimitAndGenerateResponse,
+  mentorLimiter,
+  ttsLimiter,
+  editalParseLimiter,
 } from "@/lib/rate-limiter";
 
 describe("TokenBucketRateLimiter", () => {
@@ -149,5 +152,16 @@ describe("checkRateLimitAndGenerateResponse", () => {
     expect(check.response).toBeDefined();
     expect(check.response?.status).toBe(429);
     expect(check.headers["Retry-After"]).toBeDefined();
+  });
+
+  it("deve exportar instâncias dedicadas de rate limit para IA, TTS e Parse", () => {
+    expect(mentorLimiter).toBeInstanceOf(TokenBucketRateLimiter);
+    expect(ttsLimiter).toBeInstanceOf(TokenBucketRateLimiter);
+    expect(editalParseLimiter).toBeInstanceOf(TokenBucketRateLimiter);
+
+    const testId = "test-ai-service-" + Date.now();
+    const res = mentorLimiter.consume(testId, 1);
+    expect(res.success).toBe(true);
+    expect(res.limit).toBe(5);
   });
 });
