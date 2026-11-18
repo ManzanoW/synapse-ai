@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { auth } from "@/auth";
+import {
+  getClientIdentifier,
+  checkRateLimitAndGenerateResponse,
+  mentorLimiter,
+} from "@/lib/rate-limiter";
+import { checkRateLimitPerMinute } from "@/lib/ai-quota-service";
 
 interface MentorRequest {
   question: string;
@@ -52,6 +59,34 @@ Troque a palavra feminina por uma masculina. Se virar **"AO"**, tem crase!
 
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: "Faça login para consultar o Professor IA." },
+        { status: 401 }
+      );
+    }
+
+    // 🛡️ Proteção de Custos: Rate limiting por token bucket
+    const clientId = getClientIdentifier(req, userId);
+    const rateCheck = checkRateLimitAndGenerateResponse(mentorLimiter, clientId);
+    if (!rateCheck.allowed && rateCheck.response) {
+      return rateCheck.response;
+    }
+
+    // 🛡️ Trava anti-loop por minuto
+    if (!checkRateLimitPerMinute(userId)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Você fez muitas perguntas em sequência. Aguarde um minuto antes de perguntar novamente.",
+        },
+        { status: 429 }
+      );
+    }
+
     const body = (await req.json()) as MentorRequest;
     const question = body.question?.trim();
 

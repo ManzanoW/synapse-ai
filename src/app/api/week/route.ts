@@ -133,6 +133,10 @@ export async function GET() {
         subjectOverview,
         cycle: cycleData,
       },
+    }, {
+      headers: {
+        "Cache-Control": "private, max-age=15, stale-while-revalidate=45",
+      },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

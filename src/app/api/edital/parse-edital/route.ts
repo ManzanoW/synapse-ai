@@ -6,6 +6,11 @@ import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { isUserPro } from "@/lib/subscription";
 import { extractText } from "unpdf";
 import { isValidPdfSignature } from "@/lib/security/file-signature";
+import {
+  getClientIdentifier,
+  checkRateLimitAndGenerateResponse,
+  editalParseLimiter,
+} from "@/lib/rate-limiter";
 
 // Permite tempo suficiente para o Gemini processar editais longos sem timeout
 export const maxDuration = 60;
@@ -67,6 +72,16 @@ export async function POST(request: Request) {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    // 🛡️ Proteção de Custos: Rate limiting para parsing de editais com IA
+    const clientId = getClientIdentifier(request, session.user.id);
+    const rateCheck = checkRateLimitAndGenerateResponse(
+      editalParseLimiter,
+      clientId,
+    );
+    if (!rateCheck.allowed && rateCheck.response) {
+      return rateCheck.response;
     }
 
     const contentType = request.headers.get("content-type") || "";

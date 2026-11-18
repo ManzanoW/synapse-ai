@@ -131,6 +131,9 @@ model Subject {
   questionErrors  QuestionError[]
   trailLessons    TrailLesson[]
   externalCourses ExternalCourse[]
+
+  @@index([userId])
+  @@index([userId, priority])
 }
 
 model Topic {
@@ -160,6 +163,10 @@ model Topic {
   nextRev     DateTime? @default(now())
   lastQuizAt  DateTime?
   mindMap     Json?
+
+  @@index([subjectId])
+  @@index([subjectId, nextRev])
+  @@index([subjectId, firstStudy])
 }
 
 model Deck {
@@ -179,6 +186,10 @@ model Deck {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([topicId])
 }
 
 model QuizAttempt {
@@ -190,6 +201,9 @@ model QuizAttempt {
   completedAt  DateTime @default(now())
 
   topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+  @@index([topicId])
 }
 
 model Flashcard {
@@ -262,6 +276,8 @@ model StudySession {
   createdAt       DateTime @default(now())
 
   @@index([userId])
+  @@index([userId, date])
+  @@index([userId, createdAt])
 }
 
 // 🏅 Progresso do Usuário em Conquistas/Insígnias
@@ -518,4 +534,6 @@ model PaymentOrder {
 
   @@index([userId])
   @@index([status])
+  @@index([userId, status])
+  @@index([userId, createdAt])
 }
