@@ -11,6 +11,8 @@ import { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isUserPro } from "@/lib/subscription";
+import { getSubjectDomainStatsAction } from "@/actions/quiz-actions";
+import { resetScheduleToDefaultAction } from "@/actions/adaptive-actions";
 
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
@@ -268,6 +270,24 @@ describe("Security Audit & LGPD Compliance Hardening", () => {
           },
         }),
       );
+    });
+
+    it("deve bloquear tentativa de IDOR em getSubjectDomainStatsAction quando usuário tenta ler dados de outro usuário", async () => {
+      (auth as any).mockResolvedValueOnce({
+        user: { id: "attacker-user-id", email: "attacker@test.com" },
+      });
+
+      const res = await getSubjectDomainStatsAction("victim-user-id");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("violação de posse de recurso (IDOR)");
+    });
+
+    it("deve exigir autenticação em resetScheduleToDefaultAction e bloquear reset não autorizado", async () => {
+      (auth as any).mockResolvedValueOnce(null);
+
+      const res = await resetScheduleToDefaultAction("victim-user-id");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("não autenticado");
     });
   });
 

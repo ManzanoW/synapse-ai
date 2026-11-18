@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { invalidateUserCacheAction } from "@/actions/gamification-actions";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
-import { syncErrorToFlashcardCore } from "@/actions/error-notebook-actions";
+import { syncErrorToFlashcardCore } from "@/lib/error-flashcard-sync";
 
 export interface TheorySection {
   heading: string;

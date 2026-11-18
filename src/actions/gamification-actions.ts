@@ -191,8 +191,20 @@ export async function claimPrestigeAction(userId: string) {
 /**
  * Invalida o cache do usuário após ações de ganho de XP ou finalização de estudo
  */
-export async function invalidateUserCacheAction(userId: string) {
+export async function invalidateUserCacheAction(userIdParam?: string) {
   try {
+    const session = await auth();
+    const sessionUserId = session?.user?.id;
+
+    if (!sessionUserId) {
+      return { success: false, error: "Não autorizado." };
+    }
+
+    if (userIdParam && userIdParam !== sessionUserId && userIdParam !== "demo-user-id") {
+      return { success: false, error: "Acesso negado: violação de posse de recurso (IDOR)." };
+    }
+
+    const userId = sessionUserId;
     (revalidateTag as (tag: string) => void)(`user-stats-${userId}`);
     (revalidateTag as (tag: string) => void)(`user-achievements-${userId}`);
     (revalidateTag as any)(`user-dashboard-${userId}`);

@@ -11,7 +11,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { SubmitQuizAttemptInput, SubjectDomainMetric, MentorGuidance } from "@/types/quiz";
 import { generateContentWithFallback } from "@/lib/gemini-fallback";
 import { normalizeTaxonomy } from "@/lib/error-taxonomy";
-import { syncErrorToFlashcardCore } from "@/actions/error-notebook-actions";
+import { syncErrorToFlashcardCore } from "@/lib/error-flashcard-sync";
 import { SubmitQuizAttemptSchema } from "@/lib/validations/quiz.schema";
 import { checkAiQuota, consumeAiQuota } from "@/lib/ai-quota-service";
 
@@ -223,11 +223,17 @@ export async function submitQuizAttemptAction(input: SubmitQuizAttemptInput) {
 export async function getSubjectDomainStatsAction(userIdParam?: string) {
   try {
     const session = await auth();
-    const userId = userIdParam || session?.user?.id;
+    const sessionUserId = session?.user?.id;
 
-    if (!userId) {
+    if (!sessionUserId) {
       return { success: false, error: "Usuário não autenticado." };
     }
+
+    if (userIdParam && userIdParam !== sessionUserId && userIdParam !== "demo-user-id") {
+      return { success: false, error: "Acesso negado: violação de posse de recurso (IDOR)." };
+    }
+
+    const userId = sessionUserId;
 
     const subjects = await prisma.subject.findMany({
       where: { userId },
