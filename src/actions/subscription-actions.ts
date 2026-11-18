@@ -38,25 +38,32 @@ export async function getCurrentPlanStatusAction(): Promise<PlanStatusResult> {
       where: { id: userId },
       select: {
         planTier: true,
+        planExpiresAt: true,
         role: true,
         email: true,
         name: true,
       },
     });
 
-    const isUnlimited =
+    const isAdmin =
       user?.role === "ADMIN" ||
-      user?.planTier === "PREMIUM" ||
-      user?.planTier === "ELITE" ||
       Boolean(
         user?.email &&
           process.env.ADMIN_EMAIL &&
           user.email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase(),
       );
 
+    const isExpired = !isAdmin && user?.planExpiresAt ? user.planExpiresAt.getTime() <= Date.now() : false;
+    const effectivePlanTier: PlanTierType = isExpired ? "FREE" : ((user?.planTier as PlanTierType) || "FREE");
+
+    const isUnlimited =
+      isAdmin ||
+      effectivePlanTier === "PREMIUM" ||
+      effectivePlanTier === "ELITE";
+
     return {
       success: true,
-      planTier: (user?.planTier as PlanTierType) || "FREE",
+      planTier: effectivePlanTier,
       role: user?.role || "USER",
       isUnlimited,
       userEmail: user?.email,
